@@ -3,8 +3,14 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import MainLayout from "@/components/MainLayout";
+import Index from "./pages/Index";
+import ForumPage from "./pages/ForumPage";
+import MembershipsPage from "./pages/MembershipsPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import EmulatorPage from "./pages/EmulatorPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -15,8 +21,41 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/arcade" element={<ForumPage />} />
+            <Route path="/arcade/salas" element={<EmulatorPage />} />
+            <Route path="/arcade/biblioteca" element={<ForumPage />} />
+            <Route path="/arcade/leaderboards" element={<ForumPage />} />
+            <Route path="/gaming-anime" element={<ForumPage />} />
+            <Route path="/gaming-anime/foro" element={<ForumPage />} />
+            <Route path="/gaming-anime/anime" element={<ForumPage />} />
+            <Route path="/gaming-anime/creador" element={<ForumPage />} />
+            <Route path="/motociclismo" element={<ForumPage />} />
+            <Route path="/motociclismo/riders" element={<ForumPage />} />
+            <Route path="/motociclismo/taller" element={<ForumPage />} />
+            <Route path="/motociclismo/rutas" element={<ForumPage />} />
+            <Route path="/mercado" element={<ForumPage />} />
+            <Route path="/mercado/gaming" element={<ForumPage />} />
+            <Route path="/mercado/motor" element={<ForumPage />} />
+            <Route path="/social" element={<ForumPage />} />
+            <Route path="/social/feed" element={<ForumPage />} />
+            <Route path="/social/reels" element={<ForumPage />} />
+            <Route path="/social/fotos" element={<ForumPage />} />
+            <Route path="/trending" element={<ForumPage />} />
+            <Route path="/eventos" element={<ForumPage />} />
+            <Route path="/membresias" element={<MembershipsPage />} />
+            <Route path="/ayuda" element={<ForumPage />} />
+            <Route path="/reglas" element={<ForumPage />} />
+            <Route path="/contacto" element={<ForumPage />} />
+            <Route path="/privacidad" element={<ForumPage />} />
+            <Route path="/faq" element={<ForumPage />} />
+            <Route path="/perfil" element={<ForumPage />} />
+            <Route path="/configuracion" element={<ForumPage />} />
+            <Route path="/mensajes" element={<ForumPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/registro" element={<RegisterPage />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
