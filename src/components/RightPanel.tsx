@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/forbiddens_logo.svg";
+import { cn } from "@/lib/utils";
 
 interface TopUser {
   display_name: string;
@@ -39,10 +40,24 @@ const fallbackNews = [
   { id: "5", title: "Concurso de Fanart: Mejor personaje retro del mes", category: "gaming-anime-creador", upvotes: 20 },
 ];
 
+type TextSize = "sm" | "md" | "lg";
+const textSizeMap: Record<TextSize, { body: string; title: string; stat: string; label: string }> = {
+  sm: { body: "text-[9px]", title: "text-[8px]", stat: "text-[10px]", label: "A" },
+  md: { body: "text-[11px]", title: "text-[10px]", stat: "text-xs", label: "A" },
+  lg: { body: "text-[13px]", title: "text-xs", stat: "text-sm", label: "A" },
+};
+
 export default function RightPanel() {
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
+  const [textSize, setTextSize] = useState<TextSize>("md");
+
+  const sizes = textSizeMap[textSize];
+
+  const cycleSize = () => {
+    setTextSize((prev) => prev === "sm" ? "md" : prev === "md" ? "lg" : "sm");
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -64,7 +79,6 @@ export default function RightPanel() {
       }
     };
     fetchTop();
-
     const channel = supabase
       .channel("top-users")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop())
@@ -72,7 +86,6 @@ export default function RightPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Fetch popular posts for carousel sorted by upvotes
   useEffect(() => {
     const fetchPopular = async () => {
       const { data } = await supabase
@@ -85,7 +98,6 @@ export default function RightPanel() {
       }
     };
     fetchPopular();
-
     const channel = supabase
       .channel("popular-posts")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPopular())
@@ -106,7 +118,6 @@ export default function RightPanel() {
     { display_name: "VintageGamer", total_score: 7100 },
   ];
 
-  // Build link for category
   const getCategoryLink = (cat: string) => {
     const path = cat.replace(/-/g, "/");
     return `/${path}`;
@@ -114,45 +125,59 @@ export default function RightPanel() {
 
   return (
     <aside className="w-full shrink-0 space-y-3 sticky top-16 h-fit">
+      {/* Text size toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={cycleSize}
+          className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
+          title="Cambiar tamaño del texto"
+        >
+          <Type className="w-3 h-3" />
+          <span className={cn("font-body", textSize === "sm" ? "text-[9px]" : textSize === "md" ? "text-[11px]" : "text-[13px]")}>
+            {textSize === "sm" ? "Pequeño" : textSize === "md" ? "Mediano" : "Grande"}
+          </span>
+        </button>
+      </div>
+
       {/* Community Card */}
       <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
         <div className="flex items-center gap-2 mb-2">
           <img src={logo} alt="Forbiddens" className="w-5 h-5" />
           <div>
-            <h3 className="font-pixel text-[8px] text-neon-green text-glow-green">FORBIDDENS</h3>
-            <p className="text-[8px] text-muted-foreground font-body">El foro underground</p>
+            <h3 className={cn("font-pixel text-neon-green text-glow-green", sizes.title)}>FORBIDDENS</h3>
+            <p className={cn("text-muted-foreground font-body", sizes.title)}>El foro underground</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-1 mb-2">
           <div className="text-center">
-            <p className="text-[10px] font-bold text-foreground font-body">12.4k</p>
-            <p className="text-[8px] text-muted-foreground">Miembros</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>12.4k</p>
+            <p className={cn("text-muted-foreground", sizes.title)}>Miembros</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-bold text-neon-green font-body">847</p>
-            <p className="text-[8px] text-muted-foreground">Online</p>
+            <p className={cn("font-bold text-neon-green font-body", sizes.stat)}>847</p>
+            <p className={cn("text-muted-foreground", sizes.title)}>Online</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-bold text-foreground font-body">3.2k</p>
-            <p className="text-[8px] text-muted-foreground">Posts</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>3.2k</p>
+            <p className={cn("text-muted-foreground", sizes.title)}>Posts</p>
           </div>
         </div>
-        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[9px] h-6 transition-all duration-200">
+        <Button asChild className={cn("w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6 transition-all duration-200", sizes.body)}>
           <Link to="/registro">Unirse</Link>
         </Button>
       </div>
 
-      {/* News Carousel - sorted by popularity */}
+      {/* News Carousel */}
       <div className="bg-card border border-neon-cyan/30 rounded p-2.5 transition-all duration-300">
-        <h3 className="font-pixel text-[8px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
+        <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
           <Newspaper className="w-3 h-3" /> TRENDING
         </h3>
         <Link to={getCategoryLink(news?.category || "trending")} className="block relative min-h-[50px] group">
           <div key={news?.id} className="animate-fade-in">
-            <span className={`text-[8px] font-body font-medium ${catInfo.color}`}>{catInfo.label}</span>
-            <p className="text-[9px] font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors">{news?.title}</p>
+            <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
+            <p className={cn("font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors", sizes.body)}>{news?.title}</p>
             {news?.upvotes > 0 && (
-              <span className="text-[8px] text-neon-green font-body">▲ {news.upvotes}</span>
+              <span className={cn("text-neon-green font-body", sizes.title)}>▲ {news.upvotes}</span>
             )}
           </div>
         </Link>
@@ -181,12 +206,12 @@ export default function RightPanel() {
 
       {/* Top Usuarios */}
       <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
-        <h3 className="font-pixel text-[8px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
+        <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
           <Trophy className="w-3 h-3" /> TOP USUARIOS
         </h3>
         <div className="space-y-1 font-body">
           {displayUsers.map((user, i) => (
-            <div key={user.display_name} className="flex items-center gap-1 text-[9px]">
+            <div key={user.display_name} className={cn("flex items-center gap-1", sizes.body)}>
               <span className="text-muted-foreground w-3 text-right">{i + 1}</span>
               <span className="text-foreground flex-1 truncate">{badges[i] || "🎯"} {user.display_name}</span>
               <span className="text-neon-green">{user.total_score.toLocaleString()}</span>
@@ -197,8 +222,8 @@ export default function RightPanel() {
 
       {/* Reglas */}
       <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
-        <h3 className="font-pixel text-[8px] text-muted-foreground mb-1">REGLAS</h3>
-        <ol className="space-y-0.5 text-[9px] text-muted-foreground font-body list-decimal list-inside">
+        <h3 className={cn("font-pixel text-muted-foreground mb-1", sizes.title)}>REGLAS</h3>
+        <ol className={cn("space-y-0.5 text-muted-foreground font-body list-decimal list-inside", sizes.body)}>
           <li>Respeta a todos</li>
           <li>No spam</li>
           <li>Contenido apropiado</li>
