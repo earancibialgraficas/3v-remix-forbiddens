@@ -147,6 +147,16 @@
     50% { opacity: 0; }
   }
 
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+
   .animate-flicker {
     animation: flicker 3s infinite;
   }
@@ -161,5 +171,13 @@
 
   .animate-blink {
     animation: blink-cursor 1s step-end infinite;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.3s ease-out forwards;
   }
 }
