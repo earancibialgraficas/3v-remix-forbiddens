@@ -45,7 +45,7 @@ export default function MainLayout() {
         </div>
       )}
 
-      <main className="flex-1 min-w-0 pt-14">
+      <main className="flex-1 min-w-0 pt-12">
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0 animate-fade-in">
             <Outlet />
