@@ -10,6 +10,9 @@ import MembershipsPage from "./pages/MembershipsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import EmulatorPage from "./pages/EmulatorPage";
+import BibliotecaPage from "./pages/BibliotecaPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import ConsejosPage from "./pages/ConsejosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,10 +26,10 @@ const App = () => (
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Index />} />
-            <Route path="/arcade" element={<ForumPage />} />
             <Route path="/arcade/salas" element={<EmulatorPage />} />
-            <Route path="/arcade/biblioteca" element={<ForumPage />} />
-            <Route path="/arcade/leaderboards" element={<ForumPage />} />
+            <Route path="/arcade/biblioteca" element={<BibliotecaPage />} />
+            <Route path="/arcade/leaderboards" element={<LeaderboardPage />} />
+            <Route path="/arcade/consejos" element={<ConsejosPage />} />
             <Route path="/gaming-anime" element={<ForumPage />} />
             <Route path="/gaming-anime/foro" element={<ForumPage />} />
             <Route path="/gaming-anime/anime" element={<ForumPage />} />
