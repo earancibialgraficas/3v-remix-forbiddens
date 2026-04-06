@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Gamepad2, Upload, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { allGames } from "@/lib/gameLibrary";
 
 type ConsoleType = "nes" | "snes" | "gba";
 
@@ -12,11 +14,30 @@ const consoles: { id: ConsoleType; label: string; core: string; color: string }[
 ];
 
 export default function EmulatorPage() {
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>("nes");
+  const [searchParams] = useSearchParams();
+  const gameId = searchParams.get("game");
+  const consoleParam = searchParams.get("console") as ConsoleType | null;
+
+  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>(consoleParam || "nes");
   const [romLoaded, setRomLoaded] = useState(false);
   const [romName, setRomName] = useState("");
   const emulatorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-load game from library
+  useEffect(() => {
+    if (gameId) {
+      const game = allGames.find((g) => g.id === gameId);
+      if (game) {
+        setSelectedConsole(game.console);
+        setRomName(game.name);
+        fetch(game.romUrl)
+          .then((res) => res.arrayBuffer())
+          .then((data) => startEmulator(data, game.console))
+          .catch((err) => console.error("Error loading ROM:", err));
+      }
+    }
+  }, [gameId]);
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -26,31 +47,27 @@ export default function EmulatorPage() {
     const reader = new FileReader();
     reader.onload = () => {
       const data = reader.result as ArrayBuffer;
-      startEmulator(data);
+      startEmulator(data, selectedConsole);
     };
     reader.readAsArrayBuffer(file);
   };
 
-  const startEmulator = (romData: ArrayBuffer) => {
+  const startEmulator = (romData: ArrayBuffer, console_type: ConsoleType) => {
     if (!emulatorRef.current) return;
 
-    // Clear previous emulator
     emulatorRef.current.innerHTML = "";
 
-    const consoleInfo = consoles.find((c) => c.id === selectedConsole)!;
+    const consoleInfo = consoles.find((c) => c.id === console_type)!;
 
-    // Create EmulatorJS instance
     const div = document.createElement("div");
     div.id = "game";
     div.style.width = "100%";
     div.style.height = "100%";
     emulatorRef.current.appendChild(div);
 
-    // Convert ArrayBuffer to base64 URL
     const blob = new Blob([romData]);
     const url = URL.createObjectURL(blob);
 
-    // Set EmulatorJS globals
     (window as any).EJS_player = "#game";
     (window as any).EJS_core = consoleInfo.core;
     (window as any).EJS_gameUrl = url;
@@ -58,7 +75,6 @@ export default function EmulatorPage() {
     (window as any).EJS_color = "#22c55e";
     (window as any).EJS_startOnLoaded = true;
 
-    // Load EmulatorJS script
     const existingScript = document.querySelector('script[src*="emulatorjs"]');
     if (existingScript) existingScript.remove();
 
@@ -76,7 +92,7 @@ export default function EmulatorPage() {
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
           <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
         </h1>
-        <p className="text-xs text-muted-foreground font-body">Carga tu ROM y juega directamente en el navegador</p>
+        <p className="text-xs text-muted-foreground font-body">Carga tu ROM o selecciona un juego de la biblioteca para jugar</p>
       </div>
 
       {/* Console selector */}
