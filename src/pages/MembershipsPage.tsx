@@ -44,7 +44,7 @@ export default function MembershipsPage() {
               tier.highlight && "ring-1 ring-neon-yellow/30"
             )}
           >
-            <h3 className={cn("font-pixel text-[11px] mb-1", tier.textColor)}>{tier.name}</h3>
+            <h3 className={cn("font-body text-sm font-bold mb-1 tracking-wide", tier.textColor)}>{tier.name}</h3>
             <p className="text-lg font-bold font-body text-foreground mb-3">{tier.price}</p>
             {tier.requirement && (
               <p className="text-[10px] text-muted-foreground font-body mb-2 italic">Requisito: {tier.requirement}</p>

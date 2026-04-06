@@ -10,7 +10,7 @@ const categories = [
     color: "text-neon-green",
     borderClass: "border-neon-green/30 hover:border-neon-green/60",
     glowClass: "text-glow-green",
-    link: "/arcade",
+    link: "/arcade/salas",
     subs: ["NES / SNES / GBA", "Biblioteca de Juegos", "Clasificaciones"],
   },
   {
@@ -25,7 +25,7 @@ const categories = [
   },
   {
     title: "Motociclismo",
-    description: "Riders, mecánica, rutas y quedadas",
+    description: "Riders, tutoriales, manuales y consejos que ofrezcan",
     icon: Bike,
     color: "text-neon-magenta",
     borderClass: "border-neon-magenta/30 hover:border-neon-magenta/60",

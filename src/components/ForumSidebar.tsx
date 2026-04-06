@@ -3,11 +3,17 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, Bell, User, LogIn, Settings, BookOpen
+  Search, Bell, User, LogIn, Settings, BookOpen, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NavItem {
   label: string;
@@ -75,6 +81,7 @@ interface ForumSidebarProps {
 export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
+  const { user, profile, signOut } = useAuth();
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) =>
@@ -113,12 +120,21 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                 <Settings className="w-3.5 h-3.5" />
               </Link>
             </Button>
-            <Button size="sm" className="h-7 bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[10px] gap-1 ml-auto transition-all duration-200" asChild>
-              <Link to="/login">
-                <LogIn className="w-3 h-3" />
-                Entrar
-              </Link>
-            </Button>
+            {user ? (
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-[9px] font-body text-neon-green truncate max-w-[60px]">{profile?.display_name}</span>
+                <Button size="sm" variant="ghost" onClick={signOut} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                  <LogOut className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" className="h-7 bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[10px] gap-1 ml-auto transition-all duration-200" asChild>
+                <Link to="/login">
+                  <LogIn className="w-3 h-3" />
+                  Entrar
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -128,6 +144,40 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
           const isActive = location.pathname === item.to;
           const isExpanded = expandedItems.includes(item.label);
           const hasChildren = item.children && item.children.length > 0;
+
+          // When collapsed, show tooltip with children on hover
+          if (collapsed) {
+            return (
+              <Tooltip key={item.label} delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={item.to}
+                    className={cn(
+                      "flex items-center justify-center p-2 rounded transition-all duration-200",
+                      isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className={cn("w-4 h-4", item.color)} />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-card border-border p-2 space-y-1">
+                  <p className={cn("text-xs font-body font-medium", item.color)}>{item.label}</p>
+                  {hasChildren && item.children!.map((child) => (
+                    <Link
+                      key={child.to}
+                      to={child.to}
+                      className={cn(
+                        "block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 transition-colors",
+                        location.pathname === child.to ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {child.label}
+                    </Link>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
 
           return (
             <div key={item.label}>
@@ -142,9 +192,9 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                   )}
                 >
                   <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
+                  <span className="truncate">{item.label}</span>
                 </Link>
-                {!collapsed && hasChildren && (
+                {hasChildren && (
                   <button
                     onClick={() => toggleExpand(item.label)}
                     className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-200"
@@ -157,7 +207,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <div
                 className={cn(
                   "ml-6 space-y-0.5 overflow-hidden transition-all duration-300",
-                  !collapsed && hasChildren && isExpanded ? "max-h-40 mt-0.5 opacity-100" : "max-h-0 opacity-0"
+                  hasChildren && isExpanded ? "max-h-40 mt-0.5 opacity-100" : "max-h-0 opacity-0"
                 )}
               >
                 {hasChildren && item.children!.map((child) => (
