@@ -2,18 +2,25 @@ import { useState, useEffect } from "react";
 import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/forbiddens_logo.svg";
 
 const featuredNews = [
-  { id: 1, title: "Torneo Retro de Super Mario Bros 3 — ¡Inscripciones abiertas!", category: "Zona Arcade", color: "text-neon-green" },
-  { id: 2, title: "One Piece capítulo 1150: Discusión semanal", category: "Anime & Manga", color: "text-neon-cyan" },
-  { id: 3, title: "Rodada nocturna CDMX — Sábado 12 de Abril", category: "Motociclismo", color: "text-neon-magenta" },
-  { id: 4, title: "Nuevo emulador GBA disponible en la Zona Arcade", category: "Zona Arcade", color: "text-neon-green" },
-  { id: 5, title: "Concurso de Fanart: Mejor personaje retro del mes", category: "Rincón del Creador", color: "text-neon-orange" },
+  { id: 1, title: "Torneo Retro de Super Mario Bros 3 — ¡Inscripciones abiertas!", category: "Zona Arcade", color: "text-neon-green", link: "/eventos" },
+  { id: 2, title: "One Piece capítulo 1150: Discusión semanal", category: "Anime & Manga", color: "text-neon-cyan", link: "/gaming-anime/anime" },
+  { id: 3, title: "Rodada nocturna CDMX — Sábado 12 de Abril", category: "Motociclismo", color: "text-neon-magenta", link: "/eventos" },
+  { id: 4, title: "Nuevo emulador GBA disponible en la Zona Arcade", category: "Zona Arcade", color: "text-neon-green", link: "/arcade/salas" },
+  { id: 5, title: "Concurso de Fanart: Mejor personaje retro del mes", category: "Rincón del Creador", color: "text-neon-orange", link: "/gaming-anime/creador" },
 ];
+
+interface TopUser {
+  display_name: string;
+  total_score: number;
+}
 
 export default function RightPanel() {
   const [currentNews, setCurrentNews] = useState(0);
+  const [topUsers, setTopUsers] = useState<TopUser[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -22,98 +29,123 @@ export default function RightPanel() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch real top users from profiles
+  useEffect(() => {
+    const fetchTop = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, total_score")
+        .order("total_score", { ascending: false })
+        .limit(5);
+      if (data && data.length > 0) {
+        setTopUsers(data as unknown as TopUser[]);
+      }
+    };
+    fetchTop();
+
+    // Realtime updates
+    const channel = supabase
+      .channel("top-users")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const news = featuredNews[currentNews];
+  const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
+
+  const displayUsers = topUsers.length > 0 ? topUsers : [
+    { display_name: "RetroKing_99", total_score: 14230 },
+    { display_name: "OtakuSamurai", total_score: 11890 },
+    { display_name: "RiderNocturno", total_score: 9450 },
+    { display_name: "CosplayQueen", total_score: 8720 },
+    { display_name: "VintageGamer", total_score: 7100 },
+  ];
 
   return (
-    <aside className="w-56 shrink-0 space-y-3 sticky top-16 h-fit">
+    <aside className="w-48 shrink-0 space-y-3 sticky top-16 h-fit">
       {/* Community Card */}
-      <div className="bg-card border border-border rounded p-3 transition-all duration-300">
+      <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
         <div className="flex items-center gap-2 mb-2">
-          <img src={logo} alt="Forbiddens" className="w-6 h-6" />
+          <img src={logo} alt="Forbiddens" className="w-5 h-5" />
           <div>
-            <h3 className="font-pixel text-[9px] text-neon-green text-glow-green">FORBIDDENS</h3>
-            <p className="text-[9px] text-muted-foreground font-body">El foro underground</p>
+            <h3 className="font-pixel text-[8px] text-neon-green text-glow-green">FORBIDDENS</h3>
+            <p className="text-[8px] text-muted-foreground font-body">El foro underground</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-1 mb-2">
           <div className="text-center">
-            <p className="text-xs font-bold text-foreground font-body">12.4k</p>
-            <p className="text-[9px] text-muted-foreground">Miembros</p>
+            <p className="text-[10px] font-bold text-foreground font-body">12.4k</p>
+            <p className="text-[8px] text-muted-foreground">Miembros</p>
           </div>
           <div className="text-center">
-            <p className="text-xs font-bold text-neon-green font-body">847</p>
-            <p className="text-[9px] text-muted-foreground">Online</p>
+            <p className="text-[10px] font-bold text-neon-green font-body">847</p>
+            <p className="text-[8px] text-muted-foreground">Online</p>
           </div>
           <div className="text-center">
-            <p className="text-xs font-bold text-foreground font-body">3.2k</p>
-            <p className="text-[9px] text-muted-foreground">Posts</p>
+            <p className="text-[10px] font-bold text-foreground font-body">3.2k</p>
+            <p className="text-[8px] text-muted-foreground">Posts</p>
           </div>
         </div>
-        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[10px] h-7 transition-all duration-200">
+        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[9px] h-6 transition-all duration-200">
           <Link to="/registro">Unirse</Link>
         </Button>
       </div>
 
       {/* News Carousel */}
-      <div className="bg-card border border-neon-cyan/30 rounded p-3 transition-all duration-300">
-        <h3 className="font-pixel text-[9px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
+      <div className="bg-card border border-neon-cyan/30 rounded p-2.5 transition-all duration-300">
+        <h3 className="font-pixel text-[8px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
           <Newspaper className="w-3 h-3" /> NOTICIAS
         </h3>
-        <div className="relative min-h-[60px]">
+        <Link to={news.link} className="block relative min-h-[50px] group">
           <div key={news.id} className="animate-fade-in">
-            <span className={`text-[9px] font-body font-medium ${news.color}`}>{news.category}</span>
-            <p className="text-[10px] font-body text-foreground mt-0.5 leading-relaxed">{news.title}</p>
+            <span className={`text-[8px] font-body font-medium ${news.color}`}>{news.category}</span>
+            <p className="text-[9px] font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors">{news.title}</p>
           </div>
-        </div>
+        </Link>
         <div className="flex items-center justify-between mt-2">
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             {featuredNews.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentNews(i)}
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  i === currentNews ? "bg-neon-cyan w-3" : "bg-muted-foreground/40"
+                className={`w-1 h-1 rounded-full transition-all duration-300 ${
+                  i === currentNews ? "bg-neon-cyan w-2.5" : "bg-muted-foreground/40"
                 }`}
               />
             ))}
           </div>
           <div className="flex gap-0.5">
             <button onClick={() => setCurrentNews((p) => (p - 1 + featuredNews.length) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronLeft className="w-3 h-3" />
+              <ChevronLeft className="w-2.5 h-2.5" />
             </button>
             <button onClick={() => setCurrentNews((p) => (p + 1) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-2.5 h-2.5" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Top Usuarios */}
-      <div className="bg-card border border-border rounded p-3 transition-all duration-300">
-        <h3 className="font-pixel text-[9px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
+      <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
+        <h3 className="font-pixel text-[8px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
           <Trophy className="w-3 h-3" /> TOP USUARIOS
         </h3>
-        <div className="space-y-1.5 font-body">
-          {[
-            { name: "RetroKing_99", points: "14,230", badge: "🏆" },
-            { name: "OtakuSamurai", points: "11,890", badge: "⚔️" },
-            { name: "RiderNocturno", points: "9,450", badge: "🏍️" },
-            { name: "CosplayQueen", points: "8,720", badge: "👑" },
-            { name: "VintageGamer", points: "7,100", badge: "🎮" },
-          ].map((user, i) => (
-            <div key={user.name} className="flex items-center gap-1.5 text-[10px]">
+        <div className="space-y-1 font-body">
+          {displayUsers.map((user, i) => (
+            <div key={user.display_name} className="flex items-center gap-1 text-[9px]">
               <span className="text-muted-foreground w-3 text-right">{i + 1}</span>
-              <span className="text-foreground flex-1 truncate">{user.badge} {user.name}</span>
-              <span className="text-neon-green">{user.points}</span>
+              <span className="text-foreground flex-1 truncate">{badges[i] || "🎯"} {user.display_name}</span>
+              <span className="text-neon-green">{user.total_score.toLocaleString()}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Reglas */}
-      <div className="bg-card border border-border rounded p-3 transition-all duration-300">
-        <h3 className="font-pixel text-[9px] text-muted-foreground mb-1.5">REGLAS</h3>
-        <ol className="space-y-1 text-[10px] text-muted-foreground font-body list-decimal list-inside">
+      <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
+        <h3 className="font-pixel text-[8px] text-muted-foreground mb-1">REGLAS</h3>
+        <ol className="space-y-0.5 text-[9px] text-muted-foreground font-body list-decimal list-inside">
           <li>Respeta a todos</li>
           <li>No spam</li>
           <li>Contenido apropiado</li>
