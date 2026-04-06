@@ -1,5 +1,3 @@
-const GITHUB_RAW = "https://raw.githubusercontent.com/earancibialgraficas/final-portfolio-replicator/main/public";
-
 export interface GameEntry {
   id: string;
   name: string;
@@ -9,48 +7,43 @@ export interface GameEntry {
 }
 
 export const nesGames: GameEntry[] = [
-  { id: "alien3", name: "Alien 3", console: "nes", romUrl: `${GITHUB_RAW}/roms/Alien_3_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/alien3.jpg` },
-  { id: "asterix", name: "Asterix", console: "nes", romUrl: `${GITHUB_RAW}/roms/Asterix_(E).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/asterix.jpg` },
-  { id: "contra", name: "Contra", console: "nes", romUrl: `${GITHUB_RAW}/roms/Contra_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/contra.jpg` },
-  { id: "darkman", name: "Darkman", console: "nes", romUrl: `${GITHUB_RAW}/roms/Darkman_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/darkman.jpg` },
-  { id: "godzilla", name: "Godzilla", console: "nes", romUrl: `${GITHUB_RAW}/roms/Godzilla_-_Monster_of_Monsters!_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/godzilla.jpg` },
-  { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: `${GITHUB_RAW}/roms/Gravity_Armor_Metal_Storm_(Tr).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/metalstorm.jpg` },
-  { id: "kof99", name: "King of Fighters 99", console: "nes", romUrl: `${GITHUB_RAW}/roms/King_of_Fighters_99.nes`, coverUrl: `${GITHUB_RAW}/roms/covers/kof99.jpg` },
-  { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: `${GITHUB_RAW}/roms/Kirby's_Adventure_(USA)_(Rev_1).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/kirby.jpg` },
-  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: `${GITHUB_RAW}/roms/MetalMech_-_Man_%26_Machine_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/metalmech.jpg` },
-  { id: "metroid", name: "Metroid", console: "nes", romUrl: `${GITHUB_RAW}/roms/Metroid_(U).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
-  { id: "sonic3d", name: "Sonic 3D Blast 5", console: "nes", romUrl: `${GITHUB_RAW}/roms/Sonic_3D_Blast_5_%5B!%5D.nes`, coverUrl: `${GITHUB_RAW}/roms/covers/sonic3d.jpg` },
-  { id: "spiderman", name: "Spider-Man", console: "nes", romUrl: `${GITHUB_RAW}/roms/Spider-Man_-_Return_of_the_Sinister_Six_(USA).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/spiderman.jpg` },
-  { id: "mario3", name: "Super Mario Bros. 3", console: "nes", romUrl: `${GITHUB_RAW}/roms/Super_Mario_Bros._3_(USA)_(Rev_1).nes`, coverUrl: `${GITHUB_RAW}/roms/covers/mario3.jpg` },
-  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: `${GITHUB_RAW}/roms/Super_Mario_Bros_2_(E)_%5Bh1%5D.nes`, coverUrl: `${GITHUB_RAW}/roms/covers/mario2.jpg` },
+  { id: "alien3", name: "Alien 3", console: "nes", romUrl: "/roms/nes/Alien_3_(USA).nes", coverUrl: "/roms/covers/alien3.jpg" },
+  { id: "asterix", name: "Asterix", console: "nes", romUrl: "/roms/nes/Asterix_(E).nes", coverUrl: "/roms/covers/asterix.jpg" },
+  { id: "contra", name: "Contra", console: "nes", romUrl: "/roms/nes/Contra_(USA).nes", coverUrl: "/roms/covers/contra.jpg" },
+  { id: "darkman", name: "Darkman", console: "nes", romUrl: "/roms/nes/Darkman_(USA).nes", coverUrl: "/roms/covers/darkman.jpg" },
+  { id: "godzilla", name: "Godzilla", console: "nes", romUrl: "/roms/nes/Godzilla_-_Monster_of_Monsters!_(USA).nes", coverUrl: "/roms/covers/godzilla.jpg" },
+  { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: "/roms/nes/Gravity_Armor_Metal_Storm_(Tr).nes", coverUrl: "/roms/covers/metalstorm.jpg" },
+  { id: "kof99", name: "King of Fighters 99", console: "nes", romUrl: "/roms/nes/King_of_Fighters_99.nes", coverUrl: "/roms/covers/kof99.jpg" },
+  { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: "/roms/nes/Kirby's_Adventure_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/kirby.jpg" },
+  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_&_Machine_(USA).nes", coverUrl: "/roms/covers/metalmech.jpg" },
+  { id: "metroid", name: "Metroid", console: "nes", romUrl: "/roms/nes/Metroid_(U).nes", coverUrl: "/roms/covers/metroid.jpg" },
+  { id: "sonic3d", name: "Sonic 3D Blast 5", console: "nes", romUrl: "/roms/nes/Sonic_3D_Blast_5_[!].nes", coverUrl: "/roms/covers/sonic3d.jpg" },
+  { id: "spiderman", name: "Spider-Man", console: "nes", romUrl: "/roms/nes/Spider-Man_-_Return_of_the_Sinister_Six_(USA).nes", coverUrl: "/roms/covers/spiderman.jpg" },
+  { id: "mario3", name: "Super Mario Bros. 3", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros._3_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/mario3.jpg" },
+  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_2_(E)_[h1].nes", coverUrl: "/roms/covers/mario2.jpg" },
+  { id: "mario3alt", name: "Super Mario Bros. 3 (Alt)", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_3_(U)_(PRG_1)_[h1].nes", coverUrl: "/roms/covers/mario3.jpg" },
 ];
 
 export const snesGames: GameEntry[] = [
-  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Chrono_Trigger_(USA).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/contra.jpg` },
-  { id: "contra3", name: "Contra III", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Contra_III_(USA).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/contra.jpg` },
-  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Donkey_Kong_Country_3_(EUR).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/kirby.jpg` },
-  { id: "doom", name: "Doom", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Doom_(USA).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/alien3.jpg` },
-  { id: "fzero", name: "F-Zero", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/F-Zero_(EUR).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/sonic3d.jpg` },
-  { id: "ki", name: "Killer Instinct", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Killer_Instinct_(EUR).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/kof99.jpg` },
-  { id: "kirbyss", name: "Kirby Super Star", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Kirby_Super_Star_(USA).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/kirby.jpg` },
-  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Legend_of_Zelda%2C_The_-_A_Link_to_the_Past_(U)_%5B!%5D.smc`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
-  { id: "mmx3", name: "Megaman X3", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Megaman_X3_(USA).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/spiderman.jpg` },
-  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/sonic3d.jpg` },
-  { id: "smw", name: "Super Mario World", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Super_Mario_World_(EUR).sfc`, coverUrl: `${GITHUB_RAW}/roms/covers/mario3.jpg` },
-  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Super_Metroid_(JU)_%5B!%5D.smc`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
+  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/contra.jpg" },
+  { id: "contra3", name: "Contra III", console: "snes", romUrl: "/roms/snes/Contra_III_(USA).sfc", coverUrl: "/roms/covers/contra.jpg" },
+  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/kirby.jpg" },
+  { id: "doom", name: "Doom", console: "snes", romUrl: "/roms/snes/Doom_(USA).sfc", coverUrl: "/roms/covers/alien3.jpg" },
+  { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/sonic3d.jpg" },
+  { id: "ki", name: "Killer Instinct", console: "snes", romUrl: "/roms/snes/Killer_Instinct_(EUR).sfc", coverUrl: "/roms/covers/kof99.jpg" },
+  { id: "kirbyss", name: "Kirby Super Star", console: "snes", romUrl: "/roms/snes/Kirby_Super_Star_(USA).sfc", coverUrl: "/roms/covers/kirby.jpg" },
+  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: "/roms/snes/Legend_of_Zelda,_The_-_A_Link_to_the_Past_(U)_[!].smc", coverUrl: "/roms/covers/metroid.jpg" },
+  { id: "mmx3", name: "Megaman X3", console: "snes", romUrl: "/roms/snes/Megaman_X3_(USA).sfc", coverUrl: "/roms/covers/spiderman.jpg" },
+  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/sonic3d.jpg" },
+  { id: "smw", name: "Super Mario World", console: "snes", romUrl: "/roms/snes/Super_Mario_World_(EUR).sfc", coverUrl: "/roms/covers/mario3.jpg" },
+  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_[!].smc", coverUrl: "/roms/covers/metroid.jpg" },
 ];
 
 export const gbaGames: GameEntry[] = [
-  { id: "gba-pokemon-emerald", name: "Pokémon Emerald", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Pokemon_Emerald_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
-  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Metroid_Fusion_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
-  { id: "gba-zelda-minish", name: "Zelda: Minish Cap", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Zelda_Minish_Cap_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
-  { id: "gba-mario-advance", name: "Super Mario Advance", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Super_Mario_Advance_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/mario3.jpg` },
-  { id: "gba-castlevania-aria", name: "Castlevania: Aria of Sorrow", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Castlevania_Aria_of_Sorrow_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/darkman.jpg` },
-  { id: "gba-fire-emblem", name: "Fire Emblem", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Fire_Emblem_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/kof99.jpg` },
-  { id: "gba-advance-wars", name: "Advance Wars", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Advance_Wars_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/alien3.jpg` },
-  { id: "gba-golden-sun", name: "Golden Sun", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Golden_Sun_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/sonic3d.jpg` },
-  { id: "gba-megaman-zero", name: "Megaman Zero", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Megaman_Zero_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/spiderman.jpg` },
-  { id: "gba-kirby-nightmare", name: "Kirby: Nightmare in Dream Land", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Kirby_Nightmare_in_Dream_Land_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/kirby.jpg` },
+  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: "/roms/gba/Metroid Fusion (USA).gba", coverUrl: "/roms/covers/gba/metroid fusion.jpeg" },
+  { id: "gba-crash", name: "Crash Bandicoot: Huge Adventure", console: "gba", romUrl: "/roms/gba/Crash Bandicoot - The Huge Adventure (USA).gba", coverUrl: "/roms/covers/gba/crash bandicoot.jpeg" },
+  { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840 - Metal Slug Advance (E)(TRSI).gba", coverUrl: "/roms/covers/gba/metal slug.jpg" },
+  { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need for Speed - Most Wanted (USA, Europe) (En,Fr,De,It).gba", coverUrl: "/roms/covers/gba/NFS most wanted.jpeg" },
 ];
 
 export const allGames = [...nesGames, ...snesGames, ...gbaGames];
