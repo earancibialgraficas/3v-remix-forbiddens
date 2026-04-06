@@ -181,7 +181,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
         </div>
       )}
 
-      <nav className={cn("px-1 space-y-0.5 flex-1", collapsed ? "pt-[15%] py-1" : "py-2")}>
+      <nav className={cn("px-1 space-y-0.5", collapsed ? "flex-1 flex flex-col justify-center py-1" : "flex-1 py-2")}>
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           const isExpanded = expandedItems.includes(item.label);
