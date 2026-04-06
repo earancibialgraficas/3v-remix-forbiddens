@@ -10,7 +10,7 @@ const categories = [
     color: "text-neon-green",
     borderClass: "border-neon-green/30 hover:border-neon-green/60",
     glowClass: "text-glow-green",
-    link: "/arcade",
+    link: "/arcade/salas",
     subs: ["NES / SNES / GBA", "Biblioteca de Juegos", "Clasificaciones"],
   },
   {
