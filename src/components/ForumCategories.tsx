@@ -25,7 +25,7 @@ const categories = [
   },
   {
     title: "Motociclismo",
-    description: "Riders, mecánica, rutas y quedadas",
+    description: "Riders, tutoriales, manuales y consejos que ofrezcan",
     icon: Bike,
     color: "text-neon-magenta",
     borderClass: "border-neon-magenta/30 hover:border-neon-magenta/60",
