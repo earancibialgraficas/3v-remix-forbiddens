@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          membership_tier: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          membership_tier?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          membership_tier?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -118,6 +166,36 @@ export type Database = {
           play_time_seconds?: number
           score?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          dislikes: number
+          id: string
+          image_url: string
+          likes: number
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          dislikes?: number
+          id?: string
+          image_url: string
+          likes?: number
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          dislikes?: number
+          id?: string
+          image_url?: string
+          likes?: number
           user_id?: string
         }
         Relationships: []
