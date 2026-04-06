@@ -3,7 +3,7 @@ const GITHUB_RAW = "https://raw.githubusercontent.com/earancibialgraficas/final-
 export interface GameEntry {
   id: string;
   name: string;
-  console: "nes" | "snes";
+  console: "nes" | "snes" | "gba";
   romUrl: string;
   coverUrl: string;
 }
@@ -40,4 +40,17 @@ export const snesGames: GameEntry[] = [
   { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: `${GITHUB_RAW}/roms/snes/Super_Metroid_(JU)_%5B!%5D.smc`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
 ];
 
-export const allGames = [...nesGames, ...snesGames];
+export const gbaGames: GameEntry[] = [
+  { id: "gba-pokemon-emerald", name: "Pokémon Emerald", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Pokemon_Emerald_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
+  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Metroid_Fusion_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
+  { id: "gba-zelda-minish", name: "Zelda: Minish Cap", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Zelda_Minish_Cap_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/metroid.jpg` },
+  { id: "gba-mario-advance", name: "Super Mario Advance", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Super_Mario_Advance_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/mario3.jpg` },
+  { id: "gba-castlevania-aria", name: "Castlevania: Aria of Sorrow", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Castlevania_Aria_of_Sorrow_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/darkman.jpg` },
+  { id: "gba-fire-emblem", name: "Fire Emblem", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Fire_Emblem_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/kof99.jpg` },
+  { id: "gba-advance-wars", name: "Advance Wars", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Advance_Wars_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/alien3.jpg` },
+  { id: "gba-golden-sun", name: "Golden Sun", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Golden_Sun_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/sonic3d.jpg` },
+  { id: "gba-megaman-zero", name: "Megaman Zero", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Megaman_Zero_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/spiderman.jpg` },
+  { id: "gba-kirby-nightmare", name: "Kirby: Nightmare in Dream Land", console: "gba", romUrl: `${GITHUB_RAW}/roms/gba/Kirby_Nightmare_in_Dream_Land_(USA).gba`, coverUrl: `${GITHUB_RAW}/roms/covers/kirby.jpg` },
+];
+
+export const allGames = [...nesGames, ...snesGames, ...gbaGames];

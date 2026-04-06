@@ -2,17 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { nesGames, snesGames, type GameEntry } from "@/lib/gameLibrary";
+import { nesGames, snesGames, gbaGames, type GameEntry } from "@/lib/gameLibrary";
 import { cn } from "@/lib/utils";
 
-type ConsoleFilter = "all" | "nes" | "snes";
+type ConsoleFilter = "all" | "nes" | "snes" | "gba";
 
 export default function BibliotecaPage() {
   const [filter, setFilter] = useState<ConsoleFilter>("all");
   const navigate = useNavigate();
 
-  const games = filter === "all" ? [...nesGames, ...snesGames]
-    : filter === "nes" ? nesGames : snesGames;
+  const games = filter === "all" ? [...nesGames, ...snesGames, ...gbaGames]
+    : filter === "nes" ? nesGames
+    : filter === "snes" ? snesGames
+    : gbaGames;
 
   const handlePlay = (game: GameEntry) => {
     navigate(`/arcade/salas?game=${game.id}&console=${game.console}`);
@@ -30,8 +32,8 @@ export default function BibliotecaPage() {
       </div>
 
       {/* Console filter */}
-      <div className="flex gap-2">
-        {(["all", "nes", "snes"] as ConsoleFilter[]).map((c) => (
+      <div className="flex gap-2 flex-wrap">
+        {(["all", "nes", "snes", "gba"] as ConsoleFilter[]).map((c) => (
           <Button
             key={c}
             variant={filter === c ? "default" : "outline"}
@@ -68,7 +70,7 @@ export default function BibliotecaPage() {
               <p className="text-xs font-body text-foreground truncate">{game.name}</p>
               <span className={cn(
                 "text-[9px] font-pixel",
-                game.console === "nes" ? "text-neon-green" : "text-neon-cyan"
+                game.console === "nes" ? "text-neon-green" : game.console === "snes" ? "text-neon-cyan" : "text-neon-magenta"
               )}>
                 {game.console.toUpperCase()}
               </span>
