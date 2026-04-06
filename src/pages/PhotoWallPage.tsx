@@ -73,11 +73,11 @@ export default function PhotoWallPage() {
 
   const handleLike = async (photoId: string) => {
     // Simple increment (in production, use a votes table like post_votes)
-    await supabase.rpc("increment_photo_likes" as any, { photo_id: photoId }).catch(() => {
-      // Fallback: direct update
-      supabase.from("photos").update({ likes: photos.find(p => p.id === photoId)?.likes + 1 } as any).eq("id", photoId).then(() => fetchPhotos());
-    });
-    fetchPhotos();
+    const photo = photos.find(p => p.id === photoId);
+    if (photo) {
+      await supabase.from("photos").update({ likes: (photo.likes || 0) + 1 } as any).eq("id", photoId);
+      fetchPhotos();
+    }
   };
 
   const handleReport = async (photoId: string, userId: string) => {
