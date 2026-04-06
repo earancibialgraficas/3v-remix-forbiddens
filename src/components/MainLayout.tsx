@@ -12,7 +12,6 @@ export default function MainLayout() {
     <div className="min-h-screen bg-background flex flex-col">
       <TopNavbar
         onMenuToggle={() => {
-          // On mobile: toggle overlay. On desktop: toggle collapse.
           if (window.innerWidth < 768) {
             setMobileSidebarOpen(!mobileSidebarOpen);
           } else {
@@ -24,7 +23,7 @@ export default function MainLayout() {
 
       <div className="flex flex-1">
         {/* Sidebar - hidden on mobile, visible on md+ */}
-        <div className="hidden md:block">
+        <div className="hidden md:block z-40">
           <ForumSidebar
             collapsed={sidebarCollapsed}
             onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -33,7 +32,7 @@ export default function MainLayout() {
 
         {/* Mobile sidebar overlay */}
         {mobileSidebarOpen && (
-          <div className="md:hidden fixed inset-0 z-40">
+          <div className="md:hidden fixed inset-0 z-50">
             <div
               className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300"
               onClick={() => setMobileSidebarOpen(false)}
@@ -52,7 +51,7 @@ export default function MainLayout() {
             <div className="flex-1 min-w-0 animate-fade-in">
               <Outlet />
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
               <RightPanel />
             </div>
           </div>

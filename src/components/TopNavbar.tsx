@@ -10,7 +10,7 @@ interface TopNavbarProps {
 
 export default function TopNavbar({ onMenuToggle, sidebarCollapsed }: TopNavbarProps) {
   return (
-    <header className="sticky top-0 z-50 w-full h-12 bg-card/95 backdrop-blur border-b border-border flex items-center px-4 gap-3 transition-all duration-300">
+    <header className="sticky top-0 z-50 w-full h-12 bg-card/95 backdrop-blur border-b border-border flex items-center px-3 gap-2 transition-all duration-300">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -37,8 +37,6 @@ export default function TopNavbar({ onMenuToggle, sidebarCollapsed }: TopNavbarP
           FORBIDDENS
         </span>
       </Link>
-
-      <div className="flex-1" />
     </header>
   );
 }
