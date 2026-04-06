@@ -18,6 +18,8 @@ import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import EventosPage from "./pages/EventosPage";
 import AyudaPage from "./pages/AyudaPage";
+import PhotoWallPage from "./pages/PhotoWallPage";
+import SocialReelsPage from "./pages/SocialReelsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,8 +51,8 @@ const App = () => (
               <Route path="/mercado/motor" element={<ForumPage />} />
               <Route path="/social" element={<ForumPage />} />
               <Route path="/social/feed" element={<ForumPage />} />
-              <Route path="/social/reels" element={<ForumPage />} />
-              <Route path="/social/fotos" element={<ForumPage />} />
+              <Route path="/social/reels" element={<SocialReelsPage />} />
+              <Route path="/social/fotos" element={<PhotoWallPage />} />
               <Route path="/trending" element={<ForumPage />} />
               <Route path="/eventos" element={<EventosPage />} />
               <Route path="/membresias" element={<MembershipsPage />} />

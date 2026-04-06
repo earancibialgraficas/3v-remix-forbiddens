@@ -5,31 +5,53 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/forbiddens_logo.svg";
 
-const featuredNews = [
-  { id: 1, title: "Torneo Retro de Super Mario Bros 3 — ¡Inscripciones abiertas!", category: "Zona Arcade", color: "text-neon-green", link: "/eventos" },
-  { id: 2, title: "One Piece capítulo 1150: Discusión semanal", category: "Anime & Manga", color: "text-neon-cyan", link: "/gaming-anime/anime" },
-  { id: 3, title: "Rodada nocturna CDMX — Sábado 12 de Abril", category: "Motociclismo", color: "text-neon-magenta", link: "/eventos" },
-  { id: 4, title: "Nuevo emulador GBA disponible en la Zona Arcade", category: "Zona Arcade", color: "text-neon-green", link: "/arcade/salas" },
-  { id: 5, title: "Concurso de Fanart: Mejor personaje retro del mes", category: "Rincón del Creador", color: "text-neon-orange", link: "/gaming-anime/creador" },
-];
-
 interface TopUser {
   display_name: string;
   total_score: number;
 }
 
+interface PopularPost {
+  id: string;
+  title: string;
+  category: string;
+  upvotes: number;
+}
+
+const categoryColors: Record<string, { color: string; label: string }> = {
+  "general": { color: "text-foreground", label: "General" },
+  "gaming-anime-foro": { color: "text-neon-cyan", label: "Gaming & Anime" },
+  "gaming-anime-anime": { color: "text-neon-cyan", label: "Anime & Manga" },
+  "gaming-anime-creador": { color: "text-neon-cyan", label: "Creador" },
+  "motociclismo-riders": { color: "text-neon-magenta", label: "Riders" },
+  "motociclismo-taller": { color: "text-neon-magenta", label: "Taller" },
+  "motociclismo-rutas": { color: "text-neon-magenta", label: "Rutas" },
+  "mercado-gaming": { color: "text-neon-yellow", label: "Mercado Gaming" },
+  "mercado-motor": { color: "text-neon-yellow", label: "Mercado Motor" },
+  "social-feed": { color: "text-neon-orange", label: "Social" },
+  "trending": { color: "text-destructive", label: "Trending" },
+};
+
+const fallbackNews = [
+  { id: "1", title: "Torneo Retro de Super Mario Bros 3 — ¡Inscripciones abiertas!", category: "eventos", upvotes: 50 },
+  { id: "2", title: "One Piece capítulo 1150: Discusión semanal", category: "gaming-anime-anime", upvotes: 40 },
+  { id: "3", title: "Rodada nocturna CDMX — Sábado 12 de Abril", category: "motociclismo-rutas", upvotes: 30 },
+  { id: "4", title: "Nuevo emulador disponible en la Zona Arcade", category: "general", upvotes: 25 },
+  { id: "5", title: "Concurso de Fanart: Mejor personaje retro del mes", category: "gaming-anime-creador", upvotes: 20 },
+];
+
 export default function RightPanel() {
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
+  const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentNews((prev) => (prev + 1) % featuredNews.length);
+      const items = popularPosts.length > 0 ? popularPosts : fallbackNews;
+      setCurrentNews((prev) => (prev + 1) % items.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [popularPosts]);
 
-  // Fetch real top users from profiles
   useEffect(() => {
     const fetchTop = async () => {
       const { data } = await supabase
@@ -43,7 +65,6 @@ export default function RightPanel() {
     };
     fetchTop();
 
-    // Realtime updates
     const channel = supabase
       .channel("top-users")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop())
@@ -51,7 +72,30 @@ export default function RightPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const news = featuredNews[currentNews];
+  // Fetch popular posts for carousel sorted by upvotes
+  useEffect(() => {
+    const fetchPopular = async () => {
+      const { data } = await supabase
+        .from("posts")
+        .select("id, title, category, upvotes")
+        .order("upvotes", { ascending: false })
+        .limit(5);
+      if (data && data.length > 0) {
+        setPopularPosts(data);
+      }
+    };
+    fetchPopular();
+
+    const channel = supabase
+      .channel("popular-posts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPopular())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const newsItems = popularPosts.length > 0 ? popularPosts : fallbackNews;
+  const news = newsItems[currentNews % newsItems.length];
+  const catInfo = categoryColors[news?.category] || { color: "text-foreground", label: news?.category || "General" };
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
 
   const displayUsers = topUsers.length > 0 ? topUsers : [
@@ -62,8 +106,14 @@ export default function RightPanel() {
     { display_name: "VintageGamer", total_score: 7100 },
   ];
 
+  // Build link for category
+  const getCategoryLink = (cat: string) => {
+    const path = cat.replace(/-/g, "/");
+    return `/${path}`;
+  };
+
   return (
-    <aside className="w-48 shrink-0 space-y-3 sticky top-16 h-fit">
+    <aside className="w-full shrink-0 space-y-3 sticky top-16 h-fit">
       {/* Community Card */}
       <div className="bg-card border border-border rounded p-2.5 transition-all duration-300">
         <div className="flex items-center gap-2 mb-2">
@@ -92,34 +142,37 @@ export default function RightPanel() {
         </Button>
       </div>
 
-      {/* News Carousel */}
+      {/* News Carousel - sorted by popularity */}
       <div className="bg-card border border-neon-cyan/30 rounded p-2.5 transition-all duration-300">
         <h3 className="font-pixel text-[8px] text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1">
-          <Newspaper className="w-3 h-3" /> NOTICIAS
+          <Newspaper className="w-3 h-3" /> TRENDING
         </h3>
-        <Link to={news.link} className="block relative min-h-[50px] group">
-          <div key={news.id} className="animate-fade-in">
-            <span className={`text-[8px] font-body font-medium ${news.color}`}>{news.category}</span>
-            <p className="text-[9px] font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors">{news.title}</p>
+        <Link to={getCategoryLink(news?.category || "trending")} className="block relative min-h-[50px] group">
+          <div key={news?.id} className="animate-fade-in">
+            <span className={`text-[8px] font-body font-medium ${catInfo.color}`}>{catInfo.label}</span>
+            <p className="text-[9px] font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors">{news?.title}</p>
+            {news?.upvotes > 0 && (
+              <span className="text-[8px] text-neon-green font-body">▲ {news.upvotes}</span>
+            )}
           </div>
         </Link>
         <div className="flex items-center justify-between mt-2">
           <div className="flex gap-0.5">
-            {featuredNews.map((_, i) => (
+            {newsItems.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentNews(i)}
                 className={`w-1 h-1 rounded-full transition-all duration-300 ${
-                  i === currentNews ? "bg-neon-cyan w-2.5" : "bg-muted-foreground/40"
+                  i === currentNews % newsItems.length ? "bg-neon-cyan w-2.5" : "bg-muted-foreground/40"
                 }`}
               />
             ))}
           </div>
           <div className="flex gap-0.5">
-            <button onClick={() => setCurrentNews((p) => (p - 1 + featuredNews.length) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={() => setCurrentNews((p) => (p - 1 + newsItems.length) % newsItems.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
               <ChevronLeft className="w-2.5 h-2.5" />
             </button>
-            <button onClick={() => setCurrentNews((p) => (p + 1) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={() => setCurrentNews((p) => (p + 1) % newsItems.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
               <ChevronRight className="w-2.5 h-2.5" />
             </button>
           </div>

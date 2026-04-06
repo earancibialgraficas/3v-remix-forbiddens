@@ -92,7 +92,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
   return (
     <aside
       className={cn(
-        "sticky top-12 h-[calc(100vh-3rem)] bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col",
+        "sticky top-12 h-[calc(100vh-3rem)] bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-40",
         collapsed ? "w-12" : "w-56"
       )}
     >
@@ -139,13 +139,54 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
         </div>
       )}
 
+      {/* Collapsed: show user button at top */}
+      {collapsed && (
+        <div className="px-1 py-2 space-y-1 border-b border-border flex flex-col items-center">
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link
+                to={user ? "/perfil" : "/login"}
+                className="flex items-center justify-center p-2 rounded transition-all duration-200 text-neon-cyan hover:bg-muted/50 hover:text-foreground"
+              >
+                <User className="w-4 h-4" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-card border-border p-2 z-[100]">
+              {user ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-body font-medium text-neon-green">{profile?.display_name}</p>
+                  <Link to="/perfil" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                    Mi Perfil
+                  </Link>
+                  <Link to="/configuracion" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                    Configuración
+                  </Link>
+                  <button onClick={signOut} className="block w-full text-left text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-destructive transition-colors">
+                    Cerrar Sesión
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs font-body font-medium text-muted-foreground">No has iniciado sesión</p>
+                  <Link to="/login" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-green hover:text-foreground transition-colors">
+                    Iniciar Sesión
+                  </Link>
+                  <Link to="/registro" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-cyan hover:text-foreground transition-colors">
+                    Registrarse
+                  </Link>
+                </div>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+
       <nav className="px-1 py-2 space-y-0.5 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           const isExpanded = expandedItems.includes(item.label);
           const hasChildren = item.children && item.children.length > 0;
 
-          // When collapsed, show tooltip with children on hover
           if (collapsed) {
             return (
               <Tooltip key={item.label} delayDuration={0}>
@@ -160,7 +201,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                     <item.icon className={cn("w-4 h-4", item.color)} />
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-card border-border p-2 space-y-1">
+                <TooltipContent side="right" className="bg-card border-border p-2 z-[100]">
                   <p className={cn("text-xs font-body font-medium", item.color)}>{item.label}</p>
                   {hasChildren && item.children!.map((child) => (
                     <Link
