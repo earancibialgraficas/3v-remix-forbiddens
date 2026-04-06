@@ -1,13 +1,33 @@
-import { Users, Trophy, Star, Zap, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/forbiddens_logo.svg";
 
+const featuredNews = [
+  { id: 1, title: "Torneo Retro de Super Mario Bros 3 — ¡Inscripciones abiertas!", category: "Zona Arcade", color: "text-neon-green" },
+  { id: 2, title: "One Piece capítulo 1150: Discusión semanal", category: "Anime & Manga", color: "text-neon-cyan" },
+  { id: 3, title: "Rodada nocturna CDMX — Sábado 12 de Abril", category: "Motociclismo", color: "text-neon-magenta" },
+  { id: 4, title: "Nuevo emulador GBA disponible en la Zona Arcade", category: "Zona Arcade", color: "text-neon-green" },
+  { id: 5, title: "Concurso de Fanart: Mejor personaje retro del mes", category: "Rincón del Creador", color: "text-neon-orange" },
+];
+
 export default function RightPanel() {
+  const [currentNews, setCurrentNews] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentNews((prev) => (prev + 1) % featuredNews.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const news = featuredNews[currentNews];
+
   return (
-    <aside className="w-72 shrink-0 space-y-4 sticky top-12 h-fit hidden lg:block">
+    <aside className="w-72 shrink-0 space-y-4 sticky top-16 h-fit">
       {/* Community Card */}
-      <div className="bg-card border border-border rounded p-4">
+      <div className="bg-card border border-border rounded p-4 transition-all duration-300">
         <div className="flex items-center gap-2 mb-3">
           <img src={logo} alt="Forbiddens" className="w-8 h-8" />
           <div>
@@ -29,40 +49,47 @@ export default function RightPanel() {
             <p className="text-[10px] text-muted-foreground">Posts hoy</p>
           </div>
         </div>
-        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-xs h-8">
+        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-xs h-8 transition-all duration-200">
           <Link to="/registro">Unirse a la comunidad</Link>
         </Button>
       </div>
 
-      {/* Membresías Preview */}
-      <div className="bg-card border border-neon-yellow/30 rounded p-4">
-        <h3 className="font-pixel text-[10px] text-neon-yellow mb-3 flex items-center gap-1.5">
-          <Star className="w-3.5 h-3.5" /> MEMBRESÍAS
+      {/* News Carousel */}
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 transition-all duration-300">
+        <h3 className="font-pixel text-[10px] text-neon-cyan text-glow-cyan mb-3 flex items-center gap-1.5">
+          <Newspaper className="w-3.5 h-3.5" /> NOTICIAS DESTACADAS
         </h3>
-        <div className="space-y-2 font-body">
-          {[
-            { name: "Novato", price: "Gratis", color: "text-muted-foreground" },
-            { name: "Entusiasta", price: "$10/mes", color: "text-neon-orange" },
-            { name: "Coleccionista", price: "$15/mes", color: "text-foreground" },
-            { name: "Leyenda Arcade", price: "$25/mes", color: "text-neon-yellow" },
-            { name: "Creador Verificado", price: "$20/mes", color: "text-neon-cyan" },
-          ].map((tier) => (
-            <div key={tier.name} className="flex items-center justify-between text-xs">
-              <span className={tier.color}>{tier.name}</span>
-              <span className="text-muted-foreground">{tier.price}</span>
-            </div>
-          ))}
+        <div className="relative min-h-[80px]">
+          <div key={news.id} className="animate-fade-in">
+            <span className={`text-[10px] font-body font-medium ${news.color}`}>{news.category}</span>
+            <p className="text-xs font-body text-foreground mt-1 leading-relaxed">{news.title}</p>
+          </div>
         </div>
-        <Link
-          to="/membresias"
-          className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 mt-3 font-body"
-        >
-          Ver todas <ExternalLink className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex gap-1">
+            {featuredNews.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentNews(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  i === currentNews ? "bg-neon-cyan w-4" : "bg-muted-foreground/40"
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => setCurrentNews((p) => (p - 1 + featuredNews.length) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setCurrentNews((p) => (p + 1) % featuredNews.length)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Top Usuarios */}
-      <div className="bg-card border border-border rounded p-4">
+      <div className="bg-card border border-border rounded p-4 transition-all duration-300">
         <h3 className="font-pixel text-[10px] text-neon-cyan text-glow-cyan mb-3 flex items-center gap-1.5">
           <Trophy className="w-3.5 h-3.5" /> TOP USUARIOS
         </h3>
@@ -84,7 +111,7 @@ export default function RightPanel() {
       </div>
 
       {/* Reglas */}
-      <div className="bg-card border border-border rounded p-4">
+      <div className="bg-card border border-border rounded p-4 transition-all duration-300">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-2">REGLAS</h3>
         <ol className="space-y-1.5 text-[11px] text-muted-foreground font-body list-decimal list-inside">
           <li>Respeta a todos los miembros</li>
