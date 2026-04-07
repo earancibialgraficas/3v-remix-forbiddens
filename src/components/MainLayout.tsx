@@ -47,11 +47,11 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main content - no top padding since no topbar */}
       <main className={cn(
         "min-w-0 transition-all duration-300",
-        "md:ml-12", // collapsed sidebar width
-        !sidebarCollapsed && "md:ml-56" // expanded sidebar width
+        "md:ml-12",
+        !sidebarCollapsed && "md:ml-56"
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0 animate-fade-in">

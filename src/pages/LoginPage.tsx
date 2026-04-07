@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,7 +31,15 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh] animate-fade-in">
-      <div className="bg-card border border-border rounded p-6 w-full max-w-sm space-y-6">
+      <div className="bg-card border border-border rounded p-6 w-full max-w-sm space-y-6 relative">
+        {/* Close button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <div className="text-center">
           <img src={logo} alt="Forbiddens" className="w-16 h-16 mx-auto mb-3" />
           <h1 className="font-pixel text-sm text-neon-green text-glow-green">INICIAR SESIÓN</h1>
@@ -58,7 +67,16 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <div className="flex justify-end mt-1">
+            <div className="flex justify-between items-center mt-1.5">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-3 h-3 rounded border-border bg-muted accent-primary"
+                />
+                <span className="text-[10px] font-body text-muted-foreground">Mantener sesión</span>
+              </label>
               <Link to="/forgot-password" className="text-[10px] font-body text-neon-cyan hover:text-neon-cyan/80 transition-colors">
                 ¿Olvidaste tu contraseña?
               </Link>

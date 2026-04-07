@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      banned_users: {
+        Row: {
+          ban_type: string
+          banned_by: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          ban_type?: string
+          banned_by: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          user_id: string
+        }
+        Update: {
+          ban_type?: string
+          banned_by?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -131,6 +161,27 @@ export type Database = {
           location?: string | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
         }
         Relationships: []
       }
@@ -274,6 +325,33 @@ export type Database = {
         }
         Relationships: []
       }
+      private_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -283,6 +361,8 @@ export type Database = {
           id: string
           instagram_url: string | null
           membership_tier: string
+          role_icon: string | null
+          show_role_icon: boolean | null
           tiktok_url: string | null
           total_score: number
           updated_at: string
@@ -297,6 +377,8 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           membership_tier?: string
+          role_icon?: string | null
+          show_role_icon?: boolean | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -311,6 +393,8 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           membership_tier?: string
+          role_icon?: string | null
+          show_role_icon?: boolean | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -356,6 +440,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tip_suggestions: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

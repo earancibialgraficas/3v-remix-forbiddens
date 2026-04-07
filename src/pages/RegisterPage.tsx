@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -34,14 +35,48 @@ export default function RegisterPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "¡Cuenta creada!", description: "Revisa tu email para confirmar tu cuenta" });
-      navigate("/login");
+      setShowVerifyModal(true);
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-[60vh] animate-fade-in">
-      <div className="bg-card border border-border rounded p-6 w-full max-w-sm space-y-6">
+      {/* Verification modal */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-6 max-w-sm w-full mx-4 animate-scale-in space-y-4">
+            <button onClick={() => { setShowVerifyModal(false); navigate("/login"); }} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 mx-auto bg-neon-green/10 rounded-full flex items-center justify-center">
+                <span className="text-3xl">📧</span>
+              </div>
+              <h2 className="font-pixel text-xs text-neon-green text-glow-green">¡CUENTA CREADA!</h2>
+              <p className="text-sm font-body text-foreground">
+                Se ha enviado un correo de verificación a:
+              </p>
+              <p className="text-sm font-body text-neon-cyan font-medium">{email}</p>
+              <p className="text-xs font-body text-muted-foreground">
+                Revisa tu bandeja de entrada (y la carpeta de spam) para verificar tu cuenta antes de iniciar sesión.
+              </p>
+              <Button onClick={() => { setShowVerifyModal(false); navigate("/login"); }} className="w-full bg-primary text-primary-foreground text-sm font-body">
+                Entendido
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded p-6 w-full max-w-sm space-y-6 relative">
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <div className="text-center">
           <img src={logo} alt="Forbiddens" className="w-16 h-16 mx-auto mb-3" />
           <h1 className="font-pixel text-sm text-neon-green text-glow-green">CREAR CUENTA</h1>
@@ -66,11 +101,7 @@ export default function RegisterPage() {
                 minLength={6}
                 className="h-9 bg-muted border-border font-body text-sm transition-colors pr-9"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -86,11 +117,7 @@ export default function RegisterPage() {
                 minLength={6}
                 className="h-9 bg-muted border-border font-body text-sm transition-colors pr-9"
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>

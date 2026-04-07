@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Gamepad2, Upload, Monitor, Trophy, Play } from "lucide-react";
+import { Gamepad2, Upload, Monitor, Trophy, Play, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { nesGames, snesGames, gbaGames, allGames } from "@/lib/gameLibrary";
@@ -23,6 +23,7 @@ interface LeaderboardScore {
   display_name: string;
   game_name: string;
   score: number;
+  user_id: string;
 }
 
 export default function EmulatorPage() {
@@ -38,7 +39,7 @@ export default function EmulatorPage() {
     const fetchLeaderboard = async () => {
       const { data } = await supabase
         .from("leaderboard_scores")
-        .select("id, display_name, game_name, score")
+        .select("id, display_name, game_name, score, user_id")
         .eq("console_type", selectedConsole)
         .order("score", { ascending: false })
         .limit(10);
@@ -81,7 +82,7 @@ export default function EmulatorPage() {
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
           <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
         </h1>
-        <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar. Al navegar a otra sección el juego se minimiza como burbuja.</p>
+        <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -106,7 +107,6 @@ export default function EmulatorPage() {
         <span className="text-[10px] text-muted-foreground font-body">.nes, .smc, .sfc, .gba, .zip, .7z</span>
       </div>
 
-      {/* Game Library */}
       <div>
         <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5", consoleInfo.color)}>
           <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
@@ -130,7 +130,7 @@ export default function EmulatorPage() {
         </div>
       </div>
 
-      {/* Leaderboard */}
+      {/* Leaderboard with usernames */}
       <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden">
         <div className="px-3 py-2 border-b border-border flex items-center gap-2">
           <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
@@ -144,7 +144,8 @@ export default function EmulatorPage() {
               <span className={cn("w-5 font-bold text-center", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
                 {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
               </span>
-              <span className="flex-1 text-foreground truncate">{s.display_name}</span>
+              <User className="w-3 h-3 text-muted-foreground shrink-0" />
+              <span className="flex-1 text-foreground truncate font-medium">{s.display_name}</span>
               <span className="text-muted-foreground truncate max-w-[80px]">{s.game_name}</span>
               <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
             </div>
