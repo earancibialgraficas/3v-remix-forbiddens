@@ -97,6 +97,7 @@ export default function ForumPage() {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [showRulesPopup, setShowRulesPopup] = useState(false);
   // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
@@ -148,6 +149,22 @@ export default function ForumPage() {
     return () => { supabase.removeChannel(channel); };
   }, [category, sortBy]);
 
+  const handleNewPostClick = () => {
+    // Check if user has accepted rules
+    const rulesKey = `rules_accepted_${user?.id}`;
+    if (user && !localStorage.getItem(rulesKey)) {
+      setShowRulesPopup(true);
+      return;
+    }
+    setShowNewPost(!showNewPost);
+  };
+
+  const acceptRules = () => {
+    if (user) localStorage.setItem(`rules_accepted_${user.id}`, "true");
+    setShowRulesPopup(false);
+    setShowNewPost(true);
+  };
+
   const handlePost = async () => {
     if (!user) {
       toast({ title: "Inicia sesión", description: "Debes registrarte para publicar", variant: "destructive" });
@@ -155,9 +172,13 @@ export default function ForumPage() {
     }
     if (!title.trim()) return;
     setPosting(true);
-    const signature = (profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
-      ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
-      : null;
+    // Use custom signature from profile, or fallback to auto-generated
+    const customSig = (profile as any)?.signature;
+    const signature = customSig
+      ? customSig
+      : ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
+        ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
+        : null);
     const { error } = await supabase.from("posts").insert({
       user_id: user.id, title: title.trim(), content: content.trim(), category, signature,
     } as any);
