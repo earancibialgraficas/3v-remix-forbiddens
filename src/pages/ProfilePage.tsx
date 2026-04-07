@@ -307,7 +307,7 @@ export default function ProfilePage() {
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar</Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/configuracion">Configuración</Link></Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
-                  {["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) && (
+                  {(["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) || isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
                       <Palette className="w-3 h-3" /> Personalizar Colores
                     </Button>
@@ -350,14 +350,14 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-2">
               {userPosts.map((post) => (
-                <div key={post.id} className="p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors">
-                  <p className="text-foreground">{post.title}</p>
+                <Link key={post.id} to={`/${post.category?.replace(/-/g, "/") || "gaming-anime/foro"}`} className="block p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors cursor-pointer">
+                  <p className="text-foreground hover:text-primary transition-colors">{post.title}</p>
                   {post.content && <p className="text-muted-foreground text-[10px] mt-0.5 line-clamp-1">{post.content}</p>}
                   <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                     <span>{new Date(post.created_at).toLocaleDateString()}</span>
                     <span className="text-neon-green">▲{post.upvotes}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -433,16 +433,38 @@ export default function ProfilePage() {
           </div>
           {/* Detailed items */}
           <div className="space-y-1 mt-3">
-            <div className="grid grid-cols-[1fr_80px_60px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
-              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span>
+            <div className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
+              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span><span></span>
             </div>
             {storageItems.length === 0 ? (
               <p className="text-xs text-muted-foreground font-body py-2">No hay elementos almacenados</p>
             ) : storageItems.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_60px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center">
+              <div key={i} className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center group">
                 <span className="text-foreground truncate" title={item.name}>{item.name}</span>
                 <span className="text-muted-foreground text-[10px]">{item.type}</span>
                 <span className="text-right text-muted-foreground text-[10px]">{item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size} MB`}</span>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    if (item.type === "Partida guardada" && item.id) {
+                      await supabase.from("leaderboard_scores").delete().eq("id", item.id);
+                    } else if (item.type === "Contenido social" && item.id) {
+                      await supabase.from("social_content").delete().eq("id", item.id);
+                    } else if (item.type === "Foto" && item.id) {
+                      await supabase.from("photos").delete().eq("id", item.id);
+                    } else if (item.type === "Avatar") {
+                      await supabase.storage.from("avatars").remove([`${user.id}/${item.name}`]);
+                    }
+                    toast({ title: "Eliminado" });
+                    // Refresh storage items
+                    setStorageItems(prev => prev.filter((_, idx) => idx !== i));
+                    setStorageUsed(prev => prev - item.size);
+                  }}
+                  className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Eliminar"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
             ))}
           </div>
