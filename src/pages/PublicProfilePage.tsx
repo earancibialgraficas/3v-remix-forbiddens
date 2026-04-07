@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2 } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,7 @@ export default function PublicProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
   const [gameScores, setGameScores] = useState<{ game_name: string; console_type: string; score: number }[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
 
   useEffect(() => {
     if (!userId) return;

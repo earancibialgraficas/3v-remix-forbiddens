@@ -3,6 +3,8 @@ import { Outlet } from "react-router-dom";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
+import NavigationButtons from "@/components/NavigationButtons";
+import NotificationBell from "@/components/NotificationBell";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -47,15 +49,22 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Main content - no top padding since no topbar */}
+      {/* Main content */}
       <main className={cn(
         "min-w-0 transition-all duration-300",
         "md:ml-12",
         !sidebarCollapsed && "md:ml-56"
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
-          <div className="flex-1 min-w-0 animate-fade-in">
-            <Outlet />
+          <div className="flex-1 min-w-0">
+            {/* Nav bar with back/forward + notifications */}
+            <div className="flex items-center justify-between mb-2">
+              <NavigationButtons />
+              <NotificationBell />
+            </div>
+            <div className="animate-fade-in">
+              <Outlet />
+            </div>
           </div>
           <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
             <RightPanel />
