@@ -285,7 +285,7 @@ export default function ForumPage() {
           </Button>
         </div>
         {user && (
-          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={() => setShowNewPost(!showNewPost)}>
+          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={handleNewPostClick}>
             <Plus className="w-3 h-3 mr-1" /> Nuevo Post
           </Button>
         )}
@@ -303,9 +303,9 @@ export default function ForumPage() {
             <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>
             <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>
           </div>
-          {(profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited ? (
+          {((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited) ? (
             <p className="text-[9px] text-muted-foreground font-body italic">
-              Tu firma: — {profile?.display_name} [{hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]
+              Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
             </p>
           ) : null}
           <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs">
