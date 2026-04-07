@@ -239,18 +239,6 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* Reglas */}
-      <div className="bg-card border border-border rounded p-2.5">
-        <h3 className={cn("font-pixel text-muted-foreground mb-1", sizes.title)}>REGLAS</h3>
-        <ol className={cn("space-y-0.5 text-muted-foreground font-body list-decimal list-inside", sizes.body)}>
-          <li>Respeta a todos</li>
-          <li>No spam</li>
-          <li>Contenido apropiado</li>
-          <li>No compartir ROMs ©</li>
-          <li>Usa categorías correctas</li>
-        </ol>
-      </div>
-
       {/* Footer inside right panel */}
       <Footer />
     </aside>
