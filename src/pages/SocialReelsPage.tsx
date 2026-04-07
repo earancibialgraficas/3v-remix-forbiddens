@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, ChevronDown, X, Download, Maximize2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, ChevronDown, X, Download, Maximize2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -177,8 +178,10 @@ function ContentCard({ item, isVisible, onMaximize }: { item: SocialItem; isVisi
 
 export default function SocialReelsPage() {
   const { user } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
   const [items, setItems] = useState<SocialItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [modalItem, setModalItem] = useState<SocialItem | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
