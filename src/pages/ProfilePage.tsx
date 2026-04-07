@@ -307,6 +307,11 @@ export default function ProfilePage() {
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar</Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/configuracion">Configuración</Link></Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
+                  {["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) && (
+                    <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
+                      <Palette className="w-3 h-3" /> Personalizar Colores
+                    </Button>
+                  )}
                   {(isStaff || isMod) && !roles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
                       <span>{profile?.role_icon || "⭐"}</span> Icono Rol
@@ -328,7 +333,7 @@ export default function ProfilePage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+          <button key={tab.id} onClick={() => handleTabChange(tab.id)}
             className={cn("flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-body transition-all min-w-[70px]",
               activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
             <tab.icon className="w-3 h-3" /> {tab.label}
