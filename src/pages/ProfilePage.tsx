@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useSearchParams } from "react-router-dom";
 import { cn, withImageVersion } from "@/lib/utils";
+import { getCategoryRoute } from "@/lib/categoryRoutes";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
@@ -350,7 +351,7 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-2">
               {userPosts.map((post) => (
-                <Link key={post.id} to={`/${post.category?.replace(/-/g, "/") || "gaming-anime/foro"}`} className="block p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors cursor-pointer">
+                <Link key={post.id} to={getCategoryRoute(post.category || "gaming-anime-foro", post.id)} className="block p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors cursor-pointer">
                   <p className="text-foreground hover:text-primary transition-colors">{post.title}</p>
                   {post.content && <p className="text-muted-foreground text-[10px] mt-0.5 line-clamp-1">{post.content}</p>}
                   <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
