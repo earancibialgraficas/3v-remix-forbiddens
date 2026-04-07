@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -329,22 +329,11 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "social" && (
-        <div className="bg-card border border-border rounded p-4 space-y-3">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">REDES SOCIALES</h3>
-          <div className="space-y-2">
-            {[
-              { url: profile?.instagram_url, icon: Instagram, label: "Instagram", color: "text-neon-magenta", empty: "No has vinculado Instagram" },
-              { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No has vinculado YouTube" },
-              { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No has vinculado TikTok" },
-            ].map((s, i) => s.url ? (
-              <a key={i} href={s.url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
-                <s.icon className={cn("w-4 h-4", s.color)} />
-                <span className="text-xs font-body text-foreground">{s.label}</span>
-              </a>
-            ) : <p key={i} className="text-xs text-muted-foreground font-body">{s.empty}</p>)}
-          </div>
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs mt-2"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
-        </div>
+        <SocialContentTab
+          profile={profile}
+          user={user}
+          onEditNetworks={() => setEditing(true)}
+        />
       )}
 
       {activeTab === "storage" && (
@@ -443,6 +432,129 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; user: any; onEditNetworks: () => void }) {
+  const { toast } = useToast();
+  const [contents, setContents] = useState<any[]>([]);
+  const [newUrl, setNewUrl] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newPlatform, setNewPlatform] = useState("youtube");
+  const [newPublic, setNewPublic] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  const fetchContents = async () => {
+    const { data } = await supabase.from("social_content").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (data) setContents(data);
+  };
+
+  useEffect(() => { fetchContents(); }, [user.id]);
+
+  const detectPlatform = (url: string) => {
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+    if (url.includes("instagram.com")) return "instagram";
+    if (url.includes("tiktok.com")) return "tiktok";
+    if (url.includes("facebook.com") || url.includes("fb.com")) return "facebook";
+    return "youtube";
+  };
+
+  const handleAdd = async () => {
+    if (!newUrl.trim()) return;
+    setAdding(true);
+    const platform = detectPlatform(newUrl);
+    const { error } = await supabase.from("social_content").insert({
+      user_id: user.id, content_url: newUrl, title: newTitle || null, platform, is_public: newPublic,
+    });
+    setAdding(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Contenido agregado" }); setNewUrl(""); setNewTitle(""); fetchContents(); }
+  };
+
+  const toggleVisibility = async (id: string, current: boolean) => {
+    await supabase.from("social_content").update({ is_public: !current }).eq("id", id);
+    fetchContents();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("social_content").delete().eq("id", id);
+    toast({ title: "Contenido eliminado" });
+    fetchContents();
+  };
+
+  const platformIcon = (p: string) => {
+    if (p === "youtube") return <Youtube className="w-3.5 h-3.5 text-destructive" />;
+    if (p === "instagram") return <Instagram className="w-3.5 h-3.5 text-neon-magenta" />;
+    if (p === "tiktok") return <Music2 className="w-3.5 h-3.5 text-neon-cyan" />;
+    return <Globe className="w-3.5 h-3.5 text-muted-foreground" />;
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Linked profiles */}
+      <div className="bg-card border border-border rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-muted-foreground">PERFILES VINCULADOS</h3>
+        <div className="space-y-2">
+          {[
+            { url: profile?.instagram_url, icon: Instagram, label: "Instagram", color: "text-neon-magenta", empty: "No vinculado" },
+            { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No vinculado" },
+            { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No vinculado" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+              <s.icon className={cn("w-4 h-4", s.url ? s.color : "text-muted-foreground")} />
+              <span className="text-xs font-body text-foreground flex-1">{s.label}</span>
+              {s.url ? (
+                <a href={s.url} target="_blank" rel="noopener" className="text-[10px] text-primary hover:underline font-body">Ver perfil</a>
+              ) : (
+                <span className="text-[10px] text-muted-foreground font-body">{s.empty}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <Button size="sm" variant="outline" onClick={onEditNetworks} className="text-xs"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
+      </div>
+
+      {/* Add content */}
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Plus className="w-3 h-3" /> AGREGAR CONTENIDO</h3>
+        <Input placeholder="URL del video/post (YouTube, Instagram, TikTok...)" value={newUrl} onChange={e => { setNewUrl(e.target.value); setNewPlatform(detectPlatform(e.target.value)); }} className="h-8 bg-muted text-xs font-body" />
+        <Input placeholder="Título (opcional)" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+        <div className="flex items-center gap-3">
+          <button onClick={() => setNewPublic(!newPublic)} className="flex items-center gap-1 text-xs font-body">
+            {newPublic ? <Eye className="w-3 h-3 text-neon-green" /> : <EyeOff className="w-3 h-3 text-muted-foreground" />}
+            {newPublic ? "Público" : "Privado"}
+          </button>
+          <span className="text-[10px] text-muted-foreground font-body">Plataforma: {newPlatform}</span>
+        </div>
+        <Button size="sm" onClick={handleAdd} disabled={adding || !newUrl.trim()} className="text-xs">
+          {adding ? "Agregando..." : "Agregar"}
+        </Button>
+      </div>
+
+      {/* Content list */}
+      <div className="bg-card border border-border rounded p-4 space-y-2">
+        <h3 className="font-pixel text-[10px] text-muted-foreground">MI CONTENIDO ({contents.length})</h3>
+        {contents.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body">No has agregado contenido aún</p>
+        ) : (
+          contents.map(c => (
+            <div key={c.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded group">
+              {platformIcon(c.platform)}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-body text-foreground truncate">{c.title || c.content_url}</p>
+                <a href={c.content_url} target="_blank" rel="noopener" className="text-[10px] text-primary hover:underline font-body truncate block">{c.content_url}</a>
+              </div>
+              <button onClick={() => toggleVisibility(c.id, c.is_public)} className="text-xs">
+                {c.is_public ? <Eye className="w-3.5 h-3.5 text-neon-green" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />}
+              </button>
+              <button onClick={() => handleDelete(c.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
