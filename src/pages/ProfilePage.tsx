@@ -587,3 +587,104 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
     </div>
   );
 }
+
+function FriendsTab({ userId }: { userId: string }) {
+  const { toast } = useToast();
+  const [friends, setFriends] = useState<any[]>([]);
+  const [pendingReceived, setPendingReceived] = useState<any[]>([]);
+  const [pendingSent, setPendingSent] = useState<any[]>([]);
+
+  const fetchFriends = async () => {
+    // Accepted friends
+    const { data: sent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "accepted");
+    const { data: recv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "accepted");
+    const friendIds = [
+      ...(sent || []).map((r: any) => r.receiver_id),
+      ...(recv || []).map((r: any) => r.sender_id),
+    ];
+    if (friendIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier").in("user_id", friendIds);
+      setFriends(profiles || []);
+    } else setFriends([]);
+
+    // Pending received
+    const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
+    if (pRecv && pRecv.length > 0) {
+      const senderIds = pRecv.map((r: any) => r.sender_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", senderIds);
+      setPendingReceived(pRecv.map((r: any) => ({ ...r, profile: profiles?.find((p: any) => p.user_id === r.sender_id) })));
+    } else setPendingReceived([]);
+
+    // Pending sent
+    const { data: pSent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "pending");
+    setPendingSent(pSent || []);
+  };
+
+  useEffect(() => { fetchFriends(); }, [userId]);
+
+  const acceptRequest = async (requestId: string, senderId: string) => {
+    await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
+    await supabase.from("notifications").insert({ user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: "Tu solicitud de amistad ha sido aceptada" } as any);
+    toast({ title: "Amistad aceptada" });
+    fetchFriends();
+  };
+
+  const rejectRequest = async (requestId: string) => {
+    await supabase.from("friend_requests").update({ status: "rejected" } as any).eq("id", requestId);
+    toast({ title: "Solicitud rechazada" });
+    fetchFriends();
+  };
+
+  const removeFriend = async (friendUserId: string) => {
+    await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${friendUserId}),and(sender_id.eq.${friendUserId},receiver_id.eq.${userId})`);
+    toast({ title: "Amigo eliminado" });
+    fetchFriends();
+  };
+
+  return (
+    <div className="space-y-4">
+      {pendingReceived.length > 0 && (
+        <div className="bg-card border border-neon-yellow/30 rounded p-4">
+          <h3 className="font-pixel text-[10px] text-neon-yellow mb-3">SOLICITUDES PENDIENTES ({pendingReceived.length})</h3>
+          <div className="space-y-2">
+            {pendingReceived.map((req: any) => (
+              <div key={req.id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                  {req.profile?.avatar_url ? <img src={req.profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                </div>
+                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{req.profile?.display_name || "Usuario"}</Link>
+                <Button size="sm" onClick={() => acceptRequest(req.id, req.sender_id)} className="text-[10px] h-6 px-2">Aceptar</Button>
+                <Button size="sm" variant="outline" onClick={() => rejectRequest(req.id)} className="text-[10px] h-6 px-2">Rechazar</Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded p-4">
+        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS AMIGOS ({friends.length})</h3>
+        {friends.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {friends.map((f: any) => (
+              <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
+                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                  {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                </div>
+                <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
+                <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
+                <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
+                  <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
+                </Button>
+                <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
+                  <UserMinus className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
