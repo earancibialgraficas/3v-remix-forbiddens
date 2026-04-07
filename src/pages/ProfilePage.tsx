@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [tiktok, setTiktok] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
   const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation">("posts");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
@@ -52,13 +53,14 @@ export default function ProfilePage() {
     if (!user) return;
     supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setUserPosts(data); });
+    supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false })
+      .then(({ data }) => { if (data) setGameScores(data as any); });
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
-    // Simulated storage usage from leaderboard saves
     supabase.from("leaderboard_scores").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-      .then(({ count }) => setStorageUsed((count || 0) * 2)); // ~2MB per save
+      .then(({ count }) => setStorageUsed((count || 0) * 2));
   }, [user]);
 
   const handleSave = async () => {
@@ -325,6 +327,26 @@ export default function ProfilePage() {
               </div>
             ))}
           </div>
+
+          {/* Per-game score breakdown */}
+          {gameScores.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
+                <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
+              </h4>
+              <div className="space-y-1">
+                {gameScores.map((gs, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
+                    <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
+                      {gs.console_type.toUpperCase()}
+                    </span>
+                    <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
+                    <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

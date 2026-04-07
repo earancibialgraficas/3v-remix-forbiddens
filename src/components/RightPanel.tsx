@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type } from "lucide-react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,12 @@ import Footer from "@/components/Footer";
 interface TopUser {
   display_name: string;
   total_score: number;
+}
+
+interface PremiumUser {
+  display_name: string;
+  membership_tier: string;
+  created_at: string;
 }
 
 interface PopularPost {
@@ -53,6 +59,7 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 export default function RightPanel() {
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
+  const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
   const [progress, setProgress] = useState(0);
@@ -86,6 +93,18 @@ export default function RightPanel() {
     fetchTop();
     const channel = supabase.channel("top-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop()).subscribe();
     return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    const fetchPremium = async () => {
+      const { data } = await supabase.from("profiles")
+        .select("display_name, membership_tier, created_at")
+        .neq("membership_tier", "novato")
+        .order("created_at", { ascending: true })
+        .limit(3);
+      if (data && data.length > 0) setPremiumUsers(data as unknown as PremiumUser[]);
+    };
+    fetchPremium();
   }, []);
 
   useEffect(() => {
@@ -194,6 +213,26 @@ export default function RightPanel() {
               <span className="text-neon-green">{user.total_score.toLocaleString()}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Top Usuarios Premium */}
+      <div className="bg-card border border-neon-yellow/30 rounded p-2.5">
+        <h3 className={cn("font-pixel text-neon-yellow mb-2 flex items-center gap-1", sizes.title)}>
+          <Star className="w-3 h-3" /> TOP PREMIUM
+        </h3>
+        <div className="space-y-1.5 font-body">
+          {premiumUsers.length > 0 ? premiumUsers.map((pu, i) => (
+            <div key={pu.display_name} className={cn("flex items-center gap-1.5", sizes.body)}>
+              <span className={cn("font-bold w-3 text-right", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : "text-neon-orange")}>
+                {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
+              </span>
+              <span className="text-foreground flex-1 truncate font-medium">{pu.display_name}</span>
+              <span className={cn("font-pixel", sizes.title, "text-neon-yellow")}>{pu.membership_tier.toUpperCase()}</span>
+            </div>
+          )) : (
+            <p className={cn("text-muted-foreground italic", sizes.body)}>Aún no hay usuarios premium</p>
+          )}
         </div>
       </div>
 

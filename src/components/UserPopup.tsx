@@ -70,16 +70,17 @@ export default function UserPopup({
       >
         {children || (
           <>
-            <span className="text-[10px] font-body font-medium text-foreground hover:text-primary transition-colors">
+            {avatarUrl && (
+              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+            )}
+            <span className="text-xs font-body font-semibold text-foreground hover:text-primary transition-colors">
               {displayName}
             </span>
-            <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
-            {!isStaff && membershipTier !== "novato" && (
+            {isStaff ? (
+              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
+            ) : membershipTier !== "novato" ? (
               <span className="text-[9px] text-neon-yellow font-pixel">[{membershipTier.toUpperCase()}]</span>
-            )}
-            {isStaff && roleLabel && (
-              <span className="text-[9px] text-neon-magenta font-pixel">[{roleLabel}]</span>
-            )}
+            ) : null}
           </>
         )}
       </button>
@@ -100,13 +101,12 @@ export default function UserPopup({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-body font-medium text-foreground truncate">{displayName}</p>
+              <p className="text-sm font-body font-semibold text-foreground truncate">{displayName}</p>
               <div className="flex items-center gap-1">
-                <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
-                {isStaff && roleLabel ? (
-                  <span className="text-[8px] text-neon-magenta font-pixel">{roleLabel}</span>
+                {isStaff ? (
+                  <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
                 ) : (
-                  <span className="text-[8px] text-neon-yellow font-pixel">{membershipTier.toUpperCase()}</span>
+                  <span className="text-[9px] text-neon-yellow font-pixel">{membershipTier.toUpperCase()}</span>
                 )}
               </div>
             </div>
