@@ -67,11 +67,12 @@ export default function GameBubble() {
     }
   }, [activeGame?.gameName]);
 
+  // Score increases 10 points every 10 seconds of active play
   useEffect(() => {
     if (activeGame && !minimized && romLoaded) {
       intervalRef.current = setInterval(() => {
-        timeRef.current += 1;
-        scoreRef.current += 1;
+        timeRef.current += 10;
+        scoreRef.current += 10;
         updateScore(scoreRef.current, timeRef.current);
       }, 10000);
     }
