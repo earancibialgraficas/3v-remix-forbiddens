@@ -130,15 +130,24 @@ export default function RightPanel() {
       setMemberCount(members || 0);
       const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
       setPostCount(posts || 0);
-      // "Online" = users active in last 15 min (approximation via recent activity)
-      const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const { count: recentPosters } = await supabase.from("posts").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
-      const { count: recentCommenters } = await supabase.from("comments").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
-      setOnlineCount(Math.max((recentPosters || 0) + (recentCommenters || 0), user ? 1 : 0));
+      // Online = users with active presence (last_seen within 5 min)
+      const fiveAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { count: online } = await supabase.from("presence").select("*", { count: "exact", head: true }).gte("last_seen", fiveAgo);
+      setOnlineCount(online || 0);
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchStats, 30000);
+    const channel = supabase.channel("presence-stats").on("postgres_changes", { event: "*", schema: "public", table: "presence" }, () => fetchStats()).subscribe();
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
+  }, []);
+
+  // Heartbeat: upsert presence every 2 min
+  useEffect(() => {
+    if (!user) return;
+    const upsert = () => supabase.from("presence").upsert({ user_id: user.id, last_seen: new Date().toISOString() } as any, { onConflict: "user_id" });
+    upsert();
+    const interval = setInterval(upsert, 120000);
+    return () => { clearInterval(interval); supabase.from("presence").delete().eq("user_id", user.id); };
   }, [user]);
 
   const news = newsItems[currentNews % newsItems.length];

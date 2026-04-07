@@ -105,7 +105,8 @@ export default function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground font-body">Sin notificaciones</p>
+                <p className="text-xs text-muted-foreground font-body font-medium">Todo al día 🎉</p>
+                <p className="text-[10px] text-muted-foreground/60 font-body mt-1">No tienes notificaciones nuevas</p>
               </div>
             ) : (
               notifications.map((n) => {
