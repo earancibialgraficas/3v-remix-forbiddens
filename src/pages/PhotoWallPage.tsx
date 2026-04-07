@@ -19,6 +19,7 @@ const membershipPhotoLimits: Record<string, number> = {
 
 export default function PhotoWallPage() {
   const { user, profile } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const [photos, setPhotos] = useState<any[]>([]);
   const [showUpload, setShowUpload] = useState(false);
@@ -26,6 +27,7 @@ export default function PhotoWallPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [userPhotoCount, setUserPhotoCount] = useState(0);
+  const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
 
   const tier = profile?.membership_tier || "novato";
   const photoLimit = membershipPhotoLimits[tier] || 0;
