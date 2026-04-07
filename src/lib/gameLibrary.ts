@@ -25,25 +25,25 @@ export const nesGames: GameEntry[] = [
 ];
 
 export const snesGames: GameEntry[] = [
-  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/contra.jpg" },
-  { id: "contra3", name: "Contra III", console: "snes", romUrl: "/roms/snes/Contra_III_(USA).sfc", coverUrl: "/roms/covers/contra.jpg" },
-  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/kirby.jpg" },
-  { id: "doom", name: "Doom", console: "snes", romUrl: "/roms/snes/Doom_(USA).sfc", coverUrl: "/roms/covers/alien3.jpg" },
-  { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/sonic3d.jpg" },
-  { id: "ki", name: "Killer Instinct", console: "snes", romUrl: "/roms/snes/Killer_Instinct_(EUR).sfc", coverUrl: "/roms/covers/kof99.jpg" },
-  { id: "kirbyss", name: "Kirby Super Star", console: "snes", romUrl: "/roms/snes/Kirby_Super_Star_(USA).sfc", coverUrl: "/roms/covers/kirby.jpg" },
-  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: "/roms/snes/Legend_of_Zelda,_The_-_A_Link_to_the_Past_(U)_[!].smc", coverUrl: "/roms/covers/metroid.jpg" },
-  { id: "mmx3", name: "Megaman X3", console: "snes", romUrl: "/roms/snes/Megaman_X3_(USA).sfc", coverUrl: "/roms/covers/spiderman.jpg" },
-  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/sonic3d.jpg" },
-  { id: "smw", name: "Super Mario World", console: "snes", romUrl: "/roms/snes/Super_Mario_World_(EUR).sfc", coverUrl: "/roms/covers/mario3.jpg" },
-  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_[!].smc", coverUrl: "/roms/covers/metroid.jpg" },
+  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/snes/contra.jpg" },
+  { id: "contra3", name: "Contra III", console: "snes", romUrl: "/roms/snes/Contra_III_(USA).sfc", coverUrl: "/roms/covers/snes/contra.jpg" },
+  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/snes/kirby.jpg" },
+  { id: "doom", name: "Doom", console: "snes", romUrl: "/roms/snes/Doom_(USA).sfc", coverUrl: "/roms/covers/snes/alien3.jpg" },
+  { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/snes/sonic3d.jpg" },
+  { id: "ki", name: "Killer Instinct", console: "snes", romUrl: "/roms/snes/Killer_Instinct_(EUR).sfc", coverUrl: "/roms/covers/snes/kof99.jpg" },
+  { id: "kirbyss", name: "Kirby Super Star", console: "snes", romUrl: "/roms/snes/Kirby_Super_Star_(USA).sfc", coverUrl: "/roms/covers/snes/kirby.jpg" },
+  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: "/roms/snes/Legend_of_Zelda,_The_-_A_Link_to_the_Past_(U)_[!].smc", coverUrl: "/roms/covers/snes/metroid.jpg" },
+  { id: "mmx3", name: "Megaman X3", console: "snes", romUrl: "/roms/snes/Megaman_X3_(USA).sfc", coverUrl: "/roms/covers/snes/spiderman.jpg" },
+  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/snes/sonic3d.jpg" },
+  { id: "smw", name: "Super Mario World", console: "snes", romUrl: "/roms/snes/Super_Mario_World_(EUR).sfc", coverUrl: "/roms/covers/snes/mario3.jpg" },
+  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_[!].smc", coverUrl: "/roms/covers/snes/metroid.jpg" },
 ];
 
 export const gbaGames: GameEntry[] = [
-  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: "/roms/gba/Metroid Fusion (USA).gba", coverUrl: "/roms/covers/gba/metroid fusion.jpeg" },
-  { id: "gba-crash", name: "Crash Bandicoot: Huge Adventure", console: "gba", romUrl: "/roms/gba/Crash Bandicoot - The Huge Adventure (USA).gba", coverUrl: "/roms/covers/gba/crash bandicoot.jpeg" },
-  { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840 - Metal Slug Advance (E)(TRSI).gba", coverUrl: "/roms/covers/gba/metal slug.jpg" },
-  { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need for Speed - Most Wanted (USA, Europe) (En,Fr,De,It).gba", coverUrl: "/roms/covers/gba/NFS most wanted.jpeg" },
+  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: "/roms/gba/Metroid%20Fusion%20(USA).gba", coverUrl: "/roms/covers/gba/metroid%20fusion.jpeg" },
+  { id: "gba-crash", name: "Crash Bandicoot: Huge Adventure", console: "gba", romUrl: "/roms/gba/Crash%20Bandicoot%20-%20The%20Huge%20Adventure%20(USA).gba", coverUrl: "/roms/covers/gba/crash%20bandicoot.jpeg" },
+  { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840%20-%20Metal%20Slug%20Advance%20(E)(TRSI).gba", coverUrl: "/roms/covers/gba/metal%20slug.jpg" },
+  { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need%20for%20Speed%20-%20Most%20Wanted%20(USA%2C%20Europe)%20(En%2CFr%2CDe%2CIt).gba", coverUrl: "/roms/covers/gba/NFS%20most%20wanted.jpeg" },
 ];
 
 export const allGames = [...nesGames, ...snesGames, ...gbaGames];
