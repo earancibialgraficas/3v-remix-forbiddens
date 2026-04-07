@@ -448,6 +448,12 @@ export default function GameBubble() {
               </div>
             )}
           </div>
+          {/* Pause */}
+          {romLoaded && (
+            <Button size="icon" variant="ghost" onClick={togglePause} className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
+              {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </Button>
+          )}
           {/* Minimize */}
           <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
             <Minimize2 className="w-4 h-4" />

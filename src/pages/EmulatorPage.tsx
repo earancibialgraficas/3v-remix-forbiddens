@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Gamepad2, Upload, Monitor, Trophy, Play, User } from "lucide-react";
+import { Gamepad2, Upload, Monitor, Trophy, Play, User, Lightbulb, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -165,9 +167,44 @@ export default function EmulatorPage() {
         )}
       </div>
 
+      <GameSuggestionBox consoleName={selectedConsole} />
+
       <p className="text-[9px] text-muted-foreground font-body">
         ⚠️ Solo carga ROMs de las que poseas una copia física. Los controles se configuran automáticamente.
       </p>
+    </div>
+  );
+}
+
+function GameSuggestionBox({ consoleName }: { consoleName: string }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [gameName, setGameName] = useState("");
+  const [description, setDescription] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
+    if (!gameName.trim()) return;
+    setSending(true);
+    const { error } = await supabase.from("game_suggestions").insert({
+      user_id: user.id, console_type: consoleName, game_name: gameName.trim(), description: description.trim(),
+    } as any);
+    setSending(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); setGameName(""); setDescription(""); }
+  };
+
+  return (
+    <div className="bg-card border border-neon-cyan/20 rounded-lg p-3 space-y-2">
+      <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1">
+        <Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO
+      </h3>
+      <Input placeholder="Nombre del juego" value={gameName} onChange={e => setGameName(e.target.value)} className="h-7 bg-muted text-xs font-body" />
+      <Textarea placeholder="¿Por qué lo recomiendas? (opcional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-muted text-xs font-body min-h-[40px]" />
+      <Button size="sm" onClick={handleSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-7">
+        <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}
+      </Button>
     </div>
   );
 }
