@@ -127,7 +127,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
       >
         {/* Logo + Toggle: vertical when collapsed, horizontal with text below when expanded */}
         {collapsed ? (
-          <div className="flex flex-col items-center gap-1 py-2 px-1 border-b border-border">
+          <div className="flex flex-col items-center gap-1.5 py-2 px-1 border-b border-border">
             <button
               onClick={onToggle}
               className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
@@ -137,9 +137,17 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
             <Link to="/" className="flex items-center justify-center p-1">
               <img src={logo} alt="Forbiddens" className="w-7 h-7" />
             </Link>
-            <span className="font-pixel text-[6px] text-neon-green text-glow-green writing-vertical" style={{ writingMode: "vertical-rl", textOrientation: "mixed", letterSpacing: "2px" }}>
-              FORBIDDENS
-            </span>
+            <div className="flex flex-col items-center gap-0">
+              {"FORBIDDENS".split("").map((letter, i) => (
+                <span
+                  key={i}
+                  className="font-pixel text-[8px] text-neon-green text-glow-green leading-tight"
+                  style={{ display: "block" }}
+                >
+                  {letter}
+                </span>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-2 py-2 border-b border-border">
