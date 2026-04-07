@@ -75,8 +75,16 @@ export default function ProfilePage() {
 
   const handleAvatarSelect = async (url: string) => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
-    if (!error) { toast({ title: "Avatar actualizado" }); setShowAvatarSelector(false); await refreshProfile(); }
+    const nextAvatarUrl = withImageVersion(url, Date.now());
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: nextAvatarUrl, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    if (!error) {
+      toast({ title: "Avatar actualizado" });
+      setShowAvatarSelector(false);
+      await refreshProfile();
+    }
   };
 
   const handleAvatarUpload = async (file: File) => {
