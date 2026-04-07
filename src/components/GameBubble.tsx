@@ -125,20 +125,36 @@ export default function GameBubble() {
     };
   }, [activeGame?.romUrl]);
 
-  // Volume control - use RetroArch audio context
+  // Volume control - mute/unmute the canvas audio via Web Audio API and media elements
   useEffect(() => {
-    if (nostalgistRef.current && romLoaded) {
-      try {
-        // Try to control volume via AudioContext gain node
-        const audioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-        const allAudio = document.querySelectorAll("audio");
-        allAudio.forEach(a => { a.volume = volume / 100; });
-        // Also try to set volume via retroarch option
-        if (nostalgistRef.current.sendCommand) {
-          nostalgistRef.current.sendCommand("AUDIO_VOLUME", volume === 0 ? -80 : (volume / 100 * 12 - 12));
+    if (!romLoaded) return;
+    try {
+      // Control all audio/video elements in the game container
+      const container = document.getElementById("game-bubble-canvas")?.parentElement;
+      if (container) {
+        container.querySelectorAll("audio, video").forEach((el: any) => {
+          el.volume = volume / 100;
+        });
+      }
+      // Also target any global audio elements the emulator may create
+      document.querySelectorAll("audio").forEach(a => { a.volume = volume / 100; });
+      // Use the Nostalgist instance's internal emscripten module to set volume
+      if (nostalgistRef.current) {
+        const n = nostalgistRef.current;
+        // Access the RetroArch Module's audio context if available
+        const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
+        if (mod?.SDL2?.audioContext) {
+          const ctx = mod.SDL2.audioContext;
+          if (!mod._gainNode) {
+            mod._gainNode = ctx.createGain();
+            // Intercept audio destination
+          }
+          if (mod._gainNode) {
+            mod._gainNode.gain.value = volume / 100;
+          }
         }
-      } catch {}
-    }
+      }
+    } catch {}
   }, [volume, romLoaded]);
 
   // Pause/Resume toggle
