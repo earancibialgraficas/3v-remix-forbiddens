@@ -198,7 +198,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
         )}
 
         {/* Navigation */}
-        <nav className={cn("px-1 space-y-0.5 retro-scrollbar", collapsed ? "flex-1 flex flex-col justify-center py-1" : "flex-1 py-2")}>
+        <nav className={cn("px-1 space-y-0.5 retro-scrollbar", collapsed ? "py-1" : "flex-1 py-2")}>
           {collapsed && (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
