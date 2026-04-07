@@ -211,6 +211,21 @@ export default function ForumPage() {
     if (!error) { toast({ title: "Post eliminado" }); fetchPosts(); }
   };
 
+  const startEditPost = (post: any) => {
+    setEditingPost(post.id);
+    setEditTitle(post.title);
+    setEditContent(post.content || "");
+  };
+
+  const handleEditPost = async (postId: string) => {
+    if (!editTitle.trim()) return;
+    const { error } = await supabase.from("posts").update({
+      title: editTitle.trim(), content: editContent.trim(),
+    } as any).eq("id", postId);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Post editado" }); setEditingPost(null); fetchPosts(); }
+  };
+
   const toggleComments = (postId: string) => {
     if (expandedPost === postId) setExpandedPost(null);
     else { setExpandedPost(postId); fetchComments(postId); }
