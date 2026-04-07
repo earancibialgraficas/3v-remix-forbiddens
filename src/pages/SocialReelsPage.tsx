@@ -243,13 +243,17 @@ export default function SocialReelsPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const sourceFiltered = sourceTab === "friends"
+    ? items.filter(i => friendIds.includes(i.user_id))
+    : items;
+
   const filtered = filter === "all"
-    ? items
+    ? sourceFiltered
     : filter === "videos"
-    ? items.filter(isVideoContent)
+    ? sourceFiltered.filter(isVideoContent)
     : filter === "images"
-    ? items.filter(isImageContent)
-    : items.filter(i => !isVideoContent(i) && !isImageContent(i));
+    ? sourceFiltered.filter(isImageContent)
+    : sourceFiltered.filter(i => !isVideoContent(i) && !isImageContent(i));
 
   return (
     <div className="space-y-4 animate-fade-in">
