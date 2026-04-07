@@ -335,7 +335,7 @@ export default function ForumPage() {
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                           <span className="text-[10px] font-body font-medium text-foreground">{comment.profile?.display_name || "Anónimo"}</span>
                           <RoleBadge roles={comment.roles || []} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} />
-                          {comment.membership_tier !== "novato" && (
+                          {!(comment.roles?.includes("master_web") || comment.roles?.includes("admin") || comment.roles?.includes("moderator")) && comment.membership_tier !== "novato" && (
                             <span className="text-[9px] text-neon-yellow font-pixel">[{comment.membership_tier.toUpperCase()}]</span>
                           )}
                           <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
