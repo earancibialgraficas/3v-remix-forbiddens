@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
@@ -8,10 +8,17 @@ import NotificationBell from "@/components/NotificationBell";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
+  // Hide nav buttons on mobile home page
+  const showNavButtons = !(isMobile && isHome);
 
   return (
     <div className="min-h-screen bg-background">
@@ -32,6 +39,15 @@ export default function MainLayout() {
       >
         <Menu className="w-4 h-4" />
       </Button>
+
+      {/* Mobile fixed notification bell — always visible */}
+      {isMobile && (
+        <div className="fixed top-2 right-2 z-[100]">
+          <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
+            <NotificationBell />
+          </div>
+        </div>
+      )}
 
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
@@ -59,8 +75,9 @@ export default function MainLayout() {
           <div className="flex-1 min-w-0">
             {/* Nav bar with back/forward + notifications */}
             <div className="flex items-center justify-between mb-2">
-              <NavigationButtons />
-              <NotificationBell />
+              {showNavButtons ? <NavigationButtons /> : <div />}
+              {/* Desktop notification bell */}
+              {!isMobile && <NotificationBell />}
             </div>
             <div className="animate-fade-in">
               <Outlet />
