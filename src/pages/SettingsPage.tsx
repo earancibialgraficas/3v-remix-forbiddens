@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings, Lock, User, HelpCircle, Camera, Bell, Shield, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,22 @@ export default function SettingsPage() {
   const { user, profile, refreshProfile, roles } = useAuth();
   const { toast } = useToast();
   const [newPassword, setNewPassword] = useState("");
-  const [instagram, setInstagram] = useState(profile?.instagram_url || "");
-  const [youtube, setYoutube] = useState(profile?.youtube_url || "");
-  const [tiktok, setTiktok] = useState(profile?.tiktok_url || "");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [tiktok, setTiktok] = useState("");
   const [saving, setSaving] = useState(false);
-  const [displayName, setDisplayName] = useState(profile?.display_name || "");
-  const [bio, setBio] = useState(profile?.bio || "");
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || "");
+      setBio(profile.bio || "");
+      setInstagram(profile.instagram_url || "");
+      setYoutube(profile.youtube_url || "");
+      setTiktok(profile.tiktok_url || "");
+    }
+  }, [profile]);
 
   if (!user) {
     return (
