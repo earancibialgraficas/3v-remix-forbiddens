@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import TopNavbar from "@/components/TopNavbar";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
+import GameBubble from "@/components/GameBubble";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -10,24 +12,23 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <TopNavbar
-        onMenuToggle={() => {
-          if (window.innerWidth < 768) {
-            setMobileSidebarOpen(!mobileSidebarOpen);
-          } else {
-            setSidebarCollapsed(!sidebarCollapsed);
-          }
-        }}
-        sidebarCollapsed={sidebarCollapsed}
-      />
-
-      {/* Sidebar - hidden on mobile, visible on md+ */}
-      <div className="hidden md:block z-40">
+      {/* Desktop sidebar */}
+      <div className="hidden md:block">
         <ForumSidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
       </div>
+
+      {/* Mobile menu button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-2 left-2 h-9 w-9 md:hidden z-50 bg-card/90 backdrop-blur border border-border shadow-lg text-muted-foreground hover:text-foreground"
+        onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+      >
+        <Menu className="w-4 h-4" />
+      </Button>
 
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
@@ -45,7 +46,11 @@ export default function MainLayout() {
         </div>
       )}
 
-      <main className="flex-1 min-w-0 pt-12">
+      {/* Main content - pushed by sidebar width */}
+      <main
+        className="flex-1 min-w-0 transition-all duration-300"
+        style={{ marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? (sidebarCollapsed ? '3rem' : '14rem') : 0 }}
+      >
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0 animate-fade-in">
             <Outlet />
@@ -55,6 +60,9 @@ export default function MainLayout() {
           </div>
         </div>
       </main>
+
+      {/* Global game bubble */}
+      <GameBubble />
     </div>
   );
 }
