@@ -464,6 +464,10 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          color_avatar_border: string | null
+          color_name: string | null
+          color_role: string | null
+          color_staff_role: string | null
           created_at: string
           display_name: string
           id: string
@@ -481,6 +485,10 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          color_avatar_border?: string | null
+          color_name?: string | null
+          color_role?: string | null
+          color_staff_role?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -498,6 +506,10 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          color_avatar_border?: string | null
+          color_name?: string | null
+          color_role?: string | null
+          color_staff_role?: string | null
           created_at?: string
           display_name?: string
           id?: string
