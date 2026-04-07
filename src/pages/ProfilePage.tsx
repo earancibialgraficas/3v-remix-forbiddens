@@ -32,7 +32,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
-  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">("posts");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -151,6 +151,7 @@ export default function ProfilePage() {
   const tabs = [
     { id: "posts" as const, label: "Posts", icon: MessageSquare },
     { id: "stats" as const, label: "Stats", icon: Trophy },
+    { id: "friends" as const, label: "Amigos", icon: UserPlus },
     { id: "social" as const, label: "Redes", icon: Globe },
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     ...((isStaff || isMod) ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
