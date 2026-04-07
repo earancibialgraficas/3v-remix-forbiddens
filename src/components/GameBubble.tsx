@@ -274,8 +274,10 @@ export default function GameBubble() {
     }
   };
 
-  const handleClose = (idx?: number) => {
+  const handleClose = async (idx?: number) => {
     const game = idx !== undefined ? activeGames[idx] : activeGame;
+    // Auto-save before closing
+    await autoSaveOnClose();
     if (game && scoreRef.current > 0 && user) handleSaveScore();
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
