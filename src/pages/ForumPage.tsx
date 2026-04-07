@@ -259,6 +259,13 @@ export default function ForumPage() {
 
   const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
+    // Optimistic update
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      // Simple optimistic: increment/decrement based on vote
+      if (voteType === "up") return { ...p, upvotes: p.upvotes + 1 };
+      return { ...p, downvotes: p.downvotes + 1 };
+    }));
     const { data: existing } = await supabase.from("post_votes").select("*").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
     if (existing) {
       if ((existing as any).vote_type === voteType) {
@@ -269,10 +276,11 @@ export default function ForumPage() {
     } else {
       await supabase.from("post_votes").insert({ user_id: user.id, post_id: postId, vote_type: voteType } as any);
     }
+    // Sync real counts in background
     const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
     const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
     await supabase.from("posts").update({ upvotes: upCount || 0, downvotes: downCount || 0 } as any).eq("id", postId);
-    fetchPosts();
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: upCount || 0, downvotes: downCount || 0 } : p));
   };
 
   const handleComment = async (postId: string) => {
