@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Type, User } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
+import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,43 +38,7 @@ const MAX_COMMENT_LENGTH = 2000;
 
 const mockPostsByCategory: Record<string, Array<{ id: string; title: string; content: string; upvotes: number; downvotes: number; is_pinned: boolean; user_id: string; created_at: string; category: string }>> = {
   "gaming-anime": [
-    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia según la comunidad", content: "Después de una encuesta con más de 500 votos, aquí están los resultados:\n\n1. Chrono Trigger\n2. Final Fantasy VI\n3. Earthbound\n4. Secret of Mana\n5. Persona 5\n\n![RPG Classics](https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&h=300&fit=crop)\n\n¿Estás de acuerdo? ¡Comenta tu top!", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
-  ],
-  "gaming-anime-foro": [
-    { id: "gaf1", title: "¿Cuál fue el primer videojuego que jugaron?", content: "Yo empecé con Super Mario Bros en la NES de mi hermano mayor. ¡Qué tiempos!", upvotes: 87, downvotes: 1, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime-foro" },
-  ],
-  "gaming-anime-anime": [
-    { id: "gaa1", title: "📺 One Piece capítulo 1150 - ¡Discusión semanal!", content: "¡Qué capítulo tan épico! Oda no decepciona.\n\n⚠️ SPOILERS en los comentarios", upvotes: 312, downvotes: 5, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 3600000).toISOString(), category: "gaming-anime-anime" },
-  ],
-  "gaming-anime-creador": [
-    { id: "gac1", title: "🎨 Mi fanart de Link (Tears of the Kingdom)", content: "![Fanart Link](https://images.unsplash.com/photo-1608889175123-8ee362201f81?w=600&h=400&fit=crop)\n\nMe tomó 3 semanas completarlo.", upvotes: 445, downvotes: 2, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime-creador" },
-  ],
-  "motociclismo": [
-    { id: "m1", title: "🏍️ Yamaha MT-07 2026: Review completo", content: "![MT-07](https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&h=300&fit=crop)\n\nDespués de 6 meses con la MT-07, aquí va mi review honesto.", upvotes: 178, downvotes: 4, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "motociclismo" },
-  ],
-  "motociclismo-riders": [
-    { id: "mr1", title: "¿Honda CB500F o Kawasaki Z400 para ciudad?", content: "Necesito una moto para ir al trabajo diario. ¿Cuál recomiendan?", upvotes: 67, downvotes: 2, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 43200000).toISOString(), category: "motociclismo-riders" },
-  ],
-  "motociclismo-taller": [
-    { id: "mt1", title: "Tutorial: Cambio de aceite paso a paso", content: "![Cambio aceite](https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=600&h=300&fit=crop)\n\nGuía completa para hacer el cambio de aceite en casa.", upvotes: 156, downvotes: 1, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 172800000).toISOString(), category: "motociclismo-taller" },
-  ],
-  "motociclismo-rutas": [
-    { id: "mru1", title: "🗺️ Rodada nocturna Santiago - Sábado 12 Abril", content: "📍 Punto de encuentro: Plaza Italia\n🕐 Hora: 22:00\n🏍️ Ruta: Santiago Centro → Cerro San Cristóbal", upvotes: 89, downvotes: 0, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 43200000).toISOString(), category: "motociclismo-rutas" },
-  ],
-  "mercado": [
-    { id: "mk1", title: "📌 REGLAS DEL MERCADO - Leer antes de publicar", content: "1. Incluye fotos reales del producto\n2. Indica precio y ciudad\n3. No se permiten artículos robados", upvotes: 500, downvotes: 2, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 2592000000).toISOString(), category: "mercado" },
-  ],
-  "mercado-gaming": [
-    { id: "mg1", title: "[VENDO] Game Boy Advance SP + 12 juegos - $80.000 CLP", content: "![GBA SP](https://images.unsplash.com/photo-1531525645387-7f14be1bdbbd?w=400&h=300&fit=crop)\n\nVendo mi GBA SP en perfecto estado.", upvotes: 34, downvotes: 0, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "mercado-gaming" },
-  ],
-  "mercado-motor": [
-    { id: "mm1", title: "[VENDO] Casco AGV K3 SV talla M - $120.000 CLP", content: "![Casco](https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop)\n\nCasco AGV usado 6 meses.", upvotes: 28, downvotes: 1, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "mercado-motor" },
-  ],
-  "social": [
-    { id: "s1", title: "🎉 ¡Bienvenidos al Social Hub!", content: "Este es el espacio para compartir contenido más allá del gaming y las motos.", upvotes: 156, downvotes: 0, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 2592000000).toISOString(), category: "social" },
-  ],
-  "social-feed": [
-    { id: "sf1", title: "Mi setup gaming 2026 - Finalmente terminado", content: "![Setup](https://images.unsplash.com/photo-1593062096033-9a26b09da705?w=600&h=400&fit=crop)\n\nDespués de meses de ahorro, por fin completé mi setup soñado.", upvotes: 287, downvotes: 3, is_pinned: false, user_id: "", created_at: new Date(Date.now() - 43200000).toISOString(), category: "social-feed" },
+    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia según la comunidad", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
   ],
   "trending": [
     { id: "t1", title: "🔥 Los posts más votados de la semana", content: "Resumen semanal de lo más popular en Forbiddens.", upvotes: 500, downvotes: 5, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 3600000).toISOString(), category: "trending" },
@@ -100,8 +65,16 @@ interface Comment {
   membership_tier: string;
   created_at: string;
   parent_id: string | null;
-  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean } | null;
+  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string } | null;
   roles?: string[];
+}
+
+interface PostProfile {
+  display_name: string;
+  avatar_url: string | null;
+  role_icon: string | null;
+  show_role_icon: boolean;
+  membership_tier: string;
 }
 
 export default function ForumPage() {
@@ -119,6 +92,9 @@ export default function ForumPage() {
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"popular" | "new">("popular");
+  // Post author profiles + roles
+  const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
+  const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   const hasUnlimited = isAdmin || isMasterWeb;
@@ -128,15 +104,28 @@ export default function ForumPage() {
     if (sortBy === "popular") query.order("upvotes", { ascending: false });
     else query.order("created_at", { ascending: false });
     const { data } = await query.limit(20);
-    if (data) setPosts(data);
+    if (data) {
+      setPosts(data);
+      // Fetch profiles and roles for post authors
+      const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+        const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+        const pMap: Record<string, PostProfile> = {};
+        profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
+        const rMap: Record<string, string[]> = {};
+        roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
+        setPostProfiles(pMap);
+        setPostRoles(rMap);
+      }
+    }
   };
 
   const fetchComments = async (postId: string) => {
     const { data } = await supabase.from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
     if (!data) return;
-    // Fetch profiles and roles for commenters
     const userIds = [...new Set((data as any[]).map(c => c.user_id))];
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon").in("user_id", userIds);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
     const { data: userRoles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
     const profileMap: Record<string, any> = {};
     profiles?.forEach(p => profileMap[p.user_id] = p);
@@ -184,7 +173,6 @@ export default function ForumPage() {
     } else {
       await supabase.from("post_votes").insert({ user_id: user.id, post_id: postId, vote_type: voteType } as any);
     }
-    // Update post counts
     const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
     const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
     await supabase.from("posts").update({ upvotes: upCount || 0, downvotes: downCount || 0 } as any).eq("id", postId);
@@ -286,120 +274,142 @@ export default function ForumPage() {
       )}
 
       <div className="space-y-2">
-        {allPosts.map((post) => (
-          <div key={post.id}>
-            <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
-              <div className="flex items-start gap-3">
-                <div className="flex flex-col items-center gap-0.5 text-muted-foreground shrink-0">
-                  <button onClick={() => handleVote(post.id, "up")} className="hover:text-primary transition-colors"><ArrowUp className="w-4 h-4" /></button>
-                  <span className="text-xs font-body font-semibold">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
-                  <button onClick={() => handleVote(post.id, "down")} className="hover:text-destructive transition-colors"><ArrowDown className="w-4 h-4" /></button>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
-                    {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                    {post.title}
-                  </p>
-                  {post.content && (
-                    <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
-                  )}
-                  <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
-                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                    <button onClick={() => toggleComments(post.id)} className="flex items-center gap-0.5 hover:text-primary transition-colors">
-                      <MessageSquare className="w-3 h-3" /> Comentarios
-                    </button>
-                    {post.user_id && (
-                      <button onClick={() => handleReport(post.id, post.user_id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors ml-auto">
-                        <Flag className="w-3 h-3" />
-                      </button>
-                    )}
-                    {isAdmin && post.user_id && (
-                      <button onClick={() => handleDeletePost(post.id)} className="text-destructive hover:text-destructive/80 transition-colors">
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                  {(post as any).signature && (
-                    <p className="text-[9px] text-neon-yellow font-body mt-1 italic">{(post as any).signature}</p>
-                  )}
-                </div>
-              </div>
-            </div>
+        {allPosts.map((post) => {
+          const authorProfile = postProfiles[post.user_id];
+          const authorRoles = postRoles[post.user_id] || [];
 
-            {/* Comments section - expanded */}
-            {expandedPost === post.id && (
-              <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
-                {(comments[post.id] || []).map((comment) => (
-                  <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
-                    <div className="flex items-start gap-2">
-                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                        {comment.profile?.avatar_url ? (
-                          <img src={comment.profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          <span className="text-[10px] font-body font-medium text-foreground">{comment.profile?.display_name || "Anónimo"}</span>
-                          <RoleBadge roles={comment.roles || []} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} />
-                          {!(comment.roles?.includes("master_web") || comment.roles?.includes("admin") || comment.roles?.includes("moderator")) && comment.membership_tier !== "novato" && (
-                            <span className="text-[9px] text-neon-yellow font-pixel">[{comment.membership_tier.toUpperCase()}]</span>
-                          )}
-                          <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
-                        {user && (
-                          <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors mt-1 text-[10px] text-muted-foreground">
-                            <Reply className="w-3 h-3 inline mr-0.5" /> Responder
-                          </button>
-                        )}
-                      </div>
-                    </div>
+          return (
+            <div key={post.id}>
+              <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center gap-0.5 text-muted-foreground shrink-0">
+                    <button onClick={() => handleVote(post.id, "up")} className="hover:text-primary transition-colors"><ArrowUp className="w-4 h-4" /></button>
+                    <span className="text-xs font-body font-semibold">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
+                    <button onClick={() => handleVote(post.id, "down")} className="hover:text-destructive transition-colors"><ArrowDown className="w-4 h-4" /></button>
                   </div>
-                ))}
-                {user ? (
-                  <div className="space-y-2 bg-card border border-border rounded p-3">
-                    {replyTo && (
-                      <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body">
-                        <Reply className="w-3 h-3" /> Respondiendo
-                        <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
+                  <div className="min-w-0 flex-1">
+                    {/* Post author */}
+                    {post.user_id && authorProfile && (
+                      <div className="mb-1">
+                        <UserPopup
+                          userId={post.user_id}
+                          displayName={authorProfile.display_name}
+                          avatarUrl={authorProfile.avatar_url}
+                          roles={authorRoles}
+                          roleIcon={authorProfile.role_icon}
+                          showRoleIcon={authorProfile.show_role_icon}
+                          membershipTier={authorProfile.membership_tier}
+                        />
                       </div>
                     )}
-                    <Textarea
-                      placeholder="Escribe tu comentario..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      maxLength={MAX_COMMENT_LENGTH}
-                      className="bg-muted text-xs font-body min-h-[80px] resize-y"
-                    />
-                    {/* Formatting toolbar */}
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
-                      <div className="flex-1" />
-                      <span className="text-[9px] text-muted-foreground font-body">{commentText.length}/{MAX_COMMENT_LENGTH}</span>
+                    <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
+                      {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
+                      {post.title}
+                    </p>
+                    {post.content && (
+                      <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                    )}
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
+                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                      <button onClick={() => toggleComments(post.id)} className="flex items-center gap-0.5 hover:text-primary transition-colors">
+                        <MessageSquare className="w-3 h-3" /> Comentarios
+                      </button>
+                      {post.user_id && (
+                        <button onClick={() => handleReport(post.id, post.user_id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors ml-auto">
+                          <Flag className="w-3 h-3" />
+                        </button>
+                      )}
+                      {isAdmin && post.user_id && (
+                        <button onClick={() => handleDeletePost(post.id)} className="text-destructive hover:text-destructive/80 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-[9px] text-muted-foreground font-body italic">
-                        {hasUnlimited ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : "ADMIN"}]` : ""}
-                      </p>
-                      <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
-                        <Send className="w-3 h-3" /> Comentar
-                      </Button>
-                    </div>
+                    {(post as any).signature && (
+                      <p className="text-[9px] text-neon-yellow font-body mt-1 italic">{(post as any).signature}</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground font-body">Inicia sesión para comentar</p>
-                )}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Comments section */}
+              {expandedPost === post.id && (
+                <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
+                  {(comments[post.id] || []).map((comment) => (
+                    <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
+                      <div className="flex items-start gap-2">
+                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          {comment.profile?.avatar_url ? (
+                            <img src={comment.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            <UserPopup
+                              userId={comment.user_id}
+                              displayName={comment.profile?.display_name || "Anónimo"}
+                              avatarUrl={comment.profile?.avatar_url}
+                              roles={comment.roles || []}
+                              roleIcon={comment.profile?.role_icon}
+                              showRoleIcon={comment.profile?.show_role_icon !== false}
+                              membershipTier={comment.profile?.membership_tier || comment.membership_tier}
+                            />
+                            <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
+                          {user && (
+                            <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors mt-1 text-[10px] text-muted-foreground">
+                              <Reply className="w-3 h-3 inline mr-0.5" /> Responder
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {user ? (
+                    <div className="space-y-2 bg-card border border-border rounded p-3">
+                      {replyTo && (
+                        <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body">
+                          <Reply className="w-3 h-3" /> Respondiendo
+                          <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
+                        </div>
+                      )}
+                      <Textarea
+                        placeholder="Escribe tu comentario..."
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        maxLength={MAX_COMMENT_LENGTH}
+                        className="bg-muted text-xs font-body min-h-[80px] resize-y"
+                      />
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                        <div className="flex-1" />
+                        <span className="text-[9px] text-muted-foreground font-body">{commentText.length}/{MAX_COMMENT_LENGTH}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] text-muted-foreground font-body italic">
+                          {hasUnlimited ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : "ADMIN"}]` : ""}
+                        </p>
+                        <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
+                          <Send className="w-3 h-3" /> Comentar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground font-body">Inicia sesión para comentar</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
