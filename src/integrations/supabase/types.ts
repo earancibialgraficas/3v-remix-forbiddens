@@ -415,6 +415,24 @@ export type Database = {
         }
         Relationships: []
       }
+      presence: {
+        Row: {
+          id: string
+          last_seen: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_seen?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_seen?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       private_messages: {
         Row: {
           content: string
