@@ -489,18 +489,15 @@ export default function ProfilePage() {
       {showColorPicker && (
         <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowColorPicker(false)}>
           <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-sm w-full mx-4 space-y-4" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowColorPicker(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
-              <span className="text-lg">✕</span>
-            </button>
             <h3 className="font-pixel text-[11px] text-neon-cyan text-center flex items-center justify-center gap-2">
               <Palette className="w-4 h-4" /> PERSONALIZAR COLORES
             </h3>
-            <div className="flex gap-2 justify-center">
-              {(["border", "name", "role"] as const).map(t => (
-                <button key={t} onClick={() => setColorTarget(t)}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {(["border", "name", "role", ...((isStaff || isMod) ? ["staff"] : [])] as const).map(t => (
+                <button key={t} onClick={() => setColorTarget(t as any)}
                   className={cn("px-3 py-1.5 rounded text-[10px] font-body transition-all",
                     colorTarget === t ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                  {t === "border" ? "Borde Avatar" : t === "name" ? "Nombre" : "Rol/Membresía"}
+                  {t === "border" ? "Borde Avatar" : t === "name" ? "Nombre" : t === "staff" ? "Rol Staff" : "Rol/Membresía"}
                 </button>
               ))}
             </div>
@@ -508,10 +505,16 @@ export default function ProfilePage() {
               <div className="relative w-48 h-48">
                 <input
                   type="color"
-                  value={colorTarget === "border" ? (avatarBorderColor || "#22d3ee") : colorTarget === "name" ? (nameColor || "#22d3ee") : (roleColor || "#facc15")}
+                  value={
+                    colorTarget === "border" ? (avatarBorderColor || "#22d3ee") :
+                    colorTarget === "name" ? (nameColor || "#22d3ee") :
+                    colorTarget === "staff" ? (staffRoleColor || "#f472b6") :
+                    (roleColor || "#facc15")
+                  }
                   onChange={e => {
                     if (colorTarget === "border") setAvatarBorderColor(e.target.value);
                     else if (colorTarget === "name") setNameColor(e.target.value);
+                    else if (colorTarget === "staff") setStaffRoleColor(e.target.value);
                     else setRoleColor(e.target.value);
                   }}
                   className="w-full h-full rounded-full cursor-pointer border-2 border-border"
@@ -526,9 +529,49 @@ export default function ProfilePage() {
                   </div>
                   <span className="font-pixel text-xs" style={{ color: nameColor || undefined }}>{profile?.display_name}</span>
                   <span className="text-[9px] font-pixel" style={{ color: roleColor || undefined }}>{tier.toUpperCase()}</span>
+                  {(isStaff || isMod) && (
+                    <span className="text-[9px] font-pixel" style={{ color: staffRoleColor || undefined }}>
+                      {isMasterWeb ? "MASTER" : isAdmin ? "ADMIN" : "MOD"}
+                    </span>
+                  )}
                 </div>
               </div>
-              <p className="text-[9px] text-muted-foreground font-body text-center">Los colores se aplican visualmente en tu perfil y posts</p>
+            </div>
+            {/* Buttons */}
+            <div className="flex gap-2 justify-center pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowColorPicker(false)}
+                className="text-xs px-4"
+              >
+                Cerrar
+              </Button>
+              <Button
+                size="sm"
+                disabled={savingColors}
+                onClick={async () => {
+                  if (!user) return;
+                  setSavingColors(true);
+                  const { error } = await supabase.from("profiles").update({
+                    color_avatar_border: avatarBorderColor || null,
+                    color_name: nameColor || null,
+                    color_role: roleColor || null,
+                    color_staff_role: staffRoleColor || null,
+                  } as any).eq("user_id", user.id);
+                  setSavingColors(false);
+                  if (error) {
+                    toast({ title: "Error al guardar", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Colores guardados ✨" });
+                    await refreshProfile();
+                    setShowColorPicker(false);
+                  }
+                }}
+                className="text-xs px-4 bg-neon-cyan text-background hover:bg-neon-cyan/80"
+              >
+                {savingColors ? "Guardando..." : "Guardar"}
+              </Button>
             </div>
           </div>
         </div>
