@@ -168,13 +168,22 @@ export default function PublicProfilePage() {
               </div>
             )}
             {user && user.id !== userId && (
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-3 flex-wrap">
                 <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="text-xs gap-1">
                   {isFollowing ? <><UserMinus className="w-3 h-3" /> Dejar de seguir</> : <><UserPlus className="w-3 h-3" /> Seguir</>}
+                </Button>
+                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} className="text-xs gap-1">
+                  <Users className="w-3 h-3" />
+                  {friendStatus === "none" && "Añadir amigo"}
+                  {friendStatus === "pending_sent" && "Solicitud enviada"}
+                  {friendStatus === "pending_received" && "Aceptar amistad"}
+                  {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
                   <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Mensaje</Link>
                 </Button>
+              </div>
+            )}
               </div>
             )}
           </div>

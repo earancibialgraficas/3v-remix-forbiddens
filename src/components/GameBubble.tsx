@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -42,9 +42,9 @@ export default function GameBubble() {
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
 
-  // Volume
   const [volume, setVolume] = useState(100);
   const [showVolume, setShowVolume] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   // Save/Load slots
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
