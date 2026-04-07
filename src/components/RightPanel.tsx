@@ -164,9 +164,14 @@ export default function RightPanel() {
             <p className={cn("text-muted-foreground", sizes.title)}>Posts</p>
           </div>
         </div>
-        <Button asChild className={cn("w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
-          <Link to="/registro">Unirse</Link>
-        </Button>
+        <div className="flex gap-1.5">
+          <Button asChild className={cn("flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
+            <Link to="/registro">Unirse</Link>
+          </Button>
+          <Button asChild className={cn("flex-1 font-body h-6 bg-[#5865F2] text-white hover:bg-[#5865F2]/80", sizes.body)}>
+            <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
+          </Button>
+        </div>
       </div>
 
       {/* News Carousel with retro progress bar */}
