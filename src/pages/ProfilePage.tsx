@@ -81,8 +81,26 @@ export default function ProfilePage() {
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
-    if (file.size > 500 * 1024) { toast({ title: "Error", description: "Máximo 500KB", variant: "destructive" }); return; }
-    const path = `${user.id}/avatar.${file.name.split(".").pop()}`;
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Error", description: "Solo JPG, PNG o GIF", variant: "destructive" }); return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Máximo 2MB", variant: "destructive" }); return;
+    }
+    // Validate dimensions (max 500x500)
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    const dimOk = await new Promise<boolean>((resolve) => {
+      img.onload = () => { resolve(img.width <= 500 && img.height <= 500); URL.revokeObjectURL(url); };
+      img.onerror = () => { resolve(false); URL.revokeObjectURL(url); };
+      img.src = url;
+    });
+    if (!dimOk) {
+      toast({ title: "Error", description: "Máximo 500x500 píxeles", variant: "destructive" }); return;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${user.id}/avatar_${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
