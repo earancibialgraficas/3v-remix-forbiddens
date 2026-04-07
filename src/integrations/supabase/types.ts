@@ -453,6 +453,7 @@ export type Database = {
           membership_tier: string
           role_icon: string | null
           show_role_icon: boolean | null
+          signature: string | null
           tiktok_url: string | null
           total_score: number
           updated_at: string
@@ -469,6 +470,7 @@ export type Database = {
           membership_tier?: string
           role_icon?: string | null
           show_role_icon?: boolean | null
+          signature?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -485,6 +487,7 @@ export type Database = {
           membership_tier?: string
           role_icon?: string | null
           show_role_icon?: boolean | null
+          signature?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
