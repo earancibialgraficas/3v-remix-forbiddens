@@ -114,6 +114,12 @@ export default function UserPopup({
 
           {/* Actions */}
           <div className="space-y-0.5">
+            <button
+              onClick={() => { setOpen(false); navigate(`/usuario/${userId}`); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+            >
+              <Eye className="w-3 h-3" /> Ver perfil
+            </button>
             {user && user.id !== userId && (
               <>
                 <button
@@ -144,7 +150,7 @@ export default function UserPopup({
                   <p className="text-[8px] font-pixel text-neon-magenta mb-1 px-2">MODERACIÓN</p>
                 </div>
                 <button
-                  onClick={() => { setOpen(false); navigate(`/perfil?view=${userId}`); }}
+                  onClick={() => { setOpen(false); navigate(`/usuario/${userId}`); }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
                 >
                   <Eye className="w-3 h-3" /> Ver perfil completo

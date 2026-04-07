@@ -25,6 +25,7 @@ import AyudaPage from "./pages/AyudaPage";
 import PhotoWallPage from "./pages/PhotoWallPage";
 import SocialReelsPage from "./pages/SocialReelsPage";
 import NotFound from "./pages/NotFound";
+import PublicProfilePage from "./pages/PublicProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/privacidad" element={<ForumPage />} />
                 <Route path="/faq" element={<ForumPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/usuario/:userId" element={<PublicProfilePage />} />
                 <Route path="/configuracion" element={<SettingsPage />} />
                 <Route path="/mensajes" element={<MessagesPage />} />
                 <Route path="/login" element={<LoginPage />} />

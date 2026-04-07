@@ -6,6 +6,7 @@ import ForumCategories from "@/components/ForumCategories";
 import HomeCarousel from "@/components/HomeCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getCategoryRoute } from "@/lib/categoryRoutes";
 
 interface PostItem {
   id: string;
@@ -77,7 +78,7 @@ export default function Index() {
               return (
                 <Link
                   key={post.id}
-                  to={`/${post.category.replace(/-/g, "/")}?post=${post.id}`}
+                  to={getCategoryRoute(post.category, post.id)}
                   className="block bg-card border border-border rounded p-3 hover:bg-muted/30 transition-all duration-200 group"
                 >
                   <div className="flex items-start gap-3">

@@ -47,12 +47,14 @@ const mockPostsByCategory: Record<string, Array<{ id: string; title: string; con
 
 function renderContent(content: string) {
   if (!content) return null;
-  const parts = content.split(/(\!\[.*?\]\(.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)/g);
+  const parts = content.split(/(\!\[.*?\]\(.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch) return <img key={i} src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded mt-2 mb-1 border border-border" loading="lazy" />;
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
     if (ytMatch) return <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border"><iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="w-full h-full" allowFullScreen title="Video" /></div>;
+    // Make plain URLs clickable
+    if (/^https?:\/\/[^\s]+$/.test(part)) return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>;
     return part.split('\n').map((line, j) => <span key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</span>);
   });
 }

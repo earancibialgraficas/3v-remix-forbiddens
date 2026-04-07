@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Star, Check, X, Globe, Shield } from "lucide-react";
+import { Star, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,15 +25,17 @@ const tiers = [
     features: [
       { label: "Emuladores", value: "3 juegos simultáneos" },
       { label: "Avatares", value: "25 avatares pixel-art" },
+      { label: "Subir avatar", value: "No", bad: true },
       { label: "Mensajes privados", value: "20 mensajes/día" },
-      { label: "Posts en foro", value: "Texto básico" },
+      { label: "Posts en foro", value: "Solo texto plano, sin formato" },
       { label: "Comentarios", value: "Hasta 500 caracteres" },
       { label: "Amigos", value: "Máximo 25" },
       { label: "Almacenamiento", value: "50 MB" },
       { label: "Contenido social", value: "No disponible" },
       { label: "Firma en posts", value: "No" },
+      { label: "Cambio de nick", value: "1 vez cada 30 días" },
+      { label: "Paleta de colores", value: "No", bad: true },
       { label: "Publicidad", value: "Con anuncios", bad: true },
-      { label: "Subir avatar", value: "No", bad: true },
     ],
   },
   {
@@ -41,69 +43,77 @@ const tiers = [
     features: [
       { label: "Emuladores", value: "4 juegos simultáneos" },
       { label: "Avatares", value: "55 avatares (adventurer + bottts)" },
+      { label: "Subir avatar", value: "No", bad: true },
       { label: "Mensajes privados", value: "200 mensajes/día" },
-      { label: "Posts en foro", value: "Texto + imágenes + videos" },
+      { label: "Posts en foro", value: "Texto + negrita + imágenes/videos por enlace" },
       { label: "Comentarios", value: "Hasta 1000 caracteres" },
       { label: "Amigos", value: "Máximo 50" },
       { label: "Almacenamiento", value: "150 MB" },
-      { label: "Contenido social", value: "5 posts públicos" },
+      { label: "Contenido social", value: "15 posts públicos" },
       { label: "Firma en posts", value: "Texto [ENTUSIASTA]" },
+      { label: "Cambio de nick", value: "1 vez cada 15 días" },
+      { label: "Paleta de colores", value: "No", bad: true },
       { label: "Publicidad", value: "Sin anuncios" },
-      { label: "Subir avatar", value: "No", bad: true },
     ],
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground",
     features: [
       { label: "Emuladores", value: "5 juegos simultáneos" },
-      { label: "Avatares", value: "60+ avatares (avataaars, emoji, thumbs)" },
+      { label: "Avatares", value: "60+ avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
+      { label: "Subir avatar", value: "Sí ✓" },
       { label: "Mensajes privados", value: "500 mensajes/día" },
-      { label: "Posts en foro", value: "Texto + multimedia + formato" },
+      { label: "Posts en foro", value: "Texto + negrita + itálica + tamaño + multimedia por enlace" },
       { label: "Comentarios", value: "Hasta 1500 caracteres" },
       { label: "Amigos", value: "Máximo 100" },
       { label: "Almacenamiento", value: "500 MB" },
-      { label: "Contenido social", value: "15 posts públicos" },
+      { label: "Contenido social", value: "25 posts públicos" },
       { label: "Firma en posts", value: "Texto + GIF/Links" },
+      { label: "Cambio de nick", value: "1 vez cada 7 días" },
+      { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Publicidad", value: "Sin anuncios" },
-      { label: "Subir avatar", value: "No", bad: true },
+    ],
+  },
+  {
+    name: "Creador de Contenido", basePrice: 20, color: "border-neon-cyan/50", textColor: "text-neon-cyan",
+    requirements: "Requisitos: 1000+ seguidores y 50hrs en el sitio",
+    features: [
+      { label: "Emuladores", value: "6 juegos simultáneos" },
+      { label: "Avatares", value: "75+ avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
+      { label: "Subir avatar", value: "Sí ✓" },
+      { label: "Mensajes privados", value: "Ilimitados" },
+      { label: "Posts en foro", value: "Todo tipo de formato + color de texto + multimedia" },
+      { label: "Comentarios", value: "Hasta 2000 caracteres" },
+      { label: "Amigos", value: "Máximo 200" },
+      { label: "Almacenamiento", value: "1500 MB" },
+      { label: "Contenido social", value: "75 posts públicos" },
+      { label: "Firma en posts", value: "Diseño personalizado" },
+      { label: "Cambio de nick", value: "1 vez cada 3 días" },
+      { label: "Paleta de colores", value: "Selección RGB personalizada" },
+      { label: "Badge exclusivo", value: "CREADOR VERIFICADO ✓" },
+      { label: "Publicidad", value: "Sin anuncios" },
     ],
   },
   {
     name: "Leyenda Arcade", basePrice: 25, color: "border-neon-yellow/50", textColor: "text-neon-yellow", highlight: true,
     features: [
-      { label: "Emuladores", value: "6 juegos simultáneos" },
-      { label: "Avatares", value: "75+ avatares premium (lorelei, notionists, open-peeps)" },
+      { label: "Emuladores", value: "8 juegos simultáneos" },
+      { label: "Avatares", value: "Todos los avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
+      { label: "Subir avatar", value: "Sí ✓" },
       { label: "Mensajes privados", value: "Ilimitados" },
-      { label: "Posts en foro", value: "Todo tipo de contenido + HTML" },
-      { label: "Comentarios", value: "Hasta 2000 caracteres" },
-      { label: "Amigos", value: "Máximo 200" },
-      { label: "Almacenamiento", value: "2000 MB" },
-      { label: "Contenido social", value: "50 posts públicos" },
-      { label: "Firma en posts", value: "Diseño personalizado" },
+      { label: "Posts en foro", value: "Todo tipo de contenido + HTML + formato completo + color" },
+      { label: "Comentarios", value: "Hasta 3000 caracteres" },
+      { label: "Amigos", value: "Máximo 500" },
+      { label: "Almacenamiento", value: "3000 MB" },
+      { label: "Contenido social", value: "100 posts públicos" },
+      { label: "Firma en posts", value: "Diseño personalizado premium" },
+      { label: "Cambio de nick", value: "Ilimitado" },
+      { label: "Paleta de colores", value: "Selección RGB personalizada" },
+      { label: "Badge exclusivo", value: "⭐ LEYENDA ARCADE ⭐" },
       { label: "Publicidad", value: "Sin anuncios" },
-      { label: "Subir avatar", value: "No", bad: true },
     ],
   },
 ];
-
-const staffInfo = {
-  name: "Staff (Webmaster / Admin / Moderador)",
-  color: "border-neon-magenta/50",
-  textColor: "text-neon-magenta",
-  features: [
-    { label: "Emuladores", value: "Ilimitados" },
-    { label: "Avatares", value: "Todos + subir imagen personalizada (500x500 JPG/PNG/GIF)" },
-    { label: "Mensajes privados", value: "Ilimitados" },
-    { label: "Posts en foro", value: "Todo + fijar/eliminar posts" },
-    { label: "Comentarios", value: "Sin límite de caracteres" },
-    { label: "Amigos", value: "Ilimitados" },
-    { label: "Almacenamiento", value: "Ilimitado" },
-    { label: "Contenido social", value: "Ilimitado" },
-    { label: "Moderación", value: "Banear/kickear usuarios, gestionar roles" },
-    { label: "Publicidad", value: "Sin anuncios" },
-    { label: "Badge", value: "WEBMASTER / ADMINISTRADOR / MODERADOR" },
-  ],
-};
 
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("US");
@@ -147,14 +157,17 @@ export default function MembershipsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
         {tiers.map((tier) => (
-          <div key={tier.name} className={cn("bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]", tier.color, tier.highlight && "ring-1 ring-neon-yellow/30")}>
+          <div key={tier.name} className={cn("bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]", tier.color, (tier as any).highlight && "ring-1 ring-neon-yellow/30")}>
             <h3 className={cn("font-body text-sm font-bold mb-1 tracking-wide", tier.textColor)}>{tier.name}</h3>
+            {(tier as any).requirements && (
+              <p className="text-[9px] text-muted-foreground font-body italic mb-1">{(tier as any).requirements}</p>
+            )}
             <p className="text-lg font-bold font-body text-foreground mb-3">{formatPrice(tier.basePrice)}</p>
             <div className="space-y-1.5 text-[11px] font-body">
               {tier.features.map((f, i) => (
                 <div key={i} className="flex justify-between gap-2">
                   <span className="text-muted-foreground">{f.label}</span>
-                  <span className={cn("text-right", f.bad ? "text-destructive" : "text-foreground")}>{f.value}</span>
+                  <span className={cn("text-right", (f as any).bad ? "text-destructive" : "text-foreground")}>{f.value}</span>
                 </div>
               ))}
             </div>
@@ -163,22 +176,6 @@ export default function MembershipsPage() {
             </Button>
           </div>
         ))}
-      </div>
-
-      {/* Staff info */}
-      <div className={cn("bg-card border rounded p-4", staffInfo.color)}>
-        <h3 className={cn("font-body text-sm font-bold mb-1 flex items-center gap-2", staffInfo.textColor)}>
-          <Shield className="w-4 h-4" /> {staffInfo.name}
-        </h3>
-        <p className="text-[10px] text-muted-foreground font-body mb-3 italic">Roles asignados por el Webmaster — acceso ilimitado a todas las funciones</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] font-body">
-          {staffInfo.features.map((f, i) => (
-            <div key={i} className="flex justify-between gap-2">
-              <span className="text-muted-foreground">{f.label}</span>
-              <span className="text-neon-magenta text-right">{f.value}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

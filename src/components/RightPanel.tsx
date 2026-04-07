@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/forbiddens_logo.svg";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
+import { getCategoryRoute } from "@/lib/categoryRoutes";
 
 interface TopUser {
   display_name: string;
@@ -129,10 +130,7 @@ export default function RightPanel() {
     { display_name: "VintageGamer", total_score: 7100 },
   ];
 
-  const getCategoryLink = (cat: string, postId?: string) => {
-    const base = `/${cat.replace(/-/g, "/")}`;
-    return postId ? `${base}?post=${postId}` : base;
-  };
+  const getLink = (cat: string, postId?: string) => getCategoryRoute(cat, postId);
 
   return (
     <aside className="w-full shrink-0 space-y-3 sticky top-3 h-fit">
@@ -166,9 +164,14 @@ export default function RightPanel() {
             <p className={cn("text-muted-foreground", sizes.title)}>Posts</p>
           </div>
         </div>
-        <Button asChild className={cn("w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
-          <Link to="/registro">Unirse</Link>
-        </Button>
+        <div className="flex gap-1.5">
+          <Button asChild className={cn("flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
+            <Link to="/registro">Unirse</Link>
+          </Button>
+          <Button asChild className={cn("flex-1 font-body h-6 bg-[#5865F2] text-white hover:bg-[#5865F2]/80", sizes.body)}>
+            <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
+          </Button>
+        </div>
       </div>
 
       {/* News Carousel with retro progress bar */}
@@ -177,7 +180,7 @@ export default function RightPanel() {
           <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
             <Newspaper className="w-3 h-3" /> TRENDING
           </h3>
-          <Link to={getCategoryLink(news?.category || "trending", news?.id)} className="block relative min-h-[50px] group">
+          <Link to={getLink(news?.category || "trending", news?.id)} className="block relative min-h-[50px] group">
             <div key={news?.id} className="animate-fade-in">
               <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
               <p className={cn("font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors", sizes.body)}>{news?.title}</p>
