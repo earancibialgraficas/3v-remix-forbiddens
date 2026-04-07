@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Inicio", icon: Home, to: "/", color: "text-foreground" },
   {
-    label: "Salas de Juego", icon: Gamepad2, to: "/arcade/salas", color: "text-neon-green",
+    label: "Salas de Juego", icon: Gamepad2, color: "text-neon-green", isDropdownOnly: true,
     children: [
       { label: "Emuladores", to: "/arcade/salas" },
       { label: "Biblioteca", to: "/arcade/biblioteca" },
