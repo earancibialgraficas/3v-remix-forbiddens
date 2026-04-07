@@ -12,6 +12,12 @@ interface TopUser {
   total_score: number;
 }
 
+interface PremiumUser {
+  display_name: string;
+  membership_tier: string;
+  created_at: string;
+}
+
 interface PopularPost {
   id: string;
   title: string;
