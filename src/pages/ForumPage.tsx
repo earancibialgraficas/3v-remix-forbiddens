@@ -92,6 +92,9 @@ export default function ForumPage() {
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"popular" | "new">("popular");
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
   // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
