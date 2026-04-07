@@ -291,13 +291,6 @@ export default function ForumPage() {
                     {/* Post author */}
                     {post.user_id && authorProfile && (
                       <div className="mb-1 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                          {authorProfile.avatar_url ? (
-                            <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </div>
                         <UserPopup
                           userId={post.user_id}
                           displayName={authorProfile.display_name}

@@ -137,7 +137,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
             <Link to="/" className="flex items-center justify-center p-1">
               <img src={logo} alt="Forbiddens" className="w-7 h-7" />
             </Link>
-            <div className="flex flex-col items-center gap-0">
+            <div className="flex flex-col items-center gap-1.5">
               {"FORBIDDENS".split("").map((letter, i) => (
                 <span
                   key={i}

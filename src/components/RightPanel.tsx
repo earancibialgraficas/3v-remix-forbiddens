@@ -129,7 +129,10 @@ export default function RightPanel() {
     { display_name: "VintageGamer", total_score: 7100 },
   ];
 
-  const getCategoryLink = (cat: string) => `/${cat.replace(/-/g, "/")}`;
+  const getCategoryLink = (cat: string, postId?: string) => {
+    const base = `/${cat.replace(/-/g, "/")}`;
+    return postId ? `${base}?post=${postId}` : base;
+  };
 
   return (
     <aside className="w-full shrink-0 space-y-3 sticky top-3 h-fit">
