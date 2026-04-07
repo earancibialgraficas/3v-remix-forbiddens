@@ -184,8 +184,6 @@ export default function PublicProfilePage() {
                 </Button>
               </div>
             )}
-              </div>
-            )}
           </div>
         </div>
       </div>
