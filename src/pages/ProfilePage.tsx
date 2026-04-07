@@ -152,9 +152,9 @@ export default function ProfilePage() {
         <AvatarSelector
           currentAvatar={profile?.avatar_url || null}
           membershipTier={tier}
-          isStaff={isStaff}
+          isStaff={isStaff || isMod}
           onSelect={handleAvatarSelect}
-          onUpload={isStaff ? handleAvatarUpload : undefined}
+          onUpload={(isStaff || isMod) ? handleAvatarUpload : undefined}
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
