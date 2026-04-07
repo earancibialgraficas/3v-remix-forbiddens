@@ -29,7 +29,7 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username }, emailRedirectTo: window.location.origin },
+      options: { data: { username }, emailRedirectTo: "https://foroforbiddens.vercel.app/" },
     });
     setLoading(false);
     if (error) {
