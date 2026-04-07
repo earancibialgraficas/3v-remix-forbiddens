@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import RoleBadge from "@/components/RoleBadge";
+import AvatarSelector from "@/components/AvatarSelector";
+import RoleIconSelector from "@/components/RoleIconSelector";
+
+const friendLimits: Record<string, number> = {
+  novato: 25, entusiasta: 50, coleccionista: 100, "leyenda arcade": 200,
+};
+
+const storageLimits: Record<string, number> = {
+  novato: 50, entusiasta: 150, coleccionista: 500, "leyenda arcade": 2000,
+};
 
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
@@ -20,7 +31,12 @@ export default function ProfilePage() {
   const [tiktok, setTiktok] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation">("posts");
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [storageUsed, setStorageUsed] = useState(0);
 
   useEffect(() => {
     if (profile) {
@@ -33,30 +49,57 @@ export default function ProfilePage() {
   }, [profile]);
 
   useEffect(() => {
-    if (user) {
-      supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
-        .then(({ data }) => { if (data) setUserPosts(data); });
-    }
+    if (!user) return;
+    supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => { if (data) setUserPosts(data); });
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
+      .then(({ count }) => setFollowerCount(count || 0));
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
+      .then(({ count }) => setFollowingCount(count || 0));
+    // Simulated storage usage from leaderboard saves
+    supabase.from("leaderboard_scores").select("*", { count: "exact", head: true }).eq("user_id", user.id)
+      .then(({ count }) => setStorageUsed((count || 0) * 2)); // ~2MB per save
   }, [user]);
 
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
-      display_name: displayName,
-      bio,
-      instagram_url: instagram || null,
-      youtube_url: youtube || null,
-      tiktok_url: tiktok || null,
+      display_name: displayName, bio,
+      instagram_url: instagram || null, youtube_url: youtube || null, tiktok_url: tiktok || null,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Perfil actualizado" });
-      setEditing(false);
-      await refreshProfile();
-    }
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Perfil actualizado" }); setEditing(false); await refreshProfile(); }
+  };
+
+  const handleAvatarSelect = async (url: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
+    if (!error) { toast({ title: "Avatar actualizado" }); setShowAvatarSelector(false); await refreshProfile(); }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+    if (file.size > 500 * 1024) { toast({ title: "Error", description: "Máximo 500KB", variant: "destructive" }); return; }
+    const path = `${user.id}/avatar.${file.name.split(".").pop()}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    await handleAvatarSelect(publicUrl);
+  };
+
+  const handleRoleIconSelect = async (icon: string) => {
+    if (!user) return;
+    await supabase.from("profiles").update({ role_icon: icon } as any).eq("user_id", user.id);
+    toast({ title: "Icono actualizado" });
+    await refreshProfile();
+  };
+
+  const toggleShowRoleIcon = async () => {
+    if (!user || !profile) return;
+    await supabase.from("profiles").update({ show_role_icon: !(profile as any).show_role_icon } as any).eq("user_id", user.id);
+    await refreshProfile();
   };
 
   if (!user) {
@@ -70,25 +113,56 @@ export default function ProfilePage() {
   }
 
   const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Desconocido";
+  const tier = profile?.membership_tier || "novato";
+  const maxFriends = (isAdmin || isMasterWeb) ? Infinity : (friendLimits[tier] || 25);
+  const maxStorage = (isAdmin || isMasterWeb) ? Infinity : (storageLimits[tier] || 50);
+  const storagePercent = maxStorage === Infinity ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
+  const isMod = roles.includes("moderator");
+  const isStaff = isAdmin || isMasterWeb;
 
   const tabs = [
-    { id: "posts" as const, label: "Mis Posts", icon: MessageSquare },
-    { id: "stats" as const, label: "Estadísticas", icon: Trophy },
+    { id: "posts" as const, label: "Posts", icon: MessageSquare },
+    { id: "stats" as const, label: "Stats", icon: Trophy },
     { id: "social" as const, label: "Redes", icon: Globe },
+    { id: "storage" as const, label: "Storage", icon: Gamepad2 },
+    ...((isStaff || isMod) ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
   ];
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {showAvatarSelector && (
+        <AvatarSelector
+          currentAvatar={profile?.avatar_url || null}
+          membershipTier={tier}
+          isStaff={isStaff}
+          onSelect={handleAvatarSelect}
+          onUpload={isStaff ? handleAvatarUpload : undefined}
+          onClose={() => setShowAvatarSelector(false)}
+        />
+      )}
+      {showRoleIconSelector && (
+        <RoleIconSelector
+          currentIcon={(profile as any)?.role_icon || "⭐"}
+          onSelect={handleRoleIconSelect}
+          onClose={() => setShowRoleIconSelector(false)}
+        />
+      )}
+
       {/* Profile Card */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl shrink-0 border-2 border-neon-cyan/30">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              <User className="w-10 h-10 text-muted-foreground" />
-            )}
-          </div>
+          <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-muted-foreground" />
+              )}
+            </div>
+            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Edit2 className="w-4 h-4 text-foreground" />
+            </div>
+          </button>
           <div className="flex-1 min-w-0">
             {editing ? (
               <div className="space-y-3">
@@ -102,15 +176,15 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Instagram URL</label>
-                  <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-8 bg-muted text-xs font-body" placeholder="https://instagram.com/..." />
+                  <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">YouTube URL</label>
-                  <Input value={youtube} onChange={(e) => setYoutube(e.target.value)} className="h-8 bg-muted text-xs font-body" placeholder="https://youtube.com/..." />
+                  <Input value={youtube} onChange={(e) => setYoutube(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">TikTok URL</label>
-                  <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body" placeholder="https://tiktok.com/..." />
+                  <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">{saving ? "Guardando..." : "Guardar"}</Button>
@@ -119,18 +193,14 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-pixel text-sm text-neon-cyan">{profile?.display_name}</h2>
-                  {(isAdmin || isMasterWeb) && (
-                    <span className={cn("text-[8px] font-pixel px-1.5 py-0.5 rounded", isMasterWeb ? "bg-neon-magenta/20 text-neon-magenta" : "bg-neon-yellow/20 text-neon-yellow")}>
-                      {isMasterWeb ? "MASTER WEB" : "ADMIN"}
-                    </span>
-                  )}
+                  <RoleBadge roles={roles} roleIcon={(profile as any)?.role_icon} showIcon={(profile as any)?.show_role_icon !== false} />
                 </div>
                 <p className="text-xs text-muted-foreground font-body mt-1">{profile?.bio || "Sin descripción"}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-2">
                   <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
-                    <Star className="w-3 h-3" /> {profile?.membership_tier?.toUpperCase()}
+                    <Star className="w-3 h-3" /> {tier.toUpperCase()}
                   </span>
                   <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
                     <Trophy className="w-3 h-3" /> {profile?.total_score?.toLocaleString()} pts
@@ -138,40 +208,32 @@ export default function ProfilePage() {
                   <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Desde {memberSince}
                   </span>
-                  <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1">
-                    <Gamepad2 className="w-3 h-3" /> {userPosts.length} posts
+                  <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1">
+                    <UserPlus className="w-3 h-3" /> {followerCount} seguidores · {followingCount} siguiendo
                   </span>
                 </div>
-                {/* Social links inline */}
                 {(profile?.instagram_url || profile?.youtube_url || profile?.tiktok_url) && (
                   <div className="flex gap-3 mt-2">
-                    {profile?.instagram_url && (
-                      <a href={profile.instagram_url} target="_blank" rel="noopener" className="text-neon-magenta hover:opacity-80 transition-opacity flex items-center gap-0.5 text-[10px] font-body">
-                        <Instagram className="w-3.5 h-3.5" /> Instagram
-                      </a>
-                    )}
-                    {profile?.youtube_url && (
-                      <a href={profile.youtube_url} target="_blank" rel="noopener" className="text-destructive hover:opacity-80 transition-opacity flex items-center gap-0.5 text-[10px] font-body">
-                        <Youtube className="w-3.5 h-3.5" /> YouTube
-                      </a>
-                    )}
-                    {profile?.tiktok_url && (
-                      <a href={profile.tiktok_url} target="_blank" rel="noopener" className="text-neon-cyan hover:opacity-80 transition-opacity flex items-center gap-0.5 text-[10px] font-body">
-                        <Globe className="w-3.5 h-3.5" /> TikTok
-                      </a>
-                    )}
+                    {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener" className="text-neon-magenta hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Instagram className="w-3.5 h-3.5" /> Instagram</a>}
+                    {profile?.youtube_url && <a href={profile.youtube_url} target="_blank" rel="noopener" className="text-destructive hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Youtube className="w-3.5 h-3.5" /> YouTube</a>}
+                    {profile?.tiktok_url && <a href={profile.tiktok_url} target="_blank" rel="noopener" className="text-neon-cyan hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Globe className="w-3.5 h-3.5" /> TikTok</a>}
                   </div>
                 )}
-                <div className="flex gap-2 mt-3">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1">
-                    <Edit2 className="w-3 h-3" /> Editar Perfil
-                  </Button>
-                  <Button size="sm" variant="outline" asChild className="text-xs">
-                    <Link to="/configuracion">Configuración</Link>
-                  </Button>
-                  <Button size="sm" variant="outline" asChild className="text-xs">
-                    <Link to="/membresias">Actualizar Plan</Link>
-                  </Button>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar</Button>
+                  <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/configuracion">Configuración</Link></Button>
+                  <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
+                  {(isStaff || isMod) && !roles.includes("moderator") && (
+                    <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
+                      <span>{(profile as any)?.role_icon || "⭐"}</span> Icono Rol
+                    </Button>
+                  )}
+                  {(isStaff || isMod) && (
+                    <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">
+                      {(profile as any)?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {(profile as any)?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
+                    </Button>
+                  )}
                 </div>
               </>
             )}
@@ -180,16 +242,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-card border border-border rounded p-1">
+      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-body transition-all",
-              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={cn("flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-body transition-all min-w-[70px]",
+              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
             <tab.icon className="w-3 h-3" /> {tab.label}
           </button>
         ))}
@@ -198,7 +255,7 @@ export default function ProfilePage() {
       {/* Tab content */}
       {activeTab === "posts" && (
         <div className="bg-card border border-border rounded p-4">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS POSTS</h3>
+          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS POSTS ({userPosts.length})</h3>
           {userPosts.length === 0 ? (
             <p className="text-xs text-muted-foreground font-body">Aún no has publicado nada</p>
           ) : (
@@ -222,22 +279,19 @@ export default function ProfilePage() {
         <div className="bg-card border border-border rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-muted/30 rounded p-3 text-center">
-              <p className="text-lg font-bold text-neon-green font-body">{profile?.total_score?.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground font-body">Puntos totales</p>
-            </div>
-            <div className="bg-muted/30 rounded p-3 text-center">
-              <p className="text-lg font-bold text-neon-cyan font-body">{userPosts.length}</p>
-              <p className="text-[10px] text-muted-foreground font-body">Posts</p>
-            </div>
-            <div className="bg-muted/30 rounded p-3 text-center">
-              <p className="text-lg font-bold text-neon-yellow font-body">{profile?.membership_tier?.toUpperCase()}</p>
-              <p className="text-[10px] text-muted-foreground font-body">Membresía</p>
-            </div>
-            <div className="bg-muted/30 rounded p-3 text-center">
-              <p className="text-lg font-bold text-neon-magenta font-body">{roles.length}</p>
-              <p className="text-[10px] text-muted-foreground font-body">Roles</p>
-            </div>
+            {[
+              { val: profile?.total_score?.toLocaleString(), label: "Puntos totales", color: "text-neon-green" },
+              { val: userPosts.length, label: "Posts", color: "text-neon-cyan" },
+              { val: tier.toUpperCase(), label: "Membresía", color: "text-neon-yellow" },
+              { val: roles.length, label: "Roles", color: "text-neon-magenta" },
+              { val: followerCount, label: "Seguidores", color: "text-neon-cyan" },
+              { val: followingCount, label: "Siguiendo", color: "text-neon-orange" },
+            ].map((s, i) => (
+              <div key={i} className="bg-muted/30 rounded p-3 text-center">
+                <p className={cn("text-lg font-bold font-body", s.color)}>{s.val}</p>
+                <p className="text-[10px] text-muted-foreground font-body">{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -246,28 +300,105 @@ export default function ProfilePage() {
         <div className="bg-card border border-border rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">REDES SOCIALES</h3>
           <div className="space-y-2">
-            {profile?.instagram_url ? (
-              <a href={profile.instagram_url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
-                <Instagram className="w-4 h-4 text-neon-magenta" />
-                <span className="text-xs font-body text-foreground">Instagram</span>
+            {[
+              { url: profile?.instagram_url, icon: Instagram, label: "Instagram", color: "text-neon-magenta", empty: "No has vinculado Instagram" },
+              { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No has vinculado YouTube" },
+              { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No has vinculado TikTok" },
+            ].map((s, i) => s.url ? (
+              <a key={i} href={s.url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
+                <s.icon className={cn("w-4 h-4", s.color)} />
+                <span className="text-xs font-body text-foreground">{s.label}</span>
               </a>
-            ) : <p className="text-xs text-muted-foreground font-body">No has vinculado Instagram</p>}
-            {profile?.youtube_url ? (
-              <a href={profile.youtube_url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
-                <Youtube className="w-4 h-4 text-destructive" />
-                <span className="text-xs font-body text-foreground">YouTube</span>
-              </a>
-            ) : <p className="text-xs text-muted-foreground font-body">No has vinculado YouTube</p>}
-            {profile?.tiktok_url ? (
-              <a href={profile.tiktok_url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
-                <Globe className="w-4 h-4 text-neon-cyan" />
-                <span className="text-xs font-body text-foreground">TikTok</span>
-              </a>
-            ) : <p className="text-xs text-muted-foreground font-body">No has vinculado TikTok</p>}
+            ) : <p key={i} className="text-xs text-muted-foreground font-body">{s.empty}</p>)}
           </div>
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs mt-2">
-            <Edit2 className="w-3 h-3 mr-1" /> Editar Redes
-          </Button>
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs mt-2"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
+        </div>
+      )}
+
+      {activeTab === "storage" && (
+        <div className="bg-card border border-border rounded p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ALMACENAMIENTO DE PARTIDAS</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-body">
+              <span className="text-muted-foreground">Usado</span>
+              <span className="text-foreground">{storageUsed} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
+            </div>
+            <div className="w-full h-3 bg-muted rounded overflow-hidden border border-border">
+              <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
+            </div>
+            <p className="text-[10px] text-muted-foreground font-body">
+              Cada partida guardada ocupa ~2 MB. {maxStorage !== Infinity && storagePercent > 80 && "¡Casi lleno! Considera actualizar tu plan."}
+            </p>
+            <div className="flex gap-2">
+              {maxStorage !== Infinity && storagePercent > 50 && (
+                <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Aumentar Capacidad</Link></Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "moderation" && (isStaff || isMod) && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
+    </div>
+  );
+}
+
+function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
+  const { toast } = useToast();
+  const [banEmail, setBanEmail] = useState("");
+  const [banReason, setBanReason] = useState("");
+  const [banType, setBanType] = useState<"ban" | "kick">("kick");
+  const [banning, setBanning] = useState(false);
+  const [modEmail, setModEmail] = useState("");
+
+  const handleBan = async () => {
+    if (!banEmail.trim() || !banReason.trim()) return;
+    setBanning(true);
+    const { data: targetUser } = await supabase.from("profiles").select("user_id").ilike("display_name", banEmail).maybeSingle();
+    if (!targetUser) { toast({ title: "Usuario no encontrado", variant: "destructive" }); setBanning(false); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setBanning(false); return; }
+
+    const expiresAt = banType === "kick" ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+    const { error } = await supabase.from("banned_users").insert({
+      user_id: targetUser.user_id, banned_by: user.id, reason: banReason, ban_type: banType, expires_at: expiresAt,
+    } as any);
+    setBanning(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: banType === "ban" ? "Usuario baneado" : "Usuario kickeado (24h)" }); setBanEmail(""); setBanReason(""); }
+  };
+
+  const handleAssignMod = async () => {
+    if (!modEmail.trim() || !isMasterWeb) return;
+    const { data: targetProfile } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
+    if (!targetProfile) { toast({ title: "Usuario no encontrado", variant: "destructive" }); return; }
+    const { error } = await supabase.from("user_roles").insert({ user_id: targetProfile.user_id, role: "moderator" } as any);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Moderador asignado" }); setModEmail(""); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card border border-destructive/30 rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> {isStaff ? "BANEAR / KICKEAR" : "KICKEAR (24H)"}</h3>
+        <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+        <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+        {isStaff && (
+          <div className="flex gap-2">
+            <Button size="sm" variant={banType === "kick" ? "default" : "outline"} onClick={() => setBanType("kick")} className="text-xs">Kick (24h)</Button>
+            <Button size="sm" variant={banType === "ban" ? "destructive" : "outline"} onClick={() => setBanType("ban")} className="text-xs">Ban Permanente</Button>
+          </div>
+        )}
+        <Button size="sm" variant="destructive" onClick={handleBan} disabled={banning || !banEmail.trim()} className="text-xs">
+          {banning ? "Procesando..." : banType === "ban" ? "Banear Usuario" : "Kickear Usuario"}
+        </Button>
+      </div>
+
+      {isMasterWeb && (
+        <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Shield className="w-3 h-3" /> ASIGNAR MODERADOR</h3>
+          <Input placeholder="Nombre de usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+          <Button size="sm" onClick={handleAssignMod} className="text-xs">Asignar Rol Moderador</Button>
         </div>
       )}
     </div>
