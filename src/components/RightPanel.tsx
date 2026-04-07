@@ -66,6 +66,9 @@ export default function RightPanel() {
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
   const [progress, setProgress] = useState(0);
+  const [memberCount, setMemberCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   const sizes = textSizeMap[textSize];
   const cycleSize = () => setTextSize((p) => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
