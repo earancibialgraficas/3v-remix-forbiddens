@@ -53,13 +53,14 @@ export default function ProfilePage() {
     if (!user) return;
     supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setUserPosts(data); });
+    supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false })
+      .then(({ data }) => { if (data) setGameScores(data as any); });
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
-    // Simulated storage usage from leaderboard saves
     supabase.from("leaderboard_scores").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-      .then(({ count }) => setStorageUsed((count || 0) * 2)); // ~2MB per save
+      .then(({ count }) => setStorageUsed((count || 0) * 2));
   }, [user]);
 
   const handleSave = async () => {
