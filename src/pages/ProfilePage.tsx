@@ -329,22 +329,11 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "social" && (
-        <div className="bg-card border border-border rounded p-4 space-y-3">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">REDES SOCIALES</h3>
-          <div className="space-y-2">
-            {[
-              { url: profile?.instagram_url, icon: Instagram, label: "Instagram", color: "text-neon-magenta", empty: "No has vinculado Instagram" },
-              { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No has vinculado YouTube" },
-              { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No has vinculado TikTok" },
-            ].map((s, i) => s.url ? (
-              <a key={i} href={s.url} target="_blank" rel="noopener" className="flex items-center gap-2 p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
-                <s.icon className={cn("w-4 h-4", s.color)} />
-                <span className="text-xs font-body text-foreground">{s.label}</span>
-              </a>
-            ) : <p key={i} className="text-xs text-muted-foreground font-body">{s.empty}</p>)}
-          </div>
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs mt-2"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
-        </div>
+        <SocialContentTab
+          profile={profile}
+          user={user}
+          onEditNetworks={() => setEditing(true)}
+        />
       )}
 
       {activeTab === "storage" && (
