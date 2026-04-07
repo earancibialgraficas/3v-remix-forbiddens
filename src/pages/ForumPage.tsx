@@ -99,6 +99,8 @@ interface Comment {
   membership_tier: string;
   created_at: string;
   parent_id: string | null;
+  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean } | null;
+  roles?: string[];
 }
 
 export default function ForumPage() {
