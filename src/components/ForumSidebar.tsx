@@ -295,6 +295,21 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                         isExpanded ? <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto shrink-0" />
                       )}
                     </button>
+                  ) : item.to?.startsWith("http") ? (
+                    <>
+                      <a
+                        href={item.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
+                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 border border-[#5865F2]/30 shadow-[0_0_8px_rgba(88,101,242,0.3)]"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
+                        <span className="truncate font-semibold">{item.label}</span>
+                      </a>
+                    </>
                   ) : (
                     <>
                       <Link
