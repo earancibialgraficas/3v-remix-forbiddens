@@ -320,18 +320,36 @@ export default function ForumPage() {
                         />
                       </div>
                     )}
-                    <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
-                      {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                      {post.title}
-                    </p>
-                    {post.content && (
-                      <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                    {editingPost === post.id ? (
+                      <div className="space-y-2 animate-fade-in">
+                        <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
+                        <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-6"><Check className="w-3 h-3" /> Guardar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-6">Cancelar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
+                          {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
+                          {post.title}
+                        </p>
+                        {post.content && (
+                          <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                        )}
+                      </>
                     )}
                     <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
                       <span>{new Date(post.created_at).toLocaleDateString()}</span>
                       <button onClick={() => toggleComments(post.id)} className="flex items-center gap-0.5 hover:text-primary transition-colors">
                         <MessageSquare className="w-3 h-3" /> Comentarios
                       </button>
+                      {user && user.id === post.user_id && !editingPost && (
+                        <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
+                          <Edit2 className="w-3 h-3" /> Editar
+                        </button>
+                      )}
                       {post.user_id && (
                         <button onClick={() => handleReport(post.id, post.user_id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors ml-auto">
                           <Flag className="w-3 h-3" />
