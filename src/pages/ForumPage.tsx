@@ -163,6 +163,8 @@ export default function ForumPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [showRulesPopup, setShowRulesPopup] = useState(false);
+  const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
+  _setForumModal = setForumModal;
   // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
@@ -566,6 +568,8 @@ export default function ForumPage() {
           </div>
         </div>
       )}
+
+      {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
     </div>
   );
 }
