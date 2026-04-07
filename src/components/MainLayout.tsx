@@ -5,13 +5,14 @@ import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -34,7 +35,7 @@ export default function MainLayout() {
       {mobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300"
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
           />
           <div className="relative z-50 w-64 h-full animate-slide-in-left">
@@ -46,11 +47,12 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Main content - pushed by sidebar width */}
-      <main
-        className="flex-1 min-w-0 transition-all duration-300"
-        style={{ marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? (sidebarCollapsed ? '3rem' : '14rem') : 0 }}
-      >
+      {/* Main content */}
+      <main className={cn(
+        "min-w-0 transition-all duration-300",
+        "md:ml-12", // collapsed sidebar width
+        !sidebarCollapsed && "md:ml-56" // expanded sidebar width
+      )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0 animate-fade-in">
             <Outlet />
