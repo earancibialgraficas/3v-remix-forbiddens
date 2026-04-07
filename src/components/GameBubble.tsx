@@ -125,20 +125,36 @@ export default function GameBubble() {
     };
   }, [activeGame?.romUrl]);
 
-  // Volume control - use RetroArch audio context
+  // Volume control - mute/unmute the canvas audio via Web Audio API and media elements
   useEffect(() => {
-    if (nostalgistRef.current && romLoaded) {
-      try {
-        // Try to control volume via AudioContext gain node
-        const audioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-        const allAudio = document.querySelectorAll("audio");
-        allAudio.forEach(a => { a.volume = volume / 100; });
-        // Also try to set volume via retroarch option
-        if (nostalgistRef.current.sendCommand) {
-          nostalgistRef.current.sendCommand("AUDIO_VOLUME", volume === 0 ? -80 : (volume / 100 * 12 - 12));
+    if (!romLoaded) return;
+    try {
+      // Control all audio/video elements in the game container
+      const container = document.getElementById("game-bubble-canvas")?.parentElement;
+      if (container) {
+        container.querySelectorAll("audio, video").forEach((el: any) => {
+          el.volume = volume / 100;
+        });
+      }
+      // Also target any global audio elements the emulator may create
+      document.querySelectorAll("audio").forEach(a => { a.volume = volume / 100; });
+      // Use the Nostalgist instance's internal emscripten module to set volume
+      if (nostalgistRef.current) {
+        const n = nostalgistRef.current;
+        // Access the RetroArch Module's audio context if available
+        const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
+        if (mod?.SDL2?.audioContext) {
+          const ctx = mod.SDL2.audioContext;
+          if (!mod._gainNode) {
+            mod._gainNode = ctx.createGain();
+            // Intercept audio destination
+          }
+          if (mod._gainNode) {
+            mod._gainNode.gain.value = volume / 100;
+          }
         }
-      } catch {}
-    }
+      }
+    } catch {}
   }, [volume, romLoaded]);
 
   // Pause/Resume toggle
@@ -222,17 +238,21 @@ export default function GameBubble() {
 
   const handleSaveScore = async () => {
     if (!user || !activeGame || scoreRef.current <= 0) return;
-    // Check if there's an existing score for this user + game
+    const currentScore = scoreRef.current;
+    const currentTime = timeRef.current;
+    
+    // Check if there's an existing score for this user + game + console
     const { data: existing } = await supabase
       .from("leaderboard_scores")
       .select("id, score")
       .eq("user_id", user.id)
       .eq("game_name", activeGame.gameName)
+      .eq("console_type", activeGame.consoleName)
       .order("score", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (existing && (existing as any).score >= scoreRef.current) {
+    if (existing && (existing as any).score >= currentScore) {
       toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
       return;
     }
@@ -240,18 +260,13 @@ export default function GameBubble() {
     if (existing) {
       // Update existing record with higher score
       const { error } = await supabase.from("leaderboard_scores").update({
-        score: scoreRef.current,
-        play_time_seconds: timeRef.current,
+        score: currentScore,
+        play_time_seconds: currentTime,
         display_name: profile?.display_name || "Anónimo",
       } as any).eq("id", (existing as any).id);
       if (!error) {
-        const diff = scoreRef.current - ((existing as any).score || 0);
-        if (profile && diff > 0) {
-          await supabase.from("profiles").update({
-            total_score: (profile.total_score || 0) + diff,
-          }).eq("user_id", user.id);
-        }
-        toast({ title: "¡Nuevo récord!", description: `${scoreRef.current} puntos en ${activeGame.gameName}` });
+        // recalculate_total_score trigger handles profile update
+        toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     } else {
       // Insert new score
@@ -260,16 +275,12 @@ export default function GameBubble() {
         display_name: profile?.display_name || "Anónimo",
         game_name: activeGame.gameName,
         console_type: activeGame.consoleName,
-        score: scoreRef.current,
-        play_time_seconds: timeRef.current,
+        score: currentScore,
+        play_time_seconds: currentTime,
       } as any);
       if (!error) {
-        if (profile) {
-          await supabase.from("profiles").update({
-            total_score: (profile.total_score || 0) + scoreRef.current,
-          }).eq("user_id", user.id);
-        }
-        toast({ title: "¡Puntaje guardado!", description: `${scoreRef.current} puntos en ${activeGame.gameName}` });
+        // recalculate_total_score trigger handles profile update
+        toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     }
   };
