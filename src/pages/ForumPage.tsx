@@ -324,11 +324,17 @@ export default function ForumPage() {
                 {(comments[post.id] || []).map((comment) => (
                   <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
                     <div className="flex items-start gap-2">
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        <User className="w-3 h-3 text-muted-foreground" />
+                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                        {comment.profile?.avatar_url ? (
+                          <img src={comment.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-3 h-3 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <span className="text-[10px] font-body font-medium text-foreground">{comment.profile?.display_name || "Anónimo"}</span>
+                          <RoleBadge roles={comment.roles || []} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} />
                           {comment.membership_tier !== "novato" && (
                             <span className="text-[9px] text-neon-yellow font-pixel">[{comment.membership_tier.toUpperCase()}]</span>
                           )}
