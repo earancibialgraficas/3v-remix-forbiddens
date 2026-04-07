@@ -229,7 +229,7 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap items-center gap-3 mt-2">
                   {(isStaff || isMod) ? (
                     <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> {isMasterWeb ? "WEBMASTER" : isAdmin ? "ADMINISTRADOR" : "MODERADOR"}
+                      <Shield className="w-3 h-3" /> {isMasterWeb || isAdmin ? "DIOS TODOPODEROSO" : "MÍTICO"}
                     </span>
                   ) : (
                     <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
