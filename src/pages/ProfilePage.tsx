@@ -421,22 +421,83 @@ export default function ProfilePage() {
 
       {activeTab === "storage" && (
         <div className="bg-card border border-border rounded p-4 space-y-3">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ALMACENAMIENTO DE PARTIDAS</h3>
+          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-1"><HardDrive className="w-3 h-3" /> ALMACENAMIENTO</h3>
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-body">
               <span className="text-muted-foreground">Usado</span>
-              <span className="text-foreground">{storageUsed} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
+              <span className="text-foreground">{storageUsed.toFixed(1)} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
             </div>
             <div className="w-full h-3 bg-muted rounded overflow-hidden border border-border">
               <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
             </div>
-            <p className="text-[10px] text-muted-foreground font-body">
-              Cada partida guardada ocupa ~2 MB. {maxStorage !== Infinity && storagePercent > 80 && "¡Casi lleno! Considera actualizar tu plan."}
-            </p>
-            <div className="flex gap-2">
-              {maxStorage !== Infinity && storagePercent > 50 && (
-                <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Aumentar Capacidad</Link></Button>
-              )}
+          </div>
+          {/* Detailed items */}
+          <div className="space-y-1 mt-3">
+            <div className="grid grid-cols-[1fr_80px_60px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
+              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span>
+            </div>
+            {storageItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground font-body py-2">No hay elementos almacenados</p>
+            ) : storageItems.map((item, i) => (
+              <div key={i} className="grid grid-cols-[1fr_80px_60px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center">
+                <span className="text-foreground truncate" title={item.name}>{item.name}</span>
+                <span className="text-muted-foreground text-[10px]">{item.type}</span>
+                <span className="text-right text-muted-foreground text-[10px]">{item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size} MB`}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {maxStorage !== Infinity && storagePercent > 50 && (
+              <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Aumentar Capacidad</Link></Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Color Picker Modal */}
+      {showColorPicker && (
+        <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowColorPicker(false)}>
+          <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-sm w-full mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowColorPicker(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <span className="text-lg">✕</span>
+            </button>
+            <h3 className="font-pixel text-[11px] text-neon-cyan text-center flex items-center justify-center gap-2">
+              <Palette className="w-4 h-4" /> PERSONALIZAR COLORES
+            </h3>
+            <div className="flex gap-2 justify-center">
+              {(["border", "name", "role"] as const).map(t => (
+                <button key={t} onClick={() => setColorTarget(t)}
+                  className={cn("px-3 py-1.5 rounded text-[10px] font-body transition-all",
+                    colorTarget === t ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                  {t === "border" ? "Borde Avatar" : t === "name" ? "Nombre" : "Rol/Membresía"}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-48 h-48">
+                <input
+                  type="color"
+                  value={colorTarget === "border" ? (avatarBorderColor || "#22d3ee") : colorTarget === "name" ? (nameColor || "#22d3ee") : (roleColor || "#facc15")}
+                  onChange={e => {
+                    if (colorTarget === "border") setAvatarBorderColor(e.target.value);
+                    else if (colorTarget === "name") setNameColor(e.target.value);
+                    else setRoleColor(e.target.value);
+                  }}
+                  className="w-full h-full rounded-full cursor-pointer border-2 border-border"
+                  style={{ appearance: "auto" }}
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-[10px] text-muted-foreground font-body">Vista previa:</p>
+                <div className="flex items-center gap-2 bg-muted/30 rounded px-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-muted border-2 overflow-hidden" style={{ borderColor: avatarBorderColor || "#22d3ee" }}>
+                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-1.5" />}
+                  </div>
+                  <span className="font-pixel text-xs" style={{ color: nameColor || undefined }}>{profile?.display_name}</span>
+                  <span className="text-[9px] font-pixel" style={{ color: roleColor || undefined }}>{tier.toUpperCase()}</span>
+                </div>
+              </div>
+              <p className="text-[9px] text-muted-foreground font-body text-center">Los colores se aplican visualmente en tu perfil y posts</p>
             </div>
           </div>
         </div>
