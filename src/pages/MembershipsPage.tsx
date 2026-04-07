@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Star, Check, X, Globe } from "lucide-react";
+import { Star, Check, X, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -22,33 +22,94 @@ const countryPricing: PriceByCountry = {
 const tiers = [
   {
     name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground",
-    features: { upload: "20 MB", ads: true, verification: false, avatar: "Estático", signature: "Solo texto", messages: "20 msgs", rank: "Estándar", tools: "Básicas", vip: false, nickChange: false, socialLimit: 0 },
+    features: [
+      { label: "Emuladores", value: "3 juegos simultáneos" },
+      { label: "Avatares", value: "25 avatares pixel-art" },
+      { label: "Mensajes privados", value: "20 mensajes/día" },
+      { label: "Posts en foro", value: "Texto básico" },
+      { label: "Comentarios", value: "Hasta 500 caracteres" },
+      { label: "Amigos", value: "Máximo 25" },
+      { label: "Almacenamiento", value: "50 MB" },
+      { label: "Contenido social", value: "No disponible" },
+      { label: "Firma en posts", value: "No" },
+      { label: "Publicidad", value: "Con anuncios", bad: true },
+      { label: "Subir avatar", value: "No", bad: true },
+    ],
   },
   {
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange",
-    features: { upload: "50 MB", ads: false, verification: false, avatar: "Animado (GIF)", signature: "Texto + Imagen", messages: "200 msgs", rank: "Color Bronce", tools: "Crear Encuestas", vip: "Solo lectura", nickChange: "Cada 6 meses", socialLimit: 5 },
+    features: [
+      { label: "Emuladores", value: "4 juegos simultáneos" },
+      { label: "Avatares", value: "55 avatares (adventurer + bottts)" },
+      { label: "Mensajes privados", value: "200 mensajes/día" },
+      { label: "Posts en foro", value: "Texto + imágenes + videos" },
+      { label: "Comentarios", value: "Hasta 1000 caracteres" },
+      { label: "Amigos", value: "Máximo 50" },
+      { label: "Almacenamiento", value: "150 MB" },
+      { label: "Contenido social", value: "5 posts públicos" },
+      { label: "Firma en posts", value: "Texto [ENTUSIASTA]" },
+      { label: "Publicidad", value: "Sin anuncios" },
+      { label: "Subir avatar", value: "No", bad: true },
+    ],
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground",
-    features: { upload: "100 MB", ads: false, verification: false, avatar: "Animado + Marco", signature: "Texto + GIF/Links", messages: "500 msgs", rank: "Color Plata", tools: "Post con Formato", vip: "Chat y Foro VIP", nickChange: "Cada 3 meses", socialLimit: 15 },
+    features: [
+      { label: "Emuladores", value: "5 juegos simultáneos" },
+      { label: "Avatares", value: "60+ avatares (avataaars, emoji, thumbs)" },
+      { label: "Mensajes privados", value: "500 mensajes/día" },
+      { label: "Posts en foro", value: "Texto + multimedia + formato" },
+      { label: "Comentarios", value: "Hasta 1500 caracteres" },
+      { label: "Amigos", value: "Máximo 100" },
+      { label: "Almacenamiento", value: "500 MB" },
+      { label: "Contenido social", value: "15 posts públicos" },
+      { label: "Firma en posts", value: "Texto + GIF/Links" },
+      { label: "Publicidad", value: "Sin anuncios" },
+      { label: "Subir avatar", value: "No", bad: true },
+    ],
   },
   {
     name: "Leyenda Arcade", basePrice: 25, color: "border-neon-yellow/50", textColor: "text-neon-yellow", highlight: true,
-    features: { upload: "250 MB", ads: false, verification: "Rango Oro", avatar: "Animado + Efectos", signature: "Diseño HTML/CSS", messages: "Ilimitados", rank: "Color Oro + Brillo", tools: "Fijar 1 Post/Semana", vip: "VIP + Mercado Retro", nickChange: "Mensual", socialLimit: 50 },
-  },
-  {
-    name: "Creador Verificado", basePrice: 20, color: "border-neon-cyan/50", textColor: "text-neon-cyan",
-    features: { upload: "300 MB", ads: false, verification: "Check ✅", avatar: "Personalización Total", signature: "Banner de Redes", messages: "Ilimitados", rank: "Neon / Arcoiris", tools: "Post de Promoción", vip: "Sala de Prensa", nickChange: "Quincenal", socialLimit: 100 },
-    requirement: "1k Seguidores + 50h en web",
+    features: [
+      { label: "Emuladores", value: "6 juegos simultáneos" },
+      { label: "Avatares", value: "75+ avatares premium (lorelei, notionists, open-peeps)" },
+      { label: "Mensajes privados", value: "Ilimitados" },
+      { label: "Posts en foro", value: "Todo tipo de contenido + HTML" },
+      { label: "Comentarios", value: "Hasta 2000 caracteres" },
+      { label: "Amigos", value: "Máximo 200" },
+      { label: "Almacenamiento", value: "2000 MB" },
+      { label: "Contenido social", value: "50 posts públicos" },
+      { label: "Firma en posts", value: "Diseño personalizado" },
+      { label: "Publicidad", value: "Sin anuncios" },
+      { label: "Subir avatar", value: "No", bad: true },
+    ],
   },
 ];
+
+const staffInfo = {
+  name: "Staff (Webmaster / Admin / Moderador)",
+  color: "border-neon-magenta/50",
+  textColor: "text-neon-magenta",
+  features: [
+    { label: "Emuladores", value: "Ilimitados" },
+    { label: "Avatares", value: "Todos + subir imagen personalizada (500x500 JPG/PNG/GIF)" },
+    { label: "Mensajes privados", value: "Ilimitados" },
+    { label: "Posts en foro", value: "Todo + fijar/eliminar posts" },
+    { label: "Comentarios", value: "Sin límite de caracteres" },
+    { label: "Amigos", value: "Ilimitados" },
+    { label: "Almacenamiento", value: "Ilimitado" },
+    { label: "Contenido social", value: "Ilimitado" },
+    { label: "Moderación", value: "Banear/kickear usuarios, gestionar roles" },
+    { label: "Publicidad", value: "Sin anuncios" },
+    { label: "Badge", value: "WEBMASTER / ADMINISTRADOR / MODERADOR" },
+  ],
+};
 
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Detect country via timezone or free API
     const detectCountry = async () => {
       try {
         const res = await fetch("https://ipapi.co/json/");
@@ -56,9 +117,7 @@ export default function MembershipsPage() {
         if (data.country_code && countryPricing[data.country_code]) {
           setUserCountry(data.country_code);
         }
-      } catch {
-        // Default to US
-      }
+      } catch {}
       setLoading(false);
     };
     detectCountry();
@@ -79,50 +138,47 @@ export default function MembershipsPage() {
         <p className="text-xs text-muted-foreground font-body">Elige el plan que mejor se adapte a tu estilo</p>
         <div className="flex items-center justify-center gap-2 mt-2">
           <Globe className="w-3 h-3 text-muted-foreground" />
-          <select
-            value={userCountry}
-            onChange={(e) => setUserCountry(e.target.value)}
-            className="bg-muted border border-border rounded px-2 py-1 text-[10px] font-body text-foreground"
-          >
-            {Object.keys(countryPricing).map((code) => (
-              <option key={code} value={code}>{code}</option>
-            ))}
+          <select value={userCountry} onChange={(e) => setUserCountry(e.target.value)} className="bg-muted border border-border rounded px-2 py-1 text-[10px] font-body text-foreground">
+            {Object.keys(countryPricing).map((code) => (<option key={code} value={code}>{code}</option>))}
           </select>
-          <span className="text-[10px] text-muted-foreground font-body">
-            {loading ? "Detectando..." : `Precios en ${pricing.symbol}`}
-          </span>
+          <span className="text-[10px] text-muted-foreground font-body">{loading ? "Detectando..." : `Precios en ${pricing.symbol}`}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
         {tiers.map((tier) => (
-          <div
-            key={tier.name}
-            className={cn(
-              "bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]",
-              tier.color,
-              tier.highlight && "ring-1 ring-neon-yellow/30"
-            )}
-          >
+          <div key={tier.name} className={cn("bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]", tier.color, tier.highlight && "ring-1 ring-neon-yellow/30")}>
             <h3 className={cn("font-body text-sm font-bold mb-1 tracking-wide", tier.textColor)}>{tier.name}</h3>
             <p className="text-lg font-bold font-body text-foreground mb-3">{formatPrice(tier.basePrice)}</p>
-            {tier.requirement && (
-              <p className="text-[10px] text-muted-foreground font-body mb-2 italic">Requisito: {tier.requirement}</p>
-            )}
             <div className="space-y-1.5 text-[11px] font-body">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subida</span><span className="text-foreground">{tier.features.upload}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Publicidad</span>{tier.features.ads ? <span className="text-destructive">Con anuncios</span> : <span className="text-neon-green">Sin anuncios</span>}</div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Avatar</span><span className="text-foreground">{tier.features.avatar}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Mensajes</span><span className="text-foreground">{tier.features.messages}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Rango</span><span className="text-foreground">{tier.features.rank}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Contenido Social</span><span className="text-foreground">{tier.features.socialLimit ? `${tier.features.socialLimit} posts` : "—"}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">VIP</span>{tier.features.vip ? <span className="text-foreground">{tier.features.vip}</span> : <X className="w-3 h-3 text-destructive" />}</div>
+              {tier.features.map((f, i) => (
+                <div key={i} className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{f.label}</span>
+                  <span className={cn("text-right", f.bad ? "text-destructive" : "text-foreground")}>{f.value}</span>
+                </div>
+              ))}
             </div>
             <Button className="w-full mt-4 h-8 text-xs font-body bg-primary text-primary-foreground hover:bg-primary/80 transition-all duration-200">
               {tier.basePrice === 0 ? "Plan Actual" : "Suscribirse"}
             </Button>
           </div>
         ))}
+      </div>
+
+      {/* Staff info */}
+      <div className={cn("bg-card border rounded p-4", staffInfo.color)}>
+        <h3 className={cn("font-body text-sm font-bold mb-1 flex items-center gap-2", staffInfo.textColor)}>
+          <Shield className="w-4 h-4" /> {staffInfo.name}
+        </h3>
+        <p className="text-[10px] text-muted-foreground font-body mb-3 italic">Roles asignados por el Webmaster — acceso ilimitado a todas las funciones</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] font-body">
+          {staffInfo.features.map((f, i) => (
+            <div key={i} className="flex justify-between gap-2">
+              <span className="text-muted-foreground">{f.label}</span>
+              <span className="text-neon-magenta text-right">{f.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
