@@ -55,6 +55,12 @@ export default function PublicProfilePage() {
       if (user && user.id !== userId) {
         const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
         setIsFollowing(!!f);
+        // Check friend request status
+        const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
+        const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
+        if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
+        else if (recvReq) setFriendStatus((recvReq as any).status === "accepted" ? "accepted" : "pending_received");
+        else setFriendStatus("none");
       }
 
       // Fetch scores and posts
@@ -79,6 +85,24 @@ export default function PublicProfilePage() {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
       setIsFollowing(true);
       setFollowerCount(p => p + 1);
+    }
+  };
+
+  const handleFriendRequest = async () => {
+    if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
+    if (friendStatus === "none") {
+      const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+      if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
+    } else if (friendStatus === "pending_received") {
+      await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
+      setFriendStatus("accepted");
+      toast({ title: "Amistad aceptada" });
+      // Create notification
+      await supabase.from("notifications").insert({ user_id: userId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || "Alguien"} aceptó tu solicitud de amistad`, related_id: user.id } as any);
+    } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
+      await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
+      setFriendStatus("none");
+      toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" });
     }
   };
 
