@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, withImageVersion } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";

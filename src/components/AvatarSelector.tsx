@@ -38,11 +38,23 @@ interface AvatarSelectorProps {
 export default function AvatarSelector({ currentAvatar, membershipTier, isStaff, onSelect, onUpload, onClose }: AvatarSelectorProps) {
   const [selectedTab, setSelectedTab] = useState<string>(membershipTier);
 
+  const stripVersionParam = (value: string | null) => {
+    if (!value) return "";
+    try {
+      const parsed = new URL(value);
+      parsed.searchParams.delete("v");
+      return parsed.toString();
+    } catch {
+      return value.replace(/([?&])v=[^&]+&?/, "$1").replace(/[?&]$/, "");
+    }
+  };
+
   const tiers = isStaff
     ? [...Object.keys(avatarSets), "staff"]
     : Object.keys(avatarSets).slice(0, Object.keys(avatarSets).indexOf(membershipTier) + 1);
 
   const currentAvatars = selectedTab === "staff" ? staffAvatars : (avatarSets[selectedTab] || avatarSets.novato);
+  const normalizedCurrentAvatar = stripVersionParam(currentAvatar);
 
   if (typeof document === "undefined") return null;
 
