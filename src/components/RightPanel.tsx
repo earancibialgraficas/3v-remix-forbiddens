@@ -59,6 +59,7 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 export default function RightPanel() {
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
+  const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
   const [progress, setProgress] = useState(0);
