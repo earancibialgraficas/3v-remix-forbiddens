@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -42,9 +42,9 @@ export default function GameBubble() {
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
 
-  // Volume
   const [volume, setVolume] = useState(100);
   const [showVolume, setShowVolume] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   // Save/Load slots
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -125,20 +125,62 @@ export default function GameBubble() {
     };
   }, [activeGame?.romUrl]);
 
-  // Volume control
+  // Volume control - use RetroArch audio context
   useEffect(() => {
     if (nostalgistRef.current && romLoaded) {
       try {
-        // Nostalgist uses RetroArch which has audio volume via options
-        // We control via the canvas audio context gain
-        const canvas = document.getElementById("game-bubble-canvas") as HTMLCanvasElement;
-        if (canvas) {
-          const audioElements = document.querySelectorAll("audio");
-          audioElements.forEach(a => { a.volume = volume / 100; });
+        // Try to control volume via AudioContext gain node
+        const audioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        const allAudio = document.querySelectorAll("audio");
+        allAudio.forEach(a => { a.volume = volume / 100; });
+        // Also try to set volume via retroarch option
+        if (nostalgistRef.current.sendCommand) {
+          nostalgistRef.current.sendCommand("AUDIO_VOLUME", volume === 0 ? -80 : (volume / 100 * 12 - 12));
         }
       } catch {}
     }
   }, [volume, romLoaded]);
+
+  // Pause/Resume toggle
+  const togglePause = () => {
+    if (!nostalgistRef.current || !romLoaded) return;
+    try {
+      if (paused) {
+        nostalgistRef.current.resume();
+      } else {
+        nostalgistRef.current.pause();
+      }
+      setPaused(!paused);
+    } catch {}
+  };
+
+  // ESC key to toggle pause
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && activeGame && romLoaded && !minimized) {
+        e.preventDefault();
+        togglePause();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [activeGame, romLoaded, minimized, paused]);
+
+  // Auto-save on close
+  const autoSaveOnClose = async () => {
+    if (!nostalgistRef.current || !activeGame) return;
+    try {
+      const state = await nostalgistRef.current.saveState();
+      const name = `Auto-save ${new Date().toLocaleString()}`;
+      const newSlot: SaveSlot = { name, data: state, timestamp: Date.now() };
+      const key = `save_slots_${activeGame.gameName}`;
+      const stored = localStorage.getItem(key);
+      let slots: SaveSlot[] = [];
+      try { slots = stored ? JSON.parse(stored) : []; } catch {}
+      slots.push(newSlot);
+      localStorage.setItem(key, JSON.stringify(slots));
+    } catch {}
+  };
 
   const handleSaveState = async () => {
     if (!nostalgistRef.current || !activeGame) return;
@@ -232,8 +274,10 @@ export default function GameBubble() {
     }
   };
 
-  const handleClose = (idx?: number) => {
+  const handleClose = async (idx?: number) => {
     const game = idx !== undefined ? activeGames[idx] : activeGame;
+    // Auto-save before closing
+    await autoSaveOnClose();
     if (game && scoreRef.current > 0 && user) handleSaveScore();
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
@@ -404,6 +448,12 @@ export default function GameBubble() {
               </div>
             )}
           </div>
+          {/* Pause */}
+          {romLoaded && (
+            <Button size="icon" variant="ghost" onClick={togglePause} className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
+              {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </Button>
+          )}
           {/* Minimize */}
           <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
             <Minimize2 className="w-4 h-4" />

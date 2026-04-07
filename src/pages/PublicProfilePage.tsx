@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2 } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,7 @@ export default function PublicProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
   const [gameScores, setGameScores] = useState<{ game_name: string; console_type: string; score: number }[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
 
   useEffect(() => {
     if (!userId) return;
@@ -54,6 +55,12 @@ export default function PublicProfilePage() {
       if (user && user.id !== userId) {
         const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
         setIsFollowing(!!f);
+        // Check friend request status
+        const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
+        const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
+        if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
+        else if (recvReq) setFriendStatus((recvReq as any).status === "accepted" ? "accepted" : "pending_received");
+        else setFriendStatus("none");
       }
 
       // Fetch scores and posts
@@ -78,6 +85,24 @@ export default function PublicProfilePage() {
       await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
       setIsFollowing(true);
       setFollowerCount(p => p + 1);
+    }
+  };
+
+  const handleFriendRequest = async () => {
+    if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
+    if (friendStatus === "none") {
+      const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+      if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
+    } else if (friendStatus === "pending_received") {
+      await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
+      setFriendStatus("accepted");
+      toast({ title: "Amistad aceptada" });
+      // Create notification
+      await supabase.from("notifications").insert({ user_id: userId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || "Alguien"} aceptó tu solicitud de amistad`, related_id: user.id } as any);
+    } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
+      await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
+      setFriendStatus("none");
+      toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" });
     }
   };
 
@@ -143,9 +168,16 @@ export default function PublicProfilePage() {
               </div>
             )}
             {user && user.id !== userId && (
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-3 flex-wrap">
                 <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="text-xs gap-1">
                   {isFollowing ? <><UserMinus className="w-3 h-3" /> Dejar de seguir</> : <><UserPlus className="w-3 h-3" /> Seguir</>}
+                </Button>
+                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} className="text-xs gap-1">
+                  <Users className="w-3 h-3" />
+                  {friendStatus === "none" && "Añadir amigo"}
+                  {friendStatus === "pending_sent" && "Solicitud enviada"}
+                  {friendStatus === "pending_received" && "Aceptar amistad"}
+                  {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
                   <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Mensaje</Link>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star } from "lucide-react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/forbiddens_logo.svg";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
@@ -58,6 +59,7 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 };
 
 export default function RightPanel() {
+  const { user } = useAuth();
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
@@ -165,9 +167,11 @@ export default function RightPanel() {
           </div>
         </div>
         <div className="flex gap-1.5">
-          <Button asChild className={cn("flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
-            <Link to="/registro">Unirse</Link>
-          </Button>
+          {!user ? (
+            <Button asChild className={cn("flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}>
+              <Link to="/registro">Unirse</Link>
+            </Button>
+          ) : null}
           <Button asChild className={cn("flex-1 font-body h-6 bg-[#5865F2] text-white hover:bg-[#5865F2]/80", sizes.body)}>
             <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
           </Button>
