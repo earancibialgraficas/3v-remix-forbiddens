@@ -266,6 +266,22 @@ export default function SocialReelsPage() {
         </p>
       </div>
 
+      {/* Source tabs: All / Friends */}
+      {user && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1">
+          <button onClick={() => setSourceTab("all")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Globe className="w-3 h-3" /> Todos
+          </button>
+          <button onClick={() => setSourceTab("friends")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Users className="w-3 h-3" /> Amigos
+          </button>
+        </div>
+      )}
+
       {/* Filters by content type */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {[
