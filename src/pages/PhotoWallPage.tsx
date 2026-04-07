@@ -110,6 +110,22 @@ export default function PhotoWallPage() {
         <p className="text-xs text-muted-foreground font-body">Galería de la comunidad — Las fotos más populares aparecen primero</p>
       </div>
 
+      {/* Source tabs */}
+      {user && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1">
+          <button onClick={() => setSourceTab("all")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Globe className="w-3 h-3" /> Todos
+          </button>
+          <button onClick={() => setSourceTab("friends")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Users className="w-3 h-3" /> Amigos
+          </button>
+        </div>
+      )}
+
       {/* Upload button */}
       <div className="flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground font-body">
