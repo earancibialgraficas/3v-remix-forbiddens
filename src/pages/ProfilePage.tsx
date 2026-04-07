@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, withImageVersion } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
@@ -75,8 +75,16 @@ export default function ProfilePage() {
 
   const handleAvatarSelect = async (url: string) => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
-    if (!error) { toast({ title: "Avatar actualizado" }); setShowAvatarSelector(false); await refreshProfile(); }
+    const nextAvatarUrl = withImageVersion(url, Date.now());
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: nextAvatarUrl, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    if (!error) {
+      toast({ title: "Avatar actualizado" });
+      setShowAvatarSelector(false);
+      await refreshProfile();
+    }
   };
 
   const handleAvatarUpload = async (file: File) => {
@@ -172,7 +180,7 @@ export default function ProfilePage() {
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden">
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                <img key={profile.avatar_url} src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-muted-foreground" />
               )}

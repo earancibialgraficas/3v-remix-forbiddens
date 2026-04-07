@@ -1,9 +1,8 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// 25+ avatars per tier using free avatar APIs
 const avatarSets: Record<string, string[]> = {
   novato: Array.from({ length: 25 }, (_, i) => `https://api.dicebear.com/9.x/pixel-art/svg?seed=novato${i}`),
   entusiasta: [
@@ -13,7 +12,6 @@ const avatarSets: Record<string, string[]> = {
   coleccionista: [
     ...Array.from({ length: 25 }, (_, i) => `https://api.dicebear.com/9.x/avataaars/svg?seed=coleccionista${i}`),
     ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/fun-emoji/svg?seed=coleccionista-fun${i}`),
-    // GIF-style animated avatars (static fallback)
     ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/thumbs/svg?seed=coleccionista-anim${i}`),
   ],
   "leyenda arcade": [
@@ -23,7 +21,6 @@ const avatarSets: Record<string, string[]> = {
   ],
 };
 
-// Staff get all + upload option
 const staffAvatars = [
   ...Array.from({ length: 30 }, (_, i) => `https://api.dicebear.com/9.x/personas/svg?seed=staff${i}`),
   ...Array.from({ length: 20 }, (_, i) => `https://api.dicebear.com/9.x/big-smile/svg?seed=staff-bs${i}`),
@@ -41,24 +38,37 @@ interface AvatarSelectorProps {
 export default function AvatarSelector({ currentAvatar, membershipTier, isStaff, onSelect, onUpload, onClose }: AvatarSelectorProps) {
   const [selectedTab, setSelectedTab] = useState<string>(membershipTier);
 
+  const stripVersionParam = (value: string | null) => {
+    if (!value) return "";
+    try {
+      const parsed = new URL(value);
+      parsed.searchParams.delete("v");
+      return parsed.toString();
+    } catch {
+      return value.replace(/([?&])v=[^&]+&?/, "$1").replace(/[?&]$/, "");
+    }
+  };
+
   const tiers = isStaff
     ? [...Object.keys(avatarSets), "staff"]
     : Object.keys(avatarSets).slice(0, Object.keys(avatarSets).indexOf(membershipTier) + 1);
 
   const currentAvatars = selectedTab === "staff" ? staffAvatars : (avatarSets[selectedTab] || avatarSets.novato);
+  const normalizedCurrentAvatar = stripVersionParam(currentAvatar);
 
-  return (
-    <div className="fixed inset-0 z-[350] flex items-center justify-center animate-fade-in">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-lg w-full mx-4 animate-scale-in max-h-[80vh] flex flex-col">
+      <div className="relative my-auto bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-lg w-full animate-scale-in max-h-[80vh] flex flex-col">
         <button onClick={onClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
           <X className="w-5 h-5" />
         </button>
         <h2 className="font-pixel text-[10px] text-neon-cyan mb-3">SELECCIONAR AVATAR</h2>
 
-        {/* Tier tabs */}
         <div className="flex gap-1 mb-3 flex-wrap">
-          {tiers.map(t => (
+          {tiers.map((t) => (
             <button
               key={t}
               onClick={() => setSelectedTab(t)}
@@ -72,7 +82,6 @@ export default function AvatarSelector({ currentAvatar, membershipTier, isStaff,
           ))}
         </div>
 
-        {/* Staff upload */}
         {isStaff && selectedTab === "staff" && onUpload && (
           <div className="mb-3">
             <label className="flex items-center gap-2 p-2 border border-dashed border-border rounded cursor-pointer hover:bg-muted/30 transition-colors">
@@ -90,7 +99,6 @@ export default function AvatarSelector({ currentAvatar, membershipTier, isStaff,
           </div>
         )}
 
-        {/* Avatar grid */}
         <div className="flex-1 overflow-y-auto retro-scrollbar">
           <div className="grid grid-cols-6 gap-2">
             {currentAvatars.map((url, i) => (
@@ -99,11 +107,11 @@ export default function AvatarSelector({ currentAvatar, membershipTier, isStaff,
                 onClick={() => onSelect(url)}
                 className={cn(
                   "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-105",
-                  currentAvatar === url ? "border-neon-green shadow-lg shadow-neon-green/20" : "border-border hover:border-primary/50"
+                  normalizedCurrentAvatar === stripVersionParam(url) ? "border-neon-green shadow-lg shadow-neon-green/20" : "border-border hover:border-primary/50"
                 )}
               >
                 <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                {currentAvatar === url && (
+                {normalizedCurrentAvatar === stripVersionParam(url) && (
                   <div className="absolute inset-0 bg-neon-green/20 flex items-center justify-center">
                     <Check className="w-4 h-4 text-neon-green" />
                   </div>
@@ -113,6 +121,7 @@ export default function AvatarSelector({ currentAvatar, membershipTier, isStaff,
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
