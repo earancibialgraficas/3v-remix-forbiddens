@@ -155,7 +155,11 @@ export default function ForumPage() {
   }, [category, sortBy]);
 
   const handlePost = async () => {
-    if (!user || !title.trim()) return;
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes registrarte para publicar", variant: "destructive" });
+      return;
+    }
+    if (!title.trim()) return;
     setPosting(true);
     const signature = (profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
       ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
@@ -188,7 +192,11 @@ export default function ForumPage() {
   };
 
   const handleComment = async (postId: string) => {
-    if (!user || !commentText.trim()) return;
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes registrarte para comentar", variant: "destructive" });
+      return;
+    }
+    if (!commentText.trim()) return;
     if (commentText.length > MAX_COMMENT_LENGTH) {
       toast({ title: "Comentario muy largo", description: `Máximo ${MAX_COMMENT_LENGTH} caracteres`, variant: "destructive" });
       return;

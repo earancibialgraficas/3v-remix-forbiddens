@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { Gamepad2, Upload, Monitor, Trophy, Play, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { nesGames, snesGames, gbaGames, allGames } from "@/lib/gameLibrary";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +29,8 @@ interface LeaderboardScore {
 }
 
 export default function EmulatorPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const gameId = searchParams.get("game");
   const consoleParam = searchParams.get("console") as ConsoleType | null;
@@ -49,6 +53,10 @@ export default function EmulatorPage() {
   }, [selectedConsole]);
 
   const handleLaunch = (romUrl: string, consoleName: ConsoleType, gameName: string) => {
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes registrarte para jugar", variant: "destructive" });
+      return;
+    }
     const consoleInfo = consoles.find(c => c.id === consoleName)!;
     launchGame({
       romUrl,
@@ -68,6 +76,10 @@ export default function EmulatorPage() {
   }, [gameId]);
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes registrarte para cargar ROMs", variant: "destructive" });
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     handleLaunch(URL.createObjectURL(file), selectedConsole, file.name);
