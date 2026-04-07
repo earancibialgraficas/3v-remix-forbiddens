@@ -19,6 +19,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ConsejosPage from "./pages/ConsejosPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
+import MessagesPage from "./pages/MessagesPage";
 import EventosPage from "./pages/EventosPage";
 import AyudaPage from "./pages/AyudaPage";
 import PhotoWallPage from "./pages/PhotoWallPage";
@@ -67,7 +68,7 @@ const App = () => (
                 <Route path="/faq" element={<ForumPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/configuracion" element={<SettingsPage />} />
-                <Route path="/mensajes" element={<ForumPage />} />
+                <Route path="/mensajes" element={<MessagesPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/registro" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
