@@ -75,8 +75,25 @@ export default function ProfilePage() {
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
-    supabase.from("leaderboard_scores").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-      .then(({ count }) => setStorageUsed((count || 0) * 2));
+    // Build storage items list
+    const loadStorage = async () => {
+      const items: {type: string; name: string; size: number; id?: string}[] = [];
+      // Leaderboard save data
+      const { data: scores, count: scoreCount } = await supabase.from("leaderboard_scores").select("id, game_name, console_type", { count: "exact" }).eq("user_id", user.id);
+      scores?.forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id }));
+      // Avatar uploads
+      const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
+      avatarFiles?.forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100 }));
+      // Social content
+      const { data: social } = await supabase.from("social_content").select("id, title, content_url").eq("user_id", user.id);
+      social?.forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id }));
+      // Photos
+      const { data: photos } = await supabase.from("photos").select("id, caption, image_url").eq("user_id", user.id);
+      photos?.forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id }));
+      setStorageItems(items);
+      setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
+    };
+    loadStorage();
   }, [user]);
 
   const handleSave = async () => {
