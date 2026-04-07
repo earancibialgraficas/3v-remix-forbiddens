@@ -313,14 +313,18 @@ export default function ProfilePage() {
         <div className="bg-card border border-border rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { val: profile?.total_score?.toLocaleString(), label: "Puntos totales", color: "text-neon-green" },
+            {(() => {
+              const computedTotal = gameScores.reduce((sum, gs) => sum + gs.score, 0);
+              const displayTotal = Math.max(profile?.total_score || 0, computedTotal);
+              return [
+              { val: displayTotal.toLocaleString(), label: "Puntos totales", color: "text-neon-green" },
               { val: userPosts.length, label: "Posts", color: "text-neon-cyan" },
               { val: tier.toUpperCase(), label: "Membresía", color: "text-neon-yellow" },
               { val: roles.length, label: "Roles", color: "text-neon-magenta" },
               { val: followerCount, label: "Seguidores", color: "text-neon-cyan" },
               { val: followingCount, label: "Siguiendo", color: "text-neon-orange" },
-            ].map((s, i) => (
+            ];
+            })().map((s, i) => (
               <div key={i} className="bg-muted/30 rounded p-3 text-center">
                 <p className={cn("text-lg font-bold font-body", s.color)}>{s.val}</p>
                 <p className="text-[10px] text-muted-foreground font-body">{s.label}</p>
