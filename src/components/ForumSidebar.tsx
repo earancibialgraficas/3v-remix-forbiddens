@@ -238,7 +238,19 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    {item.to && !item.isDropdownOnly ? (
+                    {item.to?.startsWith("http") ? (
+                      <a
+                        href={item.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center justify-center p-2 rounded transition-all duration-200",
+                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4", item.color)} />
+                      </a>
+                    ) : item.to && !item.isDropdownOnly ? (
                       <Link
                         to={item.to}
                         className={cn(
