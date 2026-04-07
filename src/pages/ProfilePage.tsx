@@ -91,14 +91,14 @@ export default function ProfilePage() {
 
   const handleRoleIconSelect = async (icon: string) => {
     if (!user) return;
-    await supabase.from("profiles").update({ role_icon: icon } as any).eq("user_id", user.id);
+    await supabase.from("profiles").update({ role_icon: icon }).eq("user_id", user.id);
     toast({ title: "Icono actualizado" });
     await refreshProfile();
   };
 
   const toggleShowRoleIcon = async () => {
     if (!user || !profile) return;
-    await supabase.from("profiles").update({ show_role_icon: !(profile as any).show_role_icon } as any).eq("user_id", user.id);
+    await supabase.from("profiles").update({ show_role_icon: !profile.show_role_icon }).eq("user_id", user.id);
     await refreshProfile();
   };
 
@@ -142,7 +142,7 @@ export default function ProfilePage() {
       )}
       {showRoleIconSelector && (
         <RoleIconSelector
-          currentIcon={(profile as any)?.role_icon || "⭐"}
+          currentIcon={profile?.role_icon || "⭐"}
           onSelect={handleRoleIconSelect}
           onClose={() => setShowRoleIconSelector(false)}
         />
@@ -195,7 +195,7 @@ export default function ProfilePage() {
               <>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-pixel text-sm text-neon-cyan">{profile?.display_name}</h2>
-                  <RoleBadge roles={roles} roleIcon={(profile as any)?.role_icon} showIcon={(profile as any)?.show_role_icon !== false} />
+                  <RoleBadge roles={roles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} />
                 </div>
                 <p className="text-xs text-muted-foreground font-body mt-1">{profile?.bio || "Sin descripción"}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -231,13 +231,13 @@ export default function ProfilePage() {
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
                   {(isStaff || isMod) && !roles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
-                      <span>{(profile as any)?.role_icon || "⭐"}</span> Icono Rol
+                      <span>{profile?.role_icon || "⭐"}</span> Icono Rol
                     </Button>
                   )}
                   {(isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">
-                      {(profile as any)?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {(profile as any)?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
+                      {profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
                     </Button>
                   )}
                 </div>
