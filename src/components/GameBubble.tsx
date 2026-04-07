@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Gamepad2, X, Maximize2, Minimize2, Trophy, Clock, Save, Move, GripVertical } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +15,12 @@ const consoleIcons: Record<string, string> = {
   gba: "📱",
 };
 
+interface SaveSlot {
+  name: string;
+  data: any;
+  timestamp: number;
+}
+
 export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
   const { user, profile } = useAuth();
@@ -23,18 +31,41 @@ export default function GameBubble() {
   const scoreRef = useRef(0);
   const timeRef = useRef(0);
 
-  // Dragging state
+  // Dragging
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
-  // Resizing state
+  // Resizing
   const [popupSize, setPopupSize] = useState({ w: 700, h: 520 });
   const [resizing, setResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
 
+  // Volume
+  const [volume, setVolume] = useState(100);
+  const [showVolume, setShowVolume] = useState(false);
+
+  // Save/Load slots
+  const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [slotName, setSlotName] = useState("");
+
   const activeGame = activeGames[currentGameIndex] || null;
+
+  // Load save slots from localStorage
+  useEffect(() => {
+    if (activeGame) {
+      const key = `save_slots_${activeGame.gameName}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try { setSaveSlots(JSON.parse(stored)); } catch { setSaveSlots([]); }
+      } else {
+        setSaveSlots([]);
+      }
+    }
+  }, [activeGame?.gameName]);
 
   useEffect(() => {
     if (activeGame && !minimized && romLoaded) {
@@ -65,7 +96,6 @@ export default function GameBubble() {
       if (!el) return;
       try {
         const { Nostalgist } = await import("nostalgist");
-        // Build absolute URL for ROM and encode special chars
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) {
           romSrc = window.location.origin + romSrc;
@@ -93,6 +123,59 @@ export default function GameBubble() {
       }
     };
   }, [activeGame?.romUrl]);
+
+  // Volume control
+  useEffect(() => {
+    if (nostalgistRef.current && romLoaded) {
+      try {
+        // Nostalgist uses RetroArch which has audio volume via options
+        // We control via the canvas audio context gain
+        const canvas = document.getElementById("game-bubble-canvas") as HTMLCanvasElement;
+        if (canvas) {
+          const audioElements = document.querySelectorAll("audio");
+          audioElements.forEach(a => { a.volume = volume / 100; });
+        }
+      } catch {}
+    }
+  }, [volume, romLoaded]);
+
+  const handleSaveState = async () => {
+    if (!nostalgistRef.current || !activeGame) return;
+    try {
+      const state = await nostalgistRef.current.saveState();
+      const name = slotName.trim() || `Slot ${saveSlots.length + 1}`;
+      const newSlot: SaveSlot = { name, data: state, timestamp: Date.now() };
+      const updated = [...saveSlots, newSlot];
+      setSaveSlots(updated);
+      localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+      toast({ title: "Partida guardada", description: `"${name}"` });
+      setSlotName("");
+      setShowSaveDialog(false);
+    } catch (err) {
+      console.error("Save error:", err);
+      toast({ title: "Error al guardar", variant: "destructive" });
+    }
+  };
+
+  const handleLoadState = async (slot: SaveSlot) => {
+    if (!nostalgistRef.current) return;
+    try {
+      await nostalgistRef.current.loadState(slot.data);
+      toast({ title: "Partida cargada", description: `"${slot.name}"` });
+      setShowLoadDialog(false);
+    } catch (err) {
+      console.error("Load error:", err);
+      toast({ title: "Error al cargar", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteSlot = (index: number) => {
+    if (!activeGame) return;
+    const updated = saveSlots.filter((_, i) => i !== index);
+    setSaveSlots(updated);
+    localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+    toast({ title: "Slot eliminado" });
+  };
 
   const handleSaveScore = async () => {
     if (!user || !activeGame) return;
@@ -198,7 +281,7 @@ export default function GameBubble() {
     );
   }
 
-  // Maximized popup - draggable
+  // Maximized popup
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center animate-fade-in">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={minimizeGame} />
@@ -246,11 +329,47 @@ export default function GameBubble() {
 
         {/* Right controls column */}
         <div className="w-14 bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0">
-          {user && activeGame && activeGame.score > 0 && (
-            <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar puntaje">
+          {/* Save state */}
+          {romLoaded && (
+            <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
               <Save className="w-4 h-4" />
             </Button>
           )}
+          {/* Load state */}
+          {romLoaded && saveSlots.length > 0 && (
+            <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
+              <Download className="w-4 h-4" />
+            </Button>
+          )}
+          {/* Save score */}
+          {user && activeGame && activeGame.score > 0 && (
+            <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
+              <Upload className="w-4 h-4" />
+            </Button>
+          )}
+          {/* Volume */}
+          <div className="relative">
+            <Button size="icon" variant="ghost" onClick={() => setShowVolume(!showVolume)} className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" title="Volumen">
+              {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </Button>
+            {showVolume && (
+              <div className="absolute right-full mr-2 top-0 bg-card border border-border rounded-lg p-3 w-36 shadow-xl z-20">
+                <p className="text-[9px] text-muted-foreground font-body mb-2">Volumen: {volume}%</p>
+                <Slider
+                  value={[volume]}
+                  onValueChange={(v) => setVolume(v[0])}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2">
+                  <button onClick={() => setVolume(0)} className="text-[8px] text-muted-foreground hover:text-foreground">Mute</button>
+                  <button onClick={() => setVolume(100)} className="text-[8px] text-muted-foreground hover:text-foreground">Max</button>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Minimize */}
           <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
             <Minimize2 className="w-4 h-4" />
           </Button>
@@ -282,6 +401,61 @@ export default function GameBubble() {
           <GripVertical className="w-3 h-3 rotate-[-45deg]" />
         </div>
       </div>
+
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center" onClick={() => setShowSaveDialog(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in" onClick={e => e.stopPropagation()}>
+            <h3 className="font-pixel text-[10px] text-neon-green mb-3">GUARDAR PARTIDA</h3>
+            <Input
+              value={slotName}
+              onChange={e => setSlotName(e.target.value)}
+              placeholder={`Slot ${saveSlots.length + 1}`}
+              className="h-8 bg-muted text-xs font-body mb-3"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveState} className="text-xs flex-1">Guardar</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowSaveDialog(false)} className="text-xs">Cancelar</Button>
+            </div>
+            {saveSlots.length > 0 && (
+              <div className="mt-3 border-t border-border pt-2">
+                <p className="text-[9px] text-muted-foreground font-body mb-1">Slots guardados ({saveSlots.length}):</p>
+                {saveSlots.map((s, i) => (
+                  <div key={i} className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Load Dialog */}
+      {showLoadDialog && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center" onClick={() => setShowLoadDialog(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 w-80 max-h-[60vh] flex flex-col animate-scale-in" onClick={e => e.stopPropagation()}>
+            <h3 className="font-pixel text-[10px] text-neon-cyan mb-3">CARGAR PARTIDA</h3>
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {saveSlots.map((s, i) => (
+                <div key={i} className="flex items-center justify-between p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
+                  <button onClick={() => handleLoadState(s)} className="flex-1 text-left">
+                    <p className="text-xs font-body text-foreground">{s.name}</p>
+                    <p className="text-[8px] text-muted-foreground font-body">{new Date(s.timestamp).toLocaleString()}</p>
+                  </button>
+                  <button onClick={() => handleDeleteSlot(i)} className="text-destructive hover:text-destructive/80 p-1">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setShowLoadDialog(false)} className="text-xs mt-3">Cerrar</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
