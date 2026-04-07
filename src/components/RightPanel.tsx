@@ -96,6 +96,18 @@ export default function RightPanel() {
   }, []);
 
   useEffect(() => {
+    const fetchPremium = async () => {
+      const { data } = await supabase.from("profiles")
+        .select("display_name, membership_tier, created_at")
+        .neq("membership_tier", "novato")
+        .order("created_at", { ascending: true })
+        .limit(3);
+      if (data && data.length > 0) setPremiumUsers(data as unknown as PremiumUser[]);
+    };
+    fetchPremium();
+  }, []);
+
+  useEffect(() => {
     const fetchPopular = async () => {
       const { data } = await supabase.from("posts").select("id, title, category, upvotes").order("upvotes", { ascending: false }).limit(5);
       if (data && data.length > 0) setPopularPosts(data);
