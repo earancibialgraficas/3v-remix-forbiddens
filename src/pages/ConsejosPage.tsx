@@ -8,12 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const tips = [
-  { icon: Gamepad2, title: "Configura tu gamepad", desc: "Conecta un mando USB o Bluetooth y EmulatorJS lo detectará automáticamente. Puedes remapear los botones desde el menú del emulador.", color: "text-neon-green" },
+  { icon: Gamepad2, title: "Configura tu gamepad", desc: "Conecta un mando USB o Bluetooth y el emulador lo detectará automáticamente. Puedes remapear los botones desde el menú del emulador.", color: "text-neon-green" },
   { icon: Shield, title: "Guarda tu progreso", desc: "Usa los save states del emulador (botón de guardar en la barra de herramientas) para no perder tu avance. ¡Puedes crear múltiples puntos de guardado!", color: "text-neon-cyan" },
   { icon: Zap, title: "Mejora el rendimiento", desc: "Si el juego va lento, prueba cerrar otras pestañas del navegador. Chrome y Edge suelen dar el mejor rendimiento para la emulación web.", color: "text-neon-magenta" },
   { icon: Lightbulb, title: "Controles de teclado", desc: "NES: Flechas = D-Pad, Z = B, X = A, Enter = Start, Shift = Select. SNES: Los mismos + A/S para L/R.", color: "text-neon-yellow" },
-  { icon: Gamepad2, title: "Juega con amigos", desc: "EmulatorJS soporta multijugador local. Conecta un segundo mando para jugar juegos cooperativos como Contra o Double Dragon.", color: "text-neon-orange" },
-  { icon: Shield, title: "ROMs legales", desc: "Solo utiliza ROMs de juegos que poseas físicamente. Existen también ROMs homebrew gratuitas creadas por la comunidad indie retro.", color: "text-destructive" },
+  { icon: Gamepad2, title: "Juega con amigos", desc: "El emulador soporta multijugador local. Conecta un segundo mando para jugar juegos cooperativos como Contra o Double Dragon.", color: "text-neon-orange" },
 ];
 
 export default function ConsejosPage() {
