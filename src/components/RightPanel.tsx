@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star } from "lucide-react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/forbiddens_logo.svg";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
@@ -58,6 +59,7 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 };
 
 export default function RightPanel() {
+  const { user } = useAuth();
   const [currentNews, setCurrentNews] = useState(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
