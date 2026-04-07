@@ -397,11 +397,21 @@ export default function ForumPage() {
                             <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
                           </div>
                           <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
-                          {user && (
-                            <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors mt-1 text-[10px] text-muted-foreground">
-                              <Reply className="w-3 h-3 inline mr-0.5" /> Responder
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {user && (
+                              <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
+                                <Reply className="w-3 h-3 inline mr-0.5" /> Responder
+                              </button>
+                            )}
+                            {user && comment.user_id !== user.id && (
+                              <button onClick={async () => {
+                                await supabase.from("reports").insert({ reporter_id: user.id, post_id: comment.post_id, reported_user_id: comment.user_id, reason: "Comentario inapropiado" } as any);
+                                toast({ title: "Comentario reportado" });
+                              }} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
+                                <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
