@@ -93,9 +93,13 @@ export default function PhotoWallPage() {
     toast({ title: "Reporte enviado" });
   };
 
+  const displayPhotos = sourceTab === "friends"
+    ? photos.filter(p => friendIds.includes(p.user_id))
+    : photos;
+
   // Split into "top" (first 6) for mosaic and rest for grid
-  const topPhotos = photos.slice(0, 6);
-  const restPhotos = photos.slice(6);
+  const topPhotos = displayPhotos.slice(0, 6);
+  const restPhotos = displayPhotos.slice(6);
 
   return (
     <div className="space-y-4 animate-fade-in">
