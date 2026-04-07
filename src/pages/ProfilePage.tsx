@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2 } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn, withImageVersion } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
@@ -23,6 +23,7 @@ const storageLimits: Record<string, number> = {
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -33,12 +34,25 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
-  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">("posts");
+  const tabFromUrl = searchParams.get("tab") as any;
+  const validTabs = ["posts", "stats", "social", "storage", "moderation", "friends"];
+  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">(validTabs.includes(tabFromUrl) ? tabFromUrl : "posts");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role">("border");
+  const [avatarBorderColor, setAvatarBorderColor] = useState("");
+  const [nameColor, setNameColor] = useState("");
+  const [roleColor, setRoleColor] = useState("");
+  const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string}[]>([]);
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     if (profile) {
@@ -61,8 +75,25 @@ export default function ProfilePage() {
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
-    supabase.from("leaderboard_scores").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-      .then(({ count }) => setStorageUsed((count || 0) * 2));
+    // Build storage items list
+    const loadStorage = async () => {
+      const items: {type: string; name: string; size: number; id?: string}[] = [];
+      // Leaderboard save data
+      const { data: scores, count: scoreCount } = await supabase.from("leaderboard_scores").select("id, game_name, console_type", { count: "exact" }).eq("user_id", user.id);
+      scores?.forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id }));
+      // Avatar uploads
+      const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
+      avatarFiles?.forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100 }));
+      // Social content
+      const { data: social } = await supabase.from("social_content").select("id, title, content_url").eq("user_id", user.id);
+      social?.forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id }));
+      // Photos
+      const { data: photos } = await supabase.from("photos").select("id, caption, image_url").eq("user_id", user.id);
+      photos?.forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id }));
+      setStorageItems(items);
+      setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
+    };
+    loadStorage();
   }, [user]);
 
   const handleSave = async () => {
@@ -276,6 +307,11 @@ export default function ProfilePage() {
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar</Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/configuracion">Configuración</Link></Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
+                  {["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) && (
+                    <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
+                      <Palette className="w-3 h-3" /> Personalizar Colores
+                    </Button>
+                  )}
                   {(isStaff || isMod) && !roles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
                       <span>{profile?.role_icon || "⭐"}</span> Icono Rol
@@ -297,7 +333,7 @@ export default function ProfilePage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+          <button key={tab.id} onClick={() => handleTabChange(tab.id)}
             className={cn("flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-body transition-all min-w-[70px]",
               activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
             <tab.icon className="w-3 h-3" /> {tab.label}
@@ -385,22 +421,83 @@ export default function ProfilePage() {
 
       {activeTab === "storage" && (
         <div className="bg-card border border-border rounded p-4 space-y-3">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ALMACENAMIENTO DE PARTIDAS</h3>
+          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-1"><HardDrive className="w-3 h-3" /> ALMACENAMIENTO</h3>
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-body">
               <span className="text-muted-foreground">Usado</span>
-              <span className="text-foreground">{storageUsed} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
+              <span className="text-foreground">{storageUsed.toFixed(1)} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
             </div>
             <div className="w-full h-3 bg-muted rounded overflow-hidden border border-border">
               <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
             </div>
-            <p className="text-[10px] text-muted-foreground font-body">
-              Cada partida guardada ocupa ~2 MB. {maxStorage !== Infinity && storagePercent > 80 && "¡Casi lleno! Considera actualizar tu plan."}
-            </p>
-            <div className="flex gap-2">
-              {maxStorage !== Infinity && storagePercent > 50 && (
-                <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Aumentar Capacidad</Link></Button>
-              )}
+          </div>
+          {/* Detailed items */}
+          <div className="space-y-1 mt-3">
+            <div className="grid grid-cols-[1fr_80px_60px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
+              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span>
+            </div>
+            {storageItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground font-body py-2">No hay elementos almacenados</p>
+            ) : storageItems.map((item, i) => (
+              <div key={i} className="grid grid-cols-[1fr_80px_60px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center">
+                <span className="text-foreground truncate" title={item.name}>{item.name}</span>
+                <span className="text-muted-foreground text-[10px]">{item.type}</span>
+                <span className="text-right text-muted-foreground text-[10px]">{item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size} MB`}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {maxStorage !== Infinity && storagePercent > 50 && (
+              <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Aumentar Capacidad</Link></Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Color Picker Modal */}
+      {showColorPicker && (
+        <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowColorPicker(false)}>
+          <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-sm w-full mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowColorPicker(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <span className="text-lg">✕</span>
+            </button>
+            <h3 className="font-pixel text-[11px] text-neon-cyan text-center flex items-center justify-center gap-2">
+              <Palette className="w-4 h-4" /> PERSONALIZAR COLORES
+            </h3>
+            <div className="flex gap-2 justify-center">
+              {(["border", "name", "role"] as const).map(t => (
+                <button key={t} onClick={() => setColorTarget(t)}
+                  className={cn("px-3 py-1.5 rounded text-[10px] font-body transition-all",
+                    colorTarget === t ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                  {t === "border" ? "Borde Avatar" : t === "name" ? "Nombre" : "Rol/Membresía"}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-48 h-48">
+                <input
+                  type="color"
+                  value={colorTarget === "border" ? (avatarBorderColor || "#22d3ee") : colorTarget === "name" ? (nameColor || "#22d3ee") : (roleColor || "#facc15")}
+                  onChange={e => {
+                    if (colorTarget === "border") setAvatarBorderColor(e.target.value);
+                    else if (colorTarget === "name") setNameColor(e.target.value);
+                    else setRoleColor(e.target.value);
+                  }}
+                  className="w-full h-full rounded-full cursor-pointer border-2 border-border"
+                  style={{ appearance: "auto" }}
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-[10px] text-muted-foreground font-body">Vista previa:</p>
+                <div className="flex items-center gap-2 bg-muted/30 rounded px-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-muted border-2 overflow-hidden" style={{ borderColor: avatarBorderColor || "#22d3ee" }}>
+                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-1.5" />}
+                  </div>
+                  <span className="font-pixel text-xs" style={{ color: nameColor || undefined }}>{profile?.display_name}</span>
+                  <span className="text-[9px] font-pixel" style={{ color: roleColor || undefined }}>{tier.toUpperCase()}</span>
+                </div>
+              </div>
+              <p className="text-[9px] text-muted-foreground font-body text-center">Los colores se aplican visualmente en tu perfil y posts</p>
             </div>
           </div>
         </div>
