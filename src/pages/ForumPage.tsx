@@ -46,18 +46,21 @@ const mockPostsByCategory: Record<string, Array<{ id: string; title: string; con
 };
 
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
+  const isImage = type === "image";
   return (
     <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-end mb-2 gap-2">
-          <a href={src} download target="_blank" rel="noopener" className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar">
-            <Download className="w-4 h-4 text-foreground" />
-          </a>
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end mb-2 gap-2 w-full">
+          {isImage && (
+            <a href={src} download target="_blank" rel="noopener" className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar">
+              <Download className="w-4 h-4 text-foreground" />
+            </a>
+          )}
           <button onClick={onClose} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors">
             <X className="w-4 h-4 text-foreground" />
           </button>
         </div>
-        <div className="bg-card border border-border rounded overflow-hidden">
+        <div className="bg-card border border-border rounded overflow-hidden w-full">
           {type === "video" ? (
             <div className="aspect-video"><iframe src={src} className="w-full h-full" allowFullScreen /></div>
           ) : (

@@ -80,14 +80,14 @@ export default function LeaderboardPage() {
       <div
         key={score.id}
         className={cn(
-          "grid grid-cols-[40px_1fr_80px] gap-2 px-3 py-2 text-xs font-body border-b border-border/50 transition-all duration-200 hover:bg-muted/50",
+          "grid grid-cols-[40px_1fr_100px] gap-2 px-3 py-2 text-xs font-body border-b border-border/50 transition-all duration-200 hover:bg-muted/50",
           i < 3 && "bg-neon-yellow/5"
         )}
       >
         <span className={cn("font-bold", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
           {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
         </span>
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
           {up ? (
             <UserPopup
               userId={score.user_id}
@@ -129,11 +129,11 @@ export default function LeaderboardPage() {
         Object.entries(gameGroups).map(([gameName, gameScores]) => (
           <div key={gameName} className="bg-card border border-border rounded overflow-hidden">
             <div className="px-3 py-2 bg-muted border-b border-border flex items-center gap-2">
-              <Gamepad2 className="w-3.5 h-3.5 text-neon-green" />
-              <h2 className="font-pixel text-[10px] text-neon-green">{gameName}</h2>
+              <Gamepad2 className="w-3.5 h-3.5 text-neon-green shrink-0" />
+              <h2 className="font-pixel text-[10px] text-neon-green truncate" title={gameName}>{gameName}</h2>
               <span className="text-[9px] text-muted-foreground font-body ml-auto">{gameScores.length} jugador{gameScores.length > 1 ? "es" : ""}</span>
             </div>
-            <div className="grid grid-cols-[40px_1fr_80px] gap-2 px-3 py-1.5 text-[9px] font-pixel text-muted-foreground border-b border-border">
+            <div className="grid grid-cols-[40px_1fr_100px] gap-2 px-3 py-1.5 text-[9px] font-pixel text-muted-foreground border-b border-border">
               <span>#</span>
               <span>JUGADOR</span>
               <span className="text-right">SCORE</span>

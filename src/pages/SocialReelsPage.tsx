@@ -78,6 +78,7 @@ function AutoplayVideo({ item, isVisible }: { item: SocialItem; isVisible: boole
 
 function MediaModal({ item, onClose }: { item: SocialItem; onClose: () => void }) {
   const isVideo = isVideoContent(item);
+  const isImage = isImageContent(item);
   const embedUrl = isVideo ? getEmbedUrl(item.content_url, item.platform) : null;
 
   const handleDownload = async () => {
@@ -89,19 +90,21 @@ function MediaModal({ item, onClose }: { item: SocialItem; onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-2">
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2 w-full">
           <p className="text-xs font-body text-muted-foreground truncate">{item.title || "Sin título"}</p>
           <div className="flex items-center gap-2">
-            <button onClick={handleDownload} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar / Abrir original">
-              <Download className="w-4 h-4 text-foreground" />
-            </button>
+            {isImage && !isVideo && (
+              <button onClick={handleDownload} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar / Abrir original">
+                <Download className="w-4 h-4 text-foreground" />
+              </button>
+            )}
             <button onClick={onClose} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors">
               <X className="w-4 h-4 text-foreground" />
             </button>
           </div>
         </div>
-        <div className="bg-card border border-border rounded overflow-hidden">
+        <div className="bg-card border border-border rounded overflow-hidden w-full">
           {isVideo && embedUrl ? (
             <div className="aspect-video">
               <iframe src={embedUrl} className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
