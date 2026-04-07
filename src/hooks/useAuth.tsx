@@ -13,6 +13,8 @@ interface Profile {
   youtube_url: string | null;
   tiktok_url: string | null;
   total_score: number;
+  role_icon: string | null;
+  show_role_icon: boolean;
 }
 
 interface AuthContextType {

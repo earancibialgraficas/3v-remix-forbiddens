@@ -68,7 +68,7 @@ const App = () => (
                 <Route path="/faq" element={<ForumPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/configuracion" element={<SettingsPage />} />
-                <Route path="/mensajes" element={<ForumPage />} />
+                <Route path="/mensajes" element={<MessagesPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/registro" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
