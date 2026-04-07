@@ -45,16 +45,81 @@ const mockPostsByCategory: Record<string, Array<{ id: string; title: string; con
   ],
 };
 
+function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end mb-2 gap-2">
+          <a href={src} download target="_blank" rel="noopener" className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar">
+            <Download className="w-4 h-4 text-foreground" />
+          </a>
+          <button onClick={onClose} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors">
+            <X className="w-4 h-4 text-foreground" />
+          </button>
+        </div>
+        <div className="bg-card border border-border rounded overflow-hidden">
+          {type === "video" ? (
+            <div className="aspect-video"><iframe src={src} className="w-full h-full" allowFullScreen /></div>
+          ) : (
+            <img src={src} alt="" className="w-full max-h-[80vh] object-contain" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+let _setForumModal: ((v: { src: string; type: "image" | "video" } | null) => void) | null = null;
+
 function renderContent(content: string) {
   if (!content) return null;
   const parts = content.split(/(\!\[.*?\]\(.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
-    if (imgMatch) return <img key={i} src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded mt-2 mb-1 border border-border" loading="lazy" />;
+    if (imgMatch) return (
+      <div key={i} className="relative group mt-2 mb-1">
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border" loading="lazy" />
+        <button onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
+          <Maximize2 className="w-3 h-3 text-foreground" />
+        </button>
+      </div>
+    );
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
-    if (ytMatch) return <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border"><iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="w-full h-full" allowFullScreen title="Video" /></div>;
-    // Make plain URLs clickable
-    if (/^https?:\/\/[^\s]+$/.test(part)) return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>;
+    if (ytMatch) {
+      const embedSrc = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      return (
+        <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
+          <iframe src={embedSrc} className="w-full h-full" allowFullScreen title="Video" />
+          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
+            <Maximize2 className="w-3 h-3 text-foreground" />
+          </button>
+        </div>
+      );
+    }
+    if (/^https?:\/\/[^\s]+$/.test(part)) {
+      const isMedia = /\.(jpg|jpeg|png|gif|webp|mp4|webm)(\?.*)?$/i.test(part);
+      if (isMedia && /\.(mp4|webm)(\?.*)?$/i.test(part)) {
+        return (
+          <div key={i} className="relative group mt-2 mb-1">
+            <video src={part} controls className="w-full max-h-64 rounded border border-border" />
+            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
+              <Maximize2 className="w-3 h-3 text-foreground" />
+            </button>
+          </div>
+        );
+      }
+      if (isMedia) {
+        return (
+          <div key={i} className="relative group mt-2 mb-1">
+            <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border" loading="lazy" />
+            <button onClick={() => _setForumModal?.({ src: part, type: "image" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
+              <Maximize2 className="w-3 h-3 text-foreground" />
+            </button>
+          </div>
+        );
+      }
+      return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>;
+    }
     return part.split('\n').map((line, j) => <span key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</span>);
   });
 }
