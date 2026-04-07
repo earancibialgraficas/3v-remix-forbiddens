@@ -441,6 +441,42 @@ export type Database = {
           },
         ]
       }
+      social_content: {
+        Row: {
+          content_url: string
+          created_at: string
+          id: string
+          is_public: boolean
+          platform: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_url: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          platform: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_url?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          platform?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tip_suggestions: {
         Row: {
           created_at: string
