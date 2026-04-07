@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
+  const [signature, setSignature] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
@@ -46,6 +47,7 @@ export default function ProfilePage() {
       setInstagram(profile.instagram_url || "");
       setYoutube(profile.youtube_url || "");
       setTiktok(profile.tiktok_url || "");
+      setSignature((profile as any).signature || "");
     }
   }, [profile]);
 
