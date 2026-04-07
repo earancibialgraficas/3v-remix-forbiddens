@@ -201,10 +201,12 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {photos.length === 0 && (
+      {displayPhotos.length === 0 && (
         <div className="bg-card border border-border rounded p-8 text-center">
           <Image className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground font-body">Aún no hay fotos en la galería</p>
+          <p className="text-sm text-muted-foreground font-body">
+            {sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "Aún no hay fotos en la galería"}
+          </p>
           <p className="text-[10px] text-muted-foreground font-body mt-1">Sé el primero en compartir una imagen</p>
         </div>
       )}
