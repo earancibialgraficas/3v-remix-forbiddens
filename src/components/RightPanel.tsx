@@ -177,7 +177,7 @@ export default function RightPanel() {
           <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
             <Newspaper className="w-3 h-3" /> TRENDING
           </h3>
-          <Link to={getCategoryLink(news?.category || "trending")} className="block relative min-h-[50px] group">
+          <Link to={getCategoryLink(news?.category || "trending", news?.id)} className="block relative min-h-[50px] group">
             <div key={news?.id} className="animate-fade-in">
               <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
               <p className={cn("font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors", sizes.body)}>{news?.title}</p>
