@@ -133,7 +133,17 @@ export default function ForumPage() {
 
   const fetchComments = async (postId: string) => {
     const { data } = await supabase.from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
-    if (data) setComments((prev) => ({ ...prev, [postId]: data as Comment[] }));
+    if (!data) return;
+    // Fetch profiles and roles for commenters
+    const userIds = [...new Set((data as any[]).map(c => c.user_id))];
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon").in("user_id", userIds);
+    const { data: userRoles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+    const profileMap: Record<string, any> = {};
+    profiles?.forEach(p => profileMap[p.user_id] = p);
+    const rolesMap: Record<string, string[]> = {};
+    userRoles?.forEach((r: any) => { if (!rolesMap[r.user_id]) rolesMap[r.user_id] = []; rolesMap[r.user_id].push(r.role); });
+    const enriched = (data as any[]).map(c => ({ ...c, profile: profileMap[c.user_id] || null, roles: rolesMap[c.user_id] || [] }));
+    setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
 
   useEffect(() => {
