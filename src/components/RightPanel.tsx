@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type } from "lucide-react";
+import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
