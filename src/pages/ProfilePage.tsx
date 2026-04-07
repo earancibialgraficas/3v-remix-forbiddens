@@ -48,7 +48,7 @@ export default function ProfilePage() {
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
   const [nameColor, setNameColor] = useState("");
   const [roleColor, setRoleColor] = useState("");
-  const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string}[]>([]);
+  const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -78,19 +78,21 @@ export default function ProfilePage() {
       .then(({ count }) => setFollowingCount(count || 0));
     // Build storage items list
     const loadStorage = async () => {
-      const items: {type: string; name: string; size: number; id?: string}[] = [];
+      const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
       // Leaderboard save data
-      const { data: scores, count: scoreCount } = await supabase.from("leaderboard_scores").select("id, game_name, console_type", { count: "exact" }).eq("user_id", user.id);
-      scores?.forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id }));
+      const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
+      scores?.forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
       // Avatar uploads
       const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
-      avatarFiles?.forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100 }));
+      avatarFiles?.forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
       // Social content
-      const { data: social } = await supabase.from("social_content").select("id, title, content_url").eq("user_id", user.id);
-      social?.forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id }));
+      const { data: social } = await supabase.from("social_content").select("id, title, content_url, created_at").eq("user_id", user.id);
+      social?.forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id, created_at: s.created_at }));
       // Photos
-      const { data: photos } = await supabase.from("photos").select("id, caption, image_url").eq("user_id", user.id);
-      photos?.forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id }));
+      const { data: photos } = await supabase.from("photos").select("id, caption, image_url, created_at").eq("user_id", user.id);
+      photos?.forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id, created_at: p.created_at }));
+      // Sort newest first
+      items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       setStorageItems(items);
       setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
     };
@@ -434,15 +436,16 @@ export default function ProfilePage() {
           </div>
           {/* Detailed items */}
           <div className="space-y-1 mt-3">
-            <div className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
-              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span><span></span>
+            <div className="grid grid-cols-[1fr_80px_110px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
+              <span>ELEMENTO</span><span>TIPO</span><span>FECHA</span><span className="text-right">TAMAÑO</span><span></span>
             </div>
             {storageItems.length === 0 ? (
               <p className="text-xs text-muted-foreground font-body py-2">No hay elementos almacenados</p>
             ) : storageItems.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center group">
+              <div key={i} className="grid grid-cols-[1fr_80px_110px_60px_30px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center group">
                 <span className="text-foreground truncate" title={item.name}>{item.name}</span>
                 <span className="text-muted-foreground text-[10px]">{item.type}</span>
+                <span className="text-muted-foreground text-[10px]">{item.created_at ? new Date(item.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
                 <span className="text-right text-muted-foreground text-[10px]">{item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size} MB`}</span>
                 <button
                   onClick={async () => {
@@ -456,13 +459,12 @@ export default function ProfilePage() {
                     } else if (item.type === "Avatar") {
                       await supabase.storage.from("avatars").remove([`${user.id}/${item.name}`]);
                     }
-                    toast({ title: "Eliminado" });
-                    // Refresh storage items
+                    toast({ title: "Eliminado permanentemente" });
                     setStorageItems(prev => prev.filter((_, idx) => idx !== i));
                     setStorageUsed(prev => prev - item.size);
                   }}
                   className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Eliminar"
+                  title="Eliminar permanentemente"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
