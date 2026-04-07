@@ -3,12 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, Bell, User, LogIn, Settings, BookOpen, LogOut
+  Search, Bell, User, LogIn, Settings, BookOpen, LogOut,
+  PanelLeftClose, PanelLeft, Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import logo from "@/assets/forbiddens_logo.svg";
 import {
   Tooltip,
   TooltipContent,
@@ -92,10 +94,38 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
   return (
     <aside
       className={cn(
-        "sticky top-14 h-[calc(100vh-3.5rem)] bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-30",
+        "fixed top-0 left-0 h-screen bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-40 retro-scrollbar",
         collapsed ? "w-12" : "w-56"
       )}
     >
+      {/* Logo + Toggle Button at top */}
+      {collapsed ? (
+        <div className="flex flex-col items-center gap-1 py-2 px-1 border-b border-border">
+          <Link to="/" className="flex items-center justify-center p-1">
+            <img src={logo} alt="Forbiddens" className="w-7 h-7" />
+          </Link>
+          <button
+            onClick={onToggle}
+            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-2 py-2 border-b border-border">
+          <Link to="/" className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={logo} alt="Forbiddens" className="w-6 h-6 shrink-0" />
+            <span className="font-pixel text-[9px] text-neon-green text-glow-green truncate">FORBIDDENS</span>
+          </Link>
+          <button
+            onClick={onToggle}
+            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all shrink-0"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Search & user actions inside sidebar */}
       {!collapsed && (
         <div className="px-2 py-2 space-y-2 border-b border-border">
@@ -139,9 +169,10 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
         </div>
       )}
 
-      {/* Collapsed: show user button at top */}
-      {collapsed && (
-        <div className="px-1 py-2 space-y-1 border-b border-border flex flex-col items-center">
+      {/* Navigation icons - centered when collapsed */}
+      <nav className={cn("px-1 space-y-0.5 retro-scrollbar", collapsed ? "flex-1 flex flex-col justify-center py-1" : "flex-1 py-2")}>
+        {/* Collapsed user icon centered with nav items */}
+        {collapsed && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Link
@@ -155,33 +186,20 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               {user ? (
                 <div className="space-y-1">
                   <p className="text-xs font-body font-medium text-neon-green">{profile?.display_name}</p>
-                  <Link to="/perfil" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
-                    Mi Perfil
-                  </Link>
-                  <Link to="/configuracion" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
-                    Configuración
-                  </Link>
-                  <button onClick={signOut} className="block w-full text-left text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-destructive transition-colors">
-                    Cerrar Sesión
-                  </button>
+                  <Link to="/perfil" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Mi Perfil</Link>
+                  <Link to="/configuracion" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Configuración</Link>
+                  <button onClick={signOut} className="block w-full text-left text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-destructive transition-colors">Cerrar Sesión</button>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-xs font-body font-medium text-muted-foreground">No has iniciado sesión</p>
-                  <Link to="/login" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-green hover:text-foreground transition-colors">
-                    Iniciar Sesión
-                  </Link>
-                  <Link to="/registro" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-cyan hover:text-foreground transition-colors">
-                    Registrarse
-                  </Link>
+                  <Link to="/login" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-green transition-colors">Iniciar Sesión</Link>
+                  <Link to="/registro" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-cyan transition-colors">Registrarse</Link>
                 </div>
               )}
             </TooltipContent>
           </Tooltip>
-        </div>
-      )}
+        )}
 
-      <nav className={cn("px-1 space-y-0.5", collapsed ? "flex-1 flex flex-col justify-center py-1" : "flex-1 py-2")}>
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           const isExpanded = expandedItems.includes(item.label);
@@ -227,9 +245,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                   to={item.to}
                   className={cn(
                     "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
-                    isActive
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   )}
                 >
                   <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
@@ -244,7 +260,6 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                   </button>
                 )}
               </div>
-
               <div
                 className={cn(
                   "ml-6 space-y-0.5 overflow-hidden transition-all duration-300",
@@ -257,9 +272,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                     to={child.to}
                     className={cn(
                       "block px-2 py-1 rounded text-xs font-body transition-all duration-200",
-                      location.pathname === child.to
-                        ? "bg-muted text-foreground"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      location.pathname === child.to ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                   >
                     {child.label}
