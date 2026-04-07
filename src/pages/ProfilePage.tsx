@@ -48,7 +48,9 @@ export default function ProfilePage() {
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
   const [nameColor, setNameColor] = useState("");
   const [roleColor, setRoleColor] = useState("");
+  const [staffRoleColor, setStaffRoleColor] = useState("");
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
+  const [savingColors, setSavingColors] = useState(false);
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -63,6 +65,10 @@ export default function ProfilePage() {
       setYoutube(profile.youtube_url || "");
       setTiktok(profile.tiktok_url || "");
       setSignature((profile as any).signature || "");
+      setAvatarBorderColor((profile as any).color_avatar_border || "");
+      setNameColor((profile as any).color_name || "");
+      setRoleColor((profile as any).color_role || "");
+      setStaffRoleColor((profile as any).color_staff_role || "");
     }
   }, [profile]);
 
