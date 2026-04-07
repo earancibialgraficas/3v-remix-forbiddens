@@ -185,6 +185,63 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_requests: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          sender_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_suggestions: {
+        Row: {
+          console_type: string
+          created_at: string
+          description: string | null
+          game_name: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          console_type: string
+          created_at?: string
+          description?: string | null
+          game_name: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          console_type?: string
+          created_at?: string
+          description?: string | null
+          game_name?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard_scores: {
         Row: {
           console_type: string
@@ -217,6 +274,39 @@ export type Database = {
           play_time_seconds?: number
           score?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          related_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          related_id?: string | null
+          title?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          related_id?: string | null
+          title?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
