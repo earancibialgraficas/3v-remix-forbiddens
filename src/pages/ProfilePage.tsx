@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [tiktok, setTiktok] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
   const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation">("posts");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
