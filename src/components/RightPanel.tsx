@@ -123,6 +123,24 @@ export default function RightPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Fetch real stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { count: members } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      setMemberCount(members || 0);
+      const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
+      setPostCount(posts || 0);
+      // "Online" = users active in last 15 min (approximation via recent activity)
+      const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { count: recentPosters } = await supabase.from("posts").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
+      const { count: recentCommenters } = await supabase.from("comments").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
+      setOnlineCount(Math.max((recentPosters || 0) + (recentCommenters || 0), user ? 1 : 0));
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const news = newsItems[currentNews % newsItems.length];
   const catInfo = categoryColors[news?.category] || { color: "text-foreground", label: news?.category || "General" };
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
