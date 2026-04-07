@@ -540,6 +540,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalculate_total_score: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "master_web" | "admin" | "moderator" | "user"
