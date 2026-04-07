@@ -327,6 +327,26 @@ export default function ProfilePage() {
               </div>
             ))}
           </div>
+
+          {/* Per-game score breakdown */}
+          {gameScores.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
+                <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
+              </h4>
+              <div className="space-y-1">
+                {gameScores.map((gs, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
+                    <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
+                      {gs.console_type.toUpperCase()}
+                    </span>
+                    <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
+                    <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
