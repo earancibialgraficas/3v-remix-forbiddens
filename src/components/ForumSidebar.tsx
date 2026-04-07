@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Inicio", icon: Home, to: "/", color: "text-foreground" },
   {
-    label: "Salas de Juego", icon: Gamepad2, to: "/arcade/salas", color: "text-neon-green",
+    label: "Salas de Juego", icon: Gamepad2, color: "text-neon-green", isDropdownOnly: true,
     children: [
       { label: "Emuladores", to: "/arcade/salas" },
       { label: "Biblioteca", to: "/arcade/biblioteca" },
@@ -72,6 +72,7 @@ const navItems: NavItem[] = [
   { label: "Eventos", icon: Calendar, to: "/eventos", color: "text-muted-foreground" },
   { label: "Membresías", icon: Star, to: "/membresias", color: "text-neon-yellow" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },
+  { label: "Discord", icon: Users, to: "https://discord.gg/ZHNRKVUfVF", color: "text-[#5865F2]" },
 ];
 
 interface ForumSidebarProps {
@@ -137,7 +138,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
             <Link to="/" className="flex items-center justify-center p-1">
               <img src={logo} alt="Forbiddens" className="w-7 h-7" />
             </Link>
-            <div className="flex flex-col items-center gap-0">
+            <div className="flex flex-col items-center gap-1.5">
               {"FORBIDDENS".split("").map((letter, i) => (
                 <span
                   key={i}
@@ -237,7 +238,19 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    {item.to && !item.isDropdownOnly ? (
+                    {item.to?.startsWith("http") ? (
+                      <a
+                        href={item.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center justify-center p-2 rounded transition-all duration-200",
+                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4", item.color)} />
+                      </a>
+                    ) : item.to && !item.isDropdownOnly ? (
                       <Link
                         to={item.to}
                         className={cn(
@@ -294,6 +307,21 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                         isExpanded ? <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto shrink-0" />
                       )}
                     </button>
+                  ) : item.to?.startsWith("http") ? (
+                    <>
+                      <a
+                        href={item.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
+                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 border border-[#5865F2]/30 shadow-[0_0_8px_rgba(88,101,242,0.3)]"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
+                        <span className="truncate font-semibold">{item.label}</span>
+                      </a>
+                    </>
                   ) : (
                     <>
                       <Link

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Type, User } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Type, User, Edit2, Check } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,9 @@ export default function ForumPage() {
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"popular" | "new">("popular");
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
   // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
@@ -208,6 +211,21 @@ export default function ForumPage() {
     if (!error) { toast({ title: "Post eliminado" }); fetchPosts(); }
   };
 
+  const startEditPost = (post: any) => {
+    setEditingPost(post.id);
+    setEditTitle(post.title);
+    setEditContent(post.content || "");
+  };
+
+  const handleEditPost = async (postId: string) => {
+    if (!editTitle.trim()) return;
+    const { error } = await supabase.from("posts").update({
+      title: editTitle.trim(), content: editContent.trim(),
+    } as any).eq("id", postId);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Post editado" }); setEditingPost(null); fetchPosts(); }
+  };
+
   const toggleComments = (postId: string) => {
     if (expandedPost === postId) setExpandedPost(null);
     else { setExpandedPost(postId); fetchComments(postId); }
@@ -291,13 +309,6 @@ export default function ForumPage() {
                     {/* Post author */}
                     {post.user_id && authorProfile && (
                       <div className="mb-1 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                          {authorProfile.avatar_url ? (
-                            <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </div>
                         <UserPopup
                           userId={post.user_id}
                           displayName={authorProfile.display_name}
@@ -309,18 +320,36 @@ export default function ForumPage() {
                         />
                       </div>
                     )}
-                    <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
-                      {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                      {post.title}
-                    </p>
-                    {post.content && (
-                      <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                    {editingPost === post.id ? (
+                      <div className="space-y-2 animate-fade-in">
+                        <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
+                        <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-6"><Check className="w-3 h-3" /> Guardar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-6">Cancelar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
+                          {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
+                          {post.title}
+                        </p>
+                        {post.content && (
+                          <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                        )}
+                      </>
                     )}
                     <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
                       <span>{new Date(post.created_at).toLocaleDateString()}</span>
                       <button onClick={() => toggleComments(post.id)} className="flex items-center gap-0.5 hover:text-primary transition-colors">
                         <MessageSquare className="w-3 h-3" /> Comentarios
                       </button>
+                      {user && user.id === post.user_id && !editingPost && (
+                        <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
+                          <Edit2 className="w-3 h-3" /> Editar
+                        </button>
+                      )}
                       {post.user_id && (
                         <button onClick={() => handleReport(post.id, post.user_id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors ml-auto">
                           <Flag className="w-3 h-3" />

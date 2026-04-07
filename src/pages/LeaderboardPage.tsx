@@ -36,11 +36,10 @@ export default function LeaderboardPage() {
         .from("leaderboard_scores")
         .select("*")
         .order("score", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (!error && data) {
         setScores(data as Score[]);
-        // Fetch profiles and roles
         const userIds = [...new Set((data as any[]).map(s => s.user_id).filter(Boolean))];
         if (userIds.length > 0) {
           const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
@@ -66,6 +65,57 @@ export default function LeaderboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Group scores by game
+  const gameGroups = scores.reduce<Record<string, Score[]>>((acc, s) => {
+    const key = `${s.game_name} (${s.console_type.toUpperCase()})`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
+
+  const renderScoreRow = (score: Score, i: number) => {
+    const up = userProfiles[score.user_id];
+    const ur = userRoles[score.user_id] || [];
+    return (
+      <div
+        key={score.id}
+        className={cn(
+          "grid grid-cols-[40px_1fr_80px] gap-2 px-3 py-2 text-xs font-body border-b border-border/50 transition-all duration-200 hover:bg-muted/50",
+          i < 3 && "bg-neon-yellow/5"
+        )}
+      >
+        <span className={cn("font-bold", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
+          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {up ? (
+            <>
+              <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {up.avatar_url ? (
+                  <img src={up.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-3 h-3 text-muted-foreground" />
+                )}
+              </div>
+              <UserPopup
+                userId={score.user_id}
+                displayName={up.display_name}
+                avatarUrl={up.avatar_url}
+                roles={ur}
+                roleIcon={up.role_icon}
+                showRoleIcon={up.show_role_icon}
+                membershipTier={up.membership_tier}
+              />
+            </>
+          ) : (
+            <span className="text-foreground truncate">{score.display_name}</span>
+          )}
+        </div>
+        <span className="text-neon-green text-right font-bold">{score.score.toLocaleString()}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-yellow/30 rounded p-4">
@@ -77,71 +127,30 @@ export default function LeaderboardPage() {
         </p>
       </div>
 
-      <div className="bg-card border border-border rounded overflow-hidden">
-        <div className="grid grid-cols-[40px_1fr_120px_80px_80px] gap-2 px-3 py-2 bg-muted text-[10px] font-pixel text-muted-foreground border-b border-border">
-          <span>#</span>
-          <span>JUGADOR</span>
-          <span>JUEGO</span>
-          <span>CONSOLA</span>
-          <span className="text-right">SCORE</span>
+      {loading ? (
+        <div className="p-8 text-center text-xs text-muted-foreground font-body">Cargando puntuaciones...</div>
+      ) : scores.length === 0 ? (
+        <div className="bg-card border border-border rounded p-8 text-center space-y-2">
+          <Gamepad2 className="w-8 h-8 mx-auto text-muted-foreground" />
+          <p className="text-xs text-muted-foreground font-body">Aún no hay puntuaciones. ¡Sé el primero en jugar!</p>
         </div>
-
-        {loading ? (
-          <div className="p-8 text-center text-xs text-muted-foreground font-body">Cargando puntuaciones...</div>
-        ) : scores.length === 0 ? (
-          <div className="p-8 text-center space-y-2">
-            <Gamepad2 className="w-8 h-8 mx-auto text-muted-foreground" />
-            <p className="text-xs text-muted-foreground font-body">Aún no hay puntuaciones. ¡Sé el primero en jugar!</p>
+      ) : (
+        Object.entries(gameGroups).map(([gameName, gameScores]) => (
+          <div key={gameName} className="bg-card border border-border rounded overflow-hidden">
+            <div className="px-3 py-2 bg-muted border-b border-border flex items-center gap-2">
+              <Gamepad2 className="w-3.5 h-3.5 text-neon-green" />
+              <h2 className="font-pixel text-[10px] text-neon-green">{gameName}</h2>
+              <span className="text-[9px] text-muted-foreground font-body ml-auto">{gameScores.length} jugador{gameScores.length > 1 ? "es" : ""}</span>
+            </div>
+            <div className="grid grid-cols-[40px_1fr_80px] gap-2 px-3 py-1.5 text-[9px] font-pixel text-muted-foreground border-b border-border">
+              <span>#</span>
+              <span>JUGADOR</span>
+              <span className="text-right">SCORE</span>
+            </div>
+            {gameScores.map((s, i) => renderScoreRow(s, i))}
           </div>
-        ) : (
-          scores.map((score, i) => {
-            const up = userProfiles[score.user_id];
-            const ur = userRoles[score.user_id] || [];
-            return (
-              <div
-                key={score.id}
-                className={cn(
-                  "grid grid-cols-[40px_1fr_120px_80px_80px] gap-2 px-3 py-2 text-xs font-body border-b border-border/50 transition-all duration-200 hover:bg-muted/50",
-                  i < 3 && "bg-neon-yellow/5"
-                )}
-              >
-                <span className={cn("font-bold", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
-                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
-                </span>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {up ? (
-                    <>
-                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                        {up.avatar_url ? (
-                          <img src={up.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <UserPopup
-                        userId={score.user_id}
-                        displayName={up.display_name}
-                        avatarUrl={up.avatar_url}
-                        roles={ur}
-                        roleIcon={up.role_icon}
-                        showRoleIcon={up.show_role_icon}
-                        membershipTier={up.membership_tier}
-                      />
-                    </>
-                  ) : (
-                    <span className="text-foreground truncate">{score.display_name}</span>
-                  )}
-                </div>
-                <span className="text-muted-foreground truncate">{score.game_name}</span>
-                <span className={cn("font-pixel text-[9px]", score.console_type === "nes" ? "text-neon-green" : score.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
-                  {score.console_type.toUpperCase()}
-                </span>
-                <span className="text-neon-green text-right font-bold">{score.score.toLocaleString()}</span>
-              </div>
-            );
-          })
-        )}
-      </div>
+        ))
+      )}
     </div>
   );
 }

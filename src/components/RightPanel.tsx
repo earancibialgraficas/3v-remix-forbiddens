@@ -129,7 +129,10 @@ export default function RightPanel() {
     { display_name: "VintageGamer", total_score: 7100 },
   ];
 
-  const getCategoryLink = (cat: string) => `/${cat.replace(/-/g, "/")}`;
+  const getCategoryLink = (cat: string, postId?: string) => {
+    const base = `/${cat.replace(/-/g, "/")}`;
+    return postId ? `${base}?post=${postId}` : base;
+  };
 
   return (
     <aside className="w-full shrink-0 space-y-3 sticky top-3 h-fit">
@@ -174,7 +177,7 @@ export default function RightPanel() {
           <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
             <Newspaper className="w-3 h-3" /> TRENDING
           </h3>
-          <Link to={getCategoryLink(news?.category || "trending")} className="block relative min-h-[50px] group">
+          <Link to={getCategoryLink(news?.category || "trending", news?.id)} className="block relative min-h-[50px] group">
             <div key={news?.id} className="animate-fade-in">
               <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
               <p className={cn("font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors", sizes.body)}>{news?.title}</p>
@@ -234,18 +237,6 @@ export default function RightPanel() {
             <p className={cn("text-muted-foreground italic", sizes.body)}>Aún no hay usuarios premium</p>
           )}
         </div>
-      </div>
-
-      {/* Reglas */}
-      <div className="bg-card border border-border rounded p-2.5">
-        <h3 className={cn("font-pixel text-muted-foreground mb-1", sizes.title)}>REGLAS</h3>
-        <ol className={cn("space-y-0.5 text-muted-foreground font-body list-decimal list-inside", sizes.body)}>
-          <li>Respeta a todos</li>
-          <li>No spam</li>
-          <li>Contenido apropiado</li>
-          <li>No compartir ROMs ©</li>
-          <li>Usa categorías correctas</li>
-        </ol>
       </div>
 
       {/* Footer inside right panel */}
