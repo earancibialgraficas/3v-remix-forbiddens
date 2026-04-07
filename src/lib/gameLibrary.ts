@@ -15,13 +15,13 @@ export const nesGames: GameEntry[] = [
   { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: "/roms/nes/Gravity_Armor_Metal_Storm_(Tr).nes", coverUrl: "/roms/covers/metalstorm.jpg" },
   { id: "kof99", name: "King of Fighters 99", console: "nes", romUrl: "/roms/nes/King_of_Fighters_99.nes", coverUrl: "/roms/covers/kof99.jpg" },
   { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: "/roms/nes/Kirby's_Adventure_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/kirby.jpg" },
-  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_&_Machine_(USA).nes", coverUrl: "/roms/covers/metalmech.jpg" },
+  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_%26_Machine_(USA).nes", coverUrl: "/roms/covers/metalmech.jpg" },
   { id: "metroid", name: "Metroid", console: "nes", romUrl: "/roms/nes/Metroid_(U).nes", coverUrl: "/roms/covers/metroid.jpg" },
-  { id: "sonic3d", name: "Sonic 3D Blast 5", console: "nes", romUrl: "/roms/nes/Sonic_3D_Blast_5_[!].nes", coverUrl: "/roms/covers/sonic3d.jpg" },
+  { id: "sonic3d", name: "Sonic 3D Blast 5", console: "nes", romUrl: "/roms/nes/Sonic_3D_Blast_5_%5B!%5D.nes", coverUrl: "/roms/covers/sonic3d.jpg" },
   { id: "spiderman", name: "Spider-Man", console: "nes", romUrl: "/roms/nes/Spider-Man_-_Return_of_the_Sinister_Six_(USA).nes", coverUrl: "/roms/covers/spiderman.jpg" },
   { id: "mario3", name: "Super Mario Bros. 3", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros._3_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/mario3.jpg" },
-  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_2_(E)_[h1].nes", coverUrl: "/roms/covers/mario2.jpg" },
-  { id: "mario3alt", name: "Super Mario Bros. 3 (Alt)", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_3_(U)_(PRG_1)_[h1].nes", coverUrl: "/roms/covers/mario3.jpg" },
+  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_2_(E)_%5Bh1%5D.nes", coverUrl: "/roms/covers/mario2.jpg" },
+  { id: "mario3alt", name: "Super Mario Bros. 3 (Alt)", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_3_(U)_(PRG_1)_%5Bh1%5D.nes", coverUrl: "/roms/covers/mario3.jpg" },
 ];
 
 export const snesGames: GameEntry[] = [
