@@ -238,17 +238,21 @@ export default function GameBubble() {
 
   const handleSaveScore = async () => {
     if (!user || !activeGame || scoreRef.current <= 0) return;
-    // Check if there's an existing score for this user + game
+    const currentScore = scoreRef.current;
+    const currentTime = timeRef.current;
+    
+    // Check if there's an existing score for this user + game + console
     const { data: existing } = await supabase
       .from("leaderboard_scores")
       .select("id, score")
       .eq("user_id", user.id)
       .eq("game_name", activeGame.gameName)
+      .eq("console_type", activeGame.consoleName)
       .order("score", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (existing && (existing as any).score >= scoreRef.current) {
+    if (existing && (existing as any).score >= currentScore) {
       toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
       return;
     }
@@ -256,18 +260,13 @@ export default function GameBubble() {
     if (existing) {
       // Update existing record with higher score
       const { error } = await supabase.from("leaderboard_scores").update({
-        score: scoreRef.current,
-        play_time_seconds: timeRef.current,
+        score: currentScore,
+        play_time_seconds: currentTime,
         display_name: profile?.display_name || "Anónimo",
       } as any).eq("id", (existing as any).id);
       if (!error) {
-        const diff = scoreRef.current - ((existing as any).score || 0);
-        if (profile && diff > 0) {
-          await supabase.from("profiles").update({
-            total_score: (profile.total_score || 0) + diff,
-          }).eq("user_id", user.id);
-        }
-        toast({ title: "¡Nuevo récord!", description: `${scoreRef.current} puntos en ${activeGame.gameName}` });
+        // recalculate_total_score trigger handles profile update
+        toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     } else {
       // Insert new score
@@ -276,16 +275,12 @@ export default function GameBubble() {
         display_name: profile?.display_name || "Anónimo",
         game_name: activeGame.gameName,
         console_type: activeGame.consoleName,
-        score: scoreRef.current,
-        play_time_seconds: timeRef.current,
+        score: currentScore,
+        play_time_seconds: currentTime,
       } as any);
       if (!error) {
-        if (profile) {
-          await supabase.from("profiles").update({
-            total_score: (profile.total_score || 0) + scoreRef.current,
-          }).eq("user_id", user.id);
-        }
-        toast({ title: "¡Puntaje guardado!", description: `${scoreRef.current} puntos en ${activeGame.gameName}` });
+        // recalculate_total_score trigger handles profile update
+        toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     }
   };
