@@ -97,6 +97,7 @@ export default function ForumPage() {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [showRulesPopup, setShowRulesPopup] = useState(false);
   // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
@@ -148,6 +149,22 @@ export default function ForumPage() {
     return () => { supabase.removeChannel(channel); };
   }, [category, sortBy]);
 
+  const handleNewPostClick = () => {
+    // Check if user has accepted rules
+    const rulesKey = `rules_accepted_${user?.id}`;
+    if (user && !localStorage.getItem(rulesKey)) {
+      setShowRulesPopup(true);
+      return;
+    }
+    setShowNewPost(!showNewPost);
+  };
+
+  const acceptRules = () => {
+    if (user) localStorage.setItem(`rules_accepted_${user.id}`, "true");
+    setShowRulesPopup(false);
+    setShowNewPost(true);
+  };
+
   const handlePost = async () => {
     if (!user) {
       toast({ title: "Inicia sesión", description: "Debes registrarte para publicar", variant: "destructive" });
@@ -155,9 +172,13 @@ export default function ForumPage() {
     }
     if (!title.trim()) return;
     setPosting(true);
-    const signature = (profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
-      ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
-      : null;
+    // Use custom signature from profile, or fallback to auto-generated
+    const customSig = (profile as any)?.signature;
+    const signature = customSig
+      ? customSig
+      : ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
+        ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
+        : null);
     const { error } = await supabase.from("posts").insert({
       user_id: user.id, title: title.trim(), content: content.trim(), category, signature,
     } as any);
@@ -264,7 +285,7 @@ export default function ForumPage() {
           </Button>
         </div>
         {user && (
-          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={() => setShowNewPost(!showNewPost)}>
+          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={handleNewPostClick}>
             <Plus className="w-3 h-3 mr-1" /> Nuevo Post
           </Button>
         )}
@@ -282,9 +303,9 @@ export default function ForumPage() {
             <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>
             <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>
           </div>
-          {(profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited ? (
+          {((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited) ? (
             <p className="text-[9px] text-muted-foreground font-body italic">
-              Tu firma: — {profile?.display_name} [{hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]
+              Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
             </p>
           ) : null}
           <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs">
@@ -459,6 +480,34 @@ export default function ForumPage() {
           );
         })}
       </div>
+      {/* Rules popup */}
+      {showRulesPopup && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full mx-4 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar">
+            <button onClick={() => setShowRulesPopup(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-pixel text-[11px] text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
+            <div className="text-xs font-body text-muted-foreground space-y-2">
+              <p>Antes de publicar, acepta las reglas de la comunidad:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Respeto:</strong> Trata a todos con respeto. No se toleran insultos, acoso ni discriminación.</li>
+                <li><strong>No spam:</strong> No publiques contenido repetitivo o publicidad no autorizada.</li>
+                <li><strong>Contenido apropiado:</strong> No publiques contenido explícito, violento o ilegal.</li>
+                <li><strong>Sin spoilers:</strong> Usa advertencias de spoiler en títulos cuando sea necesario.</li>
+                <li><strong>Publica en la categoría correcta:</strong> Asegúrate de que tu post esté en la sección adecuada.</li>
+                <li><strong>No doxxing:</strong> No compartas información personal de otros sin su consentimiento.</li>
+                <li><strong>Reporta:</strong> Si ves contenido inapropiado, usa el botón de reportar.</li>
+              </ul>
+              <p className="text-[10px] italic">El incumplimiento puede resultar en suspensión temporal o permanente.</p>
+            </div>
+            <Button size="sm" onClick={acceptRules} className="w-full text-xs">
+              Acepto las reglas — Continuar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

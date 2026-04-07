@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
+  const [signature, setSignature] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
@@ -46,6 +47,7 @@ export default function ProfilePage() {
       setInstagram(profile.instagram_url || "");
       setYoutube(profile.youtube_url || "");
       setTiktok(profile.tiktok_url || "");
+      setSignature((profile as any).signature || "");
     }
   }, [profile]);
 
@@ -69,7 +71,8 @@ export default function ProfilePage() {
     const { error } = await supabase.from("profiles").update({
       display_name: displayName, bio,
       instagram_url: instagram || null, youtube_url: youtube || null, tiktok_url: tiktok || null,
-    }).eq("user_id", user.id);
+      signature: signature.trim() || null,
+    } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Perfil actualizado" }); setEditing(false); await refreshProfile(); }
@@ -215,6 +218,21 @@ export default function ProfilePage() {
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">TikTok URL</label>
                   <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
+                {tier !== "novato" && (
+                  <div>
+                    <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Firma personalizada</label>
+                    <Input
+                      value={signature}
+                      onChange={(e) => setSignature(e.target.value)}
+                      className="h-8 bg-muted text-xs font-body"
+                      placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
+                      maxLength={tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
+                    />
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      {tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres (texto + links)" : "Máx. 200 caracteres (diseño personalizado)"}
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">{saving ? "Guardando..." : "Guardar"}</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="text-xs">Cancelar</Button>
