@@ -180,7 +180,7 @@ export default function ProfilePage() {
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden">
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                <img key={profile.avatar_url} src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-muted-foreground" />
               )}

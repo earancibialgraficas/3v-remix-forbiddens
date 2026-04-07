@@ -107,11 +107,11 @@ export default function AvatarSelector({ currentAvatar, membershipTier, isStaff,
                 onClick={() => onSelect(url)}
                 className={cn(
                   "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-105",
-                  currentAvatar === url ? "border-neon-green shadow-lg shadow-neon-green/20" : "border-border hover:border-primary/50"
+                  normalizedCurrentAvatar === stripVersionParam(url) ? "border-neon-green shadow-lg shadow-neon-green/20" : "border-border hover:border-primary/50"
                 )}
               >
                 <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                {currentAvatar === url && (
+                {normalizedCurrentAvatar === stripVersionParam(url) && (
                   <div className="absolute inset-0 bg-neon-green/20 flex items-center justify-center">
                     <Check className="w-4 h-4 text-neon-green" />
                   </div>
