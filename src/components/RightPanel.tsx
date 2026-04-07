@@ -175,15 +175,15 @@ export default function RightPanel() {
         </div>
         <div className="grid grid-cols-3 gap-1 mb-2">
           <div className="text-center">
-            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>12.4k</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Miembros</p>
           </div>
           <div className="text-center">
-            <p className={cn("font-bold text-neon-green font-body", sizes.stat)}>847</p>
+            <p className={cn("font-bold text-neon-green font-body", sizes.stat)}>{onlineCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Online</p>
           </div>
           <div className="text-center">
-            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>3.2k</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>{postCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Posts</p>
           </div>
         </div>
