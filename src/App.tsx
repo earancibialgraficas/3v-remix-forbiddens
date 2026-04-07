@@ -19,6 +19,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ConsejosPage from "./pages/ConsejosPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
+import MessagesPage from "./pages/MessagesPage";
 import EventosPage from "./pages/EventosPage";
 import AyudaPage from "./pages/AyudaPage";
 import PhotoWallPage from "./pages/PhotoWallPage";
