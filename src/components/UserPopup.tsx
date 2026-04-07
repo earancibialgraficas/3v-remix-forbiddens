@@ -70,16 +70,17 @@ export default function UserPopup({
       >
         {children || (
           <>
-            <span className="text-[10px] font-body font-medium text-foreground hover:text-primary transition-colors">
+            {avatarUrl && (
+              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+            )}
+            <span className="text-xs font-body font-semibold text-foreground hover:text-primary transition-colors">
               {displayName}
             </span>
-            <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
-            {!isStaff && membershipTier !== "novato" && (
+            {isStaff ? (
+              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
+            ) : membershipTier !== "novato" ? (
               <span className="text-[9px] text-neon-yellow font-pixel">[{membershipTier.toUpperCase()}]</span>
-            )}
-            {isStaff && roleLabel && (
-              <span className="text-[9px] text-neon-magenta font-pixel">[{roleLabel}]</span>
-            )}
+            ) : null}
           </>
         )}
       </button>
