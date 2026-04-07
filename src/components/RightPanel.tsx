@@ -66,6 +66,9 @@ export default function RightPanel() {
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
   const [progress, setProgress] = useState(0);
+  const [memberCount, setMemberCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   const sizes = textSizeMap[textSize];
   const cycleSize = () => setTextSize((p) => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
@@ -120,6 +123,24 @@ export default function RightPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Fetch real stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { count: members } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      setMemberCount(members || 0);
+      const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
+      setPostCount(posts || 0);
+      // "Online" = users active in last 15 min (approximation via recent activity)
+      const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { count: recentPosters } = await supabase.from("posts").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
+      const { count: recentCommenters } = await supabase.from("comments").select("user_id", { count: "exact", head: true }).gte("created_at", fifteenAgo);
+      setOnlineCount(Math.max((recentPosters || 0) + (recentCommenters || 0), user ? 1 : 0));
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const news = newsItems[currentNews % newsItems.length];
   const catInfo = categoryColors[news?.category] || { color: "text-foreground", label: news?.category || "General" };
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
@@ -154,15 +175,15 @@ export default function RightPanel() {
         </div>
         <div className="grid grid-cols-3 gap-1 mb-2">
           <div className="text-center">
-            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>12.4k</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Miembros</p>
           </div>
           <div className="text-center">
-            <p className={cn("font-bold text-neon-green font-body", sizes.stat)}>847</p>
+            <p className={cn("font-bold text-neon-green font-body", sizes.stat)}>{onlineCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Online</p>
           </div>
           <div className="text-center">
-            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>3.2k</p>
+            <p className={cn("font-bold text-foreground font-body", sizes.stat)}>{postCount.toLocaleString()}</p>
             <p className={cn("text-muted-foreground", sizes.title)}>Posts</p>
           </div>
         </div>
