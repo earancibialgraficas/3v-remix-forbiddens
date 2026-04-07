@@ -89,24 +89,15 @@ export default function LeaderboardPage() {
         </span>
         <div className="flex items-center gap-1.5 min-w-0">
           {up ? (
-            <>
-              <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                {up.avatar_url ? (
-                  <img src={up.avatar_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-3 h-3 text-muted-foreground" />
-                )}
-              </div>
-              <UserPopup
-                userId={score.user_id}
-                displayName={up.display_name}
-                avatarUrl={up.avatar_url}
-                roles={ur}
-                roleIcon={up.role_icon}
-                showRoleIcon={up.show_role_icon}
-                membershipTier={up.membership_tier}
-              />
-            </>
+            <UserPopup
+              userId={score.user_id}
+              displayName={up.display_name}
+              avatarUrl={up.avatar_url}
+              roles={ur}
+              roleIcon={up.role_icon}
+              showRoleIcon={up.show_role_icon}
+              membershipTier={up.membership_tier}
+            />
           ) : (
             <span className="text-foreground truncate">{score.display_name}</span>
           )}

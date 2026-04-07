@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import heroBanner from "@/assets/hero-banner.jpg";
 import logo from "@/assets/forbiddens_logo.svg";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function HeroSection() {
+  const { user } = useAuth();
   return (
     <section className="relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300">
       <img
@@ -24,11 +26,13 @@ export default function HeroSection() {
           &gt; EL FORO QUE NO DEBERÍA EXISTIR_<span className="animate-blink">|</span>
         </p>
         <div className="flex gap-3 mt-2">
-          <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/80 font-pixel text-[10px] px-5 py-2.5 box-glow-green transition-all duration-200">
-            <Link to="/registro">UNIRSE</Link>
-          </Button>
+          {!user && (
+            <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/80 font-pixel text-[10px] px-5 py-2.5 box-glow-green transition-all duration-200">
+              <Link to="/registro">UNIRSE</Link>
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm" className="border-accent text-accent hover:bg-accent/10 font-pixel text-[10px] px-5 py-2.5 transition-all duration-200">
-            <Link to="/arcade/salas">ZONA ARCADE</Link>
+            <a href="https://discord.gg/forbiddens" target="_blank" rel="noopener noreferrer">DISCORD</a>
           </Button>
         </div>
       </div>
