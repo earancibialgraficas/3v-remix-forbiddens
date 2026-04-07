@@ -141,8 +141,8 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               {"FORBIDDENS".split("").map((letter, i) => (
                 <span
                   key={i}
-                  className="font-pixel text-[8px] text-neon-green text-glow-green leading-tight"
-                  style={{ display: "block" }}
+                  className="font-pixel text-[11px] text-neon-green text-glow-green leading-none"
+                  style={{ display: "block", writingMode: "initial" }}
                 >
                   {letter}
                 </span>
@@ -199,6 +199,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
         {/* Navigation */}
         <nav className={cn("px-1 space-y-0.5 retro-scrollbar", collapsed ? "py-1" : "flex-1 py-2")}>
+
           {collapsed && (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>

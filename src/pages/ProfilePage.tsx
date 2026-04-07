@@ -91,14 +91,14 @@ export default function ProfilePage() {
 
   const handleRoleIconSelect = async (icon: string) => {
     if (!user) return;
-    await supabase.from("profiles").update({ role_icon: icon } as any).eq("user_id", user.id);
+    await supabase.from("profiles").update({ role_icon: icon }).eq("user_id", user.id);
     toast({ title: "Icono actualizado" });
     await refreshProfile();
   };
 
   const toggleShowRoleIcon = async () => {
     if (!user || !profile) return;
-    await supabase.from("profiles").update({ show_role_icon: !(profile as any).show_role_icon } as any).eq("user_id", user.id);
+    await supabase.from("profiles").update({ show_role_icon: !profile.show_role_icon }).eq("user_id", user.id);
     await refreshProfile();
   };
 
@@ -142,7 +142,7 @@ export default function ProfilePage() {
       )}
       {showRoleIconSelector && (
         <RoleIconSelector
-          currentIcon={(profile as any)?.role_icon || "⭐"}
+          currentIcon={profile?.role_icon || "⭐"}
           onSelect={handleRoleIconSelect}
           onClose={() => setShowRoleIconSelector(false)}
         />
@@ -195,13 +195,19 @@ export default function ProfilePage() {
               <>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-pixel text-sm text-neon-cyan">{profile?.display_name}</h2>
-                  <RoleBadge roles={roles} roleIcon={(profile as any)?.role_icon} showIcon={(profile as any)?.show_role_icon !== false} />
+                  <RoleBadge roles={roles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} />
                 </div>
                 <p className="text-xs text-muted-foreground font-body mt-1">{profile?.bio || "Sin descripción"}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
-                    <Star className="w-3 h-3" /> {tier.toUpperCase()}
-                  </span>
+                  {(isStaff || isMod) ? (
+                    <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1">
+                      <Shield className="w-3 h-3" /> {isMasterWeb ? "WEBMASTER" : isAdmin ? "ADMINISTRADOR" : "MODERADOR"}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
+                      <Star className="w-3 h-3" /> {tier.toUpperCase()}
+                    </span>
+                  )}
                   <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
                     <Trophy className="w-3 h-3" /> {profile?.total_score?.toLocaleString()} pts
                   </span>
@@ -225,13 +231,13 @@ export default function ProfilePage() {
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
                   {(isStaff || isMod) && !roles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
-                      <span>{(profile as any)?.role_icon || "⭐"}</span> Icono Rol
+                      <span>{profile?.role_icon || "⭐"}</span> Icono Rol
                     </Button>
                   )}
                   {(isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">
-                      {(profile as any)?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {(profile as any)?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
+                      {profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
                     </Button>
                   )}
                 </div>
@@ -396,9 +402,19 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
 
       {isMasterWeb && (
         <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
-          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Shield className="w-3 h-3" /> ASIGNAR MODERADOR</h3>
+          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Shield className="w-3 h-3" /> ASIGNAR ROLES</h3>
           <Input placeholder="Nombre de usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-          <Button size="sm" onClick={handleAssignMod} className="text-xs">Asignar Rol Moderador</Button>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleAssignMod} className="text-xs">Asignar Moderador</Button>
+            <Button size="sm" variant="outline" onClick={async () => {
+              if (!modEmail.trim()) return;
+              const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
+              if (!tp) { toast({ title: "Usuario no encontrado", variant: "destructive" }); return; }
+              const { error } = await supabase.from("user_roles").insert({ user_id: tp.user_id, role: "admin" } as any);
+              if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+              else { toast({ title: "Administrador asignado" }); setModEmail(""); }
+            }} className="text-xs">Asignar Admin</Button>
+          </div>
         </div>
       )}
     </div>
