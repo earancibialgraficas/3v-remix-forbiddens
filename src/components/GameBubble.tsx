@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Gamepad2, X, Maximize2, Minimize2, Trophy, Clock, Save, Move } from "lucide-react";
+import { Gamepad2, X, Maximize2, Minimize2, Trophy, Clock, Save, Move, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +28,11 @@ export default function GameBubble() {
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
+  // Resizing state
+  const [popupSize, setPopupSize] = useState({ w: 700, h: 520 });
+  const [resizing, setResizing] = useState(false);
+  const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
+  const nostalgistRef = useRef<any>(null);
 
   const activeGame = activeGames[currentGameIndex] || null;
 
@@ -60,11 +65,18 @@ export default function GameBubble() {
       if (!el) return;
       try {
         const { Nostalgist } = await import("nostalgist");
+        // Build absolute URL for ROM and encode special chars
+        let romSrc = activeGame.romUrl;
+        if (romSrc.startsWith("/")) {
+          romSrc = window.location.origin + romSrc;
+        }
         const instance = await Nostalgist.launch({
           core: activeGame.consoleCore,
-          rom: activeGame.romUrl,
+          rom: romSrc,
           element: el as HTMLCanvasElement,
+          style: { width: "100%", height: "100%" },
         });
+        nostalgistRef.current = instance;
         setNostalgistInstance(instance);
         setRomLoaded(true);
       } catch (err) {
@@ -75,8 +87,9 @@ export default function GameBubble() {
     loadEmu();
 
     return () => {
-      if (nostalgistInstance) {
-        try { nostalgistInstance.exit(); } catch {}
+      if (nostalgistRef.current) {
+        try { nostalgistRef.current.exit(); } catch {}
+        nostalgistRef.current = null;
       }
     };
   }, [activeGame?.romUrl]);
@@ -104,8 +117,9 @@ export default function GameBubble() {
   const handleClose = (idx?: number) => {
     const game = idx !== undefined ? activeGames[idx] : activeGame;
     if (game && scoreRef.current > 0 && user) handleSaveScore();
-    if (nostalgistInstance && (idx === undefined || idx === currentGameIndex)) {
-      try { nostalgistInstance.exit(); } catch {}
+    if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
+      try { nostalgistRef.current.exit(); } catch {}
+      nostalgistRef.current = null;
       setNostalgistInstance(null);
     }
     closeGame(idx);
@@ -130,6 +144,27 @@ export default function GameBubble() {
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, [dragging]);
+
+  // Resize handlers
+  const onResizeDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResizing(true);
+    resizeRef.current = { startX: e.clientX, startY: e.clientY, startW: popupSize.w, startH: popupSize.h };
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+    const onMove = (e: MouseEvent) => {
+      setPopupSize({
+        w: Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
+        h: Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
+      });
+    };
+    const onUp = () => setResizing(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [resizing]);
 
   if (activeGames.length === 0) return null;
 
@@ -169,11 +204,11 @@ export default function GameBubble() {
       <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={minimizeGame} />
       <div
         ref={popupRef}
-        className="relative flex bg-card border border-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-scale-in"
-        style={{ transform: `translate(${position.x}px, ${position.y}px)`, maxWidth: "90vw", maxHeight: "85vh" }}
+        className="relative flex bg-card border border-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-scale-in select-none"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)`, width: `${popupSize.w}px`, height: `${popupSize.h}px`, maxWidth: "95vw", maxHeight: "90vh" }}
       >
         {/* Main game area */}
-        <div className="flex-1 flex flex-col min-w-0" style={{ width: "70%" }}>
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Draggable header */}
           <div
             className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border cursor-move select-none"
@@ -193,14 +228,14 @@ export default function GameBubble() {
             </div>
           </div>
           {/* Canvas */}
-          <div className="relative flex-1 bg-black" style={{ aspectRatio: "4/3", minHeight: "300px" }}>
+          <div className="relative flex-1 bg-black overflow-hidden">
             {!romLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs text-muted-foreground font-body">Cargando emulador...</p>
               </div>
             )}
-            <canvas id="game-bubble-canvas" className="w-full h-full" />
+            <canvas id="game-bubble-canvas" style={{ width: "100%", height: "100%", display: "block" }} />
           </div>
           <div className="px-3 py-1 bg-muted/30 border-t border-border">
             <p className="text-[8px] text-muted-foreground font-body text-center">
@@ -238,6 +273,13 @@ export default function GameBubble() {
           <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-lg" title="Cerrar juego">
             <X className="w-4 h-4" />
           </Button>
+        </div>
+        {/* Resize handle */}
+        <div
+          onMouseDown={onResizeDown}
+          className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10"
+        >
+          <GripVertical className="w-3 h-3 rotate-[-45deg]" />
         </div>
       </div>
     </div>
