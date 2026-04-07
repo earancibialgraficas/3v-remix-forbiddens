@@ -356,6 +356,8 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "friends" && user && <FriendsTab userId={user.id} />}
+
+      {activeTab === "social" && (
         <SocialContentTab
           profile={profile}
           user={user}
