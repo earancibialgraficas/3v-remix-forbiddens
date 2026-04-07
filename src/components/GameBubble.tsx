@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ interface SaveSlot {
   timestamp: number;
 }
 
+const AFK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+
 export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
   const { user, profile } = useAuth();
@@ -30,6 +32,10 @@ export default function GameBubble() {
   const intervalRef = useRef<NodeJS.Timeout>();
   const scoreRef = useRef(0);
   const timeRef = useRef(0);
+
+  // AFK tracking
+  const lastInputRef = useRef(Date.now());
+  const afkRef = useRef(false);
 
   // Dragging
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -54,6 +60,40 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
 
+  // AFK detection: track key and gamepad activity
+  useEffect(() => {
+    const onInput = () => {
+      lastInputRef.current = Date.now();
+      if (afkRef.current) {
+        afkRef.current = false;
+      }
+    };
+    window.addEventListener("keydown", onInput);
+    window.addEventListener("mousedown", onInput);
+    window.addEventListener("gamepadconnected", onInput);
+    // Also poll gamepad buttons
+    let gpInterval: NodeJS.Timeout | null = null;
+    if (activeGame && romLoaded) {
+      gpInterval = setInterval(() => {
+        const gamepads = navigator.getGamepads?.();
+        if (gamepads) {
+          for (const gp of gamepads) {
+            if (gp && gp.buttons.some(b => b.pressed)) {
+              onInput();
+              break;
+            }
+          }
+        }
+      }, 500);
+    }
+    return () => {
+      window.removeEventListener("keydown", onInput);
+      window.removeEventListener("mousedown", onInput);
+      window.removeEventListener("gamepadconnected", onInput);
+      if (gpInterval) clearInterval(gpInterval);
+    };
+  }, [activeGame, romLoaded]);
+
   // Load save slots from localStorage
   useEffect(() => {
     if (activeGame) {
@@ -67,17 +107,22 @@ export default function GameBubble() {
     }
   }, [activeGame?.gameName]);
 
-  // Score increases 10 points every 10 seconds of active play
+  // Score increases 10 points every 10 seconds of active play (with AFK check)
   useEffect(() => {
-    if (activeGame && !minimized && romLoaded) {
+    if (activeGame && !minimized && romLoaded && !paused) {
       intervalRef.current = setInterval(() => {
+        const now = Date.now();
+        if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
+          afkRef.current = true;
+          return; // Don't add score while AFK
+        }
         timeRef.current += 10;
         scoreRef.current += 10;
         updateScore(scoreRef.current, timeRef.current);
       }, 10000);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeGame, minimized, romLoaded, updateScore]);
+  }, [activeGame, minimized, romLoaded, paused, updateScore]);
 
   useEffect(() => {
     if (!activeGame) {
@@ -92,6 +137,7 @@ export default function GameBubble() {
 
     const loadEmu = async () => {
       setRomLoaded(false);
+      setPaused(false);
       await new Promise(r => setTimeout(r, 200));
       const el = document.getElementById("game-bubble-canvas");
       if (!el) return;
@@ -110,6 +156,7 @@ export default function GameBubble() {
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
         setRomLoaded(true);
+        lastInputRef.current = Date.now();
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -125,29 +172,40 @@ export default function GameBubble() {
     };
   }, [activeGame?.romUrl]);
 
-  // Volume control - mute/unmute the canvas audio via Web Audio API and media elements
+  // When maximizing from minimized, resume emulator
+  useEffect(() => {
+    if (!minimized && nostalgistRef.current && romLoaded) {
+      try {
+        nostalgistRef.current.resume();
+        setPaused(false);
+      } catch {}
+      // Re-attach canvas size
+      const el = document.getElementById("game-bubble-canvas");
+      if (el) {
+        (el as HTMLCanvasElement).style.width = "100%";
+        (el as HTMLCanvasElement).style.height = "100%";
+      }
+    }
+  }, [minimized, romLoaded]);
+
+  // Volume control
   useEffect(() => {
     if (!romLoaded) return;
     try {
-      // Control all audio/video elements in the game container
       const container = document.getElementById("game-bubble-canvas")?.parentElement;
       if (container) {
         container.querySelectorAll("audio, video").forEach((el: any) => {
           el.volume = volume / 100;
         });
       }
-      // Also target any global audio elements the emulator may create
       document.querySelectorAll("audio").forEach(a => { a.volume = volume / 100; });
-      // Use the Nostalgist instance's internal emscripten module to set volume
       if (nostalgistRef.current) {
         const n = nostalgistRef.current;
-        // Access the RetroArch Module's audio context if available
         const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
         if (mod?.SDL2?.audioContext) {
           const ctx = mod.SDL2.audioContext;
           if (!mod._gainNode) {
             mod._gainNode = ctx.createGain();
-            // Intercept audio destination
           }
           if (mod._gainNode) {
             mod._gainNode.gain.value = volume / 100;
@@ -158,7 +216,7 @@ export default function GameBubble() {
   }, [volume, romLoaded]);
 
   // Pause/Resume toggle
-  const togglePause = () => {
+  const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;
     try {
       if (paused) {
@@ -168,7 +226,7 @@ export default function GameBubble() {
       }
       setPaused(!paused);
     } catch {}
-  };
+  }, [paused, romLoaded]);
 
   // ESC key to toggle pause
   useEffect(() => {
@@ -180,7 +238,7 @@ export default function GameBubble() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [activeGame, romLoaded, minimized, paused]);
+  }, [activeGame, romLoaded, minimized, togglePause]);
 
   // Auto-save on close
   const autoSaveOnClose = async () => {
@@ -241,7 +299,6 @@ export default function GameBubble() {
     const currentScore = scoreRef.current;
     const currentTime = timeRef.current;
     
-    // Check if there's an existing score for this user + game + console
     const { data: existing } = await supabase
       .from("leaderboard_scores")
       .select("id, score")
@@ -258,18 +315,15 @@ export default function GameBubble() {
     }
 
     if (existing) {
-      // Update existing record with higher score
       const { error } = await supabase.from("leaderboard_scores").update({
         score: currentScore,
         play_time_seconds: currentTime,
         display_name: profile?.display_name || "Anónimo",
       } as any).eq("id", (existing as any).id);
       if (!error) {
-        // recalculate_total_score trigger handles profile update
         toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     } else {
-      // Insert new score
       const { error } = await supabase.from("leaderboard_scores").insert({
         user_id: user.id,
         display_name: profile?.display_name || "Anónimo",
@@ -279,17 +333,14 @@ export default function GameBubble() {
         play_time_seconds: currentTime,
       } as any);
       if (!error) {
-        // recalculate_total_score trigger handles profile update
         toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     }
   };
 
   const handleClose = async (idx?: number) => {
-    const game = idx !== undefined ? activeGames[idx] : activeGame;
-    // Auto-save before closing
     await autoSaveOnClose();
-    if (game && scoreRef.current > 0 && user) handleSaveScore();
+    if (activeGame && scoreRef.current > 0 && user) handleSaveScore();
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
@@ -341,7 +392,7 @@ export default function GameBubble() {
 
   if (activeGames.length === 0) return null;
 
-  // Minimized bubbles
+  // Minimized: show live mini windows instead of icons
   if (minimized) {
     return (
       <div className="fixed bottom-4 right-4 z-[300] flex flex-col-reverse gap-2">
@@ -350,20 +401,31 @@ export default function GameBubble() {
             key={game.romUrl}
             onClick={() => maximizeGame(idx)}
             className={cn(
-              "w-12 h-12 rounded-full bg-card border-2 shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform group relative",
-              idx === currentGameIndex ? "border-neon-green/60 shadow-neon-green/20 animate-pulse-glow" : "border-border"
+              "relative rounded-xl bg-card border-2 shadow-2xl cursor-pointer hover:scale-105 transition-transform group overflow-hidden",
+              idx === currentGameIndex ? "border-neon-green/60 shadow-neon-green/20" : "border-border"
             )}
+            style={{ width: 176, height: 132 }}
           >
-            <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-neon-green rounded-full animate-ping" />
-            <div className="absolute bottom-full mb-2 bg-card border border-border rounded px-2 py-1 text-[9px] font-body text-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              {game.gameName}
+            {/* Live canvas preview — we show a screenshot since the canvas is in the maximized view */}
+            <div className="w-full h-full bg-black flex items-center justify-center">
+              <span className="text-2xl">{consoleIcons[game.consoleName] || "🎮"}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-1.5">
+                <p className="text-[8px] font-body text-foreground truncate font-medium">{game.gameName}</p>
+                <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-body">
+                  <span className="font-pixel text-neon-cyan">{game.consoleName.toUpperCase()}</span>
+                  <span>⚡ {game.score}</span>
+                </div>
+              </div>
             </div>
+            {/* Animated pulse indicator */}
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse" />
+            {/* Close button */}
             <button
               onClick={(e) => { e.stopPropagation(); handleClose(idx); }}
-              className="absolute -top-1 -left-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <X className="w-2.5 h-2.5 text-destructive-foreground" />
+              <X className="w-3 h-3 text-destructive-foreground" />
             </button>
           </div>
         ))}
@@ -396,6 +458,9 @@ export default function GameBubble() {
                   <span className="font-pixel text-neon-cyan">{activeGame?.consoleName.toUpperCase()}</span>
                   <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame?.score || 0}</span>
                   <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame?.playTime || 0) / 60)}:{((activeGame?.playTime || 0) % 60).toString().padStart(2, "0")}</span>
+                  {afkRef.current && (
+                    <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>
+                  )}
                 </div>
               </div>
             </div>
