@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, Heart, ThumbsDown, MessageSquare } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, ChevronDown, X, Download, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,11 +76,65 @@ function AutoplayVideo({ item, isVisible }: { item: SocialItem; isVisible: boole
   );
 }
 
-function ContentCard({ item, isVisible }: { item: SocialItem; isVisible: boolean }) {
+function MediaModal({ item, onClose }: { item: SocialItem; onClose: () => void }) {
+  const isVideo = isVideoContent(item);
+  const embedUrl = isVideo ? getEmbedUrl(item.content_url, item.platform) : null;
+
+  const handleDownload = async () => {
+    if (item.thumbnail_url || item.content_url) {
+      const url = item.thumbnail_url || item.content_url;
+      window.open(url, "_blank");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-body text-muted-foreground truncate">{item.title || "Sin título"}</p>
+          <div className="flex items-center gap-2">
+            <button onClick={handleDownload} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar / Abrir original">
+              <Download className="w-4 h-4 text-foreground" />
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors">
+              <X className="w-4 h-4 text-foreground" />
+            </button>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded overflow-hidden">
+          {isVideo && embedUrl ? (
+            <div className="aspect-video">
+              <iframe src={embedUrl} className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            </div>
+          ) : item.thumbnail_url ? (
+            <img src={item.thumbnail_url} alt="" className="w-full max-h-[80vh] object-contain" />
+          ) : (
+            <div className="aspect-video flex items-center justify-center">
+              <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-sm hover:underline flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" /> Abrir original
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContentCard({ item, isVisible, onMaximize }: { item: SocialItem; isVisible: boolean; onMaximize: () => void }) {
   const isVideo = isVideoContent(item);
 
   return (
-    <div className="bg-card border border-border rounded overflow-hidden hover:border-neon-cyan/30 transition-colors">
+    <div className="bg-card border border-border rounded overflow-hidden hover:border-neon-cyan/30 transition-colors relative group">
+      {/* Maximize button */}
+      <button
+        onClick={onMaximize}
+        className="absolute top-2 right-2 z-10 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Maximizar"
+      >
+        <Maximize2 className="w-3.5 h-3.5 text-foreground" />
+      </button>
+
       {isVideo ? (
         <AutoplayVideo item={item} isVisible={isVisible} />
       ) : (
@@ -123,6 +177,8 @@ export default function SocialReelsPage() {
   const [items, setItems] = useState<SocialItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [modalItem, setModalItem] = useState<SocialItem | null>(null);
+  const [showScrollHint, setShowScrollHint] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -172,6 +228,15 @@ export default function SocialReelsPage() {
     return () => observer.disconnect();
   }, [items, filter]);
 
+  // Hide scroll hint on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 200) setShowScrollHint(false);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const filtered = filter === "all"
     ? items
     : filter === "videos"
@@ -214,14 +279,29 @@ export default function SocialReelsPage() {
           <Button size="sm" asChild className="mt-3 text-xs"><Link to="/perfil">Agregar Contenido</Link></Button>
         </div>
       ) : (
-        <div ref={containerRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {filtered.map((item, i) => (
-            <div key={item.id} data-card-index={i}>
-              <ContentCard item={item} isVisible={i === visibleIndex} />
+        <div className="relative">
+          <div ref={containerRef} className="grid grid-cols-1 gap-3">
+            {filtered.map((item, i) => (
+              <div key={item.id} data-card-index={i}>
+                <ContentCard item={item} isVisible={i === visibleIndex} onMaximize={() => setModalItem(item)} />
+              </div>
+            ))}
+          </div>
+
+          {/* Floating scroll hint */}
+          {showScrollHint && filtered.length > 1 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center animate-bounce pointer-events-none">
+              <span className="text-[10px] font-body text-muted-foreground bg-card/80 backdrop-blur px-3 py-1 rounded-full border border-border">
+                Desliza para ver más
+              </span>
+              <ChevronDown className="w-4 h-4 text-muted-foreground mt-0.5" />
             </div>
-          ))}
+          )}
         </div>
       )}
+
+      {/* Media modal */}
+      {modalItem && <MediaModal item={modalItem} onClose={() => setModalItem(null)} />}
     </div>
   );
 }
