@@ -480,6 +480,34 @@ export default function ForumPage() {
           );
         })}
       </div>
+      {/* Rules popup */}
+      {showRulesPopup && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full mx-4 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar">
+            <button onClick={() => setShowRulesPopup(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-pixel text-[11px] text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
+            <div className="text-xs font-body text-muted-foreground space-y-2">
+              <p>Antes de publicar, acepta las reglas de la comunidad:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Respeto:</strong> Trata a todos con respeto. No se toleran insultos, acoso ni discriminación.</li>
+                <li><strong>No spam:</strong> No publiques contenido repetitivo o publicidad no autorizada.</li>
+                <li><strong>Contenido apropiado:</strong> No publiques contenido explícito, violento o ilegal.</li>
+                <li><strong>Sin spoilers:</strong> Usa advertencias de spoiler en títulos cuando sea necesario.</li>
+                <li><strong>Publica en la categoría correcta:</strong> Asegúrate de que tu post esté en la sección adecuada.</li>
+                <li><strong>No doxxing:</strong> No compartas información personal de otros sin su consentimiento.</li>
+                <li><strong>Reporta:</strong> Si ves contenido inapropiado, usa el botón de reportar.</li>
+              </ul>
+              <p className="text-[10px] italic">El incumplimiento puede resultar en suspensión temporal o permanente.</p>
+            </div>
+            <Button size="sm" onClick={acceptRules} className="w-full text-xs">
+              Acepto las reglas — Continuar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
