@@ -25,18 +25,18 @@ export const nesGames: GameEntry[] = [
 ];
 
 export const snesGames: GameEntry[] = [
-  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/snes/contra.jpg" },
+  { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/snes/metalmech.jpg" },
   { id: "contra3", name: "Contra III", console: "snes", romUrl: "/roms/snes/Contra_III_(USA).sfc", coverUrl: "/roms/covers/snes/contra.jpg" },
-  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/snes/kirby.jpg" },
+  { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/snes/darkman.jpg" },
   { id: "doom", name: "Doom", console: "snes", romUrl: "/roms/snes/Doom_(USA).sfc", coverUrl: "/roms/covers/snes/alien3.jpg" },
-  { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/snes/sonic3d.jpg" },
+  { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/snes/godzilla.jpg" },
   { id: "ki", name: "Killer Instinct", console: "snes", romUrl: "/roms/snes/Killer_Instinct_(EUR).sfc", coverUrl: "/roms/covers/snes/kof99.jpg" },
   { id: "kirbyss", name: "Kirby Super Star", console: "snes", romUrl: "/roms/snes/Kirby_Super_Star_(USA).sfc", coverUrl: "/roms/covers/snes/kirby.jpg" },
-  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: "/roms/snes/Legend_of_Zelda,_The_-_A_Link_to_the_Past_(U)_[!].smc", coverUrl: "/roms/covers/snes/metroid.jpg" },
+  { id: "zelda", name: "Zelda: A Link to the Past", console: "snes", romUrl: "/roms/snes/Legend_of_Zelda%2C_The_-_A_Link_to_the_Past_(U)_%5B!%5D.smc", coverUrl: "/roms/covers/snes/metalstorm.jpg" },
   { id: "mmx3", name: "Megaman X3", console: "snes", romUrl: "/roms/snes/Megaman_X3_(USA).sfc", coverUrl: "/roms/covers/snes/spiderman.jpg" },
-  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/snes/sonic3d.jpg" },
+  { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/snes/asterix.jpg" },
   { id: "smw", name: "Super Mario World", console: "snes", romUrl: "/roms/snes/Super_Mario_World_(EUR).sfc", coverUrl: "/roms/covers/snes/mario3.jpg" },
-  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_[!].smc", coverUrl: "/roms/covers/snes/metroid.jpg" },
+  { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_%5B!%5D.smc", coverUrl: "/roms/covers/snes/metroid.jpg" },
 ];
 
 export const gbaGames: GameEntry[] = [
