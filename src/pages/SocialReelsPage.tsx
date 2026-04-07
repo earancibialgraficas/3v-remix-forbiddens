@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, ChevronDown, X, Download, Maximize2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, ChevronDown, X, Download, Maximize2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -177,8 +178,10 @@ function ContentCard({ item, isVisible, onMaximize }: { item: SocialItem; isVisi
 
 export default function SocialReelsPage() {
   const { user } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
   const [items, setItems] = useState<SocialItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [modalItem, setModalItem] = useState<SocialItem | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
@@ -240,13 +243,17 @@ export default function SocialReelsPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const sourceFiltered = sourceTab === "friends"
+    ? items.filter(i => friendIds.includes(i.user_id))
+    : items;
+
   const filtered = filter === "all"
-    ? items
+    ? sourceFiltered
     : filter === "videos"
-    ? items.filter(isVideoContent)
+    ? sourceFiltered.filter(isVideoContent)
     : filter === "images"
-    ? items.filter(isImageContent)
-    : items.filter(i => !isVideoContent(i) && !isImageContent(i));
+    ? sourceFiltered.filter(isImageContent)
+    : sourceFiltered.filter(i => !isVideoContent(i) && !isImageContent(i));
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -258,6 +265,22 @@ export default function SocialReelsPage() {
           Contenido compartido por la comunidad — organizado por tipo. Agrega el tuyo desde tu <Link to="/perfil" className="text-primary hover:underline">perfil</Link>.
         </p>
       </div>
+
+      {/* Source tabs: All / Friends */}
+      {user && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1">
+          <button onClick={() => setSourceTab("all")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Globe className="w-3 h-3" /> Todos
+          </button>
+          <button onClick={() => setSourceTab("friends")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Users className="w-3 h-3" /> Amigos
+          </button>
+        </div>
+      )}
 
       {/* Filters by content type */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">

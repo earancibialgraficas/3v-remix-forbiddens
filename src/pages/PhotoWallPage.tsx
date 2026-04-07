@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Camera, Heart, ThumbsDown, Flag, MessageSquare, Upload, Image } from "lucide-react";
+import { Camera, Heart, ThumbsDown, Flag, MessageSquare, Upload, Image, Globe, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const membershipPhotoLimits: Record<string, number> = {
 
 export default function PhotoWallPage() {
   const { user, profile } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const [photos, setPhotos] = useState<any[]>([]);
   const [showUpload, setShowUpload] = useState(false);
@@ -25,6 +27,7 @@ export default function PhotoWallPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [userPhotoCount, setUserPhotoCount] = useState(0);
+  const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
 
   const tier = profile?.membership_tier || "novato";
   const photoLimit = membershipPhotoLimits[tier] || 0;
@@ -90,9 +93,13 @@ export default function PhotoWallPage() {
     toast({ title: "Reporte enviado" });
   };
 
+  const displayPhotos = sourceTab === "friends"
+    ? photos.filter(p => friendIds.includes(p.user_id))
+    : photos;
+
   // Split into "top" (first 6) for mosaic and rest for grid
-  const topPhotos = photos.slice(0, 6);
-  const restPhotos = photos.slice(6);
+  const topPhotos = displayPhotos.slice(0, 6);
+  const restPhotos = displayPhotos.slice(6);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -102,6 +109,22 @@ export default function PhotoWallPage() {
         </h1>
         <p className="text-xs text-muted-foreground font-body">Galería de la comunidad — Las fotos más populares aparecen primero</p>
       </div>
+
+      {/* Source tabs */}
+      {user && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1">
+          <button onClick={() => setSourceTab("all")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Globe className="w-3 h-3" /> Todos
+          </button>
+          <button onClick={() => setSourceTab("friends")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
+              sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Users className="w-3 h-3" /> Amigos
+          </button>
+        </div>
+      )}
 
       {/* Upload button */}
       <div className="flex items-center justify-between">
@@ -178,10 +201,12 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {photos.length === 0 && (
+      {displayPhotos.length === 0 && (
         <div className="bg-card border border-border rounded p-8 text-center">
           <Image className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground font-body">Aún no hay fotos en la galería</p>
+          <p className="text-sm text-muted-foreground font-body">
+            {sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "Aún no hay fotos en la galería"}
+          </p>
           <p className="text-[10px] text-muted-foreground font-body mt-1">Sé el primero en compartir una imagen</p>
         </div>
       )}
