@@ -436,15 +436,16 @@ export default function ProfilePage() {
           </div>
           {/* Detailed items */}
           <div className="space-y-1 mt-3">
-            <div className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
-              <span>ELEMENTO</span><span>TIPO</span><span className="text-right">TAMAÑO</span><span></span>
+            <div className="grid grid-cols-[1fr_80px_110px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
+              <span>ELEMENTO</span><span>TIPO</span><span>FECHA</span><span className="text-right">TAMAÑO</span><span></span>
             </div>
             {storageItems.length === 0 ? (
               <p className="text-xs text-muted-foreground font-body py-2">No hay elementos almacenados</p>
             ) : storageItems.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_60px_30px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center group">
+              <div key={i} className="grid grid-cols-[1fr_80px_110px_60px_30px] gap-2 text-xs font-body py-1.5 border-b border-border/30 hover:bg-muted/30 transition-colors items-center group">
                 <span className="text-foreground truncate" title={item.name}>{item.name}</span>
                 <span className="text-muted-foreground text-[10px]">{item.type}</span>
+                <span className="text-muted-foreground text-[10px]">{item.created_at ? new Date(item.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
                 <span className="text-right text-muted-foreground text-[10px]">{item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size} MB`}</span>
                 <button
                   onClick={async () => {
@@ -458,13 +459,12 @@ export default function ProfilePage() {
                     } else if (item.type === "Avatar") {
                       await supabase.storage.from("avatars").remove([`${user.id}/${item.name}`]);
                     }
-                    toast({ title: "Eliminado" });
-                    // Refresh storage items
+                    toast({ title: "Eliminado permanentemente" });
                     setStorageItems(prev => prev.filter((_, idx) => idx !== i));
                     setStorageUsed(prev => prev - item.size);
                   }}
                   className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Eliminar"
+                  title="Eliminar permanentemente"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
