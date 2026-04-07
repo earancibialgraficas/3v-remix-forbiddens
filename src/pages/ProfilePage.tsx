@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role">("border");
+  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff">("border");
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
   const [nameColor, setNameColor] = useState("");
   const [roleColor, setRoleColor] = useState("");
