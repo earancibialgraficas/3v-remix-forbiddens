@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2 } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn, withImageVersion } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
@@ -23,6 +23,7 @@ const storageLimits: Record<string, number> = {
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -33,12 +34,25 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
-  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">("posts");
+  const tabFromUrl = searchParams.get("tab") as any;
+  const validTabs = ["posts", "stats", "social", "storage", "moderation", "friends"];
+  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">(validTabs.includes(tabFromUrl) ? tabFromUrl : "posts");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role">("border");
+  const [avatarBorderColor, setAvatarBorderColor] = useState("");
+  const [nameColor, setNameColor] = useState("");
+  const [roleColor, setRoleColor] = useState("");
+  const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string}[]>([]);
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     if (profile) {
