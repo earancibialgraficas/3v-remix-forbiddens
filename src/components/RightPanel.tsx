@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/forbiddens_logo.svg";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
+import ChillMusicPlayer from "@/components/ChillMusicPlayer";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 
 interface TopUser {
@@ -275,6 +276,9 @@ export default function RightPanel() {
           )}
         </div>
       </div>
+
+      {/* Chill Music Player */}
+      <ChillMusicPlayer />
 
       {/* Footer inside right panel */}
       <Footer />
