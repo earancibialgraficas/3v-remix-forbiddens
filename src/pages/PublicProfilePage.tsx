@@ -250,7 +250,7 @@ export default function PublicProfilePage() {
               <div key={post.id} className="p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors">
                 <p className="text-foreground">{post.title}</p>
                 <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                  <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                  <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="text-neon-green">▲{post.upvotes}</span>
                 </div>
               </div>
