@@ -58,7 +58,7 @@ const navItems: NavItem[] = [
     label: "Mercado & Trueque", icon: ShoppingBag, color: "text-neon-yellow", isDropdownOnly: true,
     children: [
       { label: "Gaming", to: "/mercado/gaming" },
-      { label: "Motor", to: "/mercado/motor" },
+      { label: "Bikers", to: "/mercado/motor" },
     ],
   },
   {
