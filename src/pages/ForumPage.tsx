@@ -257,14 +257,13 @@ export default function ForumPage() {
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); }
   };
 
-  const handleVote = async (postId: string, voteType: "up" | "down") => {
+   const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
-    // Optimistic update
+    // Optimistic update (never below 0)
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
-      // Simple optimistic: increment/decrement based on vote
-      if (voteType === "up") return { ...p, upvotes: p.upvotes + 1 };
-      return { ...p, downvotes: p.downvotes + 1 };
+      if (voteType === "up") return { ...p, upvotes: Math.max(0, (p.upvotes || 0) + 1) };
+      return { ...p, downvotes: Math.max(0, (p.downvotes || 0) + 1) };
     }));
     const { data: existing } = await supabase.from("post_votes").select("*").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
     if (existing) {
@@ -279,8 +278,10 @@ export default function ForumPage() {
     // Sync real counts in background
     const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
     const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
-    await supabase.from("posts").update({ upvotes: upCount || 0, downvotes: downCount || 0 } as any).eq("id", postId);
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: upCount || 0, downvotes: downCount || 0 } : p));
+    const safeUp = Math.max(0, upCount || 0);
+    const safeDown = Math.max(0, downCount || 0);
+    await supabase.from("posts").update({ upvotes: safeUp, downvotes: safeDown } as any).eq("id", postId);
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: safeUp, downvotes: safeDown } : p));
   };
 
   const handleComment = async (postId: string) => {
