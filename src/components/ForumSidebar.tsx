@@ -3,9 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, Bell, User, LogIn, Settings, BookOpen, LogOut,
+  Search, User, LogIn, Settings, BookOpen, LogOut,
   PanelLeftClose, PanelLeft, X, AlertTriangle
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -173,9 +174,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <Input placeholder="Buscar..." className="h-7 pl-8 bg-muted border-border text-xs font-body transition-colors duration-200 focus:ring-primary/50" />
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200">
-                <Bell className="w-3.5 h-3.5" />
-              </Button>
+              <NotificationBell />
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
               </Button>
