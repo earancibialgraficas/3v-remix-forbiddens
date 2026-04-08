@@ -72,6 +72,7 @@ const navItems: NavItem[] = [
   { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
   { label: "Eventos", icon: Calendar, to: "/eventos", color: "text-muted-foreground" },
   { label: "Membresías", icon: Star, to: "/membresias", color: "text-neon-yellow" },
+  { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },
   { label: "Discord", icon: Users, to: "https://discord.gg/ZHNRKVUfVF", color: "text-[#5865F2]" },
 ];
