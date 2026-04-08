@@ -780,6 +780,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
 function FriendsTab({ userId }: { userId: string }) {
   const { toast } = useToast();
   const [friends, setFriends] = useState<any[]>([]);
+  const [friendRoles, setFriendRoles] = useState<Record<string, string[]>>({});
   const [pendingReceived, setPendingReceived] = useState<any[]>([]);
   const [pendingSent, setPendingSent] = useState<any[]>([]);
 
@@ -794,7 +795,15 @@ function FriendsTab({ userId }: { userId: string }) {
     if (friendIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier").in("user_id", friendIds);
       setFriends(profiles || []);
-    } else setFriends([]);
+      // Fetch roles for friends to identify staff
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", friendIds);
+      const rMap: Record<string, string[]> = {};
+      roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
+      setFriendRoles(rMap);
+    } else {
+      setFriends([]);
+      setFriendRoles({});
+    }
 
     // Pending received
     const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
@@ -830,6 +839,13 @@ function FriendsTab({ userId }: { userId: string }) {
     fetchFriends();
   };
 
+  const getStaffLabel = (roles: string[]) => {
+    if (roles.includes("master_web")) return "WEBMASTER";
+    if (roles.includes("admin")) return "ADMIN";
+    if (roles.includes("moderator")) return "MOD";
+    return null;
+  };
+
   return (
     <div className="space-y-4">
       {pendingReceived.length > 0 && (
@@ -856,21 +872,29 @@ function FriendsTab({ userId }: { userId: string }) {
           <p className="text-xs text-muted-foreground font-body">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
         ) : (
           <div className="space-y-1.5">
-            {friends.map((f: any) => (
-              <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
-                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
-                  {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+            {friends.map((f: any) => {
+              const roles = friendRoles[f.user_id] || [];
+              const staffLabel = getStaffLabel(roles);
+              return (
+                <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
+                  <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                    {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                  </div>
+                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
+                  {staffLabel ? (
+                    <span className="text-[9px] font-pixel text-neon-magenta">{staffLabel}</span>
+                  ) : (
+                    <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
+                  )}
+                  <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
+                    <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
+                  </Button>
+                  <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
+                    <UserMinus className="w-3 h-3" />
+                  </button>
                 </div>
-                <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
-                <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
-                <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
-                  <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
-                </Button>
-                <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
-                  <UserMinus className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
