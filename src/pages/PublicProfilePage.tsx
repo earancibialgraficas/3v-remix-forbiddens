@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -181,6 +181,20 @@ export default function PublicProfilePage() {
                 </Button>
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
                   <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Mensaje</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!user || !userId) return;
+                    await supabase.from("reports").insert({
+                      reporter_id: user.id, reported_user_id: userId, reason: "Usuario bloqueado",
+                    } as any);
+                    toast({ title: "Usuario bloqueado", description: "El staff revisará esta acción" });
+                  }}
+                  className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <Ban className="w-3 h-3" /> Bloquear
                 </Button>
               </div>
             )}
