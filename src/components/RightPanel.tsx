@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/forbiddens_logo.svg";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
+import ChillMusicPlayer from "@/components/ChillMusicPlayer";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 
 interface TopUser {
@@ -36,7 +37,7 @@ const categoryColors: Record<string, { color: string; label: string }> = {
   "motociclismo-taller": { color: "text-neon-magenta", label: "Taller" },
   "motociclismo-rutas": { color: "text-neon-magenta", label: "Rutas" },
   "mercado-gaming": { color: "text-neon-yellow", label: "Mercado Gaming" },
-  "mercado-motor": { color: "text-neon-yellow", label: "Mercado Motor" },
+  "mercado-motor": { color: "text-neon-yellow", label: "Mercado Bikers" },
   "social-feed": { color: "text-neon-orange", label: "Social" },
   "trending": { color: "text-destructive", label: "Trending" },
 };
@@ -275,6 +276,9 @@ export default function RightPanel() {
           )}
         </div>
       </div>
+
+      {/* Chill Music Player */}
+      <ChillMusicPlayer />
 
       {/* Footer inside right panel */}
       <Footer />

@@ -75,9 +75,17 @@ export default function PhotoWallPage() {
   };
 
   const handleLike = async (photoId: string) => {
-    // Optimistic update
-    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, likes: (p.likes || 0) + 1 } : p));
-    await supabase.from("photos").update({ likes: (photos.find(p => p.id === photoId)?.likes || 0) + 1 } as any).eq("id", photoId);
+    const current = photos.find(p => p.id === photoId)?.likes || 0;
+    const newVal = Math.max(0, current + 1);
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, likes: newVal } : p));
+    await supabase.from("photos").update({ likes: newVal } as any).eq("id", photoId);
+  };
+
+  const handleDislike = async (photoId: string) => {
+    const current = photos.find(p => p.id === photoId)?.dislikes || 0;
+    const newVal = Math.max(0, current + 1);
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, dislikes: newVal } : p));
+    await supabase.from("photos").update({ dislikes: newVal } as any).eq("id", photoId);
   };
 
   const handleReport = async (photoId: string, userId: string) => {

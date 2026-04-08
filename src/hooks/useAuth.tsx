@@ -15,6 +15,11 @@ interface Profile {
   total_score: number;
   role_icon: string | null;
   show_role_icon: boolean;
+  signature: string | null;
+  color_avatar_border: string | null;
+  color_name: string | null;
+  color_role: string | null;
+  color_staff_role: string | null;
 }
 
 interface AuthContextType {

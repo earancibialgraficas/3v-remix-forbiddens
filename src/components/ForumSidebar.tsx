@@ -3,9 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, Bell, User, LogIn, Settings, BookOpen, LogOut,
+  Search, User, LogIn, Settings, BookOpen, LogOut,
   PanelLeftClose, PanelLeft, X, AlertTriangle
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ const navItems: NavItem[] = [
     label: "Mercado & Trueque", icon: ShoppingBag, color: "text-neon-yellow", isDropdownOnly: true,
     children: [
       { label: "Gaming", to: "/mercado/gaming" },
-      { label: "Motor", to: "/mercado/motor" },
+      { label: "Bikers", to: "/mercado/motor" },
     ],
   },
   {
@@ -71,6 +72,7 @@ const navItems: NavItem[] = [
   { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
   { label: "Eventos", icon: Calendar, to: "/eventos", color: "text-muted-foreground" },
   { label: "Membresías", icon: Star, to: "/membresias", color: "text-neon-yellow" },
+  { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },
   { label: "Discord", icon: Users, to: "https://discord.gg/ZHNRKVUfVF", color: "text-[#5865F2]" },
 ];
@@ -173,9 +175,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <Input placeholder="Buscar..." className="h-7 pl-8 bg-muted border-border text-xs font-body transition-colors duration-200 focus:ring-primary/50" />
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200">
-                <Bell className="w-3.5 h-3.5" />
-              </Button>
+              <NotificationBell />
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
               </Button>

@@ -73,11 +73,9 @@ export default function MainLayout() {
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0">
-            {/* Nav bar with back/forward + notifications */}
+            {/* Nav bar with back/forward */}
             <div className="flex items-center justify-between mb-2">
               {showNavButtons ? <NavigationButtons /> : <div />}
-              {/* Desktop notification bell */}
-              {!isMobile && <NotificationBell />}
             </div>
             <div className="animate-fade-in">
               <Outlet />

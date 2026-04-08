@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Star, Globe } from "lucide-react";
+import { Star, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PriceByCountry {
   [country: string]: { symbol: string; multiplier: number };
@@ -75,27 +76,28 @@ const tiers = [
     ],
   },
   {
-    name: "Creador de Contenido", basePrice: 20, color: "border-neon-cyan/50", textColor: "text-neon-cyan",
-    requirements: "Requisitos: 1000+ seguidores y 50hrs en el sitio",
+    name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/50", textColor: "text-neon-green",
     features: [
       { label: "Emuladores", value: "6 juegos simultáneos" },
-      { label: "Avatares", value: "75+ avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
+      { label: "Avatares", value: "Todos los avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
       { label: "Subir avatar", value: "Sí ✓" },
       { label: "Mensajes privados", value: "Ilimitados" },
-      { label: "Posts en foro", value: "Todo tipo de formato + color de texto + multimedia" },
+      { label: "Posts en foro", value: "Todo tipo de formato + multimedia" },
       { label: "Comentarios", value: "Hasta 2000 caracteres" },
       { label: "Amigos", value: "Máximo 200" },
-      { label: "Almacenamiento", value: "1500 MB" },
-      { label: "Contenido social", value: "75 posts públicos" },
+      { label: "Almacenamiento", value: "1000 MB" },
+      { label: "Contenido social", value: "90 posts públicos" },
       { label: "Firma en posts", value: "Diseño personalizado" },
-      { label: "Cambio de nick", value: "1 vez cada 3 días" },
+      { label: "Cambio de nick", value: "1 vez cada 10 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
-      { label: "Badge exclusivo", value: "CREADOR VERIFICADO ✓" },
+      { label: "Badge exclusivo", value: "🏛️ LEGADO" },
       { label: "Publicidad", value: "Sin anuncios" },
+      { label: "Requisitos", value: "Sin requisitos previos" },
     ],
   },
   {
-    name: "Leyenda Arcade", basePrice: 25, color: "border-neon-yellow/50", textColor: "text-neon-yellow", highlight: true,
+    name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow",
+    requirements: "Requisitos: 1000+ seguidores y 50hrs en el sitio",
     features: [
       { label: "Emuladores", value: "8 juegos simultáneos" },
       { label: "Avatares", value: "Todos los avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
@@ -107,16 +109,57 @@ const tiers = [
       { label: "Almacenamiento", value: "3000 MB" },
       { label: "Contenido social", value: "100 posts públicos" },
       { label: "Firma en posts", value: "Diseño personalizado premium" },
-      { label: "Cambio de nick", value: "Ilimitado" },
+      { label: "Cambio de nick", value: "1 vez cada 3 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Badge exclusivo", value: "⭐ LEYENDA ARCADE ⭐" },
       { label: "Publicidad", value: "Sin anuncios" },
     ],
   },
+  {
+    name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/50", textColor: "text-neon-cyan", highlight: true,
+    requirements: "Requisitos: 1000+ seguidores y 50hrs en el sitio",
+    features: [
+      { label: "Emuladores", value: "10 juegos simultáneos" },
+      { label: "Avatares", value: "Todos los avatares + subir avatar propio (500x500 JPG/PNG/GIF)" },
+      { label: "Subir avatar", value: "Sí ✓" },
+      { label: "Mensajes privados", value: "Ilimitados" },
+      { label: "Posts en foro", value: "Todo tipo de contenido + HTML + formato completo + color + embeds" },
+      { label: "Comentarios", value: "Hasta 5000 caracteres" },
+      { label: "Amigos", value: "Ilimitado" },
+      { label: "Almacenamiento", value: "5000 MB" },
+      { label: "Contenido social", value: "Ilimitado" },
+      { label: "Firma en posts", value: "Diseño totalmente personalizable" },
+      { label: "Cambio de nick", value: "1 vez cada 3 días" },
+      { label: "Paleta de colores", value: "Selección RGB personalizada" },
+      { label: "Badge exclusivo", value: "🎬 CREADOR VERIFICADO ✓" },
+      { label: "Publicidad", value: "Sin anuncios" },
+    ],
+  },
 ];
+
+const staffTier = {
+  name: "Dios Todopoderoso", color: "border-neon-magenta/50", textColor: "text-neon-magenta",
+  features: [
+    { label: "Emuladores", value: "Ilimitado" },
+    { label: "Avatares", value: "Todos + subida sin límite" },
+    { label: "Posts en foro", value: "Todo tipo de contenido + gestión completa" },
+    { label: "Comentarios", value: "Sin límite" },
+    { label: "Amigos", value: "Ilimitado" },
+    { label: "Almacenamiento", value: "Ilimitado" },
+    { label: "Contenido social", value: "Ilimitado" },
+    { label: "Firma en posts", value: "Diseño totalmente libre" },
+    { label: "Cambio de nick", value: "Ilimitado" },
+    { label: "Paleta de colores", value: "Completa" },
+    { label: "Moderación", value: "Banear, kickear, gestionar roles" },
+    { label: "Publicidad", value: "Sin anuncios" },
+  ],
+};
+
 export default function MembershipsPage() {
+  const { isAdmin, isMasterWeb, roles } = useAuth();
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
+  const isStaff = isAdmin || isMasterWeb || roles.includes("moderator");
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -156,7 +199,7 @@ export default function MembershipsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
         {tiers.map((tier) => (
-          <div key={tier.name} className={cn("bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]", tier.color, (tier as any).highlight && "ring-1 ring-neon-yellow/30")}>
+          <div key={tier.name} className={cn("bg-card border rounded p-4 transition-all duration-300 hover:scale-[1.02]", tier.color, (tier as any).highlight && "ring-1 ring-neon-cyan/30")}>
             <h3 className={cn("font-body text-sm font-bold mb-1 tracking-wide", tier.textColor)}>{tier.name}</h3>
             {(tier as any).requirements && (
               <p className="text-[9px] text-muted-foreground font-body italic mb-1">{(tier as any).requirements}</p>
@@ -175,6 +218,24 @@ export default function MembershipsPage() {
             </Button>
           </div>
         ))}
+      </div>
+
+      {/* Staff tier - visible to all but labeled */}
+      <div className="bg-card border border-neon-magenta/30 rounded p-4 ring-1 ring-neon-magenta/20">
+        <div className="flex items-center gap-2 mb-2">
+          <Shield className="w-4 h-4 text-neon-magenta" />
+          <h3 className="font-body text-sm font-bold text-neon-magenta tracking-wide">{staffTier.name}</h3>
+          <span className="text-[9px] font-pixel text-neon-magenta/60 ml-auto">SOLO STAFF</span>
+        </div>
+        <p className="text-[9px] text-muted-foreground font-body italic mb-3">Exclusivo para WebMaster, Administradores y Moderadores. Incluye todos los beneficios mejorados.</p>
+        <div className="space-y-1.5 text-[11px] font-body">
+          {staffTier.features.map((f, i) => (
+            <div key={i} className="flex justify-between gap-2">
+              <span className="text-muted-foreground">{f.label}</span>
+              <span className="text-right text-neon-magenta">{f.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

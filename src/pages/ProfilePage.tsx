@@ -586,9 +586,19 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const { toast } = useToast();
   const [banEmail, setBanEmail] = useState("");
   const [banReason, setBanReason] = useState("");
-  const [banType, setBanType] = useState<"ban" | "kick">("kick");
+  const [banDuration, setBanDuration] = useState<string>("24h");
   const [banning, setBanning] = useState(false);
   const [modEmail, setModEmail] = useState("");
+
+  const banDurations = [
+    { label: "1 hora", value: "1h", ms: 3600000 },
+    { label: "24 horas", value: "24h", ms: 86400000 },
+    { label: "3 días", value: "3d", ms: 259200000 },
+    { label: "7 días", value: "7d", ms: 604800000 },
+    { label: "15 días", value: "15d", ms: 1296000000 },
+    { label: "30 días", value: "30d", ms: 2592000000 },
+    { label: "Permanente", value: "perm", ms: 0 },
+  ];
 
   const handleBan = async () => {
     if (!banEmail.trim() || !banReason.trim()) return;
@@ -598,13 +608,18 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBanning(false); return; }
 
-    const expiresAt = banType === "kick" ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+    const selected = banDurations.find(d => d.value === banDuration);
+    const expiresAt = selected && selected.ms > 0
+      ? new Date(Date.now() + selected.ms).toISOString()
+      : null;
+    const banType = banDuration === "perm" ? "ban" : "kick";
+
     const { error } = await supabase.from("banned_users").insert({
       user_id: targetUser.user_id, banned_by: user.id, reason: banReason, ban_type: banType, expires_at: expiresAt,
     } as any);
     setBanning(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: banType === "ban" ? "Usuario baneado" : "Usuario kickeado (24h)" }); setBanEmail(""); setBanReason(""); }
+    else { toast({ title: banDuration === "perm" ? "Usuario baneado permanentemente" : `Usuario suspendido (${banDurations.find(d => d.value === banDuration)?.label})` }); setBanEmail(""); setBanReason(""); }
   };
 
   const handleAssignMod = async () => {
@@ -619,17 +634,30 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   return (
     <div className="space-y-4">
       <div className="bg-card border border-destructive/30 rounded p-4 space-y-3">
-        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> {isStaff ? "BANEAR / KICKEAR" : "KICKEAR (24H)"}</h3>
+        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> BANEAR / SUSPENDER</h3>
         <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
         <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-        {isStaff && (
-          <div className="flex gap-2">
-            <Button size="sm" variant={banType === "kick" ? "default" : "outline"} onClick={() => setBanType("kick")} className="text-xs">Kick (24h)</Button>
-            <Button size="sm" variant={banType === "ban" ? "destructive" : "outline"} onClick={() => setBanType("ban")} className="text-xs">Ban Permanente</Button>
+        <div>
+          <label className="text-[10px] font-body text-muted-foreground block mb-1">Duración del baneo:</label>
+          <div className="flex flex-wrap gap-1.5">
+            {banDurations.map(d => (
+              <button
+                key={d.value}
+                onClick={() => setBanDuration(d.value)}
+                className={cn(
+                  "px-2 py-1 rounded text-[10px] font-body transition-all border",
+                  banDuration === d.value
+                    ? d.value === "perm" ? "bg-destructive text-destructive-foreground border-destructive" : "bg-neon-orange/20 text-neon-orange border-neon-orange/30"
+                    : "bg-muted text-muted-foreground border-border hover:border-foreground/30"
+                )}
+              >
+                {d.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
         <Button size="sm" variant="destructive" onClick={handleBan} disabled={banning || !banEmail.trim()} className="text-xs">
-          {banning ? "Procesando..." : banType === "ban" ? "Banear Usuario" : "Kickear Usuario"}
+          {banning ? "Procesando..." : banDuration === "perm" ? "Banear Permanente" : "Suspender Usuario"}
         </Button>
       </div>
 
@@ -780,6 +808,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
 function FriendsTab({ userId }: { userId: string }) {
   const { toast } = useToast();
   const [friends, setFriends] = useState<any[]>([]);
+  const [friendRoles, setFriendRoles] = useState<Record<string, string[]>>({});
   const [pendingReceived, setPendingReceived] = useState<any[]>([]);
   const [pendingSent, setPendingSent] = useState<any[]>([]);
 
@@ -794,7 +823,15 @@ function FriendsTab({ userId }: { userId: string }) {
     if (friendIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier").in("user_id", friendIds);
       setFriends(profiles || []);
-    } else setFriends([]);
+      // Fetch roles for friends to identify staff
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", friendIds);
+      const rMap: Record<string, string[]> = {};
+      roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
+      setFriendRoles(rMap);
+    } else {
+      setFriends([]);
+      setFriendRoles({});
+    }
 
     // Pending received
     const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
@@ -830,6 +867,13 @@ function FriendsTab({ userId }: { userId: string }) {
     fetchFriends();
   };
 
+  const getStaffLabel = (roles: string[]) => {
+    if (roles.includes("master_web")) return "WEBMASTER";
+    if (roles.includes("admin")) return "ADMIN";
+    if (roles.includes("moderator")) return "MOD";
+    return null;
+  };
+
   return (
     <div className="space-y-4">
       {pendingReceived.length > 0 && (
@@ -856,21 +900,29 @@ function FriendsTab({ userId }: { userId: string }) {
           <p className="text-xs text-muted-foreground font-body">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
         ) : (
           <div className="space-y-1.5">
-            {friends.map((f: any) => (
-              <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
-                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
-                  {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+            {friends.map((f: any) => {
+              const roles = friendRoles[f.user_id] || [];
+              const staffLabel = getStaffLabel(roles);
+              return (
+                <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
+                  <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                    {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                  </div>
+                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
+                  {staffLabel ? (
+                    <span className="text-[9px] font-pixel text-neon-magenta">{staffLabel}</span>
+                  ) : (
+                    <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
+                  )}
+                  <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
+                    <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
+                  </Button>
+                  <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
+                    <UserMinus className="w-3 h-3" />
+                  </button>
                 </div>
-                <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
-                <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
-                <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
-                  <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
-                </Button>
-                <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
-                  <UserMinus className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
