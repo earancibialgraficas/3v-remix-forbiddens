@@ -443,10 +443,7 @@ export default function ForumPage() {
                       </>
                     )}
                     <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
-                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                      <button onClick={() => toggleComments(post.id)} className="flex items-center gap-0.5 hover:text-primary transition-colors">
-                        <MessageSquare className="w-3 h-3" /> Comentarios
-                      </button>
+                      <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                       {user && user.id === post.user_id && !editingPost && (
                         <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
                           <Edit2 className="w-3 h-3" /> Editar
@@ -466,6 +463,13 @@ export default function ForumPage() {
                     {(post as any).signature && (
                       <p className="text-[9px] text-neon-yellow font-body mt-1 italic">{(post as any).signature}</p>
                     )}
+                    {/* Comment button - prominent, below signature */}
+                    <button
+                      onClick={() => toggleComments(post.id)}
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all text-[11px] font-body font-medium"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" /> Comentar {(comments[post.id]?.length || 0) > 0 ? `(${comments[post.id].length})` : ""}
+                    </button>
                   </div>
                 </div>
               </div>
