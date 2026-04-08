@@ -36,7 +36,7 @@ const categoryColors: Record<string, { color: string; label: string }> = {
   "motociclismo-taller": { color: "text-neon-magenta", label: "Taller" },
   "motociclismo-rutas": { color: "text-neon-magenta", label: "Rutas" },
   "mercado-gaming": { color: "text-neon-yellow", label: "Mercado Gaming" },
-  "mercado-motor": { color: "text-neon-yellow", label: "Mercado Motor" },
+  "mercado-motor": { color: "text-neon-yellow", label: "Mercado Bikers" },
   "social-feed": { color: "text-neon-orange", label: "Social" },
   "trending": { color: "text-destructive", label: "Trending" },
 };
