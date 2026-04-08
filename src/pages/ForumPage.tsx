@@ -491,7 +491,7 @@ export default function ForumPage() {
                               showRoleIcon={comment.profile?.show_role_icon !== false}
                               membershipTier={comment.profile?.membership_tier || comment.membership_tier}
                             />
-                            <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleDateString()}</span>
+                            <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                           </div>
                           <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
                           <div className="flex items-center gap-2 mt-1">
