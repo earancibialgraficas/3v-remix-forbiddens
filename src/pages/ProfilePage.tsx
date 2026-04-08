@@ -586,9 +586,19 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const { toast } = useToast();
   const [banEmail, setBanEmail] = useState("");
   const [banReason, setBanReason] = useState("");
-  const [banType, setBanType] = useState<"ban" | "kick">("kick");
+  const [banDuration, setBanDuration] = useState<string>("24h");
   const [banning, setBanning] = useState(false);
   const [modEmail, setModEmail] = useState("");
+
+  const banDurations = [
+    { label: "1 hora", value: "1h", ms: 3600000 },
+    { label: "24 horas", value: "24h", ms: 86400000 },
+    { label: "3 días", value: "3d", ms: 259200000 },
+    { label: "7 días", value: "7d", ms: 604800000 },
+    { label: "15 días", value: "15d", ms: 1296000000 },
+    { label: "30 días", value: "30d", ms: 2592000000 },
+    { label: "Permanente", value: "perm", ms: 0 },
+  ];
 
   const handleBan = async () => {
     if (!banEmail.trim() || !banReason.trim()) return;
@@ -598,13 +608,18 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBanning(false); return; }
 
-    const expiresAt = banType === "kick" ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+    const selected = banDurations.find(d => d.value === banDuration);
+    const expiresAt = selected && selected.ms > 0
+      ? new Date(Date.now() + selected.ms).toISOString()
+      : null;
+    const banType = banDuration === "perm" ? "ban" : "kick";
+
     const { error } = await supabase.from("banned_users").insert({
       user_id: targetUser.user_id, banned_by: user.id, reason: banReason, ban_type: banType, expires_at: expiresAt,
     } as any);
     setBanning(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: banType === "ban" ? "Usuario baneado" : "Usuario kickeado (24h)" }); setBanEmail(""); setBanReason(""); }
+    else { toast({ title: banDuration === "perm" ? "Usuario baneado permanentemente" : `Usuario suspendido (${banDurations.find(d => d.value === banDuration)?.label})` }); setBanEmail(""); setBanReason(""); }
   };
 
   const handleAssignMod = async () => {
@@ -619,17 +634,30 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   return (
     <div className="space-y-4">
       <div className="bg-card border border-destructive/30 rounded p-4 space-y-3">
-        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> {isStaff ? "BANEAR / KICKEAR" : "KICKEAR (24H)"}</h3>
+        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> BANEAR / SUSPENDER</h3>
         <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
         <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-        {isStaff && (
-          <div className="flex gap-2">
-            <Button size="sm" variant={banType === "kick" ? "default" : "outline"} onClick={() => setBanType("kick")} className="text-xs">Kick (24h)</Button>
-            <Button size="sm" variant={banType === "ban" ? "destructive" : "outline"} onClick={() => setBanType("ban")} className="text-xs">Ban Permanente</Button>
+        <div>
+          <label className="text-[10px] font-body text-muted-foreground block mb-1">Duración del baneo:</label>
+          <div className="flex flex-wrap gap-1.5">
+            {banDurations.map(d => (
+              <button
+                key={d.value}
+                onClick={() => setBanDuration(d.value)}
+                className={cn(
+                  "px-2 py-1 rounded text-[10px] font-body transition-all border",
+                  banDuration === d.value
+                    ? d.value === "perm" ? "bg-destructive text-destructive-foreground border-destructive" : "bg-neon-orange/20 text-neon-orange border-neon-orange/30"
+                    : "bg-muted text-muted-foreground border-border hover:border-foreground/30"
+                )}
+              >
+                {d.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
         <Button size="sm" variant="destructive" onClick={handleBan} disabled={banning || !banEmail.trim()} className="text-xs">
-          {banning ? "Procesando..." : banType === "ban" ? "Banear Usuario" : "Kickear Usuario"}
+          {banning ? "Procesando..." : banDuration === "perm" ? "Banear Permanente" : "Suspender Usuario"}
         </Button>
       </div>
 
