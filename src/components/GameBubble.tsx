@@ -47,6 +47,8 @@ export default function GameBubble() {
   const [resizing, setResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   const [volume, setVolume] = useState(100);
   const [showVolume, setShowVolume] = useState(false);
@@ -59,6 +61,23 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+
+  const syncCanvasSurface = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.display = "block";
+    canvas.getBoundingClientRect();
+  }, []);
+
+  const scheduleCanvasSurfaceSync = useCallback(() => {
+    requestAnimationFrame(() => {
+      syncCanvasSurface();
+      requestAnimationFrame(() => syncCanvasSurface());
+    });
+  }, [syncCanvasSurface]);
 
   // AFK detection: track key and gamepad activity
   useEffect(() => {
@@ -147,7 +166,7 @@ export default function GameBubble() {
       setRomLoaded(false);
       setPaused(false);
       await new Promise(r => setTimeout(r, 200));
-      const el = document.getElementById("game-bubble-canvas");
+      const el = canvasRef.current;
       if (!el) return;
       try {
         const { Nostalgist } = await import("nostalgist");
@@ -165,6 +184,7 @@ export default function GameBubble() {
         setNostalgistInstance(instance);
         setRomLoaded(true);
         lastInputRef.current = Date.now();
+        scheduleCanvasSurfaceSync();
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -178,42 +198,64 @@ export default function GameBubble() {
         nostalgistRef.current = null;
       }
     };
-  }, [activeGame?.romUrl]);
+  }, [activeGame?.romUrl, scheduleCanvasSurfaceSync, toast]);
 
-  // When maximizing from minimized, resume emulator and refit canvas
   useEffect(() => {
-    if (!minimized && nostalgistRef.current && romLoaded) {
+    if (!romLoaded || !nostalgistRef.current) return;
+
+    scheduleCanvasSurfaceSync();
+
+    if (!minimized && !paused) {
       try {
         nostalgistRef.current.resume();
-        setPaused(false);
       } catch {}
-      const el = document.getElementById("game-bubble-canvas");
-      if (el) {
-        (el as HTMLCanvasElement).style.width = "100%";
-        (el as HTMLCanvasElement).style.height = "100%";
-      }
     }
-  }, [minimized, romLoaded]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // Re-fit canvas on window resize to prevent black screen
   useEffect(() => {
-    if (!romLoaded || minimized) return;
-    const handleResize = () => {
-      const el = document.getElementById("game-bubble-canvas");
-      if (el) {
-        (el as HTMLCanvasElement).style.width = "100%";
-        (el as HTMLCanvasElement).style.height = "100%";
+    if (!romLoaded) return;
+
+    const refreshViewport = () => {
+      scheduleCanvasSurfaceSync();
+
+      if (!minimized && nostalgistRef.current && !paused) {
+        try {
+          nostalgistRef.current.resume();
+        } catch {}
       }
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [romLoaded, minimized]);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshViewport();
+      }
+    };
+
+    const observer = typeof ResizeObserver !== "undefined" && canvasViewportRef.current
+      ? new ResizeObserver(() => refreshViewport())
+      : null;
+
+    if (observer && canvasViewportRef.current) {
+      observer.observe(canvasViewportRef.current);
+    }
+
+    window.addEventListener("resize", refreshViewport);
+    window.addEventListener("focus", refreshViewport);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", refreshViewport);
+      window.removeEventListener("focus", refreshViewport);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
   // Volume control
   useEffect(() => {
     if (!romLoaded) return;
     try {
-      const container = document.getElementById("game-bubble-canvas")?.parentElement;
+      const container = canvasRef.current?.parentElement;
       if (container) {
         container.querySelectorAll("audio, video").forEach((el: any) => {
           el.volume = volume / 100;
@@ -438,190 +480,255 @@ export default function GameBubble() {
       const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
       const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
       setPopupSize({ w: newW, h: newH });
-      // Refit canvas immediately during resize
-      const el = document.getElementById("game-bubble-canvas");
-      if (el) {
-        (el as HTMLCanvasElement).style.width = "100%";
-        (el as HTMLCanvasElement).style.height = "100%";
-      }
+      syncCanvasSurface();
     };
     const onUp = () => setResizing(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [resizing]);
+  }, [resizing, syncCanvasSurface]);
 
-  if (activeGames.length === 0) return null;
+  if (activeGames.length === 0 || !activeGame) return null;
 
-  // Minimized: show live mini windows instead of icons
-  if (minimized) {
-    return (
-      <div className="fixed bottom-4 right-4 z-[300] flex flex-col-reverse gap-2">
-        {activeGames.map((game, idx) => (
-          <div
-            key={game.romUrl}
-            onClick={() => maximizeGame(idx)}
-            className={cn(
-              "relative rounded-xl bg-card border-2 shadow-2xl cursor-pointer hover:scale-105 transition-transform group overflow-hidden",
-              idx === currentGameIndex ? "border-neon-green/60 shadow-neon-green/20" : "border-border"
-            )}
-            style={{ width: 176, height: 132 }}
-          >
-            {/* Live canvas preview — we show a screenshot since the canvas is in the maximized view */}
-            <div className="w-full h-full bg-black flex items-center justify-center">
-              <span className="text-2xl">{consoleIcons[game.consoleName] || "🎮"}</span>
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                <p className="text-[8px] font-body text-foreground truncate font-medium">{game.gameName}</p>
-                <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-body">
-                  <span className="font-pixel text-neon-cyan">{game.consoleName.toUpperCase()}</span>
-                  <span>⚡ {game.score}</span>
+  const inactiveGames = activeGames
+    .map((game, idx) => ({ game, idx }))
+    .filter(({ idx }) => idx !== currentGameIndex);
+
+  return (
+    <>
+      {!minimized && (
+        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md animate-fade-in" onClick={minimizeGame} />
+      )}
+
+      <div
+        className={cn(
+          "fixed z-[300]",
+          minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 flex items-center justify-center"
+        )}
+      >
+        <div
+          ref={popupRef}
+          onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
+          className={cn(
+            "relative bg-card border border-border overflow-hidden select-none transition-[width,height,transform,box-shadow,border-color] duration-300",
+            minimized
+              ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group"
+              : "flex rounded-xl shadow-2xl shadow-black/50 animate-scale-in"
+          )}
+          style={
+            minimized
+              ? undefined
+              : {
+                  transform: `translate(${position.x}px, ${position.y}px)`,
+                  width: `${popupSize.w}px`,
+                  height: `${popupSize.h}px`,
+                  maxWidth: "95vw",
+                  maxHeight: "90vh",
+                }
+          }
+        >
+          <div className={cn("relative flex-1 min-w-0", minimized ? "h-full w-full" : "flex flex-col")}> 
+            {!minimized && (
+              <div
+                className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border cursor-move select-none"
+                onMouseDown={onMouseDown}
+              >
+                <div className="flex items-center gap-2">
+                  <Move className="w-3 h-3 text-muted-foreground" />
+                  <Gamepad2 className="w-4 h-4 text-neon-green" />
+                  <div>
+                    <p className="text-xs font-body font-medium text-foreground">{activeGame.gameName}</p>
+                    <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
+                      <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
+                      <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame.score || 0}</span>
+                      <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame.playTime || 0) / 60)}:{((activeGame.playTime || 0) % 60).toString().padStart(2, "0")}</span>
+                      {afkRef.current && (
+                        <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            {/* Animated pulse indicator */}
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-neon-green rounded-full animate-pulse" />
-            {/* Close button */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleClose(idx); }}
-              className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="w-3 h-3 text-destructive-foreground" />
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  }
+            )}
 
-  // Maximized popup
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center animate-fade-in">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={minimizeGame} />
-      <div
-        ref={popupRef}
-        className="relative flex bg-card border border-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-scale-in select-none"
-        style={{ transform: `translate(${position.x}px, ${position.y}px)`, width: `${popupSize.w}px`, height: `${popupSize.h}px`, maxWidth: "95vw", maxHeight: "90vh" }}
-      >
-        {/* Main game area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Draggable header */}
-          <div
-            className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border cursor-move select-none"
-            onMouseDown={onMouseDown}
-          >
-            <div className="flex items-center gap-2">
-              <Move className="w-3 h-3 text-muted-foreground" />
-              <Gamepad2 className="w-4 h-4 text-neon-green" />
-              <div>
-                <p className="text-xs font-body font-medium text-foreground">{activeGame?.gameName}</p>
-                <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
-                  <span className="font-pixel text-neon-cyan">{activeGame?.consoleName.toUpperCase()}</span>
-                  <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame?.score || 0}</span>
-                  <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame?.playTime || 0) / 60)}:{((activeGame?.playTime || 0) % 60).toString().padStart(2, "0")}</span>
-                  {afkRef.current && (
-                    <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>
+            <div ref={canvasViewportRef} className={cn("relative bg-black overflow-hidden", minimized ? "h-full w-full" : "flex-1")}>
+              {!romLoaded && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-muted-foreground font-body">Cargando emulador...</p>
+                </div>
+              )}
+
+              <canvas ref={canvasRef} id="game-bubble-canvas" style={{ width: "100%", height: "100%", display: "block" }} />
+
+              {minimized && (
+                <>
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-1.5">
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[8px] font-body text-foreground truncate font-medium">{activeGame.gameName}</p>
+                        <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-body">
+                          <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
+                          <span>⚡ {activeGame.score || 0}</span>
+                          {paused && <span className="text-neon-yellow font-pixel">PAUSA</span>}
+                        </div>
+                      </div>
+
+                      {romLoaded && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePause();
+                          }}
+                          className={cn(
+                            "h-7 w-7 rounded-full border border-border/70 bg-background/80 backdrop-blur-sm",
+                            paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-foreground hover:bg-background"
+                          )}
+                          title="Pausar"
+                        >
+                          {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <span className={cn("absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full", paused ? "bg-neon-yellow" : "bg-neon-green animate-pulse")} />
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClose(currentGameIndex);
+                    }}
+                    className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3 text-destructive-foreground" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {!minimized && (
+              <div className="px-3 py-1 bg-muted/30 border-t border-border">
+                <p className="text-[8px] text-muted-foreground font-body text-center">
+                  Flechas + Z/X/A/S · Gamepad compatible · Click fuera para minimizar
+                </p>
+              </div>
+            )}
+          </div>
+
+          {!minimized && (
+            <>
+              <div className="w-14 bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0">
+                {romLoaded && (
+                  <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
+                    <Save className="w-4 h-4" />
+                  </Button>
+                )}
+
+                {romLoaded && saveSlots.length > 0 && (
+                  <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                )}
+
+                {user && activeGame.score > 0 && (
+                  <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
+                    <Upload className="w-4 h-4" />
+                  </Button>
+                )}
+
+                <div className="relative">
+                  <Button size="icon" variant="ghost" onClick={() => setShowVolume(!showVolume)} className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" title="Volumen">
+                    {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </Button>
+
+                  {showVolume && (
+                    <div className="absolute right-full mr-2 top-0 bg-card border border-border rounded-lg p-3 w-36 shadow-xl z-20">
+                      <p className="text-[9px] text-muted-foreground font-body mb-2">Volumen: {volume}%</p>
+                      <Slider
+                        value={[volume]}
+                        onValueChange={(v) => setVolume(v[0])}
+                        max={100}
+                        step={5}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between mt-2">
+                        <button onClick={() => setVolume(0)} className="text-[8px] text-muted-foreground hover:text-foreground">Mute</button>
+                        <button onClick={() => setVolume(100)} className="text-[8px] text-muted-foreground hover:text-foreground">Max</button>
+                      </div>
+                    </div>
                   )}
                 </div>
+
+                {romLoaded && (
+                  <Button size="icon" variant="ghost" onClick={togglePause} className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
+                    {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                  </Button>
+                )}
+
+                <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
+                  <Minimize2 className="w-4 h-4" />
+                </Button>
+
+                <div className="flex-1" />
+
+                {activeGames.length > 1 && activeGames.map((g, idx) => (
+                  <button
+                    key={g.romUrl}
+                    onClick={() => maximizeGame(idx)}
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
+                      idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50"
+                    )}
+                    title={g.gameName}
+                  >
+                    {consoleIcons[g.consoleName] || "🎮"}
+                  </button>
+                ))}
+
+                <div className="flex-1" />
+
+                <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-lg" title="Cerrar juego">
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
-            </div>
-          </div>
-          {/* Canvas */}
-          <div className="relative flex-1 bg-black overflow-hidden">
-            {!romLoaded && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-muted-foreground font-body">Cargando emulador...</p>
+
+              <div
+                onMouseDown={onResizeDown}
+                className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10"
+              >
+                <GripVertical className="w-3 h-3 rotate-[-45deg]" />
               </div>
-            )}
-            <canvas id="game-bubble-canvas" style={{ width: "100%", height: "100%", display: "block" }} />
-          </div>
-          <div className="px-3 py-1 bg-muted/30 border-t border-border">
-            <p className="text-[8px] text-muted-foreground font-body text-center">
-              Flechas + Z/X/A/S · Gamepad compatible · Click fuera para minimizar
-            </p>
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Right controls column */}
-        <div className="w-14 bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0">
-          {/* Save state */}
-          {romLoaded && (
-            <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
-              <Save className="w-4 h-4" />
-            </Button>
-          )}
-          {/* Load state */}
-          {romLoaded && saveSlots.length > 0 && (
-            <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
-              <Download className="w-4 h-4" />
-            </Button>
-          )}
-          {/* Save score */}
-          {user && activeGame && activeGame.score > 0 && (
-            <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
-              <Upload className="w-4 h-4" />
-            </Button>
-          )}
-          {/* Volume */}
-          <div className="relative">
-            <Button size="icon" variant="ghost" onClick={() => setShowVolume(!showVolume)} className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" title="Volumen">
-              {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </Button>
-            {showVolume && (
-              <div className="absolute right-full mr-2 top-0 bg-card border border-border rounded-lg p-3 w-36 shadow-xl z-20">
-                <p className="text-[9px] text-muted-foreground font-body mb-2">Volumen: {volume}%</p>
-                <Slider
-                  value={[volume]}
-                  onValueChange={(v) => setVolume(v[0])}
-                  max={100}
-                  step={5}
-                  className="w-full"
-                />
-                <div className="flex justify-between mt-2">
-                  <button onClick={() => setVolume(0)} className="text-[8px] text-muted-foreground hover:text-foreground">Mute</button>
-                  <button onClick={() => setVolume(100)} className="text-[8px] text-muted-foreground hover:text-foreground">Max</button>
+        {minimized && inactiveGames.length > 0 && (
+          <div className="flex flex-col items-end gap-2">
+            {inactiveGames.map(({ game, idx }) => (
+              <button
+                key={game.romUrl}
+                onClick={() => maximizeGame(idx)}
+                className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
+                <div className="relative flex h-full flex-col justify-between">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
+                    <span className="font-pixel text-[8px] text-neon-cyan">{game.consoleName.toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-body font-medium text-foreground truncate">{game.gameName}</p>
+                    <p className="text-[8px] font-body text-muted-foreground">⚡ {game.score}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              </button>
+            ))}
           </div>
-          {/* Pause */}
-          {romLoaded && (
-            <Button size="icon" variant="ghost" onClick={togglePause} className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
-              {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-            </Button>
-          )}
-          {/* Minimize */}
-          <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
-            <Minimize2 className="w-4 h-4" />
-          </Button>
-          <div className="flex-1" />
-          {/* Game tabs */}
-          {activeGames.length > 1 && activeGames.map((g, idx) => (
-            <button
-              key={g.romUrl}
-              onClick={() => maximizeGame(idx)}
-              className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
-                idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50"
-              )}
-              title={g.gameName}
-            >
-              {consoleIcons[g.consoleName] || "🎮"}
-            </button>
-          ))}
-          <div className="flex-1" />
-          <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-lg" title="Cerrar juego">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-        {/* Resize handle */}
-        <div
-          onMouseDown={onResizeDown}
-          className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10"
-        >
-          <GripVertical className="w-3 h-3 rotate-[-45deg]" />
-        </div>
+        )}
       </div>
 
       {/* Save Dialog */}
@@ -678,6 +785,6 @@ export default function GameBubble() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
