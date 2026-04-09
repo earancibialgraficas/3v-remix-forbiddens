@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, User, Minimize2, ArrowLeft, Search } from "lucide-react";
+import { MessageSquare, X, Send, User, Minimize2, Maximize2, ArrowLeft, Search, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -10,6 +11,7 @@ interface Message {
   receiver_id: string;
   content: string;
   created_at: string;
+  is_read: boolean;
 }
 
 interface Conversation {
@@ -21,8 +23,11 @@ interface Conversation {
   unread: number;
 }
 
+const FONT_SIZES = [10, 11, 12, 13, 14] as const;
+
 export default function FloatingChat() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [partnerId, setPartnerId] = useState<string | null>(null);
@@ -33,11 +38,22 @@ export default function FloatingChat() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Load conversations
   const loadConversations = async () => {
     if (!user) return;
+
+    // Count actual unread messages directly
+    const { count } = await supabase
+      .from("private_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", user.id)
+      .eq("is_read", false);
+
+    setUnreadCount(count || 0);
+
     const { data: allMsgs } = await supabase.from("private_messages").select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false }).limit(200);
@@ -52,16 +68,14 @@ export default function FloatingChat() {
     });
 
     const partnerIds = Object.keys(convMap);
-    if (partnerIds.length === 0) { setConversations([]); setUnreadCount(0); return; }
+    if (partnerIds.length === 0) { setConversations([]); return; }
 
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", partnerIds);
     const pMap: Record<string, any> = {};
     profiles?.forEach(p => pMap[p.user_id] = p);
 
-    let totalUnread = 0;
     const convs: Conversation[] = partnerIds.map(pid => {
       const c = convMap[pid];
-      totalUnread += c.unread;
       const last = c.msgs[0];
       return {
         partnerId: pid,
@@ -74,7 +88,6 @@ export default function FloatingChat() {
     }).sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
 
     setConversations(convs);
-    setUnreadCount(totalUnread);
   };
 
   useEffect(() => { loadConversations(); }, [user]);
@@ -108,8 +121,8 @@ export default function FloatingChat() {
     if (!user) return;
     const { data } = await supabase.from("private_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${pid}),and(sender_id.eq.${pid},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: true }).limit(50);
-    if (data) setMessages(data as Message[]);
+      .order("created_at", { ascending: false }).limit(50);
+    if (data) setMessages((data as Message[]).reverse());
     await supabase.from("private_messages").update({ is_read: true } as any).eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
     loadConversations();
   };
@@ -137,6 +150,23 @@ export default function FloatingChat() {
     const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url")
       .ilike("display_name", `%${searchUser}%`).neq("user_id", user.id).limit(5);
     setSearchResults(data || []);
+  };
+
+  const handleExpand = () => {
+    if (partnerId) {
+      navigate(`/mensajes?partner=${partnerId}`);
+    } else {
+      navigate("/mensajes");
+    }
+    setIsOpen(false);
+    setPartnerId(null);
+    setMessages([]);
+  };
+
+  const cycleFontSize = () => {
+    const currentIdx = FONT_SIZES.indexOf(fontSize as any);
+    const nextIdx = (currentIdx + 1) % FONT_SIZES.length;
+    setFontSize(FONT_SIZES[nextIdx]);
   };
 
   if (!user) return null;
@@ -175,8 +205,16 @@ export default function FloatingChat() {
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setMinimized(true)} className="p-1 text-muted-foreground hover:text-foreground">
+          {partnerId && (
+            <button onClick={cycleFontSize} className="p-1 text-muted-foreground hover:text-foreground" title={`Tamaño: ${fontSize}px`}>
+              <Type className="w-3 h-3" />
+            </button>
+          )}
+          <button onClick={() => setMinimized(true)} className="p-1 text-muted-foreground hover:text-foreground" title="Minimizar">
             <Minimize2 className="w-3 h-3" />
+          </button>
+          <button onClick={handleExpand} className="p-1 text-muted-foreground hover:text-foreground" title="Expandir">
+            <Maximize2 className="w-3 h-3" />
           </button>
           <button onClick={() => { setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" />
@@ -257,8 +295,9 @@ export default function FloatingChat() {
             ) : (
               messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user.id ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[80%] rounded-lg px-2.5 py-1.5 text-[11px] font-body",
-                    m.sender_id === user.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
+                  <div className={cn("max-w-[80%] rounded-lg px-2.5 py-1.5 font-body",
+                    m.sender_id === user.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}
+                    style={{ fontSize: `${fontSize}px` }}>
                     {m.content}
                     <p className="text-[7px] text-muted-foreground mt-0.5">
                       {new Date(m.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
