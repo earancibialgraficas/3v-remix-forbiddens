@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/resend';
+const ADMIN_EMAIL = 'forbiddens.crew@gmail.com';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,7 +20,6 @@ serve(async (req) => {
     });
   }
 
-  // Try connector key first, fall back to manual secret
   const RESEND_KEY = Deno.env.get('RESEND_API_KEY_1') || Deno.env.get('RESEND_API_KEY');
   if (!RESEND_KEY) {
     return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
@@ -35,11 +35,11 @@ serve(async (req) => {
       });
     }
 
-    // Sanitize inputs
     const safeName = String(name || '').slice(0, 200).replace(/[<>]/g, '');
     const safeEmail = String(email).slice(0, 255);
     const safeMessage = String(message).slice(0, 5000).replace(/[<>]/g, '');
 
+    // Send notification to admin (using onboarding@resend.dev which can only send to the account owner email)
     const res = await fetch(`${GATEWAY_URL}/emails`, {
       method: 'POST',
       headers: {
@@ -49,17 +49,16 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'Forbiddens <onboarding@resend.dev>',
-        to: [safeEmail],
-        subject: `[Forbiddens] Hemos recibido tu consulta`,
+        to: [ADMIN_EMAIL],
+        subject: `[Forbiddens] Nueva consulta de ${safeName}`,
         html: `
           <div style="font-family: sans-serif; max-width: 500px; margin: auto; background: #0a0a0a; padding: 30px; border-radius: 12px; border: 1px solid #222;">
-            <h2 style="color: #22d3ee; font-size: 18px; margin: 0 0 16px;">Forbiddens</h2>
-            <p style="color: #e0e0e0;">Hola <strong style="color: #22d3ee;">${safeName}</strong>,</p>
-            <p style="color: #aaa;">Hemos recibido tu consulta y te responderemos lo antes posible.</p>
+            <h2 style="color: #22d3ee; font-size: 18px; margin: 0 0 16px;">Forbiddens — Nueva Consulta</h2>
+            <p style="color: #e0e0e0;"><strong style="color: #22d3ee;">De:</strong> ${safeName} (${safeEmail})</p>
             <hr style="border: 1px solid #333; margin: 20px 0;" />
-            <p style="color: #888; font-size: 12px;">Tu mensaje:</p>
+            <p style="color: #888; font-size: 12px;">Mensaje:</p>
             <blockquote style="border-left: 3px solid #22d3ee; padding-left: 12px; color: #ccc; margin: 10px 0;">${safeMessage}</blockquote>
-            <p style="color: #666; font-size: 11px; margin-top: 24px;">— Equipo Forbiddens</p>
+            <p style="color: #666; font-size: 11px; margin-top: 24px;">Puedes responder directamente a ${safeEmail}</p>
           </div>
         `,
       }),

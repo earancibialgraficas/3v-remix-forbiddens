@@ -18,31 +18,30 @@ const faqs = [
 ];
 
 export default function AyudaPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    const name = user?.user_metadata?.username || contactName.trim() || "Visitante";
-    const email = user?.email || contactEmail.trim();
-    if (!email) {
-      toast({ title: "Error", description: "Ingresa tu email para que podamos contactarte", variant: "destructive" });
+    if (!user) {
+      toast({ title: "Error", description: "Debes iniciar sesión para enviar una consulta", variant: "destructive" });
       return;
     }
+    const name = contactName.trim() || profile?.display_name || user?.user_metadata?.username || "Anónimo";
+    const email = user.email!;
     setSending(true);
 
     // Save to DB
     await supabase.from("contact_messages").insert({
-      user_id: user?.id || null, name, email, message,
+      user_id: user.id, name, email, message,
     } as any);
 
-    // Send via Resend edge function
+    // Send notification email to admin via Resend
     try {
       const res = await supabase.functions.invoke("send-contact-email", {
         body: { name, email, message },
@@ -88,18 +87,19 @@ export default function AyudaPage() {
           <div className="flex flex-col items-center gap-2 py-4">
             <CheckCircle className="w-8 h-8 text-neon-green" />
             <p className="text-sm font-body text-foreground">¡Mensaje enviado!</p>
-            <p className="text-xs font-body text-muted-foreground">Te contactaremos a la brevedad posible. Revisa tu correo para la confirmación.</p>
+            <p className="text-xs font-body text-muted-foreground">Te contactaremos a la brevedad posible.</p>
           </div>
+        ) : !user ? (
+          <p className="text-xs font-body text-muted-foreground">Debes iniciar sesión para enviar una consulta.</p>
         ) : (
           <>
-            {!user && (
-              <>
-                <Input placeholder="Tu nombre" value={contactName} onChange={(e) => setContactName(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-                <Input placeholder="Tu email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-              </>
-            )}
+            <div className="space-y-1">
+              <label className="text-[10px] font-body text-muted-foreground">Correo</label>
+              <Input value={user.email || ""} disabled className="h-8 bg-muted/50 text-xs font-body opacity-70" />
+            </div>
+            <Input placeholder="Tu nick o nombre" value={contactName} onChange={(e) => setContactName(e.target.value)} className="h-8 bg-muted text-xs font-body" />
             <Textarea placeholder="Escribe tu consulta aquí..." value={message} onChange={(e) => setMessage(e.target.value)} className="bg-muted text-xs font-body min-h-[80px]" />
-            <Button size="sm" onClick={handleSend} disabled={sending} className="text-xs gap-1">
+            <Button size="sm" onClick={handleSend} disabled={sending || !message.trim()} className="text-xs gap-1">
               <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar Consulta"}
             </Button>
           </>

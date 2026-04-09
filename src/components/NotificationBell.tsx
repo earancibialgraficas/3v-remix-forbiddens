@@ -108,7 +108,7 @@ export default function NotificationBell() {
   const cfg = (type: string) => typeConfig[type] || typeConfig.general;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} style={{ zIndex: 9999 }}>
       <button
         onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
         className="relative p-1.5 rounded-full hover:bg-muted/50 transition-colors"
