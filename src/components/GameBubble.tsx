@@ -261,13 +261,46 @@ export default function GameBubble() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [activeGame, romLoaded, minimized, togglePause]);
 
+  // Helper: convert ArrayBuffer/Blob to base64 string for localStorage
+  const stateToBase64 = async (state: any): Promise<string> => {
+    if (state instanceof Blob) {
+      const buf = await state.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+    if (state instanceof ArrayBuffer || ArrayBuffer.isView(state)) {
+      const bytes = new Uint8Array(state instanceof ArrayBuffer ? state : state.buffer);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+    // Fallback: try JSON
+    return JSON.stringify(state);
+  };
+
+  // Helper: convert base64 back to Uint8Array
+  const base64ToState = (b64: string): Uint8Array | any => {
+    try {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    } catch {
+      // Might be old JSON format
+      try { return JSON.parse(b64); } catch { return b64; }
+    }
+  };
+
   // Auto-save on close
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     try {
       const state = await nostalgistRef.current.saveState();
+      const b64 = await stateToBase64(state);
       const name = `Auto-save ${new Date().toLocaleString()}`;
-      const newSlot: SaveSlot = { name, data: state, timestamp: Date.now() };
+      const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
       const key = `save_slots_${activeGame.gameName}`;
       const stored = localStorage.getItem(key);
       let slots: SaveSlot[] = [];
@@ -281,8 +314,9 @@ export default function GameBubble() {
     if (!nostalgistRef.current || !activeGame) return;
     try {
       const state = await nostalgistRef.current.saveState();
+      const b64 = await stateToBase64(state);
       const name = slotName.trim() || `Slot ${saveSlots.length + 1}`;
-      const newSlot: SaveSlot = { name, data: state, timestamp: Date.now() };
+      const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
       const updated = [...saveSlots, newSlot];
       setSaveSlots(updated);
       localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
@@ -298,7 +332,8 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      await nostalgistRef.current.loadState(slot.data);
+      const stateData = base64ToState(slot.data);
+      await nostalgistRef.current.loadState(stateData);
       toast({ title: "Partida cargada", description: `"${slot.name}"` });
       setShowLoadDialog(false);
     } catch (err) {
