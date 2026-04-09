@@ -124,7 +124,7 @@ export default function NotificationBell() {
       {open && (
         <div
           ref={dropdownRef}
-          className="absolute w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in"
+          className="absolute w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl z-[9999] overflow-hidden animate-fade-in"
           style={{ maxHeight: 'min(400px, calc(100vh - 80px))' }}
         >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
