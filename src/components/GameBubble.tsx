@@ -327,8 +327,10 @@ export default function GameBubble() {
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     try {
-      const state = await nostalgistRef.current.saveState();
-      const b64 = await stateToBase64(state);
+      const result = await nostalgistRef.current.saveState();
+      // saveState() returns { state: Blob, thumbnail: Blob | undefined }
+      const stateBlob: Blob = result.state;
+      const b64 = await stateToBase64(stateBlob);
       const name = `Auto-save ${new Date().toLocaleString()}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
       const key = `save_slots_${activeGame.gameName}`;
@@ -343,8 +345,10 @@ export default function GameBubble() {
   const handleSaveState = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     try {
-      const state = await nostalgistRef.current.saveState();
-      const b64 = await stateToBase64(state);
+      const result = await nostalgistRef.current.saveState();
+      // saveState() returns { state: Blob, thumbnail: Blob | undefined }
+      const stateBlob: Blob = result.state;
+      const b64 = await stateToBase64(stateBlob);
       const name = slotName.trim() || `Slot ${saveSlots.length + 1}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
       const updated = [...saveSlots, newSlot];
@@ -362,46 +366,11 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      // Try multiple formats that nostalgist might accept
-      const binary = atob(slot.data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      
-      // Try ArrayBuffer first
-      try {
-        await nostalgistRef.current.loadState(bytes.buffer);
-        toast({ title: "Partida cargada", description: `"${slot.name}"` });
-        setShowLoadDialog(false);
-        return;
-      } catch {}
-      
-      // Try Uint8Array
-      try {
-        await nostalgistRef.current.loadState(bytes);
-        toast({ title: "Partida cargada", description: `"${slot.name}"` });
-        setShowLoadDialog(false);
-        return;
-      } catch {}
-      
-      // Try Blob
-      try {
-        const blob = new Blob([bytes]);
-        await nostalgistRef.current.loadState(blob);
-        toast({ title: "Partida cargada", description: `"${slot.name}"` });
-        setShowLoadDialog(false);
-        return;
-      } catch {}
-      
-      // Try File object (some emulators expect this)
-      try {
-        const file = new File([bytes], "state.sav", { type: "application/octet-stream" });
-        await nostalgistRef.current.loadState(file);
-        toast({ title: "Partida cargada", description: `"${slot.name}"` });
-        setShowLoadDialog(false);
-        return;
-      } catch {}
-      
-      toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
+      // Convert base64 back to Blob - nostalgist's loadState expects a Blob
+      const blob = base64ToBlob(slot.data);
+      await nostalgistRef.current.loadState(blob);
+      toast({ title: "Partida cargada", description: `"${slot.name}"` });
+      setShowLoadDialog(false);
     } catch (err) {
       console.error("Load error:", err);
       toast({ title: "Error al cargar la partida", description: "No se pudo restaurar el estado", variant: "destructive" });
