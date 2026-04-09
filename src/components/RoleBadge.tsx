@@ -1,13 +1,14 @@
 import { cn } from "@/lib/utils";
 
-interface RoleBadgeProps {
+export interface RoleBadgeProps {
   roles: string[];
   roleIcon?: string | null;
   showIcon?: boolean;
   className?: string;
+  colorStaffRole?: string | null;
 }
 
-export default function RoleBadge({ roles, roleIcon, showIcon = true, className }: RoleBadgeProps) {
+export default function RoleBadge({ roles, roleIcon, showIcon = true, className, colorStaffRole }: RoleBadgeProps) {
   const isMasterWeb = roles.includes("master_web");
   const isAdmin = roles.includes("admin");
   const isMod = roles.includes("moderator");
