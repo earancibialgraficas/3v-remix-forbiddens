@@ -589,6 +589,11 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const [banDuration, setBanDuration] = useState<string>("24h");
   const [banning, setBanning] = useState(false);
   const [modEmail, setModEmail] = useState("");
+  const [membershipSearch, setMembershipSearch] = useState("");
+  const [selectedTier, setSelectedTier] = useState("entusiasta");
+  const [assigningMembership, setAssigningMembership] = useState(false);
+
+  const membershipTiers = ["novato", "entusiasta", "coleccionista", "leyenda arcade"];
 
   const banDurations = [
     { label: "1 hora", value: "1h", ms: 3600000 },
@@ -676,6 +681,35 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
               else { toast({ title: "Administrador asignado" }); setModEmail(""); }
             }} className="text-xs">Asignar Admin</Button>
           </div>
+        </div>
+      )}
+
+      {/* Membership Management */}
+      {isStaff && (
+        <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-neon-yellow flex items-center gap-1"><Star className="w-3 h-3" /> GESTIONAR MEMBRESÍAS</h3>
+          <Input placeholder="Nombre de usuario" value={membershipSearch} onChange={e => setMembershipSearch(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+          <div className="flex flex-wrap gap-1.5">
+            {membershipTiers.map(t => (
+              <button key={t} onClick={() => setSelectedTier(t)}
+                className={cn("px-2 py-1 rounded text-[10px] font-body transition-all border",
+                  selectedTier === t ? "bg-neon-yellow/20 text-neon-yellow border-neon-yellow/30" : "bg-muted text-muted-foreground border-border hover:border-foreground/30")}>
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <Button size="sm" disabled={assigningMembership || !membershipSearch.trim()} onClick={async () => {
+            if (!membershipSearch.trim()) return;
+            setAssigningMembership(true);
+            const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", membershipSearch).maybeSingle();
+            if (!tp) { toast({ title: "Usuario no encontrado", variant: "destructive" }); setAssigningMembership(false); return; }
+            const { error } = await supabase.from("profiles").update({ membership_tier: selectedTier } as any).eq("user_id", tp.user_id);
+            setAssigningMembership(false);
+            if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+            else { toast({ title: `Membresía actualizada a ${selectedTier.toUpperCase()}` }); setMembershipSearch(""); }
+          }} className="text-xs bg-neon-yellow/20 text-neon-yellow hover:bg-neon-yellow/30 border border-neon-yellow/30">
+            {assigningMembership ? "Procesando..." : "Asignar Membresía"}
+          </Button>
         </div>
       )}
     </div>

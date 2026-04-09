@@ -135,7 +135,7 @@ interface Comment {
   membership_tier: string;
   created_at: string;
   parent_id: string | null;
-  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string } | null;
+  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string; color_avatar_border?: string | null; color_name?: string | null; color_role?: string | null; color_staff_role?: string | null } | null;
   roles?: string[];
 }
 
@@ -145,6 +145,10 @@ interface PostProfile {
   role_icon: string | null;
   show_role_icon: boolean;
   membership_tier: string;
+  color_avatar_border: string | null;
+  color_name: string | null;
+  color_role: string | null;
+  color_staff_role: string | null;
 }
 
 export default function ForumPage() {
@@ -185,7 +189,7 @@ export default function ForumPage() {
       // Fetch profiles and roles for post authors
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
@@ -201,7 +205,7 @@ export default function ForumPage() {
     const { data } = await supabase.from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
     if (!data) return;
     const userIds = [...new Set((data as any[]).map(c => c.user_id))];
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
     const { data: userRoles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
     const profileMap: Record<string, any> = {};
     profiles?.forEach(p => profileMap[p.user_id] = p);
@@ -419,6 +423,10 @@ export default function ForumPage() {
                           roleIcon={authorProfile.role_icon}
                           showRoleIcon={authorProfile.show_role_icon}
                           membershipTier={authorProfile.membership_tier}
+                          colorAvatarBorder={authorProfile.color_avatar_border}
+                          colorName={authorProfile.color_name}
+                          colorRole={authorProfile.color_role}
+                          colorStaffRole={authorProfile.color_staff_role}
                         />
                       </div>
                     )}
@@ -490,6 +498,10 @@ export default function ForumPage() {
                               roleIcon={comment.profile?.role_icon}
                               showRoleIcon={comment.profile?.show_role_icon !== false}
                               membershipTier={comment.profile?.membership_tier || comment.membership_tier}
+                              colorAvatarBorder={comment.profile?.color_avatar_border}
+                              colorName={comment.profile?.color_name}
+                              colorRole={comment.profile?.color_role}
+                              colorStaffRole={comment.profile?.color_staff_role}
                             />
                             <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                           </div>

@@ -51,8 +51,8 @@ export default function HeroSection() {
             <h1
               className="absolute text-2xl sm:text-4xl font-pixel tracking-wider animate-banner-text-in"
               style={{
-                color: '#a5062d',
-                textShadow: '0 0 10px rgba(165, 6, 45, 0.8), 0 0 30px rgba(165, 6, 45, 0.4), 0 0 60px rgba(165, 6, 45, 0.2)',
+              color: '#de1839',
+                textShadow: '0 0 10px rgba(222, 24, 57, 0.8), 0 0 30px rgba(222, 24, 57, 0.4), 0 0 60px rgba(222, 24, 57, 0.2)',
                 animationDelay: phase === "transition" ? '0.3s' : '0s',
                 animationFillMode: 'forwards',
               }}

@@ -16,6 +16,10 @@ interface UserPopupProps {
   membershipTier?: string;
   children?: React.ReactNode;
   className?: string;
+  colorAvatarBorder?: string | null;
+  colorName?: string | null;
+  colorRole?: string | null;
+  colorStaffRole?: string | null;
 }
 
 export default function UserPopup({
@@ -28,6 +32,10 @@ export default function UserPopup({
   membershipTier = "novato",
   children,
   className,
+  colorAvatarBorder,
+  colorName,
+  colorRole,
+  colorStaffRole,
 }: UserPopupProps) {
   const [open, setOpen] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
@@ -71,15 +79,15 @@ export default function UserPopup({
         {children || (
           <>
             {avatarUrl && (
-              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" style={colorAvatarBorder ? { border: `2px solid ${colorAvatarBorder}` } : undefined} />
             )}
-            <span className="text-xs font-body font-semibold text-foreground hover:text-primary transition-colors">
+            <span className="text-xs font-body font-semibold hover:text-primary transition-colors" style={{ color: colorName || undefined }}>
               {displayName}
             </span>
             {isStaff ? (
-              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
+              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
             ) : membershipTier !== "novato" ? (
-              <span className="text-[9px] text-neon-yellow font-pixel">[{membershipTier.toUpperCase()}]</span>
+              <span className="text-[9px] font-pixel" style={{ color: colorRole || undefined }}>[{membershipTier.toUpperCase()}]</span>
             ) : null}
           </>
         )}

@@ -180,14 +180,13 @@ export default function GameBubble() {
     };
   }, [activeGame?.romUrl]);
 
-  // When maximizing from minimized, resume emulator
+  // When maximizing from minimized, resume emulator and refit canvas
   useEffect(() => {
     if (!minimized && nostalgistRef.current && romLoaded) {
       try {
         nostalgistRef.current.resume();
         setPaused(false);
       } catch {}
-      // Re-attach canvas size
       const el = document.getElementById("game-bubble-canvas");
       if (el) {
         (el as HTMLCanvasElement).style.width = "100%";
@@ -195,6 +194,20 @@ export default function GameBubble() {
       }
     }
   }, [minimized, romLoaded]);
+
+  // Re-fit canvas on window resize to prevent black screen
+  useEffect(() => {
+    if (!romLoaded || minimized) return;
+    const handleResize = () => {
+      const el = document.getElementById("game-bubble-canvas");
+      if (el) {
+        (el as HTMLCanvasElement).style.width = "100%";
+        (el as HTMLCanvasElement).style.height = "100%";
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [romLoaded, minimized]);
 
   // Volume control
   useEffect(() => {
@@ -387,10 +400,15 @@ export default function GameBubble() {
   useEffect(() => {
     if (!resizing) return;
     const onMove = (e: MouseEvent) => {
-      setPopupSize({
-        w: Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
-        h: Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
-      });
+      const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
+      const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
+      setPopupSize({ w: newW, h: newH });
+      // Refit canvas immediately during resize
+      const el = document.getElementById("game-bubble-canvas");
+      if (el) {
+        (el as HTMLCanvasElement).style.width = "100%";
+        (el as HTMLCanvasElement).style.height = "100%";
+      }
     };
     const onUp = () => setResizing(false);
     window.addEventListener("mousemove", onMove);
