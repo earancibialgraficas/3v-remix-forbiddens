@@ -5,6 +5,7 @@ import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import NotificationBell from "@/components/NotificationBell";
+import FloatingChat from "@/components/FloatingChat";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,9 +17,6 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const location = useLocation();
   const isHome = location.pathname === "/";
-
-  // Hide nav buttons on mobile home page
-  const showNavButtons = !(isMobile && isHome);
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,7 +38,7 @@ export default function MainLayout() {
         <Menu className="w-4 h-4" />
       </Button>
 
-      {/* Mobile fixed notification bell — always visible */}
+      {/* Mobile fixed notification bell */}
       {isMobile && (
         <div className="fixed top-2 right-2 z-[100]">
           <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
@@ -65,6 +63,9 @@ export default function MainLayout() {
         </div>
       )}
 
+      {/* Fixed nav buttons on the left (hidden on home) */}
+      <NavigationButtons />
+
       {/* Main content */}
       <main className={cn(
         "min-w-0 transition-all duration-300",
@@ -73,10 +74,6 @@ export default function MainLayout() {
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0">
-            {/* Nav bar with back/forward */}
-            <div className="flex items-center justify-between mb-2">
-              {showNavButtons ? <NavigationButtons /> : <div />}
-            </div>
             <div className="animate-fade-in">
               <Outlet />
             </div>
@@ -89,6 +86,9 @@ export default function MainLayout() {
 
       {/* Global game bubble */}
       <GameBubble />
+
+      {/* Floating chat bubble */}
+      <FloatingChat />
     </div>
   );
 }

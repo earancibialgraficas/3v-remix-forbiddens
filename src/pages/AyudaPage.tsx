@@ -22,29 +22,38 @@ export default function AyudaPage() {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    if (!user && !contactEmail.trim()) {
+    const name = user?.user_metadata?.username || contactName.trim() || "Visitante";
+    const email = user?.email || contactEmail.trim();
+    if (!email) {
       toast({ title: "Error", description: "Ingresa tu email para que podamos contactarte", variant: "destructive" });
       return;
     }
     setSending(true);
-    const { error } = await supabase.from("contact_messages").insert({
-      user_id: user?.id || null,
-      name: user?.user_metadata?.username || "Visitante",
-      email: user?.email || contactEmail,
-      message,
+
+    // Save to DB
+    await supabase.from("contact_messages").insert({
+      user_id: user?.id || null, name, email, message,
     } as any);
-    setSending(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      setSent(true);
+
+    // Send via Resend edge function
+    try {
+      const res = await supabase.functions.invoke("send-contact-email", {
+        body: { name, email, message },
+      });
+      if (res.error) console.error("Email send error:", res.error);
+    } catch (e) {
+      console.error("Email function error:", e);
     }
+
+    setSending(false);
+    setSent(true);
   };
 
   return (
@@ -56,7 +65,6 @@ export default function AyudaPage() {
         <p className="text-xs text-muted-foreground font-body">¿Esta wea iba así? Aquí te lo explicamos</p>
       </div>
 
-      {/* FAQ */}
       <div className="space-y-1">
         {faqs.map((faq, i) => (
           <div key={i} className="bg-card border border-border rounded overflow-hidden transition-all duration-200">
@@ -72,7 +80,6 @@ export default function AyudaPage() {
         ))}
       </div>
 
-      {/* Direct contact */}
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1">
           <Send className="w-3 h-3" /> CONSULTA DIRECTAMENTE
@@ -81,12 +88,15 @@ export default function AyudaPage() {
           <div className="flex flex-col items-center gap-2 py-4">
             <CheckCircle className="w-8 h-8 text-neon-green" />
             <p className="text-sm font-body text-foreground">¡Mensaje enviado!</p>
-            <p className="text-xs font-body text-muted-foreground">Te contactaremos a la brevedad posible</p>
+            <p className="text-xs font-body text-muted-foreground">Te contactaremos a la brevedad posible. Revisa tu correo para la confirmación.</p>
           </div>
         ) : (
           <>
             {!user && (
-              <Input placeholder="Tu email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+              <>
+                <Input placeholder="Tu nombre" value={contactName} onChange={(e) => setContactName(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                <Input placeholder="Tu email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+              </>
             )}
             <Textarea placeholder="Escribe tu consulta aquí..." value={message} onChange={(e) => setMessage(e.target.value)} className="bg-muted text-xs font-body min-h-[80px]" />
             <Button size="sm" onClick={handleSend} disabled={sending} className="text-xs gap-1">
