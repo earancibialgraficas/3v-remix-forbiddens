@@ -362,25 +362,49 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      // Convert base64 back to Blob (nostalgist expects Blob)
-      const blob = base64ToBlob(slot.data);
-      await nostalgistRef.current.loadState(blob);
-      toast({ title: "Partida cargada", description: `"${slot.name}"` });
-      setShowLoadDialog(false);
-    } catch (err) {
-      console.error("Load error:", err);
-      // Fallback: try with ArrayBuffer
+      // Try multiple formats that nostalgist might accept
+      const binary = atob(slot.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      
+      // Try ArrayBuffer first
       try {
-        const binary = atob(slot.data);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         await nostalgistRef.current.loadState(bytes.buffer);
         toast({ title: "Partida cargada", description: `"${slot.name}"` });
         setShowLoadDialog(false);
-      } catch (err2) {
-        console.error("Load fallback error:", err2);
-        toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
-      }
+        return;
+      } catch {}
+      
+      // Try Uint8Array
+      try {
+        await nostalgistRef.current.loadState(bytes);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      // Try Blob
+      try {
+        const blob = new Blob([bytes]);
+        await nostalgistRef.current.loadState(blob);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      // Try File object (some emulators expect this)
+      try {
+        const file = new File([bytes], "state.sav", { type: "application/octet-stream" });
+        await nostalgistRef.current.loadState(file);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
+    } catch (err) {
+      console.error("Load error:", err);
+      toast({ title: "Error al cargar la partida", description: "No se pudo restaurar el estado", variant: "destructive" });
     }
   };
 
