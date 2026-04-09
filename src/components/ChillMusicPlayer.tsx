@@ -216,13 +216,7 @@ export default function ChillMusicPlayer() {
             value={[seekPosition]}
             onValueChange={v => {
               setSeekPosition(v[0]);
-              // Send seek command to YouTube iframe via postMessage
-              try {
-                iframeRef.current?.contentWindow?.postMessage(
-                  JSON.stringify({ event: "command", func: "seekTo", args: [v[0] * 36, true] }), // Approximate: 100% = ~60min
-                  "*"
-                );
-              } catch {}
+              seekStartRef.current = Date.now() - (v[0] / 100) * 240000;
             }}
             max={100}
             step={1}
