@@ -179,6 +179,9 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
               </Button>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+                <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
               </Button>
               {user ? (
