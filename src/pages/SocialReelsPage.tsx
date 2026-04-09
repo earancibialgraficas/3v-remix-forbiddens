@@ -6,6 +6,7 @@ import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
 interface SocialItem {
   id: string;
@@ -18,6 +19,8 @@ interface SocialItem {
   created_at: string;
   display_name?: string;
   avatar_url?: string | null;
+  color_name?: string | null;
+  color_avatar_border?: string | null;
 }
 
 const platformIcon = (p: string) => {
@@ -166,12 +169,12 @@ function ContentCard({ item, isVisible, onMaximize }: { item: SocialItem; isVisi
       )}
       <div className="p-3">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
             {item.avatar_url ? (
               <img src={item.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : <span className="text-[10px]">👤</span>}
           </div>
-          <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors">
+          <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors" style={getNameStyle(item.color_name)}>
             {item.display_name}
           </Link>
           <div className="ml-auto flex items-center gap-1">
@@ -213,7 +216,7 @@ export default function SocialReelsPage() {
       const userIds = [...new Set(content.map(c => c.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, display_name, avatar_url")
+        .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
         .in("user_id", userIds);
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -221,6 +224,8 @@ export default function SocialReelsPage() {
         ...c,
         display_name: profileMap.get(c.user_id)?.display_name || "Anónimo",
         avatar_url: profileMap.get(c.user_id)?.avatar_url,
+        color_name: profileMap.get(c.user_id)?.color_name || null,
+        color_avatar_border: profileMap.get(c.user_id)?.color_avatar_border || null,
       }));
       setItems(enriched);
     };

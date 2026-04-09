@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
+import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 
 interface PublicProfile {
   user_id: string;
@@ -21,6 +22,10 @@ interface PublicProfile {
   role_icon: string | null;
   show_role_icon: boolean | null;
   created_at: string;
+  color_avatar_border: string | null;
+  color_name: string | null;
+  color_role: string | null;
+  color_staff_role: string | null;
 }
 
 export default function PublicProfilePage() {
@@ -127,7 +132,7 @@ export default function PublicProfilePage() {
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0">
+          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0" style={getAvatarBorderStyle(profile.color_avatar_border)}>
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -136,17 +141,17 @@ export default function PublicProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-pixel text-base text-neon-cyan">{profile.display_name}</h2>
-              <RoleBadge roles={roles} roleIcon={profile.role_icon} showIcon={profile.show_role_icon !== false} />
+              <h2 className="font-pixel text-base text-neon-cyan" style={getNameStyle(profile.color_name)}>{profile.display_name}</h2>
+              <RoleBadge roles={roles} roleIcon={profile.role_icon} showIcon={profile.show_role_icon !== false} colorStaffRole={profile.color_staff_role} />
             </div>
             <p className="text-xs text-muted-foreground font-body mt-1">{profile.bio || "Sin descripción"}</p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               {(isStaff || isMod) ? (
-                <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1">
+                <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile.color_staff_role)}>
                   {isStaff ? "DIOS TODOPODEROSO" : "MÍTICO"}
                 </span>
               ) : (
-                <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
+                <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile.color_role)}>
                   <Star className="w-3 h-3" /> {profile.membership_tier.toUpperCase()}
                 </span>
               )}

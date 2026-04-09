@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { nesGames, snesGames, gbaGames, allGames } from "@/lib/gameLibrary";
@@ -39,6 +40,7 @@ export default function EmulatorPage() {
 
   const [selectedConsole, setSelectedConsole] = useState<ConsoleType>(consoleParam || "nes");
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
+  const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
   const { launchGame } = useGameBubble();
 
   useEffect(() => {
@@ -49,7 +51,16 @@ export default function EmulatorPage() {
         .eq("console_type", selectedConsole)
         .order("score", { ascending: false })
         .limit(10);
-      if (data) setLeaderboard(data as LeaderboardScore[]);
+      if (data) {
+        setLeaderboard(data as LeaderboardScore[]);
+        const uids = [...new Set((data as any[]).map(s => s.user_id).filter(Boolean))];
+        if (uids.length > 0) {
+          const { data: profiles } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
+          const cm: Record<string, string | null> = {};
+          profiles?.forEach((p: any) => { cm[p.user_id] = p.color_name || null; });
+          setLeaderboardColors(cm);
+        }
+      }
     };
     fetchLeaderboard();
   }, [selectedConsole]);
@@ -159,7 +170,7 @@ export default function EmulatorPage() {
                 {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
               </span>
               <User className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="flex-1 text-foreground truncate font-medium">{s.display_name}</span>
+              <span className="flex-1 text-foreground truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
               <span className="text-muted-foreground truncate max-w-[80px]">{s.game_name}</span>
               <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
             </div>
