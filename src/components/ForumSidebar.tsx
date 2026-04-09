@@ -4,7 +4,7 @@ import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
   Search, User, LogIn, Settings, BookOpen, LogOut,
-  PanelLeftClose, PanelLeft, X, AlertTriangle
+  PanelLeftClose, PanelLeft, X, AlertTriangle, Mail
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
