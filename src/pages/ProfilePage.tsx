@@ -589,6 +589,11 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const [banDuration, setBanDuration] = useState<string>("24h");
   const [banning, setBanning] = useState(false);
   const [modEmail, setModEmail] = useState("");
+  const [membershipSearch, setMembershipSearch] = useState("");
+  const [selectedTier, setSelectedTier] = useState("entusiasta");
+  const [assigningMembership, setAssigningMembership] = useState(false);
+
+  const membershipTiers = ["novato", "entusiasta", "coleccionista", "leyenda arcade"];
 
   const banDurations = [
     { label: "1 hora", value: "1h", ms: 3600000 },
