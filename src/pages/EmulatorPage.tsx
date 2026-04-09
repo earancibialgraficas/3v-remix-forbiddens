@@ -50,10 +50,17 @@ export default function EmulatorPage() {
         .select("id, display_name, game_name, score, user_id")
         .eq("console_type", selectedConsole)
         .order("score", { ascending: false })
-        .limit(10);
+        .limit(50);
       if (data) {
-        setLeaderboard(data as LeaderboardScore[]);
-        const uids = [...new Set((data as any[]).map(s => s.user_id).filter(Boolean))];
+        // Deduplicate: keep only highest score per user
+        const best: Record<string, LeaderboardScore> = {};
+        (data as LeaderboardScore[]).forEach(s => {
+          const key = s.user_id;
+          if (!best[key] || s.score > best[key].score) best[key] = s;
+        });
+        const deduped = Object.values(best).sort((a, b) => b.score - a.score).slice(0, 10);
+        setLeaderboard(deduped);
+        const uids = [...new Set(deduped.map(s => s.user_id).filter(Boolean))];
         if (uids.length > 0) {
           const { data: profiles } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
           const cm: Record<string, string | null> = {};
