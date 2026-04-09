@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Users, Trophy, Newspaper, ChevronLeft, ChevronRight, Type, Star, BookOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -171,9 +171,23 @@ export default function RightPanel() {
 
   const getLink = (cat: string, postId?: string) => getCategoryRoute(cat, postId);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
   return (
     <aside className="w-full shrink-0 space-y-3 sticky top-3 h-fit">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-1">
+        {!isHome && (
+          <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
+            <button onClick={() => navigate(-1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Atrás">
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => navigate(1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Adelante">
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <button onClick={cycleSize} className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground transition-colors" title="Cambiar tamaño del texto">
           <Type className="w-3 h-3" />
           <span className={cn("font-body", sizes.body)}>{textSize === "sm" ? "Pequeño" : textSize === "md" ? "Mediano" : "Grande"}</span>
