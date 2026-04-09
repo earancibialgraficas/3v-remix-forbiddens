@@ -9,11 +9,11 @@ export default function NavigationButtons() {
   if (isHome) return null;
 
   return (
-    <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1 md:left-12 p-1">
-      <button onClick={() => navigate(-1)} className="p-1.5 rounded-r-lg bg-card/90 border border-border border-l-0 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors backdrop-blur" title="Atrás">
+    <div className="fixed top-3 right-3 z-[800] flex items-center gap-1 rounded-full border border-border bg-card/90 p-1.5 shadow-2xl backdrop-blur-md">
+      <button onClick={() => navigate(-1)} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Atrás">
         <ChevronLeft className="w-4 h-4" />
       </button>
-      <button onClick={() => navigate(1)} className="p-1.5 rounded-r-lg bg-card/90 border border-border border-l-0 hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors backdrop-blur" title="Adelante">
+      <button onClick={() => navigate(1)} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Adelante">
         <ChevronRight className="w-4 h-4" />
       </button>
     </div>

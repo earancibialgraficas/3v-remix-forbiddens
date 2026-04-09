@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getStaffRoleStyle } from "@/lib/profileAppearance";
 
 export interface RoleBadgeProps {
   roles: string[];
@@ -25,7 +26,7 @@ export default function RoleBadge({ roles, roleIcon, showIcon = true, className,
   return (
     <span
       className={cn("inline-flex items-center gap-0.5 text-[8px] font-pixel px-1.5 py-0.5 rounded border", colorClass, className)}
-      style={colorStaffRole ? { color: colorStaffRole, borderColor: `${colorStaffRole}44`, backgroundColor: `${colorStaffRole}22` } : undefined}
+      style={getStaffRoleStyle(colorStaffRole)}
     >
       {showIcon && roleIcon && !isMod && <span className="text-[10px]">{roleIcon}</span>}
       {label}

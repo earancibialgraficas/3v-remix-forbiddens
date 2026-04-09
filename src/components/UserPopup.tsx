@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import RoleBadge from "@/components/RoleBadge";
+import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 
 interface UserPopupProps {
   userId: string;
@@ -79,15 +80,15 @@ export default function UserPopup({
         {children || (
           <>
             {avatarUrl && (
-              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" style={colorAvatarBorder ? { border: `2px solid ${colorAvatarBorder}` } : undefined} />
+              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)} />
             )}
-            <span className="text-xs font-body font-semibold hover:text-primary transition-colors" style={{ color: colorName || undefined }}>
+            <span className="text-xs font-body font-semibold hover:text-primary transition-colors" style={getNameStyle(colorName)}>
               {displayName}
             </span>
             {isStaff ? (
               <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
             ) : membershipTier !== "novato" ? (
-              <span className="text-[9px] font-pixel" style={{ color: colorRole || undefined }}>[{membershipTier.toUpperCase()}]</span>
+              <span className="text-[9px] font-pixel" style={getRoleStyle(colorRole)}>[{membershipTier.toUpperCase()}]</span>
             ) : null}
           </>
         )}
@@ -101,7 +102,7 @@ export default function UserPopup({
         >
           {/* Header */}
           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border">
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -109,12 +110,12 @@ export default function UserPopup({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-body font-semibold text-foreground truncate">{displayName}</p>
+              <p className="text-sm font-body font-semibold text-foreground truncate" style={getNameStyle(colorName)}>{displayName}</p>
               <div className="flex items-center gap-1">
                 {isStaff ? (
-                  <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} />
+                  <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
                 ) : (
-                  <span className="text-[9px] text-neon-yellow font-pixel">{membershipTier.toUpperCase()}</span>
+                  <span className="text-[9px] text-neon-yellow font-pixel" style={getRoleStyle(colorRole)}>{membershipTier.toUpperCase()}</span>
                 )}
               </div>
             </div>
