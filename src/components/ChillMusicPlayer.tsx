@@ -78,6 +78,21 @@ export default function ChillMusicPlayer() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
+  // Seek bar progress simulation (YouTube livestreams = ~infinite, regular = ~4min avg)
+  useEffect(() => {
+    if (seekIntervalRef.current) clearInterval(seekIntervalRef.current);
+    if (isPlaying) {
+      seekStartRef.current = Date.now() - (seekPosition / 100) * 240000;
+      seekIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - seekStartRef.current;
+        const progress = Math.min((elapsed / 240000) * 100, 100); // 4 min estimate
+        setSeekPosition(progress);
+        if (progress >= 100) { next(); }
+      }, 1000);
+    }
+    return () => { if (seekIntervalRef.current) clearInterval(seekIntervalRef.current); };
+  }, [isPlaying, currentIndex]);
+
   const next = () => { setCurrentIndex(i => (i + 1) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
   const prev = () => { setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
   
