@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useSearchParams } from "react-router-dom";
 import { cn, withImageVersion } from "@/lib/utils";
+import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
@@ -224,7 +225,7 @@ export default function ProfilePage() {
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className="flex items-start gap-4">
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
-            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
               {profile?.avatar_url ? (
                 <img key={profile.avatar_url} src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : (
@@ -281,17 +282,17 @@ export default function ProfilePage() {
             ) : (
               <>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-pixel text-sm text-neon-cyan">{profile?.display_name}</h2>
-                  <RoleBadge roles={roles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} />
+                  <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</h2>
+                  <RoleBadge roles={roles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
                 </div>
                 <p className="text-xs text-muted-foreground font-body mt-1">{profile?.bio || "Sin descripción"}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-2">
                   {(isStaff || isMod) ? (
-                    <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1">
+                    <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}>
                       <Shield className="w-3 h-3" /> {isMasterWeb || isAdmin ? "DIOS TODOPODEROSO" : "MÍTICO"}
                     </span>
                   ) : (
-                    <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1">
+                    <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile?.color_role)}>
                       <Star className="w-3 h-3" /> {tier.toUpperCase()}
                     </span>
                   )}
@@ -524,15 +525,15 @@ export default function ProfilePage() {
               <div className="text-center space-y-1">
                 <p className="text-[10px] text-muted-foreground font-body">Vista previa:</p>
                 <div className="flex items-center gap-2 bg-muted/30 rounded px-3 py-2">
-                  <div className="w-8 h-8 rounded-full bg-muted border-2 overflow-hidden" style={{ borderColor: avatarBorderColor || "#22d3ee" }}>
-                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-1.5" />}
-                  </div>
-                  <span className="font-pixel text-xs" style={{ color: nameColor || undefined }}>{profile?.display_name}</span>
-                  <span className="text-[9px] font-pixel" style={{ color: roleColor || undefined }}>{tier.toUpperCase()}</span>
-                  {(isStaff || isMod) && (
-                    <span className="text-[9px] font-pixel" style={{ color: staffRoleColor || undefined }}>
-                      {isMasterWeb ? "MASTER" : isAdmin ? "ADMIN" : "MOD"}
-                    </span>
+                    <div className="w-8 h-8 rounded-full bg-muted border-2 overflow-hidden" style={getAvatarBorderStyle(avatarBorderColor || "#22d3ee")}>
+                      {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-1.5" />}
+                    </div>
+                    <span className="font-pixel text-xs" style={getNameStyle(nameColor)}>{profile?.display_name}</span>
+                    <span className="text-[9px] font-pixel" style={getRoleStyle(roleColor)}>{tier.toUpperCase()}</span>
+                    {(isStaff || isMod) && (
+                      <span className="text-[9px] font-pixel" style={getRoleStyle(staffRoleColor)}>
+                        {isMasterWeb ? "MASTER" : isAdmin ? "ADMIN" : "MOD"}
+                      </span>
                   )}
                 </div>
               </div>
@@ -855,7 +856,7 @@ function FriendsTab({ userId }: { userId: string }) {
       ...(recv || []).map((r: any) => r.sender_id),
     ];
     if (friendIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier").in("user_id", friendIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", friendIds);
       setFriends(profiles || []);
       // Fetch roles for friends to identify staff
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", friendIds);
@@ -871,7 +872,7 @@ function FriendsTab({ userId }: { userId: string }) {
     const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
     if (pRecv && pRecv.length > 0) {
       const senderIds = pRecv.map((r: any) => r.sender_id);
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", senderIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", senderIds);
       setPendingReceived(pRecv.map((r: any) => ({ ...r, profile: profiles?.find((p: any) => p.user_id === r.sender_id) })));
     } else setPendingReceived([]);
 
@@ -916,10 +917,10 @@ function FriendsTab({ userId }: { userId: string }) {
           <div className="space-y-2">
             {pendingReceived.map((req: any) => (
               <div key={req.id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
-                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                   {req.profile?.avatar_url ? <img src={req.profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
                 </div>
-                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{req.profile?.display_name || "Usuario"}</Link>
+                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary" style={getNameStyle(req.profile?.color_name)}>{req.profile?.display_name || "Usuario"}</Link>
                 <Button size="sm" onClick={() => acceptRequest(req.id, req.sender_id)} className="text-[10px] h-6 px-2">Aceptar</Button>
                 <Button size="sm" variant="outline" onClick={() => rejectRequest(req.id)} className="text-[10px] h-6 px-2">Rechazar</Button>
               </div>
@@ -939,14 +940,14 @@ function FriendsTab({ userId }: { userId: string }) {
               const staffLabel = getStaffLabel(roles);
               return (
                 <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
-                  <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(f.color_avatar_border)}>
                     {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
                   </div>
-                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{f.display_name}</Link>
+                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary" style={getNameStyle(f.color_name)}>{f.display_name}</Link>
                   {staffLabel ? (
-                    <span className="text-[9px] font-pixel text-neon-magenta">{staffLabel}</span>
+                    <span className="text-[9px] font-pixel text-neon-magenta" style={getRoleStyle(f.color_staff_role)}>{staffLabel}</span>
                   ) : (
-                    <span className="text-[9px] font-pixel text-neon-yellow">{f.membership_tier?.toUpperCase()}</span>
+                    <span className="text-[9px] font-pixel text-neon-yellow" style={getRoleStyle(f.color_role)}>{f.membership_tier?.toUpperCase()}</span>
                   )}
                   <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
                     <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>

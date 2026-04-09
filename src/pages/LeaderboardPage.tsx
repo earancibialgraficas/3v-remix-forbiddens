@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
+import { getNameStyle } from "@/lib/profileAppearance";
 
 interface Score {
   id: string;
@@ -22,6 +23,10 @@ interface UserInfo {
   role_icon: string | null;
   show_role_icon: boolean;
   membership_tier: string;
+  color_avatar_border?: string | null;
+  color_name?: string | null;
+  color_role?: string | null;
+  color_staff_role?: string | null;
 }
 
 export default function LeaderboardPage() {
@@ -42,7 +47,7 @@ export default function LeaderboardPage() {
         setScores(data as Score[]);
         const userIds = [...new Set((data as any[]).map(s => s.user_id).filter(Boolean))];
         if (userIds.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+          const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
           const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
           const pMap: Record<string, UserInfo> = {};
           profiles?.forEach(p => pMap[p.user_id] = p as unknown as UserInfo);
@@ -97,9 +102,13 @@ export default function LeaderboardPage() {
               roleIcon={up.role_icon}
               showRoleIcon={up.show_role_icon}
               membershipTier={up.membership_tier}
+              colorAvatarBorder={up.color_avatar_border}
+              colorName={up.color_name}
+              colorRole={up.color_role}
+              colorStaffRole={up.color_staff_role}
             />
           ) : (
-            <span className="text-foreground truncate">{score.display_name}</span>
+            <span className="text-foreground truncate" style={getNameStyle(up?.color_name)}>{score.display_name}</span>
           )}
         </div>
         <span className="text-neon-green text-right font-bold">{score.score.toLocaleString()}</span>

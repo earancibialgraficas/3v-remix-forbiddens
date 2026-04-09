@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
 interface Message {
   id: string;
@@ -25,6 +26,8 @@ interface Conversation {
   lastMessage: string;
   lastDate: string;
   unread: number;
+  partnerColorName?: string | null;
+  partnerColorAvatarBorder?: string | null;
 }
 
 export default function MessagesPage() {
@@ -66,7 +69,7 @@ export default function MessagesPage() {
     const partnerIds = Object.keys(convMap);
     if (partnerIds.length === 0) { setConversations([]); setLoading(false); return; }
 
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", partnerIds);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", partnerIds);
     const profileMap: Record<string, any> = {};
     profiles?.forEach(p => profileMap[p.user_id] = p);
 
@@ -81,6 +84,8 @@ export default function MessagesPage() {
         lastMessage: last.content,
         lastDate: last.created_at,
         unread,
+        partnerColorName: profileMap[pid]?.color_name || null,
+        partnerColorAvatarBorder: profileMap[pid]?.color_avatar_border || null,
       };
     });
     setConversations(convs.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()));
@@ -110,7 +115,7 @@ export default function MessagesPage() {
 
   const handleSearch = async () => {
     if (!searchUser.trim()) return;
-    const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url")
+    const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border")
       .ilike("display_name", `%${searchUser}%`).limit(10);
     setSearchResults(data?.filter(p => p.user_id !== user?.id) || []);
   };
@@ -142,12 +147,12 @@ export default function MessagesPage() {
             {searchResults.length > 0 && (
               <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
                 {searchResults.map(r => (
-                  <button key={r.user_id} onClick={() => { loadMessages(r.user_id); setSearchResults([]); setSearchUser(""); }}
+                   <button key={r.user_id} onClick={() => { loadMessages(r.user_id); setSearchResults([]); setSearchUser(""); }}
                     className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 text-left transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden" style={getAvatarBorderStyle(r.color_avatar_border)}>
                       {r.avatar_url ? <img src={r.avatar_url} className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground" />}
                     </div>
-                    <span className="text-xs font-body text-foreground truncate">{r.display_name}</span>
+                    <span className="text-xs font-body text-foreground truncate" style={getNameStyle(r.color_name)}>{r.display_name}</span>
                   </button>
                 ))}
               </div>
@@ -160,12 +165,12 @@ export default function MessagesPage() {
                 <button key={c.partnerId} onClick={() => loadMessages(c.partnerId)}
                   className={cn("w-full flex items-center gap-2 p-2.5 border-b border-border/30 hover:bg-muted/30 transition-colors text-left",
                     selectedPartner === c.partnerId && "bg-muted/50")}>
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(c.partnerColorAvatarBorder)}>
                     {c.partnerAvatar ? <img src={c.partnerAvatar} className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-body font-medium text-foreground truncate">{c.partnerName}</span>
+                      <span className="text-xs font-body font-medium text-foreground truncate" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
                       {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center">{c.unread}</span>}
                     </div>
                     <p className="text-[10px] text-muted-foreground font-body truncate">{c.lastMessage}</p>
@@ -181,7 +186,7 @@ export default function MessagesPage() {
           <div className="flex-1 bg-card border border-border rounded flex flex-col">
             <div className="p-2 border-b border-border flex items-center gap-2">
               <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /></button>
-              <span className="text-xs font-body font-medium text-foreground">{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
+              <span className="text-xs font-body font-medium text-foreground" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
             </div>
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
               {messages.map(m => (

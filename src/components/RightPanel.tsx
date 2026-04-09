@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 import { cn } from "@/lib/utils";
+import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
@@ -13,12 +14,15 @@ import { getCategoryRoute } from "@/lib/categoryRoutes";
 interface TopUser {
   display_name: string;
   total_score: number;
+  color_name?: string | null;
 }
 
 interface PremiumUser {
   display_name: string;
   membership_tier: string;
   created_at: string;
+  color_name?: string | null;
+  color_role?: string | null;
 }
 
 interface PopularPost {
@@ -94,7 +98,7 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("display_name, total_score").order("total_score", { ascending: false }).limit(5);
+      const { data } = await supabase.from("profiles").select("display_name, total_score, color_name").order("total_score", { ascending: false }).limit(5);
       if (data && data.length > 0) setTopUsers(data as unknown as TopUser[]);
     };
     fetchTop();
@@ -107,7 +111,7 @@ export default function RightPanel() {
   useEffect(() => {
     const fetchPremium = async () => {
       const { data } = await supabase.from("profiles")
-        .select("display_name, membership_tier, created_at")
+        .select("display_name, membership_tier, created_at, color_name, color_role")
         .neq("membership_tier", "novato")
         .order("created_at", { ascending: true })
         .limit(3);
@@ -251,7 +255,7 @@ export default function RightPanel() {
           {displayUsers.map((user, i) => (
             <div key={user.display_name} className={cn("flex items-center gap-1", sizes.body)}>
               <span className="text-muted-foreground w-3 text-right">{i + 1}</span>
-              <span className="text-foreground flex-1 truncate">{badges[i] || "🎯"} {user.display_name}</span>
+              <span className="text-foreground flex-1 truncate" style={getNameStyle(user.color_name)}>{badges[i] || "🎯"} {user.display_name}</span>
               <span className="text-neon-green">{user.total_score.toLocaleString()}</span>
             </div>
           ))}
@@ -269,8 +273,8 @@ export default function RightPanel() {
               <span className={cn("font-bold w-3 text-right", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : "text-neon-orange")}>
                 {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
               </span>
-              <span className="text-foreground flex-1 truncate font-medium">{pu.display_name}</span>
-              <span className={cn("font-pixel", sizes.title, "text-neon-yellow")}>{pu.membership_tier.toUpperCase()}</span>
+              <span className="text-foreground flex-1 truncate font-medium" style={getNameStyle(pu.color_name)}>{pu.display_name}</span>
+              <span className={cn("font-pixel", sizes.title, "text-neon-yellow")} style={getRoleStyle(pu.color_role)}>{pu.membership_tier.toUpperCase()}</span>
             </div>
           )) : (
             <p className={cn("text-muted-foreground italic", sizes.body)}>Aún no hay usuarios premium</p>
