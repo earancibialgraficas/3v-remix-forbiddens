@@ -785,6 +785,6 @@ export default function GameBubble() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
