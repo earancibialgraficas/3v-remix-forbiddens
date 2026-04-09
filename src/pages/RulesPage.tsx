@@ -1,9 +1,4 @@
-import { useState } from "react";
-import { Shield, AlertTriangle, Edit2, Save, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { Shield, AlertTriangle } from "lucide-react";
 
 const defaultRules = [
   {
@@ -37,33 +32,21 @@ const defaultRules = [
     items: [
       "El staff se reserva el derecho de sancionar a cualquier usuario que incumpla las normas.",
       "Las sanciones van desde advertencias hasta expulsión permanente, dependiendo de la gravedad.",
-      "Si consideras que una sanción es injusta, contacta al staff por mensaje privado.",
+      "Si consideras que una sanción es injusta, contacta al staff por Discord.",
     ],
   },
 ];
 
 export default function RulesPage() {
-  const { isAdmin, isMasterWeb } = useAuth();
-  const { toast } = useToast();
-  const [editing, setEditing] = useState(false);
-  const canEdit = isAdmin || isMasterWeb;
-
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-orange/30 rounded p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-neon-orange" />
-            <div>
-              <h1 className="font-pixel text-sm text-neon-orange">REGLAS DE CONVIVENCIA</h1>
-              <p className="text-xs text-muted-foreground font-body">Normas que todos los miembros deben respetar</p>
-            </div>
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-neon-orange" />
+          <div>
+            <h1 className="font-pixel text-sm text-neon-orange">REGLAS DE CONVIVENCIA</h1>
+            <p className="text-xs text-muted-foreground font-body">Normas que todos los miembros deben respetar</p>
           </div>
-          {canEdit && (
-            <Button size="sm" variant="outline" onClick={() => setEditing(!editing)} className="text-xs gap-1">
-              {editing ? <><X className="w-3 h-3" /> Cancelar</> : <><Edit2 className="w-3 h-3" /> Editar</>}
-            </Button>
-          )}
         </div>
       </div>
 
