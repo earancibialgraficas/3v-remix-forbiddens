@@ -16,6 +16,10 @@ interface UserPopupProps {
   membershipTier?: string;
   children?: React.ReactNode;
   className?: string;
+  colorAvatarBorder?: string | null;
+  colorName?: string | null;
+  colorRole?: string | null;
+  colorStaffRole?: string | null;
 }
 
 export default function UserPopup({
@@ -28,6 +32,10 @@ export default function UserPopup({
   membershipTier = "novato",
   children,
   className,
+  colorAvatarBorder,
+  colorName,
+  colorRole,
+  colorStaffRole,
 }: UserPopupProps) {
   const [open, setOpen] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
