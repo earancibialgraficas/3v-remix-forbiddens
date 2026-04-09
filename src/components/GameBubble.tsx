@@ -152,6 +152,21 @@ export default function GameBubble() {
       if (!el) return;
       try {
         const { Nostalgist } = await import("nostalgist");
+        
+        // Monkey-patch AudioContext to track instances for volume control
+        const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (OrigAudioContext && !(window as any).__audioContextPatched) {
+          (window as any).__audioContexts = (window as any).__audioContexts || [];
+          const origCtor = OrigAudioContext;
+          (window as any).AudioContext = function(...args: any[]) {
+            const ctx = new origCtor(...args);
+            (window as any).__audioContexts.push(ctx);
+            return ctx;
+          };
+          (window as any).AudioContext.prototype = origCtor.prototype;
+          (window as any).__audioContextPatched = true;
+        }
+        
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
         const instance = await Nostalgist.launch({
@@ -213,38 +228,51 @@ export default function GameBubble() {
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // Volume control via Web Audio API
+  // Volume control - patch global AudioContext to intercept game audio
   useEffect(() => {
-    if (!romLoaded || !nostalgistRef.current) return;
+    if (!romLoaded) return;
+    const vol = volume / 100;
+    // 1. Find and control all AudioContext instances via canvas element
     try {
-      const n = nostalgistRef.current;
-      // Try multiple approaches to set volume
-      // 1. Direct retroarch command
-      if (n.sendCommand) {
-        try { n.sendCommand("AUDIO_VOLUME", String(volume === 0 ? -80 : (volume / 100 * 10 - 10))); } catch {}
-      }
-      // 2. Try emscripten module audio context
-      const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
-      if (mod) {
-        // Try to find and control all audio contexts
-        if (mod.SDL2?.audioContext) {
+      const canvasEl = canvasRef.current;
+      if (canvasEl) {
+        // Nostalgist/RetroArch uses Emscripten which creates AudioContext on SDL2
+        const mod = nostalgistRef.current?.getEmscriptenModule?.() || (nostalgistRef.current as any)?.Module;
+        if (mod?.SDL2?.audioContext) {
           const ctx = mod.SDL2.audioContext as AudioContext;
-          if (ctx.destination) {
-            // Create or reuse gain node
-            if (!(mod as any)._volumeGain) {
-              const gain = ctx.createGain();
-              // Reconnect: source -> gain -> destination
-              gain.connect(ctx.destination);
-              (mod as any)._volumeGain = gain;
-            }
-            (mod as any)._volumeGain.gain.setValueAtTime(volume / 100, ctx.currentTime);
+          // Find or create a master gain node
+          if (!(mod as any).__masterGain) {
+            const gain = ctx.createGain();
+            // We need to intercept the destination
+            // Patch ctx.destination by connecting gain
+            (mod as any).__masterGain = gain;
+            // Try to reconnect existing sources through gain
+            gain.connect(ctx.destination);
           }
+          (mod as any).__masterGain.gain.value = vol;
         }
       }
-      // 3. Fallback: control any audio/video elements
-      document.querySelectorAll("audio, video").forEach((el: any) => {
-        el.volume = volume / 100;
-      });
+    } catch {}
+    // 2. Control all audio/video elements on page
+    document.querySelectorAll("audio, video").forEach((el: any) => {
+      el.volume = vol;
+    });
+    // 3. Patch all AudioContext gain nodes we can find
+    try {
+      // @ts-ignore - Access global audio contexts
+      const contexts = (window as any).__audioContexts as AudioContext[] | undefined;
+      if (contexts) {
+        contexts.forEach(ctx => {
+          try {
+            if (!(ctx as any).__gainNode) {
+              const g = ctx.createGain();
+              g.connect(ctx.destination);
+              (ctx as any).__gainNode = g;
+            }
+            (ctx as any).__gainNode.gain.value = vol;
+          } catch {}
+        });
+      }
     } catch {}
   }, [volume, romLoaded]);
 
@@ -334,25 +362,49 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      // Convert base64 back to Blob (nostalgist expects Blob)
-      const blob = base64ToBlob(slot.data);
-      await nostalgistRef.current.loadState(blob);
-      toast({ title: "Partida cargada", description: `"${slot.name}"` });
-      setShowLoadDialog(false);
-    } catch (err) {
-      console.error("Load error:", err);
-      // Fallback: try with ArrayBuffer
+      // Try multiple formats that nostalgist might accept
+      const binary = atob(slot.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      
+      // Try ArrayBuffer first
       try {
-        const binary = atob(slot.data);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         await nostalgistRef.current.loadState(bytes.buffer);
         toast({ title: "Partida cargada", description: `"${slot.name}"` });
         setShowLoadDialog(false);
-      } catch (err2) {
-        console.error("Load fallback error:", err2);
-        toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
-      }
+        return;
+      } catch {}
+      
+      // Try Uint8Array
+      try {
+        await nostalgistRef.current.loadState(bytes);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      // Try Blob
+      try {
+        const blob = new Blob([bytes]);
+        await nostalgistRef.current.loadState(blob);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      // Try File object (some emulators expect this)
+      try {
+        const file = new File([bytes], "state.sav", { type: "application/octet-stream" });
+        await nostalgistRef.current.loadState(file);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+        return;
+      } catch {}
+      
+      toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
+    } catch (err) {
+      console.error("Load error:", err);
+      toast({ title: "Error al cargar la partida", description: "No se pudo restaurar el estado", variant: "destructive" });
     }
   };
 

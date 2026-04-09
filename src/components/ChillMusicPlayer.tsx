@@ -28,6 +28,7 @@ export default function ChillMusicPlayer() {
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [seekPosition, setSeekPosition] = useState(0); // 0-100
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
@@ -108,12 +109,12 @@ export default function ChillMusicPlayer() {
     setShowAddSong(false);
   };
 
-  // The iframe is ALWAYS rendered when playing, even when minimized
+  // YouTube iframe with API enabled for seeking
   const renderIframe = isPlaying && current && (
     <iframe
       ref={iframeRef}
       key={`${current.id}-${volume === 0 ? 'muted' : 'unmuted'}`}
-      src={`https://www.youtube.com/embed/${current.id}?autoplay=1&loop=0&controls=0&rel=0${volume === 0 ? "&mute=1" : ""}`}
+      src={`https://www.youtube.com/embed/${current.id}?autoplay=1&loop=0&controls=0&rel=0&enablejsapi=1${volume === 0 ? "&mute=1" : ""}`}
       className="w-0 h-0 absolute pointer-events-none"
       style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}
       allow="autoplay"
@@ -190,6 +191,26 @@ export default function ChillMusicPlayer() {
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
             <SkipForward className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Seek bar */}
+        <div className="px-3 pb-1">
+          <Slider
+            value={[seekPosition]}
+            onValueChange={v => {
+              setSeekPosition(v[0]);
+              // Send seek command to YouTube iframe via postMessage
+              try {
+                iframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: "command", func: "seekTo", args: [v[0] * 36, true] }), // Approximate: 100% = ~60min
+                  "*"
+                );
+              } catch {}
+            }}
+            max={100}
+            step={1}
+            className="w-full"
+          />
         </div>
 
         {/* Volume slider */}

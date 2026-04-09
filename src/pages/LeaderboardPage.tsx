@@ -70,8 +70,20 @@ export default function LeaderboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Deduplicate: keep only highest score per user per game
+  const dedupScores = (list: Score[]) => {
+    const best: Record<string, Score> = {};
+    list.forEach(s => {
+      const key = `${s.user_id}_${s.game_name}_${s.console_type}`;
+      if (!best[key] || s.score > best[key].score) best[key] = s;
+    });
+    return Object.values(best).sort((a, b) => b.score - a.score);
+  };
+
+  const deduped = dedupScores(scores);
+
   // Group scores by game
-  const gameGroups = scores.reduce<Record<string, Score[]>>((acc, s) => {
+  const gameGroups = deduped.reduce<Record<string, Score[]>>((acc, s) => {
     const key = `${s.game_name} (${s.console_type.toUpperCase()})`;
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, User, Minimize2, Maximize2, ArrowLeft, Search, Type } from "lucide-react";
+import { MessageSquare, X, Send, User, Minus, Square, ArrowLeft, Search, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -211,10 +211,10 @@ export default function FloatingChat() {
             </button>
           )}
           <button onClick={() => setMinimized(true)} className="p-1 text-muted-foreground hover:text-foreground" title="Minimizar">
-            <Minimize2 className="w-3 h-3" />
+            <Minus className="w-3 h-3" />
           </button>
           <button onClick={handleExpand} className="p-1 text-muted-foreground hover:text-foreground" title="Expandir">
-            <Maximize2 className="w-3 h-3" />
+            <Square className="w-3 h-3" />
           </button>
           <button onClick={() => { setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" />
