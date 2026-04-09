@@ -21,7 +21,7 @@ interface SaveSlot {
   timestamp: number;
 }
 
-const AFK_TIMEOUT_MS = 30 * 1000; // 30 seconds
+const AFK_TIMEOUT_MS = 30 * 1000;
 
 export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
@@ -33,16 +33,13 @@ export default function GameBubble() {
   const scoreRef = useRef(0);
   const timeRef = useRef(0);
 
-  // AFK tracking
   const lastInputRef = useRef(Date.now());
   const afkRef = useRef(false);
 
-  // Dragging
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
-  // Resizing
   const [popupSize, setPopupSize] = useState({ w: 700, h: 520 });
   const [resizing, setResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -54,7 +51,6 @@ export default function GameBubble() {
   const [showVolume, setShowVolume] = useState(false);
   const [paused, setPaused] = useState(false);
 
-  // Save/Load slots
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
@@ -65,11 +61,9 @@ export default function GameBubble() {
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
-    canvas.getBoundingClientRect();
   }, []);
 
   const scheduleCanvasSurfaceSync = useCallback(() => {
@@ -79,28 +73,22 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
-  // AFK detection: track key and gamepad activity
+  // AFK detection
   useEffect(() => {
     const onInput = () => {
       lastInputRef.current = Date.now();
-      if (afkRef.current) {
-        afkRef.current = false;
-      }
+      if (afkRef.current) afkRef.current = false;
     };
     window.addEventListener("keydown", onInput);
     window.addEventListener("mousedown", onInput);
     window.addEventListener("gamepadconnected", onInput);
-    // Also poll gamepad buttons
     let gpInterval: NodeJS.Timeout | null = null;
     if (activeGame && romLoaded) {
       gpInterval = setInterval(() => {
         const gamepads = navigator.getGamepads?.();
         if (gamepads) {
           for (const gp of gamepads) {
-            if (gp && gp.buttons.some(b => b.pressed)) {
-              onInput();
-              break;
-            }
+            if (gp && gp.buttons.some(b => b.pressed)) { onInput(); break; }
           }
         }
       }, 500);
@@ -113,21 +101,16 @@ export default function GameBubble() {
     };
   }, [activeGame, romLoaded]);
 
-  // Load save slots from localStorage
   useEffect(() => {
     if (activeGame) {
       const key = `save_slots_${activeGame.gameName}`;
       const stored = localStorage.getItem(key);
       if (stored) {
         try { setSaveSlots(JSON.parse(stored)); } catch { setSaveSlots([]); }
-      } else {
-        setSaveSlots([]);
-      }
+      } else { setSaveSlots([]); }
     }
   }, [activeGame?.gameName]);
 
-  // Score increases 10 points every 10 seconds of active play (with AFK check)
-  // AFK also auto-pauses the game after 30s of inactivity
   useEffect(() => {
     if (activeGame && !minimized && romLoaded && !paused) {
       intervalRef.current = setInterval(() => {
@@ -135,13 +118,12 @@ export default function GameBubble() {
         if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
           if (!afkRef.current) {
             afkRef.current = true;
-            // Auto-pause when AFK
             if (nostalgistRef.current) {
               try { nostalgistRef.current.pause(); } catch {}
               setPaused(true);
             }
           }
-          return; // Don't add score while AFK
+          return;
         }
         timeRef.current += 10;
         scoreRef.current += 10;
@@ -171,9 +153,7 @@ export default function GameBubble() {
       try {
         const { Nostalgist } = await import("nostalgist");
         let romSrc = activeGame.romUrl;
-        if (romSrc.startsWith("/")) {
-          romSrc = window.location.origin + romSrc;
-        }
+        if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
         const instance = await Nostalgist.launch({
           core: activeGame.consoleCore,
           rom: romSrc,
@@ -202,47 +182,29 @@ export default function GameBubble() {
 
   useEffect(() => {
     if (!romLoaded || !nostalgistRef.current) return;
-
     scheduleCanvasSurfaceSync();
-
     if (!minimized && !paused) {
-      try {
-        nostalgistRef.current.resume();
-      } catch {}
+      try { nostalgistRef.current.resume(); } catch {}
     }
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
   useEffect(() => {
     if (!romLoaded) return;
-
     const refreshViewport = () => {
       scheduleCanvasSurfaceSync();
-
       if (!minimized && nostalgistRef.current && !paused) {
-        try {
-          nostalgistRef.current.resume();
-        } catch {}
+        try { nostalgistRef.current.resume(); } catch {}
       }
     };
-
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        refreshViewport();
-      }
+      if (document.visibilityState === "visible") refreshViewport();
     };
-
     const observer = typeof ResizeObserver !== "undefined" && canvasViewportRef.current
-      ? new ResizeObserver(() => refreshViewport())
-      : null;
-
-    if (observer && canvasViewportRef.current) {
-      observer.observe(canvasViewportRef.current);
-    }
-
+      ? new ResizeObserver(() => refreshViewport()) : null;
+    if (observer && canvasViewportRef.current) observer.observe(canvasViewportRef.current);
     window.addEventListener("resize", refreshViewport);
     window.addEventListener("focus", refreshViewport);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", refreshViewport);
@@ -251,47 +213,50 @@ export default function GameBubble() {
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // Volume control
+  // Volume control via Web Audio API
   useEffect(() => {
-    if (!romLoaded) return;
+    if (!romLoaded || !nostalgistRef.current) return;
     try {
-      const container = canvasRef.current?.parentElement;
-      if (container) {
-        container.querySelectorAll("audio, video").forEach((el: any) => {
-          el.volume = volume / 100;
-        });
+      const n = nostalgistRef.current;
+      // Try multiple approaches to set volume
+      // 1. Direct retroarch command
+      if (n.sendCommand) {
+        try { n.sendCommand("AUDIO_VOLUME", String(volume === 0 ? -80 : (volume / 100 * 10 - 10))); } catch {}
       }
-      document.querySelectorAll("audio").forEach(a => { a.volume = volume / 100; });
-      if (nostalgistRef.current) {
-        const n = nostalgistRef.current;
-        const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
-        if (mod?.SDL2?.audioContext) {
-          const ctx = mod.SDL2.audioContext;
-          if (!mod._gainNode) {
-            mod._gainNode = ctx.createGain();
-          }
-          if (mod._gainNode) {
-            mod._gainNode.gain.value = volume / 100;
+      // 2. Try emscripten module audio context
+      const mod = n.getEmscriptenModule?.() || (n as any).Module || (n as any)._module;
+      if (mod) {
+        // Try to find and control all audio contexts
+        if (mod.SDL2?.audioContext) {
+          const ctx = mod.SDL2.audioContext as AudioContext;
+          if (ctx.destination) {
+            // Create or reuse gain node
+            if (!(mod as any)._volumeGain) {
+              const gain = ctx.createGain();
+              // Reconnect: source -> gain -> destination
+              gain.connect(ctx.destination);
+              (mod as any)._volumeGain = gain;
+            }
+            (mod as any)._volumeGain.gain.setValueAtTime(volume / 100, ctx.currentTime);
           }
         }
       }
+      // 3. Fallback: control any audio/video elements
+      document.querySelectorAll("audio, video").forEach((el: any) => {
+        el.volume = volume / 100;
+      });
     } catch {}
   }, [volume, romLoaded]);
 
-  // Pause/Resume toggle
   const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;
     try {
-      if (paused) {
-        nostalgistRef.current.resume();
-      } else {
-        nostalgistRef.current.pause();
-      }
+      if (paused) nostalgistRef.current.resume();
+      else nostalgistRef.current.pause();
       setPaused(!paused);
     } catch {}
   }, [paused, romLoaded]);
 
-  // ESC key to toggle pause
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && activeGame && romLoaded && !minimized) {
@@ -303,39 +268,34 @@ export default function GameBubble() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [activeGame, romLoaded, minimized, togglePause]);
 
-  // Helper: convert ArrayBuffer/Blob to base64 string for localStorage
+  // Save/Load helpers - store as base64
   const stateToBase64 = async (state: any): Promise<string> => {
+    let bytes: Uint8Array;
     if (state instanceof Blob) {
-      const buf = await state.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
-      return btoa(binary);
+      bytes = new Uint8Array(await state.arrayBuffer());
+    } else if (state instanceof ArrayBuffer) {
+      bytes = new Uint8Array(state);
+    } else if (ArrayBuffer.isView(state)) {
+      bytes = new Uint8Array(state.buffer, state.byteOffset, state.byteLength);
+    } else {
+      return JSON.stringify(state);
     }
-    if (state instanceof ArrayBuffer || ArrayBuffer.isView(state)) {
-      const bytes = new Uint8Array(state instanceof ArrayBuffer ? state : state.buffer);
-      let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
-      return btoa(binary);
-    }
-    // Fallback: try JSON
-    return JSON.stringify(state);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
   };
 
-  // Helper: convert base64 back to Uint8Array
-  const base64ToState = (b64: string): Uint8Array | any => {
+  const base64ToBlob = (b64: string): Blob => {
     try {
       const binary = atob(b64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return bytes;
+      return new Blob([bytes]);
     } catch {
-      // Might be old JSON format
-      try { return JSON.parse(b64); } catch { return b64; }
+      return new Blob([b64]);
     }
   };
 
-  // Auto-save on close
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     try {
@@ -374,13 +334,25 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      const stateData = base64ToState(slot.data);
-      await nostalgistRef.current.loadState(stateData);
+      // Convert base64 back to Blob (nostalgist expects Blob)
+      const blob = base64ToBlob(slot.data);
+      await nostalgistRef.current.loadState(blob);
       toast({ title: "Partida cargada", description: `"${slot.name}"` });
       setShowLoadDialog(false);
     } catch (err) {
       console.error("Load error:", err);
-      toast({ title: "Error al cargar", variant: "destructive" });
+      // Fallback: try with ArrayBuffer
+      try {
+        const binary = atob(slot.data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        await nostalgistRef.current.loadState(bytes.buffer);
+        toast({ title: "Partida cargada", description: `"${slot.name}"` });
+        setShowLoadDialog(false);
+      } catch (err2) {
+        console.error("Load fallback error:", err2);
+        toast({ title: "Error al cargar la partida", description: "El formato del guardado no es compatible", variant: "destructive" });
+      }
     }
   };
 
@@ -396,43 +368,27 @@ export default function GameBubble() {
     if (!user || !activeGame || scoreRef.current <= 0) return;
     const currentScore = scoreRef.current;
     const currentTime = timeRef.current;
-    
     const { data: existing } = await supabase
-      .from("leaderboard_scores")
-      .select("id, score")
-      .eq("user_id", user.id)
-      .eq("game_name", activeGame.gameName)
-      .eq("console_type", activeGame.consoleName)
-      .order("score", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .from("leaderboard_scores").select("id, score")
+      .eq("user_id", user.id).eq("game_name", activeGame.gameName).eq("console_type", activeGame.consoleName)
+      .order("score", { ascending: false }).limit(1).maybeSingle();
 
     if (existing && (existing as any).score >= currentScore) {
       toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
       return;
     }
-
     if (existing) {
       const { error } = await supabase.from("leaderboard_scores").update({
-        score: currentScore,
-        play_time_seconds: currentTime,
-        display_name: profile?.display_name || "Anónimo",
+        score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
       } as any).eq("id", (existing as any).id);
-      if (!error) {
-        toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
-      }
+      if (!error) toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
     } else {
       const { error } = await supabase.from("leaderboard_scores").insert({
-        user_id: user.id,
-        display_name: profile?.display_name || "Anónimo",
-        game_name: activeGame.gameName,
-        console_type: activeGame.consoleName,
-        score: currentScore,
-        play_time_seconds: currentTime,
+        user_id: user.id, display_name: profile?.display_name || "Anónimo",
+        game_name: activeGame.gameName, console_type: activeGame.consoleName,
+        score: currentScore, play_time_seconds: currentTime,
       } as any);
-      if (!error) {
-        toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
-      }
+      if (!error) toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
     }
   };
 
@@ -447,7 +403,7 @@ export default function GameBubble() {
     closeGame(idx);
   };
 
-  // Dragging handlers
+  // Dragging
   const onMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPosX: position.x, startPosY: position.y };
@@ -467,7 +423,7 @@ export default function GameBubble() {
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, [dragging]);
 
-  // Resize handlers
+  // Resize - use RAF to avoid lag
   const onResizeDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     setResizing(true);
@@ -476,17 +432,22 @@ export default function GameBubble() {
 
   useEffect(() => {
     if (!resizing) return;
+    let rafId: number;
     const onMove = (e: MouseEvent) => {
-      const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
-      const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
-      setPopupSize({ w: newW, h: newH });
-      syncCanvasSurface();
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
+        const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
+        setPopupSize({ w: newW, h: newH });
+      });
     };
-    const onUp = () => setResizing(false);
+    const onUp = () => { cancelAnimationFrame(rafId); setResizing(false); scheduleCanvasSurfaceSync(); };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [resizing, syncCanvasSurface]);
+    return () => { cancelAnimationFrame(rafId); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [resizing, scheduleCanvasSurfaceSync]);
+
+  // Click outside to minimize (already handled by backdrop)
 
   if (activeGames.length === 0 || !activeGame) return null;
 
@@ -510,9 +471,9 @@ export default function GameBubble() {
           ref={popupRef}
           onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
           className={cn(
-            "relative bg-card border border-border overflow-hidden select-none transition-[width,height,transform,box-shadow,border-color] duration-300",
+            "relative bg-card border border-border overflow-hidden select-none",
             minimized
-              ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group"
+              ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group transition-transform duration-200"
               : "flex rounded-xl shadow-2xl shadow-black/50 animate-scale-in"
           )}
           style={
@@ -524,6 +485,7 @@ export default function GameBubble() {
                   height: `${popupSize.h}px`,
                   maxWidth: "95vw",
                   maxHeight: "90vh",
+                  willChange: dragging || resizing ? "transform, width, height" : "auto",
                 }
           }
         >
@@ -542,11 +504,17 @@ export default function GameBubble() {
                       <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
                       <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame.score || 0}</span>
                       <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame.playTime || 0) / 60)}:{((activeGame.playTime || 0) % 60).toString().padStart(2, "0")}</span>
-                      {afkRef.current && (
-                        <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>
-                      )}
+                      {afkRef.current && <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>}
                     </div>
                   </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar">
+                    <Minimize2 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar">
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </div>
             )}
@@ -574,36 +542,18 @@ export default function GameBubble() {
                           {paused && <span className="text-neon-yellow font-pixel">PAUSA</span>}
                         </div>
                       </div>
-
                       {romLoaded && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePause();
-                          }}
-                          className={cn(
-                            "h-7 w-7 rounded-full border border-border/70 bg-background/80 backdrop-blur-sm",
-                            paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-foreground hover:bg-background"
-                          )}
-                          title="Pausar"
-                        >
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); togglePause(); }}
+                          className={cn("h-7 w-7 rounded-full border border-border/70 bg-background/80 backdrop-blur-sm",
+                            paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-foreground hover:bg-background")} title="Pausar">
                           {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                         </Button>
                       )}
                     </div>
                   </div>
-
                   <span className={cn("absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full", paused ? "bg-neon-yellow" : "bg-neon-green animate-pulse")} />
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClose(currentGameIndex);
-                    }}
-                    className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); handleClose(currentGameIndex); }}
+                    className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3 text-destructive-foreground" />
                   </button>
                 </>
@@ -627,34 +577,24 @@ export default function GameBubble() {
                     <Save className="w-4 h-4" />
                   </Button>
                 )}
-
                 {romLoaded && saveSlots.length > 0 && (
                   <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
                     <Download className="w-4 h-4" />
                   </Button>
                 )}
-
                 {user && activeGame.score > 0 && (
                   <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
                     <Upload className="w-4 h-4" />
                   </Button>
                 )}
-
                 <div className="relative">
                   <Button size="icon" variant="ghost" onClick={() => setShowVolume(!showVolume)} className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" title="Volumen">
                     {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </Button>
-
                   {showVolume && (
                     <div className="absolute right-full mr-2 top-0 bg-card border border-border rounded-lg p-3 w-36 shadow-xl z-20">
                       <p className="text-[9px] text-muted-foreground font-body mb-2">Volumen: {volume}%</p>
-                      <Slider
-                        value={[volume]}
-                        onValueChange={(v) => setVolume(v[0])}
-                        max={100}
-                        step={5}
-                        className="w-full"
-                      />
+                      <Slider value={[volume]} onValueChange={(v) => setVolume(v[0])} max={100} step={5} className="w-full" />
                       <div className="flex justify-between mt-2">
                         <button onClick={() => setVolume(0)} className="text-[8px] text-muted-foreground hover:text-foreground">Mute</button>
                         <button onClick={() => setVolume(100)} className="text-[8px] text-muted-foreground hover:text-foreground">Max</button>
@@ -662,44 +602,28 @@ export default function GameBubble() {
                     </div>
                   )}
                 </div>
-
                 {romLoaded && (
-                  <Button size="icon" variant="ghost" onClick={togglePause} className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
+                  <Button size="icon" variant="ghost" onClick={togglePause}
+                    className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
                     {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                   </Button>
                 )}
 
-                <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Minimizar">
-                  <Minimize2 className="w-4 h-4" />
-                </Button>
-
                 <div className="flex-1" />
 
                 {activeGames.length > 1 && activeGames.map((g, idx) => (
-                  <button
-                    key={g.romUrl}
-                    onClick={() => maximizeGame(idx)}
-                    className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
-                      idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50"
-                    )}
-                    title={g.gameName}
-                  >
+                  <button key={g.romUrl} onClick={() => maximizeGame(idx)}
+                    className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
+                      idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50")} title={g.gameName}>
                     {consoleIcons[g.consoleName] || "🎮"}
                   </button>
                 ))}
 
                 <div className="flex-1" />
-
-                <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-lg" title="Cerrar juego">
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
 
-              <div
-                onMouseDown={onResizeDown}
-                className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10"
-              >
+              <div onMouseDown={onResizeDown}
+                className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10">
                 <GripVertical className="w-3 h-3 rotate-[-45deg]" />
               </div>
             </>
@@ -709,11 +633,8 @@ export default function GameBubble() {
         {minimized && inactiveGames.length > 0 && (
           <div className="flex flex-col items-end gap-2">
             {inactiveGames.map(({ game, idx }) => (
-              <button
-                key={game.romUrl}
-                onClick={() => maximizeGame(idx)}
-                className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]"
-              >
+              <button key={game.romUrl} onClick={() => maximizeGame(idx)}
+                className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
                 <div className="relative flex h-full flex-col justify-between">
                   <div className="flex items-center justify-between gap-2">
@@ -737,12 +658,7 @@ export default function GameBubble() {
           <div className="absolute inset-0 bg-black/60" />
           <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in" onClick={e => e.stopPropagation()}>
             <h3 className="font-pixel text-[10px] text-neon-green mb-3">GUARDAR PARTIDA</h3>
-            <Input
-              value={slotName}
-              onChange={e => setSlotName(e.target.value)}
-              placeholder={`Slot ${saveSlots.length + 1}`}
-              className="h-8 bg-muted text-xs font-body mb-3"
-            />
+            <Input value={slotName} onChange={e => setSlotName(e.target.value)} placeholder={`Slot ${saveSlots.length + 1}`} className="h-8 bg-muted text-xs font-body mb-3" />
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSaveState} className="text-xs flex-1">Guardar</Button>
               <Button size="sm" variant="outline" onClick={() => setShowSaveDialog(false)} className="text-xs">Cancelar</Button>

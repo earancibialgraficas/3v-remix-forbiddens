@@ -74,6 +74,9 @@ export default function HeroSection() {
           <Button asChild variant="outline" size="sm" className="border-accent text-accent hover:bg-accent/10 font-pixel text-[10px] px-5 py-2.5 transition-all duration-200">
             <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">DISCORD</a>
           </Button>
+          <Button asChild variant="outline" size="sm" className="border-neon-yellow text-neon-yellow hover:bg-neon-yellow/10 font-pixel text-[10px] px-5 py-2.5 transition-all duration-200">
+            <Link to="/reglas">REGLAS</Link>
+          </Button>
         </div>
       </div>
     </section>
