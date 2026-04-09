@@ -28,7 +28,9 @@ export default function ChillMusicPlayer() {
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [seekPosition, setSeekPosition] = useState(0); // 0-100
+  const [seekPosition, setSeekPosition] = useState(0);
+  const seekIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const seekStartRef = useRef<number>(Date.now());
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
@@ -76,8 +78,23 @@ export default function ChillMusicPlayer() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
-  const next = () => setCurrentIndex(i => (i + 1) % playlist.length);
-  const prev = () => setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
+  // Seek bar progress simulation (YouTube livestreams = ~infinite, regular = ~4min avg)
+  useEffect(() => {
+    if (seekIntervalRef.current) clearInterval(seekIntervalRef.current);
+    if (isPlaying) {
+      seekStartRef.current = Date.now() - (seekPosition / 100) * 240000;
+      seekIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - seekStartRef.current;
+        const progress = Math.min((elapsed / 240000) * 100, 100); // 4 min estimate
+        setSeekPosition(progress);
+        if (progress >= 100) { next(); }
+      }, 1000);
+    }
+    return () => { if (seekIntervalRef.current) clearInterval(seekIntervalRef.current); };
+  }, [isPlaying, currentIndex]);
+
+  const next = () => { setCurrentIndex(i => (i + 1) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
+  const prev = () => { setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
   
   const removeSong = (idx: number) => {
     if (playlist.length <= 1) return;
@@ -199,13 +216,7 @@ export default function ChillMusicPlayer() {
             value={[seekPosition]}
             onValueChange={v => {
               setSeekPosition(v[0]);
-              // Send seek command to YouTube iframe via postMessage
-              try {
-                iframeRef.current?.contentWindow?.postMessage(
-                  JSON.stringify({ event: "command", func: "seekTo", args: [v[0] * 36, true] }), // Approximate: 100% = ~60min
-                  "*"
-                );
-              } catch {}
+              seekStartRef.current = Date.now() - (v[0] / 100) * 240000;
             }}
             max={100}
             step={1}
