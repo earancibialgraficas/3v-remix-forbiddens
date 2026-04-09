@@ -193,6 +193,26 @@ export default function ChillMusicPlayer() {
           </button>
         </div>
 
+        {/* Seek bar */}
+        <div className="px-3 pb-1">
+          <Slider
+            value={[seekPosition]}
+            onValueChange={v => {
+              setSeekPosition(v[0]);
+              // Send seek command to YouTube iframe via postMessage
+              try {
+                iframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: "command", func: "seekTo", args: [v[0] * 36, true] }), // Approximate: 100% = ~60min
+                  "*"
+                );
+              } catch {}
+            }}
+            max={100}
+            step={1}
+            className="w-full"
+          />
+        </div>
+
         {/* Volume slider */}
         <div className="px-3 pb-2 flex items-center gap-2">
           <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground hover:text-foreground shrink-0">
