@@ -138,14 +138,14 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <PanelLeft className="w-4 h-4" />
             </button>
             <Link to="/" className="flex items-center justify-center p-1">
-              <span className="font-pixel text-[11px] leading-none" style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)' }}>F</span>
+              <span className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>F</span>
             </Link>
             <div className="flex flex-col items-center gap-3">
               {"ORBIDDENS".split("").map((letter, i) => (
                 <span
                   key={i}
                   className="font-pixel text-[11px] leading-none"
-                  style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)', display: "block", writingMode: "initial" }}
+                  style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)', display: "block", writingMode: "initial" }}
                 >
                   {letter}
                 </span>
@@ -161,7 +161,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <PanelLeftClose className="w-4 h-4" />
             </button>
             <Link to="/" className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="font-pixel text-[9px] truncate" style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)' }}>FORBIDDENS</span>
+              <span className="font-pixel text-[9px] truncate" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
             </Link>
           </div>
         )}

@@ -180,7 +180,7 @@ export default function RightPanel() {
       <div className="bg-card border border-border rounded p-2.5">
         <div className="flex items-center gap-2 mb-2">
           <div>
-            <h3 className={cn("font-pixel", sizes.title)} style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6), 0 0 20px rgba(165, 6, 45, 0.3)' }}>FORBIDDENS</h3>
+            <h3 className={cn("font-pixel", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6), 0 0 20px rgba(222, 24, 57, 0.3)' }}>FORBIDDENS</h3>
             <p className={cn("text-muted-foreground font-body", sizes.title)}>El foro underground</p>
           </div>
         </div>
