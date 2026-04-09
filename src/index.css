@@ -226,4 +226,24 @@
   .animate-slide-in-left {
     animation: slide-in-left 0.3s ease-out forwards;
   }
+
+  @keyframes banner-text-in {
+    0% { opacity: 0; transform: scale(0.8); filter: blur(4px); }
+    50% { opacity: 0.5; transform: scale(1.05); filter: blur(1px); }
+    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+
+  .animate-banner-text-in {
+    opacity: 0;
+    animation: banner-text-in 0.8s ease-out forwards;
+  }
+
+  @keyframes banner-pixelate {
+    0% { opacity: 1; filter: blur(0); }
+    100% { opacity: 0; filter: blur(8px) brightness(2); }
+  }
+
+  .animate-banner-pixelate {
+    animation: banner-pixelate 0.8s ease-out forwards;
+  }
 }

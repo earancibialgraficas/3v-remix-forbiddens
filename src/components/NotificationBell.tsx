@@ -20,6 +20,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -45,7 +46,6 @@ export default function NotificationBell() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -53,6 +53,37 @@ export default function NotificationBell() {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Reposition dropdown to stay within viewport
+  useEffect(() => {
+    if (!open || !dropdownRef.current || !ref.current) return;
+    const dd = dropdownRef.current;
+    const trigger = ref.current;
+    const triggerRect = trigger.getBoundingClientRect();
+    const ddWidth = 320;
+    const ddMaxHeight = 400;
+
+    // Calculate left position so dropdown never goes off-screen
+    let left = 0;
+    if (triggerRect.right - ddWidth < 0) {
+      // Not enough space on left, align to left edge
+      left = -triggerRect.left + 8;
+    } else {
+      left = -(ddWidth - triggerRect.width);
+    }
+
+    // Check if there's space below
+    const spaceBelow = window.innerHeight - triggerRect.bottom - 8;
+    if (spaceBelow < ddMaxHeight && triggerRect.top > spaceBelow) {
+      dd.style.bottom = `${triggerRect.height + 8}px`;
+      dd.style.top = 'auto';
+    } else {
+      dd.style.top = `${triggerRect.height + 8}px`;
+      dd.style.bottom = 'auto';
+    }
+    dd.style.left = `${left}px`;
+    dd.style.right = 'auto';
   }, [open]);
 
   const markAllRead = async () => {
@@ -91,8 +122,11 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in">
-          {/* Header */}
+        <div
+          ref={dropdownRef}
+          className="absolute w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in"
+          style={{ maxHeight: 'min(400px, calc(100vh - 80px))' }}
+        >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
             <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors">
@@ -100,7 +134,6 @@ export default function NotificationBell() {
             </button>
           </div>
 
-          {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
@@ -119,11 +152,9 @@ export default function NotificationBell() {
                       !n.is_read && "bg-primary/5"
                     )}
                   >
-                    {/* Bubble icon */}
                     <div className={cn("flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center", c.color)}>
                       {c.icon}
                     </div>
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-body font-medium text-foreground leading-snug">{n.title}</p>
                       <p className="text-[10px] font-body text-muted-foreground mt-0.5 leading-snug line-clamp-2">{n.body}</p>
@@ -136,7 +167,6 @@ export default function NotificationBell() {
                         )}
                       </div>
                     </div>
-                    {/* Unread dot */}
                     {!n.is_read && (
                       <div className="flex-shrink-0 mt-1.5">
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
