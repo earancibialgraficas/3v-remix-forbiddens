@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { getNameStyle } from "@/lib/profileAppearance";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -186,7 +187,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               </Button>
               {user ? (
                 <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[9px] font-body text-neon-green truncate max-w-[60px]">{profile?.display_name}</span>
+                  <span className="text-[9px] font-body text-neon-green truncate max-w-[60px]" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</span>
                   <Button size="sm" variant="ghost" onClick={() => setShowLogoutModal(true)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
                     <LogOut className="w-3 h-3" />
                   </Button>
@@ -216,7 +217,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <TooltipContent side="right" className="bg-card border-border p-2 z-[100]">
                 {user ? (
                   <div className="space-y-1">
-                    <p className="text-xs font-body font-medium text-neon-green">{profile?.display_name}</p>
+                    <p className="text-xs font-body font-medium text-neon-green" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</p>
                     <Link to="/perfil" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Mi Perfil</Link>
                     <Link to="/configuracion" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Configuración</Link>
                     <button onClick={() => setShowLogoutModal(true)} className="block w-full text-left text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-destructive transition-colors">Cerrar Sesión</button>
