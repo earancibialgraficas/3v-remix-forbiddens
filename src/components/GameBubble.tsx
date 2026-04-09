@@ -400,10 +400,15 @@ export default function GameBubble() {
   useEffect(() => {
     if (!resizing) return;
     const onMove = (e: MouseEvent) => {
-      setPopupSize({
-        w: Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
-        h: Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
-      });
+      const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
+      const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
+      setPopupSize({ w: newW, h: newH });
+      // Refit canvas immediately during resize
+      const el = document.getElementById("game-bubble-canvas");
+      if (el) {
+        (el as HTMLCanvasElement).style.width = "100%";
+        (el as HTMLCanvasElement).style.height = "100%";
+      }
     };
     const onUp = () => setResizing(false);
     window.addEventListener("mousemove", onMove);
