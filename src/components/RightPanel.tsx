@@ -98,8 +98,10 @@ export default function RightPanel() {
       if (data && data.length > 0) setTopUsers(data as unknown as TopUser[]);
     };
     fetchTop();
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(fetchTop, 5 * 60 * 1000);
     const channel = supabase.channel("top-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
