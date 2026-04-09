@@ -4,14 +4,14 @@ import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
   Search, User, LogIn, Settings, BookOpen, LogOut,
-  PanelLeftClose, PanelLeft, X, AlertTriangle
+  PanelLeftClose, PanelLeft, X, AlertTriangle, Mail
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/forbiddens_logo.svg";
+
 import {
   Tooltip,
   TooltipContent,
@@ -138,14 +138,14 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <PanelLeft className="w-4 h-4" />
             </button>
             <Link to="/" className="flex items-center justify-center p-1">
-              <img src={logo} alt="Forbiddens" className="w-7 h-7" />
+              <span className="font-pixel text-[11px] leading-none" style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)' }}>F</span>
             </Link>
             <div className="flex flex-col items-center gap-3">
-              {"FORBIDDENS".split("").map((letter, i) => (
+              {"ORBIDDENS".split("").map((letter, i) => (
                 <span
                   key={i}
-                  className="font-pixel text-[11px] text-neon-green text-glow-green leading-none"
-                  style={{ display: "block", writingMode: "initial" }}
+                  className="font-pixel text-[11px] leading-none"
+                  style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)', display: "block", writingMode: "initial" }}
                 >
                   {letter}
                 </span>
@@ -161,8 +161,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <PanelLeftClose className="w-4 h-4" />
             </button>
             <Link to="/" className="flex items-center gap-2 flex-1 min-w-0">
-              <img src={logo} alt="Forbiddens" className="w-6 h-6 shrink-0" />
-              <span className="font-pixel text-[9px] text-neon-green text-glow-green truncate">FORBIDDENS</span>
+              <span className="font-pixel text-[9px] truncate" style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6)' }}>FORBIDDENS</span>
             </Link>
           </div>
         )}
@@ -178,6 +177,9 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <NotificationBell />
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+                <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
               </Button>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>

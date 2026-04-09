@@ -41,6 +41,18 @@ const getEmbedUrl = (url: string, platform: string, autoplay = false) => {
     const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (match) return `https://www.youtube.com/embed/${match[1]}${autoplay ? "?autoplay=1&mute=1" : ""}`;
   }
+  if (platform === "instagram") {
+    // Instagram embeds: /p/CODE/ or /reel/CODE/
+    const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
+    if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/`;
+  }
+  if (platform === "tiktok") {
+    // TikTok embeds: /video/ID or /@user/video/ID
+    const tkMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+    if (tkMatch) return `https://www.tiktok.com/embed/v2/${tkMatch[1]}`;
+    const tkMatch2 = url.match(/tiktok\.com\/.*?video\/(\d+)/);
+    if (tkMatch2) return `https://www.tiktok.com/embed/v2/${tkMatch2[1]}`;
+  }
   return null;
 };
 

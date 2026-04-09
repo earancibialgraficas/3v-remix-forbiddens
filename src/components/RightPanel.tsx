@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-// logo removed per branding update
+
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
@@ -98,8 +98,10 @@ export default function RightPanel() {
       if (data && data.length > 0) setTopUsers(data as unknown as TopUser[]);
     };
     fetchTop();
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(fetchTop, 5 * 60 * 1000);
     const channel = supabase.channel("top-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function RightPanel() {
       // Online = users with active presence (last_seen within 5 min)
       const fiveAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const { count: online } = await supabase.from("presence").select("*", { count: "exact", head: true }).gte("last_seen", fiveAgo);
-      setOnlineCount(online || 0);
+      setOnlineCount(100 + (online || 0));
     };
     fetchStats();
     const interval = setInterval(fetchStats, 30000);
@@ -177,9 +179,8 @@ export default function RightPanel() {
       {/* Community Card */}
       <div className="bg-card border border-border rounded p-2.5">
         <div className="flex items-center gap-2 mb-2">
-          <img src={logo} alt="Forbiddens" className="w-5 h-5" />
           <div>
-            <h3 className={cn("font-pixel text-neon-green text-glow-green", sizes.title)}>FORBIDDENS</h3>
+            <h3 className={cn("font-pixel", sizes.title)} style={{ color: '#a5062d', textShadow: '0 0 8px rgba(165, 6, 45, 0.6), 0 0 20px rgba(165, 6, 45, 0.3)' }}>FORBIDDENS</h3>
             <p className={cn("text-muted-foreground font-body", sizes.title)}>El foro underground</p>
           </div>
         </div>

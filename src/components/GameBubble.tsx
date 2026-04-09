@@ -21,7 +21,7 @@ interface SaveSlot {
   timestamp: number;
 }
 
-const AFK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+const AFK_TIMEOUT_MS = 30 * 1000; // 30 seconds
 
 export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
@@ -108,12 +108,20 @@ export default function GameBubble() {
   }, [activeGame?.gameName]);
 
   // Score increases 10 points every 10 seconds of active play (with AFK check)
+  // AFK also auto-pauses the game after 30s of inactivity
   useEffect(() => {
     if (activeGame && !minimized && romLoaded && !paused) {
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
-          afkRef.current = true;
+          if (!afkRef.current) {
+            afkRef.current = true;
+            // Auto-pause when AFK
+            if (nostalgistRef.current) {
+              try { nostalgistRef.current.pause(); } catch {}
+              setPaused(true);
+            }
+          }
           return; // Don't add score while AFK
         }
         timeRef.current += 10;
