@@ -423,6 +423,10 @@ export default function ForumPage() {
                           roleIcon={authorProfile.role_icon}
                           showRoleIcon={authorProfile.show_role_icon}
                           membershipTier={authorProfile.membership_tier}
+                          colorAvatarBorder={authorProfile.color_avatar_border}
+                          colorName={authorProfile.color_name}
+                          colorRole={authorProfile.color_role}
+                          colorStaffRole={authorProfile.color_staff_role}
                         />
                       </div>
                     )}
@@ -494,6 +498,10 @@ export default function ForumPage() {
                               roleIcon={comment.profile?.role_icon}
                               showRoleIcon={comment.profile?.show_role_icon !== false}
                               membershipTier={comment.profile?.membership_tier || comment.membership_tier}
+                              colorAvatarBorder={comment.profile?.color_avatar_border}
+                              colorName={comment.profile?.color_name}
+                              colorRole={comment.profile?.color_role}
+                              colorStaffRole={comment.profile?.color_staff_role}
                             />
                             <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                           </div>
