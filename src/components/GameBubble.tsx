@@ -21,7 +21,7 @@ interface SaveSlot {
   timestamp: number;
 }
 
-const AFK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+const AFK_TIMEOUT_MS = 30 * 1000; // 30 seconds
 
 export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
