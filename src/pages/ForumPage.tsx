@@ -135,7 +135,7 @@ interface Comment {
   membership_tier: string;
   created_at: string;
   parent_id: string | null;
-  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string } | null;
+  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string; color_avatar_border?: string | null; color_name?: string | null; color_role?: string | null; color_staff_role?: string | null } | null;
   roles?: string[];
 }
 
@@ -145,6 +145,10 @@ interface PostProfile {
   role_icon: string | null;
   show_role_icon: boolean;
   membership_tier: string;
+  color_avatar_border: string | null;
+  color_name: string | null;
+  color_role: string | null;
+  color_staff_role: string | null;
 }
 
 export default function ForumPage() {
@@ -185,7 +189,7 @@ export default function ForumPage() {
       // Fetch profiles and roles for post authors
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
@@ -201,7 +205,7 @@ export default function ForumPage() {
     const { data } = await supabase.from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
     if (!data) return;
     const userIds = [...new Set((data as any[]).map(c => c.user_id))];
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier").in("user_id", userIds);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
     const { data: userRoles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
     const profileMap: Record<string, any> = {};
     profiles?.forEach(p => profileMap[p.user_id] = p);
