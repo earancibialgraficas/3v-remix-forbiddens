@@ -28,7 +28,9 @@ export default function ChillMusicPlayer() {
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [seekPosition, setSeekPosition] = useState(0); // 0-100
+  const [seekPosition, setSeekPosition] = useState(0);
+  const seekIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const seekStartRef = useRef<number>(Date.now());
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
@@ -76,8 +78,8 @@ export default function ChillMusicPlayer() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
-  const next = () => setCurrentIndex(i => (i + 1) % playlist.length);
-  const prev = () => setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
+  const next = () => { setCurrentIndex(i => (i + 1) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
+  const prev = () => { setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
   
   const removeSong = (idx: number) => {
     if (playlist.length <= 1) return;
