@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/forbiddens_logo.svg";
+// logo removed per branding update
 import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
