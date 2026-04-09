@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/forbiddens_logo.svg";
+
 import {
   Tooltip,
   TooltipContent,
