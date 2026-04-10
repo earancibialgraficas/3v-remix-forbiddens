@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
 interface Message {
@@ -33,6 +33,7 @@ interface Conversation {
 export default function MessagesPage() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,6 +41,14 @@ export default function MessagesPage() {
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Handle partner from URL param (when expanding from FloatingChat)
+  useEffect(() => {
+    const partnerFromUrl = searchParams.get("partner");
+    if (partnerFromUrl && user && !selectedPartner) {
+      loadMessages(partnerFromUrl);
+    }
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (!user) return;

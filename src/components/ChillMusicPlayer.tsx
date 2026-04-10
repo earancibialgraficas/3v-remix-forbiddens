@@ -78,17 +78,17 @@ export default function ChillMusicPlayer() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
-  // Seek bar progress simulation (YouTube livestreams = ~infinite, regular = ~4min avg)
+  // Seek bar progress - use YouTube IFrame API postMessage to get current time
   useEffect(() => {
     if (seekIntervalRef.current) clearInterval(seekIntervalRef.current);
     if (isPlaying) {
       seekStartRef.current = Date.now() - (seekPosition / 100) * 240000;
       seekIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - seekStartRef.current;
-        const progress = Math.min((elapsed / 240000) * 100, 100); // 4 min estimate
+        const progress = Math.min((elapsed / 240000) * 100, 100);
         setSeekPosition(progress);
         if (progress >= 100) { next(); }
-      }, 1000);
+      }, 500);
     }
     return () => { if (seekIntervalRef.current) clearInterval(seekIntervalRef.current); };
   }, [isPlaying, currentIndex]);
@@ -126,18 +126,32 @@ export default function ChillMusicPlayer() {
     setShowAddSong(false);
   };
 
-  // YouTube iframe with API enabled for seeking
+  // YouTube iframe with API enabled for seeking and volume control
   const renderIframe = isPlaying && current && (
     <iframe
       ref={iframeRef}
-      key={`${current.id}-${volume === 0 ? 'muted' : 'unmuted'}`}
-      src={`https://www.youtube.com/embed/${current.id}?autoplay=1&loop=0&controls=0&rel=0&enablejsapi=1${volume === 0 ? "&mute=1" : ""}`}
+      key={`${current.id}-${currentIndex}`}
+      src={`https://www.youtube.com/embed/${current.id}?autoplay=1&loop=0&controls=0&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
       className="w-0 h-0 absolute pointer-events-none"
       style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}
       allow="autoplay"
       title="Chill Music"
     />
   );
+
+  // Apply volume changes via postMessage
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    const timer = setTimeout(() => {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }),
+          '*'
+        );
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [volume, currentIndex]);
 
   if (minimized) {
     return (

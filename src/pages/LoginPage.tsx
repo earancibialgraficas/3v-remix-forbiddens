@@ -41,8 +41,8 @@ export default function LoginPage() {
         </button>
 
         <div className="text-center">
-          <img src={logo} alt="Forbiddens" className="w-16 h-16 mx-auto mb-3" />
-          <h1 className="font-pixel text-sm text-neon-green text-glow-green">INICIAR SESIÓN</h1>
+          <img src={logo} alt="Forbiddens" className="w-20 h-20 mx-auto mb-2 animate-pixel-logo" />
+          <h1 className="font-pixel text-sm text-neon-green text-glow-green animate-fade-in">INICIAR SESIÓN</h1>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

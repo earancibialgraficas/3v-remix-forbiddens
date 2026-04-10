@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Type, User, Edit2, Check, Maximize2, Download } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
@@ -16,6 +16,7 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/gaming-anime": { title: "GAMING & ANIME", description: "Comunidad de gaming, anime y manga", color: "text-neon-cyan" },
   "/gaming-anime/foro": { title: "FORO GENERAL", description: "Espacio para hablar de todo un poco", color: "text-neon-cyan" },
   "/gaming-anime/anime": { title: "ANIME & MANGA", description: "Debates, recomendaciones y reseñas", color: "text-neon-cyan" },
+  "/gaming-anime/gaming": { title: "GAMING", description: "Debates, noticias y todo sobre videojuegos", color: "text-neon-green" },
   "/gaming-anime/creador": { title: "RINCÓN DEL CREADOR", description: "Comparte tu Fanart, Cosplays y proyectos creativos", color: "text-neon-cyan" },
   "/motociclismo": { title: "MOTOCICLISMO", description: "Riders, mecánica, rutas y quedadas", color: "text-neon-magenta" },
   "/motociclismo/riders": { title: "FORO DE RIDERS", description: "Discusiones sobre marcas, estilos y noticias motor", color: "text-neon-magenta" },
@@ -261,31 +262,35 @@ export default function ForumPage() {
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); }
   };
 
-   const handleVote = async (postId: string, voteType: "up" | "down") => {
+  const votingRef = useRef<Record<string, boolean>>({});
+
+  const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
-    // Optimistic update (never below 0)
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p;
-      if (voteType === "up") return { ...p, upvotes: Math.max(0, (p.upvotes || 0) + 1) };
-      return { ...p, downvotes: Math.max(0, (p.downvotes || 0) + 1) };
-    }));
-    const { data: existing } = await supabase.from("post_votes").select("*").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
-    if (existing) {
-      if ((existing as any).vote_type === voteType) {
-        await supabase.from("post_votes").delete().eq("id", (existing as any).id);
+    // Prevent rapid clicks
+    if (votingRef.current[postId]) return;
+    votingRef.current[postId] = true;
+
+    try {
+      const { data: existing } = await supabase.from("post_votes").select("*").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
+      if (existing) {
+        if ((existing as any).vote_type === voteType) {
+          await supabase.from("post_votes").delete().eq("id", (existing as any).id);
+        } else {
+          await supabase.from("post_votes").update({ vote_type: voteType } as any).eq("id", (existing as any).id);
+        }
       } else {
-        await supabase.from("post_votes").update({ vote_type: voteType } as any).eq("id", (existing as any).id);
+        await supabase.from("post_votes").insert({ user_id: user.id, post_id: postId, vote_type: voteType } as any);
       }
-    } else {
-      await supabase.from("post_votes").insert({ user_id: user.id, post_id: postId, vote_type: voteType } as any);
+      // Sync real counts
+      const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
+      const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
+      const safeUp = Math.max(0, upCount || 0);
+      const safeDown = Math.max(0, downCount || 0);
+      await supabase.from("posts").update({ upvotes: safeUp, downvotes: safeDown } as any).eq("id", postId);
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: safeUp, downvotes: safeDown } : p));
+    } finally {
+      votingRef.current[postId] = false;
     }
-    // Sync real counts in background
-    const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
-    const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
-    const safeUp = Math.max(0, upCount || 0);
-    const safeDown = Math.max(0, downCount || 0);
-    await supabase.from("posts").update({ upvotes: safeUp, downvotes: safeDown } as any).eq("id", postId);
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: safeUp, downvotes: safeDown } : p));
   };
 
   const handleComment = async (postId: string) => {
@@ -381,7 +386,21 @@ export default function ForumPage() {
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
           <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
-          <Textarea placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
+          <Textarea id="post-content-area" placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
+          <div className="flex items-center gap-1 flex-wrap">
+            <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
+              <Image className="w-3 h-3" /> Imagen
+            </button>
+            <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar video">
+              <Video className="w-3 h-3" /> Video
+            </button>
+            <button onClick={() => setContent(prev => prev + "**texto**")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Negrita">
+              <Bold className="w-3 h-3" /> Negrita
+            </button>
+            <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Enlace">
+              <Link2 className="w-3 h-3" /> Enlace
+            </button>
+          </div>
           <div className="bg-muted/50 rounded p-2 text-[9px] text-muted-foreground font-body space-y-0.5 border border-border/50">
             <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>
             <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>
@@ -570,9 +589,9 @@ export default function ForumPage() {
       </div>
       {/* Rules popup */}
       {showRulesPopup && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center animate-fade-in">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
-          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full mx-4 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar">
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar">
             <button onClick={() => setShowRulesPopup(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
               <X className="w-4 h-4" />
             </button>

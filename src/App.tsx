@@ -48,6 +48,7 @@ const App = () => (
                 <Route path="/gaming-anime" element={<ForumPage />} />
                 <Route path="/gaming-anime/foro" element={<ForumPage />} />
                 <Route path="/gaming-anime/anime" element={<ForumPage />} />
+                <Route path="/gaming-anime/gaming" element={<ForumPage />} />
                 <Route path="/gaming-anime/creador" element={<ForumPage />} />
                 <Route path="/motociclismo" element={<ForumPage />} />
                 <Route path="/motociclismo/riders" element={<ForumPage />} />

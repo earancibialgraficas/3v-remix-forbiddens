@@ -4,6 +4,7 @@ const categoryRouteMap: Record<string, string> = {
   "gaming-anime": "/gaming-anime",
   "gaming-anime-foro": "/gaming-anime/foro",
   "gaming-anime-anime": "/gaming-anime/anime",
+  "gaming-anime-gaming": "/gaming-anime/gaming",
   "gaming-anime-creador": "/gaming-anime/creador",
   "motociclismo": "/motociclismo",
   "motociclismo-riders": "/motociclismo/riders",

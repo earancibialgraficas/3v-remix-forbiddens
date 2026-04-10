@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +8,7 @@ import { Link } from "react-router-dom";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
+  friend_accepted: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-green" },
   follow: { icon: <Heart className="w-3.5 h-3.5" />, color: "text-neon-magenta" },
   comment: { icon: <MessageCircle className="w-3.5 h-3.5" />, color: "text-neon-green" },
   mention: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-orange" },
@@ -19,8 +21,9 @@ export default function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -46,44 +49,28 @@ export default function NotificationBell() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        triggerRef.current && !triggerRef.current.contains(e.target as Node)
+      ) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Reposition dropdown to stay within viewport
+  // Position dropdown relative to trigger button using a portal
   useEffect(() => {
-    if (!open || !dropdownRef.current || !ref.current) return;
-    const dd = dropdownRef.current;
-    const trigger = ref.current;
-    const triggerRect = trigger.getBoundingClientRect();
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
     const ddWidth = 320;
-    const ddMaxHeight = 400;
-
-    // Calculate left position so dropdown never goes off-screen
-    let left = 0;
-    if (triggerRect.right - ddWidth < 0) {
-      // Not enough space on left, align to left edge
-      left = -triggerRect.left + 8;
-    } else {
-      left = -(ddWidth - triggerRect.width);
-    }
-
-    // Check if there's space below
-    const spaceBelow = window.innerHeight - triggerRect.bottom - 8;
-    if (spaceBelow < ddMaxHeight && triggerRect.top > spaceBelow) {
-      dd.style.bottom = `${triggerRect.height + 8}px`;
-      dd.style.top = 'auto';
-    } else {
-      dd.style.top = `${triggerRect.height + 8}px`;
-      dd.style.bottom = 'auto';
-    }
-    dd.style.left = `${left}px`;
-    dd.style.right = 'auto';
+    let left = rect.right - ddWidth;
+    if (left < 8) left = 8;
+    if (left + ddWidth > window.innerWidth - 8) left = window.innerWidth - ddWidth - 8;
+    setDropdownPos({ top: rect.bottom + 8, left });
   }, [open]);
 
   const markAllRead = async () => {
@@ -108,8 +95,9 @@ export default function NotificationBell() {
   const cfg = (type: string) => typeConfig[type] || typeConfig.general;
 
   return (
-    <div className="relative" ref={ref} style={{ zIndex: 9999 }}>
+    <>
       <button
+        ref={triggerRef}
         onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
         className="relative p-1.5 rounded-full hover:bg-muted/50 transition-colors"
       >
@@ -121,11 +109,11 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl z-[9999] overflow-hidden animate-fade-in"
-          style={{ maxHeight: 'min(400px, calc(100vh - 80px))' }}
+          className="fixed w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-fade-in"
+          style={{ zIndex: 99999, top: dropdownPos.top, left: dropdownPos.left, maxHeight: 'min(400px, calc(100vh - 80px))' }}
         >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
@@ -177,8 +165,9 @@ export default function NotificationBell() {
               })
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

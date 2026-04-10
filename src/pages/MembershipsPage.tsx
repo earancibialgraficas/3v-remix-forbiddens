@@ -220,23 +220,6 @@ export default function MembershipsPage() {
         ))}
       </div>
 
-      {/* Staff tier - visible to all but labeled */}
-      <div className="bg-card border border-neon-magenta/30 rounded p-4 ring-1 ring-neon-magenta/20">
-        <div className="flex items-center gap-2 mb-2">
-          <Shield className="w-4 h-4 text-neon-magenta" />
-          <h3 className="font-body text-sm font-bold text-neon-magenta tracking-wide">{staffTier.name}</h3>
-          <span className="text-[9px] font-pixel text-neon-magenta/60 ml-auto">SOLO STAFF</span>
-        </div>
-        <p className="text-[9px] text-muted-foreground font-body italic mb-3">Exclusivo para WebMaster, Administradores y Moderadores. Incluye todos los beneficios mejorados.</p>
-        <div className="space-y-1.5 text-[11px] font-body">
-          {staffTier.features.map((f, i) => (
-            <div key={i} className="flex justify-between gap-2">
-              <span className="text-muted-foreground">{f.label}</span>
-              <span className="text-right text-neon-magenta">{f.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

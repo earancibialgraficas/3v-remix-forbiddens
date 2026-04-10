@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [signature, setSignature] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
@@ -109,6 +110,20 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
+    // Update password if provided
+    if (newPassword.trim()) {
+      if (newPassword.length < 6) {
+        toast({ title: "Error", description: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      const { error: pwError } = await supabase.auth.updateUser({ password: newPassword });
+      if (pwError) {
+        toast({ title: "Error al cambiar contraseña", description: pwError.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+    }
     const { error } = await supabase.from("profiles").update({
       display_name: displayName, bio,
       instagram_url: instagram || null, youtube_url: youtube || null, tiktok_url: tiktok || null,
@@ -116,7 +131,7 @@ export default function ProfilePage() {
     } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Perfil actualizado" }); setEditing(false); await refreshProfile(); }
+    else { toast({ title: "Perfil actualizado" }); setEditing(false); setNewPassword(""); await refreshProfile(); }
   };
 
   const handleAvatarSelect = async (url: string) => {
@@ -259,18 +274,22 @@ export default function ProfilePage() {
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">TikTok URL</label>
                   <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
-                {tier !== "novato" && (
+                <div>
+                  <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Contraseña (dejar vacío para no cambiar)</label>
+                  <Input type="password" placeholder="Nueva contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                </div>
+                {(tier !== "novato" || isStaff || isMod) && (
                   <div>
-                    <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Firma personalizada</label>
+                    <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
                     <Input
                       value={signature}
                       onChange={(e) => setSignature(e.target.value)}
                       className="h-8 bg-muted text-xs font-body"
                       placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
-                      maxLength={tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
+                      maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
                     />
                     <p className="text-[9px] text-muted-foreground mt-0.5">
-                      {tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres (texto + links)" : "Máx. 200 caracteres (diseño personalizado)"}
+                      {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres (texto + links)" : "Máx. 200 caracteres (diseño personalizado)"}
                     </p>
                   </div>
                 )}
@@ -314,8 +333,7 @@ export default function ProfilePage() {
                   </div>
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar</Button>
-                  <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/configuracion">Configuración</Link></Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar Perfil</Button>
                   <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
                   {(["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) || isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
@@ -594,7 +612,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const [selectedTier, setSelectedTier] = useState("entusiasta");
   const [assigningMembership, setAssigningMembership] = useState(false);
 
-  const membershipTiers = ["novato", "entusiasta", "coleccionista", "leyenda arcade"];
+  const membershipTiers = ["novato", "entusiasta", "coleccionista", "miembro del legado", "leyenda arcade"];
 
   const banDurations = [
     { label: "1 hora", value: "1h", ms: 3600000 },
@@ -685,6 +703,9 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         </div>
       )}
 
+      {/* Moderator list */}
+      {isStaff && <ModeratorList isMasterWeb={isMasterWeb} />}
+
       {/* Membership Management */}
       {isStaff && (
         <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3">
@@ -711,6 +732,61 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
           }} className="text-xs bg-neon-yellow/20 text-neon-yellow hover:bg-neon-yellow/30 border border-neon-yellow/30">
             {assigningMembership ? "Procesando..." : "Asignar Membresía"}
           </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
+  const { toast } = useToast();
+  const [moderators, setModerators] = useState<{ user_id: string; display_name: string; avatar_url: string | null; role_id: string }[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data: modRoles } = await supabase.from("user_roles").select("id, user_id").eq("role", "moderator");
+      if (!modRoles || modRoles.length === 0) { setModerators([]); return; }
+      const userIds = modRoles.map((r: any) => r.user_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      const list = modRoles.map((r: any) => {
+        const p = profiles?.find((pr: any) => pr.user_id === r.user_id);
+        return { user_id: r.user_id, display_name: p?.display_name || "Usuario", avatar_url: p?.avatar_url || null, role_id: r.id };
+      });
+      setModerators(list);
+    };
+    fetch();
+  }, []);
+
+  const revokeMod = async (roleId: string) => {
+    if (!isMasterWeb) { toast({ title: "Solo el Web Master puede revocar roles", variant: "destructive" }); return; }
+    const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Rol de moderador revocado" }); setModerators(prev => prev.filter(m => m.role_id !== roleId)); }
+  };
+
+  return (
+    <div className="bg-card border border-neon-magenta/30 rounded p-4 space-y-3">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
+        <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-1"><Shield className="w-3 h-3" /> MODERADORES ACTIVOS ({moderators.length})</h3>
+        <span className="text-muted-foreground text-xs">{expanded ? "▲" : "▼"}</span>
+      </button>
+      {expanded && (
+        <div className="space-y-1.5">
+          {moderators.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-body">No hay moderadores asignados</p>
+          ) : moderators.map(m => (
+            <div key={m.role_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+              <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0">
+                {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground m-2" />}
+              </div>
+              <Link to={`/usuario/${m.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{m.display_name}</Link>
+              <span className="text-[9px] font-pixel text-neon-magenta">MOD</span>
+              {isMasterWeb && (
+                <Button size="sm" variant="destructive" onClick={() => revokeMod(m.role_id)} className="text-[9px] h-5 px-2">Revocar</Button>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -885,7 +961,11 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const acceptRequest = async (requestId: string, senderId: string) => {
     await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
-    await supabase.from("notifications").insert({ user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: "Tu solicitud de amistad ha sido aceptada" } as any);
+    // Get current user's display name for the notification
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const { data: myProfile } = await supabase.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+    const myName = (myProfile as any)?.display_name || "Alguien";
+    await supabase.from("notifications").insert({ user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${myName} aceptó tu solicitud de amistad`, related_id: currentUser?.id } as any);
     toast({ title: "Amistad aceptada" });
     fetchFriends();
   };

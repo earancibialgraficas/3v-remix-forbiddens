@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
@@ -12,6 +12,7 @@ import { getNameStyle } from "@/lib/profileAppearance";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   Tooltip,
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
     children: [
       { label: "Foro General", to: "/gaming-anime/foro" },
       { label: "Anime & Manga", to: "/gaming-anime/anime" },
+      { label: "Gaming", to: "/gaming-anime/gaming" },
       { label: "Rincón del Creador", to: "/gaming-anime/creador" },
     ],
   },
@@ -88,6 +90,25 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (!user) { setUnreadMessages(0); return; }
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from("private_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
+      setUnreadMessages(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase.channel("sidebar-msg-unread")
+      .on("postgres_changes", { event: "*", schema: "public", table: "private_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) =>
@@ -179,9 +200,16 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
-                <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
-              </Button>
+              <div className="relative">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+                  <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
+                </Button>
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[8px] flex items-center justify-center font-bold animate-pulse pointer-events-none">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </div>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
                 <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
               </Button>

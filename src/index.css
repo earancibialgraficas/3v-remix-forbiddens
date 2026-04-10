@@ -246,4 +246,16 @@
   .animate-banner-pixelate {
     animation: banner-pixelate 0.8s ease-out forwards;
   }
+
+  @keyframes pixel-logo {
+    0% { filter: blur(8px) brightness(0.3); transform: scale(0.6); opacity: 0; }
+    30% { filter: blur(4px) brightness(0.8); transform: scale(1.1); opacity: 0.7; image-rendering: pixelated; }
+    60% { filter: blur(1px) brightness(1.2); transform: scale(0.95); opacity: 0.9; }
+    100% { filter: blur(0) brightness(1); transform: scale(1); opacity: 1; }
+  }
+
+  .animate-pixel-logo {
+    animation: pixel-logo 1.2s ease-out forwards;
+    image-rendering: auto;
+  }
 }
