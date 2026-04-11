@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, User, Search, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,10 +41,11 @@ export default function MessagesPage() {
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  // Handle partner from URL param (when expanding from FloatingChat)
+  // Handle partner from URL param
   useEffect(() => {
-    const partnerFromUrl = searchParams.get("partner");
+    const partnerFromUrl = searchParams.get("partner") || searchParams.get("to");
     if (partnerFromUrl && user && !selectedPartner) {
       loadMessages(partnerFromUrl);
     }
@@ -60,6 +61,10 @@ export default function MessagesPage() {
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const loadConversations = async () => {
     if (!user) return;
@@ -108,7 +113,6 @@ export default function MessagesPage() {
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true });
     if (data) setMessages(data as Message[]);
-    // Mark as read
     await supabase.from("private_messages").update({ is_read: true } as any)
       .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
   };
@@ -140,12 +144,13 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="space-y-3 animate-fade-in">
+    <div className="space-y-3 animate-fade-in" style={{ height: 'calc(100dvh - 80px)', height: 'calc(100vh - 80px)' }}>
       <div className="bg-card border border-neon-cyan/30 rounded p-3">
-        <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><MessageSquare className="w-4 h-4" /> MENSAJES PRIVADOS</h1>
+        <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><MessageSquare className="w-4 h-4" /> BANDEJA DE ENTRADA</h1>
+        <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes de cualquier usuario</p>
       </div>
 
-      <div className="flex gap-3" style={{ minHeight: "60vh" }}>
+      <div className="flex gap-3" style={{ height: 'calc(100% - 70px)' }}>
         {/* Conversation list */}
         <div className={cn("bg-card border border-border rounded flex flex-col", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
           <div className="p-2 border-b border-border">
@@ -207,6 +212,7 @@ export default function MessagesPage() {
                   </div>
                 </div>
               ))}
+              <div ref={endRef} />
             </div>
             <div className="p-2 border-t border-border flex gap-2">
               <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Escribe un mensaje..."

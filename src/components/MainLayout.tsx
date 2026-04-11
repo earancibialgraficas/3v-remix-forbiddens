@@ -16,10 +16,9 @@ export default function MainLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
-  const isHome = location.pathname === "/";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col" style={{ minHeight: '100dvh', minHeight: '100vh' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -40,7 +39,7 @@ export default function MainLayout() {
 
       {/* Mobile fixed notification bell */}
       {isMobile && (
-        <div className="fixed top-2 right-2 z-[100]">
+        <div className="fixed top-2 right-2 z-50">
           <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
             <NotificationBell />
           </div>
@@ -49,12 +48,12 @@ export default function MainLayout() {
 
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="md:hidden fixed inset-0 z-[200]">
           <div
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <div className="relative z-50 w-64 h-full animate-slide-in-left">
+          <div className="relative z-[201] w-64 h-full animate-slide-in-left">
             <ForumSidebar
               collapsed={false}
               onToggle={() => setMobileSidebarOpen(false)}
@@ -66,9 +65,9 @@ export default function MainLayout() {
       {/* Fixed nav buttons on the left (hidden on home) */}
       <NavigationButtons />
 
-      {/* Main content */}
+      {/* Main content — flex-1 ensures it fills remaining space */}
       <main className={cn(
-        "min-w-0 transition-all duration-300",
+        "flex-1 min-w-0 transition-all duration-300",
         "md:ml-12",
         !sidebarCollapsed && "md:ml-56"
       )}>

@@ -51,7 +51,7 @@ const tiers = [
       { label: "Amigos", value: "Máximo 50" },
       { label: "Almacenamiento", value: "150 MB" },
       { label: "Contenido social", value: "30 posts públicos" },
-      { label: "Firma en posts", value: "Texto [ENTUSIASTA]" },
+      { label: "Firma en posts", value: "Texto [ENTUSIASTA]. Editable en color, tipografía, bold/italic y enlace a imagen (1000x300) opcional." },
       { label: "Cambio de nick", value: "1 vez cada 15 días" },
       { label: "Paleta de colores", value: "No", bad: true },
       { label: "Publicidad", value: "Sin anuncios" },
@@ -69,7 +69,7 @@ const tiers = [
       { label: "Amigos", value: "Máximo 100" },
       { label: "Almacenamiento", value: "500 MB" },
       { label: "Contenido social", value: "50 posts públicos" },
-      { label: "Firma en posts", value: "Texto + GIF/Links" },
+      { label: "Firma en posts", value: "Texto + GIF/Links. Editable en color, tipografía, bold/italic y enlace a imagen (1000x300) opcional." },
       { label: "Cambio de nick", value: "1 vez cada 7 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Publicidad", value: "Sin anuncios" },
@@ -87,7 +87,7 @@ const tiers = [
       { label: "Amigos", value: "Máximo 200" },
       { label: "Almacenamiento", value: "1000 MB" },
       { label: "Contenido social", value: "90 posts públicos" },
-      { label: "Firma en posts", value: "Diseño personalizado" },
+      { label: "Firma en posts", value: "Diseño personalizado. Editable en color, tipografía, bold/italic y enlace a imagen (1000x300) opcional." },
       { label: "Cambio de nick", value: "1 vez cada 10 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Badge exclusivo", value: "🏛️ LEGADO" },
@@ -108,7 +108,7 @@ const tiers = [
       { label: "Amigos", value: "Máximo 500" },
       { label: "Almacenamiento", value: "3000 MB" },
       { label: "Contenido social", value: "100 posts públicos" },
-      { label: "Firma en posts", value: "Diseño personalizado premium" },
+      { label: "Firma en posts", value: "Diseño personalizado premium. Editable en color, tipografía, bold/italic y enlace a imagen (1000x300) opcional." },
       { label: "Cambio de nick", value: "1 vez cada 3 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Badge exclusivo", value: "⭐ LEYENDA ARCADE ⭐" },
@@ -128,7 +128,7 @@ const tiers = [
       { label: "Amigos", value: "Ilimitado" },
       { label: "Almacenamiento", value: "5000 MB" },
       { label: "Contenido social", value: "Ilimitado" },
-      { label: "Firma en posts", value: "Diseño totalmente personalizable" },
+      { label: "Firma en posts", value: "Diseño totalmente personalizable. Editable en color, tipografía, bold/italic y enlace a imagen (1000x300) opcional." },
       { label: "Cambio de nick", value: "1 vez cada 3 días" },
       { label: "Paleta de colores", value: "Selección RGB personalizada" },
       { label: "Badge exclusivo", value: "🎬 CREADOR VERIFICADO ✓" },
@@ -137,29 +137,10 @@ const tiers = [
   },
 ];
 
-const staffTier = {
-  name: "Dios Todopoderoso", color: "border-neon-magenta/50", textColor: "text-neon-magenta",
-  features: [
-    { label: "Emuladores", value: "Ilimitado" },
-    { label: "Avatares", value: "Todos + subida sin límite" },
-    { label: "Posts en foro", value: "Todo tipo de contenido + gestión completa" },
-    { label: "Comentarios", value: "Sin límite" },
-    { label: "Amigos", value: "Ilimitado" },
-    { label: "Almacenamiento", value: "Ilimitado" },
-    { label: "Contenido social", value: "Ilimitado" },
-    { label: "Firma en posts", value: "Diseño totalmente libre" },
-    { label: "Cambio de nick", value: "Ilimitado" },
-    { label: "Paleta de colores", value: "Completa" },
-    { label: "Moderación", value: "Banear, kickear, gestionar roles" },
-    { label: "Publicidad", value: "Sin anuncios" },
-  ],
-};
-
 export default function MembershipsPage() {
   const { isAdmin, isMasterWeb, roles } = useAuth();
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
-  const isStaff = isAdmin || isMasterWeb || roles.includes("moderator");
 
   useEffect(() => {
     const detectCountry = async () => {

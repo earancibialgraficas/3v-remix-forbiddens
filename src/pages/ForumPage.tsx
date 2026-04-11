@@ -173,12 +173,17 @@ export default function ForumPage() {
   const [showRulesPopup, setShowRulesPopup] = useState(false);
   const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
   _setForumModal = setForumModal;
-  // Post author profiles + roles
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
+  // Track user's own votes for optimistic UI
+  const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   const hasUnlimited = isAdmin || isMasterWeb;
+
+  // Handle URL search param for direct post link
+  const searchParams = new URLSearchParams(location.search);
+  const directPostId = searchParams.get("post");
 
   const fetchPosts = async () => {
     const query = supabase.from("posts").select("*").eq("category", category).order("is_pinned", { ascending: false });
@@ -187,7 +192,6 @@ export default function ForumPage() {
     const { data } = await query.limit(20);
     if (data) {
       setPosts(data);
-      // Fetch profiles and roles for post authors
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
@@ -198,6 +202,14 @@ export default function ForumPage() {
         roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
         setPostProfiles(pMap);
         setPostRoles(rMap);
+      }
+      // Fetch user's existing votes
+      if (user && data.length > 0) {
+        const postIds = data.map((p: any) => p.id);
+        const { data: votes } = await supabase.from("post_votes").select("post_id, vote_type").eq("user_id", user.id).in("post_id", postIds);
+        const vMap: Record<string, string | null> = {};
+        votes?.forEach((v: any) => { vMap[v.post_id] = v.vote_type; });
+        setUserVotes(vMap);
       }
     }
   };
@@ -224,8 +236,15 @@ export default function ForumPage() {
     return () => { supabase.removeChannel(channel); };
   }, [category, sortBy]);
 
+  // Auto-expand direct linked post
+  useEffect(() => {
+    if (directPostId && posts.length > 0) {
+      setExpandedPost(directPostId);
+      fetchComments(directPostId);
+    }
+  }, [directPostId, posts]);
+
   const handleNewPostClick = () => {
-    // Check if user has accepted rules
     const rulesKey = `rules_accepted_${user?.id}`;
     if (user && !localStorage.getItem(rulesKey)) {
       setShowRulesPopup(true);
@@ -247,7 +266,6 @@ export default function ForumPage() {
     }
     if (!title.trim()) return;
     setPosting(true);
-    // Use custom signature from profile, or fallback to auto-generated
     const customSig = (profile as any)?.signature;
     const signature = customSig
       ? customSig
@@ -266,28 +284,55 @@ export default function ForumPage() {
 
   const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
-    // Prevent rapid clicks
     if (votingRef.current[postId]) return;
     votingRef.current[postId] = true;
 
+    // Optimistic update
+    const currentVote = userVotes[postId] || null;
+    const post = posts.find(p => p.id === postId);
+    if (!post) { votingRef.current[postId] = false; return; }
+
+    let newUp = post.upvotes || 0;
+    let newDown = post.downvotes || 0;
+    let newVote: string | null;
+
+    if (currentVote === voteType) {
+      // Remove vote
+      if (voteType === "up") newUp--;
+      else newDown--;
+      newVote = null;
+    } else if (currentVote) {
+      // Switch vote
+      if (currentVote === "up") { newUp--; newDown++; }
+      else { newDown--; newUp++; }
+      newVote = voteType;
+    } else {
+      // New vote
+      if (voteType === "up") newUp++;
+      else newDown++;
+      newVote = voteType;
+    }
+
+    // Apply optimistic
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) } : p));
+    setUserVotes(prev => ({ ...prev, [postId]: newVote }));
+
     try {
-      const { data: existing } = await supabase.from("post_votes").select("*").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
-      if (existing) {
-        if ((existing as any).vote_type === voteType) {
-          await supabase.from("post_votes").delete().eq("id", (existing as any).id);
-        } else {
-          await supabase.from("post_votes").update({ vote_type: voteType } as any).eq("id", (existing as any).id);
-        }
-      } else {
-        await supabase.from("post_votes").insert({ user_id: user.id, post_id: postId, vote_type: voteType } as any);
+      const { data, error } = await supabase.rpc("toggle_post_vote", {
+        p_post_id: postId,
+        p_user_id: user.id,
+        p_vote_type: voteType,
+      });
+      if (error) throw error;
+      // Apply server truth
+      if (data) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: data.upvotes, downvotes: data.downvotes } : p));
+        setUserVotes(prev => ({ ...prev, [postId]: data.user_vote }));
       }
-      // Sync real counts
-      const { count: upCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "up");
-      const { count: downCount } = await supabase.from("post_votes").select("*", { count: "exact", head: true }).eq("post_id", postId).eq("vote_type", "down");
-      const safeUp = Math.max(0, upCount || 0);
-      const safeDown = Math.max(0, downCount || 0);
-      await supabase.from("posts").update({ upvotes: safeUp, downvotes: safeDown } as any).eq("id", postId);
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: safeUp, downvotes: safeDown } : p));
+    } catch {
+      // Revert optimistic
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
+      setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
     } finally {
       votingRef.current[postId] = false;
     }
@@ -420,18 +465,28 @@ export default function ForumPage() {
         {allPosts.map((post) => {
           const authorProfile = postProfiles[post.user_id];
           const authorRoles = postRoles[post.user_id] || [];
+          const myVote = userVotes[post.id] || null;
 
           return (
             <div key={post.id}>
               <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
                 <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center gap-0.5 text-muted-foreground shrink-0">
-                    <button onClick={() => handleVote(post.id, "up")} className="hover:text-primary transition-colors"><ArrowUp className="w-4 h-4" /></button>
-                    <span className="text-xs font-body font-semibold">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
-                    <button onClick={() => handleVote(post.id, "down")} className="hover:text-destructive transition-colors"><ArrowDown className="w-4 h-4" /></button>
+                  <div className="flex flex-col items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={() => handleVote(post.id, "up")}
+                      className={cn("transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground hover:text-primary")}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-body font-semibold text-foreground">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
+                    <button
+                      onClick={() => handleVote(post.id, "down")}
+                      className={cn("transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
                   </div>
                   <div className="min-w-0 flex-1">
-                    {/* Post author */}
                     {post.user_id && authorProfile && (
                       <div className="mb-1 flex items-center gap-2">
                         <UserPopup
@@ -490,7 +545,6 @@ export default function ForumPage() {
                     {(post as any).signature && (
                       <p className="text-[9px] text-neon-yellow font-body mt-1 italic">{(post as any).signature}</p>
                     )}
-                    {/* Comment button - prominent, below signature */}
                     <button
                       onClick={() => toggleComments(post.id)}
                       className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all text-[11px] font-body font-medium"
@@ -587,11 +641,12 @@ export default function ForumPage() {
           );
         })}
       </div>
-      {/* Rules popup */}
+
+      {/* Rules popup — centered */}
       {showRulesPopup && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
-          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar">
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar m-auto">
             <button onClick={() => setShowRulesPopup(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
               <X className="w-4 h-4" />
             </button>
