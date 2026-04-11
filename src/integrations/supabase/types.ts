@@ -667,6 +667,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      toggle_post_vote: {
+        Args: { p_post_id: string; p_user_id: string; p_vote_type: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "master_web" | "admin" | "moderator" | "user"
