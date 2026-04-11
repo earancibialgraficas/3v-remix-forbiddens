@@ -326,8 +326,9 @@ export default function ForumPage() {
       if (error) throw error;
       // Apply server truth
       if (data) {
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: data.upvotes, downvotes: data.downvotes } : p));
-        setUserVotes(prev => ({ ...prev, [postId]: data.user_vote }));
+        const result = data as any;
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: result.upvotes, downvotes: result.downvotes } : p));
+        setUserVotes(prev => ({ ...prev, [postId]: result.user_vote }));
       }
     } catch {
       // Revert optimistic

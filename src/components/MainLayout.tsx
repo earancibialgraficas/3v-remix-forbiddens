@@ -18,7 +18,7 @@ export default function MainLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100dvh', minHeight: '100vh' }}>
+    <div className="flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar

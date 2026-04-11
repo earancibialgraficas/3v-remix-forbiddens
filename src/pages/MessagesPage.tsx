@@ -144,7 +144,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="space-y-3 animate-fade-in" style={{ height: 'calc(100dvh - 80px)', height: 'calc(100vh - 80px)' }}>
+    <div className="space-y-3 animate-fade-in" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="bg-card border border-neon-cyan/30 rounded p-3">
         <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><MessageSquare className="w-4 h-4" /> BANDEJA DE ENTRADA</h1>
         <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes de cualquier usuario</p>
