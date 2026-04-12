@@ -30,9 +30,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center py-8 px-4 animate-fade-in" style={{ minHeight: 'calc(100dvh - 120px)' }}>
+    <div
+      className="flex items-center justify-center py-8 px-4 animate-fade-in"
+      style={{ minHeight: 'calc(100dvh - 120px)' }}
+    >
       <div className="bg-card border border-border rounded p-6 w-full max-w-sm space-y-6 relative">
-        {/* Close button */}
         <button
           onClick={() => navigate(-1)}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
