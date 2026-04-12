@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,11 @@ export default function ChillMusicPlayer() {
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [seekPosition, setSeekPosition] = useState(0);
-  const seekIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const seekStartRef = useRef<number>(Date.now());
+  const [duration, setDuration] = useState(240); // seconds, default 4 min
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const playerReadyRef = useRef(false);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
@@ -44,7 +47,58 @@ export default function ChillMusicPlayer() {
     return () => clearTimeout(timer);
   }, [autoStarted]);
 
-  // Visualizer - works on both canvases
+  // Listen for YouTube IFrame API messages
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== 'string') return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'infoDelivery') {
+          if (data.info?.currentTime !== undefined && !isSeeking) {
+            setCurrentTime(data.info.currentTime);
+            if (data.info.duration && data.info.duration > 0) {
+              setDuration(data.info.duration);
+            }
+          }
+          if (data.info?.playerState === 0) {
+            // Video ended
+            next();
+          }
+        }
+        if (data.event === 'onReady') {
+          playerReadyRef.current = true;
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [isSeeking, currentIndex]);
+
+  // Poll for current time by requesting info from iframe
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (isPlaying && iframeRef.current?.contentWindow) {
+      pollRef.current = setInterval(() => {
+        if (iframeRef.current?.contentWindow) {
+          // Request current time and duration info
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening', id: 1 }),
+            '*'
+          );
+        }
+      }, 1000);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [isPlaying, currentIndex]);
+
+  // Update seek position from currentTime
+  useEffect(() => {
+    if (!isSeeking && duration > 0) {
+      setSeekPosition((currentTime / duration) * 100);
+    }
+  }, [currentTime, duration, isSeeking]);
+
+  // Visualizer
   useEffect(() => {
     const canvas = minimized ? miniCanvasRef.current : canvasRef.current;
     if (!canvas) return;
@@ -78,24 +132,20 @@ export default function ChillMusicPlayer() {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
-  // Seek bar progress - use YouTube IFrame API postMessage to get current time
-  useEffect(() => {
-    if (seekIntervalRef.current) clearInterval(seekIntervalRef.current);
-    if (isPlaying) {
-      seekStartRef.current = Date.now() - (seekPosition / 100) * 240000;
-      seekIntervalRef.current = setInterval(() => {
-        const elapsed = Date.now() - seekStartRef.current;
-        const progress = Math.min((elapsed / 240000) * 100, 100);
-        setSeekPosition(progress);
-        if (progress >= 100) { next(); }
-      }, 500);
-    }
-    return () => { if (seekIntervalRef.current) clearInterval(seekIntervalRef.current); };
-  }, [isPlaying, currentIndex]);
+  const next = useCallback(() => {
+    setCurrentIndex(i => (i + 1) % playlist.length);
+    setSeekPosition(0);
+    setCurrentTime(0);
+    playerReadyRef.current = false;
+  }, [playlist.length]);
 
-  const next = () => { setCurrentIndex(i => (i + 1) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
-  const prev = () => { setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length); setSeekPosition(0); seekStartRef.current = Date.now(); };
-  
+  const prev = () => {
+    setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
+    setSeekPosition(0);
+    setCurrentTime(0);
+    playerReadyRef.current = false;
+  };
+
   const removeSong = (idx: number) => {
     if (playlist.length <= 1) return;
     const newList = playlist.filter((_, i) => i !== idx);
@@ -126,7 +176,30 @@ export default function ChillMusicPlayer() {
     setShowAddSong(false);
   };
 
-  // YouTube iframe with API enabled for seeking and volume control
+  const handleSeekChange = (v: number[]) => {
+    setIsSeeking(true);
+    setSeekPosition(v[0]);
+  };
+
+  const handleSeekCommit = (v: number[]) => {
+    const seekSeconds = (v[0] / 100) * duration;
+    setCurrentTime(seekSeconds);
+    setIsSeeking(false);
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'seekTo', args: [seekSeconds, true] }),
+        '*'
+      );
+    }
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  // YouTube iframe with API enabled
   const renderIframe = isPlaying && current && (
     <iframe
       ref={iframeRef}
@@ -228,22 +301,16 @@ export default function ChillMusicPlayer() {
         <div className="px-3 pb-1">
           <Slider
             value={[seekPosition]}
-            onValueChange={v => {
-              setSeekPosition(v[0]);
-              seekStartRef.current = Date.now() - (v[0] / 100) * 240000;
-              // Send seekTo command to YouTube iframe
-              if (iframeRef.current?.contentWindow) {
-                const seekSeconds = (v[0] / 100) * 240;
-                iframeRef.current.contentWindow.postMessage(
-                  JSON.stringify({ event: 'command', func: 'seekTo', args: [seekSeconds, true] }),
-                  '*'
-                );
-              }
-            }}
+            onValueChange={handleSeekChange}
+            onValueCommit={handleSeekCommit}
             max={100}
-            step={1}
+            step={0.5}
             className="w-full"
           />
+          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
         </div>
 
         {/* Volume slider */}
@@ -279,7 +346,7 @@ export default function ChillMusicPlayer() {
                 <button onClick={() => moveSong(i, 1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" title="Bajar">
                   <ArrowDown className="w-2.5 h-2.5" />
                 </button>
-                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); }} className="flex-1 text-left truncate cursor-pointer">
+                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); setSeekPosition(0); }} className="flex-1 text-left truncate cursor-pointer">
                   <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
                 </button>
                 {playlist.length > 1 && (

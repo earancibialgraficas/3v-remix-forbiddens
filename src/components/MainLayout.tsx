@@ -15,10 +15,9 @@ export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const location = useLocation();
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100dvh' }}>
+    <div className="flex flex-col" style={{ minHeight: '100dvh', position: 'relative', overflow: 'visible' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -65,7 +64,7 @@ export default function MainLayout() {
       {/* Fixed nav buttons on the left (hidden on home) */}
       <NavigationButtons />
 
-      {/* Main content — flex-1 ensures it fills remaining space */}
+      {/* Main content */}
       <main className={cn(
         "flex-1 min-w-0 transition-all duration-300",
         "md:ml-12",

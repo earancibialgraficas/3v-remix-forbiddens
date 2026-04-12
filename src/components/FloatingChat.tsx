@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, User, Minus, Square, ArrowLeft, Search, Type } from "lucide-react";
+import { MessageSquare, X, Send, User, Minus, Square, ArrowLeft, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
 interface Message {
   id: string;
@@ -14,10 +15,20 @@ interface Message {
   is_read: boolean;
 }
 
+interface FriendInfo {
+  user_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  color_avatar_border?: string | null;
+  color_name?: string | null;
+}
+
 interface Conversation {
   partnerId: string;
   partnerName: string;
   partnerAvatar: string | null;
+  partnerColorAvatarBorder?: string | null;
+  partnerColorName?: string | null;
   lastMessage: string;
   lastDate: string;
   unread: number;
@@ -34,53 +45,69 @@ export default function FloatingChat() {
   const [partnerName, setPartnerName] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [text, setText] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-  const [searchUser, setSearchUser] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Load conversations
-  const loadConversations = async () => {
+  // Load friend IDs (mutual accepted)
+  const loadFriends = async () => {
     if (!user) return;
+    const { data: sent } = await supabase.from("friend_requests").select("receiver_id").eq("sender_id", user.id).eq("status", "accepted");
+    const { data: recv } = await supabase.from("friend_requests").select("sender_id").eq("receiver_id", user.id).eq("status", "accepted");
+    const friendIds = [
+      ...(sent || []).map((r: any) => r.receiver_id),
+      ...(recv || []).map((r: any) => r.sender_id),
+    ];
+    if (friendIds.length === 0) { setFriends([]); return; }
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", friendIds);
+    setFriends((profiles || []) as FriendInfo[]);
+  };
 
-    // Count actual unread messages directly
-    const { count } = await supabase
-      .from("private_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("receiver_id", user.id)
-      .eq("is_read", false);
+  // Load conversations only with friends
+  const loadConversations = async () => {
+    if (!user || friends.length === 0) {
+      setConversations([]);
+      setUnreadCount(0);
+      return;
+    }
 
-    setUnreadCount(count || 0);
+    const friendIds = friends.map(f => f.user_id);
 
+    // Count unread from friends only
     const { data: allMsgs } = await supabase.from("private_messages").select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false }).limit(200);
     if (!allMsgs) return;
 
+    const friendSet = new Set(friendIds);
+    let totalUnread = 0;
     const convMap: Record<string, { msgs: any[]; unread: number }> = {};
+
     (allMsgs as any[]).forEach(m => {
       const pid = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+      if (!friendSet.has(pid)) return; // Only friends
       if (!convMap[pid]) convMap[pid] = { msgs: [], unread: 0 };
       convMap[pid].msgs.push(m);
-      if (m.receiver_id === user.id && !m.is_read) convMap[pid].unread++;
+      if (m.receiver_id === user.id && !m.is_read) {
+        convMap[pid].unread++;
+        totalUnread++;
+      }
     });
 
-    const partnerIds = Object.keys(convMap);
-    if (partnerIds.length === 0) { setConversations([]); return; }
+    setUnreadCount(totalUnread);
 
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", partnerIds);
-    const pMap: Record<string, any> = {};
-    profiles?.forEach(p => pMap[p.user_id] = p);
-
-    const convs: Conversation[] = partnerIds.map(pid => {
+    const convs: Conversation[] = Object.keys(convMap).map(pid => {
       const c = convMap[pid];
       const last = c.msgs[0];
+      const friend = friends.find(f => f.user_id === pid);
       return {
         partnerId: pid,
-        partnerName: pMap[pid]?.display_name || "Usuario",
-        partnerAvatar: pMap[pid]?.avatar_url || null,
+        partnerName: friend?.display_name || "Usuario",
+        partnerAvatar: friend?.avatar_url || null,
+        partnerColorAvatarBorder: friend?.color_avatar_border || null,
+        partnerColorName: friend?.color_name || null,
         lastMessage: last?.content || "",
         lastDate: last?.created_at || "",
         unread: c.unread,
@@ -90,7 +117,8 @@ export default function FloatingChat() {
     setConversations(convs);
   };
 
-  useEffect(() => { loadConversations(); }, [user]);
+  useEffect(() => { loadFriends(); }, [user]);
+  useEffect(() => { loadConversations(); }, [friends]);
 
   // Realtime
   useEffect(() => {
@@ -106,16 +134,11 @@ export default function FloatingChat() {
         }
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, partnerId]);
+  }, [user, partnerId, friends]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const loadPartnerInfo = async (pid: string) => {
-    const { data } = await supabase.from("profiles").select("display_name").eq("user_id", pid).maybeSingle();
-    setPartnerName((data as any)?.display_name || "Usuario");
-  };
 
   const loadMessages = async (pid: string) => {
     if (!user) return;
@@ -130,7 +153,6 @@ export default function FloatingChat() {
   const openConversation = (pid: string, name?: string) => {
     setPartnerId(pid);
     if (name) setPartnerName(name);
-    else loadPartnerInfo(pid);
     loadMessages(pid);
     setMinimized(false);
     setIsOpen(true);
@@ -143,13 +165,6 @@ export default function FloatingChat() {
     } as any);
     setText("");
     loadMessages(partnerId);
-  };
-
-  const handleSearch = async () => {
-    if (!searchUser.trim() || !user) return;
-    const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url")
-      .ilike("display_name", `%${searchUser}%`).neq("user_id", user.id).limit(5);
-    setSearchResults(data || []);
   };
 
   const handleExpand = () => {
@@ -175,7 +190,7 @@ export default function FloatingChat() {
   if (!isOpen || minimized) {
     return (
       <button
-        onClick={() => { setIsOpen(true); setMinimized(false); loadConversations(); }}
+        onClick={() => { setIsOpen(true); setMinimized(false); loadFriends(); }}
         className="fixed bottom-4 left-4 z-[250] w-12 h-12 bg-neon-cyan/20 border-2 border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-neon-cyan/30 transition-colors animate-scale-in"
       >
         <MessageSquare className="w-5 h-5 text-neon-cyan" />
@@ -201,7 +216,7 @@ export default function FloatingChat() {
           )}
           <MessageSquare className="w-3.5 h-3.5 text-neon-cyan" />
           <span className="text-xs font-body font-medium text-foreground truncate">
-            {partnerId ? partnerName : "Mensajes"}
+            {partnerId ? partnerName : "Chat de Amigos"}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -223,67 +238,47 @@ export default function FloatingChat() {
       </div>
 
       {!partnerId ? (
-        /* Conversation list */
+        /* Friend contact list */
         <div className="flex-1 overflow-y-auto retro-scrollbar">
-          {/* Search */}
-          <div className="p-2 border-b border-border/50">
-            <div className="flex gap-1">
-              <input
-                value={searchUser}
-                onChange={e => setSearchUser(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
-                placeholder="Buscar usuario..."
-                className="flex-1 h-6 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-border focus:border-neon-cyan/50"
-              />
-              <button onClick={handleSearch} className="p-1 text-muted-foreground hover:text-foreground">
-                <Search className="w-3 h-3" />
-              </button>
-            </div>
-            {searchResults.length > 0 && (
-              <div className="mt-1 space-y-0.5">
-                {searchResults.map(r => (
-                  <button key={r.user_id} onClick={() => { openConversation(r.user_id, r.display_name); setSearchResults([]); setSearchUser(""); }}
-                    className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 text-[10px] font-body text-foreground">
-                    <div className="w-5 h-5 rounded-full bg-muted overflow-hidden shrink-0">
-                      {r.avatar_url ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground m-1" />}
-                    </div>
-                    {r.display_name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {conversations.length === 0 ? (
+          {/* Show friends list as contacts */}
+          {friends.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-4">
               <MessageSquare className="w-8 h-8 text-muted-foreground/30 mb-2" />
-              <p className="text-[10px] text-muted-foreground font-body">Sin conversaciones aún. Busca un usuario para empezar.</p>
+              <p className="text-[10px] text-muted-foreground font-body">No tienes amigos aún. Agrega amigos desde sus perfiles para chatear aquí.</p>
             </div>
           ) : (
-            conversations.map(c => (
-              <button key={c.partnerId} onClick={() => openConversation(c.partnerId, c.partnerName)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors border-b border-border/20 text-left">
-                <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
-                  {c.partnerAvatar ? <img src={c.partnerAvatar} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-body font-medium text-foreground truncate">{c.partnerName}</span>
-                    <span className="text-[8px] text-muted-foreground font-body shrink-0">
-                      {new Date(c.lastDate).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground font-body truncate">{c.lastMessage}</p>
-                    {c.unread > 0 && (
-                      <span className="w-4 h-4 bg-destructive rounded-full text-[8px] text-destructive-foreground flex items-center justify-center font-bold shrink-0 ml-1">
-                        {c.unread > 9 ? "9+" : c.unread}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))
+            <>
+              <p className="text-[9px] text-muted-foreground font-body px-3 py-1.5 border-b border-border/30">CONTACTOS ({friends.length})</p>
+              {friends.map(f => {
+                const conv = conversations.find(c => c.partnerId === f.user_id);
+                return (
+                  <button key={f.user_id} onClick={() => openConversation(f.user_id, f.display_name)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors border-b border-border/20 text-left">
+                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0" style={getAvatarBorderStyle(f.color_avatar_border)}>
+                      {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-body font-medium text-foreground truncate" style={getNameStyle(f.color_name)}>{f.display_name}</span>
+                        {conv && conv.lastDate && (
+                          <span className="text-[8px] text-muted-foreground font-body shrink-0">
+                            {new Date(conv.lastDate).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-muted-foreground font-body truncate">{conv?.lastMessage || "Sin mensajes"}</p>
+                        {conv && conv.unread > 0 && (
+                          <span className="w-4 h-4 bg-destructive rounded-full text-[8px] text-destructive-foreground flex items-center justify-center font-bold shrink-0 ml-1">
+                            {conv.unread > 9 ? "9+" : conv.unread}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </>
           )}
         </div>
       ) : (
