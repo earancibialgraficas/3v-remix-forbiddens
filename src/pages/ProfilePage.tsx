@@ -922,6 +922,10 @@ function FriendsTab({ userId }: { userId: string }) {
   const [friendRoles, setFriendRoles] = useState<Record<string, string[]>>({});
   const [pendingReceived, setPendingReceived] = useState<any[]>([]);
   const [pendingSent, setPendingSent] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [friendMessage, setFriendMessage] = useState("");
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   const fetchFriends = async () => {
     // Accepted friends
@@ -989,8 +993,51 @@ function FriendsTab({ userId }: { userId: string }) {
     return null;
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+      .ilike("display_name", `%${searchQuery}%`).neq("user_id", userId).limit(10);
+    // Filter out existing friends and pending requests
+    const friendIds = friends.map((f: any) => f.user_id);
+    const pendingIds = [...pendingReceived.map((r: any) => r.sender_id), ...pendingSent.map((r: any) => r.receiver_id)];
+    const excluded = new Set([...friendIds, ...pendingIds]);
+    setSearchResults((data || []).filter((p: any) => !excluded.has(p.user_id)));
+  };
+
+  const sendFriendRequest = async (targetId: string) => {
+    setSendingRequest(true);
+    const { error } = await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: targetId } as any);
+    setSendingRequest(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Solicitud enviada" }); setSearchResults([]); setSearchQuery(""); setFriendMessage(""); fetchFriends(); }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Friend search */}
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Search className="w-3 h-3" /> BUSCAR USUARIOS</h3>
+        <div className="flex gap-1">
+          <Input placeholder="Buscar por nombre de usuario..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} className="h-7 bg-muted text-xs font-body flex-1" />
+          <Button size="sm" variant="ghost" onClick={handleSearch} className="h-7 w-7 p-0"><Search className="w-3 h-3" /></Button>
+        </div>
+        {searchResults.length > 0 && (
+          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            {searchResults.map((r: any) => (
+              <div key={r.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+                <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(r.color_avatar_border)}>
+                  {r.avatar_url ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground m-2" />}
+                </div>
+                <span className="flex-1 text-xs font-body text-foreground" style={getNameStyle(r.color_name)}>{r.display_name}</span>
+                <Button size="sm" onClick={() => sendFriendRequest(r.user_id)} disabled={sendingRequest} className="text-[10px] h-6 px-2 gap-1">
+                  <UserPlus className="w-3 h-3" /> Agregar
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {pendingReceived.length > 0 && (
         <div className="bg-card border border-neon-yellow/30 rounded p-4">
           <h3 className="font-pixel text-[10px] text-neon-yellow mb-3">SOLICITUDES PENDIENTES ({pendingReceived.length})</h3>
