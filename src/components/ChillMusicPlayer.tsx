@@ -179,26 +179,37 @@ export default function ChillMusicPlayer() {
   const handleSeekChange = (v: number[]) => {
     setIsSeeking(true);
     setSeekPosition(v[0]);
+    // Actualizamos el tiempo actual mientras arrastras para que el número cambie
+    setCurrentTime(v[0]); 
   };
 
   const handleSeekCommit = (v: number[]) => {
-    const seekSeconds = (v[0] / 100) * duration;
+    const seekSeconds = v[0]; // Ahora v[0] ya son los segundos directos
     setCurrentTime(seekSeconds);
     setIsSeeking(false);
+
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: 'seekTo', args: [seekSeconds, true] }),
+        JSON.stringify({ 
+          event: 'command', 
+          func: 'seekTo', 
+          args: [seekSeconds, true] 
+        }),
         '*'
       );
     }
   };
 
   const formatTime = (s: number) => {
-    if (!isFinite(s) || isNaN(s) || s < 0) return "0:00";
-    const total = Math.floor(s);
-    const m = Math.floor(total / 60);
-    const sec = total % 60;
-    return `${m}:${sec.toString().padStart(2, '0')}`;
+  // Si el número es mayor a 100,000 (ej. 2,700,000), son milisegundos. Lo dividimos por 1000.
+  const totalSeconds = s > 100000 ? s / 1000 : s;
+
+  if (!isFinite(totalSeconds) || isNaN(totalSeconds) || totalSeconds < 0) return "0:00";
+
+  const m = Math.floor(totalSeconds / 60);
+  const sec = Math.floor(totalSeconds % 60);
+
+  return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
   // YouTube iframe with API enabled
@@ -305,8 +316,8 @@ export default function ChillMusicPlayer() {
             value={[seekPosition]}
             onValueChange={handleSeekChange}
             onValueCommit={handleSeekCommit}
-            max={100}
-            step={0.5}
+            max={duration > 0 ? duration : 100}
+            step={1}
             className="w-full"
           />
           <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
