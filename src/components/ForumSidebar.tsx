@@ -96,16 +96,17 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
   useEffect(() => {
     if (!user) { setUnreadMessages(0); return; }
     const fetchUnread = async () => {
+      // Count unread from inbox_messages (public channel)
       const { count } = await supabase
-        .from("private_messages")
+        .from("inbox_messages")
         .select("id", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .eq("is_read", false);
       setUnreadMessages(count || 0);
     };
     fetchUnread();
-    const channel = supabase.channel("sidebar-msg-unread")
-      .on("postgres_changes", { event: "*", schema: "public", table: "private_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchUnread())
+    const channel = supabase.channel("sidebar-inbox-unread")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchUnread())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
