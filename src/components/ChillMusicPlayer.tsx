@@ -38,6 +38,51 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  // --- PEGA ESTO AQUÍ ---
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+
+    if (isPlaying && !isSeeking) {
+      pollRef.current = setInterval(() => {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'getCurrentTime' }),
+            '*'
+          );
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'getDuration' }),
+            '*'
+          );
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [isPlaying, isSeeking]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === 'infoDelivery' && data.info) {
+          if (data.info.currentTime !== undefined && !isSeeking) {
+            setCurrentTime(data.info.currentTime);
+            setSeekPosition(data.info.currentTime);
+          }
+          if (data.info.duration !== undefined) {
+            setDuration(data.info.duration);
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isSeeking]);
+  // --- HASTA AQUÍ ---
+
   useEffect(() => {
     if (autoStarted) return;
     const timer = setTimeout(() => {
@@ -177,28 +222,27 @@ export default function ChillMusicPlayer() {
   };
 
   const handleSeekChange = (v: number[]) => {
-    setIsSeeking(true);
-    setSeekPosition(v[0]);
-    // Actualizamos el tiempo actual mientras arrastras para que el número cambie
-    setCurrentTime(v[0]); 
-  };
+      setIsSeeking(true);
+      setSeekPosition(v[0]);
+      setCurrentTime(v[0]);
+    };
 
-  const handleSeekCommit = (v: number[]) => {
-    const seekSeconds = v[0]; // Ahora v[0] ya son los segundos directos
-    setCurrentTime(seekSeconds);
-    setIsSeeking(false);
+    const handleSeekCommit = (v: number[]) => {
+      const newTime = v[0];
+      setIsSeeking(false);
+      setCurrentTime(newTime);
 
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ 
-          event: 'command', 
-          func: 'seekTo', 
-          args: [seekSeconds, true] 
-        }),
-        '*'
-      );
-    }
-  };
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'seekTo',
+            args: [newTime, true]
+          }),
+          '*'
+        );
+      }
+    };
 
   const formatTime = (s: number) => {
   // Si el número es mayor a 100,000 (ej. 2,700,000), son milisegundos. Lo dividimos por 1000.
@@ -313,7 +357,7 @@ export default function ChillMusicPlayer() {
         {/* Seek bar */}
         <div className="px-3 pb-1">
           <Slider
-            value={[seekPosition]}
+            value={[isSeeking ? seekPosition : currentTime]}
             onValueChange={handleSeekChange}
             onValueCommit={handleSeekCommit}
             max={duration > 0 ? duration : 100}
