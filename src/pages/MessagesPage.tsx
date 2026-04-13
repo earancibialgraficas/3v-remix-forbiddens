@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Send, User, Search, ArrowLeft, X } from "lucide-react";
+import { MessageSquare, Send, User, Search, ArrowLeft, X, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,8 @@ interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
+  message_type?: string;
+  channel?: string;
 }
 
 interface Conversation {
@@ -54,8 +56,8 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     loadConversations();
-    const channel = supabase.channel("pm-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "private_messages" }, () => {
+    const channel = supabase.channel("inbox-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "inbox_messages" }, () => {
         loadConversations();
         if (selectedPartner) loadMessages(selectedPartner);
       }).subscribe();
@@ -68,7 +70,7 @@ export default function MessagesPage() {
 
   const loadConversations = async () => {
     if (!user) return;
-    const { data } = await supabase.from("private_messages").select("*")
+    const { data } = await supabase.from("inbox_messages").select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
     if (!data) { setLoading(false); return; }
@@ -109,18 +111,18 @@ export default function MessagesPage() {
   const loadMessages = async (partnerId: string) => {
     if (!user) return;
     setSelectedPartner(partnerId);
-    const { data } = await supabase.from("private_messages").select("*")
+    const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true });
     if (data) setMessages(data as Message[]);
-    await supabase.from("private_messages").update({ is_read: true } as any)
+    await supabase.from("inbox_messages").update({ is_read: true } as any)
       .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
   };
 
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
-    const { error } = await supabase.from("private_messages").insert({
-      sender_id: user.id, receiver_id: selectedPartner, content: newMessage.trim(),
+    const { error } = await supabase.from("inbox_messages").insert({
+      sender_id: user.id, receiver_id: selectedPartner, content: newMessage.trim(), message_type: 'general', channel: 'public',
     } as any);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setNewMessage(""); loadMessages(selectedPartner); }
@@ -146,8 +148,8 @@ export default function MessagesPage() {
   return (
     <div className="space-y-3 animate-fade-in" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="bg-card border border-neon-cyan/30 rounded p-3">
-        <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><MessageSquare className="w-4 h-4" /> BANDEJA DE ENTRADA</h1>
-        <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes de cualquier usuario</p>
+        <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><Mail className="w-4 h-4" /> BANDEJA PÚBLICA</h1>
+        <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes públicos, reportes y sugerencias de cualquier usuario</p>
       </div>
 
       <div className="flex gap-3" style={{ height: 'calc(100% - 70px)' }}>

@@ -189,6 +189,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          message: string | null
           receiver_id: string
           sender_id: string
           status: string
@@ -197,6 +198,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          message?: string | null
           receiver_id: string
           sender_id: string
           status?: string
@@ -205,6 +207,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          message?: string | null
           receiver_id?: string
           sender_id?: string
           status?: string
@@ -239,6 +242,39 @@ export type Database = {
           id?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      inbox_messages: {
+        Row: {
+          channel: string
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message_type: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          channel?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          channel?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          receiver_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
@@ -476,6 +512,9 @@ export type Database = {
           role_icon: string | null
           show_role_icon: boolean | null
           signature: string | null
+          signature_color: string | null
+          signature_font: string | null
+          signature_image_url: string | null
           tiktok_url: string | null
           total_score: number
           updated_at: string
@@ -497,6 +536,9 @@ export type Database = {
           role_icon?: string | null
           show_role_icon?: boolean | null
           signature?: string | null
+          signature_color?: string | null
+          signature_font?: string | null
+          signature_image_url?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -518,6 +560,9 @@ export type Database = {
           role_icon?: string | null
           show_role_icon?: boolean | null
           signature?: string | null
+          signature_color?: string | null
+          signature_font?: string | null
+          signature_image_url?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string

@@ -194,8 +194,10 @@ export default function ChillMusicPlayer() {
   };
 
   const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
+    if (!isFinite(s) || isNaN(s) || s < 0) return "0:00";
+    const total = Math.floor(s);
+    const m = Math.floor(total / 60);
+    const sec = total % 60;
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 

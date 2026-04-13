@@ -476,13 +476,27 @@ export default function ProfilePage() {
                   onClick={async () => {
                     if (!user) return;
                     if (item.type === "Partida guardada" && item.id) {
-                      await supabase.from("leaderboard_scores").delete().eq("id", item.id);
+                      // Delete the save slot from localStorage but KEEP the score in the database
+                      // The leaderboard_scores row stores the score — we only remove the save data
+                      const games = Object.keys(localStorage).filter(k => k.startsWith("save_slots_"));
+                      games.forEach(k => {
+                        try {
+                          const slots = JSON.parse(localStorage.getItem(k) || "[]");
+                          const filtered = slots.filter((_: any, idx: number) => {
+                            // Simple heuristic: match by name
+                            return !item.name.includes(k.replace("save_slots_", ""));
+                          });
+                          localStorage.setItem(k, JSON.stringify(filtered));
+                        } catch {}
+                      });
                     } else if (item.type === "Contenido social" && item.id) {
                       await supabase.from("social_content").delete().eq("id", item.id);
                     } else if (item.type === "Foto" && item.id) {
                       await supabase.from("photos").delete().eq("id", item.id);
                     } else if (item.type === "Avatar") {
-                      await supabase.storage.from("avatars").remove([`${user.id}/${item.name}`]);
+                      // Don't allow deleting avatars — only replacing
+                      toast({ title: "No permitido", description: "Solo puedes reemplazar tu avatar, no eliminarlo", variant: "destructive" });
+                      return;
                     }
                     toast({ title: "Eliminado permanentemente" });
                     setStorageItems(prev => prev.filter((_, idx) => idx !== i));
@@ -965,11 +979,8 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const acceptRequest = async (requestId: string, senderId: string) => {
     await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
-    // Get current user's display name for the notification
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const { data: myProfile } = await supabase.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
-    const myName = (myProfile as any)?.display_name || "Alguien";
-    await supabase.from("notifications").insert({ user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${myName} aceptó tu solicitud de amistad`, related_id: currentUser?.id } as any);
+    // Notification is now handled by the database trigger (notify_friend_request)
+    // No need to manually insert — the trigger fires on UPDATE to 'accepted'
     toast({ title: "Amistad aceptada" });
     fetchFriends();
   };
@@ -1006,7 +1017,9 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const sendFriendRequest = async (targetId: string) => {
     setSendingRequest(true);
-    const { error } = await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: targetId } as any);
+    const insertData: any = { sender_id: userId, receiver_id: targetId };
+    if (friendMessage.trim()) insertData.message = friendMessage.trim();
+    const { error } = await supabase.from("friend_requests").insert(insertData as any);
     setSendingRequest(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Solicitud enviada" }); setSearchResults([]); setSearchQuery(""); setFriendMessage(""); fetchFriends(); }

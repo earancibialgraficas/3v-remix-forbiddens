@@ -10,11 +10,25 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { loading, isReady } = useAuth();
+
+  // Prevent black screen on mobile: show nothing until auth is resolved
+  if (!isReady && loading) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: '100dvh' }}>
+        <div className="text-center space-y-2 animate-fade-in">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-body text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ minHeight: '100dvh', position: 'relative', overflow: 'visible' }}>
