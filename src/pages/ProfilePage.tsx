@@ -476,13 +476,27 @@ export default function ProfilePage() {
                   onClick={async () => {
                     if (!user) return;
                     if (item.type === "Partida guardada" && item.id) {
-                      await supabase.from("leaderboard_scores").delete().eq("id", item.id);
+                      // Delete the save slot from localStorage but KEEP the score in the database
+                      // The leaderboard_scores row stores the score — we only remove the save data
+                      const games = Object.keys(localStorage).filter(k => k.startsWith("save_slots_"));
+                      games.forEach(k => {
+                        try {
+                          const slots = JSON.parse(localStorage.getItem(k) || "[]");
+                          const filtered = slots.filter((_: any, idx: number) => {
+                            // Simple heuristic: match by name
+                            return !item.name.includes(k.replace("save_slots_", ""));
+                          });
+                          localStorage.setItem(k, JSON.stringify(filtered));
+                        } catch {}
+                      });
                     } else if (item.type === "Contenido social" && item.id) {
                       await supabase.from("social_content").delete().eq("id", item.id);
                     } else if (item.type === "Foto" && item.id) {
                       await supabase.from("photos").delete().eq("id", item.id);
                     } else if (item.type === "Avatar") {
-                      await supabase.storage.from("avatars").remove([`${user.id}/${item.name}`]);
+                      // Don't allow deleting avatars — only replacing
+                      toast({ title: "No permitido", description: "Solo puedes reemplazar tu avatar, no eliminarlo", variant: "destructive" });
+                      return;
                     }
                     toast({ title: "Eliminado permanentemente" });
                     setStorageItems(prev => prev.filter((_, idx) => idx !== i));
