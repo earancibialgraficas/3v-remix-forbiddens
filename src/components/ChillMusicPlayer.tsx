@@ -252,18 +252,18 @@ export default function ChillMusicPlayer() {
   return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  // YouTube iframe with API enabled
-  const renderIframe = isPlaying && current && (
+  // YouTube iframe siempre presente para no perder el progreso
+  const renderIframe = current ? (
     <iframe
       ref={iframeRef}
-      key={`${current.id}-${currentIndex}`}
-      src={`https://www.youtube.com/embed/${current.id}?autoplay=1&loop=0&controls=0&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+      key={`${current.id}`} // Quitamos currentIndex para que no se reinicie al cambiar de lista
+      src={`https://www.youtube.com/embed/${current.id}?enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&widget_referrer=${encodeURIComponent(window.location.origin)}`}
       className="w-0 h-0 absolute pointer-events-none"
       style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}
       allow="autoplay"
       title="Chill Music"
     />
-  );
+  ) : null;
 
   // Apply volume changes via postMessage
   useEffect(() => {
