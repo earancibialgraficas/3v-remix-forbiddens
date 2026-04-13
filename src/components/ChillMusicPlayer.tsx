@@ -139,11 +139,11 @@ export default function ChillMusicPlayer() {
   }, [isPlaying, currentIndex]);
 
   // Update seek position from currentTime
-  //useEffect(() => {
-    //if (!isSeeking && duration > 0) {
-     // setSeekPosition((currentTime / duration) * 100);
-    //}
-  //}, [currentTime, duration, isSeeking]);
+  useEffect(() => {
+    if (!isSeeking && duration > 0) {
+      setSeekPosition((currentTime / duration) * 100);
+    }
+  }, [currentTime, duration, isSeeking]);
 
   // Visualizer
   useEffect(() => {
