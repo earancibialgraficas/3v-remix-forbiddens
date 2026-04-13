@@ -4,6 +4,7 @@ import type { User, Session } from "@supabase/supabase-js";
 
 interface Profile {
   id: string;
+  id: string;
   user_id: string;
   display_name: string;
   avatar_url: string | null;
@@ -32,11 +33,13 @@ interface AuthContextType {
   isMasterWeb: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  isReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null, session: null, profile: null, roles: [], loading: true,
   isAdmin: false, isMasterWeb: false, signOut: async () => {}, refreshProfile: async () => {},
+  isReady: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -45,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -64,29 +68,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-          fetchRoles(session.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-        setRoles([]);
-      }
-      setLoading(false);
-    });
-
+    // Restore session FIRST to avoid race conditions on mobile
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
         fetchRoles(session.user.id);
+      } else {
+        setProfile(null);
+        setRoles([]);
       }
       setLoading(false);
+      setIsReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        fetchRoles(session.user.id);
+      } else {
+        setProfile(null);
+        setRoles([]);
+      }
+      setLoading(false);
+      setIsReady(true);
     });
 
     return () => subscription.unsubscribe();
@@ -104,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isMasterWeb = roles.includes("master_web");
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, isAdmin, isMasterWeb, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, loading, isAdmin, isMasterWeb, signOut, refreshProfile, isReady }}>
       {children}
     </AuthContext.Provider>
   );
