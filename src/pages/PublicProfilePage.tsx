@@ -102,8 +102,7 @@ export default function PublicProfilePage() {
       await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       setFriendStatus("accepted");
       toast({ title: "Amistad aceptada" });
-      // Create notification
-      await supabase.from("notifications").insert({ user_id: userId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || "Alguien"} aceptó tu solicitud de amistad`, related_id: user.id } as any);
+      // Notification is now handled by the database trigger automatically
     } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
       await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
       setFriendStatus("none");

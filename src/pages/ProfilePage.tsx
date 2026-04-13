@@ -965,11 +965,8 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const acceptRequest = async (requestId: string, senderId: string) => {
     await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
-    // Get current user's display name for the notification
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const { data: myProfile } = await supabase.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
-    const myName = (myProfile as any)?.display_name || "Alguien";
-    await supabase.from("notifications").insert({ user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${myName} aceptó tu solicitud de amistad`, related_id: currentUser?.id } as any);
+    // Notification is now handled by the database trigger (notify_friend_request)
+    // No need to manually insert — the trigger fires on UPDATE to 'accepted'
     toast({ title: "Amistad aceptada" });
     fetchFriends();
   };
@@ -1006,7 +1003,9 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const sendFriendRequest = async (targetId: string) => {
     setSendingRequest(true);
-    const { error } = await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: targetId } as any);
+    const insertData: any = { sender_id: userId, receiver_id: targetId };
+    if (friendMessage.trim()) insertData.message = friendMessage.trim();
+    const { error } = await supabase.from("friend_requests").insert(insertData as any);
     setSendingRequest(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Solicitud enviada" }); setSearchResults([]); setSearchQuery(""); setFriendMessage(""); fetchFriends(); }

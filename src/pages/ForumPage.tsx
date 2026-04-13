@@ -230,10 +230,8 @@ export default function ForumPage() {
 
   useEffect(() => {
     fetchPosts();
-    const channel = supabase.channel(`posts-${category}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPosts())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // DO NOT subscribe to realtime on posts table — it causes vote counter bouncing
+    // because each vote triggers an UPDATE event that refetches stale data during optimistic updates
   }, [category, sortBy]);
 
   // Auto-expand direct linked post
