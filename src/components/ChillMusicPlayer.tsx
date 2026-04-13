@@ -29,7 +29,7 @@ export default function ChillMusicPlayer() {
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [seekPosition, setSeekPosition] = useState(0);
-  const [duration, setDuration] = useState(240); // seconds, default 4 min
+  const [duration, setDuration] = useState(0); // seconds, default 4 min
   const [currentTime, setCurrentTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const playerReadyRef = useRef(false);
@@ -39,19 +39,41 @@ export default function ChillMusicPlayer() {
   const isMuted = volume === 0;
 
   // --- PEGA ESTO AQUÍ ---
+  // --- REEMPLAZA LOS EFECTOS POR ESTO ---
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        // YouTube a veces manda objetos, a veces strings. Esto lo arregla:
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        
+        // Buscamos específicamente el tiempo y la duración
+        if (data.event === 'infoDelivery' && data.info) {
+          if (data.info.currentTime !== undefined && !isSeeking) {
+            setCurrentTime(data.info.currentTime);
+            setSeekPosition(data.info.currentTime);
+          }
+          if (data.info.duration !== undefined && data.info.duration > 0) {
+            setDuration(data.info.duration);
+          }
+        }
+      } catch (e) {
+        // Ignorar errores de mensajes que no son de YouTube
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isSeeking]);
+
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
 
+    // Solo pedimos el tiempo si la música está sonando
     if (isPlaying && !isSeeking) {
       pollRef.current = setInterval(() => {
         if (iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'getCurrentTime' }),
-            '*'
-          );
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'getDuration' }),
-            '*'
+            JSON.stringify({ event: 'command', func: 'getCurrentTime' }), '*'
           );
         }
       }, 1000);
@@ -61,26 +83,6 @@ export default function ChillMusicPlayer() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [isPlaying, isSeeking]);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === 'infoDelivery' && data.info) {
-          if (data.info.currentTime !== undefined && !isSeeking) {
-            setCurrentTime(data.info.currentTime);
-            setSeekPosition(data.info.currentTime);
-          }
-          if (data.info.duration !== undefined) {
-            setDuration(data.info.duration);
-          }
-        }
-      } catch (e) {}
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isSeeking]);
   // --- HASTA AQUÍ ---
 
   useEffect(() => {
@@ -137,11 +139,11 @@ export default function ChillMusicPlayer() {
   }, [isPlaying, currentIndex]);
 
   // Update seek position from currentTime
-  useEffect(() => {
-    if (!isSeeking && duration > 0) {
-      setSeekPosition((currentTime / duration) * 100);
-    }
-  }, [currentTime, duration, isSeeking]);
+  //useEffect(() => {
+    //if (!isSeeking && duration > 0) {
+     // setSeekPosition((currentTime / duration) * 100);
+    //}
+  //}, [currentTime, duration, isSeeking]);
 
   // Visualizer
   useEffect(() => {
@@ -224,22 +226,21 @@ export default function ChillMusicPlayer() {
   const handleSeekChange = (v: number[]) => {
       setIsSeeking(true);
       setSeekPosition(v[0]);
-      setCurrentTime(v[0]);
+      setCurrentTime(v[0]); // Esto hace que el número cambie mientras arrastras
     };
 
     const handleSeekCommit = (v: number[]) => {
       const newTime = v[0];
       setIsSeeking(false);
-      setCurrentTime(newTime);
-
+      
       if (iframeRef.current?.contentWindow) {
+        // Mandamos la orden directa a YouTube
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
             func: 'seekTo',
             args: [newTime, true]
-          }),
-          '*'
+          }), '*'
         );
       }
     };
