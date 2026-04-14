@@ -25,8 +25,8 @@ export default function LoginPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente" });
-      // Use replace to avoid back-button loop and ensure mobile renders correctly
-      window.location.href = "/";
+      // Navigate using router to avoid full reload issues on mobile
+      navigate("/");
     }
   };
 
