@@ -548,12 +548,15 @@ export default function ForumPage() {
                       <div className="mt-1">
                         <p className="text-[9px] font-body"
                           style={{
-                            color: postProfiles[post.user_id]?.color_staff_role || '#facc15',
-                            fontWeight: ['bold', 'bold-italic'].includes((postProfiles[post.user_id] as any)?.signature_font) ? 'bold' : 'normal',
-                            fontStyle: ['italic', 'bold-italic'].includes((postProfiles[post.user_id] as any)?.signature_font) ? 'italic' : 'normal',
+                            color: postProfiles[post.user_id]?.signature_color || postProfiles[post.user_id]?.color_staff_role || '#facc15',
+                            fontWeight: ['bold', 'bold-italic'].includes(postProfiles[post.user_id]?.signature_font || '') ? 'bold' : 'normal',
+                            fontStyle: ['italic', 'bold-italic'].includes(postProfiles[post.user_id]?.signature_font || '') ? 'italic' : 'normal',
                           }}>
                           {(post as any).signature}
                         </p>
+                        {postProfiles[post.user_id]?.signature_image_url && (
+                          <img src={postProfiles[post.user_id].signature_image_url!} alt="" className="max-w-[200px] max-h-[100px] object-contain mt-0.5 rounded" />
+                        )}
                       </div>
                     )}
                     <button
