@@ -28,63 +28,58 @@ export default function ChillMusicPlayer() {
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [seekPosition, setSeekPosition] = useState(0);
-  const [duration, setDuration] = useState(0); // seconds, default 4 min
+  const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [seekValue, setSeekValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
-  const playerReadyRef = useRef(false);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // --- PEGA ESTO AQUÍ ---
-  // --- REEMPLAZA LOS EFECTOS POR ESTO ---
+  // Single message handler for YouTube postMessage API
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data) return;
       try {
-        // YouTube a veces manda objetos, a veces strings. Esto lo arregla:
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        
-        // Buscamos específicamente el tiempo y la duración
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (data.event === 'infoDelivery' && data.info) {
-          if (data.info.currentTime !== undefined && !isSeeking) {
+          if (typeof data.info.currentTime === 'number' && !isSeeking) {
             setCurrentTime(data.info.currentTime);
-            setSeekPosition(data.info.currentTime);
           }
-          if (data.info.duration !== undefined && data.info.duration > 0) {
+          if (typeof data.info.duration === 'number' && data.info.duration > 0) {
             setDuration(data.info.duration);
           }
+          // Video ended → next
+          if (data.info.playerState === 0) {
+            next();
+          }
         }
-      } catch (e) {
-        // Ignorar errores de mensajes que no son de YouTube
-      }
+      } catch {}
     };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [isSeeking, currentIndex]);
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isSeeking]);
-
+  // Poll currentTime every 1s via postMessage
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
-
-    // Solo pedimos el tiempo si la música está sonando
-    if (isPlaying && !isSeeking) {
-      pollRef.current = setInterval(() => {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'getCurrentTime' }), '*'
+    if (isPlaying && iframeRef.current?.contentWindow) {
+      // Tell YouTube we want to listen for info updates
+      const sendListening = () => {
+        try {
+          iframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: 'listening', id: 1 }), '*'
           );
-        }
-      }, 1000);
+        } catch {}
+      };
+      sendListening();
+      pollRef.current = setInterval(sendListening, 1000);
     }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [isPlaying, currentIndex]);
 
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [isPlaying, isSeeking]);
-  // --- HASTA AQUÍ ---
-
+  // Auto-start after 5s
   useEffect(() => {
     if (autoStarted) return;
     const timer = setTimeout(() => {
@@ -94,51 +89,27 @@ export default function ChillMusicPlayer() {
     return () => clearTimeout(timer);
   }, [autoStarted]);
 
-  // Listen for YouTube IFrame API messages
+  // Play/Pause via postMessage
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (!e.data || typeof e.data !== 'string') return;
-      try {
-        const data = JSON.parse(e.data);
-        if (data.event === 'infoDelivery') {
-          if (data.info?.currentTime !== undefined && !isSeeking) {
-            setCurrentTime(data.info.currentTime);
-            if (data.info.duration && data.info.duration > 0) {
-              setDuration(data.info.duration);
-            }
-          }
-          if (data.info?.playerState === 0) {
-            // Video ended
-            next();
-          }
-        }
-        if (data.event === 'onReady') {
-          playerReadyRef.current = true;
-        }
-      } catch {}
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [isSeeking, currentIndex]);
-
-  // Poll for current time by requesting info from iframe
-  useEffect(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (isPlaying && iframeRef.current?.contentWindow) {
-      pollRef.current = setInterval(() => {
-        if (iframeRef.current?.contentWindow) {
-          // Request current time and duration info
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'listening', id: 1 }),
-            '*'
-          );
-        }
-      }, 1000);
-    }
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    const timer = setTimeout(() => {
+      if (!iframeRef.current?.contentWindow) return;
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
+      );
+    }, 300);
+    return () => clearTimeout(timer);
   }, [isPlaying, currentIndex]);
 
-
+  // Volume via postMessage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!iframeRef.current?.contentWindow) return;
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
+      );
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [volume, currentIndex]);
 
   // Visualizer
   useEffect(() => {
@@ -146,11 +117,9 @@ export default function ChillMusicPlayer() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     const bars = minimized ? 10 : 16;
     const barWidth = canvas.width / bars;
     let heights = new Array(bars).fill(0);
-
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < bars; i++) {
@@ -169,23 +138,22 @@ export default function ChillMusicPlayer() {
       }
       animFrameRef.current = requestAnimationFrame(animate);
     };
-
     animate();
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, volume, minimized]);
 
   const next = useCallback(() => {
     setCurrentIndex(i => (i + 1) % playlist.length);
-    setSeekPosition(0);
     setCurrentTime(0);
-    playerReadyRef.current = false;
+    setSeekValue(0);
+    setDuration(0);
   }, [playlist.length]);
 
   const prev = () => {
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
-    setSeekPosition(0);
     setCurrentTime(0);
-    playerReadyRef.current = false;
+    setSeekValue(0);
+    setDuration(0);
   };
 
   const removeSong = (idx: number) => {
@@ -218,46 +186,39 @@ export default function ChillMusicPlayer() {
     setShowAddSong(false);
   };
 
+  // Seek: onValueChange updates UI only
   const handleSeekChange = (v: number[]) => {
-      setIsSeeking(true);
-      setSeekPosition(v[0]);
-      setCurrentTime(v[0]); // Esto hace que el número cambie mientras arrastras
-    };
-
-    const handleSeekCommit = (v: number[]) => {
-      const newTime = v[0];
-      setIsSeeking(false);
-      
-      if (iframeRef.current?.contentWindow) {
-        // Mandamos la orden directa a YouTube
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'seekTo',
-            args: [newTime, true]
-          }), '*'
-        );
-      }
-    };
-
-  const formatTime = (s: number) => {
-  // Si el número es mayor a 100,000 (ej. 2,700,000), son milisegundos. Lo dividimos por 1000.
-  const totalSeconds = s > 100000 ? s / 1000 : s;
-
-  if (!isFinite(totalSeconds) || isNaN(totalSeconds) || totalSeconds < 0) return "0:00";
-
-  const m = Math.floor(totalSeconds / 60);
-  const sec = Math.floor(totalSeconds % 60);
-
-  return `${m}:${sec.toString().padStart(2, '0')}`;
+    setIsSeeking(true);
+    setSeekValue(v[0]);
   };
 
-  // YouTube iframe siempre presente para no perder el progreso
+  // Seek: onValueCommit actually seeks
+  const handleSeekCommit = (v: number[]) => {
+    const t = v[0];
+    setIsSeeking(false);
+    setCurrentTime(t);
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'seekTo', args: [t, true] }), '*'
+      );
+    }
+  };
+
+  const formatTime = (s: number) => {
+    if (!isFinite(s) || isNaN(s) || s < 0) return "0:00";
+    // Clamp to reasonable value (max ~24h)
+    const total = Math.min(Math.floor(s), 86400);
+    const m = Math.floor(total / 60);
+    const sec = total % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  // Iframe always present, key changes on track change
   const renderIframe = current ? (
     <iframe
       ref={iframeRef}
-      key={`${current.id}`} // Quitamos currentIndex para que no se reinicie al cambiar de lista
-      src={`https://www.youtube.com/embed/${current.id}?enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&widget_referrer=${encodeURIComponent(window.location.origin)}`}
+      key={`yt-${current.id}-${currentIndex}`}
+      src={`https://www.youtube.com/embed/${current.id}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&origin=${encodeURIComponent(window.location.origin)}`}
       className="w-0 h-0 absolute pointer-events-none"
       style={{ position: 'fixed', top: '-9999px', left: '-9999px' }}
       allow="autoplay"
@@ -265,19 +226,9 @@ export default function ChillMusicPlayer() {
     />
   ) : null;
 
-  // Apply volume changes via postMessage
-  useEffect(() => {
-    if (!iframeRef.current?.contentWindow) return;
-    const timer = setTimeout(() => {
-      if (iframeRef.current?.contentWindow) {
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }),
-          '*'
-        );
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [volume, currentIndex]);
+  // Display value for seek bar
+  const displayTime = isSeeking ? seekValue : currentTime;
+  const sliderMax = duration > 0 ? duration : 1;
 
   if (minimized) {
     return (
@@ -289,9 +240,7 @@ export default function ChillMusicPlayer() {
               {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
             </button>
             <canvas ref={miniCanvasRef} width={80} height={16} className="h-4 flex-1 rounded bg-muted/30" />
-            <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px]">
-              {current?.title}
-            </span>
+            <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px]">{current?.title}</span>
             <button onClick={() => setMinimized(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
               <ChevronUp className="w-3 h-3" />
             </button>
@@ -350,18 +299,18 @@ export default function ChillMusicPlayer() {
           </button>
         </div>
 
-        {/* Seek bar */}
+        {/* Seek bar — max = duration in seconds */}
         <div className="px-3 pb-1">
           <Slider
-            value={[isSeeking ? seekPosition : currentTime]}
+            value={[displayTime]}
             onValueChange={handleSeekChange}
             onValueCommit={handleSeekCommit}
-            max={duration > 0 ? duration : 100}
+            max={sliderMax}
             step={1}
             className="w-full"
           />
           <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
-            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(displayTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
         </div>
@@ -399,7 +348,7 @@ export default function ChillMusicPlayer() {
                 <button onClick={() => moveSong(i, 1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" title="Bajar">
                   <ArrowDown className="w-2.5 h-2.5" />
                 </button>
-                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); setSeekPosition(0); }} className="flex-1 text-left truncate cursor-pointer">
+                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); setSeekValue(0); setDuration(0); }} className="flex-1 text-left truncate cursor-pointer">
                   <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
                 </button>
                 {playlist.length > 1 && (
@@ -419,23 +368,9 @@ export default function ChillMusicPlayer() {
           </button>
           {showAddSong && (
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
-              <Input
-                placeholder="URL de YouTube"
-                value={newSongUrl}
-                onChange={e => setNewSongUrl(e.target.value)}
-                className="h-6 bg-muted text-[10px] font-body"
-              />
-              <Input
-                placeholder="Título (opcional)"
-                value={newSongTitle}
-                onChange={e => setNewSongTitle(e.target.value)}
-                className="h-6 bg-muted text-[10px] font-body"
-              />
-              <button
-                onClick={addSong}
-                disabled={!newSongUrl.trim()}
-                className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body hover:bg-neon-cyan/30 disabled:opacity-50 transition-colors"
-              >
+              <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
+              <Input placeholder="Título (opcional)" value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
+              <button onClick={addSong} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body hover:bg-neon-cyan/30 transition-colors">
                 Agregar
               </button>
             </div>

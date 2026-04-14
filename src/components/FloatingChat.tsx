@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, User, Minus, Square, ArrowLeft, Type } from "lucide-react";
+import { MessageSquare, X, Send, User, Minus, ArrowLeft, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,6 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Load friend IDs (mutual accepted)
   const loadFriends = async () => {
     if (!user) return;
     const { data: sent } = await supabase.from("friend_requests").select("receiver_id").eq("sender_id", user.id).eq("status", "accepted");
@@ -65,17 +64,13 @@ export default function FloatingChat() {
     setFriends((profiles || []) as FriendInfo[]);
   };
 
-  // Load conversations only with friends
   const loadConversations = async () => {
     if (!user || friends.length === 0) {
       setConversations([]);
       setUnreadCount(0);
       return;
     }
-
     const friendIds = friends.map(f => f.user_id);
-
-    // Count unread from friends only
     const { data: allMsgs } = await supabase.from("private_messages").select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false }).limit(200);
@@ -87,7 +82,7 @@ export default function FloatingChat() {
 
     (allMsgs as any[]).forEach(m => {
       const pid = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-      if (!friendSet.has(pid)) return; // Only friends
+      if (!friendSet.has(pid)) return;
       if (!convMap[pid]) convMap[pid] = { msgs: [], unread: 0 };
       convMap[pid].msgs.push(m);
       if (m.receiver_id === user.id && !m.is_read) {
@@ -120,7 +115,6 @@ export default function FloatingChat() {
   useEffect(() => { loadFriends(); }, [user]);
   useEffect(() => { loadConversations(); }, [friends]);
 
-  // Realtime
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel("floating-chat-rt")
@@ -167,17 +161,6 @@ export default function FloatingChat() {
     loadMessages(partnerId);
   };
 
-  const handleExpand = () => {
-    if (partnerId) {
-      navigate(`/mensajes?partner=${partnerId}`);
-    } else {
-      navigate("/mensajes");
-    }
-    setIsOpen(false);
-    setPartnerId(null);
-    setMessages([]);
-  };
-
   const cycleFontSize = () => {
     const currentIdx = FONT_SIZES.indexOf(fontSize as any);
     const nextIdx = (currentIdx + 1) % FONT_SIZES.length;
@@ -186,7 +169,7 @@ export default function FloatingChat() {
 
   if (!user) return null;
 
-  // Minimized icon — bottom LEFT
+  // Minimized icon — bottom LEFT (no maximize button)
   if (!isOpen || minimized) {
     return (
       <button
@@ -203,7 +186,7 @@ export default function FloatingChat() {
     );
   }
 
-  // Open chat window — bottom LEFT
+  // Open chat window — no maximize button
   return (
     <div className="fixed bottom-4 left-4 z-[250] w-80 h-[28rem] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
       {/* Header */}
@@ -228,9 +211,6 @@ export default function FloatingChat() {
           <button onClick={() => setMinimized(true)} className="p-1 text-muted-foreground hover:text-foreground" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          <button onClick={handleExpand} className="p-1 text-muted-foreground hover:text-foreground" title="Expandir">
-            <Square className="w-3 h-3" />
-          </button>
           <button onClick={() => { setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" />
           </button>
@@ -238,9 +218,7 @@ export default function FloatingChat() {
       </div>
 
       {!partnerId ? (
-        /* Friend contact list */
         <div className="flex-1 overflow-y-auto retro-scrollbar">
-          {/* Show friends list as contacts */}
           {friends.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-4">
               <MessageSquare className="w-8 h-8 text-muted-foreground/30 mb-2" />
@@ -282,7 +260,6 @@ export default function FloatingChat() {
           )}
         </div>
       ) : (
-        /* Messages view */
         <>
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5 retro-scrollbar">
             {messages.length === 0 ? (
