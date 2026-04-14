@@ -184,7 +184,7 @@ export default function PublicProfilePage() {
                   {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
-                  <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Mensaje</Link>
+                  <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Enviar Mensaje</Link>
                 </Button>
                 <Button
                   size="sm"

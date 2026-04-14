@@ -279,7 +279,7 @@ export default function ProfilePage() {
                   <Input type="password" placeholder="Nueva contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
                 {(tier !== "novato" || isStaff || isMod) && (
-                  <div>
+                  <div className="space-y-2 border border-border/50 rounded p-3">
                     <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
                     <Input
                       value={signature}
@@ -288,8 +288,56 @@ export default function ProfilePage() {
                       placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
                       maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
                     />
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
-                      {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres (texto + links)" : "Máx. 200 caracteres (diseño personalizado)"}
+                    {/* Advanced signature options for Staff / Nivel 2+ */}
+                    {(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Color de firma</label>
+                            <input
+                              type="color"
+                              value={(profile as any)?.signature_color || "#facc15"}
+                              onChange={(e) => {
+                                const el = e.target;
+                                supabase.from("profiles").update({ signature_color: el.value } as any).eq("user_id", user!.id).then(() => refreshProfile());
+                              }}
+                              className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Estilo de fuente</label>
+                            <select
+                              value={(profile as any)?.signature_font || "normal"}
+                              onChange={(e) => {
+                                supabase.from("profiles").update({ signature_font: e.target.value } as any).eq("user_id", user!.id).then(() => refreshProfile());
+                              }}
+                              className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body text-foreground px-1"
+                            >
+                              <option value="normal">Normal</option>
+                              <option value="bold">Bold</option>
+                              <option value="italic">Italic</option>
+                              <option value="bold-italic">Bold + Italic</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Imagen de firma (URL, 1000×500px, opcional)</label>
+                          <Input
+                            value={(profile as any)?.signature_image_url || ""}
+                            onChange={(e) => {
+                              supabase.from("profiles").update({ signature_image_url: e.target.value || null } as any).eq("user_id", user!.id).then(() => refreshProfile());
+                            }}
+                            className="h-7 bg-muted text-[10px] font-body"
+                            placeholder="https://ejemplo.com/firma.png"
+                          />
+                        </div>
+                        {(profile as any)?.signature_image_url && (
+                          <img src={(profile as any).signature_image_url} alt="Firma" className="w-full max-w-[250px] max-h-[125px] object-contain rounded border border-border/30 mt-1" />
+                        )}
+                      </>
+                    )}
+                    <p className="text-[9px] text-muted-foreground">
+                      {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres + estilos" : "Máx. 200 caracteres + diseño completo"}
                     </p>
                   </div>
                 )}
