@@ -150,6 +150,9 @@ interface PostProfile {
   color_name: string | null;
   color_role: string | null;
   color_staff_role: string | null;
+  signature_font: string | null;
+  signature_color: string | null;
+  signature_image_url: string | null;
 }
 
 export default function ForumPage() {
