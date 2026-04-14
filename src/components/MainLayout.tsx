@@ -18,10 +18,10 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const { loading, isReady } = useAuth();
 
-  // Prevent black screen on mobile: show nothing until auth is resolved
+  // Prevent black screen on mobile: show loading until auth is resolved
   if (!isReady && loading) {
     return (
-      <div className="flex items-center justify-center" style={{ minHeight: '100dvh' }}>
+      <div className="flex items-center justify-center" style={{ minHeight: '100dvh', height: '100dvh' }}>
         <div className="text-center space-y-2 animate-fade-in">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-body text-muted-foreground">Cargando...</p>
@@ -31,7 +31,7 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100dvh', position: 'relative', overflow: 'visible' }}>
+    <div className="flex flex-col" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'auto' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -75,7 +75,7 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Fixed nav buttons on the left (hidden on home) */}
+      {/* Fixed nav buttons on the left */}
       <NavigationButtons />
 
       {/* Main content */}

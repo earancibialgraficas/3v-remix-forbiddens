@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -16,6 +16,9 @@ interface Profile {
   role_icon: string | null;
   show_role_icon: boolean;
   signature: string | null;
+  signature_image_url: string | null;
+  signature_font: string | null;
+  signature_color: string | null;
   color_avatar_border: string | null;
   color_name: string | null;
   color_role: string | null;
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -67,8 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Restore session FIRST to avoid race conditions on mobile
+    // Safety timeout: force ready after 4s if Supabase doesn't respond (prevents mobile black screen)
+    timeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      setIsReady(true);
+    }, 4000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -83,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -96,7 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsReady(true);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   const signOut = async () => {

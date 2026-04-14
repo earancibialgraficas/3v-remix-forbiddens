@@ -150,6 +150,9 @@ interface PostProfile {
   color_name: string | null;
   color_role: string | null;
   color_staff_role: string | null;
+  signature_font: string | null;
+  signature_color: string | null;
+  signature_image_url: string | null;
 }
 
 export default function ForumPage() {
@@ -194,7 +197,7 @@ export default function ForumPage() {
       setPosts(data);
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature_font, signature_color, signature_image_url").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
@@ -542,7 +545,19 @@ export default function ForumPage() {
                       )}
                     </div>
                     {(post as any).signature && (
-                      <p className="text-[9px] text-neon-yellow font-body mt-1 italic">{(post as any).signature}</p>
+                      <div className="mt-1">
+                        <p className="text-[9px] font-body"
+                          style={{
+                            color: postProfiles[post.user_id]?.signature_color || postProfiles[post.user_id]?.color_staff_role || '#facc15',
+                            fontWeight: ['bold', 'bold-italic'].includes(postProfiles[post.user_id]?.signature_font || '') ? 'bold' : 'normal',
+                            fontStyle: ['italic', 'bold-italic'].includes(postProfiles[post.user_id]?.signature_font || '') ? 'italic' : 'normal',
+                          }}>
+                          {(post as any).signature}
+                        </p>
+                        {postProfiles[post.user_id]?.signature_image_url && (
+                          <img src={postProfiles[post.user_id].signature_image_url!} alt="" className="max-w-[200px] max-h-[100px] object-contain mt-0.5 rounded" />
+                        )}
+                      </div>
                     )}
                     <button
                       onClick={() => toggleComments(post.id)}

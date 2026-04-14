@@ -102,7 +102,6 @@ export default function RightPanel() {
       if (data && data.length > 0) setTopUsers(data as unknown as TopUser[]);
     };
     fetchTop();
-    // Auto-refresh every 5 minutes
     const interval = setInterval(fetchTop, 5 * 60 * 1000);
     const channel = supabase.channel("top-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop()).subscribe();
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
@@ -130,14 +129,12 @@ export default function RightPanel() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Fetch real stats
   useEffect(() => {
     const fetchStats = async () => {
       const { count: members } = await supabase.from("profiles").select("*", { count: "exact", head: true });
       setMemberCount(members || 0);
       const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
       setPostCount(posts || 0);
-      // Online = users with active presence (last_seen within 5 min)
       const fiveAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const { count: online } = await supabase.from("presence").select("*", { count: "exact", head: true }).gte("last_seen", fiveAgo);
       setOnlineCount(100 + (online || 0));
@@ -148,7 +145,6 @@ export default function RightPanel() {
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, []);
 
-  // Heartbeat: upsert presence every 2 min
   useEffect(() => {
     if (!user) return;
     const upsert = () => supabase.from("presence").upsert({ user_id: user.id, last_seen: new Date().toISOString() } as any, { onConflict: "user_id" });
@@ -176,7 +172,7 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    <aside className="w-full shrink-0 space-y-3 sticky top-3 h-fit">
+    <aside className="w-full shrink-0 space-y-3 sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto retro-scrollbar">
       <div className="flex items-center justify-end gap-1">
         {!isHome && (
           <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
@@ -228,7 +224,7 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* News Carousel with retro progress bar */}
+      {/* News Carousel */}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-hidden">
         <div className="p-2.5">
           <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}>
@@ -253,7 +249,6 @@ export default function RightPanel() {
             </div>
           </div>
         </div>
-        {/* Retro progress bar */}
         <div className="h-1.5 bg-muted relative overflow-hidden">
           <div className="h-full bg-gradient-to-r from-neon-green via-neon-cyan to-neon-green transition-all duration-100 ease-linear retro-progress" style={{ width: `${progress}%` }} />
           <div className="absolute inset-0 retro-scanlines opacity-40" />
