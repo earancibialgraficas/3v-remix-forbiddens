@@ -1,5 +1,14 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+
+const location = useLocation(); // Asegúrate de que esta línea esté ahí
+
+// FIX: Cerrar menús automáticamente al navegar
+useEffect(() => {
+  setMobileSidebarOpen(false);
+  setMobileRightOpen(false);
+}, [location.pathname]);
+
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
@@ -19,17 +28,16 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const { loading, isReady } = useAuth();
 
-  // Show loading only briefly — isReady is forced after 3s max
-  if (!isReady && loading) {
-    return (
-      <div className="flex items-center justify-center bg-background" style={{ minHeight: '100dvh', height: '100dvh' }}>
-        <div className="text-center space-y-2 animate-fade-in">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-body text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
+// Solo mostrar el overlay de carga si realmente no estamos listos, 
+// pero sin "matar" el renderizado del componente para evitar parpadeos negros
+const LoadingOverlay = (!isReady && loading) ? (
+  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/60 backdrop-blur-md">
+    <div className="text-center space-y-2">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest">Cargando...</p>
+    </div>
+  </div>
+) : null;
 
   return (
     <div className="flex flex-col bg-background text-foreground" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
