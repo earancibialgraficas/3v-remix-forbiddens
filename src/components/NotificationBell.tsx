@@ -23,16 +23,18 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) {
-      setNotifications(data);
-      setUnread(data.filter((n: any) => !n.is_read).length);
-    }
+    try {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("id", { ascending: false })
+        .limit(10);
+      if (data) {
+        setNotifications(data);
+        setUnread(data.filter((n: any) => !n.is_read).length);
+      }
+    } catch (e) { console.error("Error notifications:", e); }
   };
 
   useEffect(() => {
@@ -56,32 +58,37 @@ export default function NotificationBell() {
   if (!user) return null;
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <button
         onClick={() => { setOpen(!open); if (!open) supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false).then(() => fetchNotifications()); }}
-        className="relative p-1.5 rounded-full hover:bg-muted/50 transition-colors"
+        className="relative p-1.5 rounded-full hover:bg-muted/50 transition-all active:scale-95"
       >
         <Bell className="w-4 h-4 text-muted-foreground" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-destructive text-white text-[7px] flex items-center justify-center font-bold animate-pulse shadow-sm">
+          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-destructive text-white text-[7px] flex items-center justify-center font-bold animate-pulse">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div ref={dropdownRef} className="absolute left-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden animate-in fade-in slide-in-from-top-2">
+        <div 
+          ref={dropdownRef}
+          className="absolute left-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden animate-in fade-in slide-in-from-top-2"
+        >
           <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-muted/20">
             <span className="font-pixel text-[9px] text-neon-cyan uppercase">Notificaciones</span>
             <X className="w-3 h-3 cursor-pointer" onClick={() => setOpen(false)} />
           </div>
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
-              <p className="p-4 text-[10px] text-center text-muted-foreground font-body">Todo al día 🎉</p>
+              <p className="p-4 text-[10px] text-center text-muted-foreground">Sin novedades 🎉</p>
             ) : (
               notifications.map((n) => (
                 <div key={n.id} className={cn("flex gap-2 p-3 border-b border-border/20 last:border-0 hover:bg-muted/10", !n.is_read && "bg-primary/5")}>
-                  <div className={cn("shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center", typeConfig[n.type]?.color)}>{typeConfig[n.type]?.icon || typeConfig.general.icon}</div>
+                  <div className={cn("shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center", typeConfig[n.type]?.color)}>
+                    {typeConfig[n.type]?.icon || typeConfig.general.icon}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-foreground leading-tight">{n.title}</p>
                     <p className="text-[9px] text-muted-foreground line-clamp-2">{n.body}</p>
