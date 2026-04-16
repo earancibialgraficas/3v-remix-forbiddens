@@ -128,28 +128,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         </div>
 
         {/* PROFILE SECTION */}
-{!collapsed && user && (
-  <div className="p-3 border-b border-border flex items-center justify-between gap-2 bg-muted/5">
-    <span
-      className="font-pixel text-[9px] text-neon-green truncate max-w-[90px]"
-      style={profile?.color_name ? getNameStyle(profile.color_name) : {}}
-    >
-      {profile?.display_name || "..."}
-    </span>
-
-    <div className="flex items-center gap-2">
-      {/* 🔔 FIX PRINCIPAL */}
-      {user && <NotificationBell />}
-
-      <button
-        onClick={() => setShowLogoutModal(true)}
-        className="text-muted-foreground hover:text-destructive"
-      >
-        <LogOut className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  </div>
-)}
+        {!collapsed && user && (
+          <div className="p-3 border-b border-border flex items-center justify-between gap-2 bg-muted/5">
+            <span className="font-pixel text-[9px] text-neon-green truncate max-w-[90px]" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
+              {profile?.display_name || "..."}
+            </span>
+            <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive"><LogOut className="w-3.5 h-3.5" /></button>
+          </div>
+        )}
 
         {/* NAVEGACIÓN CON BURBUJAS (TOOLTIPS) */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
