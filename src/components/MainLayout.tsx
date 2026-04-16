@@ -29,7 +29,7 @@ export default function MainLayout() {
   }, [location.pathname, loading, isReady]);
 
   const LoadingOverlay = (loading || !isReady) ? (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-md pointer-events-none transition-opacity duration-500">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/30 backdrop-blur-md pointer-events-none transition-opacity">
       <div className="bg-card/90 p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-[10px] font-pixel text-primary animate-pulse uppercase tracking-widest">Sincronizando...</p>
@@ -38,9 +38,7 @@ export default function MainLayout() {
   ) : null;
 
   return (
-    <div 
-      className="flex flex-col bg-background text-foreground w-full h-screen overflow-hidden relative" 
-    >
+    <div className="flex flex-col bg-background text-foreground w-full relative h-screen overflow-hidden">
       {LoadingOverlay}
 
       {/* Desktop sidebar */}
@@ -51,33 +49,32 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Botón Menu Móvil */}
+      {/* Botones Móviles */}
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-2 left-2 h-9 w-9 md:hidden z-50 bg-card/90 backdrop-blur border border-border shadow-lg"
+        className="fixed top-2 left-2 h-9 w-9 md:hidden z-[100] bg-card/90 backdrop-blur border border-border shadow-lg"
         onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
       >
         <Menu className="w-4 h-4" />
       </Button>
 
-      {/* Campana Móvil */}
       {isMobile && (
-        <div className="fixed top-2 right-2 z-50">
+        <div className="fixed top-2 right-2 z-[100]">
           <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
             <NotificationBell />
           </div>
         </div>
       )}
 
-      {/* Mobile sidebar overlay - FIX DE Z-INDEX */}
+      {/* Mobile Sidebar - FIX DE Z-INDEX */}
       {mobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-[200]">
+        <div className="md:hidden fixed inset-0 z-[400]">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <div className="relative z-[300] w-64 h-full animate-slide-in-left shadow-2xl">
+          <div className="relative z-[450] w-64 h-full animate-slide-in-left shadow-2xl">
             <ForumSidebar
               collapsed={false}
               onToggle={() => setMobileSidebarOpen(false)}
@@ -88,7 +85,7 @@ export default function MainLayout() {
 
       <NavigationButtons />
 
-      {/* Área principal */}
+      {/* Área central */}
       <div className={cn(
         "flex-1 min-w-0 transition-all duration-300 overflow-y-auto overflow-x-hidden md:ml-12",
         !sidebarCollapsed && "md:ml-56",
@@ -106,7 +103,7 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* Mobile Right Panel persistente (La música no se corta) */}
+      {/* Panel Derecho Deslizable */}
       <div
         className={cn(
           "lg:hidden fixed left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto transition-all duration-500 ease-in-out shadow-[0_-10px_30px_rgba(0,0,0,0.5)]",
@@ -118,7 +115,6 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* Botón Info & Comunidad */}
       {isMobile && (
         <button
           onClick={() => setMobileRightOpen(!mobileRightOpen)}
