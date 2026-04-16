@@ -514,7 +514,12 @@ export type Database = {
           signature: string | null
           signature_color: string | null
           signature_font: string | null
+          signature_font_family: string | null
+          signature_image_align: string | null
           signature_image_url: string | null
+          signature_image_width: number | null
+          signature_stroke_color: string | null
+          signature_text_align: string | null
           tiktok_url: string | null
           total_score: number
           updated_at: string
@@ -538,7 +543,12 @@ export type Database = {
           signature?: string | null
           signature_color?: string | null
           signature_font?: string | null
+          signature_font_family?: string | null
+          signature_image_align?: string | null
           signature_image_url?: string | null
+          signature_image_width?: number | null
+          signature_stroke_color?: string | null
+          signature_text_align?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -562,7 +572,12 @@ export type Database = {
           signature?: string | null
           signature_color?: string | null
           signature_font?: string | null
+          signature_font_family?: string | null
+          signature_image_align?: string | null
           signature_image_url?: string | null
+          signature_image_width?: number | null
+          signature_stroke_color?: string | null
+          signature_text_align?: string | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -609,12 +624,39 @@ export type Database = {
           },
         ]
       }
-      social_content: {
+      social_comments: {
         Row: {
-          content_url: string
+          content: string
+          content_id: string
           created_at: string
           id: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          content_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          content_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_content: {
+        Row: {
+          content_type: string
+          content_url: string
+          created_at: string
+          dislikes: number
+          id: string
           is_public: boolean
+          likes: number
           platform: string
           thumbnail_url: string | null
           title: string | null
@@ -622,10 +664,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content_type?: string
           content_url: string
           created_at?: string
+          dislikes?: number
           id?: string
           is_public?: boolean
+          likes?: number
           platform: string
           thumbnail_url?: string | null
           title?: string | null
@@ -633,14 +678,44 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content_type?: string
           content_url?: string
           created_at?: string
+          dislikes?: number
           id?: string
           is_public?: boolean
+          likes?: number
           platform?: string
           thumbnail_url?: string | null
           title?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          target_id?: string
+          target_type?: string
           user_id?: string
         }
         Relationships: []
@@ -712,8 +787,27 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      send_staff_report: {
+        Args: {
+          p_details: string
+          p_post_id?: string
+          p_reason: string
+          p_reported_user_id: string
+          p_reporter_id: string
+        }
+        Returns: undefined
+      }
       toggle_post_vote: {
         Args: { p_post_id: string; p_user_id: string; p_vote_type: string }
+        Returns: Json
+      }
+      toggle_social_reaction: {
+        Args: {
+          p_reaction_type: string
+          p_target_id: string
+          p_target_type: string
+          p_user_id: string
+        }
         Returns: Json
       }
     }
