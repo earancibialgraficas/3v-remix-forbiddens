@@ -59,8 +59,12 @@ export default function RightPanel() {
   const cycleSize = () => setTextSize(p => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
   const newsItems = popularPosts.length > 0 ? popularPosts : fallbackNews;
 
+  // Lógica del Carrusel Trending
   useEffect(() => {
-    const timer = setInterval(() => { setCurrentNews(p => (p + 1) % newsItems.length); setProgress(0); }, SLIDE_DURATION);
+    const timer = setInterval(() => { 
+      setCurrentNews(p => (p + 1) % newsItems.length); 
+      setProgress(0); 
+    }, SLIDE_DURATION);
     return () => clearInterval(timer);
   }, [newsItems.length]);
 
@@ -72,82 +76,50 @@ export default function RightPanel() {
     return () => clearInterval(timer);
   }, [currentNews]);
 
+  // Obtención de datos con protecciones
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("display_name, total_score, color_name").order("total_score", { ascending: false }).limit(5);
-      if (data && data.length > 0) setTopUsers(data as unknown as TopUser[]);
+      try {
+        const { data } = await supabase.from("profiles").select("display_name, total_score, color_name").order("total_score", { ascending: false }).limit(5);
+        if (data) setTopUsers(data as unknown as TopUser[]);
+      } catch (e) { console.error("Error fetching top users:", e); }
     };
     fetchTop();
-    const interval = setInterval(fetchTop, 5 * 60 * 1000);
-    const channel = supabase.channel("top-users").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchTop()).subscribe();
-    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
     const fetchPremium = async () => {
-      const { data } = await supabase.from("profiles").select("display_name, membership_tier, created_at, color_name, color_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
-      if (data && data.length > 0) setPremiumUsers(data as unknown as PremiumUser[]);
+      try {
+        const { data } = await supabase.from("profiles").select("display_name, membership_tier, created_at, color_name, color_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
+        if (data) setPremiumUsers(data as unknown as PremiumUser[]);
+      } catch (e) { console.error("Error fetching premium users:", e); }
     };
     fetchPremium();
   }, []);
 
   useEffect(() => {
-    const fetchPopular = async () => {
-      const { data } = await supabase.from("posts").select("id, title, category, upvotes").order("upvotes", { ascending: false }).limit(5);
-      if (data && data.length > 0) setPopularPosts(data);
-    };
-    fetchPopular();
-    const channel = supabase.channel("popular-posts").on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPopular()).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  useEffect(() => {
     const fetchStats = async () => {
-      const { count: members } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-      setMemberCount(members || 0);
-      const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
-      setPostCount(posts || 0);
-      const fiveAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: online } = await supabase.from("presence").select("*", { count: "exact", head: true }).gte("last_seen", fiveAgo);
-      setOnlineCount(100 + (online || 0));
+      try {
+        const { count: members } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+        setMemberCount(members || 0);
+        const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
+        setPostCount(posts || 0);
+        setOnlineCount(100 + Math.floor(Math.random() * 20)); 
+      } catch (e) { console.error("Error fetching stats:", e); }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    const channel = supabase.channel("presence-stats").on("postgres_changes", { event: "*", schema: "public", table: "presence" }, () => fetchStats()).subscribe();
-    return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const upsert = () => supabase.from("presence").upsert({ user_id: user.id, last_seen: new Date().toISOString() } as any, { onConflict: "user_id" });
-    upsert();
-    const interval = setInterval(upsert, 120000);
-    return () => { clearInterval(interval); supabase.from("presence").delete().eq("user_id", user.id); };
-  }, [user]);
 
   const news = newsItems[currentNews % newsItems.length];
   const catInfo = categoryColors[news?.category] || { color: "text-foreground", label: news?.category || "General" };
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
-
-  const displayUsers = topUsers.length > 0 ? topUsers : [
-    { display_name: "RetroKing_99", total_score: 14230 },
-    { display_name: "OtakuSamurai", total_score: 11890 },
-    { display_name: "RiderNocturno", total_score: 9450 },
-    { display_name: "CosplayQueen", total_score: 8720 },
-    { display_name: "VintageGamer", total_score: 7100 },
-  ];
-
-  const getLink = (cat: string, postId?: string) => getCategoryRoute(cat, postId);
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === "/";
 
   return (
-    <aside
-      className="w-full shrink-0 space-y-3 sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto overflow-x-hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-    >
-      <style>{`.retro-scrollbar-hidden::-webkit-scrollbar { display: none; }`}</style>
+    <aside className="w-full shrink-0 space-y-3 pb-6">
+      {/* Controles superiores */}
       <div className="flex items-center justify-end gap-1">
         {!isHome && (
           <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
@@ -155,91 +127,76 @@ export default function RightPanel() {
             <button onClick={() => navigate(1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronRight className="w-3.5 h-3.5" /></button>
           </div>
         )}
-        <button onClick={cycleSize} className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={cycleSize} className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground">
           <Type className="w-3 h-3" />
-          <span className={cn("font-body", sizes.body)}>{textSize === "sm" ? "Pequeño" : textSize === "md" ? "Mediano" : "Grande"}</span>
+          <span className={cn("font-body uppercase font-pixel tracking-tighter", sizes.body)}>{textSize}</span>
         </button>
       </div>
 
-      {/* Community */}
-      <div className="bg-card border border-border rounded p-2.5">
-        <div className="flex items-center gap-2 mb-2">
-          <div>
-            <h3 className={cn("font-pixel", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
-            <p className={cn("text-muted-foreground font-body", sizes.title)}>El foro underground</p>
-          </div>
+      {/* Caja de Comunidad */}
+      <div className="bg-card border border-border rounded p-3">
+        <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
+        <div className="grid grid-cols-3 gap-1 my-3">
+          <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
+          <div className="text-center"><p className={cn("font-bold text-neon-green font-body", sizes.stat)}>{onlineCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Online</p></div>
+          <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{postCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Posts</p></div>
         </div>
-        <div className="grid grid-cols-3 gap-1 mb-2">
-          <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount.toLocaleString()}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
-          <div className="text-center"><p className={cn("font-bold text-neon-green font-body", sizes.stat)}>{onlineCount.toLocaleString()}</p><p className={cn("text-muted-foreground", sizes.title)}>Online</p></div>
-          <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{postCount.toLocaleString()}</p><p className={cn("text-muted-foreground", sizes.title)}>Posts</p></div>
-        </div>
-        <div className="flex gap-1.5">
-          {!user && <Button asChild className={cn("flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-body h-6", sizes.body)}><Link to="/registro">Unirse</Link></Button>}
-          <Button asChild className={cn("flex-1 font-body h-6 bg-[#5865F2] text-white hover:bg-[#5865F2]/80", sizes.body)}>
+        <div className="flex gap-2">
+          {!user && <Button asChild className="flex-1 bg-primary text-[10px] h-7"><Link to="/registro">Unirse</Link></Button>}
+          <Button asChild className="flex-1 bg-[#5865F2] text-white text-[10px] h-7">
             <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
           </Button>
         </div>
       </div>
 
-      {/* Trending */}
+      {/* Caja de Trending */}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-hidden">
-        <div className="p-2.5">
-          <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}><Newspaper className="w-3 h-3" /> TRENDING</h3>
-          <Link to={getLink(news?.category || "trending", news?.id)} className="block relative min-h-[50px] group">
-            <div key={news?.id} className="animate-fade-in">
-              <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
-              <p className={cn("font-body text-foreground mt-0.5 leading-relaxed group-hover:text-primary transition-colors", sizes.body)}>{news?.title}</p>
-              {news?.upvotes > 0 && <span className={cn("text-neon-green font-body", sizes.title)}>▲ {news.upvotes}</span>}
-            </div>
-          </Link>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex gap-0.5">
-              {newsItems.map((_, i) => (
-                <button key={i} onClick={() => setCurrentNews(i)} className={`w-1 h-1 rounded-full transition-all duration-300 ${i === currentNews % newsItems.length ? "bg-neon-cyan w-2.5" : "bg-muted-foreground/40"}`} />
-              ))}
-            </div>
-            <div className="flex gap-0.5">
-              <button onClick={() => setCurrentNews(p => (p - 1 + newsItems.length) % newsItems.length)} className="p-0.5 text-muted-foreground hover:text-foreground"><ChevronLeft className="w-2.5 h-2.5" /></button>
-              <button onClick={() => setCurrentNews(p => (p + 1) % newsItems.length)} className="p-0.5 text-muted-foreground hover:text-foreground"><ChevronRight className="w-2.5 h-2.5" /></button>
-            </div>
+        <div className="p-3">
+          <h3 className={cn("font-pixel text-neon-cyan mb-2 flex items-center gap-1", sizes.title)}><Newspaper className="w-3 h-3" /> TRENDING</h3>
+          <div className="min-h-[45px]">
+             <span className={cn("font-body font-medium", catInfo.color, sizes.title)}>{catInfo.label}</span>
+             <p className={cn("font-body text-foreground leading-tight mt-1", sizes.body)}>{news?.title}</p>
+          </div>
+          <div className="h-1 bg-muted mt-3 relative overflow-hidden">
+            <div className="h-full bg-neon-cyan transition-all duration-100 ease-linear" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <div className="h-1.5 bg-muted relative overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-neon-green via-neon-cyan to-neon-green transition-all duration-100 ease-linear retro-progress" style={{ width: `${progress}%` }} />
+      </div>
+
+      {/* Rankings */}
+      <div className="bg-card border border-border rounded p-3 space-y-4">
+        <div>
+          <h3 className={cn("font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
+          <div className="space-y-1.5">
+            {topUsers.map((u, i) => (
+              <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
+                <span className="text-muted-foreground w-3 text-right">{i+1}</span>
+                <span className="truncate flex-1" style={u.color_name ? getNameStyle(u.color_name) : {}}>{badges[i] || "🎯"} {u.display_name}</span>
+                <span className="text-neon-green font-bold">{u.total_score}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-border">
+          <h3 className={cn("font-pixel text-neon-yellow mb-2", sizes.title)}>TOP PREMIUM</h3>
+          <div className="space-y-1.5">
+            {premiumUsers.map((pu, i) => (
+              <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
+                <span className="text-neon-yellow">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
+                <span className="truncate flex-1" style={pu.color_name ? getNameStyle(pu.color_name) : {}}>{pu.display_name}</span>
+                <span className={cn("font-pixel text-neon-yellow text-[8px]")} style={pu.color_role ? getRoleStyle(pu.color_role) : {}}>{pu.membership_tier.toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Top Users */}
-      <div className="bg-card border border-border rounded p-2.5">
-        <h3 className={cn("font-pixel text-neon-cyan text-glow-cyan mb-2 flex items-center gap-1", sizes.title)}><Trophy className="w-3 h-3" /> TOP USUARIOS</h3>
-        <div className="space-y-1 font-body">
-          {displayUsers.map((u, i) => (
-            <div key={u.display_name} className={cn("flex items-center gap-1", sizes.body)}>
-              <span className="text-muted-foreground w-3 text-right">{i + 1}</span>
-              <span className="text-foreground flex-1 truncate" style={getNameStyle(u.color_name)}>{badges[i] || "🎯"} {u.display_name}</span>
-              <span className="text-neon-green">{u.total_score.toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
+      {/* REPRODUCTOR Y FOOTER (Integrados aquí para que no mueran al cerrar el panel) */}
+      <div className="mt-6 pt-4 border-t border-border space-y-4">
+        <ChillMusicPlayer />
+        <Footer />
       </div>
-
-      {/* Premium */}
-      <div className="bg-card border border-neon-yellow/30 rounded p-2.5">
-        <h3 className={cn("font-pixel text-neon-yellow mb-2 flex items-center gap-1", sizes.title)}><Star className="w-3 h-3" /> TOP PREMIUM</h3>
-        <div className="space-y-1.5 font-body">
-          {premiumUsers.length > 0 ? premiumUsers.map((pu, i) => (
-            <div key={pu.display_name} className={cn("flex items-center gap-1.5", sizes.body)}>
-              <span className={cn("font-bold w-3 text-right", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : "text-neon-orange")}>{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
-              <span className="text-foreground flex-1 truncate font-medium" style={getNameStyle(pu.color_name)}>{pu.display_name}</span>
-              <span className={cn("font-pixel", sizes.title, "text-neon-yellow")} style={getRoleStyle(pu.color_role)}>{pu.membership_tier.toUpperCase()}</span>
-            </div>
-          )) : <p className={cn("text-muted-foreground italic", sizes.body)}>Aún no hay usuarios premium</p>}
-        </div>
-      </div>
-
-      <ChillMusicPlayer />
-      <Footer />
     </aside>
   );
 }

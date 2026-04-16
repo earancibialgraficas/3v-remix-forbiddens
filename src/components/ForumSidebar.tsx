@@ -92,17 +92,19 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // Fetch unread message count
   useEffect(() => {
     if (!user) { setUnreadMessages(0); return; }
     const fetchUnread = async () => {
-      // Count unread from inbox_messages (public channel)
-      const { count } = await supabase
-        .from("inbox_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-      setUnreadMessages(count || 0);
+      try {
+        const { count } = await supabase
+          .from("inbox_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+        setUnreadMessages(count || 0);
+      } catch (err) {
+        console.error("Error unread:", err);
+      }
     };
     fetchUnread();
     const channel = supabase.channel("sidebar-inbox-unread")
@@ -124,22 +126,22 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
   return (
     <>
-      {/* Logout confirmation modal */}
+      {/* FIX 1: Modal de Logout con z-index superior para evitar bloqueos */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center animate-fade-in">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
-          <div className="relative bg-card border border-border rounded-lg p-5 max-w-xs w-full mx-4 animate-scale-in space-y-4">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
+          <div className="relative bg-card border border-border rounded-lg p-5 max-w-xs w-full mx-4 animate-scale-in space-y-4 shadow-2xl">
             <button onClick={() => setShowLogoutModal(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
               <X className="w-4 h-4" />
             </button>
             <div className="text-center space-y-2">
               <AlertTriangle className="w-10 h-10 text-neon-yellow mx-auto" />
-              <h3 className="font-pixel text-[10px] text-foreground">¿CERRAR SESIÓN?</h3>
-              <p className="text-xs font-body text-muted-foreground">¿Estás seguro de que quieres salir?</p>
+              <h3 className="font-pixel text-[10px] text-foreground tracking-tighter uppercase">¿Cerrar Sesión?</h3>
+              <p className="text-xs font-body text-muted-foreground">¿Estás seguro de que quieres salir de tu cuenta?</p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 text-xs font-body">Cancelar</Button>
-              <Button size="sm" variant="destructive" onClick={handleLogout} className="flex-1 text-xs font-body">Aceptar</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 text-[10px] font-body">CANCELAR</Button>
+              <Button size="sm" variant="destructive" onClick={handleLogout} className="flex-1 text-[10px] font-body">SÍ, SALIR</Button>
             </div>
           </div>
         </div>
@@ -147,11 +149,10 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
       <aside
         className={cn(
-          "fixed top-0 left-0 h-screen bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-40 retro-scrollbar",
+          "fixed top-0 left-0 h-screen bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-30 retro-scrollbar",
           collapsed ? "w-12" : "w-56"
         )}
       >
-        {/* Logo + Toggle: vertical when collapsed, horizontal with text below when expanded */}
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5 py-2 px-1 border-b border-border">
             <button
@@ -168,7 +169,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                 <span
                   key={i}
                   className="font-pixel text-[11px] leading-none"
-                  style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)', display: "block", writingMode: "initial" }}
+                  style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)', display: "block" }}
                 >
                   {letter}
                 </span>
@@ -189,40 +190,46 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
           </div>
         )}
 
-        {/* Search & user actions inside sidebar */}
         {!collapsed && (
           <div className="px-2 py-2 space-y-2 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Buscar..." className="h-7 pl-8 bg-muted border-border text-xs font-body transition-colors duration-200 focus:ring-primary/50" />
+              <Input placeholder="Buscar..." className="h-7 pl-8 bg-muted border-border text-xs font-body transition-colors focus:ring-1 focus:ring-primary/40" />
             </div>
             <div className="flex items-center gap-1">
               <NotificationBell />
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
                 <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
               </Button>
               <div className="relative">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
                   <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
                 </Button>
                 {unreadMessages > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[8px] flex items-center justify-center font-bold animate-pulse pointer-events-none">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[8px] flex items-center justify-center font-bold animate-pulse">
                     {unreadMessages > 9 ? "9+" : unreadMessages}
                   </span>
                 )}
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors duration-200" asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
                 <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
               </Button>
+              
+              {/* FIX 2: Escudo para el nombre de usuario (Evita que la web se ponga negra al sincronizar) */}
               {user ? (
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[9px] font-body text-neon-green truncate max-w-[60px]" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</span>
+                <div className="flex items-center gap-1 ml-auto min-w-0">
+                  <span 
+                    className="text-[9px] font-body text-neon-green truncate max-w-[60px]" 
+                    style={profile ? getNameStyle(profile.color_name) : {}}
+                  >
+                    {profile?.display_name || "Cargando..."}
+                  </span>
                   <Button size="sm" variant="ghost" onClick={() => setShowLogoutModal(true)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
                     <LogOut className="w-3 h-3" />
                   </Button>
                 </div>
               ) : (
-                <Button size="sm" className="h-7 bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[10px] gap-1 ml-auto transition-all duration-200" asChild>
+                <Button size="sm" className="h-7 bg-primary text-primary-foreground hover:bg-primary/80 font-body text-[10px] gap-1 ml-auto transition-all" asChild>
                   <Link to="/login"><LogIn className="w-3 h-3" /> Entrar</Link>
                 </Button>
               )}
@@ -230,37 +237,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
           </div>
         )}
 
-        {/* Navigation */}
         <nav className={cn("px-1 space-y-0.5 retro-scrollbar", collapsed ? "py-1" : "flex-1 py-2")}>
-
-          {collapsed && (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Link
-                  to={user ? "/perfil" : "/login"}
-                  className="flex items-center justify-center p-2 rounded transition-all duration-200 text-neon-cyan hover:bg-muted/50 hover:text-foreground"
-                >
-                  <User className="w-4 h-4" />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-card border-border p-2 z-[100]">
-                {user ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-body font-medium text-neon-green" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</p>
-                    <Link to="/perfil" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Mi Perfil</Link>
-                    <Link to="/configuracion" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">Configuración</Link>
-                    <button onClick={() => setShowLogoutModal(true)} className="block w-full text-left text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-destructive transition-colors">Cerrar Sesión</button>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <Link to="/login" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-green transition-colors">Iniciar Sesión</Link>
-                    <Link to="/registro" className="block text-[11px] font-body py-0.5 px-1 rounded hover:bg-muted/50 text-neon-cyan transition-colors">Registrarse</Link>
-                  </div>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          )}
-
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
             const isExpanded = expandedItems.includes(item.label);
@@ -270,23 +247,11 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    {item.to?.startsWith("http") ? (
-                      <a
-                        href={item.to}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "flex items-center justify-center p-2 rounded transition-all duration-200",
-                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20"
-                        )}
-                      >
-                        <item.icon className={cn("w-4 h-4", item.color)} />
-                      </a>
-                    ) : item.to && !item.isDropdownOnly ? (
+                    {item.to && !item.isDropdownOnly ? (
                       <Link
                         to={item.to}
                         className={cn(
-                          "flex items-center justify-center p-2 rounded transition-all duration-200",
+                          "flex items-center justify-center p-2 rounded transition-all",
                           isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
@@ -295,7 +260,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                     ) : (
                       <button
                         className={cn(
-                          "flex items-center justify-center p-2 rounded transition-all duration-200 w-full",
+                          "flex items-center justify-center p-2 rounded transition-all w-full",
                           isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
@@ -329,7 +294,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                     <button
                       onClick={() => hasChildren && toggleExpand(item.label)}
                       className={cn(
-                        "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
+                        "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all flex-1 min-w-0",
                         isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                     >
@@ -339,27 +304,12 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                         isExpanded ? <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto shrink-0" />
                       )}
                     </button>
-                  ) : item.to?.startsWith("http") ? (
-                    <>
-                      <a
-                        href={item.to}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
-                          "bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 border border-[#5865F2]/30 shadow-[0_0_8px_rgba(88,101,242,0.3)]"
-                        )}
-                      >
-                        <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
-                        <span className="truncate font-semibold">{item.label}</span>
-                      </a>
-                    </>
                   ) : (
                     <>
                       <Link
                         to={item.to!}
                         className={cn(
-                          "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all duration-200 flex-1 min-w-0",
+                          "flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-body transition-all flex-1 min-w-0",
                           isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
@@ -369,7 +319,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                       {hasChildren && (
                         <button
                           onClick={() => toggleExpand(item.label)}
-                          className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-200"
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                         >
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         </button>
@@ -377,25 +327,27 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                     </>
                   )}
                 </div>
-                <div
-                  className={cn(
-                    "ml-6 space-y-0.5 overflow-hidden transition-all duration-300",
-                    hasChildren && isExpanded ? "max-h-40 mt-0.5 opacity-100" : "max-h-0 opacity-0"
-                  )}
-                >
-                  {hasChildren && item.children!.map((child) => (
-                    <Link
-                      key={child.to}
-                      to={child.to}
-                      className={cn(
-                        "block px-2 py-1 rounded text-xs font-body transition-all duration-200",
-                        location.pathname === child.to ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      )}
-                    >
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
+                {hasChildren && (
+                  <div
+                    className={cn(
+                      "ml-6 space-y-0.5 overflow-hidden transition-all duration-300",
+                      isExpanded ? "max-h-40 mt-0.5 opacity-100" : "max-h-0 opacity-0"
+                    )}
+                  >
+                    {item.children!.map((child) => (
+                      <Link
+                        key={child.to}
+                        to={child.to}
+                        className={cn(
+                          "block px-2 py-1 rounded text-xs font-body transition-all",
+                          location.pathname === child.to ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

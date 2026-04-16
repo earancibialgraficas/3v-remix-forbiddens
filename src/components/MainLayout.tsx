@@ -21,17 +21,16 @@ export default function MainLayout() {
   const location = useLocation();
   const { loading, isReady } = useAuth();
 
-  // FIX: Cerrar menús al navegar y limpiar el scroll del body
+  // FIX: Cerrar sidebar al navegar, pero mantener el estado del panel derecho si prefieres
   useEffect(() => {
     setMobileSidebarOpen(false);
-    setMobileRightOpen(false);
     
     if (!loading && isReady) {
       document.body.style.overflow = 'auto';
     }
   }, [location.pathname, loading, isReady]);
 
-  // CARGADOR FANTASMA: No bloquea el renderizado de los hijos (la música sigue viva)
+  // CARGADOR FANTASMA: No bloquea el renderizado (la música sigue viva debajo)
   const LoadingOverlay = (loading || !isReady) ? (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-md pointer-events-none transition-opacity duration-500">
       <div className="bg-card/90 p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center gap-3">
@@ -48,11 +47,9 @@ export default function MainLayout() {
         minHeight: '100dvh', 
         height: '100dvh', 
         position: 'relative',
-        // FIX: Cambiamos 'hidden' por 'clip' o lo eliminamos para evitar bloqueos en móvil
         overflow: 'hidden' 
       }}
     >
-      {/* El cargador ahora flota encima de TODO sin destruir lo que hay debajo */}
       {LoadingOverlay}
 
       {/* Desktop sidebar */}
@@ -73,7 +70,7 @@ export default function MainLayout() {
         <Menu className="w-4 h-4" />
       </Button>
 
-      {/* Notification Bell */}
+      {/* Mobile fixed notification bell */}
       {isMobile && (
         <div className="fixed top-2 right-2 z-50">
           <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
@@ -100,12 +97,13 @@ export default function MainLayout() {
 
       <NavigationButtons />
 
-      {/* Área principal: Aseguramos que el scroll sea independiente */}
+      {/* Área principal scrollable */}
       <div className={cn(
         "flex-1 min-w-0 transition-all duration-300 overflow-y-auto overflow-x-hidden",
         "md:ml-12",
         !sidebarCollapsed && "md:ml-56",
-        isMobile && mobileRightOpen && "pb-[42dvh]"
+        // En móvil damos espacio abajo para el botón del panel
+        isMobile && "pb-12"
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto min-h-full">
           <div className="flex-1 min-w-0">
@@ -113,37 +111,41 @@ export default function MainLayout() {
               <Outlet />
             </div>
           </div>
+          
+          {/* Panel derecho para escritorio */}
           <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
             <RightPanel />
           </div>
         </div>
       </div>
 
-      {/* Mobile right panel tray - Fix de Z-index y Altura */}
+      {/* --- SOLUCIÓN PARA LA MÚSICA EN MÓVIL --- */}
+      {/* Este contenedor está SIEMPRE en el código para que la música NO se pare.
+          Simplemente lo movemos con CSS (bottom) para mostrarlo u ocultarlo.
+      */}
+      <div
+        className={cn(
+          "lg:hidden fixed left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto transition-all duration-500 ease-in-out shadow-[0_-10px_30px_rgba(0,0,0,0.5)]",
+          mobileRightOpen ? "bottom-10 h-[50dvh] opacity-100 visible" : "bottom-[-60dvh] h-0 opacity-0 invisible"
+        )}
+      >
+        <div className="p-4">
+          <RightPanel />
+        </div>
+      </div>
+
+      {/* Botón disparador del panel (siempre visible en móvil) */}
       {isMobile && (
-        <>
-          <button
-            onClick={() => setMobileRightOpen(!mobileRightOpen)}
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border flex items-center justify-center py-2.5 gap-1 text-[10px] font-body text-muted-foreground shadow-[0_-4px_10px_rgba(0,0,0,0.3)]"
-          >
-            {mobileRightOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-            {mobileRightOpen ? "Ocultar panel" : "Info & Comunidad"}
-          </button>
-          
-          {mobileRightOpen && (
-            <div
-              className="lg:hidden fixed bottom-10 left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto animate-in slide-in-from-bottom duration-300"
-              style={{ height: '40dvh', maxHeight: '40dvh' }}
-            >
-              <div className="p-4 pb-16">
-                <RightPanel />
-              </div>
-            </div>
-          )}
-        </>
+        <button
+          onClick={() => setMobileRightOpen(!mobileRightOpen)}
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border flex items-center justify-center py-2.5 gap-1 text-[10px] font-pixel text-muted-foreground shadow-[0_-4px_10px_rgba(0,0,0,0.3)] hover:text-primary transition-colors"
+        >
+          {mobileRightOpen ? <ChevronDown className="w-3 h-3 text-primary" /> : <ChevronUp className="w-3 h-3" />}
+          {mobileRightOpen ? "OCULTAR PANEL" : "INFO & COMUNIDAD"}
+        </button>
       )}
 
-      {/* Componentes Globales: Fuera de cualquier condicional para que no mueran */}
+      {/* Componentes Globales Extras */}
       <GameBubble />
       <FloatingChat />
     </div>
