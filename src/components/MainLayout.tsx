@@ -19,7 +19,7 @@ export default function MainLayout() {
   
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { loading, isReady } = useAuth();
+  const { loading, isReady } = useAuth(); //
 
   useEffect(() => {
     setMobileSidebarOpen(false);
@@ -28,9 +28,9 @@ export default function MainLayout() {
   return (
     <div className="flex bg-background text-foreground w-full min-h-screen relative overflow-x-hidden">
       
-      {/* CARGADOR FANTASMA - SUTIL ARRIBA A LA DERECHA */}
+      {/* CARGADOR FANTASMA - No bloquea la vista */}
       {loading && !isReady && (
-        <div className="fixed top-2 right-12 z-[100] animate-pulse">
+        <div className="fixed top-2 right-12 z-[100] animate-pulse pointer-events-none">
           <div className="bg-card/80 backdrop-blur border border-primary/20 px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
             <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
             <span className="text-[8px] font-pixel text-primary uppercase">Sincronizando</span>
@@ -57,13 +57,16 @@ export default function MainLayout() {
         "md:hidden fixed inset-0 z-[100] flex transition-all duration-300",
         mobileSidebarOpen ? "visible" : "invisible"
       )}>
-        <div className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity", mobileSidebarOpen ? "opacity-100" : "opacity-0")} onClick={() => setMobileSidebarOpen(false)} />
-        <div className={cn("absolute top-0 left-0 h-full w-64 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
+        <div className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300", mobileSidebarOpen ? "opacity-100" : "opacity-0")} onClick={() => setMobileSidebarOpen(false)} />
+        <div className={cn(
+          "absolute top-0 left-0 h-full w-64 bg-card shadow-2xl transition-transform duration-300 ease-out",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
           <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
         </div>
       </div>
 
-      {/* ÁREA PRINCIPAL */}
+      {/* ÁREA DE CONTENIDO PRINCIPAL */}
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
@@ -75,7 +78,7 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* PANEL MÓVIL PERSISTENTE (MÚSICA) */}
+        {/* PANEL DERECHO MÓVIL */}
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500",
