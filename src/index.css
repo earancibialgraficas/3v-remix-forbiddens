@@ -264,10 +264,4 @@
   --background: 222 47% 11% / 0.5 !important; /* Esto lo hace 50% transparente */
 }
 
-div[class*="bg-background"], 
-div[class*="bg-black"],
-div[class*="fixed"],
-div[class*="absolute"] {
-  background-color: rgba(255, 0, 0, 0.2) !important; /* Todo lo que sospechamos se pondrá ROJO transparente */
-}
 }
