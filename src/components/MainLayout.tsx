@@ -47,7 +47,7 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* ÁREA DE CONTENIDO */}
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
@@ -58,7 +58,7 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* PANEL MÓVIL (MÚSICA PERSISTENTE) */}
+        {/* PANEL MÓVIL */}
         {isMobile && (
           <div className={cn("fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500", mobileRightOpen ? "h-[55vh]" : "h-11")}>
             <button onClick={() => setMobileRightOpen(!mobileRightOpen)} className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground border-b border-border/50">
