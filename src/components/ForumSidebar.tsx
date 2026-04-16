@@ -107,8 +107,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   return (
     <TooltipProvider>
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4 shadow-2xl">
             <h3 className="font-pixel text-[9px] text-foreground uppercase tracking-widest">¿CERRAR SESIÓN?</h3>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 font-pixel text-[8px] h-7">NO</Button>
@@ -118,9 +118,9 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         </div>
       )}
 
-      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
+      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 overflow-y-auto overflow-x-hidden retro-scrollbar", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO */}
+        {/* LOGO SECTION - VERTICAL Y COMPACTO */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -188,7 +188,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         )}
 
         {/* NAVEGACIÓN */}
-        <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
+        <nav className="flex-1 p-1.5 space-y-0.5">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
             const isExpanded = expandedItems.includes(item.label);
@@ -209,8 +209,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                       <item.icon className={cn("w-4 h-4", item.color)} />
                     </Link>
                   </TooltipTrigger>
-                  {/* FIX AQUÍ: Forzamos el z-index a 10000 para que nada la tape */}
-                  <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[10000]">
+                  <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[99999]">
                     <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>
                       {item.label}
                     </p>
