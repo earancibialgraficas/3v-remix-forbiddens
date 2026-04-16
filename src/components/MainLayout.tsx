@@ -10,6 +10,7 @@ import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -18,45 +19,57 @@ export default function MainLayout() {
   
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { loading, isReady } = useAuth(); // Importante para el cargador
 
-  // Cerramos menús al cambiar de página
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
   return (
-    <div className="flex bg-background text-foreground w-full min-h-screen">
+    <div className="flex bg-background text-foreground w-full min-h-screen relative">
+      
+      {/* CARGADOR FANTASMA - Solo aparece si está cargando pero NO bloquea el render */}
+      {loading && !isReady && (
+        <div className="fixed top-2 right-12 z-[100] animate-pulse">
+          <div className="bg-card/80 backdrop-blur border border-primary/20 px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
+            <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+            <span className="text-[8px] font-pixel text-primary uppercase">Sincronizando</span>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR ESCRITORIO */}
-      <div className="hidden md:block sticky top-0 h-screen">
+      <div className="hidden md:block sticky top-0 h-screen shrink-0">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* MOBILE HEADER (Sólo si no hay sidebar abierto) */}
-      <div className="md:hidden fixed top-2 left-2 z-50 flex gap-2">
-        <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
-          <Menu className="w-6 h-6" />
-        </Button>
-      </div>
+      {/* MOBILE TRIGGER */}
+      {!mobileSidebarOpen && (
+        <div className="md:hidden fixed top-2 left-2 z-50">
+          <Button variant="secondary" size="icon" className="h-8 w-8 shadow-lg bg-card/90" onClick={() => setMobileSidebarOpen(true)}>
+            <Menu className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
-      {/* SIDEBAR MÓVIL */}
+      {/* MOBILE SIDEBAR */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
-          <div className="relative w-64 h-full bg-card animate-in slide-in-from-left">
+          <div className="relative w-64 h-full bg-card animate-in slide-in-from-left duration-300 shadow-2xl">
             <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
           </div>
         </div>
       )}
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full">
+      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
           </div>
           
-          {/* PANEL DERECHO ESCRITORIO */}
-          <div className="hidden lg:block w-72 shrink-0">
+          <div className="hidden lg:block w-[280px] shrink-0">
             <RightPanel />
           </div>
         </div>
@@ -64,21 +77,19 @@ export default function MainLayout() {
         {/* PANEL DERECHO MÓVIL */}
         {isMobile && (
           <div className={cn(
-            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all",
-            mobileRightOpen ? "h-[60vh]" : "h-12"
+            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500",
+            mobileRightOpen ? "h-[55vh]" : "h-11"
           )}>
             <button 
               onClick={() => setMobileRightOpen(!mobileRightOpen)}
-              className="w-full h-12 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground"
+              className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground"
             >
-              {mobileRightOpen ? <ChevronDown /> : <ChevronUp />}
+              {mobileRightOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
               INFO & COMUNIDAD
             </button>
-            {mobileRightOpen && (
-              <div className="p-4 h-[calc(60vh-3rem)] overflow-y-auto">
-                <RightPanel />
-              </div>
-            )}
+            <div className={cn("p-4 h-[calc(55vh-2.75rem)] overflow-y-auto", !mobileRightOpen && "hidden")}>
+              <RightPanel />
+            </div>
           </div>
         )}
       </main>
