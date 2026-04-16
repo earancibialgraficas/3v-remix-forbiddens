@@ -50,10 +50,8 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-        triggerRef.current && !triggerRef.current.contains(e.target as Node)
-      ) setOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+          triggerRef.current && !triggerRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -72,15 +70,14 @@ export default function NotificationBell() {
     if (mins < 60) return `${mins}m`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d`;
+    return `${Math.floor(hrs / 24)}d`;
   };
 
   if (!user) return null;
   const cfg = (type: string) => typeConfig[type] || typeConfig.general;
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <button
         ref={triggerRef}
         onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
@@ -88,7 +85,7 @@ export default function NotificationBell() {
       >
         <Bell className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold animate-pulse shadow-sm">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold animate-pulse">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -97,39 +94,29 @@ export default function NotificationBell() {
       {open && (
         <div
           ref={dropdownRef}
-          className="absolute left-0 mt-2 w-80 max-w-[calc(100vw-20px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[1000]"
-          style={{ maxHeight: 'min(400px, calc(100vh - 100px))' }}
+          className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 max-w-[calc(100vw-40px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]"
+          style={{ maxHeight: 'min(400px, calc(100vh - 120px))' }}
         >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
-            <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors">
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
+            <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors"><X className="w-3.5 h-3.5 text-muted-foreground" /></button>
           </div>
-
           <div className="max-h-80 overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
-              <div className="py-10 text-center">
-                <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground font-body">Todo al día 🎉</p>
-              </div>
+              <div className="py-10 text-center text-muted-foreground font-body text-xs">Todo al día 🎉</div>
             ) : (
               notifications.map((n) => {
                 const c = cfg(n.type);
                 return (
-                  <div key={n.id} className={cn("flex gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0", !n.is_read && "bg-primary/5")}>
-                    <div className={cn("flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>
-                      {c.icon}
-                    </div>
+                  <div key={n.id} className={cn("flex gap-3 px-4 py-3 border-b border-border/20 last:border-0 hover:bg-muted/30", !n.is_read && "bg-primary/5")}>
+                    <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center", c.color)}>{c.icon}</div>
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-xs font-body font-medium text-foreground leading-snug">{n.title}</p>
-                      <p className="text-[10px] font-body text-muted-foreground mt-0.5 leading-snug line-clamp-2">{n.body}</p>
+                      <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[9px] text-muted-foreground/70 font-body">{timeAgo(n.created_at)}</span>
+                        <span className="text-[9px] text-muted-foreground/70">{timeAgo(n.created_at)}</span>
                         {n.type === "friend_request" && n.related_id && (
-                          <Link to={`/usuario/${n.related_id}`} onClick={() => setOpen(false)} className="text-[9px] text-primary hover:underline font-body">
-                            Ver perfil
-                          </Link>
+                          <Link to={`/usuario/${n.related_id}`} onClick={() => setOpen(false)} className="text-[9px] text-primary hover:underline">Ver perfil</Link>
                         )}
                       </div>
                     </div>
