@@ -106,7 +106,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO SECTION - VERTICAL Y COMPACTO */}
+        {/* LOGO SECTION */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -127,17 +127,27 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE SECTION */}
-        {!collapsed && user && (
-          <div className="p-3 border-b border-border flex items-center justify-between gap-2 bg-muted/5">
-            <span className="font-pixel text-[9px] text-neon-green truncate max-w-[90px]" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
-              {profile?.display_name || "..."}
-            </span>
-            <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive"><LogOut className="w-3.5 h-3.5" /></button>
-          </div>
-        )}
+        {/* PROFILE BUTTON - Solo perfil por ahora */}
+        <div className={cn("p-2 border-b border-border flex flex-col items-center bg-muted/5", collapsed ? "" : "px-3 items-start")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+            <Link to="/perfil">
+              <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+            </Link>
+          </Button>
+          
+          {!collapsed && user && (
+            <div className="flex items-center justify-between w-full gap-2 mt-1">
+              <span className="font-pixel text-[9px] text-neon-green truncate max-w-[90px] uppercase" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
+                {profile?.display_name || "..."}
+              </span>
+              <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive transition-colors">
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
 
-        {/* NAVEGACIÓN CON BURBUJAS (TOOLTIPS) */}
+        {/* NAVEGACIÓN */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
