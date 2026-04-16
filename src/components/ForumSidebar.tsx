@@ -97,41 +97,30 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
     if (!user) { setUnreadMessages(0); return; }
     const fetchUnread = async () => {
       try {
-        const { count } = await supabase
-          .from("inbox_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("receiver_id", user.id)
-          .eq("is_read", false);
+        const { count } = await supabase.from("inbox_messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("is_read", false);
         setUnreadMessages(count || 0);
-      } catch (err) { console.error("Error unread:", err); }
+      } catch (e) { console.error(e); }
     };
     fetchUnread();
-    const channel = supabase.channel("sidebar-unread")
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchUnread())
-      .subscribe();
+    const channel = supabase.channel("sidebar-unread").on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchUnread()).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const toggleExpand = (label: string) => {
-    setExpandedItems((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
-    );
+    setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
   };
 
   return (
     <TooltipProvider>
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center animate-fade-in p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
-          <div className="relative bg-card border border-border rounded-lg p-6 max-w-sm w-full animate-scale-in space-y-4 shadow-2xl">
-            <div className="text-center space-y-2">
-              <AlertTriangle className="w-12 h-12 text-neon-yellow mx-auto" />
-              <h3 className="font-pixel text-xs text-foreground uppercase tracking-widest">Cerrar Sesión</h3>
-              <p className="text-sm font-body text-muted-foreground">¿Estás seguro de que quieres salir?</p>
-            </div>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
+          <div className="relative bg-card border border-border rounded-lg p-6 max-w-sm w-full animate-scale-in text-center space-y-4 shadow-2xl">
+            <AlertTriangle className="w-12 h-12 text-neon-yellow mx-auto" />
+            <h3 className="font-pixel text-[10px] uppercase">¿Cerrar Sesión?</h3>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 font-pixel text-[8px]">NO</Button>
-              <Button variant="destructive" onClick={async () => { await signOut(); setShowLogoutModal(false); }} className="flex-1 font-pixel text-[8px]">SÍ, SALIR</Button>
+              <Button variant="destructive" onClick={async () => { await signOut(); setShowLogoutModal(false); }} className="flex-1 font-pixel text-[8px]">SÍ</Button>
             </div>
           </div>
         </div>
@@ -139,80 +128,63 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
       <aside
         className={cn(
-          "bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col retro-scrollbar h-full",
+          "bg-card border-r border-border flex flex-col transition-all duration-300 h-full overflow-y-auto overflow-x-hidden retro-scrollbar",
           collapsed ? "w-14" : "w-60",
-          // FIX: Solo fixed en escritorio para evitar el bloqueo negro en móvil
-          "md:fixed md:top-0 md:left-0 md:h-screen z-40"
+          "relative z-50" // Cambiamos a relative para que MainLayout controle el posicionamiento
         )}
       >
-        {/* Logo Section */}
-        <div className={cn("flex flex-col border-b border-border py-4 px-2 items-center", collapsed ? "gap-2" : "gap-4")}>
+        {/* LOGO SECTION - CORREGIDO */}
+        <div className="flex flex-col items-center py-6 px-2 border-b border-border gap-4">
           <button onClick={onToggle} className="p-2 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors">
-            {collapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+            {collapsed ? <PanelLeft className="w-6 h-6" /> : <PanelLeftClose className="w-6 h-6" />}
           </button>
           
-          <Link to="/" className="group flex flex-col items-center">
-            <span className="font-pixel text-xl mb-1" style={{ color: '#de1839', textShadow: '0 0 10px rgba(222, 24, 57, 0.5)' }}>F</span>
-            {collapsed ? (
-              <div className="flex flex-col items-center gap-1 opacity-60">
-                {"ORBIDDENS".split("").map((l, i) => (
-                  <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839' }}>{l}</span>
-                ))}
-              </div>
-            ) : (
-              <span className="font-pixel text-[10px] tracking-tighter" style={{ color: '#de1839' }}>ORBIDDENS</span>
-            )}
+          <Link to="/" className="flex flex-col items-center group">
+             {collapsed ? (
+               <div className="flex flex-col items-center leading-none">
+                 {"FORBIDDENS".split("").map((l, i) => (
+                   <span key={i} className="font-pixel text-[9px] mb-[1px]" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.5)' }}>{l}</span>
+                 ))}
+               </div>
+             ) : (
+               <span className="font-pixel text-xs tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
+             )}
           </Link>
         </div>
 
-        {/* User / Search Section */}
+        {/* PROFILE SECTION */}
         {!collapsed && (
-          <div className="p-3 space-y-3 border-b border-border bg-muted/20">
+          <div className="p-4 space-y-4 border-b border-border bg-muted/10">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Buscar en el foro..." className="h-8 pl-8 bg-background border-border text-xs font-body" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar..." className="h-9 pl-10 bg-background border-border text-xs" />
             </div>
             
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link to="/perfil"><User className="w-4 h-4" /></Link>
-              </Button>
-              <div className="relative">
-                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                  <Link to="/mensajes"><Mail className="w-4 h-4" /></Link>
-                </Button>
-                {unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold px-1 rounded-full animate-pulse">{unreadMessages}</span>
-                )}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1">
+                <NotificationBell />
+                <Button variant="ghost" size="icon" className="h-8 w-8" asChild><Link to="/perfil"><User className="w-4 h-4" /></Link></Button>
               </div>
 
               {user ? (
-                <div className="flex items-center gap-1 ml-auto">
+                <div className="flex items-center gap-2 min-w-0">
                   <span 
-                    className="text-[10px] font-pixel truncate max-w-[70px] text-neon-green"
-                    style={(() => {
-                      try { return profile ? getNameStyle(profile.color_name) : {}; }
-                      catch(e) { return {}; }
-                    })()}
+                    className="text-[10px] font-pixel truncate max-w-[80px] text-neon-green"
+                    style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}
                   >
                     {profile?.display_name || "..."}
                   </span>
-                  <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive transition-colors">
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
+                  <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive"><LogOut className="w-4 h-4" /></button>
                 </div>
               ) : (
-                <Button size="sm" className="h-7 text-[9px] font-pixel bg-primary ml-auto" asChild>
-                  <Link to="/login">LOGIN</Link>
-                </Button>
+                <Button size="sm" className="h-8 text-[9px] font-pixel bg-primary" asChild><Link to="/login">ENTRAR</Link></Button>
               )}
             </div>
           </div>
         )}
 
-        {/* Navigation Section */}
-        <nav className={cn("px-2 flex-1 retro-scrollbar", collapsed ? "py-4" : "py-4 space-y-1")}>
+        {/* NAVIGATION */}
+        <nav className="flex-1 px-2 py-4 space-y-2">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
             const isExpanded = expandedItems.includes(item.label);
@@ -222,51 +194,32 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <Link 
-                      to={item.to || "#"} 
-                      className={cn(
-                        "flex items-center justify-center p-3 rounded-md transition-all mb-1",
-                        isActive ? "bg-primary/20 text-primary shadow-[0_0_10px_rgba(var(--primary),0.2)]" : "text-muted-foreground hover:bg-muted/50"
-                      )}
-                    >
-                      <item.icon className={cn("w-5 h-5", item.color)} />
+                    <Link to={item.to || "#"} className={cn("flex items-center justify-center p-3 rounded-lg transition-all", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted")}>
+                      <item.icon className={cn("w-6 h-6", item.color)} />
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-card border-border shadow-xl">
-                    <p className={cn("text-xs font-pixel mb-1", item.color)}>{item.label}</p>
-                    {hasChildren && item.children!.map((child) => (
-                      <Link key={child.to} to={child.to} className="block text-[10px] py-1 text-muted-foreground hover:text-foreground">{child.label}</Link>
-                    ))}
+                  <TooltipContent side="right" className="bg-card border-border shadow-2xl">
+                    <p className={cn("text-xs font-pixel", item.color)}>{item.label}</p>
                   </TooltipContent>
                 </Tooltip>
               );
             }
 
             return (
-              <div key={item.label} className="mb-1">
+              <div key={item.label} className="space-y-1">
                 <button
                   onClick={() => hasChildren && toggleExpand(item.label)}
-                  className={cn(
-                    "flex items-center gap-3 w-full px-3 py-2 rounded-md transition-all text-sm font-body",
-                    isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
+                  className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50")}
                 >
-                  <item.icon className={cn("w-4 h-4 shrink-0", item.color)} />
-                  <span className="truncate flex-1 text-left">{item.label}</span>
+                  <item.icon className={cn("w-5 h-5 shrink-0", item.color)} />
+                  <span className="flex-1 text-left font-body truncate">{item.label}</span>
                   {hasChildren && (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />)}
                 </button>
                 
                 {hasChildren && isExpanded && (
-                  <div className="ml-9 mt-1 space-y-1 border-l border-border/50">
+                  <div className="ml-8 space-y-1 border-l border-border/50 pl-2">
                     {item.children!.map((child) => (
-                      <Link 
-                        key={child.to} 
-                        to={child.to} 
-                        className={cn(
-                          "block px-3 py-1.5 text-xs font-body transition-colors",
-                          location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
+                      <Link key={child.to} to={child.to} className={cn("block py-2 px-2 text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground")}>
                         {child.label}
                       </Link>
                     ))}
