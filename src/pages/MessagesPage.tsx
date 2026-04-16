@@ -53,6 +53,20 @@ export default function MessagesPage() {
     }
   }, [searchParams, user]);
 
+  // 🔥 ARREGLO DEL CONTADOR: Marcar todo como leído al entrar a la página
+  useEffect(() => {
+    if (!user) return;
+    const forceResetUnread = async () => {
+      // Le decimos a Supabase: "Marca como leídos TODOS los mensajes recibidos por este usuario"
+      await supabase
+        .from("inbox_messages")
+        .update({ is_read: true } as any)
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
+    };
+    forceResetUnread();
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     loadConversations();

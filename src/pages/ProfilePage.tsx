@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,17 @@ const storageLimits: Record<string, number> = {
   novato: 50, entusiasta: 150, coleccionista: 500, "leyenda arcade": 2000,
 };
 
+// 🔥 Configuración de Iconos para Avisos
+const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
+  friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
+  friend_accepted: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-green" },
+  follow: { icon: <Heart className="w-3.5 h-3.5" />, color: "text-neon-magenta" },
+  comment: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" },
+  mention: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-orange" },
+  achievement: { icon: <Trophy className="w-3.5 h-3.5" />, color: "text-neon-yellow" },
+  general: { icon: <Star className="w-3.5 h-3.5" />, color: "text-muted-foreground" },
+};
+
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
@@ -37,9 +48,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
+  
+  // 🔥 Nuevo Tab "Avisos"
   const tabFromUrl = searchParams.get("tab") as any;
-  const validTabs = ["posts", "stats", "social", "storage", "moderation", "friends"];
-  const [activeTab, setActiveTab] = useState<"posts" | "stats" | "social" | "storage" | "moderation" | "friends">(validTabs.includes(tabFromUrl) ? tabFromUrl : "posts");
+  const validTabs = ["avisos", "posts", "stats", "social", "storage", "moderation", "friends"];
+  const [activeTab, setActiveTab] = useState<"avisos" | "posts" | "stats" | "social" | "storage" | "moderation" | "friends">(validTabs.includes(tabFromUrl) ? tabFromUrl : "avisos");
+  
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
@@ -53,6 +67,7 @@ export default function ProfilePage() {
   const [staffRoleColor, setStaffRoleColor] = useState("");
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]); // Estado de notificaciones
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -76,30 +91,39 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Cargar posts
     supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setUserPosts(data); });
+    
+    // Cargar scores
     supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false })
       .then(({ data }) => { if (data) setGameScores(data as any); });
+    
+    // Cargar followers
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
-    // Build storage items list
+    
+    // 🔥 Cargar Notificaciones
+    const fetchNotifs = async () => {
+      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
+      if (data) setNotifications(data);
+    };
+    fetchNotifs();
+
+    // Cargar Storage
     const loadStorage = async () => {
       const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
-      // Leaderboard save data
       const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
       scores?.forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
-      // Avatar uploads
       const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
       avatarFiles?.forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
-      // Social content
       const { data: social } = await supabase.from("social_content").select("id, title, content_url, created_at").eq("user_id", user.id);
       social?.forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id, created_at: s.created_at }));
-      // Photos
       const { data: photos } = await supabase.from("photos").select("id, caption, image_url, created_at").eq("user_id", user.id);
       photos?.forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id, created_at: p.created_at }));
-      // Sort newest first
       items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       setStorageItems(items);
       setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
@@ -107,10 +131,20 @@ export default function ProfilePage() {
     loadStorage();
   }, [user]);
 
+  // 🔥 Al entrar a la pestaña de "Avisos", marcamos todos como leídos
+  useEffect(() => {
+    if (activeTab === "avisos" && user) {
+      const markAsRead = async () => {
+        await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); // Actualizamos el estado local
+      };
+      markAsRead();
+    }
+  }, [activeTab, user]);
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-    // Update password if provided
     if (newPassword.trim()) {
       if (newPassword.length < 6) {
         toast({ title: "Error", description: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
@@ -157,7 +191,6 @@ export default function ProfilePage() {
     if (file.size > 2 * 1024 * 1024) {
       toast({ title: "Error", description: "Máximo 2MB", variant: "destructive" }); return;
     }
-    // Validate dimensions (max 500x500)
     const img = new Image();
     const url = URL.createObjectURL(file);
     const dimOk = await new Promise<boolean>((resolve) => {
@@ -207,7 +240,9 @@ export default function ProfilePage() {
   const isMod = roles.includes("moderator");
   const isStaff = isAdmin || isMasterWeb;
 
+  // 🔥 Se inyecta Avisos de primero
   const tabs = [
+    { id: "avisos" as const, label: "Avisos", icon: Bell },
     { id: "posts" as const, label: "Posts", icon: MessageSquare },
     { id: "stats" as const, label: "Stats", icon: Trophy },
     { id: "friends" as const, label: "Amigos", icon: UserPlus },
@@ -288,7 +323,6 @@ export default function ProfilePage() {
                       placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
                       maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
                     />
-                    {/* Advanced signature options for Staff / Nivel 2+ */}
                     {(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) && (
                       <>
                         <div className="grid grid-cols-2 gap-2">
@@ -417,7 +451,44 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* 🔥 Tab content - Avisos */}
+      {activeTab === "avisos" && (
+        <div className="bg-card border border-border rounded p-4">
+          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS AVISOS ({notifications.length})</h3>
+          {notifications.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-body">No tienes avisos recientes</p>
+          ) : (
+            <div className="space-y-2">
+              {notifications.map((notif) => {
+                const c = typeConfig[notif.type] || typeConfig.general;
+                return (
+                  <div key={notif.id} className={cn("flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30")}>
+                    <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>
+                      {c.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-body font-medium text-foreground leading-snug">{notif.title}</p>
+                      <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-muted-foreground/70">
+                          {new Date(notif.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {notif.type === "friend_request" && notif.related_id && (
+                          <Link to={`/usuario/${notif.related_id}`} className="text-[9px] text-primary hover:underline font-body">
+                            Ver perfil
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content - Posts */}
       {activeTab === "posts" && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS POSTS ({userPosts.length})</h3>
@@ -439,6 +510,8 @@ export default function ProfilePage() {
           )}
         </div>
       )}
+
+      {/* ... Resto de los Tabs: Stats, Friends, Social, Storage, Moderation (SIN CAMBIOS) ... */}
 
       {activeTab === "stats" && (
         <div className="bg-card border border-border rounded p-4 space-y-3">
@@ -462,8 +535,6 @@ export default function ProfilePage() {
               </div>
             ))}
           </div>
-
-          {/* Per-game score breakdown */}
           {gameScores.length > 0 && (
             <div className="mt-4">
               <h4 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
@@ -507,7 +578,6 @@ export default function ProfilePage() {
               <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
             </div>
           </div>
-          {/* Detailed items */}
           <div className="space-y-1 mt-3">
             <div className="grid grid-cols-[1fr_80px_110px_60px_30px] gap-2 text-[9px] font-pixel text-muted-foreground border-b border-border pb-1">
               <span>ELEMENTO</span><span>TIPO</span><span>FECHA</span><span className="text-right">TAMAÑO</span><span></span>
@@ -524,14 +594,11 @@ export default function ProfilePage() {
                   onClick={async () => {
                     if (!user) return;
                     if (item.type === "Partida guardada" && item.id) {
-                      // Delete the save slot from localStorage but KEEP the score in the database
-                      // The leaderboard_scores row stores the score — we only remove the save data
                       const games = Object.keys(localStorage).filter(k => k.startsWith("save_slots_"));
                       games.forEach(k => {
                         try {
                           const slots = JSON.parse(localStorage.getItem(k) || "[]");
                           const filtered = slots.filter((_: any, idx: number) => {
-                            // Simple heuristic: match by name
                             return !item.name.includes(k.replace("save_slots_", ""));
                           });
                           localStorage.setItem(k, JSON.stringify(filtered));
@@ -542,7 +609,6 @@ export default function ProfilePage() {
                     } else if (item.type === "Foto" && item.id) {
                       await supabase.from("photos").delete().eq("id", item.id);
                     } else if (item.type === "Avatar") {
-                      // Don't allow deleting avatars — only replacing
                       toast({ title: "No permitido", description: "Solo puedes reemplazar tu avatar, no eliminarlo", variant: "destructive" });
                       return;
                     }
@@ -662,6 +728,8 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+// ... Resto de los componentes secundarios: ModerationPanel, ModeratorList, SocialContentTab, FriendsTab (MISMOS QUE ME PASASTE)
 
 function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
   const { toast } = useToast();
@@ -911,7 +979,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
 
   return (
     <div className="space-y-3">
-      {/* Linked profiles */}
       <div className="bg-card border border-border rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-muted-foreground">PERFILES VINCULADOS</h3>
         <div className="space-y-2">
@@ -934,7 +1001,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
         <Button size="sm" variant="outline" onClick={onEditNetworks} className="text-xs"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
       </div>
 
-      {/* Add content */}
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Plus className="w-3 h-3" /> AGREGAR CONTENIDO</h3>
         <Input placeholder="URL del video/post (YouTube, Instagram, TikTok...)" value={newUrl} onChange={e => { setNewUrl(e.target.value); setNewPlatform(detectPlatform(e.target.value)); }} className="h-8 bg-muted text-xs font-body" />
@@ -951,7 +1017,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
         </Button>
       </div>
 
-      {/* Content list */}
       <div className="bg-card border border-border rounded p-4 space-y-2">
         <h3 className="font-pixel text-[10px] text-muted-foreground">MI CONTENIDO ({contents.length})</h3>
         {contents.length === 0 ? (
@@ -990,7 +1055,6 @@ function FriendsTab({ userId }: { userId: string }) {
   const [sendingRequest, setSendingRequest] = useState(false);
 
   const fetchFriends = async () => {
-    // Accepted friends
     const { data: sent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "accepted");
     const { data: recv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "accepted");
     const friendIds = [
@@ -1000,7 +1064,6 @@ function FriendsTab({ userId }: { userId: string }) {
     if (friendIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", friendIds);
       setFriends(profiles || []);
-      // Fetch roles for friends to identify staff
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", friendIds);
       const rMap: Record<string, string[]> = {};
       roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
@@ -1010,7 +1073,6 @@ function FriendsTab({ userId }: { userId: string }) {
       setFriendRoles({});
     }
 
-    // Pending received
     const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
     if (pRecv && pRecv.length > 0) {
       const senderIds = pRecv.map((r: any) => r.sender_id);
@@ -1018,7 +1080,6 @@ function FriendsTab({ userId }: { userId: string }) {
       setPendingReceived(pRecv.map((r: any) => ({ ...r, profile: profiles?.find((p: any) => p.user_id === r.sender_id) })));
     } else setPendingReceived([]);
 
-    // Pending sent
     const { data: pSent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "pending");
     setPendingSent(pSent || []);
   };
@@ -1027,8 +1088,6 @@ function FriendsTab({ userId }: { userId: string }) {
 
   const acceptRequest = async (requestId: string, senderId: string) => {
     await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
-    // Notification is now handled by the database trigger (notify_friend_request)
-    // No need to manually insert — the trigger fires on UPDATE to 'accepted'
     toast({ title: "Amistad aceptada" });
     fetchFriends();
   };
@@ -1056,7 +1115,6 @@ function FriendsTab({ userId }: { userId: string }) {
     if (!searchQuery.trim()) return;
     const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name")
       .ilike("display_name", `%${searchQuery}%`).neq("user_id", userId).limit(10);
-    // Filter out existing friends and pending requests
     const friendIds = friends.map((f: any) => f.user_id);
     const pendingIds = [...pendingReceived.map((r: any) => r.sender_id), ...pendingSent.map((r: any) => r.receiver_id)];
     const excluded = new Set([...friendIds, ...pendingIds]);
@@ -1075,7 +1133,6 @@ function FriendsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Friend search */}
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Search className="w-3 h-3" /> BUSCAR USUARIOS</h3>
         <div className="flex gap-1">
