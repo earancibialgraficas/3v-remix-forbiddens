@@ -126,7 +126,6 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
   return (
     <>
-      {/* FIX 1: Modal de Logout con z-index superior para evitar bloqueos */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
@@ -149,8 +148,10 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
 
       <aside
         className={cn(
-          "fixed top-0 left-0 h-screen bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col z-30 retro-scrollbar",
-          collapsed ? "w-12" : "w-56"
+          "bg-card border-r border-border overflow-y-auto transition-all duration-300 shrink-0 flex flex-col retro-scrollbar h-full",
+          collapsed ? "w-12" : "w-56",
+          // FIX MAESTRO: Solo es fixed en escritorio. En móvil se adapta a su contenedor.
+          "md:fixed md:top-0 md:left-0 md:h-screen z-40"
         )}
       >
         {collapsed ? (
@@ -215,7 +216,6 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                 <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
               </Button>
               
-              {/* FIX 2: Escudo para el nombre de usuario (Evita que la web se ponga negra al sincronizar) */}
               {user ? (
                 <div className="flex items-center gap-1 ml-auto min-w-0">
                   <span 

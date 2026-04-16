@@ -21,16 +21,13 @@ export default function MainLayout() {
   const location = useLocation();
   const { loading, isReady } = useAuth();
 
-  // FIX: Cerrar sidebar al navegar, pero mantener el estado del panel derecho si prefieres
   useEffect(() => {
     setMobileSidebarOpen(false);
-    
     if (!loading && isReady) {
       document.body.style.overflow = 'auto';
     }
   }, [location.pathname, loading, isReady]);
 
-  // CARGADOR FANTASMA: No bloquea el renderizado (la música sigue viva debajo)
   const LoadingOverlay = (loading || !isReady) ? (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-md pointer-events-none transition-opacity duration-500">
       <div className="bg-card/90 p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center gap-3">
@@ -42,13 +39,7 @@ export default function MainLayout() {
 
   return (
     <div 
-      className="flex flex-col bg-background text-foreground w-full" 
-      style={{ 
-        minHeight: '100dvh', 
-        height: '100dvh', 
-        position: 'relative',
-        overflow: 'hidden' 
-      }}
+      className="flex flex-col bg-background text-foreground w-full h-screen overflow-hidden relative" 
     >
       {LoadingOverlay}
 
@@ -60,7 +51,7 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Mobile menu button */}
+      {/* Botón Menu Móvil */}
       <Button
         variant="ghost"
         size="icon"
@@ -70,7 +61,7 @@ export default function MainLayout() {
         <Menu className="w-4 h-4" />
       </Button>
 
-      {/* Mobile fixed notification bell */}
+      {/* Campana Móvil */}
       {isMobile && (
         <div className="fixed top-2 right-2 z-50">
           <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
@@ -79,14 +70,14 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay - FIX DE Z-INDEX */}
       {mobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-[200]">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <div className="relative z-[201] w-64 h-full animate-slide-in-left shadow-2xl">
+          <div className="relative z-[300] w-64 h-full animate-slide-in-left shadow-2xl">
             <ForumSidebar
               collapsed={false}
               onToggle={() => setMobileSidebarOpen(false)}
@@ -97,12 +88,10 @@ export default function MainLayout() {
 
       <NavigationButtons />
 
-      {/* Área principal scrollable */}
+      {/* Área principal */}
       <div className={cn(
-        "flex-1 min-w-0 transition-all duration-300 overflow-y-auto overflow-x-hidden",
-        "md:ml-12",
+        "flex-1 min-w-0 transition-all duration-300 overflow-y-auto overflow-x-hidden md:ml-12",
         !sidebarCollapsed && "md:ml-56",
-        // En móvil damos espacio abajo para el botón del panel
         isMobile && "pb-12"
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto min-h-full">
@@ -111,18 +100,13 @@ export default function MainLayout() {
               <Outlet />
             </div>
           </div>
-          
-          {/* Panel derecho para escritorio */}
           <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
             <RightPanel />
           </div>
         </div>
       </div>
 
-      {/* --- SOLUCIÓN PARA LA MÚSICA EN MÓVIL --- */}
-      {/* Este contenedor está SIEMPRE en el código para que la música NO se pare.
-          Simplemente lo movemos con CSS (bottom) para mostrarlo u ocultarlo.
-      */}
+      {/* Mobile Right Panel persistente (La música no se corta) */}
       <div
         className={cn(
           "lg:hidden fixed left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto transition-all duration-500 ease-in-out shadow-[0_-10px_30px_rgba(0,0,0,0.5)]",
@@ -134,18 +118,17 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* Botón disparador del panel (siempre visible en móvil) */}
+      {/* Botón Info & Comunidad */}
       {isMobile && (
         <button
           onClick={() => setMobileRightOpen(!mobileRightOpen)}
           className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border flex items-center justify-center py-2.5 gap-1 text-[10px] font-pixel text-muted-foreground shadow-[0_-4px_10px_rgba(0,0,0,0.3)] hover:text-primary transition-colors"
         >
-          {mobileRightOpen ? <ChevronDown className="w-3 h-3 text-primary" /> : <ChevronUp className="w-3 h-3" />}
+          {mobileRightOpen ? <ChevronDown className="w-3.5 h-3.5 text-primary" /> : <ChevronUp className="w-3.5 h-3.5" />}
           {mobileRightOpen ? "OCULTAR PANEL" : "INFO & COMUNIDAD"}
         </button>
       )}
 
-      {/* Componentes Globales Extras */}
       <GameBubble />
       <FloatingChat />
     </div>
