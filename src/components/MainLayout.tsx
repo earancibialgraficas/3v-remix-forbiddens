@@ -19,16 +19,16 @@ export default function MainLayout() {
   
   const isMobile = useIsMobile();
   const location = useLocation();
-  const { loading, isReady } = useAuth(); // Importante para el cargador
+  const { loading, isReady } = useAuth();
 
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
   return (
-    <div className="flex bg-background text-foreground w-full min-h-screen relative">
+    <div className="flex bg-background text-foreground w-full min-h-screen relative overflow-x-hidden">
       
-      {/* CARGADOR FANTASMA - Solo aparece si está cargando pero NO bloquea el render */}
+      {/* CARGADOR FANTASMA - SUTIL ARRIBA A LA DERECHA */}
       {loading && !isReady && (
         <div className="fixed top-2 right-12 z-[100] animate-pulse">
           <div className="bg-card/80 backdrop-blur border border-primary/20 px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
@@ -39,7 +39,7 @@ export default function MainLayout() {
       )}
 
       {/* SIDEBAR ESCRITORIO */}
-      <div className="hidden md:block sticky top-0 h-screen shrink-0">
+      <div className="hidden md:block sticky top-0 h-screen shrink-0 z-40">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
@@ -52,18 +52,19 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* MOBILE SIDEBAR */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-[100] flex">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
-          <div className="relative w-64 h-full bg-card animate-in slide-in-from-left duration-300 shadow-2xl">
-            <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
-          </div>
+      {/* MOBILE SIDEBAR MODAL */}
+      <div className={cn(
+        "md:hidden fixed inset-0 z-[100] flex transition-all duration-300",
+        mobileSidebarOpen ? "visible" : "invisible"
+      )}>
+        <div className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity", mobileSidebarOpen ? "opacity-100" : "opacity-0")} onClick={() => setMobileSidebarOpen(false)} />
+        <div className={cn("absolute top-0 left-0 h-full w-64 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
+          <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
         </div>
-      )}
+      </div>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+      {/* ÁREA PRINCIPAL */}
+      <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
@@ -74,7 +75,7 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* PANEL DERECHO MÓVIL */}
+        {/* PANEL MÓVIL PERSISTENTE (MÚSICA) */}
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500",
@@ -82,7 +83,7 @@ export default function MainLayout() {
           )}>
             <button 
               onClick={() => setMobileRightOpen(!mobileRightOpen)}
-              className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground"
+              className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground border-b border-border/50"
             >
               {mobileRightOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
               INFO & COMUNIDAD

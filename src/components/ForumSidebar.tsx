@@ -3,8 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, User, LogIn, Settings, BookOpen, LogOut,
-  PanelLeftClose, PanelLeft, X, AlertTriangle, Mail
+  Search, User, Settings, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
@@ -16,16 +15,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   Tooltip, 
   TooltipContent, 
-  TooltipTrigger,
-  TooltipPortal 
+  TooltipTrigger, 
+  TooltipPortal, 
+  TooltipProvider 
 } from "@/components/ui/tooltip";
 
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
   const { user, profile, signOut } = useAuth();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -63,7 +63,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   ];
 
   return (
-    <>
+    <TooltipProvider>
       {showLogoutModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center shadow-2xl space-y-4">
@@ -78,7 +78,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO - VERTICAL CUANDO COLAPSA */}
+        {/* LOGO SECTION - VERTICAL LETRA POR LETRA */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -88,7 +88,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
              {collapsed ? (
                <div className="flex flex-col items-center gap-[1px]">
                  {"FORBIDDENS".split("").map((l, i) => (
-                   <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839' }}>{l}</span>
+                   <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{l}</span>
                  ))}
                </div>
              ) : (
@@ -97,56 +97,40 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* --- SECCIÓN DE USUARIO (SIEMPRE VISIBLE) --- */}
-        <div className={cn("p-2 border-b border-border bg-muted/5", collapsed ? "flex flex-col items-center gap-4" : "space-y-3")}>
+        {/* SECCIÓN DE USUARIO (SIEMPRE VISIBLE) */}
+        <div className={cn("p-2 border-b border-border bg-muted/5 flex flex-col gap-2", collapsed ? "items-center" : "px-3")}>
           {!collapsed && (
-            <div className="relative">
+            <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-              <Input placeholder="Buscar..." className="h-7 pl-7 bg-background text-[10px]" />
+              <Input placeholder="Buscar..." className="h-7 pl-7 text-[10px] bg-background" />
             </div>
           )}
-
-          <div className={cn("flex items-center gap-1", collapsed ? "flex-col" : "justify-between")}>
-            <div className={cn("flex items-center gap-1", collapsed && "flex-col gap-3")}>
+          
+          <div className={cn("flex gap-1", collapsed ? "flex-col items-center gap-3" : "items-center justify-between")}>
+            <div className={cn("flex gap-1", collapsed && "flex-col gap-3")}>
               <NotificationBell />
-              
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
-              </Button>
-
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link to="/perfil"><User className="w-3.5 h-3.5" /></Link></Button>
               <div className="relative">
-                <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                  <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
-                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link></Button>
                 {unreadMessages > 0 && (
                   <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3 w-3 flex items-center justify-center rounded-full animate-pulse">
                     {unreadMessages > 9 ? "+" : unreadMessages}
                   </span>
                 )}
               </div>
-
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
-              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link></Button>
             </div>
 
-            {/* Nombre y Logout (Solo si no está colapsado) */}
             {!collapsed && user && (
-              <div className="flex items-center gap-1 ml-auto min-w-0">
+              <div className="flex items-center gap-1.5 ml-auto min-w-0">
                 <span 
                   className="text-[9px] font-pixel text-neon-green truncate max-w-[50px]" 
-                  style={profile ? getNameStyle(profile.color_name) : {}}
+                  style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}
                 >
                   {profile?.display_name || "..."}
                 </span>
                 <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive"><LogOut className="w-3 h-3" /></button>
               </div>
-            )}
-            
-            {!collapsed && !user && (
-              <Button size="sm" className="h-7 bg-primary text-[9px] font-pixel ml-auto px-2" asChild>
-                <Link to="/login">LOGIN</Link>
-              </Button>
             )}
           </div>
         </div>
@@ -167,7 +151,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                     </Link>
                   </TooltipTrigger>
                   <TooltipPortal>
-                    <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[9999]">
+                    <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[99999]">
                       <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>{item.label}</p>
                       {hasChildren && (
                         <div className="flex flex-col gap-0.5">
@@ -217,6 +201,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           })}
         </nav>
       </aside>
-    </>
+    </TooltipProvider>
   );
 }
