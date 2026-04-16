@@ -78,11 +78,11 @@ export default function NotificationBell() {
         >
           <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-muted/20">
             <span className="font-pixel text-[9px] text-neon-cyan uppercase">Notificaciones</span>
-            <X className="w-3 h-3 cursor-pointer" onClick={() => setOpen(false)} />
+            <X className="w-3 h-3 cursor-pointer text-muted-foreground" onClick={() => setOpen(false)} />
           </div>
           <div className="max-h-60 overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
-              <p className="p-4 text-[10px] text-center text-muted-foreground">Sin novedades 🎉</p>
+              <p className="p-4 text-[10px] text-center text-muted-foreground font-body">Todo al día 🎉</p>
             ) : (
               notifications.map((n) => (
                 <div key={n.id} className={cn("flex gap-2 p-3 border-b border-border/20 last:border-0 hover:bg-muted/10", !n.is_read && "bg-primary/5")}>

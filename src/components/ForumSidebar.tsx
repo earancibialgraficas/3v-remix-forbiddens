@@ -50,8 +50,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   return (
     <TooltipProvider>
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60")}>
-        
-        {/* LOGO */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -69,7 +67,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* BOTONES DE USUARIO INTEGRADOS */}
         <div className={cn("p-2 border-b border-border bg-muted/5 flex flex-col gap-2", collapsed ? "items-center" : "px-3")}>
           <div className={cn("flex items-center gap-1", collapsed ? "flex-col gap-3" : "justify-between")}>
             <div className={cn("flex items-center gap-1", collapsed && "flex-col gap-3")}>
@@ -87,7 +84,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </div>
         </div>
 
-        {/* NAVEGACIÓN COMPLETA */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
           {navItems.map((item) => (
             <div key={item.label}>
