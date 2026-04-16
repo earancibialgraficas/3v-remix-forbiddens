@@ -28,68 +28,64 @@ import NotFound from "./pages/NotFound";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
 
+// Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <GameBubbleProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/arcade/salas" element={<EmulatorPage />} />
-                <Route path="/arcade/biblioteca" element={<BibliotecaPage />} />
-                <Route path="/arcade/leaderboards" element={<LeaderboardPage />} />
-                <Route path="/arcade/consejos" element={<ConsejosPage />} />
-                <Route path="/gaming-anime" element={<ForumPage />} />
-                <Route path="/gaming-anime/foro" element={<ForumPage />} />
-                <Route path="/gaming-anime/anime" element={<ForumPage />} />
-                <Route path="/gaming-anime/gaming" element={<ForumPage />} />
-                <Route path="/gaming-anime/creador" element={<ForumPage />} />
-                <Route path="/motociclismo" element={<ForumPage />} />
-                <Route path="/motociclismo/riders" element={<ForumPage />} />
-                <Route path="/motociclismo/taller" element={<ForumPage />} />
-                <Route path="/motociclismo/rutas" element={<ForumPage />} />
-                <Route path="/mercado" element={<ForumPage />} />
-                <Route path="/mercado/gaming" element={<ForumPage />} />
-                <Route path="/mercado/motor" element={<ForumPage />} />
-                <Route path="/social" element={<ForumPage />} />
-                <Route path="/social/feed" element={<ForumPage />} />
-                <Route path="/social/reels" element={<SocialReelsPage />} />
-                <Route path="/social/fotos" element={<PhotoWallPage />} />
-                <Route path="/trending" element={<ForumPage />} />
-                <Route path="/eventos" element={<EventosPage />} />
-                <Route path="/membresias" element={<MembershipsPage />} />
-                <Route path="/ayuda" element={<AyudaPage />} />
-                <Route path="/reglas" element={<RulesPage />} />
-                <Route path="/contacto" element={<ForumPage />} />
-                <Route path="/privacidad" element={<ForumPage />} />
-                <Route path="/faq" element={<ForumPage />} />
-                
-                {/* --- RUTAS DE USUARIO Y MENSAJES --- */}
-                <Route path="/perfil" element={<ProfilePage />} />
-                <Route path="/usuario/:userId" element={<PublicProfilePage />} />
-                <Route path="/configuracion" element={<SettingsPage />} />
-                <Route path="/mensajes" element={<MessagesPage />} />
-                <Route path="/bandeja-publica" element={<MessagesPage />} />
-                <Route path="/notificaciones" element={<MessagesPage />} />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <GameBubbleProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/arcade/salas" element={<EmulatorPage />} />
+                  <Route path="/arcade/biblioteca" element={<BibliotecaPage />} />
+                  <Route path="/arcade/leaderboards" element={<LeaderboardPage />} />
+                  <Route path="/arcade/consejos" element={<ConsejosPage />} />
+                  <Route path="/gaming-anime/foro" element={<ForumPage />} />
+                  <Route path="/gaming-anime/anime" element={<ForumPage />} />
+                  <Route path="/gaming-anime/gaming" element={<ForumPage />} />
+                  <Route path="/gaming-anime/creador" element={<ForumPage />} />
+                  <Route path="/motociclismo/riders" element={<ForumPage />} />
+                  <Route path="/motociclismo/taller" element={<ForumPage />} />
+                  <Route path="/motociclismo/rutas" element={<ForumPage />} />
+                  <Route path="/mercado/gaming" element={<ForumPage />} />
+                  <Route path="/mercado/motor" element={<ForumPage />} />
+                  <Route path="/social/feed" element={<ForumPage />} />
+                  <Route path="/social/reels" element={<SocialReelsPage />} />
+                  <Route path="/social/fotos" element={<PhotoWallPage />} />
+                  <Route path="/trending" element={<ForumPage />} />
+                  <Route path="/eventos" element={<EventosPage />} />
+                  <Route path="/membresias" element={<MembershipsPage />} />
+                  <Route path="/ayuda" element={<AyudaPage />} />
+                  <Route path="/reglas" element={<RulesPage />} />
+                  
+                  {/* RUTAS CRÍTICAS PARA TUS BOTONES */}
+                  <Route path="/perfil" element={<ProfilePage />} />
+                  <Route path="/configuracion" element={<SettingsPage />} />
+                  <Route path="/mensajes" element={<MessagesPage />} />
+                  <Route path="/bandeja-publica" element={<MessagesPage />} />
+                  <Route path="/notificaciones" element={<MessagesPage />} />
 
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/registro" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </GameBubbleProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                  <Route path="/usuario/:userId" element={<PublicProfilePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/registro" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </GameBubbleProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
