@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +22,6 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -49,7 +47,6 @@ export default function NotificationBell() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -60,17 +57,6 @@ export default function NotificationBell() {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  // Position dropdown relative to trigger button using a portal
-  useEffect(() => {
-    if (!open || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const ddWidth = 320;
-    let left = rect.right - ddWidth;
-    if (left < 8) left = 8;
-    if (left + ddWidth > window.innerWidth - 8) left = window.innerWidth - ddWidth - 8;
-    setDropdownPos({ top: rect.bottom + 8, left });
   }, [open]);
 
   const markAllRead = async () => {
@@ -91,29 +77,28 @@ export default function NotificationBell() {
   };
 
   if (!user) return null;
-
   const cfg = (type: string) => typeConfig[type] || typeConfig.general;
 
   return (
-    <>
+    <div className="relative">
       <button
         ref={triggerRef}
         onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
         className="relative p-1.5 rounded-full hover:bg-muted/50 transition-colors"
       >
-        <Bell className="w-4 h-4 text-muted-foreground" />
+        <Bell className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[8px] flex items-center justify-center font-bold animate-pulse">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold animate-pulse shadow-sm">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
-      {open && createPortal(
+      {open && (
         <div
           ref={dropdownRef}
-          className="fixed w-80 max-w-[calc(100vw-16px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-fade-in"
-          style={{ zIndex: 100000, top: dropdownPos.top, left: dropdownPos.left, maxHeight: 'min(400px, calc(100vh - 80px))' }}
+          className="absolute left-0 mt-2 w-80 max-w-[calc(100vw-20px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[1000]"
+          style={{ maxHeight: 'min(400px, calc(100vh - 100px))' }}
         >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
@@ -122,28 +107,21 @@ export default function NotificationBell() {
             </button>
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground font-body font-medium">Todo al día 🎉</p>
-                <p className="text-[10px] text-muted-foreground/60 font-body mt-1">No tienes notificaciones nuevas</p>
+                <p className="text-xs text-muted-foreground font-body">Todo al día 🎉</p>
               </div>
             ) : (
               notifications.map((n) => {
                 const c = cfg(n.type);
                 return (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      "flex gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0",
-                      !n.is_read && "bg-primary/5"
-                    )}
-                  >
-                    <div className={cn("flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center", c.color)}>
+                  <div key={n.id} className={cn("flex gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0", !n.is_read && "bg-primary/5")}>
+                    <div className={cn("flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>
                       {c.icon}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                       <p className="text-xs font-body font-medium text-foreground leading-snug">{n.title}</p>
                       <p className="text-[10px] font-body text-muted-foreground mt-0.5 leading-snug line-clamp-2">{n.body}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -155,19 +133,13 @@ export default function NotificationBell() {
                         )}
                       </div>
                     </div>
-                    {!n.is_read && (
-                      <div className="flex-shrink-0 mt-1.5">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                      </div>
-                    )}
                   </div>
                 );
               })
             )}
           </div>
-        </div>,
-        document.body
+        </div>
       )}
-    </>
+    </div>
   );
 }

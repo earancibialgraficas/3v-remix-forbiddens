@@ -3,13 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, User, LogIn, Settings, BookOpen, LogOut,
-  PanelLeftClose, PanelLeft, X, AlertTriangle, Mail
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,7 +85,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadPublic, setUnreadPublic] = useState(0);
 
-  // Cargar contador de mensajes públicos
   useEffect(() => {
     if (!user?.id) return;
     const fetchCount = async () => {
@@ -122,19 +119,19 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         </div>
       )}
 
-      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
+      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO SECTION */}
-        <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
+        {/* LOGO SECTION - Ajustado para ser más grande y separado verticalmente */}
+        <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
           
           <Link to="/" className="flex flex-col items-center">
              {collapsed ? (
-               <div className="flex flex-col items-center gap-[1px]">
+               <div className="flex flex-col items-center gap-[4px] py-2"> {/* Más separación vertical */}
                  {"FORBIDDENS".split("").map((letter, i) => (
-                   <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>
+                   <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}> {/* Letra más grande */}
                      {letter}
                    </span>
                  ))}
@@ -145,17 +142,21 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE & MESSAGES SECTION */}
-        <div className={cn("p-2 border-b border-border flex flex-col items-center bg-muted/5", collapsed ? "" : "px-3 items-start")}>
-          <div className="flex items-center gap-2">
-            {/* Perfil */}
+        {/* PROFILE & TOOLS SECTION - Apilado vertical cuando está colapsado */}
+        <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col gap-5" : "gap-1")}>
+            
+            {/* 1. Campana de Notificaciones */}
+            <NotificationBell />
+
+            {/* 2. Botón de Perfil */}
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil">
               <Link to="/perfil">
                 <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
               </Link>
             </Button>
 
-            {/* Mensajes Públicos */}
+            {/* 3. Mensajes Públicos */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica">
@@ -182,7 +183,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           )}
         </div>
 
-        {/* NAVEGACIÓN */}
+        {/* NAVEGACIÓN COMPLETA (Tus 13 categorías) */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
