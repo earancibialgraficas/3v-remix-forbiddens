@@ -9,11 +9,13 @@ import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
+  const { loading } = useAuth();
   
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -39,17 +41,18 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* MOBILE SIDEBAR MODAL */}
-      <div className={cn("md:hidden fixed inset-0 z-[100] flex transition-all duration-300", mobileSidebarOpen ? "visible" : "invisible")}>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
-        <div className={cn("absolute top-0 left-0 h-full w-60 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
-          <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
+      {/* MOBILE SIDEBAR */}
+      {mobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-[100] flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
+          <div className={cn("absolute top-0 left-0 h-full w-60 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
+            <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ÁREA DE CONTENIDO */}
       <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
+        <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
           </div>
@@ -58,14 +61,13 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* PANEL MÓVIL */}
         {isMobile && (
           <div className={cn("fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500", mobileRightOpen ? "h-[55vh]" : "h-11")}>
             <button onClick={() => setMobileRightOpen(!mobileRightOpen)} className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground border-b border-border/50">
               {mobileRightOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
               INFO & COMUNIDAD
             </button>
-            <div className={cn("p-4 h-[calc(55vh-2.75rem)] overflow-y-auto", !mobileRightOpen && "hidden")}>
+            <div className={cn("p-4 h-[calc(55vh-3rem)] overflow-y-auto", !mobileRightOpen && "hidden")}>
               <RightPanel />
             </div>
           </div>
