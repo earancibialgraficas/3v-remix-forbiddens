@@ -129,26 +129,19 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
       <aside
         className={cn(
           "bg-card border-r border-border flex flex-col transition-all duration-300 h-full overflow-y-auto overflow-x-hidden retro-scrollbar",
-          collapsed ? "w-14" : "w-60",
-          "relative z-50" // Cambiamos a relative para que MainLayout controle el posicionamiento
+          collapsed ? "w-16" : "w-60"
         )}
       >
-        {/* LOGO SECTION - CORREGIDO */}
+        {/* LOGO SECTION - CORREGIDO Y UNIDO */}
         <div className="flex flex-col items-center py-6 px-2 border-b border-border gap-4">
           <button onClick={onToggle} className="p-2 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors">
-            {collapsed ? <PanelLeft className="w-6 h-6" /> : <PanelLeftClose className="w-6 h-6" />}
+            {collapsed ? <PanelLeft className="w-7 h-7" /> : <PanelLeftClose className="w-7 h-7" />}
           </button>
           
-          <Link to="/" className="flex flex-col items-center group">
-             {collapsed ? (
-               <div className="flex flex-col items-center leading-none">
-                 {"FORBIDDENS".split("").map((l, i) => (
-                   <span key={i} className="font-pixel text-[9px] mb-[1px]" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.5)' }}>{l}</span>
-                 ))}
-               </div>
-             ) : (
-               <span className="font-pixel text-xs tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
-             )}
+          <Link to="/" className="flex flex-col items-center">
+             <span className="font-pixel text-base tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>
+               {collapsed ? "F" : "FORBIDDENS"}
+             </span>
           </Link>
         </div>
 
@@ -195,7 +188,7 @@ export default function ForumSidebar({ collapsed, onToggle }: ForumSidebarProps)
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Link to={item.to || "#"} className={cn("flex items-center justify-center p-3 rounded-lg transition-all", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted")}>
-                      <item.icon className={cn("w-6 h-6", item.color)} />
+                      <item.icon className={cn("w-7 h-7", item.color)} />
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="bg-card border-border shadow-2xl">

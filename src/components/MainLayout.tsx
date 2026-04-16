@@ -21,8 +21,6 @@ export default function MainLayout() {
   const location = useLocation();
   const { loading, isReady } = useAuth();
 
-  // Cerrar el menú lateral al navegar, pero dejamos el panel derecho 
-  // como esté para no interrumpir la música si el usuario no quiere.
   useEffect(() => {
     setMobileSidebarOpen(false);
     if (!loading && isReady) {
@@ -30,9 +28,9 @@ export default function MainLayout() {
     }
   }, [location.pathname, loading, isReady]);
 
-  // Cargador que no bloquea la música ni los clics si ya terminó
+  // Cargador más sutil que no bloquea la visibilidad si hay un error
   const LoadingOverlay = (loading || !isReady) ? (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-md pointer-events-none transition-opacity duration-500">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-sm pointer-events-none transition-opacity duration-500">
       <div className="bg-card/90 p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-[10px] font-pixel text-primary animate-pulse uppercase tracking-widest">Sincronizando...</p>
@@ -41,20 +39,18 @@ export default function MainLayout() {
   ) : null;
 
   return (
-    <div 
-      className="flex flex-col bg-background text-foreground w-full h-screen overflow-hidden relative" 
-    >
+    <div className="flex flex-col bg-background text-foreground w-full min-h-screen relative">
       {LoadingOverlay}
 
       {/* SIDEBAR ESCRITORIO */}
-      <div className="hidden md:block">
+      <div className="hidden md:block h-screen fixed top-0 left-0 z-40">
         <ForumSidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
       </div>
 
-      {/* BOTONES DE INTERFAZ MÓVIL */}
+      {/* BOTÓN MENU MÓVIL */}
       <Button
         variant="ghost"
         size="icon"
@@ -64,67 +60,42 @@ export default function MainLayout() {
         <Menu className="w-6 h-6" />
       </Button>
 
-      {isMobile && (
-        <div className="fixed top-2 right-2 z-[60]">
-          <div className="bg-card/90 backdrop-blur border border-border shadow-lg rounded-full p-0.5">
-            <NotificationBell />
-          </div>
-        </div>
-      )}
-
-      {/* NAVBAR MÓVIL (SIDEBAR) - ESTRUCTURA ANTI-BLOQUEO NEGRO */}
+      {/* SIDEBAR MÓVIL */}
       <div className={cn(
         "md:hidden fixed inset-0 z-[500] transition-all duration-300",
         mobileSidebarOpen ? "visible" : "invisible"
       )}>
-        {/* Fondo oscuro suave */}
-        <div 
-          className={cn(
-            "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
-            mobileSidebarOpen ? "opacity-100" : "opacity-0"
-          )} 
-          onClick={() => setMobileSidebarOpen(false)} 
-        />
-        
-        {/* El Menú deslizable */}
-        <div className={cn(
-          "absolute top-0 left-0 h-full w-64 bg-card shadow-2xl transition-transform duration-300 ease-out",
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
-          <ForumSidebar
-            collapsed={false}
-            onToggle={() => setMobileSidebarOpen(false)}
-          />
+        <div className={cn("absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity", mobileSidebarOpen ? "opacity-100" : "opacity-0")} onClick={() => setMobileSidebarOpen(false)} />
+        <div className={cn("absolute top-0 left-0 h-full w-64 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
+          <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
         </div>
       </div>
 
       <NavigationButtons />
 
       {/* CONTENIDO PRINCIPAL */}
-      <div className={cn(
-        "flex-1 min-w-0 transition-all duration-300 overflow-y-auto overflow-x-hidden md:ml-14",
+      <main className={cn(
+        "flex-1 transition-all duration-300 md:ml-16",
         !sidebarCollapsed && "md:ml-60",
-        isMobile && "pb-14" // Espacio para el botón de abajo
+        isMobile && "pb-16"
       )}>
         <div className="flex gap-4 p-4 max-w-7xl mx-auto min-h-full">
           <div className="flex-1 min-w-0">
-            <div className="animate-fade-in">
-              <Outlet />
-            </div>
+            <Outlet />
           </div>
           
-          {/* Panel derecho (Escritorio) */}
+          {/* PANEL DERECHO (ESCRITORIO) */}
           <div className="hidden lg:block w-[22%] min-w-[220px] max-w-[300px] shrink-0">
             <RightPanel />
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* PANEL DERECHO MÓVIL (PERSISTENTE PARA LA MÚSICA) */}
+      {/* PANEL DERECHO MÓVIL (PERSISTENTE PARA MÚSICA) */}
       <div
         className={cn(
-          "lg:hidden fixed left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto transition-all duration-500 ease-in-out shadow-[0_-10px_30px_rgba(0,0,0,0.5)]",
-          mobileRightOpen ? "bottom-10 h-[55dvh] opacity-100 visible" : "bottom-[-70dvh] h-0 opacity-0 invisible"
+          "lg:hidden fixed left-0 right-0 z-[105] bg-card border-t border-border overflow-y-auto transition-all duration-500 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]",
+          mobileRightOpen ? "bottom-12 h-[50dvh] opacity-100" : "bottom-[-60dvh] h-0 opacity-0"
         )}
       >
         <div className="p-4">
@@ -132,18 +103,17 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* BOTÓN "INFO & COMUNIDAD" (MÓVIL) */}
+      {/* BOTÓN INFO & COMUNIDAD */}
       {isMobile && (
         <button
           onClick={() => setMobileRightOpen(!mobileRightOpen)}
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border flex items-center justify-center py-3 gap-2 text-[10px] font-pixel text-muted-foreground shadow-[0_-4px_15px_rgba(0,0,0,0.4)] hover:text-primary transition-colors"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border flex items-center justify-center py-3 gap-2 text-[10px] font-pixel text-muted-foreground shadow-lg transition-colors"
         >
           {mobileRightOpen ? <ChevronDown className="w-4 h-4 text-primary" /> : <ChevronUp className="w-4 h-4" />}
           {mobileRightOpen ? "OCULTAR PANEL" : "INFO & COMUNIDAD"}
         </button>
       )}
 
-      {/* EXTRAS GLOBALES */}
       <GameBubble />
       <FloatingChat />
     </div>
