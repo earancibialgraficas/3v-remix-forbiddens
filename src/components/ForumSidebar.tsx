@@ -87,7 +87,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // Lógica para contar mensajes no leídos
   useEffect(() => {
     if (!user) { setUnreadMessages(0); return; }
     const fetchUnread = async () => {
@@ -108,8 +107,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   return (
     <TooltipProvider>
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4">
             <h3 className="font-pixel text-[9px] text-foreground uppercase tracking-widest">¿CERRAR SESIÓN?</h3>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 font-pixel text-[8px] h-7">NO</Button>
@@ -121,7 +120,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO SECTION - VERTICAL Y UNIDO */}
+        {/* LOGO */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -142,7 +141,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE / USER SECTION - AQUÍ ESTÁN TUS BOTONES DE VUELTA */}
+        {/* PROFILE / USER SECTION */}
         {!collapsed && (
           <div className="p-3 border-b border-border bg-muted/5 space-y-3">
             <div className="relative">
@@ -199,18 +198,30 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <Link to={item.to || "#"} className={cn("flex items-center justify-center p-2 rounded transition-all mb-0.5", isActive ? "bg-primary/20 text-primary shadow-[0_0_8px_rgba(var(--primary),0.2)]" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}>
+                    <Link 
+                      to={item.to || "#"} 
+                      onClick={(e) => { if (!item.to) e.preventDefault(); }}
+                      className={cn(
+                        "flex items-center justify-center p-2 rounded transition-all mb-0.5", 
+                        isActive ? "bg-primary/20 text-primary shadow-[0_0_8px_rgba(var(--primary),0.2)]" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
                       <item.icon className={cn("w-4 h-4", item.color)} />
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[999]">
+                  {/* FIX AQUÍ: Forzamos el z-index a 10000 para que nada la tape */}
+                  <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[10000]">
                     <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>
                       {item.label}
                     </p>
                     {hasChildren && (
                       <div className="flex flex-col gap-0.5">
                         {item.children!.map((child) => (
-                          <Link key={child.to} to={child.to} className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body">
+                          <Link 
+                            key={child.to} 
+                            to={child.to} 
+                            className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body"
+                          >
                             {child.label}
                           </Link>
                         ))}
