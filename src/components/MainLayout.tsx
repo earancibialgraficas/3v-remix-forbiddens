@@ -6,7 +6,7 @@ import GameBubble from "@/components/GameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import NotificationBell from "@/components/NotificationBell";
 import FloatingChat from "@/components/FloatingChat";
-import { Menu } from "lucide-react";
+import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,13 +15,14 @@ import { useAuth } from "@/hooks/useAuth";
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileRightOpen, setMobileRightOpen] = useState(false);
   const isMobile = useIsMobile();
   const { loading, isReady } = useAuth();
 
-  // Prevent black screen on mobile: show loading until auth is resolved
+  // Show loading only briefly — isReady is forced after 3s max
   if (!isReady && loading) {
     return (
-      <div className="flex items-center justify-center" style={{ minHeight: '100dvh', height: '100dvh' }}>
+      <div className="flex items-center justify-center bg-background" style={{ minHeight: '100dvh', height: '100dvh' }}>
         <div className="text-center space-y-2 animate-fade-in">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-body text-muted-foreground">Cargando...</p>
@@ -31,7 +32,7 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'auto' }}>
+    <div className="flex flex-col bg-background text-foreground" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -78,11 +79,12 @@ export default function MainLayout() {
       {/* Fixed nav buttons on the left */}
       <NavigationButtons />
 
-      {/* Main content */}
-      <main className={cn(
-        "flex-1 min-w-0 transition-all duration-300",
+      {/* Main scrollable area */}
+      <div className={cn(
+        "flex-1 min-w-0 transition-all duration-300 overflow-y-auto",
         "md:ml-12",
-        !sidebarCollapsed && "md:ml-56"
+        !sidebarCollapsed && "md:ml-56",
+        isMobile && mobileRightOpen && "pb-[42dvh]"
       )}>
         <div className="flex gap-3 p-3 max-w-7xl mx-auto">
           <div className="flex-1 min-w-0">
@@ -90,11 +92,36 @@ export default function MainLayout() {
               <Outlet />
             </div>
           </div>
+          {/* Desktop right panel */}
           <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
             <RightPanel />
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Mobile right panel as bottom tray */}
+      {isMobile && (
+        <>
+          <button
+            onClick={() => setMobileRightOpen(!mobileRightOpen)}
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-card border-t border-border flex items-center justify-center py-1.5 gap-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {mobileRightOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+            {mobileRightOpen ? "Ocultar panel" : "Info & Comunidad"}
+          </button>
+          {mobileRightOpen && (
+            <div
+              className="lg:hidden fixed bottom-7 left-0 right-0 z-[99] bg-card border-t border-border overflow-y-auto"
+              style={{ maxHeight: '40dvh', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <style>{`.mobile-right-tray::-webkit-scrollbar { display: none; }`}</style>
+              <div className="p-3 mobile-right-tray" style={{ scrollbarWidth: 'none' }}>
+                <RightPanel />
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Global game bubble */}
       <GameBubble />

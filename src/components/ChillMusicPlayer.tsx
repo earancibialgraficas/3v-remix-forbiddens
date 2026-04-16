@@ -3,6 +3,7 @@ import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDow
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { useAuth } from "@/hooks/useAuth";
 
 const defaultPlaylist = [
   { id: "jfKfPfyJRdk", title: "Lofi Hip Hop Radio" },
@@ -13,6 +14,7 @@ const defaultPlaylist = [
 ];
 
 export default function ChillMusicPlayer() {
+  const { onPauseMusic } = useAuth();
   const [playlist, setPlaylist] = useState(defaultPlaylist);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,14 +32,20 @@ export default function ChillMusicPlayer() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [seekValue, setSeekValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [seekDisplayValue, setSeekDisplayValue] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playerReadyRef = useRef(false);
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // Single message handler for YouTube postMessage API
+  // Register pause callback so Social Hub can pause music
+  useEffect(() => {
+    onPauseMusic(() => setIsPlaying(false));
+  }, [onPauseMusic]);
+
+  // YouTube postMessage listener
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data) return;
@@ -45,27 +53,26 @@ export default function ChillMusicPlayer() {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (data.event === 'infoDelivery' && data.info) {
           if (typeof data.info.currentTime === 'number' && !isSeeking) {
-            setCurrentTime(data.info.currentTime);
+            const t = data.info.currentTime;
+            if (isFinite(t) && t >= 0) setCurrentTime(t);
           }
-          if (typeof data.info.duration === 'number' && data.info.duration > 0) {
+          if (typeof data.info.duration === 'number' && data.info.duration > 0 && isFinite(data.info.duration)) {
             setDuration(data.info.duration);
           }
-          // Video ended → next
-          if (data.info.playerState === 0) {
-            next();
-          }
+          if (data.info.playerState === 0) next();
+          if (data.info.playerState === 1) playerReadyRef.current = true;
         }
+        if (data.event === 'onReady') playerReadyRef.current = true;
       } catch {}
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [isSeeking, currentIndex]);
 
-  // Poll currentTime every 1s via postMessage
+  // Poll for updates every 1s
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (isPlaying && iframeRef.current?.contentWindow) {
-      // Tell YouTube we want to listen for info updates
       const sendListening = () => {
         try {
           iframeRef.current?.contentWindow?.postMessage(
@@ -82,14 +89,11 @@ export default function ChillMusicPlayer() {
   // Auto-start after 5s
   useEffect(() => {
     if (autoStarted) return;
-    const timer = setTimeout(() => {
-      setIsPlaying(true);
-      setAutoStarted(true);
-    }, 5000);
+    const timer = setTimeout(() => { setIsPlaying(true); setAutoStarted(true); }, 5000);
     return () => clearTimeout(timer);
   }, [autoStarted]);
 
-  // Play/Pause via postMessage
+  // Play/Pause command
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!iframeRef.current?.contentWindow) return;
@@ -100,7 +104,7 @@ export default function ChillMusicPlayer() {
     return () => clearTimeout(timer);
   }, [isPlaying, currentIndex]);
 
-  // Volume via postMessage
+  // Volume command
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!iframeRef.current?.contentWindow) return;
@@ -126,9 +130,7 @@ export default function ChillMusicPlayer() {
         if (isPlaying && volume > 0) {
           const target = Math.random() * canvas.height * 0.8 + canvas.height * 0.1;
           heights[i] += (target - heights[i]) * 0.15;
-        } else {
-          heights[i] *= 0.92;
-        }
+        } else { heights[i] *= 0.92; }
         const h = Math.max(2, heights[i]);
         const gradient = ctx.createLinearGradient(0, canvas.height - h, 0, canvas.height);
         gradient.addColorStop(0, "rgba(34, 211, 238, 0.9)");
@@ -144,16 +146,14 @@ export default function ChillMusicPlayer() {
 
   const next = useCallback(() => {
     setCurrentIndex(i => (i + 1) % playlist.length);
-    setCurrentTime(0);
-    setSeekValue(0);
-    setDuration(0);
+    setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    playerReadyRef.current = false;
   }, [playlist.length]);
 
   const prev = () => {
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
-    setCurrentTime(0);
-    setSeekValue(0);
-    setDuration(0);
+    setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    playerReadyRef.current = false;
   };
 
   const removeSong = (idx: number) => {
@@ -178,25 +178,21 @@ export default function ChillMusicPlayer() {
     if (!newSongUrl.trim()) return;
     const ytMatch = newSongUrl.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]+)/);
     if (!ytMatch) return;
-    const id = ytMatch[1];
-    const title = newSongTitle.trim() || `Canción ${playlist.length + 1}`;
-    setPlaylist(prev => [...prev, { id, title }]);
-    setNewSongUrl("");
-    setNewSongTitle("");
-    setShowAddSong(false);
+    setPlaylist(prev => [...prev, { id: ytMatch[1], title: newSongTitle.trim() || `Canción ${playlist.length + 1}` }]);
+    setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
   };
 
-  // Seek: onValueChange updates UI only
+  // Seek handlers
   const handleSeekChange = (v: number[]) => {
     setIsSeeking(true);
-    setSeekValue(v[0]);
+    setSeekDisplayValue(v[0]);
   };
 
-  // Seek: onValueCommit actually seeks
   const handleSeekCommit = (v: number[]) => {
     const t = v[0];
     setIsSeeking(false);
     setCurrentTime(t);
+    setSeekDisplayValue(t);
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         JSON.stringify({ event: 'command', func: 'seekTo', args: [t, true] }), '*'
@@ -206,14 +202,17 @@ export default function ChillMusicPlayer() {
 
   const formatTime = (s: number) => {
     if (!isFinite(s) || isNaN(s) || s < 0) return "0:00";
-    // Clamp to reasonable value (max ~24h)
-    const total = Math.min(Math.floor(s), 86400);
-    const m = Math.floor(total / 60);
+    const total = Math.min(Math.floor(s), 359999); // max ~99h
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
     const sec = total % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  // Iframe always present, key changes on track change
+  const displayTime = isSeeking ? seekDisplayValue : currentTime;
+  const sliderMax = duration > 0 && isFinite(duration) ? duration : 1;
+
   const renderIframe = current ? (
     <iframe
       ref={iframeRef}
@@ -225,10 +224,6 @@ export default function ChillMusicPlayer() {
       title="Chill Music"
     />
   ) : null;
-
-  // Display value for seek bar
-  const displayTime = isSeeking ? seekValue : currentTime;
-  const sliderMax = duration > 0 ? duration : 1;
 
   if (minimized) {
     return (
@@ -288,18 +283,14 @@ export default function ChillMusicPlayer() {
         </div>
 
         <div className="flex items-center justify-center gap-3 px-2.5 pb-1">
-          <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-            <SkipBack className="w-3.5 h-3.5" />
-          </button>
+          <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipBack className="w-3.5 h-3.5" /></button>
           <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors">
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
-          <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-            <SkipForward className="w-3.5 h-3.5" />
-          </button>
+          <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
-        {/* Seek bar — max = duration in seconds */}
+        {/* Seek bar */}
         <div className="px-3 pb-1">
           <Slider
             value={[displayTime]}
@@ -315,7 +306,7 @@ export default function ChillMusicPlayer() {
           </div>
         </div>
 
-        {/* Volume slider */}
+        {/* Volume */}
         <div className="px-3 pb-2 flex items-center gap-2">
           <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground hover:text-foreground shrink-0">
             {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
@@ -324,44 +315,29 @@ export default function ChillMusicPlayer() {
           <span className="text-[8px] text-muted-foreground font-body w-6 text-right">{volume}%</span>
         </div>
 
-        {/* Playlist toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground transition-colors border-t border-border/50"
-        >
+        {/* Playlist */}
+        <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground transition-colors border-t border-border/50">
           {expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}
         </button>
 
         {expanded && (
           <div className="max-h-40 overflow-y-auto retro-scrollbar border-t border-border/30">
             {playlist.map((song, i) => (
-              <div
-                key={`${song.id}-${i}`}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group",
-                  i === currentIndex && "bg-neon-cyan/10 text-neon-cyan"
-                )}
-              >
-                <button onClick={() => moveSong(i, -1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" title="Subir">
-                  <ArrowUp className="w-2.5 h-2.5" />
-                </button>
-                <button onClick={() => moveSong(i, 1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" title="Bajar">
-                  <ArrowDown className="w-2.5 h-2.5" />
-                </button>
-                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); setSeekValue(0); setDuration(0); }} className="flex-1 text-left truncate cursor-pointer">
+              <div key={`${song.id}-${i}`} className={cn("flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group", i === currentIndex && "bg-neon-cyan/10 text-neon-cyan")}>
+                <button onClick={() => moveSong(i, -1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"><ArrowUp className="w-2.5 h-2.5" /></button>
+                <button onClick={() => moveSong(i, 1)} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"><ArrowDown className="w-2.5 h-2.5" /></button>
+                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); setSeekDisplayValue(0); setDuration(0); }} className="flex-1 text-left truncate cursor-pointer">
                   <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
                 </button>
                 {playlist.length > 1 && (
-                  <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
                 )}
               </div>
             ))}
           </div>
         )}
 
-        {/* Add song bar */}
+        {/* Add song */}
         <div className="border-t border-border/50">
           <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors">
             <Plus className="w-3 h-3" /> Agregar canción
@@ -370,9 +346,7 @@ export default function ChillMusicPlayer() {
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
               <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
               <Input placeholder="Título (opcional)" value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
-              <button onClick={addSong} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body hover:bg-neon-cyan/30 transition-colors">
-                Agregar
-              </button>
+              <button onClick={addSong} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body hover:bg-neon-cyan/30 transition-colors">Agregar</button>
             </div>
           )}
         </div>

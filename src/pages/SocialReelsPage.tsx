@@ -1,41 +1,42 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, FileText, X, Download, Users } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
+import { useToast } from "@/hooks/use-toast";
+import ReportModal from "@/components/ReportModal";
 
 interface SocialItem {
   id: string;
   user_id: string;
   platform: string;
   content_url: string;
+  content_type: string;
   title: string | null;
   thumbnail_url: string | null;
   is_public: boolean;
   created_at: string;
+  likes: number;
+  dislikes: number;
   display_name?: string;
   avatar_url?: string | null;
   color_name?: string | null;
   color_avatar_border?: string | null;
 }
 
-const platformIcon = (p: string) => {
-  if (p === "youtube") return <Youtube className="w-3.5 h-3.5 text-destructive" />;
-  if (p === "instagram") return <Instagram className="w-3.5 h-3.5 text-neon-magenta" />;
-  if (p === "tiktok") return <Music2 className="w-3.5 h-3.5 text-neon-cyan" />;
-  return <Globe className="w-3.5 h-3.5 text-muted-foreground" />;
-};
-
-const platformLabel = (p: string) => {
-  if (p === "youtube") return "YouTube";
-  if (p === "instagram") return "Instagram";
-  if (p === "tiktok") return "TikTok";
-  return p;
-};
+interface SocialComment {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  display_name?: string;
+  avatar_url?: string | null;
+}
 
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "youtube") {
@@ -57,198 +58,293 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-const isVideoContent = (item: SocialItem) => {
-  return item.platform === "youtube" || item.platform === "tiktok" ||
+const isVideoItem = (item: SocialItem) => {
+  return item.content_type === 'video' || item.content_type === 'reel' ||
+    item.platform === "youtube" || item.platform === "tiktok" ||
     item.content_url.includes("reel") || item.content_url.includes("shorts");
 };
 
-const isImageContent = (item: SocialItem) => {
-  return item.content_url.match(/\.(jpg|jpeg|png|gif|webp)/i) ||
+const isReelItem = (item: SocialItem) => {
+  return item.content_type === 'reel' ||
+    item.content_url.includes("shorts") || item.content_url.includes("reel") ||
+    item.platform === "tiktok";
+};
+
+const isHorizontalVideo = (item: SocialItem) => {
+  return isVideoItem(item) && !isReelItem(item);
+};
+
+const isImageItem = (item: SocialItem) => {
+  return item.content_type === 'image' ||
+    item.content_url.match(/\.(jpg|jpeg|png|gif|webp)/i) ||
     (item.platform === "instagram" && !item.content_url.includes("reel"));
 };
 
-// TikTok-style scroll snap card
-function SnapCard({ item, isVisible }: { item: SocialItem; isVisible: boolean }) {
+function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisible: boolean; onPauseMusic: () => void }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
-  const isVideo = isVideoContent(item);
+  const isVideo = isVideoItem(item);
+  const [likes, setLikes] = useState(item.likes || 0);
+  const [dislikes, setDislikes] = useState(item.dislikes || 0);
+  const [userReaction, setUserReaction] = useState<string | null>(null);
+  const [comments, setComments] = useState<SocialComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [showReport, setShowReport] = useState(false);
+
+  // Pause music when video becomes visible
+  useEffect(() => {
+    if (isVisible && isVideo) onPauseMusic();
+  }, [isVisible, isVideo]);
+
+  // Fetch user reaction
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("social_reactions").select("reaction_type").eq("user_id", user.id).eq("target_type", "social_content").eq("target_id", item.id).maybeSingle()
+      .then(({ data }) => { if (data) setUserReaction(data.reaction_type); });
+  }, [user, item.id]);
+
+  // Fetch comments
+  useEffect(() => {
+    const fetchComments = async () => {
+      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true }).limit(50);
+      if (!data || data.length === 0) { setComments([]); return; }
+      const uids = [...new Set(data.map(c => c.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+      const pMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      setComments(data.map(c => ({ ...c, display_name: pMap.get(c.user_id)?.display_name || "Anónimo", avatar_url: pMap.get(c.user_id)?.avatar_url })));
+    };
+    fetchComments();
+  }, [item.id]);
+
+  const handleReaction = async (type: string) => {
+    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
+    const { data, error } = await supabase.rpc("toggle_social_reaction", {
+      p_target_type: "social_content", p_target_id: item.id, p_user_id: user.id, p_reaction_type: type,
+    });
+    if (!error && data) {
+      const r = data as any;
+      setLikes(r.likes); setDislikes(r.dislikes); setUserReaction(r.user_reaction);
+    }
+  };
+
+  const handleComment = async () => {
+    if (!user || !commentText.trim()) return;
+    await supabase.from("social_comments").insert({ user_id: user.id, content_id: item.id, content: commentText.trim() });
+    setCommentText("");
+    // Refetch
+    const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
+    if (data) {
+      const uids = [...new Set(data.map(c => c.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+      const pMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      setComments(data.map(c => ({ ...c, display_name: pMap.get(c.user_id)?.display_name || "Anónimo", avatar_url: pMap.get(c.user_id)?.avatar_url })));
+    }
+  };
 
   return (
-    <div className="snap-start w-full flex-shrink-0 flex items-center justify-center" style={{ height: 'calc(100dvh - 200px)', minHeight: '400px' }}>
-      <div className="w-full max-w-lg mx-auto bg-card border border-border rounded-lg overflow-hidden flex flex-col" style={{ height: '100%' }}>
-        {/* Content area */}
+    <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2" style={{ height: 'calc(100dvh - 220px)', minHeight: '400px' }}>
+      {/* Content */}
+      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
         <div className="flex-1 relative bg-muted/30 flex items-center justify-center overflow-hidden">
           {isVideo && embedUrl ? (
             <iframe
-              src={isVisible ? `${embedUrl}?autoplay=1&mute=1` : embedUrl}
+              src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl}
               className="w-full h-full"
               allowFullScreen
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             />
-          ) : item.thumbnail_url ? (
-            <img src={item.thumbnail_url} alt="" className="w-full h-full object-contain" />
+          ) : item.thumbnail_url || isImageItem(item) ? (
+            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
           ) : embedUrl ? (
             <iframe src={embedUrl} className="w-full h-full" allowFullScreen />
           ) : (
             <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
-              <ExternalLink className="w-3 h-3" /> Ver en {platformLabel(item.platform)}
+              <ExternalLink className="w-3 h-3" /> Ver original
             </a>
           )}
         </div>
-
-        {/* Info bar */}
+        {/* Info + reactions */}
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
-              {item.avatar_url ? (
-                <img src={item.avatar_url} alt="" className="w-full h-full object-cover" />
-              ) : <span className="text-[10px]">👤</span>}
+            <div className="w-6 h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
+              {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] flex items-center justify-center h-full">👤</span>}
             </div>
-            <Link to={`/usuario/${item.user_id}`} className="text-[11px] font-body font-medium text-foreground hover:text-primary transition-colors" style={getNameStyle(item.color_name)}>
-              {item.display_name}
-            </Link>
-            <div className="ml-auto flex items-center gap-1">
-              {platformIcon(item.platform)}
-              <span className="text-[9px] font-body text-muted-foreground">{platformLabel(item.platform)}</span>
-            </div>
+            <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body font-medium text-foreground hover:text-primary" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
+            <span className="text-[9px] text-muted-foreground font-body ml-auto">{item.platform}</span>
           </div>
-          <p className="text-xs font-body text-foreground truncate">{item.title || "Sin título"}</p>
-          <a href={item.content_url} target="_blank" rel="noopener" className="text-[10px] text-primary hover:underline font-body flex items-center gap-1 mt-1">
-            <ExternalLink className="w-3 h-3" /> Abrir original
-          </a>
+          <p className="text-[10px] font-body text-foreground truncate">{item.title || "Sin título"}</p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-0.5 text-[10px] font-body transition-colors", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
+              <ThumbsUp className="w-3 h-3" /> {likes}
+            </button>
+            <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-0.5 text-[10px] font-body transition-colors", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
+              <ThumbsDown className="w-3 h-3" /> {dislikes}
+            </button>
+            {user && (
+              <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive text-[10px] ml-auto"><Flag className="w-3 h-3" /></button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Comments sidebar */}
+      <div className="w-64 hidden md:flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0">
+        <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
+          <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+          {comments.map(c => (
+            <div key={c.id} className="text-[10px] font-body">
+              <span className="text-primary font-medium">{c.display_name}: </span>
+              <span className="text-foreground">{c.content}</span>
+            </div>
+          ))}
+          {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4">Sin comentarios</p>}
+        </div>
+        {user && (
+          <div className="p-2 border-t border-border flex gap-1">
+            <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
+              placeholder="Comentar..." className="flex-1 h-6 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-border" />
+            <button onClick={handleComment} disabled={!commentText.trim()} className="p-1 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 disabled:opacity-50">
+              <Send className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showReport && (
+        <ReportModal reportedUserId={item.user_id} reportedUserName={item.display_name || "Anónimo"} onClose={() => setShowReport(false)} />
+      )}
     </div>
   );
 }
 
 export default function SocialReelsPage() {
-  const { user } = useAuth();
+  const { user, pauseMusic } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const [items, setItems] = useState<SocialItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [visibleIndex, setVisibleIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  // Determine page context
+  const isReelsPage = location.pathname.includes("/reels");
+  const isFeedPage = location.pathname.includes("/feed") || location.pathname === "/social";
 
   useEffect(() => {
-    const fetchPublicContent = async () => {
+    const fetchContent = async () => {
       const { data: content } = await supabase
         .from("social_content")
         .select("*")
         .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(50);
-
       if (!content || content.length === 0) { setItems([]); return; }
-
       const userIds = [...new Set(content.map(c => c.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
-        .in("user_id", userIds);
-
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      const enriched = content.map(c => ({
+      setItems(content.map(c => ({
         ...c,
+        content_type: (c as any).content_type || 'video',
+        likes: (c as any).likes || 0,
+        dislikes: (c as any).dislikes || 0,
         display_name: profileMap.get(c.user_id)?.display_name || "Anónimo",
         avatar_url: profileMap.get(c.user_id)?.avatar_url,
         color_name: profileMap.get(c.user_id)?.color_name || null,
         color_avatar_border: profileMap.get(c.user_id)?.color_avatar_border || null,
-      }));
-      setItems(enriched);
+      })));
     };
-    fetchPublicContent();
+    fetchContent();
   }, []);
 
-  // Intersection observer for scroll snap autoplay
   useEffect(() => {
     if (!containerRef.current) return;
     const cards = containerRef.current.querySelectorAll("[data-card-index]");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = parseInt((entry.target as HTMLElement).dataset.cardIndex || "0");
-            setVisibleIndex(idx);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-    cards.forEach((card) => observer.observe(card));
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setVisibleIndex(parseInt((entry.target as HTMLElement).dataset.cardIndex || "0"));
+        }
+      });
+    }, { threshold: 0.6 });
+    cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
   }, [items, filter]);
 
-  const sourceFiltered = sourceTab === "friends"
-    ? items.filter(i => friendIds.includes(i.user_id))
-    : items;
+  const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-  const filtered = filter === "all"
-    ? sourceFiltered
-    : filter === "videos"
-    ? sourceFiltered.filter(isVideoContent)
-    : filter === "images"
-    ? sourceFiltered.filter(isImageContent)
-    : sourceFiltered.filter(i => !isVideoContent(i) && !isImageContent(i));
+  // For /social/reels: Todos, Videos (horizontal), Reels (vertical)
+  // For /social/feed or /social: show everything
+  const filtered = (() => {
+    if (isReelsPage) {
+      if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
+      if (filter === "reels") return sourceFiltered.filter(isReelItem);
+      return sourceFiltered.filter(i => isVideoItem(i)); // "all" on reels = all video content
+    }
+    // Feed page: show everything
+    return sourceFiltered;
+  })();
+
+  const filterTabs = isReelsPage
+    ? [
+        { id: "all", label: "Todos", icon: Globe },
+        { id: "videos", label: "Videos", icon: Video },
+        { id: "reels", label: "Reels", icon: Music2 },
+      ]
+    : [
+        { id: "all", label: "Todos", icon: Globe },
+      ];
 
   return (
     <div className="space-y-3 animate-fade-in">
       <div className="bg-card border border-neon-orange/30 rounded p-4">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
-          <Music2 className="w-4 h-4" /> SOCIAL HUB
+          <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
         <p className="text-xs text-muted-foreground font-body">
-          Contenido compartido por la comunidad — scroll vertical estilo reels. Agrega el tuyo desde tu <Link to="/perfil" className="text-primary hover:underline">perfil</Link>.
+          {isReelsPage ? "Videos horizontales y reels verticales de la comunidad" : "Todo el contenido social de la comunidad"}
         </p>
       </div>
 
-      {/* Source tabs */}
       {user && (
         <div className="flex gap-1 bg-card border border-border rounded p-1">
-          <button onClick={() => setSourceTab("all")}
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
-              sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+          <button onClick={() => setSourceTab("all")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
             <Globe className="w-3 h-3" /> Todos
           </button>
-          <button onClick={() => setSourceTab("friends")}
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
-              sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+          <button onClick={() => setSourceTab("friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
             <Users className="w-3 h-3" /> Amigos
           </button>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
-        {[
-          { id: "all", label: "Todos", icon: Globe },
-          { id: "videos", label: "Videos", icon: Video },
-          { id: "images", label: "Imágenes", icon: Image },
-          { id: "other", label: "Otros", icon: FileText },
-        ].map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)}
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all",
-              filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-            <f.icon className="w-3 h-3" /> {f.label}
-          </button>
-        ))}
-      </div>
+      {filterTabs.length > 1 && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
+          {filterTabs.map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <f.icon className="w-3 h-3" /> {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Scroll snap content */}
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded p-6 text-center">
-          <p className="text-xs text-muted-foreground font-body">No hay contenido público aún. ¡Sé el primero en compartir!</p>
-          <Button size="sm" asChild className="mt-3 text-xs"><Link to="/perfil">Agregar Contenido</Link></Button>
+          <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
+          <Button size="sm" asChild className="mt-3 text-xs"><Link to="/perfil?tab=social">Agregar Contenido</Link></Button>
         </div>
       ) : (
         <div
           ref={containerRef}
           className="snap-y snap-mandatory overflow-y-auto"
-          style={{ height: 'calc(100dvh - 200px)', scrollBehavior: 'smooth' }}
+          style={{ height: 'calc(100dvh - 220px)', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
+          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
           {filtered.map((item, i) => (
             <div key={item.id} data-card-index={i}>
-              <SnapCard item={item} isVisible={i === visibleIndex} />
+              <SnapCard item={item} isVisible={i === visibleIndex} onPauseMusic={pauseMusic} />
             </div>
           ))}
         </div>
