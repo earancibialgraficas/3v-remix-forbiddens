@@ -10,6 +10,7 @@ import { getNameStyle } from "@/lib/profileAppearance";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -82,12 +83,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const isMobile = useIsMobile();
   
-  // Contadores independientes
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Cargar contador de mensajes públicos
+  // 1. Cargar contador de mensajes públicos
   useEffect(() => {
     if (!user?.id) return;
     const fetchInboxCount = async () => {
@@ -104,7 +105,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     fetchInboxCount();
   }, [user?.id]);
 
-  // Cargar contador de notificaciones generales (Avisos)
+  // 2. Cargar contador de notificaciones generales (Avisos)
   useEffect(() => {
     if (!user?.id) return;
     const fetchNotifsCount = async () => {
@@ -121,9 +122,11 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
     fetchNotifsCount();
 
-    // Tiempo real para notificaciones
+    // 🔥 LA CURA DEL PANTALLAZO NEGRO: Generamos un ID de canal 100% único para que el menú de móvil y PC no choquen
+    const uniqueChannelName = `sidebar-notifs-${Date.now()}-${Math.random()}`;
+    
     const channel = supabase
-      .channel("sidebar-notifs")
+      .channel(uniqueChannelName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount())
       .subscribe();
 
@@ -171,7 +174,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE & MESSAGES SECTION - La campana ya no existe */}
+        {/* PROFILE & MESSAGES SECTION */}
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
