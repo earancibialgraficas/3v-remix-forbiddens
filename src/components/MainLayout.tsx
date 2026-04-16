@@ -23,21 +23,27 @@ export default function MainLayout() {
   const location = useLocation(); // Movido adentro
   const { loading, isReady } = useAuth();
 
-  // 3. FIX: Cerrar menús automáticamente al navegar (Movido adentro)
-  useEffect(() => {
-    setMobileSidebarOpen(false);
-    setMobileRightOpen(false);
-  }, [location.pathname]);
+// 3. FIX MAESTRO: Cerrar TODO al navegar o al cambiar estado de carga
+useEffect(() => {
+  setMobileSidebarOpen(false);
+  setMobileRightOpen(false);
+  
+  // Esto asegura que si el navbar estaba abierto durante el login, 
+  // se cierre forzosamente al terminar de cargar.
+  if (!loading && isReady) {
+     document.body.style.overflow = 'auto'; // Desbloquea el scroll del sitio
+  }
+}, [location.pathname, loading, isReady]);
 
-  // 4. Lógica del Overlay de carga
-  const LoadingOverlay = (!isReady && loading) ? (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/60 backdrop-blur-md">
-      <div className="text-center space-y-2">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest">Cargando...</p>
-      </div>
+const LoadingOverlay = (!isReady && loading) ? (
+  <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+    {/* Bajamos la opacidad y el blur para que NO sea una pantalla negra */}
+    <div className="bg-card/80 p-4 rounded-xl border border-border shadow-2xl text-center space-y-2">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-[9px] font-pixel text-muted-foreground uppercase">Autenticando...</p>
     </div>
-  ) : null;
+  </div>
+) : null;
 
   return (
     <div className="flex flex-col bg-background text-foreground" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
@@ -72,21 +78,23 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* Mobile sidebar overlay */}
-      {mobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-[200]">
-          <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-          <div className="relative z-[201] w-64 h-full animate-slide-in-left">
-            <ForumSidebar
-              collapsed={false}
-              onToggle={() => setMobileSidebarOpen(false)}
-            />
-          </div>
-        </div>
-      )}
+{/* Mobile sidebar overlay */}
+{mobileSidebarOpen && (
+  <div className="md:hidden fixed inset-0 z-[200]">
+    <div
+      // CAMBIO: Usamos un color negro traslúcido manual en lugar de la variable de tema
+      // para asegurar que nunca sea una pared sólida
+      className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      onClick={() => setMobileSidebarOpen(false)}
+    />
+    <div className="relative z-[201] w-64 h-full animate-slide-in-left shadow-2xl">
+      <ForumSidebar
+        collapsed={false}
+        onToggle={() => setMobileSidebarOpen(false)}
+      />
+    </div>
+  </div>
+)}
 
       <NavigationButtons />
 
