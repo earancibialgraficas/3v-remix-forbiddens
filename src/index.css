@@ -258,10 +258,5 @@
     animation: pixel-logo 1.2s ease-out forwards;
     image-rendering: auto;
   }
-  /* ¡ESTO ES SÓLO PARA ENCONTRAR EL ERROR! */
-/* Obligamos a que cualquier fondo negro o de "background" sea transparente */
-* {
-  --background: 222 47% 11% / 0.5 !important; /* Esto lo hace 50% transparente */
-}
 
 }
