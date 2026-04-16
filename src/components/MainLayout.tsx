@@ -23,32 +23,33 @@ export default function MainLayout() {
 
   return (
     <div className="flex bg-background text-foreground w-full min-h-screen relative overflow-x-hidden">
-      
       {/* SIDEBAR ESCRITORIO */}
-      <div className="hidden md:block sticky top-0 h-screen shrink-0 z-40">
+      <div className="hidden md:block sticky top-0 h-screen shrink-0 z-50">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
       {/* MOBILE TRIGGER */}
       {!mobileSidebarOpen && (
-        <div className="md:hidden fixed top-2 left-2 z-50">
-          <Button variant="secondary" size="icon" className="h-8 w-8 shadow-lg bg-card/90" onClick={() => setMobileSidebarOpen(true)}>
+        <div className="md:hidden fixed top-2 left-2 z-[60]">
+          <Button variant="secondary" size="icon" className="h-8 w-8 shadow-lg bg-card" onClick={() => setMobileSidebarOpen(true)}>
             <Menu className="w-4 h-4" />
           </Button>
         </div>
       )}
 
-      {/* MOBILE SIDEBAR MODAL */}
-      <div className={cn("md:hidden fixed inset-0 z-[100] transition-all duration-300", mobileSidebarOpen ? "visible" : "invisible")}>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
-        <div className={cn("absolute top-0 left-0 h-full w-60 bg-card shadow-2xl transition-transform duration-300", mobileSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
-          <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
+      {/* MOBILE SIDEBAR */}
+      {mobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-[100] flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="relative w-60 h-full bg-card shadow-2xl animate-in slide-in-from-left duration-300">
+            <ForumSidebar collapsed={false} onToggle={() => setMobileSidebarOpen(false)} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 flex gap-4 p-3 max-w-7xl mx-auto w-full">
+        <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
           </div>
@@ -57,14 +58,14 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* PANEL DERECHO MÓVIL (MÚSICA) */}
+        {/* PANEL DERECHO MÓVIL */}
         {isMobile && (
           <div className={cn("fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-500", mobileRightOpen ? "h-[55vh]" : "h-11")}>
-            <button onClick={() => setMobileRightOpen(!mobileRightOpen)} className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground border-b border-border/50">
-              {mobileRightOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            <button onClick={() => setMobileRightOpen(!mobileRightOpen)} className="w-full h-11 flex items-center justify-center gap-2 font-pixel text-[9px] text-muted-foreground">
+              {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               INFO & COMUNIDAD
             </button>
-            <div className={cn("p-4 h-[calc(55vh-2.75rem)] overflow-y-auto", !mobileRightOpen && "hidden")}>
+            <div className={cn("p-4 h-[calc(55vh-3rem)] overflow-y-auto", !mobileRightOpen && "hidden")}>
               <RightPanel />
             </div>
           </div>
