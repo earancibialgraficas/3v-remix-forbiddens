@@ -23,38 +23,23 @@ import {
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
-  const { user, profile, signOut, loading } = useAuth(); // Añadimos loading aquí
+  const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // EFECTO SEGURO: Solo intenta buscar mensajes si el usuario ya está cargado
   useEffect(() => {
-    if (!user?.id) { 
-      setUnreadMessages(0); 
-      return; 
-    }
-
+    if (!user?.id) return;
     const fetchUnread = async () => {
       try {
-        const { count, error } = await supabase
+        const { count } = await supabase
           .from("inbox_messages")
           .select("id", { count: "exact", head: true })
           .eq("receiver_id", user.id)
           .eq("is_read", false);
-        
-        if (!error) setUnreadMessages(count || 0);
-      } catch (e) { 
-        console.error("Error silencioso en mensajes:", e); 
-      }
+        setUnreadMessages(count || 0);
+      } catch (e) { console.error(e); }
     };
-
     fetchUnread();
-    
-    const channel = supabase.channel(`unread-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => fetchUnread())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const toggleExpand = (label: string) => {
@@ -81,8 +66,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     <>
       {showLogoutModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4 shadow-2xl">
-            <h3 className="font-pixel text-[9px] text-foreground tracking-widest uppercase">¿CERRAR SESIÓN?</h3>
+          <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <h3 className="font-pixel text-[9px] uppercase">¿CERRAR SESIÓN?</h3>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowLogoutModal(false)} className="flex-1 font-pixel text-[8px] h-7">NO</Button>
               <Button variant="destructive" onClick={async () => { await signOut(); setShowLogoutModal(false); }} className="flex-1 font-pixel text-[8px] h-7">SÍ</Button>
@@ -93,7 +78,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO SECTION */}
+        {/* LOGO SECTION - VERTICAL LETRA POR LETRA */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -102,48 +87,51 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           <Link to="/" className="flex flex-col items-center">
              {collapsed ? (
                <div className="flex flex-col items-center gap-[1px]">
-                 {"FORBIDDENS".split("").map((letter, i) => (
-                   <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839' }}>{letter}</span>
+                 {"FORBIDDENS".split("").map((l, i) => (
+                   <span key={i} className="font-pixel text-[8px] leading-none" style={{ color: '#de1839' }}>{l}</span>
                  ))}
                </div>
              ) : (
-               <span className="font-pixel text-[10px] tracking-widest text-center" style={{ color: '#de1839' }}>FORBIDDENS</span>
+               <span className="font-pixel text-[10px] tracking-widest" style={{ color: '#de1839' }}>FORBIDDENS</span>
              )}
           </Link>
         </div>
 
-        {/* PROFILE SECTION - BLINDADA */}
-        {!collapsed && !loading && (
+        {/* --- ESTOS SON LOS BOTONES QUE BUSCAS --- */}
+        {!collapsed && (
           <div className="p-3 border-b border-border bg-muted/5 space-y-3">
             <div className="flex items-center gap-1">
-              {/* Solo mostramos herramientas si hay usuario */}
-              {user && (
-                <>
-                  <NotificationBell />
-                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                    <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
-                  </Button>
-                  <div className="relative">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                      <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
-                    </Button>
-                    {unreadMessages > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 bg-destructive text-white text-[8px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
-                        {unreadMessages > 9 ? "9+" : unreadMessages}
-                      </span>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                    <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
-                  </Button>
-                </>
-              )}
+              {/* Notificaciones */}
+              <NotificationBell />
+
+              {/* Perfil de Usuario */}
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                <Link to="/perfil"><User className="w-3.5 h-3.5" /></Link>
+              </Button>
+
+              {/* Bandeja de Entrada (Mail) */}
+              <div className="relative">
+                <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                  <Link to="/mensajes"><Mail className="w-3.5 h-3.5" /></Link>
+                </Button>
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-destructive text-white text-[8px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </div>
+
+              {/* Configuración */}
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                <Link to="/configuracion"><Settings className="w-3.5 h-3.5" /></Link>
+              </Button>
               
+              {/* Nombre y Logout */}
               {user ? (
                 <div className="flex items-center gap-1.5 ml-auto min-w-0">
                   <span 
                     className="text-[9px] font-pixel text-neon-green truncate max-w-[60px]" 
-                    style={(() => { try { return profile?.color_name ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}
+                    style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}
                   >
                     {profile?.display_name || "..."}
                   </span>
@@ -169,7 +157,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               return (
                 <Tooltip key={item.label} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <Link to={item.to || "#"} className={cn("flex items-center justify-center p-2 rounded transition-all mb-0.5", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>
+                    <Link to={item.to || "#"} className={cn("flex items-center justify-center p-2 rounded transition-all", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50")}>
                       <item.icon className={cn("w-4 h-4", item.color)} />
                     </Link>
                   </TooltipTrigger>
