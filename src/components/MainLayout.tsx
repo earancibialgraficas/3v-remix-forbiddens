@@ -26,7 +26,7 @@ export default function MainLayout() {
       </div>
 
       {!mobileSidebarOpen && (
-        <div className="md:hidden fixed top-2 left-2 z-[60]">
+        <div className="md:hidden fixed top-2 left-2 z-50">
           <Button variant="secondary" size="icon" className="h-8 w-8 shadow-lg bg-card" onClick={() => setMobileSidebarOpen(true)}><Menu className="w-4 h-4" /></Button>
         </div>
       )}

@@ -22,29 +22,27 @@ export default function NotificationBell() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
-    if (!user?.id) return;
-    try {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("id", { ascending: false })
-        .limit(10);
-      if (data) {
-        setNotifications(data);
-        setUnread(data.filter((n: any) => !n.is_read).length);
-      }
-    } catch (e) { console.error("Error notifications:", e); }
+    if (!user) return;
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (data) {
+      setNotifications(data);
+      setUnread(data.filter((n: any) => !n.is_read).length);
+    }
   };
 
   useEffect(() => {
     fetchNotifications();
-    if (!user?.id) return;
+    if (!user) return;
     const channel = supabase.channel("notifications-bell")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifications())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,22 +70,19 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div 
-          ref={dropdownRef}
-          className="absolute left-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden animate-in fade-in slide-in-from-top-2"
-        >
+        <div ref={dropdownRef} className="absolute left-0 mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden animate-in fade-in slide-in-from-top-2">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-muted/20">
             <span className="font-pixel text-[9px] text-neon-cyan uppercase">Notificaciones</span>
             <X className="w-3 h-3 cursor-pointer text-muted-foreground" onClick={() => setOpen(false)} />
           </div>
-          <div className="max-h-60 overflow-y-auto retro-scrollbar">
+          <div className="max-h-60 overflow-y-auto">
             {notifications.length === 0 ? (
               <p className="p-4 text-[10px] text-center text-muted-foreground font-body">Todo al día 🎉</p>
             ) : (
               notifications.map((n) => (
                 <div key={n.id} className={cn("flex gap-2 p-3 border-b border-border/20 last:border-0 hover:bg-muted/10", !n.is_read && "bg-primary/5")}>
-                  <div className={cn("shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center", typeConfig[n.type]?.color)}>
-                    {typeConfig[n.type]?.icon || typeConfig.general.icon}
+                  <div className={cn("shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center", typeConfig[n.type]?.color || "text-muted-foreground")}>
+                    {(typeConfig[n.type] || typeConfig.general).icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-foreground leading-tight">{n.title}</p>
