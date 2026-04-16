@@ -3,17 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  Search, User, LogIn, Settings, BookOpen, LogOut,
-  PanelLeftClose, PanelLeft, X, AlertTriangle, Mail, Bell
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen
 } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -86,13 +82,15 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
+  // Contadores independientes
   const [unreadPublic, setUnreadPublic] = useState(0);
-  const isMobile = useIsMobile();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Cargar contador de mensajes públicos
   useEffect(() => {
     if (!user?.id) return;
-    const fetchCount = async () => {
+    const fetchInboxCount = async () => {
       try {
         const { count } = await supabase
           .from("inbox_messages")
@@ -103,7 +101,33 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         console.warn("Sincronizando tabla inbox...");
       }
     };
-    fetchCount();
+    fetchInboxCount();
+  }, [user?.id]);
+
+  // Cargar contador de notificaciones generales (Avisos)
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchNotifsCount = async () => {
+      try {
+        const { count } = await supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+        setUnreadNotifications(count || 0);
+      } catch (e) {
+        console.warn("Sincronizando notificaciones...");
+      }
+    };
+    fetchNotifsCount();
+
+    // Tiempo real para notificaciones
+    const channel = supabase
+      .channel("sidebar-notifs")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const toggleExpand = (label: string) => {
@@ -126,7 +150,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60")}>
         
-        {/* LOGO SECTION - Letras más grandes y con más espacio vertical al colapsar */}
+        {/* LOGO SECTION */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -147,27 +171,23 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE & MESSAGES SECTION - Botones en vertical si está colapsado */}
+        {/* PROFILE & MESSAGES SECTION - La campana ya no existe */}
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
-          <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-1")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
-            {/* 🔥 ESTRATEGIA DE AISLAMIENTO: Si es móvil, botón simple. Si es PC, componente completo. */}
-            {isMobile ? (
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Notificaciones">
-                <Link to="/notificaciones">
-                  <Bell className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+            {/* Botón de Perfil con Contador de Notificaciones (Color Cyan) */}
+            <div className="relative">
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
+                <Link to="/perfil">
+                  <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
-            ) : (
-              <NotificationBell />
-            )}
-
-            {/* Perfil */}
-            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil">
-              <Link to="/perfil">
-                <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-              </Link>
-            </Button>
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </div>
 
             {/* Mensajes Públicos */}
             <div className="relative">
@@ -178,7 +198,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               </Button>
               {unreadPublic > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
-                  {unreadPublic}
+                  {unreadPublic > 9 ? "9+" : unreadPublic}
                 </span>
               )}
             </div>
@@ -196,7 +216,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           )}
         </div>
 
-        {/* NAVEGACIÓN */}
+        {/* NAVEGACIÓN COMPLETA */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
