@@ -151,7 +151,7 @@ export default function ProfilePage() {
         setSaving(false);
         return;
       }
-      const { error: pwError } = await supabase.auth.updateUser({ password: newPassword });
+      const { error: pwError } = await (supabase.auth as any).updateUser({ password: newPassword });
       if (pwError) {
         toast({ title: "Error al cambiar contraseña", description: pwError.message, variant: "destructive" });
         setSaving(false);
@@ -759,7 +759,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     setBanning(true);
     const { data: targetUser } = await supabase.from("profiles").select("user_id").ilike("display_name", banEmail).maybeSingle();
     if (!targetUser) { toast({ title: "Usuario no encontrado", variant: "destructive" }); setBanning(false); return; }
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await (supabase.auth as any).getUser();
     if (!user) { setBanning(false); return; }
 
     const selected = banDurations.find(d => d.value === banDuration);
