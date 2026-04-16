@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useRef } from "react";
+import { useState, useEffect, createContext, useContext, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -19,6 +19,11 @@ interface Profile {
   signature_image_url: string | null;
   signature_font: string | null;
   signature_color: string | null;
+  signature_font_family: string | null;
+  signature_stroke_color: string | null;
+  signature_text_align: string | null;
+  signature_image_align: string | null;
+  signature_image_width: number | null;
   color_avatar_border: string | null;
   color_name: string | null;
   color_role: string | null;
@@ -33,15 +38,20 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isMasterWeb: boolean;
+  isStaff: boolean;
+  isMod: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isReady: boolean;
+  pauseMusic: () => void;
+  onPauseMusic: (cb: () => void) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null, session: null, profile: null, roles: [], loading: true,
-  isAdmin: false, isMasterWeb: false, signOut: async () => {}, refreshProfile: async () => {},
-  isReady: false,
+  isAdmin: false, isMasterWeb: false, isStaff: false, isMod: false,
+  signOut: async () => {}, refreshProfile: async () => {},
+  isReady: false, pauseMusic: () => {}, onPauseMusic: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -52,6 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pauseMusicRef = useRef<(() => void) | null>(null);
+
+  const pauseMusic = useCallback(() => { pauseMusicRef.current?.(); }, []);
+  const onPauseMusic = useCallback((cb: () => void) => { pauseMusicRef.current = cb; }, []);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -70,41 +84,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    // Safety timeout: force ready after 4s if Supabase doesn't respond (prevents mobile black screen)
-    timeoutRef.current = setTimeout(() => {
-      setLoading(false);
-      setIsReady(true);
-    }, 4000);
+  const markReady = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setLoading(false);
+    setIsReady(true);
+  };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  useEffect(() => {
+    // Safety timeout: force ready after 3s (prevents mobile black screen)
+    timeoutRef.current = setTimeout(markReady, 3000);
+
+    // Set up auth listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRoles(session.user.id);
+        // Use setTimeout to avoid Supabase deadlock
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+          fetchRoles(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
         setRoles([]);
       }
-      setLoading(false);
-      setIsReady(true);
+      markReady();
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    // THEN get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
         fetchRoles(session.user.id);
-      } else {
-        setProfile(null);
-        setRoles([]);
       }
-      setLoading(false);
-      setIsReady(true);
+      markReady();
     });
 
     return () => {
@@ -123,9 +138,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = roles.includes("admin") || roles.includes("master_web");
   const isMasterWeb = roles.includes("master_web");
+  const isMod = roles.includes("moderator");
+  const isStaff = isAdmin || isMasterWeb || isMod;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, isAdmin, isMasterWeb, signOut, refreshProfile, isReady }}>
+    <AuthContext.Provider value={{
+      user, session, profile, roles, loading, isAdmin, isMasterWeb, isStaff, isMod,
+      signOut, refreshProfile, isReady, pauseMusic, onPauseMusic,
+    }}>
       {children}
     </AuthContext.Provider>
   );
