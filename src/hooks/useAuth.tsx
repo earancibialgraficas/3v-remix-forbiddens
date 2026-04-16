@@ -68,13 +68,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const onPauseMusic = useCallback((cb: () => void) => { pauseMusicRef.current = cb; }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
-    if (data) setProfile(data as unknown as Profile);
+    try {
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
+      if (data) setProfile(data as unknown as Profile);
+    } catch (e) {
+      console.error("Error fetching profile:", e);
+    }
   };
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    if (data) setRoles(data.map((r: any) => r.role));
+    try {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      if (data) setRoles(data.map((r: any) => r.role));
+    } catch (e) {
+      console.error("Error fetching roles:", e);
+    }
   };
 
   const refreshProfile = async () => {
@@ -84,26 +92,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const markReady = () => {
+  const markReady = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setLoading(false);
     setIsReady(true);
-  };
+  }, []);
 
   useEffect(() => {
-    // Safety timeout: force ready after 3s (prevents mobile black screen)
-    timeoutRef.current = setTimeout(markReady, 3000);
+    // 1. Timeout de seguridad: Si en 2 segundos no responde, mostramos la web igual
+    timeoutRef.current = setTimeout(markReady, 2000);
 
-    // Set up auth listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Use setTimeout to avoid Supabase deadlock
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-          fetchRoles(session.user.id);
-        }, 0);
+    // 2. Listener de Auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      // FIX: Evitar que la música se detenga al cambiar de sesión
+      // No hacemos window.location.reload() nunca.
+      
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchProfile(currentSession.user.id);
+        fetchRoles(currentSession.user.id);
       } else {
         setProfile(null);
         setRoles([]);
@@ -111,13 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       markReady();
     });
 
-    // THEN get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRoles(session.user.id);
+    // 3. Carga inicial
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (initialSession) {
+        setSession(initialSession);
+        setUser(initialSession.user);
+        fetchProfile(initialSession.user.id);
+        fetchRoles(initialSession.user.id);
       }
       markReady();
     });
@@ -126,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [markReady]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -134,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    // NO HACER window.location.reload() para que no se pare la música
   };
 
   const isAdmin = roles.includes("admin") || roles.includes("master_web");
@@ -146,6 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, session, profile, roles, loading, isAdmin, isMasterWeb, isStaff, isMod,
       signOut, refreshProfile, isReady, pauseMusic, onPauseMusic,
     }}>
+      {/* IMPORTANTE: Aquí NUNCA ponemos un "if (loading)". 
+        Dejamos que {children} se renderice siempre para que el sitio 
+        esté vivo y la música siga sonando.
+      */}
       {children}
     </AuthContext.Provider>
   );
