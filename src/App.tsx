@@ -69,10 +69,15 @@ const App = () => (
                 <Route path="/contacto" element={<ForumPage />} />
                 <Route path="/privacidad" element={<ForumPage />} />
                 <Route path="/faq" element={<ForumPage />} />
+                
+                {/* --- RUTAS DE USUARIO Y MENSAJES --- */}
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/usuario/:userId" element={<PublicProfilePage />} />
                 <Route path="/configuracion" element={<SettingsPage />} />
                 <Route path="/mensajes" element={<MessagesPage />} />
+                <Route path="/bandeja-publica" element={<MessagesPage />} />
+                <Route path="/notificaciones" element={<MessagesPage />} />
+
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/registro" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
