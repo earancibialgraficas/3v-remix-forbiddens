@@ -1,14 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // IMPORTANTE: Agregamos useEffect aquí
 import { Outlet, useLocation } from "react-router-dom";
-
-const location = useLocation(); // Asegúrate de que esta línea esté ahí
-
-// FIX: Cerrar menús automáticamente al navegar
-useEffect(() => {
-  setMobileSidebarOpen(false);
-  setMobileRightOpen(false);
-}, [location.pathname]);
-
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
@@ -22,25 +13,38 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function MainLayout() {
+  // 1. Estados
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
+  
+  // 2. Hooks de librerías y personalizados
   const isMobile = useIsMobile();
+  const location = useLocation(); // Movido adentro
   const { loading, isReady } = useAuth();
 
-// Solo mostrar el overlay de carga si realmente no estamos listos, 
-// pero sin "matar" el renderizado del componente para evitar parpadeos negros
-const LoadingOverlay = (!isReady && loading) ? (
-  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/60 backdrop-blur-md">
-    <div className="text-center space-y-2">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-      <p className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest">Cargando...</p>
+  // 3. FIX: Cerrar menús automáticamente al navegar (Movido adentro)
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+    setMobileRightOpen(false);
+  }, [location.pathname]);
+
+  // 4. Lógica del Overlay de carga
+  const LoadingOverlay = (!isReady && loading) ? (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/60 backdrop-blur-md">
+      <div className="text-center space-y-2">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest">Cargando...</p>
+      </div>
     </div>
-  </div>
-) : null;
+  ) : null;
 
   return (
     <div className="flex flex-col bg-background text-foreground" style={{ minHeight: '100dvh', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
+      
+      {/* Overlay de Carga (Agregado para que realmente se vea) */}
+      {LoadingOverlay}
+
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ForumSidebar
@@ -84,7 +88,6 @@ const LoadingOverlay = (!isReady && loading) ? (
         </div>
       )}
 
-      {/* Fixed nav buttons on the left */}
       <NavigationButtons />
 
       {/* Main scrollable area */}
@@ -100,14 +103,13 @@ const LoadingOverlay = (!isReady && loading) ? (
               <Outlet />
             </div>
           </div>
-          {/* Desktop right panel */}
           <div className="hidden lg:block w-[20%] min-w-[180px] max-w-[280px] shrink-0">
             <RightPanel />
           </div>
         </div>
       </div>
 
-      {/* Mobile right panel as bottom tray */}
+      {/* Mobile right panel tray */}
       {isMobile && (
         <>
           <button
@@ -122,8 +124,7 @@ const LoadingOverlay = (!isReady && loading) ? (
               className="lg:hidden fixed bottom-7 left-0 right-0 z-[99] bg-card border-t border-border overflow-y-auto"
               style={{ maxHeight: '40dvh', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              <style>{`.mobile-right-tray::-webkit-scrollbar { display: none; }`}</style>
-              <div className="p-3 mobile-right-tray" style={{ scrollbarWidth: 'none' }}>
+              <div className="p-3">
                 <RightPanel />
               </div>
             </div>
@@ -131,10 +132,7 @@ const LoadingOverlay = (!isReady && loading) ? (
         </>
       )}
 
-      {/* Global game bubble */}
       <GameBubble />
-
-      {/* Floating chat bubble */}
       <FloatingChat />
     </div>
   );
