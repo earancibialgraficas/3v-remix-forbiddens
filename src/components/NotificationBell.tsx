@@ -3,7 +3,8 @@ import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
@@ -22,6 +23,10 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // 🔥 Usamos tu hook para saber si estamos en celular
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -48,14 +53,14 @@ export default function NotificationBell() {
   }, [user]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || isMobile) return;
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
           triggerRef.current && !triggerRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [open, isMobile]);
 
   const markAllRead = async () => {
     if (!user) return;
@@ -63,7 +68,19 @@ export default function NotificationBell() {
     fetchNotifications();
   };
 
+  // 🔥 Lógica híbrida: Navegar en Móvil / Desplegar en PC
+  const handleBellClick = () => {
+    if (isMobile) {
+      markAllRead();
+      navigate("/notificaciones"); // Vamos directo a la página
+    } else {
+      setOpen(!open); // Abrimos el menú flotante
+      if (!open) markAllRead();
+    }
+  };
+
   const timeAgo = (date: string) => {
+    if (!date) return "ahora";
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "ahora";
@@ -80,22 +97,23 @@ export default function NotificationBell() {
     <div className="relative inline-block">
       <button
         ref={triggerRef}
-        onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
+        onClick={handleBellClick}
         className="relative p-1.5 rounded-full hover:bg-muted/50 transition-colors"
       >
         <Bell className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold animate-pulse">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold animate-pulse shadow-sm">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
-      {open && (
+      {/* 🔥 SOLO SE RENDERIZA EL DESPLEGABLE SI NO ES MÓVIL */}
+      {open && !isMobile && (
         <div
           ref={dropdownRef}
-          className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 max-w-[calc(100vw-40px)] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]"
-          style={{ maxHeight: 'min(400px, calc(100vh - 120px))' }}
+          className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]"
+          style={{ maxHeight: '400px' }}
         >
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
