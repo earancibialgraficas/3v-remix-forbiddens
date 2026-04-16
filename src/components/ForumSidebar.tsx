@@ -85,6 +85,24 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [unreadPublic, setUnreadPublic] = useState(0);
+
+  // Cargar contador de mensajes públicos
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchCount = async () => {
+      try {
+        const { count } = await supabase
+          .from("inbox_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("is_read", false);
+        setUnreadPublic(count || 0);
+      } catch (e) {
+        console.warn("Sincronizando tabla inbox...");
+      }
+    };
+    fetchCount();
+  }, [user?.id]);
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -127,13 +145,30 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE BUTTON - Solo perfil por ahora */}
+        {/* PROFILE & MESSAGES SECTION */}
         <div className={cn("p-2 border-b border-border flex flex-col items-center bg-muted/5", collapsed ? "" : "px-3 items-start")}>
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-            <Link to="/perfil">
-              <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Perfil */}
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil">
+              <Link to="/perfil">
+                <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+              </Link>
+            </Button>
+
+            {/* Mensajes Públicos */}
+            <div className="relative">
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
+                <Link to="/bandeja-publica">
+                  <Mail className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              {unreadPublic > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
+                  {unreadPublic}
+                </span>
+              )}
+            </div>
+          </div>
           
           {!collapsed && user && (
             <div className="flex items-center justify-between w-full gap-2 mt-1">
