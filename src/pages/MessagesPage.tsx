@@ -53,7 +53,6 @@ export default function MessagesPage() {
     }
   }, [searchParams, user]);
 
-  // ARREGLO DEL CONTADOR: Marcar todo como leído al entrar a la página
   useEffect(() => {
     if (!user) return;
     const forceResetUnread = async () => {
@@ -159,15 +158,18 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="space-y-3 animate-fade-in" style={{ height: 'calc(100dvh - 80px)' }}>
+    // 🔥 min-w-0 y w-full añadidos para prevenir desbordes a nivel general
+    <div className="space-y-3 animate-fade-in w-full min-w-0" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="bg-card border border-neon-cyan/30 rounded p-3">
         <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><Mail className="w-4 h-4" /> BANDEJA PÚBLICA</h1>
         <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes públicos, reportes y sugerencias de cualquier usuario</p>
       </div>
 
-      <div className="flex gap-3" style={{ height: 'calc(100% - 70px)' }}>
+      {/* 🔥 min-w-0 para proteger la estructura de columnas */}
+      <div className="flex gap-3 min-w-0 w-full" style={{ height: 'calc(100% - 70px)' }}>
+        
         {/* Conversation list */}
-        <div className={cn("bg-card border border-border rounded flex flex-col", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
+        <div className={cn("bg-card border border-border rounded flex flex-col min-w-0 overflow-hidden", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
           <div className="p-2 border-b border-border">
             <div className="flex gap-1">
               <Input placeholder="Buscar usuario..." value={searchUser} onChange={e => setSearchUser(e.target.value)} className="h-7 bg-muted text-xs font-body flex-1" onKeyDown={e => e.key === "Enter" && handleSearch()} />
@@ -177,11 +179,11 @@ export default function MessagesPage() {
               <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
                 {searchResults.map(r => (
                    <button key={r.user_id} onClick={() => { loadMessages(r.user_id); setSearchResults([]); setSearchUser(""); }}
-                    className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 text-left transition-colors">
-                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden" style={getAvatarBorderStyle(r.color_avatar_border)}>
+                    className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 text-left transition-colors overflow-hidden">
+                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(r.color_avatar_border)}>
                       {r.avatar_url ? <img src={r.avatar_url} className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground" />}
                     </div>
-                    <span className="text-xs font-body text-foreground truncate" style={getNameStyle(r.color_name)}>{r.display_name}</span>
+                    <span className="text-xs font-body text-foreground truncate block flex-1" style={getNameStyle(r.color_name)}>{r.display_name}</span>
                   </button>
                 ))}
               </div>
@@ -192,17 +194,20 @@ export default function MessagesPage() {
               conversations.length === 0 ? <p className="p-3 text-xs text-muted-foreground font-body">Sin conversaciones. Busca un usuario para empezar.</p> :
               conversations.map(c => (
                 <button key={c.partnerId} onClick={() => loadMessages(c.partnerId)}
-                  className={cn("w-full flex items-center gap-2 p-2.5 border-b border-border/30 hover:bg-muted/30 transition-colors text-left",
+                  // 🔥 overflow-hidden añadido al botón
+                  className={cn("w-full flex items-center gap-2 p-2.5 border-b border-border/30 hover:bg-muted/30 transition-colors text-left overflow-hidden",
                     selectedPartner === c.partnerId && "bg-muted/50")}>
                   <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(c.partnerColorAvatarBorder)}>
                     {c.partnerAvatar ? <img src={c.partnerAvatar} className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  {/* 🔥 min-w-0 y overflow-hidden para obligar al corte de texto */}
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-body font-medium text-foreground truncate" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
-                      {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center">{c.unread}</span>}
+                      <span className="text-xs font-body font-medium text-foreground truncate block" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
+                      {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center shrink-0 ml-1">{c.unread}</span>}
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-body truncate">{c.lastMessage}</p>
+                    {/* 🔥 truncate, block y w-full forzados */}
+                    <p className="text-[10px] text-muted-foreground font-body truncate block w-full">{c.lastMessage}</p>
                   </div>
                 </button>
               ))
@@ -214,14 +219,13 @@ export default function MessagesPage() {
         {selectedPartner && (
           <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
             <div className="p-2 border-b border-border flex items-center gap-2">
-              <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /></button>
-              <span className="text-xs font-body font-medium text-foreground" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
+              <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground hover:text-foreground shrink-0"><ArrowLeft className="w-4 h-4" /></button>
+              <span className="text-xs font-body font-medium text-foreground truncate" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
             </div>
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user.id ? "justify-end" : "justify-start")}>
-                  {/* 🔥 SOLUCIÓN: whitespace-pre-wrap y break-words añadidas aquí */}
-                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs font-body whitespace-pre-wrap break-words",
+                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs font-body whitespace-pre-wrap break-words overflow-hidden",
                     m.sender_id === user.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
                     {m.content}
                     <p className="text-[8px] text-muted-foreground mt-0.5 text-right">{new Date(m.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</p>
@@ -234,7 +238,7 @@ export default function MessagesPage() {
               <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Escribe un mensaje..."
                 className="bg-muted text-xs font-body min-h-[40px] max-h-[80px] resize-none flex-1"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-              <Button size="sm" onClick={handleSend} disabled={!newMessage.trim()} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+              <Button size="sm" onClick={handleSend} disabled={!newMessage.trim()} className="h-auto px-3 shrink-0"><Send className="w-3.5 h-3.5" /></Button>
             </div>
           </div>
         )}
