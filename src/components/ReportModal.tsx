@@ -47,7 +47,7 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
 
       // 2. Construimos el "Ticket de Sistema" con emojis y separadores para que resalte en el inbox
       const systemTicket = `🚨 TICKET DE SISTEMA: REPORTE DE USUARIO 🚨
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 👤 Emitido por: ${reporterName}
 🎯 Reportado: ${reportedUserName}
 🛑 Motivo Principal: ${reason}
@@ -55,7 +55,7 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
 
 📝 Detalles de la denuncia: 
 ${details.trim() || 'El usuario no proporcionó detalles adicionales.'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Requiere revisión del Staff.`;
 
       // 3. Enviamos el ticket a la función RPC existente
