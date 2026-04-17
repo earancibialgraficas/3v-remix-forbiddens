@@ -519,7 +519,10 @@ export type Database = {
           signature_image_url: string | null
           signature_image_width: number | null
           signature_stroke_color: string | null
+          signature_stroke_position: string | null
+          signature_stroke_width: number | null
           signature_text_align: string | null
+          signature_text_over_image: boolean | null
           tiktok_url: string | null
           total_score: number
           updated_at: string
@@ -548,7 +551,10 @@ export type Database = {
           signature_image_url?: string | null
           signature_image_width?: number | null
           signature_stroke_color?: string | null
+          signature_stroke_position?: string | null
+          signature_stroke_width?: number | null
           signature_text_align?: string | null
+          signature_text_over_image?: boolean | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
@@ -577,7 +583,10 @@ export type Database = {
           signature_image_url?: string | null
           signature_image_width?: number | null
           signature_stroke_color?: string | null
+          signature_stroke_position?: string | null
+          signature_stroke_width?: number | null
           signature_text_align?: string | null
+          signature_text_over_image?: boolean | null
           tiktok_url?: string | null
           total_score?: number
           updated_at?: string
