@@ -9,7 +9,6 @@ import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
-import HomeCarousel from "@/components/HomeCarousel";
 
 interface TopUser { display_name: string; total_score: number; color_name?: string | null; }
 interface PremiumUser { display_name: string; membership_tier: string; created_at: string; color_name?: string | null; color_role?: string | null; }
@@ -60,6 +59,7 @@ export default function RightPanel() {
   const cycleSize = () => setTextSize(p => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
   const newsItems = popularPosts.length > 0 ? popularPosts : fallbackNews;
 
+  // Lógica del Carrusel Trending
   useEffect(() => {
     const timer = setInterval(() => { 
       setCurrentNews(p => (p + 1) % newsItems.length); 
@@ -76,6 +76,7 @@ export default function RightPanel() {
     return () => clearInterval(timer);
   }, [currentNews]);
 
+  // Obtención de datos con protecciones
   useEffect(() => {
     const fetchTop = async () => {
       try {
@@ -117,15 +118,16 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    <aside className="w-full shrink-0 space-y-3 pb-6 h-[calc(100vh-80px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      <div className="flex items-center justify-end gap-1 sticky top-0 bg-background/90 backdrop-blur-sm z-30 py-1">
+    <aside className="w-full shrink-0 space-y-3 pb-6">
+      {/* Controles superiores */}
+      <div className="flex items-center justify-end gap-1">
         {!isHome && (
           <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
             <button onClick={() => navigate(-1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronLeft className="w-3.5 h-3.5" /></button>
             <button onClick={() => navigate(1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronRight className="w-3.5 h-3.5" /></button>
           </div>
         )}
-        <button onClick={cycleSize} className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground shadow-sm">
+        <button onClick={cycleSize} className="flex items-center gap-1 px-2 py-1 rounded bg-card border border-border text-muted-foreground hover:text-foreground">
           <Type className="w-3 h-3" />
           <span className={cn("font-body uppercase font-pixel tracking-tighter", sizes.body)}>{textSize}</span>
         </button>
@@ -140,16 +142,11 @@ export default function RightPanel() {
           <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{postCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Posts</p></div>
         </div>
         <div className="flex gap-2">
-          {!user && <Button asChild className="flex-1 bg-primary text-[10px] h-7 hover:shadow-[0_0_10px_rgba(var(--primary),0.8)] transition-all"><Link to="/registro">Unirse</Link></Button>}
-          <Button asChild className="flex-1 bg-[#5865F2] text-white hover:bg-[#4752C4] text-[10px] h-7 hover:shadow-[0_0_10px_rgba(88,101,242,0.8)] transition-all">
+          {!user && <Button asChild className="flex-1 bg-primary text-[10px] h-7"><Link to="/registro">Unirse</Link></Button>}
+          <Button asChild className="flex-1 bg-[#5865F2] text-white text-[10px] h-7">
             <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
           </Button>
         </div>
-      </div>
-
-      {/* CARRUSEL MINIATURA */}
-      <div className="w-full rounded overflow-hidden border border-border shadow-lg">
-        <HomeCarousel />
       </div>
 
       {/* Caja de Trending */}
@@ -195,8 +192,8 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* Reproductor y Footer */}
-      <div className="mt-6 pt-4 border-t border-border space-y-4 pb-10">
+      {/* REPRODUCTOR Y FOOTER (Integrados aquí para que no mueran al cerrar el panel) */}
+      <div className="mt-6 pt-4 border-t border-border space-y-4">
         <ChillMusicPlayer />
         <Footer />
       </div>
