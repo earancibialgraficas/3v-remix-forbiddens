@@ -13,6 +13,7 @@ import { getCategoryRoute } from "@/lib/categoryRoutes";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
+import SignatureDisplay from "@/components/SignatureDisplay";
 
 const friendLimits: Record<string, number> = {
   novato: 25, entusiasta: 50, coleccionista: 100, "leyenda arcade": 200,
@@ -322,30 +323,28 @@ export default function ProfilePage() {
                   const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
                   const sigColor = (profile as any)?.signature_color || "#facc15";
                   const sigStroke = (profile as any)?.signature_stroke_color || "";
+                  const sigStrokeWidth = (profile as any)?.signature_stroke_width ?? 1;
+                  const sigStrokePos = (profile as any)?.signature_stroke_position || "middle";
                   const sigFontStyle = (profile as any)?.signature_font || "normal";
                   const sigTextAlign = (profile as any)?.signature_text_align || "center";
                   const sigImageAlign = (profile as any)?.signature_image_align || "center";
                   const sigImageWidth = (profile as any)?.signature_image_width || 100;
                   const sigImageUrl = (profile as any)?.signature_image_url || "";
+                  const sigOverImage = (profile as any)?.signature_text_over_image ?? false;
                   const canAdvanced = isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier);
                   const updateSig = (patch: Record<string, any>) => {
                     supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
                   };
+                  // Preview profile uses local signature text but DB-backed style fields
+                  const previewProfile = { ...(profile as any), signature };
                   const googleFonts = ["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"];
-                  const previewStyle: React.CSSProperties = {
-                    fontFamily: `"${sigFontFamily}", sans-serif`,
-                    color: sigColor,
-                    fontWeight: sigFontStyle.includes("bold") ? 700 : 400,
-                    fontStyle: sigFontStyle.includes("italic") ? "italic" : "normal",
-                    textAlign: sigTextAlign as any,
-                    WebkitTextStroke: sigStroke ? `1px ${sigStroke}` : undefined,
-                  };
                   return (
                     <div className="space-y-2 border border-border/50 rounded p-3">
                       <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
                       <Input
                         value={signature}
                         onChange={(e) => setSignature(e.target.value)}
+                        onBlur={(e) => updateSig({ signature: e.target.value.trim() || null })}
                         className="h-8 bg-muted text-xs font-body"
                         placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
                         maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
@@ -402,6 +401,37 @@ export default function ProfilePage() {
                               </div>
                             </div>
                           </div>
+                          {sigStroke && (
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Grosor trazo: {sigStrokeWidth}px</label>
+                                <input
+                                  type="range"
+                                  min={1}
+                                  max={6}
+                                  step={1}
+                                  value={sigStrokeWidth}
+                                  onChange={(e) => updateSig({ signature_stroke_width: parseInt(e.target.value, 10) })}
+                                  className="w-full h-7 cursor-pointer accent-primary"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Posición trazo</label>
+                                <div className="flex gap-1">
+                                  {(["outside", "middle", "inside"] as const).map(p => (
+                                    <button
+                                      key={p}
+                                      type="button"
+                                      onClick={() => updateSig({ signature_stroke_position: p })}
+                                      className={cn("flex-1 h-7 text-[10px] rounded border font-body capitalize transition-colors", sigStrokePos === p ? "border-primary bg-primary/20 text-primary" : "border-border bg-muted text-muted-foreground hover:bg-muted/70")}
+                                    >
+                                      {p === "outside" ? "Ext" : p === "middle" ? "Med" : "Int"}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Alineación texto</label>
                             <div className="flex gap-1">
@@ -458,15 +488,25 @@ export default function ProfilePage() {
                                   ))}
                                 </div>
                               </div>
-                              <div className={cn("flex", sigImageAlign === "left" ? "justify-start" : sigImageAlign === "right" ? "justify-end" : "justify-center")}>
-                                <img src={sigImageUrl} alt="Firma" style={{ width: `${sigImageWidth}%` }} className="max-h-[125px] object-contain rounded border border-border/30 mt-1" />
-                              </div>
+                              <label className="flex items-center gap-2 text-[10px] font-body text-muted-foreground cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={sigOverImage}
+                                  onChange={(e) => updateSig({ signature_text_over_image: e.target.checked })}
+                                  className="accent-primary"
+                                />
+                                Texto sobre la imagen
+                              </label>
                             </>
                           )}
-                          {/* Vista previa */}
+                          {/* Vista previa con render real */}
                           <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20">
-                            <p className="text-[9px] font-body text-muted-foreground mb-1">Vista previa:</p>
-                            <p style={previewStyle} className="text-sm break-words">{signature || `— ${profile?.display_name} [${tier.toUpperCase()}]`}</p>
+                            <p className="text-[9px] font-body text-muted-foreground mb-1">Vista previa (igual que en posts):</p>
+                            <SignatureDisplay
+                              text={signature || `— ${profile?.display_name} [${tier.toUpperCase()}]`}
+                              profile={previewProfile}
+                              fontSize={13}
+                            />
                           </div>
                         </>
                       )}
