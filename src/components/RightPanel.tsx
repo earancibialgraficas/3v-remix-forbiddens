@@ -118,9 +118,10 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    <aside className="w-full shrink-0 space-y-3 pb-6">
+    /* 🔥 CAMBIO APLICADO: Altura fija, scroll habilitado y barra oculta */
+    <aside className="w-full shrink-0 space-y-3 pb-6 h-[calc(100vh-80px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {/* Controles superiores */}
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex items-center justify-end gap-1 sticky top-0 bg-background/80 backdrop-blur-sm z-10 py-1">
         {!isHome && (
           <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
             <button onClick={() => navigate(-1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronLeft className="w-3.5 h-3.5" /></button>
@@ -192,7 +193,7 @@ export default function RightPanel() {
         </div>
       </div>
 
-      {/* REPRODUCTOR Y FOOTER (Integrados aquí para que no mueran al cerrar el panel) */}
+      {/* REPRODUCTOR Y FOOTER */}
       <div className="mt-6 pt-4 border-t border-border space-y-4">
         <ChillMusicPlayer />
         <Footer />
