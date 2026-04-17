@@ -96,6 +96,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         const { count } = await supabase
           .from("inbox_messages")
           .select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id)
           .eq("is_read", false);
         setUnreadPublic(count || 0);
       } catch (e) {
@@ -122,7 +123,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
     fetchNotifsCount();
 
-    // ID de canal único para evitar colapsos en móvil
     const uniqueChannelName = `sidebar-notifs-${Date.now()}-${Math.random()}`;
     
     const channel = supabase
@@ -135,6 +135,36 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
+  };
+
+  // 🔥 FUNCIONES CORREGIDAS: Ahora sí guardan en la base de datos
+  const handleClearNotifications = async () => {
+    setUnreadNotifications(0); 
+    if (user?.id) {
+      try {
+        await supabase.from("notifications")
+          .update({ is_read: true } as any)
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+      } catch (e) {
+        console.error("Error limpiando notificaciones", e);
+      }
+    }
+  };
+
+  const handleClearPublic = async () => {
+    setUnreadPublic(0); 
+    if (user?.id) {
+      try {
+        // 🔥 ESTA ES LA LÍNEA QUE FALTABA PARA QUE SUPABASE NOS PERMITIERA GUARDAR (.eq("receiver_id", user.id))
+        await supabase.from("inbox_messages")
+          .update({ is_read: true } as any)
+          .eq("receiver_id", user.id) 
+          .eq("is_read", false);
+      } catch (e) {
+        console.error("Error limpiando mensajes públicos", e);
+      }
+    }
   };
 
   return (
@@ -178,11 +208,10 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
-            {/* Botón de Perfil con Contador de Notificaciones (Color Cyan) */}
+            {/* Botón de Perfil con Contador */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
-                {/* 🔥 onClick añadido para limpiar avisos de perfil */}
-                <Link to="/perfil" onClick={() => setUnreadNotifications(0)}>
+                <Link to="/perfil" onClick={handleClearNotifications}>
                   <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
@@ -196,8 +225,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
             {/* Mensajes Públicos */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
-                {/* 🔥 onClick añadido para limpiar avisos de mensajes públicos */}
-                <Link to="/bandeja-publica" onClick={() => setUnreadPublic(0)}>
+                <Link to="/bandeja-publica" onClick={handleClearPublic}>
                   <Mail className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
