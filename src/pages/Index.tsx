@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import ForumCategories from "@/components/ForumCategories";
 import HomeCarousel from "@/components/HomeCarousel";
+import SignatureDisplay from "@/components/SignatureDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
@@ -17,6 +18,8 @@ interface PostItem {
   downvotes: number;
   created_at: string;
   is_pinned: boolean;
+  user_id?: string;
+  signature?: string | null;
 }
 
 const categoryLabels: Record<string, { label: string; color: string }> = {
@@ -37,15 +40,28 @@ const categoryLabels: Record<string, { label: string; color: string }> = {
 export default function Index() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postProfiles, setPostProfiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const fetchAll = async () => {
       const { data } = await supabase
         .from("posts")
-        .select("id, title, content, category, upvotes, downvotes, created_at, is_pinned")
+        .select("id, title, content, category, upvotes, downvotes, created_at, is_pinned, user_id, signature")
         .order("created_at", { ascending: false })
         .limit(100);
-      if (data) setPosts(data);
+      if (data) {
+        setPosts(data as any);
+        const userIds = [...new Set(data.map((p: any) => p.user_id).filter(Boolean))];
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, signature, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_font, signature_font_family, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, color_staff_role")
+            .in("user_id", userIds);
+          const map: Record<string, any> = {};
+          profs?.forEach((p: any) => { map[p.user_id] = p; });
+          setPostProfiles(map);
+        }
+      }
       setLoading(false);
     };
     fetchAll();
@@ -98,6 +114,15 @@ export default function Index() {
                       </p>
                       {post.content && (
                         <p className="text-[10px] text-muted-foreground font-body mt-0.5 line-clamp-1">{post.content.replace(/!\[.*?\]\(.*?\)/g, "[imagen]")}</p>
+                      )}
+                      {(post.signature || postProfiles[post.user_id || ""]?.signature_image_url) && (
+                        <div className="mt-1.5 max-w-[280px]">
+                          <SignatureDisplay
+                            text={post.signature}
+                            profile={postProfiles[post.user_id || ""]}
+                            fontSize={10}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
