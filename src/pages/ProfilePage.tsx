@@ -313,68 +313,164 @@ export default function ProfilePage() {
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Contraseña (dejar vacío para no cambiar)</label>
                   <Input type="password" placeholder="Nueva contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 bg-muted text-xs font-body" />
                 </div>
-                {(tier !== "novato" || isStaff || isMod) && (
-                  <div className="space-y-2 border border-border/50 rounded p-3">
-                    <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
-                    <Input
-                      value={signature}
-                      onChange={(e) => setSignature(e.target.value)}
-                      className="h-8 bg-muted text-xs font-body"
-                      placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
-                      maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
-                    />
-                    {(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) && (
-                      <>
-                        <div className="grid grid-cols-2 gap-2">
+                {(tier !== "novato" || isStaff || isMod) && (() => {
+                  const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
+                  const sigColor = (profile as any)?.signature_color || "#facc15";
+                  const sigStroke = (profile as any)?.signature_stroke_color || "";
+                  const sigFontStyle = (profile as any)?.signature_font || "normal";
+                  const sigTextAlign = (profile as any)?.signature_text_align || "center";
+                  const sigImageAlign = (profile as any)?.signature_image_align || "center";
+                  const sigImageWidth = (profile as any)?.signature_image_width || 100;
+                  const sigImageUrl = (profile as any)?.signature_image_url || "";
+                  const canAdvanced = isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier);
+                  const updateSig = (patch: Record<string, any>) => {
+                    supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
+                  };
+                  const googleFonts = ["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"];
+                  const previewStyle: React.CSSProperties = {
+                    fontFamily: `"${sigFontFamily}", sans-serif`,
+                    color: sigColor,
+                    fontWeight: sigFontStyle.includes("bold") ? 700 : 400,
+                    fontStyle: sigFontStyle.includes("italic") ? "italic" : "normal",
+                    textAlign: sigTextAlign as any,
+                    WebkitTextStroke: sigStroke ? `1px ${sigStroke}` : undefined,
+                  };
+                  return (
+                    <div className="space-y-2 border border-border/50 rounded p-3">
+                      <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
+                      <Input
+                        value={signature}
+                        onChange={(e) => setSignature(e.target.value)}
+                        className="h-8 bg-muted text-xs font-body"
+                        placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
+                        maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
+                      />
+                      {canAdvanced && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Tipografía</label>
+                              <select
+                                value={sigFontFamily}
+                                onChange={(e) => updateSig({ signature_font_family: e.target.value })}
+                                className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body text-foreground px-1"
+                              >
+                                {googleFonts.map(f => <option key={f} value={f} style={{ fontFamily: `"${f}"` }}>{f}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Estilo</label>
+                              <select
+                                value={sigFontStyle}
+                                onChange={(e) => updateSig({ signature_font: e.target.value })}
+                                className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body text-foreground px-1"
+                              >
+                                <option value="normal">Regular</option>
+                                <option value="bold">Bold</option>
+                                <option value="italic">Italic</option>
+                                <option value="bold-italic">Bold + Italic</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Color relleno</label>
+                              <input
+                                type="color"
+                                value={sigColor}
+                                onChange={(e) => updateSig({ signature_color: e.target.value })}
+                                className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Color trazo (opcional)</label>
+                              <div className="flex gap-1">
+                                <input
+                                  type="color"
+                                  value={sigStroke || "#000000"}
+                                  onChange={(e) => updateSig({ signature_stroke_color: e.target.value })}
+                                  className="flex-1 h-7 rounded border border-border cursor-pointer bg-muted"
+                                />
+                                {sigStroke && (
+                                  <button type="button" onClick={() => updateSig({ signature_stroke_color: null })} className="h-7 px-2 text-[9px] rounded border border-border bg-muted hover:bg-muted/70 text-muted-foreground">×</button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                           <div>
-                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Color de firma</label>
-                            <input
-                              type="color"
-                              value={(profile as any)?.signature_color || "#facc15"}
-                              onChange={(e) => {
-                                const el = e.target;
-                                supabase.from("profiles").update({ signature_color: el.value } as any).eq("user_id", user!.id).then(() => refreshProfile());
-                              }}
-                              className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Alineación texto</label>
+                            <div className="flex gap-1">
+                              {["left", "center", "right"].map(a => (
+                                <button
+                                  key={a}
+                                  type="button"
+                                  onClick={() => updateSig({ signature_text_align: a })}
+                                  className={cn("flex-1 h-7 text-[10px] rounded border font-body capitalize transition-colors", sigTextAlign === a ? "border-primary bg-primary/20 text-primary" : "border-border bg-muted text-muted-foreground hover:bg-muted/70")}
+                                >
+                                  {a === "left" ? "Izq" : a === "center" ? "Centro" : "Der"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Imagen de firma (URL, opcional)</label>
+                            <Input
+                              value={sigImageUrl}
+                              onChange={(e) => updateSig({ signature_image_url: e.target.value || null })}
+                              className="h-7 bg-muted text-[10px] font-body"
+                              placeholder="https://ejemplo.com/firma.png o .gif"
                             />
                           </div>
-                          <div>
-                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Estilo de fuente</label>
-                            <select
-                              value={(profile as any)?.signature_font || "normal"}
-                              onChange={(e) => {
-                                supabase.from("profiles").update({ signature_font: e.target.value } as any).eq("user_id", user!.id).then(() => refreshProfile());
-                              }}
-                              className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body text-foreground px-1"
-                            >
-                              <option value="normal">Normal</option>
-                              <option value="bold">Bold</option>
-                              <option value="italic">Italic</option>
-                              <option value="bold-italic">Bold + Italic</option>
-                            </select>
+                          {sigImageUrl && (
+                            <>
+                              <div>
+                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Alineación imagen</label>
+                                <div className="flex gap-1">
+                                  {["left", "center", "right"].map(a => (
+                                    <button
+                                      key={a}
+                                      type="button"
+                                      onClick={() => updateSig({ signature_image_align: a })}
+                                      className={cn("flex-1 h-7 text-[10px] rounded border font-body capitalize transition-colors", sigImageAlign === a ? "border-primary bg-primary/20 text-primary" : "border-border bg-muted text-muted-foreground hover:bg-muted/70")}
+                                    >
+                                      {a === "left" ? "Izq" : a === "center" ? "Centro" : "Der"}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Ancho imagen</label>
+                                <div className="flex gap-1">
+                                  {[35, 70, 100].map(w => (
+                                    <button
+                                      key={w}
+                                      type="button"
+                                      onClick={() => updateSig({ signature_image_width: w })}
+                                      className={cn("flex-1 h-7 text-[10px] rounded border font-body transition-colors", sigImageWidth === w ? "border-primary bg-primary/20 text-primary" : "border-border bg-muted text-muted-foreground hover:bg-muted/70")}
+                                    >
+                                      {w}%
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className={cn("flex", sigImageAlign === "left" ? "justify-start" : sigImageAlign === "right" ? "justify-end" : "justify-center")}>
+                                <img src={sigImageUrl} alt="Firma" style={{ width: `${sigImageWidth}%` }} className="max-h-[125px] object-contain rounded border border-border/30 mt-1" />
+                              </div>
+                            </>
+                          )}
+                          {/* Vista previa */}
+                          <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20">
+                            <p className="text-[9px] font-body text-muted-foreground mb-1">Vista previa:</p>
+                            <p style={previewStyle} className="text-sm break-words">{signature || `— ${profile?.display_name} [${tier.toUpperCase()}]`}</p>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Imagen de firma (URL, 1000×500px, opcional)</label>
-                          <Input
-                            value={(profile as any)?.signature_image_url || ""}
-                            onChange={(e) => {
-                              supabase.from("profiles").update({ signature_image_url: e.target.value || null } as any).eq("user_id", user!.id).then(() => refreshProfile());
-                            }}
-                            className="h-7 bg-muted text-[10px] font-body"
-                            placeholder="https://ejemplo.com/firma.png"
-                          />
-                        </div>
-                        {(profile as any)?.signature_image_url && (
-                          <img src={(profile as any).signature_image_url} alt="Firma" className="w-full max-w-[250px] max-h-[125px] object-contain rounded border border-border/30 mt-1" />
-                        )}
-                      </>
-                    )}
-                    <p className="text-[9px] text-muted-foreground">
-                      {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres + estilos" : "Máx. 200 caracteres + diseño completo"}
-                    </p>
-                  </div>
-                )}
+                        </>
+                      )}
+                      <p className="text-[9px] text-muted-foreground">
+                        {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres + estilos" : "Máx. 200 caracteres + diseño completo"}
+                      </p>
+                    </div>
+                  );
+                })()}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">{saving ? "Guardando..." : "Guardar"}</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="text-xs">Cancelar</Button>
