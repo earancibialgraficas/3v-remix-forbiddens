@@ -81,12 +81,17 @@ export default function ProfilePage() {
       setInstagram(profile.instagram_url || "");
       setYoutube(profile.youtube_url || "");
       setTiktok(profile.tiktok_url || "");
-      setSignature((profile as any).signature || "");
+      // FIX: solo sincronizar la firma desde DB cuando NO se está editando,
+      // así no se pisa el texto que el usuario está tipeando al refrescar (al cambiar color/font).
+      if (!editing) {
+        setSignature((profile as any).signature || "");
+      }
       setAvatarBorderColor((profile as any).color_avatar_border || "");
       setNameColor((profile as any).color_name || "");
       setRoleColor((profile as any).color_role || "");
       setStaffRoleColor((profile as any).color_staff_role || "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   useEffect(() => {
