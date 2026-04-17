@@ -53,11 +53,10 @@ export default function MessagesPage() {
     }
   }, [searchParams, user]);
 
-  // 🔥 ARREGLO DEL CONTADOR: Marcar todo como leído al entrar a la página
+  // ARREGLO DEL CONTADOR: Marcar todo como leído al entrar a la página
   useEffect(() => {
     if (!user) return;
     const forceResetUnread = async () => {
-      // Le decimos a Supabase: "Marca como leídos TODOS los mensajes recibidos por este usuario"
       await supabase
         .from("inbox_messages")
         .update({ is_read: true } as any)
@@ -213,7 +212,7 @@ export default function MessagesPage() {
 
         {/* Chat area */}
         {selectedPartner && (
-          <div className="flex-1 bg-card border border-border rounded flex flex-col">
+          <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
             <div className="p-2 border-b border-border flex items-center gap-2">
               <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4" /></button>
               <span className="text-xs font-body font-medium text-foreground" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
@@ -221,10 +220,11 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user.id ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs font-body",
+                  {/* 🔥 SOLUCIÓN: whitespace-pre-wrap y break-words añadidas aquí */}
+                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs font-body whitespace-pre-wrap break-words",
                     m.sender_id === user.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
                     {m.content}
-                    <p className="text-[8px] text-muted-foreground mt-0.5">{new Date(m.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5 text-right">{new Date(m.created_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</p>
                   </div>
                 </div>
               ))}
