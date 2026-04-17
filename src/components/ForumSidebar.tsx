@@ -122,7 +122,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
     fetchNotifsCount();
 
-    // 🔥 LA CURA DEL PANTALLAZO NEGRO: Generamos un ID de canal 100% único para que el menú de móvil y PC no choquen
+    // ID de canal único para evitar colapsos en móvil
     const uniqueChannelName = `sidebar-notifs-${Date.now()}-${Math.random()}`;
     
     const channel = supabase
@@ -181,12 +181,13 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
             {/* Botón de Perfil con Contador de Notificaciones (Color Cyan) */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
-                <Link to="/perfil">
+                {/* 🔥 onClick añadido para limpiar avisos de perfil */}
+                <Link to="/perfil" onClick={() => setUnreadNotifications(0)}>
                   <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
+                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none">
                   {unreadNotifications > 9 ? "9+" : unreadNotifications}
                 </span>
               )}
@@ -195,12 +196,13 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
             {/* Mensajes Públicos */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
-                <Link to="/bandeja-publica">
+                {/* 🔥 onClick añadido para limpiar avisos de mensajes públicos */}
+                <Link to="/bandeja-publica" onClick={() => setUnreadPublic(0)}>
                   <Mail className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
               {unreadPublic > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm">
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none">
                   {unreadPublic > 9 ? "9+" : unreadPublic}
                 </span>
               )}

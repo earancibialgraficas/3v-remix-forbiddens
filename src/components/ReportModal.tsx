@@ -36,15 +36,39 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
     if (!user) return;
     setSending(true);
     try {
+      // 1. Obtenemos el nombre del usuario que está reportando
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+        
+      const reporterName = profile?.display_name || 'Usuario';
+
+      // 2. Construimos el "Ticket de Sistema" con emojis y separadores para que resalte en el inbox
+      const systemTicket = `🚨 TICKET DE SISTEMA: REPORTE DE USUARIO 🚨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 Emitido por: ${reporterName}
+🎯 Reportado: ${reportedUserName}
+🛑 Motivo Principal: ${reason}
+🔗 ID del Post: ${postId || 'Reporte General de Perfil'}
+
+📝 Detalles de la denuncia: 
+${details.trim() || 'El usuario no proporcionó detalles adicionales.'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Requiere revisión del Staff.`;
+
+      // 3. Enviamos el ticket a la función RPC existente
       const { error } = await supabase.rpc("send_staff_report", {
         p_reporter_id: user.id,
         p_reported_user_id: reportedUserId,
         p_reason: reason,
-        p_details: details.trim(),
+        p_details: systemTicket, // Inyectamos el ticket completo aquí
         p_post_id: postId || null,
       });
+
       if (error) throw error;
-      toast({ title: "Reporte enviado", description: "El staff revisará tu reporte" });
+      toast({ title: "Reporte enviado", description: "El staff revisará tu reporte a la brevedad." });
       onClose();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
