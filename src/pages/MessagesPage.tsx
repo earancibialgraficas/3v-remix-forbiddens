@@ -120,7 +120,7 @@ export default function MessagesPage() {
     setLoading(false);
   };
 
-  const loadMessages = async (partnerId: string) => {
+const loadMessages = async (partnerId: string) => {
     if (!user) return;
     setSelectedPartner(partnerId);
     const { data } = await supabase.from("inbox_messages").select("*")
@@ -130,7 +130,6 @@ export default function MessagesPage() {
     await supabase.from("inbox_messages").update({ is_read: true } as any)
       .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
   };
-
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
     const { error } = await supabase.from("inbox_messages").insert({
