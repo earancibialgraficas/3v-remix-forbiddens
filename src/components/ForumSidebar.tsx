@@ -88,27 +88,30 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 1. Contador de Mensajes Públicos (CON LISTENER EN TIEMPO REAL E INSTANTÁNEO)
+  // 1. Contador de Mensajes Públicos (BLINDADO CONTRA CRASHES)
   useEffect(() => {
     if (!user?.id) return;
 
     const fetchInboxCount = async () => {
-      const { count } = await supabase
-        .from("inbox_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-      setUnreadPublic(count || 0);
+      try {
+        const { count } = await supabase
+          .from("inbox_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+        setUnreadPublic(count || 0);
+      } catch (e) {
+        console.warn("Error silenciado en fetchInboxCount", e);
+      }
     };
 
     fetchInboxCount();
-
-    // 🔥 ESCUCHAMOS EL EVENTO INVISIBLE PARA APAGAR EL SOBRE AL INSTANTE
     window.addEventListener("updateBadges", fetchInboxCount);
 
-    // Suscripción para detectar cuando llega un mensaje o se marca como leído
+    // 🔥 Agregamos Date.now() y Math.random() para garantizar que el canal sea ÚNICO y jamás crashee
+    const uniqueChannelName = `sidebar-inbox-${user.id}-${Date.now()}-${Math.random()}`;
     const channel = supabase
-      .channel(`sidebar-inbox-${user.id}`)
+      .channel(uniqueChannelName)
       .on("postgres_changes", { 
         event: "*", 
         schema: "public", 
@@ -123,24 +126,30 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
   }, [user?.id]);
 
-  // 2. Contador de Avisos/Notificaciones (CON LISTENER INSTANTÁNEO)
+  // 2. Contador de Avisos/Notificaciones (BLINDADO CONTRA CRASHES)
   useEffect(() => {
     if (!user?.id) return;
-    const fetchNotifsCount = async () => {
-      const { count } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-      setUnreadNotifications(count || 0);
-    };
-    fetchNotifsCount();
 
-    // 🔥 ESCUCHAMOS EL EVENTO INVISIBLE PARA APAGAR EL PERFIL AL INSTANTE
+    const fetchNotifsCount = async () => {
+      try {
+        const { count } = await supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+        setUnreadNotifications(count || 0);
+      } catch (e) {
+        console.warn("Error silenciado en fetchNotifsCount", e);
+      }
+    };
+
+    fetchNotifsCount();
     window.addEventListener("updateBadges", fetchNotifsCount);
 
+    // 🔥 Canal único garantizado
+    const uniqueChannelName = `sidebar-notifs-${user.id}-${Date.now()}-${Math.random()}`;
     const channel = supabase
-      .channel(`sidebar-notifs-${user.id}`)
+      .channel(uniqueChannelName)
       .on("postgres_changes", { 
         event: "*", 
         schema: "public", 
