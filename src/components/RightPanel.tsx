@@ -43,12 +43,11 @@ export default function RightPanel() {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     
-    // Si scrollTop es mayor a 0, significa que bajamos, mostramos la sombra arriba
-    setShowTopShadow(scrollTop > 0);
+    // Mostramos la sombra superior si hemos bajado un poco (más de 5px)
+    setShowTopShadow(scrollTop > 5);
     
-    // Si la suma de lo scrolleado + el tamaño de la ventana es menor al total, mostramos la sombra abajo
-    // (Añadimos un margen de 2px para evitar errores matemáticos de los navegadores)
-    setShowBottomShadow(Math.ceil(scrollTop + clientHeight) < scrollHeight - 2);
+    // Mostramos la sombra inferior si aún no llegamos al final del scroll
+    setShowBottomShadow(Math.ceil(scrollTop + clientHeight) < scrollHeight - 5);
   };
 
   useEffect(() => {
@@ -78,7 +77,7 @@ export default function RightPanel() {
     fetchStats();
   }, []);
 
-  // Revisar el scroll apenas carguen los datos
+  // Revisar el scroll apenas carguen los datos o se redimensione la pantalla
   useEffect(() => {
     handleScroll();
     window.addEventListener("resize", handleScroll);
@@ -91,22 +90,30 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    // 🔥 Envolvemos todo en un div relativo para colocar las sombras fijas
+    // Envolvemos todo en un div relativo para que los brillos floten sobre el contenido
     <div className="w-full shrink-0 relative h-[calc(100vh-80px)] overflow-hidden">
       
-      {/* 🔴 SOMBRA NEÓN SUPERIOR (Aparece al bajar el scroll) */}
+      {/* 🔴 SOMBRA NEÓN SUPERIOR (Más grande, intensa y por encima de todo) */}
       <div 
         className={cn(
-          "absolute top-8 left-0 right-0 h-6 bg-gradient-to-b from-[#de1839]/20 to-transparent z-20 pointer-events-none transition-opacity duration-500",
+          "absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500",
           showTopShadow ? "opacity-100" : "opacity-0"
         )} 
       />
 
-      {/* Barra deslizable */}
+      {/* 🔴 SOMBRA NEÓN INFERIOR */}
+      <div 
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500",
+          showBottomShadow ? "opacity-100" : "opacity-0"
+        )} 
+      />
+
+      {/* Contenedor con Scroll */}
       <aside 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
       >
         <div className="flex items-center justify-end gap-1 sticky top-0 bg-background/80 backdrop-blur-sm z-30 py-1">
           {!isHome && (
@@ -122,7 +129,7 @@ export default function RightPanel() {
         </div>
 
         {/* Caja de Comunidad */}
-        <div className="bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors">
+        <div className="bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors mt-2">
           <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
           <div className="grid grid-cols-3 gap-1 my-3">
             <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
@@ -175,14 +182,6 @@ export default function RightPanel() {
           <Footer />
         </div>
       </aside>
-
-      {/* 🔴 SOMBRA NEÓN INFERIOR (Aparece si hay contenido oculto abajo) */}
-      <div 
-        className={cn(
-          "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#de1839]/20 to-transparent z-20 pointer-events-none transition-opacity duration-500",
-          showBottomShadow ? "opacity-100" : "opacity-0"
-        )} 
-      />
     </div>
   );
 }
