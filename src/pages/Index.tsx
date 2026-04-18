@@ -116,7 +116,7 @@ export default function Index() {
                         <p className="text-[10px] text-muted-foreground font-body mt-0.5 line-clamp-1">{post.content.replace(/!\[.*?\]\(.*?\)/g, "[imagen]")}</p>
                       )}
                       {(post.signature || postProfiles[post.user_id || ""]?.signature_image_url) && (
-                        <div className="mt-1.5 max-w-[280px]">
+                        <div className="mt-1.5 w-full">
                           <SignatureDisplay
                             text={post.signature}
                             profile={postProfiles[post.user_id || ""]}
