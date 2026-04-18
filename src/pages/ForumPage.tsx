@@ -369,10 +369,10 @@ export default function ForumPage() {
     else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
   };
 
-  const handleReport = async (postId: string, postUserId: string) => {
+  const handleReport = (postId: string, postUserId: string) => {
     if (!user) { toast({ title: "Inicia sesión para reportar", variant: "destructive" }); return; }
-    const { error } = await supabase.from("reports").insert({ reporter_id: user.id, post_id: postId, reported_user_id: postUserId, reason: "Contenido inapropiado" } as any);
-    if (!error) toast({ title: "Reporte enviado", description: "Los administradores lo revisarán" });
+    const targetName = postProfiles[postUserId]?.display_name || "Usuario";
+    setReportTarget({ userId: postUserId, userName: targetName, postId });
   };
 
   const handleDeletePost = async (postId: string) => {
