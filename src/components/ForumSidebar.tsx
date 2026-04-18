@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom"; // 🔥 Importamos el superpoder del Portal
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
@@ -108,7 +109,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     fetchInboxCount();
     window.addEventListener("updateBadges", fetchInboxCount);
 
-    // 🔥 Agregamos Date.now() y Math.random() para garantizar que el canal sea ÚNICO y jamás crashee
     const uniqueChannelName = `sidebar-inbox-${user.id}-${Date.now()}-${Math.random()}`;
     const channel = supabase
       .channel(uniqueChannelName)
@@ -146,7 +146,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     fetchNotifsCount();
     window.addEventListener("updateBadges", fetchNotifsCount);
 
-    // 🔥 Canal único garantizado
     const uniqueChannelName = `sidebar-notifs-${user.id}-${Date.now()}-${Math.random()}`;
     const channel = supabase
       .channel(uniqueChannelName)
@@ -170,8 +169,9 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
   return (
     <TooltipProvider>
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      {/* 🔥 FIX: Teletransportamos el modal al document.body para que ignore capas anteriores */}
+      {showLogoutModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4">
             <h3 className="font-pixel text-[9px] text-foreground tracking-tighter uppercase">¿CERRAR SESIÓN?</h3>
             <div className="flex gap-2">
@@ -179,7 +179,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               <Button variant="destructive" onClick={async () => { await signOut(); setShowLogoutModal(false); }} className="flex-1 font-pixel text-[8px] h-7">SÍ</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60")}>
