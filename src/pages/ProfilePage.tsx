@@ -44,6 +44,8 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [signature, setSignature] = useState("");
+  // 🔥 FIX: Estado local para que el slider sea fluido
+  const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
@@ -82,13 +84,15 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       if (!editing) {
         setSignature((profile as any).signature || "");
+        // Sincronizamos el tamaño local con el de la DB al cargar
+        setLocalSigFontSize((profile as any).signature_font_size || 13);
       }
       setAvatarBorderColor((profile as any).color_avatar_border || "");
       setNameColor((profile as any).color_name || "");
       setRoleColor((profile as any).color_role || "");
       setStaffRoleColor((profile as any).color_staff_role || "");
     }
-  }, [profile]);
+  }, [profile, editing]);
 
   useEffect(() => {
     if (!user) return;
@@ -157,6 +161,7 @@ export default function ProfilePage() {
       display_name: displayName, bio,
       instagram_url: instagram || null, youtube_url: youtube || null, tiktok_url: tiktok || null,
       signature: signature.trim() || null,
+      signature_font_size: localSigFontSize // 🔥 Aseguramos que guarde el tamaño elegido
     } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -310,8 +315,7 @@ export default function ProfilePage() {
                 </div>
                 {(tier !== "novato" || isStaff || isMod) && (() => {
                   const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
-                  // 🔥 FIX: Slider de tamaño
-                  const sigFontSize = (profile as any)?.signature_font_size || 13;
+                  const sigFontSize = localSigFontSize; // 🔥 Usamos el estado local fluido
                   const sigColor = (profile as any)?.signature_color || "#facc15";
                   const sigStroke = (profile as any)?.signature_stroke_color || "";
                   const sigStrokeWidth = (profile as any)?.signature_stroke_width ?? 1;
@@ -323,10 +327,16 @@ export default function ProfilePage() {
                   const sigImageUrl = (profile as any)?.signature_image_url || "";
                   const sigOverImage = (profile as any)?.signature_text_over_image ?? false;
                   const canAdvanced = isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier);
+                  
+                  // 🔥 Función de guardado optimizada (Debounce)
                   const updateSig = (patch: Record<string, any>) => {
-                    supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
+                    if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
+                    (window as any).__sigUpdateTimer = setTimeout(() => {
+                      supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
+                    }, 500);
                   };
-                  const previewProfile = { ...(profile as any), signature };
+
+                  const previewProfile = { ...(profile as any), signature, signature_font_size: localSigFontSize };
                   const googleFonts = ["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"];
                   return (
                     <div className="space-y-2 border border-border/50 rounded p-3">
@@ -336,12 +346,8 @@ export default function ProfilePage() {
                         onChange={(e) => {
                           const v = e.target.value;
                           setSignature(v);
-                          if ((window as any).__sigSaveTimer) clearTimeout((window as any).__sigSaveTimer);
-                          (window as any).__sigSaveTimer = setTimeout(() => {
-                            updateSig({ signature: v.trim() || null });
-                          }, 600);
+                          updateSig({ signature: v.trim() || null });
                         }}
-                        onBlur={(e) => updateSig({ signature: e.target.value.trim() || null })}
                         className="h-8 bg-muted text-xs font-body"
                         placeholder={`— ${profile?.display_name} [${displayTier}]`}
                         maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
@@ -374,7 +380,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
 
-                          {/* 🔥 FIX: Control del tamaño de letra */}
+                          {/* 🔥 FIX: Slider fluido para el tamaño de letra */}
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Tamaño de letra: {sigFontSize}px</label>
                             <input
@@ -383,7 +389,11 @@ export default function ProfilePage() {
                               max={30}
                               step={1}
                               value={sigFontSize}
-                              onChange={(e) => updateSig({ signature_font_size: parseInt(e.target.value, 10) })}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setLocalSigFontSize(val); // Cambio visual instantáneo
+                                updateSig({ signature_font_size: val }); // Guardado en DB debounced
+                              }}
                               className="w-full h-7 cursor-pointer accent-primary"
                             />
                           </div>
@@ -516,7 +526,7 @@ export default function ProfilePage() {
                             <SignatureDisplay
                               text={signature || `— ${profile?.display_name} [${displayTier}]`}
                               profile={previewProfile}
-                              fontSize={13}
+                              fontSize={localSigFontSize}
                             />
                           </div>
                         </>
@@ -596,7 +606,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => handleTabChange(tab.id)}
@@ -879,6 +888,7 @@ export default function ProfilePage() {
   );
 }
 
+// ... Resto de componentes (ModerationPanel, ModeratorList, etc) sin cambios.
 function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
   const { toast } = useToast();
   const [banEmail, setBanEmail] = useState("");
