@@ -6,7 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-// Tipos de canciones para el Motor Dual
 interface Song {
   id: string;
   title: string;
@@ -18,13 +17,11 @@ interface Song {
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
   
-  // Estados de la lista y motor
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [currentCategory, setCurrentCategory] = useState("Todos");
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  // Controles de reproducción
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [expanded, setExpanded] = useState(false);
@@ -32,16 +29,17 @@ export default function ChillMusicPlayer() {
   const [showAddSong, setShowAddSong] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
-  const [showVolume, setShowVolume] = useState(false);
   
-  // Referencias visuales y de motor
+  // 🔥 Nuevo estado para nuestro Dropdown Custom
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  // Tiempos
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -53,13 +51,12 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 1. CARGAR MÚSICA DESDE SUPABASE AL INICIAR
   useEffect(() => {
     const fetchMusic = async () => {
       const folders = [
         { path: 'metal', name: 'Metal' },
         { path: 'Rap', name: 'Rap' },
-        { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' } // 🔥 Ajustado a tu nombre real en Supabase
+        { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' }
       ];
       
       let fetchedSongs: Song[] = [];
@@ -67,13 +64,15 @@ export default function ChillMusicPlayer() {
 
       for (const folder of folders) {
         const { data, error } = await supabase.storage.from('musica').list(folder.path);
-        if (data && !error) {
+        
+        if (error) {
+          console.error(`Error cargando la carpeta ${folder.path}:`, error);
+        } else if (data) {
           data.forEach(file => {
-            // Ignoramos archivos ocultos que crea Supabase
             if (file.name !== '.emptyFolderPlaceholder') {
               fetchedSongs.push({
                 id: file.id || file.name,
-                title: file.name.replace(/\.[^/.]+$/, ""), // Quita el .mp3 o .m4a
+                title: file.name.replace(/\.[^/.]+$/, ""),
                 url: `${baseUrl}/${folder.path}/${encodeURIComponent(file.name)}`,
                 type: 'local',
                 category: folder.name
@@ -89,9 +88,7 @@ export default function ChillMusicPlayer() {
     fetchMusic();
   }, []);
 
-  // 2. FILTRAR POR CATEGORÍA
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const cat = e.target.value;
+  const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
     if (cat === "Todos") {
       setPlaylist(allSongs);
@@ -101,9 +98,9 @@ export default function ChillMusicPlayer() {
     setCurrentIndex(0);
     setIsPlaying(false);
     setCurrentTime(0);
+    setShowCategoryMenu(false); // Cierra el menú al elegir
   };
 
-  // 3. CONTROL DEL MOTOR DUAL (AUDIO LOCAL VS YOUTUBE)
   useEffect(() => {
     if (!current) return;
     
@@ -117,7 +114,7 @@ export default function ChillMusicPlayer() {
         }
       }
     } else if (current.type === 'youtube') {
-      if (audioRef.current) audioRef.current.pause(); // Pausa local si hay
+      if (audioRef.current) audioRef.current.pause();
       const timer = setTimeout(() => {
         if (!iframeRef.current?.contentWindow) return;
         iframeRef.current.contentWindow.postMessage(
@@ -131,12 +128,10 @@ export default function ChillMusicPlayer() {
     }
   }, [isPlaying, currentIndex, volume, current]);
 
-  // Actualizar volumen local en tiempo real
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
   }, [volume]);
 
-  // Eventos Motor YouTube
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data || current?.type !== 'youtube') return;
@@ -145,7 +140,7 @@ export default function ChillMusicPlayer() {
         if (data.event === 'infoDelivery' && data.info) {
           if (typeof data.info.currentTime === 'number' && !isSeeking) setCurrentTime(data.info.currentTime);
           if (typeof data.info.duration === 'number') setDuration(data.info.duration);
-          if (data.info.playerState === 0) next(); // YouTube terminó
+          if (data.info.playerState === 0) next();
         }
       } catch {}
     };
@@ -153,7 +148,6 @@ export default function ChillMusicPlayer() {
     return () => window.removeEventListener('message', handler);
   }, [isSeeking, currentIndex, current]);
 
-  // Polling YouTube
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (isPlaying && current?.type === 'youtube' && iframeRef.current?.contentWindow) {
@@ -164,23 +158,18 @@ export default function ChillMusicPlayer() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [isPlaying, currentIndex, current]);
 
-  // Eventos Motor Local
   const handleLocalTimeUpdate = () => {
-    if (audioRef.current && !isSeeking) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+    if (audioRef.current && !isSeeking) setCurrentTime(audioRef.current.currentTime);
   };
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) setDuration(audioRef.current.duration);
   };
   const handleLocalEnded = () => next();
 
-  // Social Hub Pause
   useEffect(() => {
     onPauseMusic(() => setIsPlaying(false));
   }, [onPauseMusic]);
 
-  // Visualizador Simulado (Mantiene tu diseño exacto)
   useEffect(() => {
     const canvas = minimized ? miniCanvasRef.current : canvasRef.current;
     if (!canvas) return;
@@ -231,7 +220,7 @@ export default function ChillMusicPlayer() {
   const addSong = () => {
     if (!newSongUrl.trim()) return;
     const ytMatch = newSongUrl.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]+)/);
-    if (!ytMatch) return; // Por ahora solo admitimos YT extra
+    if (!ytMatch) return;
     const newSong: Song = {
       id: ytMatch[1],
       title: newSongTitle.trim() || `YouTube Track`,
@@ -271,7 +260,6 @@ export default function ChillMusicPlayer() {
   const displayTime = isSeeking ? seekDisplayValue : currentTime;
   const sliderMax = duration > 0 && isFinite(duration) ? duration : 1;
 
-  // Renderizadores de Motores
   const renderYT = current?.type === 'youtube' ? (
     <iframe
       ref={iframeRef}
@@ -317,9 +305,9 @@ export default function ChillMusicPlayer() {
   return (
     <>
       {renderYT} {renderLocal}
-      <div className="bg-card border border-neon-cyan/30 rounded overflow-hidden">
+      <div className="bg-card border border-neon-cyan/30 rounded overflow-visible relative">
         
-        {/* HEADER & MENU DESPLEGABLE */}
+        {/* HEADER */}
         <div className="flex flex-col border-b border-border/50">
           <div className="flex items-center justify-between px-2.5 py-1.5">
             <div className="flex items-center gap-1.5">
@@ -330,20 +318,41 @@ export default function ChillMusicPlayer() {
               <ChevronDown className="w-3 h-3" />
             </button>
           </div>
-          <div className="px-2.5 pb-2">
-            <div className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1">
-              <ListFilter className="w-3 h-3 text-muted-foreground" />
-              <select 
-                value={currentCategory} 
-                onChange={handleCategoryChange}
-                className="bg-transparent border-none text-[9px] font-body text-foreground outline-none w-full"
-              >
-                <option value="Todos">Todos los géneros</option>
-                <option value="Metal">Metal</option>
-                <option value="Rap">Rap</option>
-                <option value="Lofi Hip-Hop">Lofi Hip-Hop</option>
-              </select>
-            </div>
+
+          {/* 🔥 DROPDOWN CIBERPUNK PERSONALIZADO */}
+          <div className="px-2.5 pb-2 relative z-50">
+            <button 
+              onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+              className="w-full flex items-center justify-between bg-muted/30 hover:bg-muted/50 border border-border/50 rounded px-2 py-1.5 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ListFilter className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[9px] font-body text-foreground">
+                  {currentCategory === "Todos" ? "Todos los géneros" : currentCategory}
+                </span>
+              </div>
+              {showCategoryMenu ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+            </button>
+
+            {/* Menú Desplegable Oculto */}
+            {showCategoryMenu && (
+              <div className="absolute top-full left-2.5 right-2.5 mt-1 bg-background border border-neon-cyan/30 rounded shadow-2xl overflow-hidden z-50 animate-fade-in">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategoryChange(cat)}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-[9px] font-body transition-colors border-b border-border/30 last:border-0",
+                      currentCategory === cat 
+                        ? "bg-neon-cyan/10 text-neon-cyan border-l-2 border-l-neon-cyan" 
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-l-transparent"
+                    )}
+                  >
+                    {cat === "Todos" ? "Todos los géneros" : cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -354,7 +363,7 @@ export default function ChillMusicPlayer() {
 
         {/* TÍTULO CANCIÓN */}
         <div className="px-2.5 py-1.5 text-center">
-          <p className="text-[10px] font-body text-foreground truncate">{current?.title || "Cargando música..."}</p>
+          <p className="text-[10px] font-body text-foreground truncate">{current?.title || (playlist.length === 0 ? "Sin canciones..." : "Cargando música...")}</p>
         </div>
 
         {/* CONTROLES */}
