@@ -28,38 +28,30 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
 
       <div className="relative z-20 flex flex-col items-center justify-center h-full text-center px-4 gap-3 animate-slide-up">
-        {/* Animated logo → text transition */}
-        <div className="relative h-28 sm:h-36 flex items-center justify-center">
-          {phase === "logo" && (
-            <img
-              src={logo}
-              alt="Forbiddens Logo"
-              className="w-20 h-20 sm:w-28 sm:h-28 animate-pulse-glow"
-            />
-          )}
-          {phase === "transition" && (
-            <div className="animate-banner-pixelate">
-              <img
-                src={logo}
-                alt="Forbiddens Logo"
-                className="w-20 h-20 sm:w-28 sm:h-28 opacity-0"
-                style={{ animation: 'fade-out 0.8s ease-out forwards' }}
-              />
-            </div>
-          )}
-          {(phase === "transition" || phase === "text") && (
-            <h1
-              className="absolute text-2xl sm:text-4xl font-pixel tracking-wider animate-banner-text-in"
-              style={{
+        {/* Smooth crossfade logo → text */}
+        <div className="relative h-28 sm:h-36 flex items-center justify-center w-full">
+          <img
+            src={logo}
+            alt="Forbiddens Logo"
+            className="absolute w-20 h-20 sm:w-28 sm:h-28 transition-all duration-[1400ms] ease-in-out"
+            style={{
+              opacity: phase === "logo" ? 1 : 0,
+              transform: phase === "logo" ? "scale(1)" : "scale(1.15)",
+              filter: phase === "logo" ? "blur(0)" : "blur(6px)",
+            }}
+          />
+          <h1
+            className="absolute text-2xl sm:text-4xl font-pixel tracking-wider transition-all duration-[1400ms] ease-in-out"
+            style={{
               color: '#de1839',
-                textShadow: '0 0 10px rgba(222, 24, 57, 0.8), 0 0 30px rgba(222, 24, 57, 0.4), 0 0 60px rgba(222, 24, 57, 0.2)',
-                animationDelay: phase === "transition" ? '0.3s' : '0s',
-                animationFillMode: 'forwards',
-              }}
-            >
-              FORBIDDENS
-            </h1>
-          )}
+              textShadow: '0 0 10px rgba(222, 24, 57, 0.8), 0 0 30px rgba(222, 24, 57, 0.4), 0 0 60px rgba(222, 24, 57, 0.2)',
+              opacity: phase === "logo" ? 0 : 1,
+              transform: phase === "logo" ? "scale(0.92)" : "scale(1)",
+              filter: phase === "logo" ? "blur(6px)" : "blur(0)",
+            }}
+          >
+            FORBIDDENS
+          </h1>
         </div>
 
         <p className="font-body text-sm sm:text-base text-foreground/80 max-w-lg">
