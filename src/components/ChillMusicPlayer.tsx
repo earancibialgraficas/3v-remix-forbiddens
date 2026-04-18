@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ArrowUp, ArrowDown, ListFilter } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Song {
   id: string;
@@ -16,6 +17,7 @@ interface Song {
 
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
+  const isMobile = useIsMobile();
   
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
@@ -25,7 +27,10 @@ export default function ChillMusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [expanded, setExpanded] = useState(false);
-  const [minimized, setMinimized] = useState(false);
+  
+  // 🔥 Por defecto: Mini si es celular, Grande si es PC
+  const [minimized, setMinimized] = useState(false); 
+  
   const [showAddSong, setShowAddSong] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
@@ -45,12 +50,15 @@ export default function ChillMusicPlayer() {
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playerReadyRef = useRef(false);
 
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // CARGA DE CANCIONES (ORDEN: LOFI -> METAL -> RAP)
+  // Actualiza el estado cuando detecta la pantalla
+  useEffect(() => {
+    setMinimized(isMobile);
+  }, [isMobile]);
+
   useEffect(() => {
     const fetchMusic = async () => {
       const folders = [
@@ -84,7 +92,6 @@ export default function ChillMusicPlayer() {
       setAllSongs(fetchedSongs);
       setPlaylist(fetchedSongs);
       
-      // Intentamos el Autoplay limpio al cargar
       if (fetchedSongs.length > 0) {
         setIsPlaying(true);
       }
@@ -106,7 +113,6 @@ export default function ChillMusicPlayer() {
     setShowCategoryMenu(false); 
   };
 
-  // CONTROL DEL MOTOR DE AUDIO
   useEffect(() => {
     if (!current) return;
     
@@ -115,11 +121,10 @@ export default function ChillMusicPlayer() {
         audioRef.current.volume = volume / 100;
         if (isPlaying) {
           audioRef.current.play().catch(e => {
-            // Si el navegador lo bloquea, simplemente pausamos el botón visualmente sin forzar nada más.
             setIsPlaying(false);
           });
         } else {
-          audioRef.current.pause(); // ¡Ahora la pausa sí será respetada!
+          audioRef.current.pause();
         }
       }
     } else if (current.type === 'youtube') {
@@ -141,7 +146,6 @@ export default function ChillMusicPlayer() {
     if (audioRef.current) audioRef.current.volume = volume / 100;
   }, [volume]);
 
-  // EVENTOS YOUTUBE
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data || current?.type !== 'youtube') return;
@@ -168,7 +172,6 @@ export default function ChillMusicPlayer() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [isPlaying, currentIndex, current]);
 
-  // EVENTOS LOCALES
   const handleLocalTimeUpdate = () => {
     if (audioRef.current && !isSeeking) setCurrentTime(audioRef.current.currentTime);
   };
@@ -181,7 +184,6 @@ export default function ChillMusicPlayer() {
     onPauseMusic(() => setIsPlaying(false));
   }, [onPauseMusic]);
 
-  // VISUALIZADOR ANIMADO
   useEffect(() => {
     const canvas = minimized ? miniCanvasRef.current : canvasRef.current;
     if (!canvas) return;
@@ -296,28 +298,41 @@ export default function ChillMusicPlayer() {
     />
   );
 
+  // VERSIÓN MINI (La que aparece en celular y se puede expandir)
   if (minimized) {
     return (
-      <>
+      <div className="w-full relative shadow-lg">
         {renderYT} {renderLocal}
-        <div className="bg-card border border-neon-cyan/30 rounded p-2 space-y-1">
-          <div className="flex items-center gap-2">
+        <div className="bg-card border border-neon-cyan/30 rounded p-2">
+          <div className="flex items-center gap-1.5">
+            
+            <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
+              <SkipBack className="w-3 h-3" />
+            </button>
             <button onClick={() => setIsPlaying(!isPlaying)} className="p-1 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors shrink-0">
               {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
             </button>
-            <canvas ref={miniCanvasRef} width={80} height={16} className="h-4 flex-1 rounded bg-muted/30" />
-            <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px]">{current?.title || "Cargando..."}</span>
-            <button onClick={() => setMinimized(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
-              <ChevronUp className="w-3 h-3" />
+            <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
+              <SkipForward className="w-3 h-3" />
+            </button>
+
+            <canvas ref={miniCanvasRef} width={60} height={16} className="h-4 flex-1 rounded bg-muted/30 ml-1" />
+            
+            <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
+            
+            {/* 🔥 Botón para Expandir el reproductor completo si el usuario quiere buscar su canción */}
+            <button onClick={() => setMinimized(false)} className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1">
+              <ChevronDown className="w-3 h-3" />
             </button>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
+  // VERSIÓN EXTENDIDA (Por defecto en PC, pero accesible en móvil si la abren)
   return (
-    <>
+    <div className="w-full relative shadow-lg">
       {renderYT} {renderLocal}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-visible relative">
         
@@ -328,8 +343,9 @@ export default function ChillMusicPlayer() {
               <Music className="w-3.5 h-3.5 text-neon-cyan" />
               <span className="font-pixel text-[8px] text-neon-cyan">FORBIDDENS PLAYER</span>
             </div>
+            {/* 🔥 Botón para Minimizar el reproductor */}
             <button onClick={() => setMinimized(true)} className="p-0.5 text-muted-foreground hover:text-foreground">
-              <ChevronDown className="w-3 h-3" />
+              <ChevronUp className="w-3 h-3" />
             </button>
           </div>
 
@@ -439,6 +455,6 @@ export default function ChillMusicPlayer() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
