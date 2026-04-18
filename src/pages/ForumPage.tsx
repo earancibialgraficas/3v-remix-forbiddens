@@ -692,6 +692,15 @@ export default function ForumPage() {
       )}
 
       {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
+
+      {reportTarget && (
+        <ReportModal
+          reportedUserId={reportTarget.userId}
+          reportedUserName={reportTarget.userName}
+          postId={reportTarget.postId}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
     </div>
   );
 }
