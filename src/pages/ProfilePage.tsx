@@ -14,6 +14,7 @@ import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
 import SignatureDisplay from "@/components/SignatureDisplay";
+import { useIsMobile } from "@/hooks/use-mobile"; // 🔥 Importamos el hook móvil
 
 const friendLimits: Record<string, number> = {
   novato: 25, entusiasta: 50, coleccionista: 100, "leyenda arcade": 200,
@@ -36,6 +37,7 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile(); // 🔥 Hook para detectar móvil
   const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -44,7 +46,6 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [signature, setSignature] = useState("");
-  // 🔥 FIX: Estado local para que el slider sea fluido
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,13 @@ export default function ProfilePage() {
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // 🔥 FIX: Si vienes del botón de Configuraciones del sidebar, activa el modo edición
+  useEffect(() => {
+    if (searchParams.get("edit") === "true") {
+      setEditing(true);
+    }
+  }, [searchParams]);
+
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
     setSearchParams({ tab });
@@ -84,7 +92,6 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       if (!editing) {
         setSignature((profile as any).signature || "");
-        // Sincronizamos el tamaño local con el de la DB al cargar
         setLocalSigFontSize((profile as any).signature_font_size || 13);
       }
       setAvatarBorderColor((profile as any).color_avatar_border || "");
@@ -161,7 +168,7 @@ export default function ProfilePage() {
       display_name: displayName, bio,
       instagram_url: instagram || null, youtube_url: youtube || null, tiktok_url: tiktok || null,
       signature: signature.trim() || null,
-      signature_font_size: localSigFontSize // 🔥 Aseguramos que guarde el tamaño elegido
+      signature_font_size: localSigFontSize
     } as any).eq("user_id", user.id);
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -260,7 +267,7 @@ export default function ProfilePage() {
           membershipTier={tier}
           isStaff={isStaff || isMod}
           onSelect={handleAvatarSelect}
-          onUpload={(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) ? handleAvatarUpload : undefined}
+          onUpload={(isStaff || iMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) ? handleAvatarUpload : undefined}
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
@@ -273,7 +280,8 @@ export default function ProfilePage() {
       )}
 
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
-        <div className="flex items-start gap-4">
+        {/* 🔥 FIX: Cambiada la clase del contenedor para que en móvil y modo edición se ponga la imagen arriba */}
+        <div className={cn("flex gap-4", isMobile && editing ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
               {profile?.avatar_url ? (
@@ -286,36 +294,41 @@ export default function ProfilePage() {
               <Edit2 className="w-4 h-4 text-foreground" />
             </div>
           </button>
-          <div className="flex-1 min-w-0">
+          
+          <div className="flex-1 min-w-0 w-full">
             {editing ? (
               <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                   <h3 className="font-pixel text-[10px] text-neon-cyan">AJUSTES DE PERFIL</h3>
+                   <button onClick={() => { setEditing(false); setSearchParams({}); }} className="text-muted-foreground hover:text-foreground text-xs underline">Cerrar</button>
+                </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Nombre</label>
-                  <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="h-8 bg-muted text-sm font-body" />
+                  <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="h-8 bg-muted text-sm font-body w-full" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Bio</label>
-                  <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="bg-muted text-sm font-body min-h-[60px]" placeholder="Cuéntanos sobre ti..." />
+                  <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="bg-muted text-sm font-body min-h-[60px] w-full" placeholder="Cuéntanos sobre ti..." />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Instagram URL</label>
-                  <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                  <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">YouTube URL</label>
-                  <Input value={youtube} onChange={(e) => setYoutube(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                  <Input value={youtube} onChange={(e) => setYoutube(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">TikTok URL</label>
-                  <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                  <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
                 </div>
                 <div>
                   <label className="text-[10px] font-body text-muted-foreground block mb-0.5">Contraseña (dejar vacío para no cambiar)</label>
-                  <Input type="password" placeholder="Nueva contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+                  <Input type="password" placeholder="Nueva contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
                 </div>
                 {(tier !== "novato" || isStaff || isMod) && (() => {
                   const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
-                  const sigFontSize = localSigFontSize; // 🔥 Usamos el estado local fluido
+                  const sigFontSize = localSigFontSize;
                   const sigColor = (profile as any)?.signature_color || "#facc15";
                   const sigStroke = (profile as any)?.signature_stroke_color || "";
                   const sigStrokeWidth = (profile as any)?.signature_stroke_width ?? 1;
@@ -328,7 +341,6 @@ export default function ProfilePage() {
                   const sigOverImage = (profile as any)?.signature_text_over_image ?? false;
                   const canAdvanced = isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier);
                   
-                  // 🔥 Función de guardado optimizada (Debounce)
                   const updateSig = (patch: Record<string, any>) => {
                     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
                     (window as any).__sigUpdateTimer = setTimeout(() => {
@@ -348,7 +360,7 @@ export default function ProfilePage() {
                           setSignature(v);
                           updateSig({ signature: v.trim() || null });
                         }}
-                        className="h-8 bg-muted text-xs font-body"
+                        className="h-8 bg-muted text-xs font-body w-full"
                         placeholder={`— ${profile?.display_name} [${displayTier}]`}
                         maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
                       />
@@ -380,7 +392,6 @@ export default function ProfilePage() {
                             </div>
                           </div>
 
-                          {/* 🔥 FIX: Slider fluido para el tamaño de letra */}
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Tamaño de letra: {sigFontSize}px</label>
                             <input
@@ -391,8 +402,8 @@ export default function ProfilePage() {
                               value={sigFontSize}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value, 10);
-                                setLocalSigFontSize(val); // Cambio visual instantáneo
-                                updateSig({ signature_font_size: val }); // Guardado en DB debounced
+                                setLocalSigFontSize(val);
+                                updateSig({ signature_font_size: val });
                               }}
                               className="w-full h-7 cursor-pointer accent-primary"
                             />
@@ -474,7 +485,7 @@ export default function ProfilePage() {
                             <Input
                               value={sigImageUrl}
                               onChange={(e) => updateSig({ signature_image_url: e.target.value || null })}
-                              className="h-7 bg-muted text-[10px] font-body"
+                              className="h-7 bg-muted text-[10px] font-body w-full"
                               placeholder="https://ejemplo.com/firma.png o .gif"
                             />
                           </div>
@@ -522,7 +533,7 @@ export default function ProfilePage() {
                             </>
                           )}
                           <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20">
-                            <p className="text-[9px] font-body text-muted-foreground mb-1">Vista previa (igual que en posts):</p>
+                            <p className="text-[9px] font-body text-muted-foreground mb-1 text-center">Vista previa (igual que en posts):</p>
                             <SignatureDisplay
                               text={signature || `— ${profile?.display_name} [${displayTier}]`}
                               profile={previewProfile}
@@ -531,25 +542,25 @@ export default function ProfilePage() {
                           </div>
                         </>
                       )}
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-[9px] text-muted-foreground text-center">
                         {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres + estilos" : "Máx. 200 caracteres + diseño completo"}
                       </p>
                     </div>
                   );
                 })()}
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">{saving ? "Guardando..." : "Guardar"}</Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="text-xs">Cancelar</Button>
+                <div className="flex gap-2 w-full">
+                  <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs flex-1">{saving ? "Guardando..." : "Guardar"}</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setEditing(false); setSearchParams({}); }} className="text-xs flex-1">Cancelar</Button>
                 </div>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className={cn("flex items-center gap-2 flex-wrap", isMobile && "justify-center")}>
                   <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</h2>
                   <RoleBadge roles={roles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
                 </div>
-                <p className="text-xs text-muted-foreground font-body mt-1">{profile?.bio || "Sin descripción"}</p>
-                <div className="flex flex-wrap items-center gap-3 mt-2">
+                <p className={cn("text-xs text-muted-foreground font-body mt-1", isMobile && "text-center")}>{profile?.bio || "Sin descripción"}</p>
+                <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile && "justify-center")}>
                   {(isStaff || isMod) ? (
                     <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}>
                       <Shield className="w-3 h-3" /> {isMasterWeb || isAdmin ? "DIOS TODOPODEROSO" : "MÍTICO"}
@@ -570,13 +581,13 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 {(profile?.instagram_url || profile?.youtube_url || profile?.tiktok_url) && (
-                  <div className="flex gap-3 mt-2">
+                  <div className={cn("flex gap-3 mt-2", isMobile && "justify-center")}>
                     {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener" className="text-neon-magenta hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Instagram className="w-3.5 h-3.5" /> Instagram</a>}
                     {profile?.youtube_url && <a href={profile.youtube_url} target="_blank" rel="noopener" className="text-destructive hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Youtube className="w-3.5 h-3.5" /> YouTube</a>}
                     {profile?.tiktok_url && <a href={profile.tiktok_url} target="_blank" rel="noopener" className="text-neon-cyan hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Globe className="w-3.5 h-3.5" /> TikTok</a>}
                   </div>
                 )}
-                <div className="flex gap-2 mt-3 flex-wrap">
+                <div className={cn("flex gap-2 mt-3 flex-wrap", isMobile && "justify-center")}>
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar Perfil</Button>
                   
                   {!(isStaff || isMod) && (
@@ -888,7 +899,6 @@ export default function ProfilePage() {
   );
 }
 
-// ... Resto de componentes (ModerationPanel, ModeratorList, etc) sin cambios.
 function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
   const { toast } = useToast();
   const [banEmail, setBanEmail] = useState("");
@@ -947,8 +957,8 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     <div className="space-y-4">
       <div className="bg-card border border-destructive/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> BANEAR / SUSPENDER</h3>
-        <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-        <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+        <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
+        <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
         <div>
           <label className="text-[10px] font-body text-muted-foreground block mb-1">Duración del baneo:</label>
           <div className="flex flex-wrap gap-1.5">
@@ -976,7 +986,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
       {isMasterWeb && (
         <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Shield className="w-3 h-3" /> ASIGNAR ROLES</h3>
-          <Input placeholder="Nombre de usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+          <Input placeholder="Nombre de usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
           <div className="flex gap-2">
             <Button size="sm" onClick={handleAssignMod} className="text-xs">Asignar Moderador</Button>
             <Button size="sm" variant="outline" onClick={async () => {
@@ -996,7 +1006,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
       {isStaff && (
         <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-neon-yellow flex items-center gap-1"><Star className="w-3 h-3" /> GESTIONAR MEMBRESÍAS</h3>
-          <Input placeholder="Nombre de usuario" value={membershipSearch} onChange={e => setMembershipSearch(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+          <Input placeholder="Nombre de usuario" value={membershipSearch} onChange={e => setMembershipSearch(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
           <div className="flex flex-wrap gap-1.5">
             {membershipTiers.map(t => (
               <button key={t} onClick={() => setSelectedTier(t)}
@@ -1060,7 +1070,7 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
       {expanded && (
         <div className="space-y-1.5">
           {moderators.length === 0 ? (
-            <p className="text-xs text-muted-foreground font-body">No hay moderadores asignados</p>
+            <p className="text-xs text-muted-foreground font-body text-center">No hay moderadores asignados</p>
           ) : moderators.map(m => (
             <div key={m.role_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
               <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0">
@@ -1135,7 +1145,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
 
   return (
     <div className="space-y-3">
-      <div className="bg-card border border-border rounded p-4 space-y-3">
+      <div className="bg-card border border-border rounded p-4 space-y-3 text-center">
         <h3 className="font-pixel text-[10px] text-muted-foreground">PERFILES VINCULADOS</h3>
         <div className="space-y-2">
           {[
@@ -1143,7 +1153,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
             { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No vinculado" },
             { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No vinculado" },
           ].map((s, i) => (
-            <div key={i} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+            <div key={i} className="flex items-center gap-2 p-2 bg-muted/30 rounded text-left">
               <s.icon className={cn("w-4 h-4", s.url ? s.color : "text-muted-foreground")} />
               <span className="text-xs font-body text-foreground flex-1">{s.label}</span>
               {s.url ? (
@@ -1154,21 +1164,21 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
             </div>
           ))}
         </div>
-        <Button size="sm" variant="outline" onClick={onEditNetworks} className="text-xs"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
+        <Button size="sm" variant="outline" onClick={onEditNetworks} className="text-xs w-full"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
       </div>
 
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Plus className="w-3 h-3" /> AGREGAR CONTENIDO</h3>
-        <Input placeholder="URL del video/post (YouTube, Instagram, TikTok...)" value={newUrl} onChange={e => { setNewUrl(e.target.value); setNewPlatform(detectPlatform(e.target.value)); }} className="h-8 bg-muted text-xs font-body" />
-        <Input placeholder="Título (opcional)" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-        <div className="flex items-center gap-3">
+        <Input placeholder="URL del video/post (YouTube, Instagram, TikTok...)" value={newUrl} onChange={e => { setNewUrl(e.target.value); setNewPlatform(detectPlatform(e.target.value)); }} className="h-8 bg-muted text-xs font-body w-full" />
+        <Input placeholder="Título (opcional)" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
+        <div className="flex items-center justify-between gap-3">
           <button onClick={() => setNewPublic(!newPublic)} className="flex items-center gap-1 text-xs font-body">
             {newPublic ? <Eye className="w-3 h-3 text-neon-green" /> : <EyeOff className="w-3 h-3 text-muted-foreground" />}
             {newPublic ? "Público" : "Privado"}
           </button>
           <span className="text-[10px] text-muted-foreground font-body">Plataforma: {newPlatform}</span>
         </div>
-        <Button size="sm" onClick={handleAdd} disabled={adding || !newUrl.trim()} className="text-xs">
+        <Button size="sm" onClick={handleAdd} disabled={adding || !newUrl.trim()} className="text-xs w-full">
           {adding ? "Agregando..." : "Agregar"}
         </Button>
       </div>
@@ -1176,10 +1186,10 @@ function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; use
       <div className="bg-card border border-border rounded p-4 space-y-2">
         <h3 className="font-pixel text-[10px] text-muted-foreground">MI CONTENIDO ({contents.length})</h3>
         {contents.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">No has agregado contenido aún</p>
+          <p className="text-xs text-muted-foreground font-body text-center py-4">No has agregado contenido aún</p>
         ) : (
           contents.map(c => (
-            <div key={c.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded group">
+            <div key={c.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded group text-left">
               {platformIcon(c.platform)}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-body text-foreground truncate">{c.title || c.content_url}</p>
@@ -1292,11 +1302,11 @@ function FriendsTab({ userId }: { userId: string }) {
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Search className="w-3 h-3" /> BUSCAR USUARIOS</h3>
         <div className="flex gap-1">
-          <Input placeholder="Buscar por nombre de usuario..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} className="h-7 bg-muted text-xs font-body flex-1" />
+          <Input placeholder="Buscar por nombre de usuario..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} className="h-7 bg-muted text-xs font-body flex-1 w-full" />
           <Button size="sm" variant="ghost" onClick={handleSearch} className="h-7 w-7 p-0"><Search className="w-3 h-3" /></Button>
         </div>
         {searchResults.length > 0 && (
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          <div className="space-y-1.5 max-h-40 overflow-y-auto text-left">
             {searchResults.map((r: any) => (
               <div key={r.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
                 <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(r.color_avatar_border)}>
@@ -1315,15 +1325,17 @@ function FriendsTab({ userId }: { userId: string }) {
       {pendingReceived.length > 0 && (
         <div className="bg-card border border-neon-yellow/30 rounded p-4">
           <h3 className="font-pixel text-[10px] text-neon-yellow mb-3">SOLICITUDES PENDIENTES ({pendingReceived.length})</h3>
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             {pendingReceived.map((req: any) => (
               <div key={req.id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
                 <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                   {req.profile?.avatar_url ? <img src={req.profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
                 </div>
-                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary" style={getNameStyle(req.profile?.color_name)}>{req.profile?.display_name || "Usuario"}</Link>
-                <Button size="sm" onClick={() => acceptRequest(req.id, req.sender_id)} className="text-[10px] h-6 px-2">Aceptar</Button>
-                <Button size="sm" variant="outline" onClick={() => rejectRequest(req.id)} className="text-[10px] h-6 px-2">Rechazar</Button>
+                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary truncate" style={getNameStyle(req.profile?.color_name)}>{req.profile?.display_name || "Usuario"}</Link>
+                <div className="flex gap-1 shrink-0">
+                   <Button size="sm" onClick={() => acceptRequest(req.id, req.sender_id)} className="text-[10px] h-6 px-2">Aceptar</Button>
+                   <Button size="sm" variant="outline" onClick={() => rejectRequest(req.id)} className="text-[10px] h-6 px-2">Rechazar</Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1331,11 +1343,11 @@ function FriendsTab({ userId }: { userId: string }) {
       )}
 
       <div className="bg-card border border-border rounded p-4">
-        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS AMIGOS ({friends.length})</h3>
+        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center">MIS AMIGOS ({friends.length})</h3>
         {friends.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
+          <p className="text-xs text-muted-foreground font-body text-center py-4">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             {friends.map((f: any) => {
               const roles = friendRoles[f.user_id] || [];
               const staffLabel = getStaffLabel(roles);
@@ -1344,18 +1356,20 @@ function FriendsTab({ userId }: { userId: string }) {
                   <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(f.color_avatar_border)}>
                     {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
                   </div>
-                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary" style={getNameStyle(f.color_name)}>{f.display_name}</Link>
-                  {staffLabel ? (
-                    <span className="text-[9px] font-pixel text-neon-magenta" style={getRoleStyle(f.color_staff_role)}>{staffLabel}</span>
-                  ) : (
-                    <span className="text-[9px] font-pixel text-neon-yellow" style={getRoleStyle(f.color_role)}>{f.membership_tier?.toUpperCase()}</span>
-                  )}
-                  <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
-                    <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
-                  </Button>
-                  <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">
-                    <UserMinus className="w-3 h-3" />
-                  </button>
+                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary truncate" style={getNameStyle(f.color_name)}>{f.display_name}</Link>
+                  <div className="flex items-center gap-2">
+                     {staffLabel ? (
+                       <span className="text-[9px] font-pixel text-neon-magenta" style={getRoleStyle(f.color_staff_role)}>{staffLabel}</span>
+                     ) : (
+                       <span className="text-[9px] font-pixel text-neon-yellow" style={getRoleStyle(f.color_role)}>{f.membership_tier?.toUpperCase()}</span>
+                     )}
+                     <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
+                       <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
+                     </Button>
+                     <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px] shrink-0">
+                       <UserMinus className="w-3 h-3" />
+                     </button>
+                  </div>
                 </div>
               );
             })}

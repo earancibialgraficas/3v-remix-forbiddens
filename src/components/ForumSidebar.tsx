@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
@@ -77,6 +77,8 @@ const navItems: NavItem[] = [
   { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },
   { label: "Discord", icon: Users, to: "https://discord.gg/ZHNRKVUfVF", color: "text-[#5865F2]" },
+  // 🔥 FIX: Añadido botón de Configuraciones que apunta al modo edición del perfil
+  { label: "Configuraciones", icon: Settings, to: "/perfil?edit=true", color: "text-muted-foreground" },
 ];
 
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -180,10 +182,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         document.body
       )}
 
-      {/* 🔥 FIX: Agrandamos la barra lateral a xl:w-64 para monitores gigantes */}
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60 xl:w-64")}>
         
-        {/* LOGO SECTION */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -199,13 +199,11 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                  ))}
                </div>
              ) : (
-               /* 🔥 FIX: Agrandamos la fuente del título a text-[12px] en XL */
                <span className="font-pixel text-[10px] xl:text-[12px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
              )}
           </Link>
         </div>
 
-        {/* PROFILE & MESSAGES SECTION */}
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
@@ -238,7 +236,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           
           {!collapsed && user && (
             <div className="flex items-center justify-between w-full gap-2 mt-1">
-              {/* 🔥 FIX: Agrandamos la fuente del usuario a text-[10px] en XL */}
               <span className="font-pixel text-[9px] xl:text-[10px] text-neon-green truncate max-w-[90px] xl:max-w-[110px] uppercase" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
                 {profile?.display_name || "..."}
               </span>
@@ -249,9 +246,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           )}
         </div>
 
-        {/* NAVEGACIÓN */}
         <nav className="flex-1 overflow-y-auto p-1.5 retro-scrollbar">
-          {/* 🔥 FIX: Agregamos flex-col min-h-full para que el último botón pueda empujarse hacia abajo */}
           <div className="flex flex-col min-h-full space-y-0.5 xl:space-y-1">
             {navItems.map((item, i) => {
               const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
@@ -306,16 +301,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                   >
                     {item.to && !hasChildren ? (
                       <Link to={item.to} className="flex items-center gap-2.5 w-full">
-                        {/* 🔥 FIX: Íconos más grandes en XL */}
                         <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
-                        {/* 🔥 FIX: Letra más grande en XL */}
                         <span className="font-body text-xs xl:text-sm flex-1 text-left">{item.label}</span>
                       </Link>
                     ) : (
                       <>
-                        {/* 🔥 FIX: Íconos más grandes en XL */}
                         <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
-                        {/* 🔥 FIX: Letra más grande en XL */}
                         <span className="font-body text-xs xl:text-sm flex-1 text-left">{item.label}</span>
                         {hasChildren && (isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />)}
                       </>
