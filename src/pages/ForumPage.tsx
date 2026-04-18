@@ -605,10 +605,11 @@ export default function ForumPage() {
                               </button>
                             )}
                             {user && comment.user_id !== user.id && (
-                              <button onClick={async () => {
-                                await supabase.from("reports").insert({ reporter_id: user.id, post_id: comment.post_id, reported_user_id: comment.user_id, reason: "Comentario inapropiado" } as any);
-                                toast({ title: "Comentario reportado" });
-                              }} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
+                              <button onClick={() => setReportTarget({
+                                userId: comment.user_id,
+                                userName: comment.profile?.display_name || "Anónimo",
+                                postId: comment.post_id,
+                              })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
                                 <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
                               </button>
                             )}
