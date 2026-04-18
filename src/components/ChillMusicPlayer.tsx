@@ -49,11 +49,15 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 🔥 1. CARGAR ESTADO GUARDADO (LocalStorage)
+  // 🔥 1. CARGAR ESTADO GUARDADO (LocalStorage con CATEGORÍA INCLUIDA)
   useEffect(() => {
+    const savedCat = localStorage.getItem('forbiddens_music_category');
     const savedIndex = localStorage.getItem('forbiddens_music_index');
     const savedTime = localStorage.getItem('forbiddens_music_time');
     
+    if (savedCat !== null) {
+      setCurrentCategory(savedCat);
+    }
     if (savedIndex !== null) {
       setCurrentIndex(parseInt(savedIndex));
     }
@@ -64,16 +68,17 @@ export default function ChillMusicPlayer() {
     setIsLoadedFromStorage(true);
   }, []);
 
-  // 🔥 2. GUARDAR PROGRESO PERIÓDICAMENTE
+  // 🔥 2. GUARDAR PROGRESO PERIÓDICAMENTE (Añadimos currentCategory)
   useEffect(() => {
     const timer = setInterval(() => {
       if (isPlaying && currentTime > 0) {
+        localStorage.setItem('forbiddens_music_category', currentCategory);
         localStorage.setItem('forbiddens_music_index', currentIndex.toString());
         localStorage.setItem('forbiddens_music_time', currentTime.toString());
       }
-    }, 2000); // Guarda cada 2 segundos
+    }, 2000); 
     return () => clearInterval(timer);
-  }, [isPlaying, currentIndex, currentTime]);
+  }, [isPlaying, currentIndex, currentTime, currentCategory]);
 
   // 🔥 3. SINCRONIZACIÓN CON PANEL MÓVIL
   useEffect(() => {
@@ -120,12 +125,18 @@ export default function ChillMusicPlayer() {
         }
       }
       setAllSongs(fetchedSongs);
-      setPlaylist(fetchedSongs);
+
+      // 🔥 Aplicamos la playlist basándonos en la categoría guardada
+      const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
+      if (savedCat !== "Todos") {
+        setPlaylist(fetchedSongs.filter(s => s.category === savedCat));
+      } else {
+        setPlaylist(fetchedSongs);
+      }
     };
     fetchMusic();
   }, []);
 
-  // Aplicar tiempo guardado al cargar canción local
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
@@ -172,7 +183,6 @@ export default function ChillMusicPlayer() {
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
-        // Si es YT y tenemos tiempo guardado, saltamos al segundo
         if (isLoadedFromStorage && currentTime > 0) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [currentTime, true] }), '*');
         }

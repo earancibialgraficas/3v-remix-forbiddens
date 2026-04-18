@@ -23,11 +23,9 @@ export default function MainLayout() {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // 🔥 SINCRONIZAR REPRODUCTOR AL ABRIR/CERRAR PANEL
   const toggleMobileRight = () => {
     const nextState = !mobileRightOpen;
     setMobileRightOpen(nextState);
-    // Enviamos una señal al reproductor para que se expanda o minimice
     window.dispatchEvent(new CustomEvent("syncMusicPlayer", { detail: { open: nextState } }));
   };
 
@@ -41,7 +39,7 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className="flex bg-background text-foreground w-full min-h-screen">
+    <div className="flex bg-background text-foreground w-full min-h-screen relative">
       <div className="hidden md:block sticky top-0 h-screen">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
@@ -77,7 +75,8 @@ export default function MainLayout() {
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            mobileRightOpen ? "h-[80vh]" : "h-[105px]"
+            // 🔥 Ajuste a h-[96px] para cerrar el hueco.
+            mobileRightOpen ? "h-[80vh]" : "h-[96px]"
           )}>
             <button 
               onClick={toggleMobileRight}
@@ -87,8 +86,9 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
+            {/* 🔥 Cambié el p-3 por px-3 pt-1.5 pb-3 para jalar el reproductor hacia arriba */}
             <div className={cn(
-              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar p-3",
+              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1.5 pb-3",
               mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
             )}>
               <div className="pointer-events-auto">
@@ -102,10 +102,8 @@ export default function MainLayout() {
       <NavigationButtons />
       <GameBubble />
       
-      {/* 🔥 REUBICACIÓN DEL CHAT: He envuelto la burbuja en un div con posición absoluta para moverla si es necesario */}
-      <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-[90]">
-        <FloatingChat />
-      </div>
+      {/* 🔥 Burbuja de chat liberada, ella misma controlará su posición */}
+      <FloatingChat />
     </div>
   );
 }

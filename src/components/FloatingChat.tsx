@@ -51,6 +51,54 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // 🔥 ESTADOS PARA EL ARRASTRE (DRAG & DROP)
+  const [pos, setPos] = useState({ 
+    x: 20, 
+    y: typeof window !== 'undefined' ? window.innerHeight - 100 : 800 
+  });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPos(prev => ({
+        x: Math.min(prev.x, window.innerWidth - 60),
+        y: Math.min(prev.y, window.innerHeight - 60)
+      }));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+    hasMoved.current = false;
+    dragStart.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    hasMoved.current = true;
+    const newX = Math.max(0, Math.min(e.clientX - dragStart.current.x, window.innerWidth - 48)); 
+    const newY = Math.max(0, Math.min(e.clientY - dragStart.current.y, window.innerHeight - 48));
+    setPos({ x: newX, y: newY });
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    isDragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const handleBubbleClick = () => {
+    if (!hasMoved.current) {
+      setIsOpen(true);
+      setMinimized(false);
+      loadFriends();
+    }
+  };
+
   const loadFriends = async () => {
     if (!user) return;
     const { data: sent } = await supabase.from("friend_requests").select("receiver_id").eq("sender_id", user.id).eq("status", "accepted");
@@ -169,12 +217,16 @@ export default function FloatingChat() {
 
   if (!user) return null;
 
-  // Minimized icon — bottom LEFT (no maximize button)
+  // Burbuja Minimizada y Arrastrable
   if (!isOpen || minimized) {
     return (
       <button
-        onClick={() => { setIsOpen(true); setMinimized(false); loadFriends(); }}
-        className="fixed bottom-4 left-4 z-[250] w-12 h-12 bg-neon-cyan/20 border-2 border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-neon-cyan/30 transition-colors animate-scale-in"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onClick={handleBubbleClick}
+        style={{ left: pos.x, top: pos.y, touchAction: 'none' }}
+        className="fixed z-[250] w-12 h-12 bg-neon-cyan/20 border-2 border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-neon-cyan/30 transition-colors animate-scale-in cursor-grab active:cursor-grabbing"
       >
         <MessageSquare className="w-5 h-5 text-neon-cyan" />
         {unreadCount > 0 && (
@@ -186,14 +238,27 @@ export default function FloatingChat() {
     );
   }
 
-  // Open chat window — no maximize button
+  // Ventana de Chat Abierta
+  // Mantenemos la ventana anclada a la posición de la burbuja, pero aseguramos que no se salga de la pantalla
+  const windowX = typeof window !== 'undefined' ? Math.min(pos.x, window.innerWidth - 320 - 16) : pos.x;
+  const windowY = typeof window !== 'undefined' ? Math.min(pos.y, window.innerHeight - 448 - 16) : pos.y;
+
   return (
-    <div className="fixed bottom-4 left-4 z-[250] w-80 h-[28rem] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
+    <div 
+      style={{ left: windowX, top: windowY }}
+      className="fixed z-[250] w-80 h-[28rem] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-scale-in"
+    >
+      {/* Header Arrastrable */}
+      <div 
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        style={{ touchAction: 'none' }}
+        className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border shrink-0 cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex items-center gap-2 pointer-events-none">
           {partnerId && (
-            <button onClick={() => { setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground">
+            <button onClick={(e) => { e.stopPropagation(); setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground pointer-events-auto">
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
           )}
@@ -204,14 +269,14 @@ export default function FloatingChat() {
         </div>
         <div className="flex items-center gap-1">
           {partnerId && (
-            <button onClick={cycleFontSize} className="p-1 text-muted-foreground hover:text-foreground" title={`Tamaño: ${fontSize}px`}>
+            <button onClick={(e) => { e.stopPropagation(); cycleFontSize(); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title={`Tamaño: ${fontSize}px`}>
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onClick={() => setMinimized(true)} className="p-1 text-muted-foreground hover:text-foreground" title="Minimizar">
+          <button onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          <button onClick={() => { setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground">
+          <button onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
             <X className="w-3 h-3" />
           </button>
         </div>
