@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
@@ -16,6 +16,9 @@ export default function MainLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   
+  // 🔥 Referencia al contenedor que hace scroll en el móvil
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  
   const isMobile = useIsMobile();
   const location = useLocation();
 
@@ -26,6 +29,12 @@ export default function MainLayout() {
   const toggleMobileRight = () => {
     const nextState = !mobileRightOpen;
     setMobileRightOpen(nextState);
+    
+    // 🔥 Si se cierra la barra, reinicia el scroll arriba al instante
+    if (!nextState && mobileScrollRef.current) {
+      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
     window.dispatchEvent(new CustomEvent("syncMusicPlayer", { detail: { open: nextState } }));
   };
 
@@ -85,10 +94,14 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
-            <div className={cn(
-              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
-              mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
-            )}>
+            {/* 🔥 Conectamos el ref a este div que maneja el contenido interior */}
+            <div 
+              ref={mobileScrollRef}
+              className={cn(
+                "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
+                mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
+              )}
+            >
               <div className="pointer-events-auto">
                  <RightPanel />
               </div>
