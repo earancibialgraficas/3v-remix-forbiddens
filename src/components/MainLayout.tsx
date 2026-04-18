@@ -63,16 +63,18 @@ export default function MainLayout() {
           </div>
           
           {/* PANEL DERECHO ESCRITORIO */}
-          <div className="hidden lg:block w-72 shrink-0">
-            <RightPanel />
-          </div>
+          {/* 🔥 EL FIX: Evitamos que React ejecute el panel fantasma en celulares */}
+          {!isMobile && (
+            <div className="hidden lg:block w-72 shrink-0">
+              <RightPanel />
+            </div>
+          )}
         </div>
 
         {/* PANEL DERECHO MÓVIL */}
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            // 🔥 Ajustamos la altura de colapso a 105px para que se vea el INFO y el mini-reproductor
             mobileRightOpen ? "h-[80vh]" : "h-[105px]"
           )}>
             <button 
@@ -83,12 +85,10 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
-            {/* 🔥 Siempre renderizamos RightPanel para no cortar la música, pero ocultamos el overflow si está cerrado */}
             <div className={cn(
               "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar p-3",
-              mobileRightOpen ? "" : "overflow-hidden pointer-events-none" // pointer-events-none previene scroll accidental cuando está cerrado
+              mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
             )}>
-              {/* Le pasamos un div interno que siempre permita clics para el reproductor */}
               <div className="pointer-events-auto">
                  <RightPanel />
               </div>

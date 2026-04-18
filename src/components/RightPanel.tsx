@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile"; // 🔥 Importamos tu detector
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
@@ -23,7 +23,7 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 
 export default function RightPanel() {
   const { user } = useAuth();
-  const isMobile = useIsMobile(); // 🔥 Lo inicializamos aquí
+  const isMobile = useIsMobile();
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
@@ -85,10 +85,8 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    // 🔥 Convertimos el contenedor principal en un flex col y le damos más altura en PC (100vh - 24px)
     <div className="w-full shrink-0 flex flex-col h-full md:h-[calc(100vh-24px)]">
       
-      {/* 🔥 CABECERA ESCRITORIO: La sacamos del scroll y la ocultamos en móvil */}
       {!isMobile && (
         <div className="flex items-center justify-end gap-1 bg-background z-40 py-1 mb-2 shrink-0">
           {!isHome && (
@@ -104,9 +102,7 @@ export default function RightPanel() {
         </div>
       )}
 
-      {/* Zona con Scroll y Sombras Neón */}
       <div className="relative flex-1 min-h-0 overflow-hidden">
-        {/* Sombras Neón (Ahora solo aplican al contenido scrolleable, no a la cabecera) */}
         <div className={cn("absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500", showTopShadow ? "opacity-100" : "opacity-0")} />
         <div className={cn("absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500", showBottomShadow ? "opacity-100" : "opacity-0")} />
 
@@ -115,7 +111,6 @@ export default function RightPanel() {
           onScroll={handleScroll}
           className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
         >
-          {/* 🔥 MAGIA REACT: Solo se renderiza aquí arriba si es un Celular */}
           {isMobile && (
             <div className="mb-3 relative z-30 animate-fade-in pointer-events-auto mt-2">
               <ChillMusicPlayer />
@@ -167,9 +162,7 @@ export default function RightPanel() {
             </div>
           </div>
 
-          {/* Footer y Reproductor de PC */}
           <div className="mt-6 pt-4 border-t border-border space-y-4">
-            {/* 🔥 MAGIA REACT: Solo se renderiza aquí abajo si es un PC */}
             {!isMobile && <ChillMusicPlayer />}
             <Footer />
           </div>
