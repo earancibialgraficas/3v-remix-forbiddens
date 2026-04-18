@@ -113,7 +113,7 @@ export default function RightPanel() {
 
         {/* 🔥 MAGIA REACT: Solo se renderiza aquí arriba si es un Celular */}
         {isMobile && (
-          <div className="mb-3 relative z-30 animate-fade-in">
+          <div className="mb-3 relative z-30 animate-fade-in pointer-events-auto">
             <ChillMusicPlayer />
           </div>
         )}

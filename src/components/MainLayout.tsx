@@ -24,6 +24,13 @@ export default function MainLayout() {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
+  // 🔥 Escuchamos al reproductor: Si lo expanden, abrimos el panel completo
+  useEffect(() => {
+    const handleOpenPanel = () => setMobileRightOpen(true);
+    window.addEventListener("openMobilePanel", handleOpenPanel);
+    return () => window.removeEventListener("openMobilePanel", handleOpenPanel);
+  }, []);
+
   return (
     <div className="flex bg-background text-foreground w-full min-h-screen">
       {/* SIDEBAR ESCRITORIO */}
@@ -64,21 +71,28 @@ export default function MainLayout() {
         {/* PANEL DERECHO MÓVIL */}
         {isMobile && (
           <div className={cn(
-            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all",
-            mobileRightOpen ? "h-[60vh]" : "h-12"
+            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
+            // 🔥 Ajustamos la altura de colapso a 105px para que se vea el INFO y el mini-reproductor
+            mobileRightOpen ? "h-[80vh]" : "h-[105px]"
           )}>
             <button 
               onClick={() => setMobileRightOpen(!mobileRightOpen)}
-              className="w-full h-12 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground"
+              className="w-full h-10 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground border-b border-border/30 shrink-0"
             >
-              {mobileRightOpen ? <ChevronDown /> : <ChevronUp />}
+              {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               INFO & COMUNIDAD
             </button>
-            {mobileRightOpen && (
-              <div className="p-4 h-[calc(60vh-3rem)] overflow-y-auto">
-                <RightPanel />
+            
+            {/* 🔥 Siempre renderizamos RightPanel para no cortar la música, pero ocultamos el overflow si está cerrado */}
+            <div className={cn(
+              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar p-3",
+              mobileRightOpen ? "" : "overflow-hidden pointer-events-none" // pointer-events-none previene scroll accidental cuando está cerrado
+            )}>
+              {/* Le pasamos un div interno que siempre permita clics para el reproductor */}
+              <div className="pointer-events-auto">
+                 <RightPanel />
               </div>
-            )}
+            </div>
           </div>
         )}
       </main>

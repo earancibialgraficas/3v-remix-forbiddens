@@ -321,7 +321,13 @@ export default function ChillMusicPlayer() {
             <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
             
             {/* 🔥 Botón para Expandir el reproductor completo si el usuario quiere buscar su canción */}
-            <button onClick={() => setMinimized(false)} className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1">
+            <button 
+              onClick={() => { 
+                setMinimized(false); 
+                window.dispatchEvent(new Event("openMobilePanel")); 
+              }} 
+              className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1"
+            >
               <ChevronDown className="w-3 h-3" />
             </button>
           </div>
