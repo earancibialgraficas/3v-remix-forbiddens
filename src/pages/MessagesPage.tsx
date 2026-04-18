@@ -123,6 +123,9 @@ export default function MessagesPage() {
     
     // Actualizamos localmente para feedback instantáneo
     setConversations(prev => prev.map(c => c.partnerId === partnerId ? { ...c, unread: 0 } : c));
+    
+    // 🔥 MAGIA AQUÍ: Disparamos una alarma invisible para apagar el número rojo del sobre de inmediato
+    window.dispatchEvent(new Event("updateBadges"));
   };
 
   const handleSend = async () => {

@@ -88,7 +88,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 1. Contador de Mensajes Públicos (CON LISTENER EN TIEMPO REAL)
+  // 1. Contador de Mensajes Públicos (CON LISTENER EN TIEMPO REAL E INSTANTÁNEO)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -103,6 +103,9 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
     fetchInboxCount();
 
+    // 🔥 ESCUCHAMOS EL EVENTO INVISIBLE PARA APAGAR EL SOBRE AL INSTANTE
+    window.addEventListener("updateBadges", fetchInboxCount);
+
     // Suscripción para detectar cuando llega un mensaje o se marca como leído
     const channel = supabase
       .channel(`sidebar-inbox-${user.id}`)
@@ -114,10 +117,13 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
       }, () => fetchInboxCount())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      window.removeEventListener("updateBadges", fetchInboxCount);
+      supabase.removeChannel(channel); 
+    };
   }, [user?.id]);
 
-  // 2. Contador de Avisos/Notificaciones
+  // 2. Contador de Avisos/Notificaciones (CON LISTENER INSTANTÁNEO)
   useEffect(() => {
     if (!user?.id) return;
     const fetchNotifsCount = async () => {
@@ -130,6 +136,9 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
     fetchNotifsCount();
 
+    // 🔥 ESCUCHAMOS EL EVENTO INVISIBLE PARA APAGAR EL PERFIL AL INSTANTE
+    window.addEventListener("updateBadges", fetchNotifsCount);
+
     const channel = supabase
       .channel(`sidebar-notifs-${user.id}`)
       .on("postgres_changes", { 
@@ -140,7 +149,10 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
       }, () => fetchNotifsCount())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      window.removeEventListener("updateBadges", fetchNotifsCount);
+      supabase.removeChannel(channel); 
+    };
   }, [user?.id]);
 
   const toggleExpand = (label: string) => {
