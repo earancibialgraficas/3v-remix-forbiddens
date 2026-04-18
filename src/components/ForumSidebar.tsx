@@ -88,53 +88,56 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 1. Cargar contador de mensajes públicos (CON ESCÁNER EN TIEMPO REAL)
+  // 1. Contador de Mensajes Públicos (CON LISTENER EN TIEMPO REAL)
   useEffect(() => {
     if (!user?.id) return;
+
     const fetchInboxCount = async () => {
-      try {
-        const { count } = await supabase
-          .from("inbox_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("receiver_id", user.id)
-          .eq("is_read", false);
-        setUnreadPublic(count || 0);
-      } catch (e) {
-        console.warn("Sincronizando tabla inbox...");
-      }
+      const { count } = await supabase
+        .from("inbox_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
+      setUnreadPublic(count || 0);
     };
+
     fetchInboxCount();
 
-    const uniqueInboxChannel = `sidebar-inbox-${Date.now()}-${Math.random()}`;
+    // Suscripción para detectar cuando llega un mensaje o se marca como leído
     const channel = supabase
-      .channel(uniqueInboxChannel)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchInboxCount())
+      .channel(`sidebar-inbox-${user.id}`)
+      .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "inbox_messages", 
+        filter: `receiver_id=eq.${user.id}` 
+      }, () => fetchInboxCount())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  // 2. Cargar contador de notificaciones generales (Avisos)
+  // 2. Contador de Avisos/Notificaciones
   useEffect(() => {
     if (!user?.id) return;
     const fetchNotifsCount = async () => {
-      try {
-        const { count } = await supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("is_read", false);
-        setUnreadNotifications(count || 0);
-      } catch (e) {
-        console.warn("Sincronizando notificaciones...");
-      }
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false);
+      setUnreadNotifications(count || 0);
     };
     fetchNotifsCount();
 
-    const uniqueChannelName = `sidebar-notifs-${Date.now()}-${Math.random()}`;
     const channel = supabase
-      .channel(uniqueChannelName)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount())
+      .channel(`sidebar-notifs-${user.id}`)
+      .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "notifications", 
+        filter: `user_id=eq.${user.id}` 
+      }, () => fetchNotifsCount())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -142,34 +145,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
-  };
-
-  const handleClearNotifications = async () => {
-    setUnreadNotifications(0); 
-    if (user?.id) {
-      try {
-        await supabase.from("notifications")
-          .update({ is_read: true })
-          .eq("user_id", user.id)
-          .eq("is_read", false);
-      } catch (e) {
-        console.error("Error limpiando notificaciones", e);
-      }
-    }
-  };
-
-  const handleClearPublic = async () => {
-    setUnreadPublic(0); 
-    if (user?.id) {
-      try {
-        await supabase.from("inbox_messages")
-          .update({ is_read: true })
-          .eq("receiver_id", user.id) 
-          .eq("is_read", false);
-      } catch (e) {
-        console.error("Error limpiando mensajes públicos", e);
-      }
-    }
   };
 
   return (
@@ -213,29 +188,29 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
-            {/* Botón de Perfil con Contador */}
+            {/* Perfil */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
-                <Link to="/perfil" onClick={handleClearNotifications}>
+                <Link to="/perfil">
                   <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-20">
+                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">
                   {unreadNotifications > 9 ? "9+" : unreadNotifications}
                 </span>
               )}
             </div>
 
-            {/* Mensajes Públicos */}
+            {/* BANDEJA PÚBLICA (El Sobre Rojo) */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
-                <Link to="/bandeja-publica" onClick={handleClearPublic}>
+                <Link to="/bandeja-publica">
                   <Mail className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </Button>
               {unreadPublic > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-20">
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">
                   {unreadPublic > 9 ? "9+" : unreadPublic}
                 </span>
               )}
@@ -254,7 +229,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           )}
         </div>
 
-        {/* NAVEGACIÓN COMPLETA */}
+        {/* NAVEGACIÓN */}
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
           {navItems.map((item) => {
             const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
@@ -270,7 +245,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                       onClick={(e) => { if (!item.to) e.preventDefault(); }}
                       className={cn(
                         "flex items-center justify-center p-2 rounded transition-all mb-0.5", 
-                        isActive ? "bg-primary/20 text-primary shadow-[0_0_8px_rgba(var(--primary),0.2)]" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                     >
                       <item.icon className={cn("w-4 h-4", item.color)} />
