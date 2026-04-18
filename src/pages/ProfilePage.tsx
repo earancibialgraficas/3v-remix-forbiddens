@@ -267,7 +267,7 @@ export default function ProfilePage() {
           membershipTier={tier}
           isStaff={isStaff || isMod}
           onSelect={handleAvatarSelect}
-          onUpload={(isStaff || iMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) ? handleAvatarUpload : undefined}
+          onUpload={(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) ? handleAvatarUpload : undefined}
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
