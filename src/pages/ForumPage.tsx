@@ -152,7 +152,7 @@ interface PostProfile {
   color_name: string | null;
   color_role: string | null;
   color_staff_role: string | null;
-  signature: string | null; // 🔥 Añadido: Traemos la firma de la DB del perfil
+  signature: string | null;
   signature_font: string | null;
   signature_font_family: string | null;
   signature_color: string | null;
@@ -207,7 +207,6 @@ export default function ForumPage() {
       setPosts(data);
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        // 🔥 FIX: Añadido "signature" al select para que traiga el texto guardado por el usuario en su perfil
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
@@ -544,10 +543,10 @@ export default function ForumPage() {
                         </button>
                       )}
                     </div>
-                    {/* 🔥 FIX: Priorizamos el profile del autor que trae su texto dinámico, y si no, usamos el fallback que quedó en el post */}
                     {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
                       <div className="mt-1.5 w-full">
                         <SignatureDisplay
+                          // 🔥 FIX: Aseguramos que siempre pase el texto, ya sea del perfil actualizado o el viejo.
                           text={postProfiles[post.user_id]?.signature || (post as any).signature}
                           profile={postProfiles[post.user_id]}
                           fontSize={11}

@@ -55,6 +55,7 @@ export default function Index() {
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from("profiles")
+            // 🔥 FIX: Se agregó "signature" a la llamada para tener siempre el texto más reciente
             .select("user_id, signature, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_font, signature_font_family, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, color_staff_role")
             .in("user_id", userIds);
           const map: Record<string, any> = {};
@@ -118,7 +119,8 @@ export default function Index() {
                       {(post.signature || postProfiles[post.user_id || ""]?.signature_image_url) && (
                         <div className="mt-1.5 w-full">
                           <SignatureDisplay
-                            text={post.signature}
+                            // 🔥 FIX: Prioriza la firma del perfil
+                            text={postProfiles[post.user_id || ""]?.signature || post.signature}
                             profile={postProfiles[post.user_id || ""]}
                             fontSize={10}
                           />

@@ -73,7 +73,8 @@ export default function MainLayout() {
           </div>
           
           {!isMobile && (
-            <div className="hidden lg:block w-72 xl:w-80 shrink-0">
+            // 🔥 FIX: Añadimos sticky, top-4 y un límite de altura para que el panel derecho siga el scroll.
+            <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)]">
               <RightPanel />
             </div>
           )}
