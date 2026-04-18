@@ -73,13 +73,22 @@ export default function RightPanel() {
     fetchStats();
   }, []);
 
+// 🔥 FIX: Añadimos un temporizador para recalcular el scroll una vez que cargue el carrusel y reproductor
   useEffect(() => {
+    // Calculamos el scroll inmediatamente
     handleScroll();
+    
+    // Y volvemos a calcularlo medio segundo después por si algo tardó en cargar
+    const timer = setTimeout(() => handleScroll(), 500); 
+    
     window.addEventListener("resize", handleScroll);
-    return () => window.removeEventListener("resize", handleScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, [topUsers, premiumUsers]);
 
-  // 🔥 EVENTO PARA RESETEAR EL SCROLL SI SE MINIMIZA EL PANEL
+  // EVENTO PARA RESETEAR EL SCROLL SI SE MINIMIZA EL PANEL
   useEffect(() => {
     const handleSync = (e: any) => {
       if (!e.detail.open && scrollRef.current) {

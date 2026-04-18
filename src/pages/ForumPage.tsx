@@ -164,6 +164,7 @@ interface PostProfile {
   signature_image_align: string | null;
   signature_image_width: number | null;
   signature_text_over_image: boolean | null;
+  signature_font_size: number | null;
 }
 
 export default function ForumPage() {
@@ -207,7 +208,7 @@ export default function ForumPage() {
       setPosts(data);
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image").in("user_id", userIds);
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, signature_font_size").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
@@ -546,7 +547,6 @@ export default function ForumPage() {
                     {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
                       <div className="mt-1.5 w-full">
                         <SignatureDisplay
-                          // 🔥 FIX: Aseguramos que siempre pase el texto, ya sea del perfil actualizado o el viejo.
                           text={postProfiles[post.user_id]?.signature || (post as any).signature}
                           profile={postProfiles[post.user_id]}
                           fontSize={11}

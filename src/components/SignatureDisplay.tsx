@@ -11,6 +11,7 @@ interface SignatureProfile {
   signature_image_align?: string | null;
   signature_image_width?: number | null;
   signature_text_over_image?: boolean | null;
+  signature_font_size?: number | null; // 🔥 FIX: Soporte para tamaño
   color_staff_role?: string | null;
 }
 
@@ -39,6 +40,9 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
   const imageAlign = profile.signature_image_align || "center";
   const imageWidth = profile.signature_image_width ?? 100;
   const overImage = !!profile.signature_text_over_image && !!sigImage && !!sigText;
+  
+  // 🔥 FIX: Aplica el tamaño de fuente elegido, o el default
+  const customFontSize = profile.signature_font_size || fontSize;
 
   const renderText = () => {
     if (!sigText) return null;
@@ -49,7 +53,7 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
       fontWeight: isBold ? 700 : 400,
       fontStyle: isItalic ? "italic" : "normal",
       textAlign,
-      fontSize: `${fontSize}px`,
+      fontSize: `${customFontSize}px`,
       lineHeight: 1.3,
       wordBreak: "break-word",
     };
@@ -59,7 +63,7 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
         return (
           <svg
             width="100%"
-            height={fontSize * 1.6}
+            height={customFontSize * 1.6}
             style={{ overflow: "visible", display: "block" }}
             aria-label={sigText}
           >
@@ -73,7 +77,7 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
               strokeWidth={strokeWidth * 2}
               style={{
                 fontFamily: `"${fontFamily}", sans-serif`,
-                fontSize: `${fontSize}px`,
+                fontSize: `${customFontSize}px`,
                 fontWeight: isBold ? 700 : 400,
                 fontStyle: isItalic ? "italic" : "normal",
                 paintOrder: "stroke fill",
@@ -103,7 +107,6 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
 
   const renderImage = () => {
     if (!sigImage) return null;
-    // 🔥 FIX: Eliminado backgroundAttachment: "fixed" para quitar el Parallax
     return (
       <div
         className="w-full rounded overflow-hidden border border-border/30"

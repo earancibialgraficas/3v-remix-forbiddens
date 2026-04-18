@@ -235,7 +235,6 @@ export default function ProfilePage() {
   const isMod = roles.includes("moderator");
   const isStaff = isAdmin || isMasterWeb;
   
-  // 🔥 FIX: Definimos el display general de la membresía asegurando que STAFF tenga prioridad
   const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
 
   const tabs = [
@@ -268,7 +267,6 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* Profile Card */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className="flex items-start gap-4">
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
@@ -312,6 +310,8 @@ export default function ProfilePage() {
                 </div>
                 {(tier !== "novato" || isStaff || isMod) && (() => {
                   const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
+                  // 🔥 FIX: Slider de tamaño
+                  const sigFontSize = (profile as any)?.signature_font_size || 13;
                   const sigColor = (profile as any)?.signature_color || "#facc15";
                   const sigStroke = (profile as any)?.signature_stroke_color || "";
                   const sigStrokeWidth = (profile as any)?.signature_stroke_width ?? 1;
@@ -373,6 +373,21 @@ export default function ProfilePage() {
                               </select>
                             </div>
                           </div>
+
+                          {/* 🔥 FIX: Control del tamaño de letra */}
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Tamaño de letra: {sigFontSize}px</label>
+                            <input
+                              type="range"
+                              min={10}
+                              max={30}
+                              step={1}
+                              value={sigFontSize}
+                              onChange={(e) => updateSig({ signature_font_size: parseInt(e.target.value, 10) })}
+                              className="w-full h-7 cursor-pointer accent-primary"
+                            />
+                          </div>
+
                           <div className="grid grid-cols-2 gap-2">
                             <div>
                               <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Color relleno</label>
@@ -554,7 +569,6 @@ export default function ProfilePage() {
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar Perfil</Button>
                   
-                  {/* 🔥 FIX: Ocultamos el botón "Actualizar Plan" si eres Staff o Mod */}
                   {!(isStaff || isMod) && (
                     <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
                   )}
@@ -661,7 +675,7 @@ export default function ProfilePage() {
               return [
               { val: displayTotal.toLocaleString(), label: "Puntos totales", color: "text-neon-green" },
               { val: userPosts.length, label: "Posts", color: "text-neon-cyan" },
-              { val: displayTier, label: "Membresía", color: "text-neon-yellow" }, // 🔥 FIX: Aquí actualizamos para que diga STAFF
+              { val: displayTier, label: "Membresía", color: "text-neon-yellow" },
               { val: roles.length, label: "Roles", color: "text-neon-magenta" },
               { val: followerCount, label: "Seguidores", color: "text-neon-cyan" },
               { val: followingCount, label: "Siguiendo", color: "text-neon-orange" },
@@ -770,7 +784,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Color Picker Modal */}
       {showColorPicker && (
         <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowColorPicker(false)}>
           <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-sm w-full mx-4 space-y-4" onClick={e => e.stopPropagation()}>
@@ -822,7 +835,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            {/* Buttons */}
             <div className="flex gap-2 justify-center pt-2">
               <Button
                 size="sm"

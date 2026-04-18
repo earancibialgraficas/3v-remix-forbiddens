@@ -55,8 +55,7 @@ export default function Index() {
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from("profiles")
-            // 🔥 FIX: Se agregó "signature" a la llamada para tener siempre el texto más reciente
-            .select("user_id, signature, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_font, signature_font_family, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, color_staff_role")
+            .select("user_id, signature, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_font, signature_font_family, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, color_staff_role, signature_font_size")
             .in("user_id", userIds);
           const map: Record<string, any> = {};
           profs?.forEach((p: any) => { map[p.user_id] = p; });
@@ -79,7 +78,6 @@ export default function Index() {
       <ForumCategories />
       <HomeCarousel />
 
-      {/* Infinite posts feed */}
       <div>
         <h2 className="font-pixel text-xs text-neon-green text-glow-green mb-3 flex items-center gap-2">
           <Flame className="w-3.5 h-3.5" /> TODOS LOS POSTS
@@ -119,7 +117,6 @@ export default function Index() {
                       {(post.signature || postProfiles[post.user_id || ""]?.signature_image_url) && (
                         <div className="mt-1.5 w-full">
                           <SignatureDisplay
-                            // 🔥 FIX: Prioriza la firma del perfil
                             text={postProfiles[post.user_id || ""]?.signature || post.signature}
                             profile={postProfiles[post.user_id || ""]}
                             fontSize={10}
