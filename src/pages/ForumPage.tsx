@@ -190,6 +190,7 @@ export default function ForumPage() {
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   // Track user's own votes for optimistic UI
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
+  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   const hasUnlimited = isAdmin || isMasterWeb;
