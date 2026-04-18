@@ -16,7 +16,6 @@ export default function MainLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   
-  // 🔥 Referencia al contenedor que hace scroll en el móvil
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   
   const isMobile = useIsMobile();
@@ -30,7 +29,6 @@ export default function MainLayout() {
     const nextState = !mobileRightOpen;
     setMobileRightOpen(nextState);
     
-    // 🔥 Si se cierra la barra, reinicia el scroll arriba al instante
     if (!nextState && mobileScrollRef.current) {
       mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -69,13 +67,13 @@ export default function MainLayout() {
       )}
 
       <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full">
+        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
           </div>
           
           {!isMobile && (
-            <div className="hidden lg:block w-72 shrink-0">
+            <div className="hidden lg:block w-72 xl:w-80 shrink-0">
               <RightPanel />
             </div>
           )}
@@ -94,7 +92,6 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
-            {/* 🔥 Conectamos el ref a este div que maneja el contenido interior */}
             <div 
               ref={mobileScrollRef}
               className={cn(

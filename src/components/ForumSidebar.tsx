@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { createPortal } from "react-dom"; // 🔥 Importamos el superpoder del Portal
+import { createPortal } from "react-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
@@ -89,7 +89,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 1. Contador de Mensajes Públicos (BLINDADO CONTRA CRASHES)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -126,7 +125,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
   }, [user?.id]);
 
-  // 2. Contador de Avisos/Notificaciones (BLINDADO CONTRA CRASHES)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -169,7 +167,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
   return (
     <TooltipProvider>
-      {/* 🔥 FIX: Teletransportamos el modal al document.body para que ignore capas anteriores */}
       {showLogoutModal && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-card border border-border rounded-lg p-5 max-w-sm w-full text-center space-y-4">
@@ -183,7 +180,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         document.body
       )}
 
-      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60")}>
+      {/* 🔥 FIX: Agrandamos la barra lateral a xl:w-64 para monitores gigantes */}
+      <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60 xl:w-64")}>
         
         {/* LOGO SECTION */}
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
@@ -201,7 +199,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                  ))}
                </div>
              ) : (
-               <span className="font-pixel text-[10px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
+               /* 🔥 FIX: Agrandamos la fuente del título a text-[12px] en XL */
+               <span className="font-pixel text-[10px] xl:text-[12px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
              )}
           </Link>
         </div>
@@ -210,7 +209,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
-            {/* Perfil */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil">
@@ -224,7 +222,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               )}
             </div>
 
-            {/* BANDEJA PÚBLICA (El Sobre Rojo) */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica">
@@ -241,91 +238,102 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           
           {!collapsed && user && (
             <div className="flex items-center justify-between w-full gap-2 mt-1">
-              <span className="font-pixel text-[9px] text-neon-green truncate max-w-[90px] uppercase" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
+              {/* 🔥 FIX: Agrandamos la fuente del usuario a text-[10px] en XL */}
+              <span className="font-pixel text-[9px] xl:text-[10px] text-neon-green truncate max-w-[90px] xl:max-w-[110px] uppercase" style={(() => { try { return profile ? getNameStyle(profile.color_name) : {}; } catch(e) { return {}; } })()}>
                 {profile?.display_name || "..."}
               </span>
               <button onClick={() => setShowLogoutModal(true)} className="text-muted-foreground hover:text-destructive transition-colors">
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
               </button>
             </div>
           )}
         </div>
 
         {/* NAVEGACIÓN */}
-        <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 retro-scrollbar">
-          {navItems.map((item) => {
-            const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
-            const isExpanded = expandedItems.includes(item.label);
-            const hasChildren = item.children && item.children.length > 0;
+        <nav className="flex-1 overflow-y-auto p-1.5 retro-scrollbar">
+          {/* 🔥 FIX: Agregamos flex-col min-h-full para que el último botón pueda empujarse hacia abajo */}
+          <div className="flex flex-col min-h-full space-y-0.5 xl:space-y-1">
+            {navItems.map((item, i) => {
+              const isActive = item.to ? location.pathname === item.to : item.children?.some(c => location.pathname === c.to);
+              const isExpanded = expandedItems.includes(item.label);
+              const hasChildren = item.children && item.children.length > 0;
+              const isLast = i === navItems.length - 1;
 
-            if (collapsed) {
-              return (
-                <Tooltip key={item.label} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link 
-                      to={item.to || "#"} 
-                      onClick={(e) => { if (!item.to) e.preventDefault(); }}
-                      className={cn(
-                        "flex items-center justify-center p-2 rounded transition-all mb-0.5", 
-                        isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      )}
-                    >
-                      <item.icon className={cn("w-4 h-4", item.color)} />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[999]">
-                    <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>
-                      {item.label}
-                    </p>
-                    {hasChildren && (
-                      <div className="flex flex-col gap-0.5">
-                        {item.children!.map((child) => (
-                          <Link 
-                            key={child.to} 
-                            to={child.to} 
-                            className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body"
-                          >
-                            {child.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
-
-            return (
-              <div key={item.label}>
-                <button
-                  onClick={() => hasChildren ? toggleExpand(item.label) : null}
-                  className={cn("w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50")}
-                >
-                  {item.to && !hasChildren ? (
-                    <Link to={item.to} className="flex items-center gap-2.5 w-full">
-                      <item.icon className={cn("w-4 h-4", item.color)} />
-                      <span className="font-body text-xs flex-1 text-left">{item.label}</span>
-                    </Link>
-                  ) : (
-                    <>
-                      <item.icon className={cn("w-4 h-4", item.color)} />
-                      <span className="font-body text-xs flex-1 text-left">{item.label}</span>
-                      {hasChildren && (isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />)}
-                    </>
-                  )}
-                </button>
-                {hasChildren && isExpanded && (
-                  <div className="ml-7 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
-                    {item.children!.map((child) => (
-                      <Link key={child.to} to={child.to} className={cn("block py-1 text-[11px] transition-colors", location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground")}>
-                        {child.label}
-                      </Link>
-                    ))}
+              if (collapsed) {
+                return (
+                  <div key={item.label} className={cn(isLast && "mt-auto pt-4")}>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Link 
+                          to={item.to || "#"} 
+                          onClick={(e) => { if (!item.to) e.preventDefault(); }}
+                          className={cn(
+                            "flex items-center justify-center p-2 rounded transition-all mb-0.5", 
+                            isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          )}
+                        >
+                          <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[999]">
+                        <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>
+                          {item.label}
+                        </p>
+                        {hasChildren && (
+                          <div className="flex flex-col gap-0.5">
+                            {item.children!.map((child) => (
+                              <Link 
+                                key={child.to} 
+                                to={child.to} 
+                                className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body"
+                              >
+                                {child.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              }
+
+              return (
+                <div key={item.label} className={cn(isLast && "mt-auto pt-2 pb-1")}>
+                  <button
+                    onClick={() => hasChildren ? toggleExpand(item.label) : null}
+                    className={cn("w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50")}
+                  >
+                    {item.to && !hasChildren ? (
+                      <Link to={item.to} className="flex items-center gap-2.5 w-full">
+                        {/* 🔥 FIX: Íconos más grandes en XL */}
+                        <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
+                        {/* 🔥 FIX: Letra más grande en XL */}
+                        <span className="font-body text-xs xl:text-sm flex-1 text-left">{item.label}</span>
+                      </Link>
+                    ) : (
+                      <>
+                        {/* 🔥 FIX: Íconos más grandes en XL */}
+                        <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
+                        {/* 🔥 FIX: Letra más grande en XL */}
+                        <span className="font-body text-xs xl:text-sm flex-1 text-left">{item.label}</span>
+                        {hasChildren && (isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />)}
+                      </>
+                    )}
+                  </button>
+                  {hasChildren && isExpanded && (
+                    <div className="ml-7 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
+                      {item.children!.map((child) => (
+                        <Link key={child.to} to={child.to} className={cn("block py-1 text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground")}>
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </nav>
       </aside>
     </TooltipProvider>
