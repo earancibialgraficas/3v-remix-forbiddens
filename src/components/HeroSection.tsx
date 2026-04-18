@@ -10,9 +10,9 @@ export default function HeroSection() {
   const [phase, setPhase] = useState<"logo" | "transition" | "text">("logo");
 
   useEffect(() => {
-    // Show logo for 3 seconds, then transition
+    // 3s logo, then a soft 1.4s crossfade to the text
     const t1 = setTimeout(() => setPhase("transition"), 3000);
-    const t2 = setTimeout(() => setPhase("text"), 3800);
+    const t2 = setTimeout(() => setPhase("text"), 4400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
