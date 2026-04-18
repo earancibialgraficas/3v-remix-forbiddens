@@ -343,7 +343,15 @@ export default function ProfilePage() {
                       <label className="text-[10px] font-body text-muted-foreground block mb-0.5">✍️ Firma personalizada</label>
                       <Input
                         value={signature}
-                        onChange={(e) => setSignature(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSignature(v);
+                          // Debounced auto-save so the signature persists even without blur
+                          if ((window as any).__sigSaveTimer) clearTimeout((window as any).__sigSaveTimer);
+                          (window as any).__sigSaveTimer = setTimeout(() => {
+                            updateSig({ signature: v.trim() || null });
+                          }, 600);
+                        }}
                         onBlur={(e) => updateSig({ signature: e.target.value.trim() || null })}
                         className="h-8 bg-muted text-xs font-body"
                         placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
