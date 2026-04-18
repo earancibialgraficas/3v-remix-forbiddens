@@ -15,14 +15,20 @@ interface Song {
   category: string;
 }
 
+// Funciones para leer la memoria inmediatamente al cargar
+const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
+const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
+
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
   const isMobile = useIsMobile();
   
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
-  const [currentCategory, setCurrentCategory] = useState("Todos");
-  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // 🔥 Inicializamos los estados directamente desde LocalStorage
+  const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
+  const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [expanded, setExpanded] = useState(false);
@@ -43,7 +49,9 @@ export default function ChillMusicPlayer() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
-  const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
+  
+  // 🔥 REF PARA MEMORIA EXACTA: Evita que el audio reescriba el tiempo al cargar
+  const timeToRestoreRef = useRef<number | null>(null);
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
@@ -93,31 +101,26 @@ export default function ChillMusicPlayer() {
       }
       setAllSongs(fetchedSongs);
 
-      // --- LEEMOS LA MEMORIA AQUÍ DENTRO PARA QUE NO HAYA CONFLICTOS ---
-      const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
-      const savedIndex = localStorage.getItem('forbiddens_music_index');
-      const savedTime = localStorage.getItem('forbiddens_music_time');
-
-      setCurrentCategory(savedCat);
-
+      // Aplicamos la playlist basándonos en la categoría que ya leímos al inicio
       let initialPlaylist = fetchedSongs;
-      if (savedCat !== "Todos") {
-        initialPlaylist = fetchedSongs.filter(s => s.category === savedCat);
+      if (currentCategory !== "Todos") {
+        initialPlaylist = fetchedSongs.filter(s => s.category === currentCategory);
       }
       setPlaylist(initialPlaylist);
-
-      if (savedIndex !== null && parseInt(savedIndex) < initialPlaylist.length) {
-        setCurrentIndex(parseInt(savedIndex));
-      } else {
+      
+      // Validamos que el índice guardado no se pase del límite de la playlist actual
+      if (currentIndex >= initialPlaylist.length) {
         setCurrentIndex(0);
       }
 
+      // Preparamos el tiempo a restaurar
+      const savedTime = localStorage.getItem('forbiddens_music_time');
       if (savedTime !== null) {
-        setCurrentTime(parseFloat(savedTime));
-        setSeekDisplayValue(parseFloat(savedTime));
+        const parsedTime = parseFloat(savedTime);
+        setCurrentTime(parsedTime);
+        setSeekDisplayValue(parsedTime);
+        timeToRestoreRef.current = parsedTime; // Lo guardamos en el Ref escudo
       }
-      
-      setIsLoadedFromStorage(true);
 
       if (initialPlaylist.length > 0) {
         setIsPlaying(true);
@@ -125,14 +128,15 @@ export default function ChillMusicPlayer() {
     };
 
     fetchMusic();
-  }, []);
+  }, []); // Solo se ejecuta al montar
 
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      if (isLoadedFromStorage && currentTime > 0) {
-        audioRef.current.currentTime = currentTime;
-        setIsLoadedFromStorage(false); 
+      // 🔥 Si hay un tiempo guardado en el escudo, lo aplicamos y lo borramos
+      if (timeToRestoreRef.current !== null) {
+        audioRef.current.currentTime = timeToRestoreRef.current;
+        timeToRestoreRef.current = null;
       }
     }
   };
@@ -184,14 +188,16 @@ export default function ChillMusicPlayer() {
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
-        if (isLoadedFromStorage && currentTime > 0) {
-          iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [currentTime, true] }), '*');
-          setIsLoadedFromStorage(false);
+        
+        // 🔥 Lo mismo para YouTube
+        if (timeToRestoreRef.current !== null) {
+          iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*');
+          timeToRestoreRef.current = null;
         }
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isPlaying, currentIndex, volume, current, isLoadedFromStorage, currentTime]);
+  }, [isPlaying, currentIndex, volume, current]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
@@ -426,29 +432,42 @@ export default function ChillMusicPlayer() {
 
         <div className="px-3 pb-1">
           <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
-          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5"><span>{formatTime(displayTime)}</span><span>{formatTime(duration)}</span></div>
+          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
+            <span>{formatTime(displayTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
         </div>
 
         <div className="px-3 pb-2 flex items-center gap-2">
-          <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">{isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}</button>
+          <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">
+            {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+          </button>
           <Slider value={[volume]} onValueChange={v => setVolume(v[0])} max={100} step={5} className="flex-1" />
         </div>
 
-        <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground border-t border-border/50">{expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}</button>
-        
+        <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground border-t border-border/50">
+          {expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}
+        </button>
+
         {expanded && (
           <div className="max-h-40 overflow-y-auto retro-scrollbar border-t border-border/30">
             {playlist.map((song, i) => (
               <div key={`${song.id}-${i}`} className={cn("flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group", i === currentIndex && "bg-neon-cyan/10 text-neon-cyan")}>
-                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); }} className="flex-1 text-left truncate cursor-pointer"><span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span></button>
-                {playlist.length > 1 && <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>}
+                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); }} className="flex-1 text-left truncate cursor-pointer">
+                  <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
+                </button>
+                {playlist.length > 1 && (
+                  <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
+                )}
               </div>
             ))}
           </div>
         )}
 
         <div className="border-t border-border/50">
-          <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors"><Plus className="w-3 h-3" /> Agregar YouTube</button>
+          <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors">
+            <Plus className="w-3 h-3" /> Agregar YouTube
+          </button>
           {showAddSong && (
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
               <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
