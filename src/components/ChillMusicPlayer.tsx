@@ -50,10 +50,9 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 1. CARGA DE CANCIONES (CON NUEVO ORDEN: LOFI -> METAL -> RAP)
+  // CARGA DE CANCIONES (ORDEN: LOFI -> METAL -> RAP)
   useEffect(() => {
     const fetchMusic = async () => {
-      // 🔥 El orden en este arreglo define el orden en "Todos los géneros"
       const folders = [
         { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' },
         { path: 'metal', name: 'Metal' },
@@ -85,7 +84,7 @@ export default function ChillMusicPlayer() {
       setAllSongs(fetchedSongs);
       setPlaylist(fetchedSongs);
       
-      // 🔥 INTENTO DE AUTOPLAY: Apenas cargue la lista, le decimos que empiece a tocar
+      // Intentamos el Autoplay limpio al cargar
       if (fetchedSongs.length > 0) {
         setIsPlaying(true);
       }
@@ -93,27 +92,6 @@ export default function ChillMusicPlayer() {
 
     fetchMusic();
   }, []);
-
-  // 🔥 TRAMPA NINJA PARA EL AUTOPLAY BLOQUEADO
-  // Si el navegador bloquea el autoplay inicial, esto arranca la música al primer clic que el usuario haga en la página web
-  useEffect(() => {
-    const handleFirstInteraction = () => {
-      if (playlist.length > 0 && !isPlaying) {
-        setIsPlaying(true);
-      }
-      // Una vez que el usuario hizo clic, nos borramos para no estorbar
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-    };
-
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('keydown', handleFirstInteraction);
-
-    return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-    };
-  }, [playlist, isPlaying]);
 
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
@@ -123,11 +101,12 @@ export default function ChillMusicPlayer() {
       setPlaylist(allSongs.filter(s => s.category === cat));
     }
     setCurrentIndex(0);
-    setIsPlaying(true); // Auto-play al cambiar de categoría
+    setIsPlaying(true);
     setCurrentTime(0);
     setShowCategoryMenu(false); 
   };
 
+  // CONTROL DEL MOTOR DE AUDIO
   useEffect(() => {
     if (!current) return;
     
@@ -136,11 +115,11 @@ export default function ChillMusicPlayer() {
         audioRef.current.volume = volume / 100;
         if (isPlaying) {
           audioRef.current.play().catch(e => {
-            console.log("El navegador bloqueó el Autoplay por seguridad. Esperando el primer clic del usuario...");
-            setIsPlaying(false); // Apagamos el botón si nos bloquearon
+            // Si el navegador lo bloquea, simplemente pausamos el botón visualmente sin forzar nada más.
+            setIsPlaying(false);
           });
         } else {
-          audioRef.current.pause();
+          audioRef.current.pause(); // ¡Ahora la pausa sí será respetada!
         }
       }
     } else if (current.type === 'youtube') {
@@ -162,6 +141,7 @@ export default function ChillMusicPlayer() {
     if (audioRef.current) audioRef.current.volume = volume / 100;
   }, [volume]);
 
+  // EVENTOS YOUTUBE
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data || current?.type !== 'youtube') return;
@@ -188,6 +168,7 @@ export default function ChillMusicPlayer() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [isPlaying, currentIndex, current]);
 
+  // EVENTOS LOCALES
   const handleLocalTimeUpdate = () => {
     if (audioRef.current && !isSeeking) setCurrentTime(audioRef.current.currentTime);
   };
@@ -200,6 +181,7 @@ export default function ChillMusicPlayer() {
     onPauseMusic(() => setIsPlaying(false));
   }, [onPauseMusic]);
 
+  // VISUALIZADOR ANIMADO
   useEffect(() => {
     const canvas = minimized ? miniCanvasRef.current : canvasRef.current;
     if (!canvas) return;
