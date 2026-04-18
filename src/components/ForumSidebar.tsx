@@ -77,8 +77,6 @@ const navItems: NavItem[] = [
   { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },
   { label: "Discord", icon: Users, to: "https://discord.gg/ZHNRKVUfVF", color: "text-[#5865F2]" },
-  // 🔥 FIX: Añadido botón de Configuraciones que apunta al modo edición del perfil
-  { label: "Configuraciones", icon: Settings, to: "/perfil?edit=true", color: "text-muted-foreground" },
 ];
 
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -204,9 +202,11 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
+        {/* PROFILE & MESSAGES SECTION */}
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
+            {/* Perfil */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil">
@@ -220,6 +220,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               )}
             </div>
 
+            {/* Bandeja Pública */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica">
@@ -232,6 +233,16 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                 </span>
               )}
             </div>
+
+            {/* 🔥 FIX: Botón de Configuraciones movido aquí arriba */}
+            <div className="relative">
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Configuraciones">
+                <Link to="/perfil?edit=true">
+                  <Settings className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+            </div>
+
           </div>
           
           {!collapsed && user && (
