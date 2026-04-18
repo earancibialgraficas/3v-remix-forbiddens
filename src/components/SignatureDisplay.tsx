@@ -15,19 +15,12 @@ interface SignatureProfile {
 }
 
 interface Props {
-  /** Optional snapshot text saved with the post; falls back to profile.signature */
   text?: string | null;
   profile?: SignatureProfile | null;
   className?: string;
-  /** Base font size in px */
   fontSize?: number;
 }
 
-/**
- * Renders a user's custom signature with full styling:
- * font family, fill color, stroke (outside/middle/inside) with adjustable width,
- * text alignment, optional image, and text-over-image overlay.
- */
 export default function SignatureDisplay({ text, profile, className = "", fontSize = 12 }: Props) {
   if (!profile) return null;
   const sigText = (text ?? profile.signature ?? "").trim();
@@ -47,7 +40,6 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
   const imageWidth = profile.signature_image_width ?? 100;
   const overImage = !!profile.signature_text_over_image && !!sigImage && !!sigText;
 
-  // Build the styled text node (CSS approach for outside/middle, SVG for inside)
   const renderText = () => {
     if (!sigText) return null;
 
@@ -64,9 +56,6 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
 
     if (strokeColor && strokeWidth > 0) {
       if (strokePosition === "inside") {
-        // Inside stroke: SVG text with paint-order so fill paints over stroke,
-        // then clip stroke to text shape (default). Doubling stroke width and
-        // letting fill cover the outer half yields an inner-stroke effect.
         return (
           <svg
             width="100%"
@@ -95,7 +84,6 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
           </svg>
         );
       }
-      // outside or middle via CSS
       const paintOrder = strokePosition === "outside" ? "stroke fill" : "fill stroke";
       return (
         <p
@@ -115,7 +103,7 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
 
   const renderImage = () => {
     if (!sigImage) return null;
-    // Parallax banner: full post width, fixed height, scrolls slower than page
+    // 🔥 FIX: Eliminado backgroundAttachment: "fixed" para quitar el Parallax
     return (
       <div
         className="w-full rounded overflow-hidden border border-border/30"
@@ -125,7 +113,6 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
           backgroundSize: "cover",
           backgroundPosition: `${imageAlign} center`,
           backgroundRepeat: "no-repeat",
-          backgroundAttachment: "fixed",
         }}
         role="img"
         aria-label="Firma del usuario"

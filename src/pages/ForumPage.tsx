@@ -152,6 +152,7 @@ interface PostProfile {
   color_name: string | null;
   color_role: string | null;
   color_staff_role: string | null;
+  signature: string | null; // 🔥 Añadido: Traemos la firma de la DB del perfil
   signature_font: string | null;
   signature_font_family: string | null;
   signature_color: string | null;
@@ -188,14 +189,12 @@ export default function ForumPage() {
   _setForumModal = setForumModal;
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
-  // Track user's own votes for optimistic UI
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   const hasUnlimited = isAdmin || isMasterWeb;
 
-  // Handle URL search param for direct post link
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
@@ -208,7 +207,8 @@ export default function ForumPage() {
       setPosts(data);
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image").in("user_id", userIds);
+        // 🔥 FIX: Añadido "signature" al select para que traiga el texto guardado por el usuario en su perfil
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
@@ -217,7 +217,6 @@ export default function ForumPage() {
         setPostProfiles(pMap);
         setPostRoles(rMap);
       }
-      // Fetch user's existing votes
       if (user && data.length > 0) {
         const postIds = data.map((p: any) => p.id);
         const { data: votes } = await supabase.from("post_votes").select("post_id, vote_type").eq("user_id", user.id).in("post_id", postIds);
@@ -244,11 +243,8 @@ export default function ForumPage() {
 
   useEffect(() => {
     fetchPosts();
-    // DO NOT subscribe to realtime on posts table — it causes vote counter bouncing
-    // because each vote triggers an UPDATE event that refetches stale data during optimistic updates
   }, [category, sortBy]);
 
-  // Auto-expand direct linked post
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
@@ -299,7 +295,6 @@ export default function ForumPage() {
     if (votingRef.current[postId]) return;
     votingRef.current[postId] = true;
 
-    // Optimistic update
     const currentVote = userVotes[postId] || null;
     const post = posts.find(p => p.id === postId);
     if (!post) { votingRef.current[postId] = false; return; }
@@ -309,23 +304,19 @@ export default function ForumPage() {
     let newVote: string | null;
 
     if (currentVote === voteType) {
-      // Remove vote
       if (voteType === "up") newUp--;
       else newDown--;
       newVote = null;
     } else if (currentVote) {
-      // Switch vote
       if (currentVote === "up") { newUp--; newDown++; }
       else { newDown--; newUp++; }
       newVote = voteType;
     } else {
-      // New vote
       if (voteType === "up") newUp++;
       else newDown++;
       newVote = voteType;
     }
 
-    // Apply optimistic
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) } : p));
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
@@ -336,14 +327,12 @@ export default function ForumPage() {
         p_vote_type: voteType,
       });
       if (error) throw error;
-      // Apply server truth
       if (data) {
         const result = data as any;
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: result.upvotes, downvotes: result.downvotes } : p));
         setUserVotes(prev => ({ ...prev, [postId]: result.user_vote }));
       }
     } catch {
-      // Revert optimistic
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
     } finally {
@@ -555,10 +544,11 @@ export default function ForumPage() {
                         </button>
                       )}
                     </div>
-                    {((post as any).signature || postProfiles[post.user_id]?.signature_image_url) && (
+                    {/* 🔥 FIX: Priorizamos el profile del autor que trae su texto dinámico, y si no, usamos el fallback que quedó en el post */}
+                    {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
                       <div className="mt-1.5 w-full">
                         <SignatureDisplay
-                          text={(post as any).signature}
+                          text={postProfiles[post.user_id]?.signature || (post as any).signature}
                           profile={postProfiles[post.user_id]}
                           fontSize={11}
                         />
@@ -662,7 +652,6 @@ export default function ForumPage() {
         })}
       </div>
 
-      {/* Rules popup — centered */}
       {showRulesPopup && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
