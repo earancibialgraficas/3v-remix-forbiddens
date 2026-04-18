@@ -18,6 +18,9 @@ const REPORT_REASONS = [
   "Otro",
 ];
 
+// 🔥 ID OFICIAL DE TU BOT DE SISTEMA
+const BOT_SYSTEM_ID = "b20cd3e4-ea5e-49ab-9418-fb9c60998105";
+
 interface ReportModalProps {
   reportedUserId: string;
   reportedUserName: string;
@@ -36,7 +39,7 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
     if (!user) return;
     setSending(true);
     try {
-      // 1. Obtenemos el nombre del usuario que está reportando
+      // 1. Conseguimos el nombre de quien hace el clic (el usuario real)
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name')
@@ -45,28 +48,31 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
         
       const reporterName = profile?.display_name || 'Usuario';
 
-      // 2. Construimos el "Ticket de Sistema" con emojis y separadores para que resalte en el inbox
-      const systemTicket = `🚨 TICKET DE SISTEMA: REPORTE DE USUARIO 🚨
-👤 Emitido por: ${reporterName}
-🎯 Reportado: ${reportedUserName}
-🛑 Motivo Principal: ${reason}
-🔗 ID del Post: ${postId || 'Reporte General de Perfil'}
-📝 Detalles de la denuncia: 
-${details.trim() || 'El usuario no proporcionó detalles adicionales.'}
+      // 2. Preparamos el ticket de sistema limpio
+      const systemTicket = `🚨 REPORTE DE SISTEMA 🚨
+      
+EMISOR: ${reporterName}
+REPORTADO: ${reportedUserName}
+MOTIVO: ${reason}
+ORIGEN: ${postId ? 'Post ID: ' + postId : 'Reporte de Perfil'}
 
-Requiere revisión del Staff.`;
+DETALLES ADICIONALES:
+${details.trim() || 'El usuario no proporcionó detalles.'}
 
-      // 3. Enviamos el ticket a la función RPC existente
+---------------------------
+Requiere revisión inmediata.`;
+
+      // 3. ENVIAMOS EL MENSAJE COMO SI FUERA EL BOT
       const { error } = await supabase.rpc("send_staff_report", {
-        p_reporter_id: user.id,
+        p_reporter_id: BOT_SYSTEM_ID, // 🔥 MAGIA: Supabase registrará al Bot como el remitente
         p_reported_user_id: reportedUserId,
         p_reason: reason,
-        p_details: systemTicket, // Inyectamos el ticket completo aquí
+        p_details: systemTicket,
         p_post_id: postId || null,
       });
 
       if (error) throw error;
-      toast({ title: "Reporte enviado", description: "El staff revisará tu reporte a la brevedad." });
+      toast({ title: "Reporte enviado", description: "El staff revisará tu reporte." });
       onClose();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -108,7 +114,7 @@ Requiere revisión del Staff.`;
           <Textarea
             value={details}
             onChange={e => setDetails(e.target.value)}
-            placeholder="Describe la situación con más detalle..."
+            placeholder="Describe la situación..."
             className="bg-muted text-xs font-body min-h-[80px]"
             maxLength={1000}
           />
