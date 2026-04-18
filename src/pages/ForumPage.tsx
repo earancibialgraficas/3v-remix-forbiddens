@@ -554,7 +554,7 @@ export default function ForumPage() {
                       )}
                     </div>
                     {((post as any).signature || postProfiles[post.user_id]?.signature_image_url) && (
-                      <div className="mt-1.5 max-w-[320px]">
+                      <div className="mt-1.5 w-full">
                         <SignatureDisplay
                           text={(post as any).signature}
                           profile={postProfiles[post.user_id]}
