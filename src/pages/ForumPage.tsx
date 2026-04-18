@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SignatureDisplay from "@/components/SignatureDisplay";
+import ReportModal from "@/components/ReportModal";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -189,6 +190,7 @@ export default function ForumPage() {
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   // Track user's own votes for optimistic UI
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
+  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   const hasUnlimited = isAdmin || isMasterWeb;
@@ -367,10 +369,10 @@ export default function ForumPage() {
     else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
   };
 
-  const handleReport = async (postId: string, postUserId: string) => {
+  const handleReport = (postId: string, postUserId: string) => {
     if (!user) { toast({ title: "Inicia sesión para reportar", variant: "destructive" }); return; }
-    const { error } = await supabase.from("reports").insert({ reporter_id: user.id, post_id: postId, reported_user_id: postUserId, reason: "Contenido inapropiado" } as any);
-    if (!error) toast({ title: "Reporte enviado", description: "Los administradores lo revisarán" });
+    const targetName = postProfiles[postUserId]?.display_name || "Usuario";
+    setReportTarget({ userId: postUserId, userName: targetName, postId });
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -554,7 +556,7 @@ export default function ForumPage() {
                       )}
                     </div>
                     {((post as any).signature || postProfiles[post.user_id]?.signature_image_url) && (
-                      <div className="mt-1.5 max-w-[320px]">
+                      <div className="mt-1.5 w-full">
                         <SignatureDisplay
                           text={(post as any).signature}
                           profile={postProfiles[post.user_id]}
@@ -603,10 +605,11 @@ export default function ForumPage() {
                               </button>
                             )}
                             {user && comment.user_id !== user.id && (
-                              <button onClick={async () => {
-                                await supabase.from("reports").insert({ reporter_id: user.id, post_id: comment.post_id, reported_user_id: comment.user_id, reason: "Comentario inapropiado" } as any);
-                                toast({ title: "Comentario reportado" });
-                              }} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
+                              <button onClick={() => setReportTarget({
+                                userId: comment.user_id,
+                                userName: comment.profile?.display_name || "Anónimo",
+                                postId: comment.post_id,
+                              })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
                                 <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
                               </button>
                             )}
@@ -689,6 +692,15 @@ export default function ForumPage() {
       )}
 
       {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
+
+      {reportTarget && (
+        <ReportModal
+          reportedUserId={reportTarget.userId}
+          reportedUserName={reportTarget.userName}
+          postId={reportTarget.postId}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
     </div>
   );
 }

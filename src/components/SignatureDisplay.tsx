@@ -115,25 +115,29 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
 
   const renderImage = () => {
     if (!sigImage) return null;
-    const justify =
-      imageAlign === "left" ? "flex-start" : imageAlign === "right" ? "flex-end" : "center";
+    // Parallax banner: full post width, fixed height, scrolls slower than page
     return (
-      <div style={{ display: "flex", justifyContent: justify }}>
-        <img
-          src={sigImage}
-          alt=""
-          style={{ width: `${imageWidth}%`, maxHeight: 125, objectFit: "contain" }}
-          className="rounded"
-        />
-      </div>
+      <div
+        className="w-full rounded overflow-hidden border border-border/30"
+        style={{
+          height: 110,
+          backgroundImage: `url("${sigImage}")`,
+          backgroundSize: "cover",
+          backgroundPosition: `${imageAlign} center`,
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+        }}
+        role="img"
+        aria-label="Firma del usuario"
+      />
     );
   };
 
   if (overImage) {
     return (
-      <div className={`relative inline-block w-full ${className}`}>
+      <div className={`relative w-full ${className}`}>
         {renderImage()}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-2">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-3">
           <div className="w-full">{renderText()}</div>
         </div>
       </div>
@@ -141,7 +145,7 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
   }
 
   return (
-    <div className={`space-y-1 ${className}`}>
+    <div className={`space-y-1 w-full ${className}`}>
       {renderText()}
       {renderImage()}
     </div>
