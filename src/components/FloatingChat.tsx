@@ -254,7 +254,6 @@ export default function FloatingChat() {
       >
         <div className="flex items-center gap-2 pointer-events-none">
           {partnerId && (
-            {/* 🔥 BLINDAJE: onPointerDown detiene el evento de arrastre para el botón ATRÁS */}
             <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground pointer-events-auto">
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
@@ -266,16 +265,13 @@ export default function FloatingChat() {
         </div>
         <div className="flex items-center gap-1">
           {partnerId && (
-            {/* 🔥 BLINDAJE: onPointerDown detiene el evento de arrastre para el botón TAMAÑO TEXTO */}
             <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); cycleFontSize(); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title={`Tamaño: ${fontSize}px`}>
               <Type className="w-3 h-3" />
             </button>
           )}
-          {/* 🔥 BLINDAJE: onPointerDown detiene el arrastre para el botón MINIMIZAR */}
           <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          {/* 🔥 BLINDAJE: onPointerDown detiene el arrastre para el botón CERRAR */}
           <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
             <X className="w-3 h-3" />
           </button>

@@ -49,7 +49,6 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 🔥 1. GUARDAR PROGRESO PERIÓDICAMENTE (Incluyendo la categoría)
   useEffect(() => {
     const timer = setInterval(() => {
       if (isPlaying && currentTime > 0) {
@@ -65,7 +64,6 @@ export default function ChillMusicPlayer() {
     setMinimized(isMobile);
   }, [isMobile]);
 
-  // 🔥 2. CARGAR CANCIONES Y RESTAURAR MEMORIA LOCAL AL MISMO TIEMPO
   useEffect(() => {
     const fetchMusic = async () => {
       const folders = [
@@ -132,7 +130,6 @@ export default function ChillMusicPlayer() {
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      // 🔥 Si viene de memoria, salta al tiempo y apaga la bandera para no forzarlo después
       if (isLoadedFromStorage && currentTime > 0) {
         audioRef.current.currentTime = currentTime;
         setIsLoadedFromStorage(false); 
@@ -187,7 +184,6 @@ export default function ChillMusicPlayer() {
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
-        // 🔥 Salta al tiempo de YouTube si viene de memoria
         if (isLoadedFromStorage && currentTime > 0) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [currentTime, true] }), '*');
           setIsLoadedFromStorage(false);
@@ -424,50 +420,35 @@ export default function ChillMusicPlayer() {
 
         <div className="flex items-center justify-center gap-3 px-2.5 pb-1">
           <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground"><SkipBack className="w-3.5 h-3.5" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors">
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          </button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors">{isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}</button>
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
         <div className="px-3 pb-1">
           <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
-          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
-            <span>{formatTime(displayTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
+          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5"><span>{formatTime(displayTime)}</span><span>{formatTime(duration)}</span></div>
         </div>
 
         <div className="px-3 pb-2 flex items-center gap-2">
-          <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">
-            {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
-          </button>
+          <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">{isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}</button>
           <Slider value={[volume]} onValueChange={v => setVolume(v[0])} max={100} step={5} className="flex-1" />
         </div>
 
-        <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground border-t border-border/50">
-          {expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}
-        </button>
-
+        <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground border-t border-border/50">{expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}</button>
+        
         {expanded && (
           <div className="max-h-40 overflow-y-auto retro-scrollbar border-t border-border/30">
             {playlist.map((song, i) => (
               <div key={`${song.id}-${i}`} className={cn("flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group", i === currentIndex && "bg-neon-cyan/10 text-neon-cyan")}>
-                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); }} className="flex-1 text-left truncate cursor-pointer">
-                  <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
-                </button>
-                {playlist.length > 1 && (
-                  <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
-                )}
+                <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); }} className="flex-1 text-left truncate cursor-pointer"><span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span></button>
+                {playlist.length > 1 && <button onClick={() => removeSong(i)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>}
               </div>
             ))}
           </div>
         )}
 
         <div className="border-t border-border/50">
-          <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors">
-            <Plus className="w-3 h-3" /> Agregar YouTube
-          </button>
+          <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors"><Plus className="w-3 h-3" /> Agregar YouTube</button>
           {showAddSong && (
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
               <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />

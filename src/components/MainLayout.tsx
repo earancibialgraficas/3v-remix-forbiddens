@@ -75,7 +75,6 @@ export default function MainLayout() {
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            // 🔥 Ajustamos a 110px para darle más aire abajo
             mobileRightOpen ? "h-[80vh]" : "h-[110px]"
           )}>
             <button 
@@ -86,7 +85,6 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
-            {/* 🔥 Se le subió el padding inferior a pb-5 para empujar el reproductor hacia arriba y cerrar la brecha visual */}
             <div className={cn(
               "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
               mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
