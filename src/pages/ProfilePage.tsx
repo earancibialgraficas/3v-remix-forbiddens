@@ -23,7 +23,6 @@ const storageLimits: Record<string, number> = {
   novato: 50, entusiasta: 150, coleccionista: 500, "leyenda arcade": 2000,
 };
 
-// 🔥 Configuración de Iconos para Avisos
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
   friend_accepted: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-green" },
@@ -50,7 +49,6 @@ export default function ProfilePage() {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
   
-  // 🔥 Nuevo Tab "Avisos"
   const tabFromUrl = searchParams.get("tab") as any;
   const validTabs = ["avisos", "posts", "stats", "social", "storage", "moderation", "friends"];
   const [activeTab, setActiveTab] = useState<"avisos" | "posts" | "stats" | "social" | "storage" | "moderation" | "friends">(validTabs.includes(tabFromUrl) ? tabFromUrl : "avisos");
@@ -68,7 +66,7 @@ export default function ProfilePage() {
   const [staffRoleColor, setStaffRoleColor] = useState("");
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]); // Estado de notificaciones
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -82,8 +80,6 @@ export default function ProfilePage() {
       setInstagram(profile.instagram_url || "");
       setYoutube(profile.youtube_url || "");
       setTiktok(profile.tiktok_url || "");
-      // FIX: solo sincronizar la firma desde DB cuando NO se está editando,
-      // así no se pisa el texto que el usuario está tipeando al refrescar (al cambiar color/font).
       if (!editing) {
         setSignature((profile as any).signature || "");
       }
@@ -92,34 +88,28 @@ export default function ProfilePage() {
       setRoleColor((profile as any).color_role || "");
       setStaffRoleColor((profile as any).color_staff_role || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   useEffect(() => {
     if (!user) return;
     
-    // Cargar posts
     supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setUserPosts(data); });
     
-    // Cargar scores
     supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false })
       .then(({ data }) => { if (data) setGameScores(data as any); });
     
-    // Cargar followers
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
       .then(({ count }) => setFollowerCount(count || 0));
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
     
-    // 🔥 Cargar Notificaciones
     const fetchNotifs = async () => {
       const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
       if (data) setNotifications(data);
     };
     fetchNotifs();
 
-    // Cargar Storage
     const loadStorage = async () => {
       const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
       const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
@@ -137,12 +127,11 @@ export default function ProfilePage() {
     loadStorage();
   }, [user]);
 
-  // 🔥 Al entrar a la pestaña de "Avisos", marcamos todos como leídos
   useEffect(() => {
     if (activeTab === "avisos" && user) {
       const markAsRead = async () => {
         await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); // Actualizamos el estado local
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
       };
       markAsRead();
     }
@@ -245,8 +234,10 @@ export default function ProfilePage() {
   const storagePercent = maxStorage === Infinity ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
   const isMod = roles.includes("moderator");
   const isStaff = isAdmin || isMasterWeb;
+  
+  // 🔥 FIX: Definimos el display general de la membresía asegurando que STAFF tenga prioridad
+  const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
 
-  // 🔥 Se inyecta Avisos de primero
   const tabs = [
     { id: "avisos" as const, label: "Avisos", icon: Bell },
     { id: "posts" as const, label: "Posts", icon: MessageSquare },
@@ -335,7 +326,6 @@ export default function ProfilePage() {
                   const updateSig = (patch: Record<string, any>) => {
                     supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
                   };
-                  // Preview profile uses local signature text but DB-backed style fields
                   const previewProfile = { ...(profile as any), signature };
                   const googleFonts = ["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"];
                   return (
@@ -346,7 +336,6 @@ export default function ProfilePage() {
                         onChange={(e) => {
                           const v = e.target.value;
                           setSignature(v);
-                          // Debounced auto-save so the signature persists even without blur
                           if ((window as any).__sigSaveTimer) clearTimeout((window as any).__sigSaveTimer);
                           (window as any).__sigSaveTimer = setTimeout(() => {
                             updateSig({ signature: v.trim() || null });
@@ -354,7 +343,7 @@ export default function ProfilePage() {
                         }}
                         onBlur={(e) => updateSig({ signature: e.target.value.trim() || null })}
                         className="h-8 bg-muted text-xs font-body"
-                        placeholder={`— ${profile?.display_name} [${tier.toUpperCase()}]`}
+                        placeholder={`— ${profile?.display_name} [${displayTier}]`}
                         maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
                       />
                       {canAdvanced && (
@@ -507,11 +496,10 @@ export default function ProfilePage() {
                               </label>
                             </>
                           )}
-                          {/* Vista previa con render real */}
                           <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20">
                             <p className="text-[9px] font-body text-muted-foreground mb-1">Vista previa (igual que en posts):</p>
                             <SignatureDisplay
-                              text={signature || `— ${profile?.display_name} [${tier.toUpperCase()}]`}
+                              text={signature || `— ${profile?.display_name} [${displayTier}]`}
                               profile={previewProfile}
                               fontSize={13}
                             />
@@ -565,7 +553,12 @@ export default function ProfilePage() {
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Editar Perfil</Button>
-                  <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
+                  
+                  {/* 🔥 FIX: Ocultamos el botón "Actualizar Plan" si eres Staff o Mod */}
+                  {!(isStaff || isMod) && (
+                    <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>
+                  )}
+
                   {(["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) || isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
                       <Palette className="w-3 h-3" /> Personalizar Colores
@@ -600,7 +593,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* 🔥 Tab content - Avisos */}
       {activeTab === "avisos" && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS AVISOS ({notifications.length})</h3>
@@ -637,7 +629,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Tab content - Posts */}
       {activeTab === "posts" && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">MIS POSTS ({userPosts.length})</h3>
@@ -660,8 +651,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ... Resto de los Tabs: Stats, Friends, Social, Storage, Moderation (SIN CAMBIOS) ... */}
-
       {activeTab === "stats" && (
         <div className="bg-card border border-border rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
@@ -672,7 +661,7 @@ export default function ProfilePage() {
               return [
               { val: displayTotal.toLocaleString(), label: "Puntos totales", color: "text-neon-green" },
               { val: userPosts.length, label: "Posts", color: "text-neon-cyan" },
-              { val: tier.toUpperCase(), label: "Membresía", color: "text-neon-yellow" },
+              { val: displayTier, label: "Membresía", color: "text-neon-yellow" }, // 🔥 FIX: Aquí actualizamos para que diga STAFF
               { val: roles.length, label: "Roles", color: "text-neon-magenta" },
               { val: followerCount, label: "Seguidores", color: "text-neon-cyan" },
               { val: followingCount, label: "Siguiendo", color: "text-neon-orange" },
@@ -824,7 +813,7 @@ export default function ProfilePage() {
                       {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-1.5" />}
                     </div>
                     <span className="font-pixel text-xs" style={getNameStyle(nameColor)}>{profile?.display_name}</span>
-                    <span className="text-[9px] font-pixel" style={getRoleStyle(roleColor)}>{tier.toUpperCase()}</span>
+                    <span className="text-[9px] font-pixel" style={getRoleStyle(roleColor)}>{displayTier}</span>
                     {(isStaff || isMod) && (
                       <span className="text-[9px] font-pixel" style={getRoleStyle(staffRoleColor)}>
                         {isMasterWeb ? "MASTER" : isAdmin ? "ADMIN" : "MOD"}
@@ -877,8 +866,6 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-// ... Resto de los componentes secundarios: ModerationPanel, ModeratorList, SocialContentTab, FriendsTab (MISMOS QUE ME PASASTE)
 
 function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
   const { toast } = useToast();
@@ -982,10 +969,8 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         </div>
       )}
 
-      {/* Moderator list */}
       {isStaff && <ModeratorList isMasterWeb={isMasterWeb} />}
 
-      {/* Membership Management */}
       {isStaff && (
         <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3">
           <h3 className="font-pixel text-[10px] text-neon-yellow flex items-center gap-1"><Star className="w-3 h-3" /> GESTIONAR MEMBRESÍAS</h3>
