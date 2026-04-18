@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Send, User, Search, ArrowLeft, X, Mail } from "lucide-react";
+import { MessageSquare, Send, User, Search, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,25 +45,12 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Handle partner from URL param
   useEffect(() => {
     const partnerFromUrl = searchParams.get("partner") || searchParams.get("to");
     if (partnerFromUrl && user && !selectedPartner) {
       loadMessages(partnerFromUrl);
     }
   }, [searchParams, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const forceResetUnread = async () => {
-      await supabase
-        .from("inbox_messages")
-        .update({ is_read: true } as any)
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-    };
-    forceResetUnread();
-  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -120,16 +107,31 @@ export default function MessagesPage() {
     setLoading(false);
   };
 
-const loadMessages = async (partnerId: string) => {
+  const loadMessages = async (partnerId: string) => {
     if (!user) return;
     setSelectedPartner(partnerId);
+    
+    // 1. Cargamos el historial de mensajes
     const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true });
+      
     if (data) setMessages(data as Message[]);
-    await supabase.from("inbox_messages").update({ is_read: true } as any)
-      .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
+    
+    // 2. Le avisamos a la Base de Datos que ya leímos esto
+    try {
+      await supabase.from("inbox_messages").update({ is_read: true })
+        .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
+        
+      // 3. Forzamos la actualización visual del Círculo Verde al instante
+      setConversations(prev => prev.map(c => 
+        c.partnerId === partnerId ? { ...c, unread: 0 } : c
+      ));
+    } catch (e) {
+      console.error("Error al marcar como leído:", e);
+    }
   };
+
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
     const { error } = await supabase.from("inbox_messages").insert({
@@ -157,17 +159,13 @@ const loadMessages = async (partnerId: string) => {
   }
 
   return (
-    // 🔥 min-w-0 y w-full añadidos para prevenir desbordes a nivel general
     <div className="space-y-3 animate-fade-in w-full min-w-0" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="bg-card border border-neon-cyan/30 rounded p-3">
         <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><Mail className="w-4 h-4" /> BANDEJA PÚBLICA</h1>
         <p className="text-[10px] text-muted-foreground font-body mt-0.5">Mensajes públicos, reportes y sugerencias de cualquier usuario</p>
       </div>
 
-      {/* 🔥 min-w-0 para proteger la estructura de columnas */}
       <div className="flex gap-3 min-w-0 w-full" style={{ height: 'calc(100% - 70px)' }}>
-        
-        {/* Conversation list */}
         <div className={cn("bg-card border border-border rounded flex flex-col min-w-0 overflow-hidden", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
           <div className="p-2 border-b border-border">
             <div className="flex gap-1">
@@ -193,19 +191,16 @@ const loadMessages = async (partnerId: string) => {
               conversations.length === 0 ? <p className="p-3 text-xs text-muted-foreground font-body">Sin conversaciones. Busca un usuario para empezar.</p> :
               conversations.map(c => (
                 <button key={c.partnerId} onClick={() => loadMessages(c.partnerId)}
-                  // 🔥 overflow-hidden añadido al botón
                   className={cn("w-full flex items-center gap-2 p-2.5 border-b border-border/30 hover:bg-muted/30 transition-colors text-left overflow-hidden",
                     selectedPartner === c.partnerId && "bg-muted/50")}>
                   <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(c.partnerColorAvatarBorder)}>
                     {c.partnerAvatar ? <img src={c.partnerAvatar} className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
                   </div>
-                  {/* 🔥 min-w-0 y overflow-hidden para obligar al corte de texto */}
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-body font-medium text-foreground truncate block" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
                       {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center shrink-0 ml-1">{c.unread}</span>}
                     </div>
-                    {/* 🔥 truncate, block y w-full forzados */}
                     <p className="text-[10px] text-muted-foreground font-body truncate block w-full">{c.lastMessage}</p>
                   </div>
                 </button>
@@ -214,7 +209,6 @@ const loadMessages = async (partnerId: string) => {
           </div>
         </div>
 
-        {/* Chat area */}
         {selectedPartner && (
           <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
             <div className="p-2 border-b border-border flex items-center gap-2">

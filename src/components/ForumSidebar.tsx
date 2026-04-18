@@ -88,7 +88,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // 1. Cargar contador de mensajes públicos
+  // 1. Cargar contador de mensajes públicos (CON ESCÁNER EN TIEMPO REAL)
   useEffect(() => {
     if (!user?.id) return;
     const fetchInboxCount = async () => {
@@ -104,6 +104,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
       }
     };
     fetchInboxCount();
+
+    const uniqueInboxChannel = `sidebar-inbox-${Date.now()}-${Math.random()}`;
+    const channel = supabase
+      .channel(uniqueInboxChannel)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchInboxCount())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   // 2. Cargar contador de notificaciones generales (Avisos)
@@ -124,7 +132,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     fetchNotifsCount();
 
     const uniqueChannelName = `sidebar-notifs-${Date.now()}-${Math.random()}`;
-    
     const channel = supabase
       .channel(uniqueChannelName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount())
@@ -137,13 +144,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
   };
 
-  // 🔥 FUNCIONES CORREGIDAS: Ahora sí guardan en la base de datos
   const handleClearNotifications = async () => {
     setUnreadNotifications(0); 
     if (user?.id) {
       try {
         await supabase.from("notifications")
-          .update({ is_read: true } as any)
+          .update({ is_read: true })
           .eq("user_id", user.id)
           .eq("is_read", false);
       } catch (e) {
@@ -152,12 +158,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     }
   };
 
-const handleClearPublic = async () => {
+  const handleClearPublic = async () => {
     setUnreadPublic(0); 
     if (user?.id) {
       try {
         await supabase.from("inbox_messages")
-          .update({ is_read: true }) // Quitamos el "as any" que a veces causa problemas
+          .update({ is_read: true })
           .eq("receiver_id", user.id) 
           .eq("is_read", false);
       } catch (e) {
@@ -215,13 +221,13 @@ const handleClearPublic = async () => {
                 </Link>
               </Button>
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none">
+                <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-20">
                   {unreadNotifications > 9 ? "9+" : unreadNotifications}
                 </span>
               )}
             </div>
 
-     {/* Mensajes Públicos (Bandeja) */}
+            {/* Mensajes Públicos */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica" onClick={handleClearPublic}>
@@ -229,7 +235,7 @@ const handleClearPublic = async () => {
                 </Link>
               </Button>
               {unreadPublic > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-10">
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-20">
                   {unreadPublic > 9 ? "9+" : unreadPublic}
                 </span>
               )}
