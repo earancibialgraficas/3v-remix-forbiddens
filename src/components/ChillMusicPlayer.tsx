@@ -30,7 +30,6 @@ export default function ChillMusicPlayer() {
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
   
-  // 🔥 Nuevo estado para nuestro Dropdown Custom
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
@@ -51,12 +50,14 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  // 1. CARGA DE CANCIONES (CON NUEVO ORDEN: LOFI -> METAL -> RAP)
   useEffect(() => {
     const fetchMusic = async () => {
+      // 🔥 El orden en este arreglo define el orden en "Todos los géneros"
       const folders = [
+        { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' },
         { path: 'metal', name: 'Metal' },
-        { path: 'Rap', name: 'Rap' },
-        { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' }
+        { path: 'Rap', name: 'Rap' }
       ];
       
       let fetchedSongs: Song[] = [];
@@ -83,10 +84,36 @@ export default function ChillMusicPlayer() {
       }
       setAllSongs(fetchedSongs);
       setPlaylist(fetchedSongs);
+      
+      // 🔥 INTENTO DE AUTOPLAY: Apenas cargue la lista, le decimos que empiece a tocar
+      if (fetchedSongs.length > 0) {
+        setIsPlaying(true);
+      }
     };
 
     fetchMusic();
   }, []);
+
+  // 🔥 TRAMPA NINJA PARA EL AUTOPLAY BLOQUEADO
+  // Si el navegador bloquea el autoplay inicial, esto arranca la música al primer clic que el usuario haga en la página web
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (playlist.length > 0 && !isPlaying) {
+        setIsPlaying(true);
+      }
+      // Una vez que el usuario hizo clic, nos borramos para no estorbar
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, [playlist, isPlaying]);
 
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
@@ -96,9 +123,9 @@ export default function ChillMusicPlayer() {
       setPlaylist(allSongs.filter(s => s.category === cat));
     }
     setCurrentIndex(0);
-    setIsPlaying(false);
+    setIsPlaying(true); // Auto-play al cambiar de categoría
     setCurrentTime(0);
-    setShowCategoryMenu(false); // Cierra el menú al elegir
+    setShowCategoryMenu(false); 
   };
 
   useEffect(() => {
@@ -108,7 +135,10 @@ export default function ChillMusicPlayer() {
       if (audioRef.current) {
         audioRef.current.volume = volume / 100;
         if (isPlaying) {
-          audioRef.current.play().catch(e => console.log("Auto-play prevenido", e));
+          audioRef.current.play().catch(e => {
+            console.log("El navegador bloqueó el Autoplay por seguridad. Esperando el primer clic del usuario...");
+            setIsPlaying(false); // Apagamos el botón si nos bloquearon
+          });
         } else {
           audioRef.current.pause();
         }
@@ -202,12 +232,14 @@ export default function ChillMusicPlayer() {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i + 1) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    setIsPlaying(true);
   }, [playlist.length]);
 
   const prev = () => {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    setIsPlaying(true);
   };
 
   const removeSong = (idx: number) => {
@@ -319,7 +351,7 @@ export default function ChillMusicPlayer() {
             </button>
           </div>
 
-          {/* 🔥 DROPDOWN CIBERPUNK PERSONALIZADO */}
+          {/* DROPDOWN */}
           <div className="px-2.5 pb-2 relative z-50">
             <button 
               onClick={() => setShowCategoryMenu(!showCategoryMenu)}
@@ -334,7 +366,6 @@ export default function ChillMusicPlayer() {
               {showCategoryMenu ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
             </button>
 
-            {/* Menú Desplegable Oculto */}
             {showCategoryMenu && (
               <div className="absolute top-full left-2.5 right-2.5 mt-1 bg-background border border-neon-cyan/30 rounded shadow-2xl overflow-hidden z-50 animate-fade-in">
                 {categories.map(cat => (
