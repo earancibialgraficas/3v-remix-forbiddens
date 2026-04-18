@@ -152,13 +152,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     }
   };
 
-  const handleClearPublic = async () => {
+const handleClearPublic = async () => {
     setUnreadPublic(0); 
     if (user?.id) {
       try {
-        // 🔥 ESTA ES LA LÍNEA QUE FALTABA PARA QUE SUPABASE NOS PERMITIERA GUARDAR (.eq("receiver_id", user.id))
         await supabase.from("inbox_messages")
-          .update({ is_read: true } as any)
+          .update({ is_read: true }) // Quitamos el "as any" que a veces causa problemas
           .eq("receiver_id", user.id) 
           .eq("is_read", false);
       } catch (e) {
@@ -222,7 +221,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               )}
             </div>
 
-            {/* Mensajes Públicos */}
+     {/* Mensajes Públicos (Bandeja) */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica" onClick={handleClearPublic}>
@@ -230,7 +229,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                 </Link>
               </Button>
               {unreadPublic > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none">
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-10">
                   {unreadPublic > 9 ? "9+" : unreadPublic}
                 </span>
               )}
