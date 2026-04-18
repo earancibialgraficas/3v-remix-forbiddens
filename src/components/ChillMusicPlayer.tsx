@@ -15,7 +15,6 @@ interface Song {
   category: string;
 }
 
-// Funciones para leer la memoria inmediatamente al cargar
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
 
@@ -26,7 +25,6 @@ export default function ChillMusicPlayer() {
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
   
-  // 🔥 Inicializamos los estados directamente desde LocalStorage
   const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
   const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,23 +48,24 @@ export default function ChillMusicPlayer() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
   
-  // 🔥 REF PARA MEMORIA EXACTA: Evita que el audio reescriba el tiempo al cargar
+  // 🔥 CANDADO DE SEGURIDAD: Bloquea el guardado hasta aplicar el tiempo guardado
   const timeToRestoreRef = useRef<number | null>(null);
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  // 🔥 1. GUARDAR PROGRESO (Solo guarda si NO estamos esperando restaurar el tiempo)
   useEffect(() => {
     const timer = setInterval(() => {
-      if (isPlaying && currentTime > 0) {
+      if (playlist.length > 0 && timeToRestoreRef.current === null) {
         localStorage.setItem('forbiddens_music_category', currentCategory);
         localStorage.setItem('forbiddens_music_index', currentIndex.toString());
         localStorage.setItem('forbiddens_music_time', currentTime.toString());
       }
     }, 2000); 
     return () => clearInterval(timer);
-  }, [isPlaying, currentIndex, currentTime, currentCategory]);
+  }, [currentIndex, currentTime, currentCategory, playlist.length]);
 
   useEffect(() => {
     setMinimized(isMobile);
@@ -101,25 +100,29 @@ export default function ChillMusicPlayer() {
       }
       setAllSongs(fetchedSongs);
 
-      // Aplicamos la playlist basándonos en la categoría que ya leímos al inicio
+      const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
+      const savedIndex = localStorage.getItem('forbiddens_music_index');
+      const savedTime = localStorage.getItem('forbiddens_music_time');
+
+      setCurrentCategory(savedCat);
+
       let initialPlaylist = fetchedSongs;
-      if (currentCategory !== "Todos") {
-        initialPlaylist = fetchedSongs.filter(s => s.category === currentCategory);
+      if (savedCat !== "Todos") {
+        initialPlaylist = fetchedSongs.filter(s => s.category === savedCat);
       }
       setPlaylist(initialPlaylist);
-      
-      // Validamos que el índice guardado no se pase del límite de la playlist actual
-      if (currentIndex >= initialPlaylist.length) {
+
+      if (savedIndex !== null && parseInt(savedIndex) < initialPlaylist.length) {
+        setCurrentIndex(parseInt(savedIndex));
+      } else {
         setCurrentIndex(0);
       }
 
-      // Preparamos el tiempo a restaurar
-      const savedTime = localStorage.getItem('forbiddens_music_time');
       if (savedTime !== null) {
         const parsedTime = parseFloat(savedTime);
         setCurrentTime(parsedTime);
         setSeekDisplayValue(parsedTime);
-        timeToRestoreRef.current = parsedTime; // Lo guardamos en el Ref escudo
+        timeToRestoreRef.current = parsedTime; // 🔒 Activa el candado
       }
 
       if (initialPlaylist.length > 0) {
@@ -128,15 +131,15 @@ export default function ChillMusicPlayer() {
     };
 
     fetchMusic();
-  }, []); // Solo se ejecuta al montar
+  }, []);
 
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      // 🔥 Si hay un tiempo guardado en el escudo, lo aplicamos y lo borramos
+      // 🔥 Aplica el tiempo guardado y ROMPE el candado para permitir autoguardar de nuevo
       if (timeToRestoreRef.current !== null) {
         audioRef.current.currentTime = timeToRestoreRef.current;
-        timeToRestoreRef.current = null;
+        timeToRestoreRef.current = null; 
       }
     }
   };
@@ -151,6 +154,7 @@ export default function ChillMusicPlayer() {
     setCurrentIndex(0);
     setIsPlaying(true);
     setCurrentTime(0);
+    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
     setShowCategoryMenu(false); 
   };
 
@@ -189,7 +193,7 @@ export default function ChillMusicPlayer() {
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
         
-        // 🔥 Lo mismo para YouTube
+        // 🔥 Aplica en Youtube y ROMPE el candado
         if (timeToRestoreRef.current !== null) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*');
           timeToRestoreRef.current = null;
@@ -271,6 +275,7 @@ export default function ChillMusicPlayer() {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i + 1) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
     setIsPlaying(true);
   }, [playlist.length]);
 
@@ -278,6 +283,7 @@ export default function ChillMusicPlayer() {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
+    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
     setIsPlaying(true);
   };
 
@@ -313,6 +319,7 @@ export default function ChillMusicPlayer() {
     setIsSeeking(false);
     setCurrentTime(t);
     setSeekDisplayValue(t);
+    timeToRestoreRef.current = null; // 🔓 Romper candado por adelanto manual
     
     if (current?.type === 'local' && audioRef.current) {
       audioRef.current.currentTime = t;

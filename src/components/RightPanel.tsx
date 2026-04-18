@@ -79,6 +79,17 @@ export default function RightPanel() {
     return () => window.removeEventListener("resize", handleScroll);
   }, [topUsers, premiumUsers]);
 
+  // 🔥 EVENTO PARA RESETEAR EL SCROLL SI SE MINIMIZA EL PANEL
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (!e.detail.open && scrollRef.current) {
+        scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener("syncMusicPlayer", handleSync);
+    return () => window.removeEventListener("syncMusicPlayer", handleSync);
+  }, []);
+
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
   const navigate = useNavigate();
   const location = useLocation();
