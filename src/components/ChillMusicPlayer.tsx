@@ -50,22 +50,35 @@ export default function ChillMusicPlayer() {
   
   // 🔥 CANDADO DE SEGURIDAD: Bloquea el guardado hasta aplicar el tiempo guardado
   const timeToRestoreRef = useRef<number | null>(null);
+  const actualTimeRef = useRef<number>(0); // Referencia silenciosa del tiempo actual
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 🔥 1. GUARDAR PROGRESO (Solo guarda si NO estamos esperando restaurar el tiempo)
+  // Actualizamos el Ref del tiempo en silencio para no romper el temporizador
+  useEffect(() => {
+    actualTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  // 🔥 1. GUARDAR CANCIÓN Y PLAYLIST (Reemplaza al instante al cambiar)
+  useEffect(() => {
+    if (playlist.length > 0 && timeToRestoreRef.current === null) {
+      localStorage.setItem('forbiddens_music_category', currentCategory);
+      localStorage.setItem('forbiddens_music_index', currentIndex.toString());
+    }
+  }, [currentCategory, currentIndex, playlist.length]);
+
+  // 🔥 2. GUARDAR EL MINUTO ACTUAL (Independiente para que no falle)
   useEffect(() => {
     const timer = setInterval(() => {
-      if (playlist.length > 0 && timeToRestoreRef.current === null) {
-        localStorage.setItem('forbiddens_music_category', currentCategory);
-        localStorage.setItem('forbiddens_music_index', currentIndex.toString());
-        localStorage.setItem('forbiddens_music_time', currentTime.toString());
+      // Solo guarda si la música ya cargó y ya quitamos el candado inicial
+      if (timeToRestoreRef.current === null && actualTimeRef.current > 0) {
+        localStorage.setItem('forbiddens_music_time', actualTimeRef.current.toString());
       }
-    }, 2000); 
+    }, 1000); // Aplasta y reemplaza el dato cada 1 segundo exacto
     return () => clearInterval(timer);
-  }, [currentIndex, currentTime, currentCategory, playlist.length]);
+  }, []);
 
   useEffect(() => {
     setMinimized(isMobile);
