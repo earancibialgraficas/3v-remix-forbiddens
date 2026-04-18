@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
-// 🔥 IMPORTAMOS EL NUEVO MINI CARRUSEL
 import MiniCarousel from "@/components/MiniCarousel";
 
 interface TopUser { display_name: string; total_score: number; color_name?: string | null; }
@@ -30,7 +29,6 @@ export default function RightPanel() {
   const [postCount, setPostCount] = useState(0);
   const [onlineCount, setOnlineCount] = useState(0);
 
-  // 🔥 Estados y Referencia para la magia del Scroll Neón
   const scrollRef = useRef<HTMLElement>(null);
   const [showTopShadow, setShowTopShadow] = useState(false);
   const [showBottomShadow, setShowBottomShadow] = useState(true);
@@ -38,15 +36,11 @@ export default function RightPanel() {
   const sizes = textSizeMap[textSize];
   const cycleSize = () => setTextSize(p => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
 
-  // Función que calcula en qué punto del scroll estamos
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     
-    // Mostramos la sombra superior si hemos bajado un poco (más de 5px)
     setShowTopShadow(scrollTop > 5);
-    
-    // Mostramos la sombra inferior si aún no llegamos al final del scroll
     setShowBottomShadow(Math.ceil(scrollTop + clientHeight) < scrollHeight - 5);
   };
 
@@ -77,7 +71,6 @@ export default function RightPanel() {
     fetchStats();
   }, []);
 
-  // Revisar el scroll apenas carguen los datos o se redimensione la pantalla
   useEffect(() => {
     handleScroll();
     window.addEventListener("resize", handleScroll);
@@ -90,18 +83,15 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    // Envolvemos todo en un div relativo para que los brillos floten sobre el contenido
     <div className="w-full shrink-0 relative h-[calc(100vh-80px)] overflow-hidden">
       
-      {/* 🔴 SOMBRA NEÓN SUPERIOR (Más grande, intensa y por encima de todo) */}
+      {/* Sombras Neón */}
       <div 
         className={cn(
           "absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500",
           showTopShadow ? "opacity-100" : "opacity-0"
         )} 
       />
-
-      {/* 🔴 SOMBRA NEÓN INFERIOR */}
       <div 
         className={cn(
           "absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#de1839]/60 via-[#de1839]/10 to-transparent z-50 pointer-events-none transition-opacity duration-500",
@@ -109,15 +99,16 @@ export default function RightPanel() {
         )} 
       />
 
-      {/* Contenedor con Scroll */}
+      {/* CONTENEDOR FLEX (Aquí está la magia del reordenamiento) */}
       <aside 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
+        className="w-full h-full flex flex-col gap-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
       >
-        <div className="flex items-center justify-end gap-1 sticky top-0 bg-background/80 backdrop-blur-sm z-30 py-1">
+        {/* ORDEN 1: CABECERA */}
+        <div className="order-1 flex items-center justify-end gap-1 sticky top-0 bg-background/80 backdrop-blur-sm z-40 py-1">
           {!isHome && (
-            <div className="flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
+            <div className="hidden md:flex items-center gap-0.5 rounded bg-card border border-border p-0.5">
               <button onClick={() => navigate(-1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronLeft className="w-3.5 h-3.5" /></button>
               <button onClick={() => navigate(1)} className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><ChevronRight className="w-3.5 h-3.5" /></button>
             </div>
@@ -128,8 +119,14 @@ export default function RightPanel() {
           </button>
         </div>
 
-        {/* Caja de Comunidad */}
-        <div className="bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors mt-2">
+        {/* 🔥 ORDEN 2 (Móvil) / ORDEN 5 (PC): REPRODUCTOR */}
+        {/* En móvil estará justo debajo del header. En PC bajará al penúltimo lugar. */}
+        <div className="order-2 md:order-5 w-full relative z-30 transition-all duration-300">
+          <ChillMusicPlayer />
+        </div>
+
+        {/* ORDEN 3 (Móvil) / ORDEN 2 (PC): COMUNIDAD */}
+        <div className="order-3 md:order-2 bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors">
           <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
           <div className="grid grid-cols-3 gap-1 my-3">
             <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
@@ -144,11 +141,13 @@ export default function RightPanel() {
           </div>
         </div>
 
-        {/* 🔥 NUEVO CARRUSEL MINIATURA */}
-        <MiniCarousel />
+        {/* ORDEN 4 (Móvil) / ORDEN 3 (PC): CAROUSEL */}
+        <div className="order-4 md:order-3 w-full">
+          <MiniCarousel />
+        </div>
 
-        {/* Rankings */}
-        <div className="bg-card border border-border rounded p-3 space-y-4 shadow-md">
+        {/* ORDEN 5 (Móvil) / ORDEN 4 (PC): RANKINGS */}
+        <div className="order-5 md:order-4 bg-card border border-border rounded p-3 space-y-4 shadow-md">
           <div>
             <h3 className={cn("font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
             <div className="space-y-1.5">
@@ -176,9 +175,8 @@ export default function RightPanel() {
           </div>
         </div>
 
-        {/* REPRODUCTOR Y FOOTER */}
-        <div className="mt-6 pt-4 border-t border-border space-y-4">
-          <ChillMusicPlayer />
+        {/* ORDEN 6: FOOTER (Siempre abajo) */}
+        <div className="order-6 mt-auto pt-4 border-t border-border w-full">
           <Footer />
         </div>
       </aside>
