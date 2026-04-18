@@ -75,8 +75,8 @@ export default function MainLayout() {
         {isMobile && (
           <div className={cn(
             "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            // 🔥 Ajuste a h-[96px] para cerrar el hueco.
-            mobileRightOpen ? "h-[80vh]" : "h-[96px]"
+            // 🔥 Ajustamos a 110px para darle más aire abajo
+            mobileRightOpen ? "h-[80vh]" : "h-[110px]"
           )}>
             <button 
               onClick={toggleMobileRight}
@@ -86,9 +86,9 @@ export default function MainLayout() {
               INFO & COMUNIDAD
             </button>
             
-            {/* 🔥 Cambié el p-3 por px-3 pt-1.5 pb-3 para jalar el reproductor hacia arriba */}
+            {/* 🔥 Se le subió el padding inferior a pb-5 para empujar el reproductor hacia arriba y cerrar la brecha visual */}
             <div className={cn(
-              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1.5 pb-3",
+              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
               mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
             )}>
               <div className="pointer-events-auto">
@@ -102,7 +102,6 @@ export default function MainLayout() {
       <NavigationButtons />
       <GameBubble />
       
-      {/* 🔥 Burbuja de chat liberada, ella misma controlará su posición */}
       <FloatingChat />
     </div>
   );

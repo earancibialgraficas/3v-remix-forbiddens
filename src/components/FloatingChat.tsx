@@ -51,7 +51,7 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 ESTADOS PARA EL ARRASTRE (DRAG & DROP)
+  // ESTADOS PARA EL ARRASTRE
   const [pos, setPos] = useState({ 
     x: 20, 
     y: typeof window !== 'undefined' ? window.innerHeight - 100 : 800 
@@ -217,7 +217,6 @@ export default function FloatingChat() {
 
   if (!user) return null;
 
-  // Burbuja Minimizada y Arrastrable
   if (!isOpen || minimized) {
     return (
       <button
@@ -238,8 +237,6 @@ export default function FloatingChat() {
     );
   }
 
-  // Ventana de Chat Abierta
-  // Mantenemos la ventana anclada a la posición de la burbuja, pero aseguramos que no se salga de la pantalla
   const windowX = typeof window !== 'undefined' ? Math.min(pos.x, window.innerWidth - 320 - 16) : pos.x;
   const windowY = typeof window !== 'undefined' ? Math.min(pos.y, window.innerHeight - 448 - 16) : pos.y;
 
@@ -248,7 +245,6 @@ export default function FloatingChat() {
       style={{ left: windowX, top: windowY }}
       className="fixed z-[250] w-80 h-[28rem] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-scale-in"
     >
-      {/* Header Arrastrable */}
       <div 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -258,7 +254,8 @@ export default function FloatingChat() {
       >
         <div className="flex items-center gap-2 pointer-events-none">
           {partnerId && (
-            <button onClick={(e) => { e.stopPropagation(); setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground pointer-events-auto">
+            {/* 🔥 BLINDAJE: onPointerDown detiene el evento de arrastre para el botón ATRÁS */}
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground pointer-events-auto">
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
           )}
@@ -269,14 +266,17 @@ export default function FloatingChat() {
         </div>
         <div className="flex items-center gap-1">
           {partnerId && (
-            <button onClick={(e) => { e.stopPropagation(); cycleFontSize(); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title={`Tamaño: ${fontSize}px`}>
+            {/* 🔥 BLINDAJE: onPointerDown detiene el evento de arrastre para el botón TAMAÑO TEXTO */}
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); cycleFontSize(); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title={`Tamaño: ${fontSize}px`}>
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
+          {/* 🔥 BLINDAJE: onPointerDown detiene el arrastre para el botón MINIMIZAR */}
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
+          {/* 🔥 BLINDAJE: onPointerDown detiene el arrastre para el botón CERRAR */}
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
             <X className="w-3 h-3" />
           </button>
         </div>

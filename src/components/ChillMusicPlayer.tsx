@@ -49,26 +49,7 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 🔥 1. CARGAR ESTADO GUARDADO (LocalStorage con CATEGORÍA INCLUIDA)
-  useEffect(() => {
-    const savedCat = localStorage.getItem('forbiddens_music_category');
-    const savedIndex = localStorage.getItem('forbiddens_music_index');
-    const savedTime = localStorage.getItem('forbiddens_music_time');
-    
-    if (savedCat !== null) {
-      setCurrentCategory(savedCat);
-    }
-    if (savedIndex !== null) {
-      setCurrentIndex(parseInt(savedIndex));
-    }
-    if (savedTime !== null) {
-      setCurrentTime(parseFloat(savedTime));
-      setSeekDisplayValue(parseFloat(savedTime));
-    }
-    setIsLoadedFromStorage(true);
-  }, []);
-
-  // 🔥 2. GUARDAR PROGRESO PERIÓDICAMENTE (Añadimos currentCategory)
+  // 🔥 1. GUARDAR PROGRESO PERIÓDICAMENTE (Incluyendo la categoría)
   useEffect(() => {
     const timer = setInterval(() => {
       if (isPlaying && currentTime > 0) {
@@ -80,21 +61,11 @@ export default function ChillMusicPlayer() {
     return () => clearInterval(timer);
   }, [isPlaying, currentIndex, currentTime, currentCategory]);
 
-  // 🔥 3. SINCRONIZACIÓN CON PANEL MÓVIL
-  useEffect(() => {
-    const handleSync = (e: any) => {
-      if (isMobile) {
-        setMinimized(!e.detail.open);
-      }
-    };
-    window.addEventListener("syncMusicPlayer", handleSync);
-    return () => window.removeEventListener("syncMusicPlayer", handleSync);
-  }, [isMobile]);
-
   useEffect(() => {
     setMinimized(isMobile);
   }, [isMobile]);
 
+  // 🔥 2. CARGAR CANCIONES Y RESTAURAR MEMORIA LOCAL AL MISMO TIEMPO
   useEffect(() => {
     const fetchMusic = async () => {
       const folders = [
@@ -108,9 +79,7 @@ export default function ChillMusicPlayer() {
 
       for (const folder of folders) {
         const { data, error } = await supabase.storage.from('musica').list(folder.path);
-        if (error) {
-          console.error(`Error cargando la carpeta ${folder.path}:`, error);
-        } else if (data) {
+        if (!error && data) {
           data.forEach(file => {
             if (file.name !== '.emptyFolderPlaceholder') {
               fetchedSongs.push({
@@ -126,22 +95,47 @@ export default function ChillMusicPlayer() {
       }
       setAllSongs(fetchedSongs);
 
-      // 🔥 Aplicamos la playlist basándonos en la categoría guardada
+      // --- LEEMOS LA MEMORIA AQUÍ DENTRO PARA QUE NO HAYA CONFLICTOS ---
       const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
+      const savedIndex = localStorage.getItem('forbiddens_music_index');
+      const savedTime = localStorage.getItem('forbiddens_music_time');
+
+      setCurrentCategory(savedCat);
+
+      let initialPlaylist = fetchedSongs;
       if (savedCat !== "Todos") {
-        setPlaylist(fetchedSongs.filter(s => s.category === savedCat));
+        initialPlaylist = fetchedSongs.filter(s => s.category === savedCat);
+      }
+      setPlaylist(initialPlaylist);
+
+      if (savedIndex !== null && parseInt(savedIndex) < initialPlaylist.length) {
+        setCurrentIndex(parseInt(savedIndex));
       } else {
-        setPlaylist(fetchedSongs);
+        setCurrentIndex(0);
+      }
+
+      if (savedTime !== null) {
+        setCurrentTime(parseFloat(savedTime));
+        setSeekDisplayValue(parseFloat(savedTime));
+      }
+      
+      setIsLoadedFromStorage(true);
+
+      if (initialPlaylist.length > 0) {
+        setIsPlaying(true);
       }
     };
+
     fetchMusic();
   }, []);
 
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
+      // 🔥 Si viene de memoria, salta al tiempo y apaga la bandera para no forzarlo después
       if (isLoadedFromStorage && currentTime > 0) {
         audioRef.current.currentTime = currentTime;
+        setIsLoadedFromStorage(false); 
       }
     }
   };
@@ -158,6 +152,16 @@ export default function ChillMusicPlayer() {
     setCurrentTime(0);
     setShowCategoryMenu(false); 
   };
+
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (isMobile) {
+        setMinimized(!e.detail.open);
+      }
+    };
+    window.addEventListener("syncMusicPlayer", handleSync);
+    return () => window.removeEventListener("syncMusicPlayer", handleSync);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!current) return;
@@ -183,13 +187,15 @@ export default function ChillMusicPlayer() {
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
+        // 🔥 Salta al tiempo de YouTube si viene de memoria
         if (isLoadedFromStorage && currentTime > 0) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [currentTime, true] }), '*');
+          setIsLoadedFromStorage(false);
         }
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isPlaying, currentIndex, volume, current]);
+  }, [isPlaying, currentIndex, volume, current, isLoadedFromStorage, currentTime]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
