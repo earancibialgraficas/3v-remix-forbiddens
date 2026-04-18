@@ -23,18 +23,13 @@ export default function ChillMusicPlayer() {
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [currentCategory, setCurrentCategory] = useState("Todos");
   const [currentIndex, setCurrentIndex] = useState(0);
-  
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [expanded, setExpanded] = useState(false);
-  
-  // 🔥 Por defecto: Mini si es celular, Grande si es PC
   const [minimized, setMinimized] = useState(false); 
-  
   const [showAddSong, setShowAddSong] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
-  
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
@@ -48,13 +43,49 @@ export default function ChillMusicPlayer() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
+  const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // Actualiza el estado cuando detecta la pantalla
+  // 🔥 1. CARGAR ESTADO GUARDADO (LocalStorage)
+  useEffect(() => {
+    const savedIndex = localStorage.getItem('forbiddens_music_index');
+    const savedTime = localStorage.getItem('forbiddens_music_time');
+    
+    if (savedIndex !== null) {
+      setCurrentIndex(parseInt(savedIndex));
+    }
+    if (savedTime !== null) {
+      setCurrentTime(parseFloat(savedTime));
+      setSeekDisplayValue(parseFloat(savedTime));
+    }
+    setIsLoadedFromStorage(true);
+  }, []);
+
+  // 🔥 2. GUARDAR PROGRESO PERIÓDICAMENTE
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (isPlaying && currentTime > 0) {
+        localStorage.setItem('forbiddens_music_index', currentIndex.toString());
+        localStorage.setItem('forbiddens_music_time', currentTime.toString());
+      }
+    }, 2000); // Guarda cada 2 segundos
+    return () => clearInterval(timer);
+  }, [isPlaying, currentIndex, currentTime]);
+
+  // 🔥 3. SINCRONIZACIÓN CON PANEL MÓVIL
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (isMobile) {
+        setMinimized(!e.detail.open);
+      }
+    };
+    window.addEventListener("syncMusicPlayer", handleSync);
+    return () => window.removeEventListener("syncMusicPlayer", handleSync);
+  }, [isMobile]);
+
   useEffect(() => {
     setMinimized(isMobile);
   }, [isMobile]);
@@ -72,7 +103,6 @@ export default function ChillMusicPlayer() {
 
       for (const folder of folders) {
         const { data, error } = await supabase.storage.from('musica').list(folder.path);
-        
         if (error) {
           console.error(`Error cargando la carpeta ${folder.path}:`, error);
         } else if (data) {
@@ -91,14 +121,19 @@ export default function ChillMusicPlayer() {
       }
       setAllSongs(fetchedSongs);
       setPlaylist(fetchedSongs);
-      
-      if (fetchedSongs.length > 0) {
-        setIsPlaying(true);
-      }
     };
-
     fetchMusic();
   }, []);
+
+  // Aplicar tiempo guardado al cargar canción local
+  const handleLocalLoadedMeta = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+      if (isLoadedFromStorage && currentTime > 0) {
+        audioRef.current.currentTime = currentTime;
+      }
+    }
+  };
 
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
@@ -137,6 +172,10 @@ export default function ChillMusicPlayer() {
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
+        // Si es YT y tenemos tiempo guardado, saltamos al segundo
+        if (isLoadedFromStorage && currentTime > 0) {
+          iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [currentTime, true] }), '*');
+        }
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -175,9 +214,7 @@ export default function ChillMusicPlayer() {
   const handleLocalTimeUpdate = () => {
     if (audioRef.current && !isSeeking) setCurrentTime(audioRef.current.currentTime);
   };
-  const handleLocalLoadedMeta = () => {
-    if (audioRef.current) setDuration(audioRef.current.duration);
-  };
+  
   const handleLocalEnded = () => next();
 
   useEffect(() => {
@@ -298,14 +335,12 @@ export default function ChillMusicPlayer() {
     />
   );
 
-  // VERSIÓN MINI (La que aparece en celular y se puede expandir)
   if (minimized) {
     return (
       <div className="w-full relative shadow-lg">
         {renderYT} {renderLocal}
         <div className="bg-card border border-neon-cyan/30 rounded p-2">
           <div className="flex items-center gap-1.5">
-            
             <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
               <SkipBack className="w-3 h-3" />
             </button>
@@ -317,10 +352,7 @@ export default function ChillMusicPlayer() {
             </button>
 
             <canvas ref={miniCanvasRef} width={60} height={16} className="h-4 flex-1 rounded bg-muted/30 ml-1" />
-            
             <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
-            
-            {/* 🔥 Botón para Expandir el reproductor completo si el usuario quiere buscar su canción */}
             <button 
               onClick={() => { 
                 setMinimized(false); 
@@ -328,7 +360,7 @@ export default function ChillMusicPlayer() {
               }} 
               className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1"
             >
-              <ChevronDown className="w-3 h-3" />
+              <ChevronUp className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -336,72 +368,44 @@ export default function ChillMusicPlayer() {
     );
   }
 
-  // VERSIÓN EXTENDIDA (Por defecto en PC, pero accesible en móvil si la abren)
   return (
     <div className="w-full relative shadow-lg">
       {renderYT} {renderLocal}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-visible relative">
-        
-        {/* HEADER */}
         <div className="flex flex-col border-b border-border/50">
           <div className="flex items-center justify-between px-2.5 py-1.5">
             <div className="flex items-center gap-1.5">
               <Music className="w-3.5 h-3.5 text-neon-cyan" />
               <span className="font-pixel text-[8px] text-neon-cyan">FORBIDDENS PLAYER</span>
             </div>
-            {/* 🔥 Botón para Minimizar el reproductor */}
             <button onClick={() => setMinimized(true)} className="p-0.5 text-muted-foreground hover:text-foreground">
-              <ChevronUp className="w-3 h-3" />
+              <ChevronDown className="w-3 h-3" />
             </button>
           </div>
 
-          {/* DROPDOWN */}
           <div className="px-2.5 pb-2 relative z-50">
-            <button 
-              onClick={() => setShowCategoryMenu(!showCategoryMenu)}
-              className="w-full flex items-center justify-between bg-muted/30 hover:bg-muted/50 border border-border/50 rounded px-2 py-1.5 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <ListFilter className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[9px] font-body text-foreground">
-                  {currentCategory === "Todos" ? "Todos los géneros" : currentCategory}
-                </span>
-              </div>
+            <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="w-full flex items-center justify-between bg-muted/30 hover:bg-muted/50 border border-border/50 rounded px-2 py-1.5 transition-colors cursor-pointer">
+              <div className="flex items-center gap-2"><ListFilter className="w-3 h-3 text-muted-foreground" /><span className="text-[9px] font-body text-foreground">{currentCategory === "Todos" ? "Todos los géneros" : currentCategory}</span></div>
               {showCategoryMenu ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
             </button>
-
             {showCategoryMenu && (
               <div className="absolute top-full left-2.5 right-2.5 mt-1 bg-background border border-neon-cyan/30 rounded shadow-2xl overflow-hidden z-50 animate-fade-in">
                 {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => handleCategoryChange(cat)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-[9px] font-body transition-colors border-b border-border/30 last:border-0",
-                      currentCategory === cat 
-                        ? "bg-neon-cyan/10 text-neon-cyan border-l-2 border-l-neon-cyan" 
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-l-transparent"
-                    )}
-                  >
-                    {cat === "Todos" ? "Todos los géneros" : cat}
-                  </button>
+                  <button key={cat} onClick={() => handleCategoryChange(cat)} className={cn("w-full text-left px-3 py-2 text-[9px] font-body transition-colors border-b border-border/30 last:border-0", currentCategory === cat ? "bg-neon-cyan/10 text-neon-cyan border-l-2 border-l-neon-cyan" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-l-transparent")}>{cat === "Todos" ? "Todos los géneros" : cat}</button>
                 ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* VISUALIZADOR */}
         <div className="px-2.5 pt-2">
           <canvas ref={canvasRef} width={200} height={32} className="w-full h-8 rounded bg-muted/30" />
         </div>
 
-        {/* TÍTULO CANCIÓN */}
         <div className="px-2.5 py-1.5 text-center">
           <p className="text-[10px] font-body text-foreground truncate">{current?.title || (playlist.length === 0 ? "Sin canciones..." : "Cargando música...")}</p>
         </div>
 
-        {/* CONTROLES */}
         <div className="flex items-center justify-center gap-3 px-2.5 pb-1">
           <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground"><SkipBack className="w-3.5 h-3.5" /></button>
           <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors">
@@ -410,7 +414,6 @@ export default function ChillMusicPlayer() {
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
-        {/* BARRA DE PROGRESO */}
         <div className="px-3 pb-1">
           <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
           <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
@@ -419,7 +422,6 @@ export default function ChillMusicPlayer() {
           </div>
         </div>
 
-        {/* VOLUMEN */}
         <div className="px-3 pb-2 flex items-center gap-2">
           <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">
             {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
@@ -427,7 +429,6 @@ export default function ChillMusicPlayer() {
           <Slider value={[volume]} onValueChange={v => setVolume(v[0])} max={100} step={5} className="flex-1" />
         </div>
 
-        {/* LISTA DE REPRODUCCIÓN */}
         <button onClick={() => setExpanded(!expanded)} className="w-full text-center py-1 text-[9px] font-body text-muted-foreground hover:text-foreground border-t border-border/50">
           {expanded ? "Ocultar lista" : `Lista (${playlist.length} canciones)`}
         </button>
@@ -447,7 +448,6 @@ export default function ChillMusicPlayer() {
           </div>
         )}
 
-        {/* AGREGAR YOUTUBE */}
         <div className="border-t border-border/50">
           <button onClick={() => setShowAddSong(!showAddSong)} className="w-full flex items-center justify-center gap-1 py-1 text-[9px] font-body text-neon-cyan hover:bg-neon-cyan/10 transition-colors">
             <Plus className="w-3 h-3" /> Agregar YouTube
