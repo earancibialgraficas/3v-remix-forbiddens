@@ -92,7 +92,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
   
-  // 🔥 FIX: Bloqueo anti-spam para los likes
   const votingRef = useRef(false);
 
   useEffect(() => {
@@ -153,11 +152,9 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       return; 
     }
     
-    // Bloqueo para evitar que hagan clics infinitos muy rápido
     if (votingRef.current) return;
     votingRef.current = true;
 
-    // 🔥 FIX: Lógica de Rollback (como en ForumPage)
     const prevLikes = likes;
     const prevDislikes = dislikes;
     const prevReaction = userReaction;
@@ -165,7 +162,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
     let newLikes = likes;
     let newDislikes = dislikes;
 
-    // Actualización optimista en pantalla
     if (userReaction === type) {
       setUserReaction(null);
       if (type === "like") newLikes--; else newDislikes--;
@@ -210,7 +206,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       console.error("Error toggling reaction:", e);
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
       
-      // Revertimos a como estaba si la base de datos falla
       setLikes(prevLikes);
       setDislikes(prevDislikes);
       setUserReaction(prevReaction);
@@ -227,7 +222,10 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         user_id: user.id, content_id: item.id, content: commentText.trim() 
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error DB Insert:", error);
+        throw error;
+      }
       
       setCommentText("");
       
@@ -430,36 +428,32 @@ export default function SocialReelsPage() {
         </p>
       </div>
 
-      {user && (
-        <div className="flex gap-1 bg-card border border-border rounded p-1">
+      {/* 🔥 FIX: Barra unificada de filtros sin duplicar el botón de 'Todos' */}
+      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center">
+        {filterTabs.map(f => (
           <button 
-            onClick={() => setSourceTab("all")} 
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+            key={f.id} 
+            onClick={() => setFilter(f.id)} 
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            <Globe className="w-3 h-3" /> Todos
+            <f.icon className="w-3 h-3" /> {f.label}
           </button>
-          <button 
-            onClick={() => setSourceTab("friends")} 
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
-          >
-            <Users className="w-3 h-3" /> Amigos
-          </button>
-        </div>
-      )}
+        ))}
 
-      {filterTabs.length > 1 && (
-        <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
-          {filterTabs.map(f => (
+        {/* Separador visual y botón de alternar (toggle) para Amigos */}
+        {user && (
+          <>
+            {filterTabs.length > 1 && <div className="w-px h-5 bg-border mx-1" />}
             <button 
-              key={f.id} 
-              onClick={() => setFilter(f.id)} 
-              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
+              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
-              <f.icon className="w-3 h-3" /> {f.label}
+              <Users className="w-3 h-3" /> Amigos
             </button>
-          ))}
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded p-6 text-center">
