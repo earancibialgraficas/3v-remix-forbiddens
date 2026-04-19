@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,18 +81,26 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
+const isImageItem = (item: SocialItem) => {
+  return !isVideoItem(item);
+};
+
 function SnapCard({ 
   item, 
   isVisible, 
   onPauseMusic, 
   isStaff,
-  onDeletePost
+  onDeletePost,
+  onScrollUp,
+  onScrollDown
 }: { 
   item: SocialItem; 
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
   onDeletePost: (id: string) => void;
+  onScrollUp: () => void;
+  onScrollDown: () => void;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -259,10 +268,10 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 pr-0 md:pr-1">
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-2 md:pb-4">
       
-      {/* 🔴 NUEVO: Video ocupa todo el panel izquierdo 🔴 */}
-      <div className="flex-1 relative bg-black/80 flex items-center justify-center min-h-[40vh] md:min-h-0 overflow-hidden p-0 md:p-2 border border-border shadow-sm rounded-lg">
+      {/* 🔴 LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
+      <div className="flex-1 bg-card border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
@@ -270,7 +279,7 @@ function SnapCard({
               item.platform === 'tiktok' ? "max-w-[400px] rounded" : 
               item.platform === 'instagram' ? "max-w-[450px] rounded bg-white" : "rounded"
             )}
-            style={{ border: "none" }}
+            style={{ border: "none", maxWidth: "100%" }}
             scrolling="no"
             allowFullScreen 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -280,7 +289,7 @@ function SnapCard({
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className="w-full h-full max-w-[450px] rounded shadow-sm bg-white mx-auto" 
+            className="w-full h-full max-w-[500px] rounded shadow-sm bg-white mx-auto" 
             style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
@@ -292,27 +301,27 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 NUEVO: Información + Comentarios a la derecha 🔴 */}
-      <div className="w-full md:w-72 lg:w-80 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden h-[45%] md:h-full">
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON CSS GRID (Más Angosto) */}
+      <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
         
-        {/* INFO DEL AUTOR Y LIKES EN LA PARTE SUPERIOR */}
-        <div className="shrink-0 p-3 border-b border-border bg-card shadow-sm z-10 relative">
+        {/* BLOQUE 1: INFO DEL AUTOR Y LIKES (Arriba a lo ancho) */}
+        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-start-1 md:col-end-2 md:row-start-1">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
             </div>
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-1">
               <Link to={`/usuario/${item.user_id}`} className="text-xs font-body font-bold text-foreground hover:text-primary truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
               <span className="text-[9px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
             </div>
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-1 shrink-0">
               {user && (
-                <button onClick={() => setShowReport(true)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
+                <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
                   <Flag className="w-3.5 h-3.5" />
                 </button>
               )}
               {isStaff && (
-                <button onClick={() => onDeletePost(item.id)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
+                <button onClick={() => onDeletePost(item.id)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -331,47 +340,72 @@ function SnapCard({
           </div>
         </div>
 
-        {/* CAJA DE COMENTARIOS */}
-        <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
-          <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
-          {comments.map(c => (
-            <div key={c.id} className="group text-xs font-body flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <span className="text-primary font-medium">{c.display_name}: </span>
-                <span className="text-foreground/90">{c.content}</span>
-              </div>
-              <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
-                   <Flag className="w-3 h-3" />
-                </button>
-                {isStaff && (
-                  <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
-                     <Trash2 className="w-3 h-3" />
+        {/* ESPACIO VACÍO INVISIBLE (Para mantener la estructura del grid arriba a la derecha) */}
+        <div className="hidden md:block md:col-start-2 md:row-start-1 w-14 lg:w-16" />
+
+        {/* BLOQUE 2: CAJA DE COMENTARIOS (Abajo a la izquierda) */}
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-h-0 md:col-start-1 md:col-end-2 md:row-start-2">
+          <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
+            <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
+            {comments.map(c => (
+              <div key={c.id} className="group text-[10px] md:text-xs font-body flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <span className="text-primary font-medium">{c.display_name}: </span>
+                  <span className="text-foreground/90">{c.content}</span>
+                </div>
+                <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
+                     <Flag className="w-3 h-3" />
                   </button>
-                )}
+                  {isStaff && (
+                    <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
+                       <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
+            ))}
+            {comments.length === 0 && <p className="text-xs text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
+          </div>
+          {user && (
+            <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
+              <input 
+                value={commentText} 
+                onChange={e => setCommentText(e.target.value)} 
+                onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
+                placeholder="Comentar..." 
+                className="flex-1 h-8 bg-muted rounded px-3 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors" 
+              />
+              <button onClick={handleComment} disabled={!commentText.trim()} className="px-3 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors">
+                <Send className="w-3.5 h-3.5" />
+              </button>
             </div>
-          ))}
-          {comments.length === 0 && <p className="text-xs text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
+          )}
         </div>
 
-        {/* INPUT COMENTARIO */}
-        {user && (
-          <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
-            <input 
-              value={commentText} 
-              onChange={e => setCommentText(e.target.value)} 
-              onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-              placeholder="Añadir comentario..." 
-              className="flex-1 h-8 bg-muted rounded px-3 text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors" 
-            />
-            <button onClick={handleComment} disabled={!commentText.trim()} className="px-3 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors">
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        {/* BLOQUE 3: BOTONES ARCADE RETRO (Abajo a la derecha) */}
+        <div className="hidden md:flex flex-col gap-2 w-14 lg:w-16 md:col-start-2 md:row-start-2 shrink-0">
+          <button 
+            onClick={onScrollUp} 
+            className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
+            title="Subir"
+          >
+            <ChevronUp className="w-7 h-7 md:w-8 md:h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <span className="font-pixel text-[7px] md:text-[8px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mt-0.5">SUBIR</span>
+          </button>
+          
+          <button 
+            onClick={onScrollDown} 
+            className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
+            title="Bajar"
+          >
+            <span className="font-pixel text-[7px] md:text-[8px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mb-0.5">BAJAR</span>
+            <ChevronDown className="w-7 h-7 md:w-8 md:h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+          </button>
+        </div>
+
       </div>
 
       {showReport && (
@@ -536,15 +570,14 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 w-full flex gap-2 md:gap-3 pb-2 md:pb-4">
+        <div className="relative flex-1 min-h-0 w-full">
           
-          {/* CAROUSEL CONTENEDOR */}
           <div
             ref={containerRef}
-            className="snap-y snap-mandatory overflow-y-auto h-full flex-1 relative z-0 hide-scrollbar"
+            className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
             style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+            <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {filtered.map((item, i) => (
               <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
@@ -554,29 +587,11 @@ export default function SocialReelsPage() {
                   onPauseMusic={pauseMusic} 
                   isStaff={isStaff}
                   onDeletePost={handleDeletePost}
+                  onScrollUp={() => scrollContainer('up')}
+                  onScrollDown={() => scrollContainer('down')}
                 />
               </div>
             ))}
-          </div>
-
-          {/* 🔴 NUEVO: BOTONES ARCADE RETRO PARA SCROLL 🔴 */}
-          <div className="hidden md:flex flex-col gap-3 w-16 lg:w-20 shrink-0 h-full">
-            <button 
-              onClick={() => scrollContainer('up')} 
-              className="flex-1 bg-card border-[3px] border-b-[6px] border-border hover:border-neon-cyan hover:bg-neon-cyan/5 hover:border-b-[3px] hover:translate-y-[3px] rounded-lg flex flex-col items-center justify-center gap-2 transition-all group shadow-md active:bg-neon-cyan/20"
-              title="Anterior"
-            >
-              <ChevronUp className="w-8 h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={4} />
-              <span className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan hidden lg:block uppercase tracking-widest transition-colors">SUBIR</span>
-            </button>
-            <button 
-              onClick={() => scrollContainer('down')} 
-              className="flex-1 bg-card border-[3px] border-b-[6px] border-border hover:border-neon-cyan hover:bg-neon-cyan/5 hover:border-b-[3px] hover:translate-y-[3px] rounded-lg flex flex-col items-center justify-center gap-2 transition-all group shadow-md active:bg-neon-cyan/20"
-              title="Siguiente"
-            >
-              <span className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan hidden lg:block uppercase tracking-widest transition-colors">BAJAR</span>
-              <ChevronDown className="w-8 h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={4} />
-            </button>
           </div>
 
         </div>
