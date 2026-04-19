@@ -14,7 +14,7 @@ import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
 import SignatureDisplay from "@/components/SignatureDisplay";
-import { useIsMobile } from "@/hooks/use-mobile"; 
+import { useIsMobile } from "@/hooks/use-mobile"; // 🔥 Importamos el hook móvil
 
 const friendLimits: Record<string, number> = {
   novato: 25, entusiasta: 50, coleccionista: 100, "leyenda arcade": 200,
@@ -37,7 +37,7 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
-  const isMobile = useIsMobile(); 
+  const isMobile = useIsMobile(); // 🔥 Hook para detectar móvil
   const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -46,12 +46,10 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [signature, setSignature] = useState("");
-  
-  // 🔥 Estados locales para sliders fluidos
+  // 🔥 ESTADOS LOCALES PARA SLIDERS Y CONTROLES FLUIDOS
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
   const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
-
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
@@ -76,6 +74,7 @@ export default function ProfilePage() {
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // 🔥 FIX: Si vienes del botón de Configuraciones del sidebar, activa el modo edición
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
       setEditing(true);
@@ -154,6 +153,7 @@ export default function ProfilePage() {
     }
   }, [activeTab, user]);
 
+  // 🔥 FUNCIÓN DE GUARDADO OPTIMIZADA (DEBOUNCE)
   const updateSig = (patch: Record<string, any>) => {
     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
     (window as any).__sigUpdateTimer = setTimeout(() => {
@@ -295,6 +295,7 @@ export default function ProfilePage() {
       )}
 
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
+        {/* 🔥 FIX: Cambiada la clase del contenedor para que en móvil y modo edición se ponga la imagen arriba */}
         <div className={cn("flex gap-4", isMobile && editing ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
@@ -313,7 +314,7 @@ export default function ProfilePage() {
             {editing ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                   <h3 className="font-pixel text-[10px] text-neon-cyan">AJUSTES DE PERFIL</h3>
+                   <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">AJUSTES DE PERFIL</h3>
                    <button onClick={() => { setEditing(false); setSearchParams({}); }} className="text-muted-foreground hover:text-foreground text-xs underline">Cerrar</button>
                 </div>
                 <div>
@@ -448,15 +449,15 @@ export default function ProfilePage() {
                                 className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
                               />
                             </div>
-                            {profile?.signature_stroke_color && (
+                            {sigStroke && (
                                <div>
-                                 <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Grosor trazo: {sigStrokeWidth}px</label>
+                                 <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Grosor trazo: {localSigStrokeWidth}px</label>
                                  <input
                                    type="range"
                                    min={1}
                                    max={6}
                                    step={1}
-                                   value={sigStrokeWidth}
+                                   value={localSigStrokeWidth}
                                    onChange={(e) => {
                                       const val = parseInt(e.target.value, 10);
                                       setLocalSigStrokeWidth(val);
@@ -535,9 +536,7 @@ export default function ProfilePage() {
                                       <button
                                         key={w}
                                         type="button"
-                                        onClick={() => {
-                                           updateSig({ signature_image_width: w });
-                                        }}
+                                        onClick={() => updateSig({ signature_image_width: w })}
                                         className={cn("flex-1 h-7 text-[10px] rounded border font-body transition-colors", sigImageWidth === w ? "border-primary bg-primary/20 text-primary" : "border-border bg-muted text-muted-foreground hover:bg-muted/70")}
                                       >
                                         {w}%
@@ -547,7 +546,7 @@ export default function ProfilePage() {
                                 </div>
                               </div>
                               <div>
-                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Encuadre vertical: {localSigImageOffset}%</label>
+                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5">Encuadre vertical (Arriba/Abajo): {localSigImageOffset}%</label>
                                 <input
                                   type="range"
                                   min={0}
@@ -573,8 +572,8 @@ export default function ProfilePage() {
                               </label>
                             </>
                           )}
-                          <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20">
-                            <p className="text-[9px] font-body text-muted-foreground mb-1 text-center">Vista previa (igual que en posts):</p>
+                          <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
+                            <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
                             <SignatureDisplay
                               text={signature || `— ${profile?.display_name} [${displayTier}]`}
                               profile={previewProfile}
@@ -807,16 +806,31 @@ export default function ProfilePage() {
                    <button
                      onClick={async () => {
                        if (!user) return;
-                       if (item.type === "Contenido social" && item.id) {
+                       if (item.type === "Partida guardada" && item.id) {
+                         const games = Object.keys(localStorage).filter(k => k.startsWith("save_slots_"));
+                         games.forEach(k => {
+                           try {
+                             const slots = JSON.parse(localStorage.getItem(k) || "[]");
+                             const filtered = slots.filter((_: any, idx: number) => {
+                               return !item.name.includes(k.replace("save_slots_", ""));
+                             });
+                             localStorage.setItem(k, JSON.stringify(filtered));
+                           } catch {}
+                         });
+                       } else if (item.type === "Contenido social" && item.id) {
                          await supabase.from("social_content").delete().eq("id", item.id);
                        } else if (item.type === "Foto" && item.id) {
                          await supabase.from("photos").delete().eq("id", item.id);
+                       } else if (item.type === "Avatar") {
+                         toast({ title: "No permitido", description: "Solo puedes reemplazar tu avatar, no eliminarlo", variant: "destructive" });
+                         return;
                        }
                        toast({ title: "Eliminado permanentemente" });
                        setStorageItems(prev => prev.filter((_, idx) => idx !== i));
                        setStorageUsed(prev => prev - item.size);
                      }}
                      className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                     title="Eliminar permanentemente"
                    >
                      <Trash2 className="w-3 h-3" />
                    </button>
@@ -884,20 +898,37 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="flex gap-2 justify-center pt-2">
-              <Button size="sm" variant="outline" onClick={() => setShowColorPicker(false)} className="text-xs px-4">Cerrar</Button>
-              <Button size="sm" disabled={savingColors} onClick={async () => {
-                if (!user) return;
-                setSavingColors(true);
-                const { error } = await supabase.from("profiles").update({
-                  color_avatar_border: avatarBorderColor || null,
-                  color_name: nameColor || null,
-                  color_role: roleColor || null,
-                  color_staff_role: staffRoleColor || null,
-                } as any).eq("user_id", user.id);
-                setSavingColors(false);
-                if (error) { toast({ title: "Error al guardar", description: error.message, variant: "destructive" }); }
-                else { toast({ title: "Colores guardados ✨" }); await refreshProfile(); setShowColorPicker(false); }
-              }} className="text-xs px-4 bg-neon-cyan text-background hover:bg-neon-cyan/80">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowColorPicker(false)}
+                className="text-xs px-4"
+              >
+                Cerrar
+              </Button>
+              <Button
+                size="sm"
+                disabled={savingColors}
+                onClick={async () => {
+                  if (!user) return;
+                  setSavingColors(true);
+                  const { error } = await supabase.from("profiles").update({
+                    color_avatar_border: avatarBorderColor || null,
+                    color_name: nameColor || null,
+                    color_role: roleColor || null,
+                    color_staff_role: staffRoleColor || null,
+                  } as any).eq("user_id", user.id);
+                  setSavingColors(false);
+                  if (error) {
+                    toast({ title: "Error al guardar", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Colores guardados ✨" });
+                    await refreshProfile();
+                    setShowColorPicker(false);
+                  }
+                }}
+                className="text-xs px-4 bg-neon-cyan text-background hover:bg-neon-cyan/80"
+              >
                 {savingColors ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -952,45 +983,62 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     } as any);
     setBanning(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: banDuration === "perm" ? "Baneado" : "Suspendido" }); setBanEmail(""); setBanReason(""); }
+    else { toast({ title: banDuration === "perm" ? "Usuario baneado permanentemente" : `Usuario suspendido (${banDurations.find(d => d.value === banDuration)?.label})` }); setBanEmail(""); setBanReason(""); }
   };
 
   const handleAssignMod = async () => {
     if (!modEmail.trim() || !isMasterWeb) return;
-    const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
-    if (!tp) { toast({ title: "Error", variant: "destructive" }); return; }
-    const { error } = await supabase.from("user_roles").insert({ user_id: tp.user_id, role: "moderator" } as any);
-    if (error) toast({ title: "Error", variant: "destructive" });
-    else { toast({ title: "Asignado" }); setModEmail(""); }
+    const { data: targetProfile } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
+    if (!targetProfile) { toast({ title: "Usuario no encontrado", variant: "destructive" }); return; }
+    const { error } = await supabase.from("user_roles").insert({ user_id: targetProfile.user_id, role: "moderator" } as any);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Moderador asignado" }); setModEmail(""); }
   };
 
   return (
     <div className="space-y-4">
       <div className="bg-card border border-destructive/30 rounded p-4 space-y-3">
-        <h3 className="font-pixel text-[10px] text-destructive">BANEAR / SUSPENDER</h3>
-        <Input placeholder="Usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
+        <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-1"><Ban className="w-3 h-3" /> BANEAR / SUSPENDER</h3>
+        <Input placeholder="Nombre de usuario" value={banEmail} onChange={e => setBanEmail(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
         <Input placeholder="Razón" value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
-        <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
+        <div>
+          <label className="text-[10px] font-body text-muted-foreground block mb-1">Duración del baneo:</label>
+          <div className="flex flex-wrap gap-1.5">
             {banDurations.map(d => (
-              <button key={d.value} onClick={() => setBanDuration(d.value)} className={cn("px-2 py-1 rounded text-[10px] font-body border", banDuration === d.value ? "bg-destructive text-white" : "bg-muted")}>{d.label}</button>
+              <button
+                key={d.value}
+                onClick={() => setBanDuration(d.value)}
+                className={cn(
+                  "px-2 py-1 rounded text-[10px] font-body transition-all border",
+                  banDuration === d.value
+                    ? d.value === "perm" ? "bg-destructive text-destructive-foreground border-destructive" : "bg-neon-orange/20 text-neon-orange border-neon-orange/30"
+                    : "bg-muted text-muted-foreground border-border hover:border-foreground/30"
+                )}
+              >
+                {d.label}
+              </button>
             ))}
+          </div>
         </div>
-        <Button size="sm" variant="destructive" onClick={handleBan} disabled={banning} className="w-full">Procesar</Button>
+        <Button size="sm" variant="destructive" onClick={handleBan} disabled={banning || !banEmail.trim()} className="text-xs">
+          {banning ? "Procesando..." : banDuration === "perm" ? "Banear Permanente" : "Suspender Usuario"}
+        </Button>
       </div>
 
       {isMasterWeb && (
-        <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3 text-center">
-          <h3 className="font-pixel text-[10px] text-neon-cyan">ASIGNAR ROLES</h3>
-          <Input placeholder="Usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs w-full" />
+        <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Shield className="w-3 h-3" /> ASIGNAR ROLES</h3>
+          <Input placeholder="Nombre de usuario" value={modEmail} onChange={e => setModEmail(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleAssignMod} className="flex-1">Asignar Mod</Button>
+            <Button size="sm" onClick={handleAssignMod} className="text-xs">Asignar Moderador</Button>
             <Button size="sm" variant="outline" onClick={async () => {
-               if (!modEmail.trim()) return;
-               const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
-               if (!tp) return;
-               await supabase.from("user_roles").insert({ user_id: tp.user_id, role: "admin" } as any);
-               setModEmail("");
-            }} className="flex-1">Asignar Admin</Button>
+              if (!modEmail.trim()) return;
+              const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", modEmail).maybeSingle();
+              if (!tp) { toast({ title: "Usuario no encontrado", variant: "destructive" }); return; }
+              const { error } = await supabase.from("user_roles").insert({ user_id: tp.user_id, role: "admin" } as any);
+              if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+              else { toast({ title: "Administrador asignado" }); setModEmail(""); }
+            }} className="text-xs">Asignar Admin</Button>
           </div>
         </div>
       )}
@@ -998,21 +1046,30 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
       {isStaff && <ModeratorList isMasterWeb={isMasterWeb} />}
 
       {isStaff && (
-        <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3 text-center">
-          <h3 className="font-pixel text-[10px] text-neon-yellow">GESTIONAR MEMBRESÍAS</h3>
-          <Input placeholder="Usuario" value={membershipSearch} onChange={e => setMembershipSearch(e.target.value)} className="h-8 bg-muted text-xs w-full" />
-          <div className="flex flex-wrap gap-1.5 justify-center">
+        <div className="bg-card border border-neon-yellow/30 rounded p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-neon-yellow flex items-center gap-1"><Star className="w-3 h-3" /> GESTIONAR MEMBRESÍAS</h3>
+          <Input placeholder="Nombre de usuario" value={membershipSearch} onChange={e => setMembershipSearch(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
+          <div className="flex flex-wrap gap-1.5">
             {membershipTiers.map(t => (
-              <button key={t} onClick={() => setSelectedTier(t)} className={cn("px-2 py-1 rounded text-[10px] border", selectedTier === t ? "bg-neon-yellow text-black" : "bg-muted")}>{t.toUpperCase()}</button>
+              <button key={t} onClick={() => setSelectedTier(t)}
+                className={cn("px-2 py-1 rounded text-[10px] font-body transition-all border",
+                  selectedTier === t ? "bg-neon-yellow/20 text-neon-yellow border-neon-yellow/30" : "bg-muted text-muted-foreground border-border hover:border-foreground/30")}>
+                {t.toUpperCase()}
+              </button>
             ))}
           </div>
-          <Button size="sm" onClick={async () => {
+          <Button size="sm" disabled={assigningMembership || !membershipSearch.trim()} onClick={async () => {
             if (!membershipSearch.trim()) return;
+            setAssigningMembership(true);
             const { data: tp } = await supabase.from("profiles").select("user_id").ilike("display_name", membershipSearch).maybeSingle();
-            if (!tp) return;
-            await supabase.from("profiles").update({ membership_tier: selectedTier } as any).eq("user_id", tp.user_id);
-            setMembershipSearch("");
-          }} className="w-full bg-neon-yellow/20 text-neon-yellow">Actualizar</Button>
+            if (!tp) { toast({ title: "Usuario no encontrado", variant: "destructive" }); setAssigningMembership(false); return; }
+            const { error } = await supabase.from("profiles").update({ membership_tier: selectedTier } as any).eq("user_id", tp.user_id);
+            setAssigningMembership(false);
+            if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+            else { toast({ title: `Membresía actualizada a ${selectedTier.toUpperCase()}` }); setMembershipSearch(""); }
+          }} className="text-xs bg-neon-yellow/20 text-neon-yellow hover:bg-neon-yellow/30 border border-neon-yellow/30">
+            {assigningMembership ? "Procesando..." : "Asignar Membresía"}
+          </Button>
         </div>
       )}
     </div>
@@ -1020,25 +1077,52 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
 }
 
 function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
-  const [moderators, setModerators] = useState<any[]>([]);
+  const { toast } = useToast();
+  const [moderators, setModerators] = useState<{ user_id: string; display_name: string; avatar_url: string | null; role_id: string }[]>([]);
   const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
-    supabase.from("user_roles").select("id, user_id").eq("role", "moderator").then(async ({ data }) => {
-      if (!data) return;
-      const ids = data.map(r => r.user_id);
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
-      setModerators(data.map(r => ({ ...r, display_name: profs?.find(p => p.user_id === r.user_id)?.display_name })));
-    });
+    const fetch = async () => {
+      const { data: modRoles } = await supabase.from("user_roles").select("id, user_id").eq("role", "moderator");
+      if (!modRoles || modRoles.length === 0) { setModerators([]); return; }
+      const userIds = modRoles.map((r: any) => r.user_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      const list = modRoles.map((r: any) => {
+        const p = profiles?.find((pr: any) => pr.user_id === r.user_id);
+        return { user_id: r.user_id, display_name: p?.display_name || "Usuario", avatar_url: p?.avatar_url || null, role_id: r.id };
+      });
+      setModerators(list);
+    };
+    fetch();
   }, []);
+
+  const revokeMod = async (roleId: string) => {
+    if (!isMasterWeb) { toast({ title: "Solo el Web Master puede revocar roles", variant: "destructive" }); return; }
+    const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Rol de moderador revocado" }); setModerators(prev => prev.filter(m => m.role_id !== roleId)); }
+  };
+
   return (
-    <div className="bg-card border border-neon-magenta/30 rounded p-4">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex justify-between font-pixel text-[10px] text-neon-magenta">MODERADORES ({moderators.length}) <span>{expanded ? "▲" : "▼"}</span></button>
+    <div className="bg-card border border-neon-magenta/30 rounded p-4 space-y-3">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between">
+        <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-1"><Shield className="w-3 h-3" /> MODERADORES ACTIVOS ({moderators.length})</h3>
+        <span className="text-muted-foreground text-xs">{expanded ? "▲" : "▼"}</span>
+      </button>
       {expanded && (
-        <div className="mt-2 space-y-1">
-          {moderators.map(m => (
-            <div key={m.id} className="flex justify-between items-center text-xs bg-muted/20 p-2 rounded">
-              <span>{m.display_name}</span>
-              {isMasterWeb && <button onClick={async () => { await supabase.from("user_roles").delete().eq("id", m.id); setModerators(p => p.filter(x => x.id !== m.id)); }} className="text-destructive text-[10px]">Revocar</button>}
+        <div className="space-y-1.5">
+          {moderators.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-body text-center">No hay moderadores asignados</p>
+          ) : moderators.map(m => (
+            <div key={m.role_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+              <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0">
+                {m.avatar_url ? <img src={m.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground m-2" />}
+              </div>
+              <Link to={`/usuario/${m.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary">{m.display_name}</Link>
+              <span className="text-[9px] font-pixel text-neon-magenta">MOD</span>
+              {isMasterWeb && (
+                <Button size="sm" variant="destructive" onClick={() => revokeMod(m.role_id)} className="text-[9px] h-5 px-2">Revocar</Button>
+              )}
             </div>
           ))}
         </div>
@@ -1048,80 +1132,291 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
 }
 
 function SocialContentTab({ profile, user, onEditNetworks }: { profile: any; user: any; onEditNetworks: () => void }) {
+  const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
   const [newUrl, setNewUrl] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newPlatform, setNewPlatform] = useState("youtube");
+  const [newPublic, setNewPublic] = useState(true);
   const [adding, setAdding] = useState(false);
+
   const fetchContents = async () => {
     const { data } = await supabase.from("social_content").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (data) setContents(data);
   };
+
   useEffect(() => { fetchContents(); }, [user.id]);
+
+  const detectPlatform = (url: string) => {
+    if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+    if (url.includes("instagram.com")) return "instagram";
+    if (url.includes("tiktok.com")) return "tiktok";
+    if (url.includes("facebook.com") || url.includes("fb.com")) return "facebook";
+    return "youtube";
+  };
+
+  const handleAdd = async () => {
+    if (!newUrl.trim()) return;
+    setAdding(true);
+    const platform = detectPlatform(newUrl);
+    const { error } = await supabase.from("social_content").insert({
+      user_id: user.id, content_url: newUrl, title: newTitle || null, platform, is_public: newPublic,
+    });
+    setAdding(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Contenido agregado" }); setNewUrl(""); setNewTitle(""); fetchContents(); }
+  };
+
+  const toggleVisibility = async (id: string, current: boolean) => {
+    await supabase.from("social_content").update({ is_public: !current }).eq("id", id);
+    fetchContents();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("social_content").delete().eq("id", id);
+    toast({ title: "Contenido eliminado" });
+    fetchContents();
+  };
+
+  const platformIcon = (p: string) => {
+    if (p === "youtube") return <Youtube className="w-3.5 h-3.5 text-destructive" />;
+    if (p === "instagram") return <Instagram className="w-3.5 h-3.5 text-neon-magenta" />;
+    if (p === "tiktok") return <Music2 className="w-3.5 h-3.5 text-neon-cyan" />;
+    return <Globe className="w-3.5 h-3.5 text-muted-foreground" />;
+  };
+
   return (
     <div className="space-y-3">
-      <div className="bg-card border rounded p-4 text-center">
-        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 uppercase">Redes</h3>
-        <Button size="sm" variant="outline" onClick={onEditNetworks} className="w-full text-xs">Editar Perfiles Redes</Button>
+      <div className="bg-card border border-border rounded p-4 space-y-3 text-center">
+        <h3 className="font-pixel text-[10px] text-muted-foreground">PERFILES VINCULADOS</h3>
+        <div className="space-y-2">
+          {[
+            { url: profile?.instagram_url, icon: Instagram, label: "Instagram", color: "text-neon-magenta", empty: "No vinculado" },
+            { url: profile?.youtube_url, icon: Youtube, label: "YouTube", color: "text-destructive", empty: "No vinculado" },
+            { url: profile?.tiktok_url, icon: Globe, label: "TikTok", color: "text-neon-cyan", empty: "No vinculado" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-2 p-2 bg-muted/30 rounded text-left">
+              <s.icon className={cn("w-4 h-4", s.url ? s.color : "text-muted-foreground")} />
+              <span className="text-xs font-body text-foreground flex-1">{s.label}</span>
+              {s.url ? (
+                <a href={s.url} target="_blank" rel="noopener" className="text-[10px] text-primary hover:underline font-body">Ver perfil</a>
+              ) : (
+                <span className="text-[10px] text-muted-foreground font-body">{s.empty}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <Button size="sm" variant="outline" onClick={onEditNetworks} className="text-xs w-full"><Edit2 className="w-3 h-3 mr-1" /> Editar Redes</Button>
       </div>
-      <div className="bg-card border border-neon-cyan/30 rounded p-4 text-center">
-        <h3 className="font-pixel text-[10px] text-neon-cyan mb-3">AÑADIR VIDEO/POST</h3>
-        <Input placeholder="URL" value={newUrl} onChange={e => setNewUrl(e.target.value)} className="h-8 bg-muted mb-2 w-full" />
-        <Button size="sm" onClick={async () => {
-          await supabase.from("social_content").insert({ user_id: user.id, content_url: newUrl, platform: 'youtube', is_public: true });
-          setNewUrl(""); fetchContents();
-        }} disabled={adding} className="w-full">Añadir</Button>
+
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Plus className="w-3 h-3" /> AGREGAR CONTENIDO</h3>
+        <Input placeholder="URL del video/post (YouTube, Instagram, TikTok...)" value={newUrl} onChange={e => { setNewUrl(e.target.value); setNewPlatform(detectPlatform(e.target.value)); }} className="h-8 bg-muted text-xs font-body w-full" />
+        <Input placeholder="Título (opcional)" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" />
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={() => setNewPublic(!newPublic)} className="flex items-center gap-1 text-xs font-body">
+            {newPublic ? <Eye className="w-3 h-3 text-neon-green" /> : <EyeOff className="w-3 h-3 text-muted-foreground" />}
+            {newPublic ? "Público" : "Privado"}
+          </button>
+          <span className="text-[10px] text-muted-foreground font-body">Plataforma: {newPlatform}</span>
+        </div>
+        <Button size="sm" onClick={handleAdd} disabled={adding || !newUrl.trim()} className="text-xs w-full">
+          {adding ? "Agregando..." : "Agregar"}
+        </Button>
       </div>
-      <div className="space-y-2 text-left">
-        {contents.map(c => (
-          <div key={c.id} className="bg-muted/30 p-2 rounded flex justify-between items-center text-xs">
-            <span className="truncate flex-1 mr-2">{c.content_url}</span>
-            <button onClick={async () => { await supabase.from("social_content").delete().eq("id", c.id); fetchContents(); }} className="text-destructive"><Trash2 className="w-4 h-4" /></button>
-          </div>
-        ))}
+
+      <div className="bg-card border border-border rounded p-4 space-y-2">
+        <h3 className="font-pixel text-[10px] text-muted-foreground">MI CONTENIDO ({contents.length})</h3>
+        {contents.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body text-center py-4">No has agregado contenido aún</p>
+        ) : (
+          contents.map(c => (
+            <div key={c.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded group text-left">
+              {platformIcon(c.platform)}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-body text-foreground truncate">{c.title || c.content_url}</p>
+                <a href={c.content_url} target="_blank" rel="noopener" className="text-[10px] text-primary hover:underline font-body truncate block">{c.content_url}</a>
+              </div>
+              <button onClick={() => toggleVisibility(c.id, c.is_public)} className="text-xs">
+                {c.is_public ? <Eye className="w-3.5 h-3.5 text-neon-green" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />}
+              </button>
+              <button onClick={() => handleDelete(c.id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
 
 function FriendsTab({ userId }: { userId: string }) {
+  const { toast } = useToast();
   const [friends, setFriends] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [friendRoles, setFriendRoles] = useState<Record<string, string[]>>({});
+  const [pendingReceived, setPendingReceived] = useState<any[]>([]);
+  const [pendingSent, setPendingSent] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [friendMessage, setFriendMessage] = useState("");
+  const [sendingRequest, setSendingRequest] = useState(false);
+
   const fetchFriends = async () => {
-    const { data: sent } = await supabase.from("friend_requests").select("receiver_id").eq("sender_id", userId).eq("status", "accepted");
-    const { data: recv } = await supabase.from("friend_requests").select("sender_id").eq("receiver_id", userId).eq("status", "accepted");
-    const ids = [...(sent || []).map(r => r.receiver_id), ...(recv || []).map(r => r.sender_id)];
-    if (ids.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", ids);
-      setFriends(profs || []);
+    const { data: sent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "accepted");
+    const { data: recv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "accepted");
+    const friendIds = [
+      ...(sent || []).map((r: any) => r.receiver_id),
+      ...(recv || []).map((r: any) => r.sender_id),
+    ];
+    if (friendIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", friendIds);
+      setFriends(profiles || []);
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", friendIds);
+      const rMap: Record<string, string[]> = {};
+      roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
+      setFriendRoles(rMap);
+    } else {
+      setFriends([]);
+      setFriendRoles({});
     }
+
+    const { data: pRecv } = await supabase.from("friend_requests").select("*").eq("receiver_id", userId).eq("status", "pending");
+    if (pRecv && pRecv.length > 0) {
+      const senderIds = pRecv.map((r: any) => r.sender_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", senderIds);
+      setPendingReceived(pRecv.map((r: any) => ({ ...r, profile: profiles?.find((p: any) => p.user_id === r.sender_id) })));
+    } else setPendingReceived([]);
+
+    const { data: pSent } = await supabase.from("friend_requests").select("*").eq("sender_id", userId).eq("status", "pending");
+    setPendingSent(pSent || []);
   };
+
   useEffect(() => { fetchFriends(); }, [userId]);
+
+  const acceptRequest = async (requestId: string, senderId: string) => {
+    await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", requestId);
+    toast({ title: "Amistad aceptada" });
+    fetchFriends();
+  };
+
+  const rejectRequest = async (requestId: string) => {
+    await supabase.from("friend_requests").update({ status: "rejected" } as any).eq("id", requestId);
+    toast({ title: "Solicitud rechazada" });
+    fetchFriends();
+  };
+
+  const removeFriend = async (friendUserId: string) => {
+    await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${friendUserId}),and(sender_id.eq.${friendUserId},receiver_id.eq.${userId})`);
+    toast({ title: "Amigo eliminado" });
+    fetchFriends();
+  };
+
+  const getStaffLabel = (roles: string[]) => {
+    if (roles.includes("master_web")) return "WEBMASTER";
+    if (roles.includes("admin")) return "ADMIN";
+    if (roles.includes("moderator")) return "MOD";
+    return null;
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+      .ilike("display_name", `%${searchQuery}%`).neq("user_id", userId).limit(10);
+    const friendIds = friends.map((f: any) => f.user_id);
+    const pendingIds = [...pendingReceived.map((r: any) => r.sender_id), ...pendingSent.map((r: any) => r.receiver_id)];
+    const excluded = new Set([...friendIds, ...pendingIds]);
+    setSearchResults((data || []).filter((p: any) => !excluded.has(p.user_id)));
+  };
+
+  const sendFriendRequest = async (targetId: string) => {
+    setSendingRequest(true);
+    const insertData: any = { sender_id: userId, receiver_id: targetId };
+    if (friendMessage.trim()) insertData.message = friendMessage.trim();
+    const { error } = await supabase.from("friend_requests").insert(insertData as any);
+    setSendingRequest(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Solicitud enviada" }); setSearchResults([]); setSearchQuery(""); setFriendMessage(""); fetchFriends(); }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="bg-card border border-neon-cyan/30 rounded p-4 text-center">
-        <h3 className="font-pixel text-[10px] text-neon-cyan mb-2 uppercase">Buscar</h3>
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+        <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Search className="w-3 h-3" /> BUSCAR USUARIOS</h3>
         <div className="flex gap-1">
-          <Input value={search} onChange={e => setSearch(e.target.value)} className="h-8 bg-muted flex-1" />
-          <Button onClick={async () => {
-            const { data } = await supabase.from("profiles").select("user_id, display_name, avatar_url").ilike("display_name", `%${search}%`).limit(5);
-            setResults(data || []);
-          }} className="h-8"><Search className="w-4 h-4" /></Button>
+          <Input placeholder="Buscar por nombre de usuario..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} className="h-7 bg-muted text-xs font-body flex-1 w-full" />
+          <Button size="sm" variant="ghost" onClick={handleSearch} className="h-7 w-7 p-0"><Search className="w-3 h-3" /></Button>
         </div>
-        {results.map(r => (
-          <div key={r.user_id} className="mt-2 flex justify-between items-center bg-muted/20 p-2 rounded text-left">
-            <span className="text-xs">{r.display_name}</span>
-            <Button size="sm" onClick={async () => { await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: r.user_id }); setResults([]); setSearch(""); }} className="h-6 text-[9px]">Añadir</Button>
+        {searchResults.length > 0 && (
+          <div className="space-y-1.5 max-h-40 overflow-y-auto text-left">
+            {searchResults.map((r: any) => (
+              <div key={r.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+                <div className="w-7 h-7 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(r.color_avatar_border)}>
+                  {r.avatar_url ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-3 h-3 text-muted-foreground m-2" />}
+                </div>
+                <span className="flex-1 text-xs font-body text-foreground" style={getNameStyle(r.color_name)}>{r.display_name}</span>
+                <Button size="sm" onClick={() => sendFriendRequest(r.user_id)} disabled={sendingRequest} className="text-[10px] h-6 px-2 gap-1">
+                  <UserPlus className="w-3 h-3" /> Agregar
+                </Button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
-      <div className="bg-card border rounded p-4">
-        <h3 className="font-pixel text-[10px] text-muted-foreground mb-2 text-center md:text-left">AMIGOS ({friends.length})</h3>
-        {friends.map(f => (
-          <div key={f.user_id} className="flex justify-between items-center bg-muted/30 p-2 rounded mb-1 text-left">
-            <span className="text-xs">{f.display_name}</span>
-            <button onClick={async () => { await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${f.user_id}),and(sender_id.eq.${f.user_id},receiver_id.eq.${userId})`); fetchFriends(); }} className="text-destructive"><UserMinus className="w-4 h-4" /></button>
+
+      {pendingReceived.length > 0 && (
+        <div className="bg-card border border-neon-yellow/30 rounded p-4">
+          <h3 className="font-pixel text-[10px] text-neon-yellow mb-3">SOLICITUDES PENDIENTES ({pendingReceived.length})</h3>
+          <div className="space-y-2 text-left">
+            {pendingReceived.map((req: any) => (
+              <div key={req.id} className="flex items-center gap-3 bg-muted/30 rounded p-2">
+                <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
+                  {req.profile?.avatar_url ? <img src={req.profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                </div>
+                <Link to={`/usuario/${req.sender_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary truncate" style={getNameStyle(req.profile?.color_name)}>{req.profile?.display_name || "Usuario"}</Link>
+                <div className="flex gap-1 shrink-0">
+                   <Button size="sm" onClick={() => acceptRequest(req.id, req.sender_id)} className="text-[10px] h-6 px-2">Aceptar</Button>
+                   <Button size="sm" variant="outline" onClick={() => rejectRequest(req.id)} className="text-[10px] h-6 px-2">Rechazar</Button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded p-4">
+        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left">MIS AMIGOS ({friends.length})</h3>
+        {friends.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body text-center py-4">Aún no tienes amigos. Visita perfiles de otros usuarios para enviar solicitudes.</p>
+        ) : (
+          <div className="space-y-1.5 text-left">
+            {friends.map((f: any) => {
+              const roles = friendRoles[f.user_id] || [];
+              const staffLabel = getStaffLabel(roles);
+              return (
+                <div key={f.user_id} className="flex items-center gap-3 bg-muted/30 rounded p-2 group">
+                  <div className="w-8 h-8 rounded-full bg-muted border border-border overflow-hidden shrink-0" style={getAvatarBorderStyle(f.color_avatar_border)}>
+                    {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground m-2" />}
+                  </div>
+                  <Link to={`/usuario/${f.user_id}`} className="flex-1 text-xs font-body text-foreground hover:text-primary truncate" style={getNameStyle(f.color_name)}>{f.display_name}</Link>
+                  <div className="flex items-center gap-2">
+                     {staffLabel ? (
+                       <span className="text-[9px] font-pixel text-neon-magenta" style={getRoleStyle(f.color_staff_role)}>{staffLabel}</span>
+                     ) : (
+                       <span className="text-[9px] font-pixel text-neon-yellow" style={getRoleStyle(f.color_role)}>{f.membership_tier?.toUpperCase()}</span>
+                     )}
+                     <Button size="sm" variant="outline" asChild className="text-[10px] h-6 px-2">
+                       <Link to={`/mensajes?to=${f.user_id}`}><MessageSquare className="w-3 h-3" /></Link>
+                     </Button>
+                     <button onClick={() => removeFriend(f.user_id)} className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-[10px] shrink-0">
+                       <UserMinus className="w-3 h-3" />
+                     </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
