@@ -264,19 +264,19 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // 🔥 FIX: Totalmente rediseñado para que ocupe el espacio máximo interno (h-full) sin salirse (pb-4 para espaciado)
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-4 md:pb-6">
+    // 🔥 FIX: pb-1 permite que el contenedor aproveche el espacio al máximo sin dejar el hueco negro grande.
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1 md:pb-2">
       
       {/* Contenedor Izquierdo: Video / Imagen */}
       <div className="flex-1 bg-card border border-border rounded-lg flex flex-col shadow-sm min-h-0 overflow-hidden relative">
-        <div className="flex-1 relative bg-black flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
+        <div className="flex-1 relative bg-black/80 flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
           {isVideo && finalEmbedUrl ? (
             <iframe 
               src={finalEmbedUrl} 
-              className={cn("bg-transparent", 
-                item.platform === 'tiktok' ? "h-full max-h-full aspect-[9/16] rounded mx-auto" : 
-                item.platform === 'instagram' ? "h-full max-h-full aspect-[4/5] rounded bg-white mx-auto" : 
-                "w-full h-full rounded"
+              // 🔥 FIX RECORTES: Quitamos el "aspect" rígido. Ahora usa w-full y h-full libremente.
+              className={cn("w-full h-full bg-transparent mx-auto", 
+                item.platform === 'tiktok' ? "max-w-[350px] rounded" : 
+                item.platform === 'instagram' ? "max-w-[400px] rounded bg-white" : "rounded"
               )}
               style={{ border: "none", maxWidth: "100%" }}
               scrolling="no"
@@ -300,7 +300,7 @@ function SnapCard({
           )}
         </div>
         
-        {/* Barra de info y likes - NO empujable (shrink-0) */}
+        {/* Barra de info y likes (Shrink-0 para que el video nunca la aplaste) */}
         <div className="shrink-0 p-2 md:p-3 border-t border-border bg-card">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -334,7 +334,7 @@ function SnapCard({
       </div>
 
       {/* Contenedor Derecho: Comentarios */}
-      <div className="h-1/3 md:h-full md:w-80 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden">
+      <div className="h-[35%] md:h-full md:w-80 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden">
         <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
@@ -490,8 +490,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIOS: Altura dinámica que se detiene EXACTAMENTE ~25px antes del borde inferior del navegador.
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-85px)] relative">
+    // 🔥 FIX ALTURA: Ajuste matemático exacto para dejar ~20px de margen inferior
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-75px)] relative">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
@@ -560,7 +560,6 @@ export default function SocialReelsPage() {
             ))}
           </div>
 
-          {/* 🔥 FIX: Flechas externas. Totalmente sacadas del bloque de comentarios. */}
           <div className="absolute right-1 md:-right-12 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10 pointer-events-none">
             <button 
               onClick={() => scrollContainer('up')} 
