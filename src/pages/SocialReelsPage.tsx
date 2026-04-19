@@ -81,10 +81,6 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
-const isImageItem = (item: SocialItem) => {
-  return !isVideoItem(item);
-};
-
 function SnapCard({ 
   item, 
   isVisible, 
@@ -268,9 +264,9 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-2 md:pb-4">
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1 md:pb-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
+      {/* LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
       <div className="flex-1 bg-card border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
@@ -289,7 +285,7 @@ function SnapCard({
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className="w-full h-full max-w-[500px] rounded shadow-sm bg-white mx-auto" 
+            className="w-full h-full max-w-[450px] rounded shadow-sm bg-white mx-auto" 
             style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
@@ -301,11 +297,11 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON CSS GRID (Más Angosto) */}
-      <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
+      {/* 🔴 LADO DERECHO: MÁS ANGOSTO Y CON DESCRIPCIÓN EXPANDIDA 🔴 */}
+      <div className="h-[45%] md:h-full md:w-[250px] lg:w-[270px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
         
-        {/* BLOQUE 1: INFO DEL AUTOR Y LIKES (Arriba a lo ancho) */}
-        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-start-1 md:col-end-2 md:row-start-1">
+        {/* 🔥 FIX: INFO DEL AUTOR (col-span-2 hace que ocupe todo el ancho de la derecha, sobre comentarios y flechas) */}
+        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-span-2 md:row-start-1 z-10">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -340,17 +336,14 @@ function SnapCard({
           </div>
         </div>
 
-        {/* ESPACIO VACÍO INVISIBLE (Para mantener la estructura del grid arriba a la derecha) */}
-        <div className="hidden md:block md:col-start-2 md:row-start-1 w-14 lg:w-16" />
-
-        {/* BLOQUE 2: CAJA DE COMENTARIOS (Abajo a la izquierda) */}
-        <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-h-0 md:col-start-1 md:col-end-2 md:row-start-2">
+        {/* CAJA DE COMENTARIOS */}
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-h-0 md:col-start-1 md:row-start-2">
           <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
             <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
             {comments.map(c => (
-              <div key={c.id} className="group text-[10px] md:text-xs font-body flex items-start justify-between gap-2">
+              <div key={c.id} className="group text-xs font-body flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <span className="text-primary font-medium">{c.display_name}: </span>
                   <span className="text-foreground/90">{c.content}</span>
@@ -376,24 +369,24 @@ function SnapCard({
                 onChange={e => setCommentText(e.target.value)} 
                 onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
                 placeholder="Comentar..." 
-                className="flex-1 h-8 bg-muted rounded px-3 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors" 
+                className="flex-1 h-8 bg-muted rounded px-3 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors w-full" 
               />
-              <button onClick={handleComment} disabled={!commentText.trim()} className="px-3 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors">
+              <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
         </div>
 
-        {/* BLOQUE 3: BOTONES ARCADE RETRO (Abajo a la derecha) */}
-        <div className="hidden md:flex flex-col gap-2 w-14 lg:w-16 md:col-start-2 md:row-start-2 shrink-0">
+        {/* BOTONES ARCADE RETRO (Al lado de los comentarios) */}
+        <div className="hidden md:flex flex-col gap-2 w-12 lg:w-14 md:col-start-2 md:row-start-2 shrink-0">
           <button 
             onClick={onScrollUp} 
             className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
             title="Subir"
           >
-            <ChevronUp className="w-7 h-7 md:w-8 md:h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-            <span className="font-pixel text-[7px] md:text-[8px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mt-0.5">SUBIR</span>
+            <ChevronUp className="w-6 h-6 md:w-7 md:h-7 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <span className="font-pixel text-[6px] md:text-[7px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mt-0.5">SUBIR</span>
           </button>
           
           <button 
@@ -401,8 +394,8 @@ function SnapCard({
             className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
             title="Bajar"
           >
-            <span className="font-pixel text-[7px] md:text-[8px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mb-0.5">BAJAR</span>
-            <ChevronDown className="w-7 h-7 md:w-8 md:h-8 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <span className="font-pixel text-[6px] md:text-[7px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mb-0.5">BAJAR</span>
+            <ChevronDown className="w-6 h-6 md:w-7 md:h-7 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
           </button>
         </div>
 
@@ -523,10 +516,11 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100vh-85px)] relative">
+    // 🔥 FIX: Espacio inferior ajustado estrictamente. Ahora llega hasta el final sin "pasarse" de la pantalla.
+    <div className="space-y-2 animate-fade-in flex flex-col h-[calc(100dvh-65px)] md:h-[calc(100dvh-70px)] relative">
       
       {/* HEADER */}
-      <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
+      <div className="bg-card border border-neon-orange/30 rounded p-2 md:p-3 shrink-0 shadow-sm">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
@@ -541,7 +535,7 @@ export default function SocialReelsPage() {
           <button 
             key={f.id} 
             onClick={() => setFilter(f.id)} 
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-[10px] md:text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             <f.icon className="w-3 h-3" /> {f.label}
           </button>
@@ -552,7 +546,7 @@ export default function SocialReelsPage() {
             {filterTabs.length > 1 && <div className="w-px h-5 bg-border mx-1" />}
             <button 
               onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
-              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-[10px] md:text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
               title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
               <Users className="w-3 h-3" /> Amigos
@@ -570,7 +564,7 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 w-full">
+        <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           
           <div
             ref={containerRef}
