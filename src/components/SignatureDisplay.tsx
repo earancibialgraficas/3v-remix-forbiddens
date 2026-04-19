@@ -11,7 +11,8 @@ interface SignatureProfile {
   signature_image_align?: string | null;
   signature_image_width?: number | null;
   signature_text_over_image?: boolean | null;
-  signature_font_size?: number | null; // 🔥 FIX: Soporte para tamaño
+  signature_font_size?: number | null;
+  signature_image_offset?: number | null; // 🔥 Nuevo: Desplazamiento vertical
   color_staff_role?: string | null;
 }
 
@@ -39,9 +40,9 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
   const textAlign = (profile.signature_text_align || "center") as "left" | "center" | "right";
   const imageAlign = profile.signature_image_align || "center";
   const imageWidth = profile.signature_image_width ?? 100;
+  const vOffset = profile.signature_image_offset ?? 50; // Valor por defecto: centro (50%)
   const overImage = !!profile.signature_text_over_image && !!sigImage && !!sigText;
   
-  // 🔥 FIX: Aplica el tamaño de fuente elegido, o el default
   const customFontSize = profile.signature_font_size || fontSize;
 
   const renderText = () => {
@@ -109,12 +110,16 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
     if (!sigImage) return null;
     return (
       <div
-        className="w-full rounded overflow-hidden border border-border/30"
+        className="rounded overflow-hidden border border-border/30 transition-all duration-300"
         style={{
           height: 110,
+          // 🔥 FIX: Aplicamos el ancho seleccionado y centramos según la alineación
+          width: `${imageWidth}%`,
+          margin: imageAlign === "center" ? "0 auto" : imageAlign === "right" ? "0 0 0 auto" : "0 auto 0 0",
           backgroundImage: `url("${sigImage}")`,
           backgroundSize: "cover",
-          backgroundPosition: `${imageAlign} center`,
+          // 🔥 FIX: Aplicamos el offset vertical (eje Y)
+          backgroundPosition: `${imageAlign} ${vOffset}%`,
           backgroundRepeat: "no-repeat",
         }}
         role="img"
