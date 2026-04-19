@@ -81,10 +81,6 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
-const isImageItem = (item: SocialItem) => {
-  return !isVideoItem(item);
-};
-
 function SnapCard({ 
   item, 
   isVisible, 
@@ -268,9 +264,10 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1">
+    // 🔥 FIX: Eliminado cualquier pb- o márgenes que causaran el espacio inferior
+    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO MAXIMIZADO */}
+      {/* LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
       <div className="flex-1 bg-black/90 border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
@@ -301,7 +298,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON INFO ARRIBA Y COMENTARIOS/BOTONES ABAJO */}
+      {/* LADO DERECHO: PANEL ORDENADO CON INFO ARRIBA Y COMENTARIOS/BOTONES ABAJO */}
       <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE SUPERIOR: Info del Autor y Likes */}
@@ -385,7 +382,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (w-10 para hacerlos más esbeltos) */}
+          {/* 🔥 FIX: BOTONES ARCADE RETRO (w-10 y texto separado manualmente a prueba de bugs) */}
           <div className="hidden md:flex flex-col gap-2 w-10 shrink-0">
             <button 
               onClick={onScrollUp} 
@@ -393,10 +390,9 @@ function SnapCard({
               title="Subir"
             >
               <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-              {/* 🔥 FIX: Letras apiladas verticalmente, legibles y arcade */}
-              <span className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '-2px' }}>
-                SUBIR
-              </span>
+              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+                <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
+              </div>
             </button>
             
             <button 
@@ -404,9 +400,9 @@ function SnapCard({
               className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
               title="Bajar"
             >
-              <span className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '-2px' }}>
-                BAJAR
-              </span>
+              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+                <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
+              </div>
               <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
             </button>
           </div>
@@ -529,8 +525,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIOS: h-[calc(100dvh-80px)] lo estira dejándolo a escasos 15-20px del borde inferior
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-80px)] relative">
+    // 🔥 FIX ESPACIOS: h-[calc(100vh-20px)] o h-[calc(100dvh-60px)] ajustado al milímetro para que elimine el borde negro de abajo
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-60px)] relative">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
@@ -586,7 +582,7 @@ export default function SocialReelsPage() {
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {filtered.map((item, i) => (
-              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always pb-1">
+              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
                   isVisible={i === visibleIndex} 
