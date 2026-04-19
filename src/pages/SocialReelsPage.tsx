@@ -81,6 +81,10 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
+const isImageItem = (item: SocialItem) => {
+  return !isVideoItem(item);
+};
+
 function SnapCard({ 
   item, 
   isVisible, 
@@ -264,17 +268,18 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // 🔥 FIX: Eliminado cualquier pb- o márgenes que causaran el espacio inferior
-    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1 md:pb-2">
       
-      {/* LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
+      {/* LADO IZQUIERDO: VIDEO LIBRE Y RESPONSIVO */}
       <div className="flex-1 bg-black/90 border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className={cn("w-full h-full bg-transparent mx-auto", 
-              item.platform === 'tiktok' ? "max-w-[400px] rounded" : 
-              item.platform === 'instagram' ? "max-w-[450px] rounded bg-white" : "rounded"
+            // 🔥 FIX: h-full y aspect ratio forzado aseguran que el video nunca se corte en pantallas pequeñas
+            className={cn("bg-transparent mx-auto", 
+              item.platform === 'tiktok' ? "h-full max-h-full aspect-[9/16] rounded max-w-full" : 
+              item.platform === 'instagram' ? "h-full max-h-full aspect-[4/5] rounded bg-white max-w-full" : 
+              "w-full h-full rounded max-w-full"
             )}
             style={{ border: "none", maxWidth: "100%" }}
             scrolling="no"
@@ -382,7 +387,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* 🔥 FIX: BOTONES ARCADE RETRO (w-10 y texto separado manualmente a prueba de bugs) */}
+          {/* BOTONES ARCADE RETRO */}
           <div className="hidden md:flex flex-col gap-2 w-10 shrink-0">
             <button 
               onClick={onScrollUp} 
@@ -525,8 +530,7 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIOS: h-[calc(100vh-20px)] o h-[calc(100dvh-60px)] ajustado al milímetro para que elimine el borde negro de abajo
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-60px)] relative">
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100vh-60px)] relative pb-1">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
@@ -573,7 +577,7 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 w-full">
+        <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           <div
             ref={containerRef}
             className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
