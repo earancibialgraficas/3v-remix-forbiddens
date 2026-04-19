@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
@@ -263,12 +264,12 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // 🔥 FIX: Diseño responsivo milimétrico. En móvil flex-col, en escritorio flex-row.
-    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-2">
+    // 🔥 FIX: Totalmente rediseñado para que ocupe el espacio máximo interno (h-full) sin salirse (pb-4 para espaciado)
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-4 md:pb-6">
       
-      {/* Contenedor Izquierdo: Video / Imagen (Adaptable y restringido por aspect-ratio) */}
-      <div className="flex-1 bg-card border border-border rounded-lg flex flex-col shadow-sm min-h-0 overflow-hidden">
-        <div className="flex-1 relative bg-black/60 flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
+      {/* Contenedor Izquierdo: Video / Imagen */}
+      <div className="flex-1 bg-card border border-border rounded-lg flex flex-col shadow-sm min-h-0 overflow-hidden relative">
+        <div className="flex-1 relative bg-black flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
           {isVideo && finalEmbedUrl ? (
             <iframe 
               src={finalEmbedUrl} 
@@ -299,7 +300,7 @@ function SnapCard({
           )}
         </div>
         
-        {/* Barra Inferior del Video (Siempre Visible) */}
+        {/* Barra de info y likes - NO empujable (shrink-0) */}
         <div className="shrink-0 p-2 md:p-3 border-t border-border bg-card">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -333,7 +334,6 @@ function SnapCard({
       </div>
 
       {/* Contenedor Derecho: Comentarios */}
-      {/* 🔥 FIX: En móvil toma un tercio de la altura, en escritorio se fija al lado derecho */}
       <div className="h-1/3 md:h-full md:w-80 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden">
         <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
@@ -360,7 +360,7 @@ function SnapCard({
           {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4">Sin comentarios</p>}
         </div>
         {user && (
-          <div className="shrink-0 p-2 border-t border-border flex gap-1">
+          <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
             <input 
               value={commentText} 
               onChange={e => setCommentText(e.target.value)} 
@@ -490,8 +490,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: Altura calculada exacta para llenar la pantalla sin dejar espacios en negro
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-130px)] md:h-[calc(100dvh-100px)]">
+    // 🔥 FIX ESPACIOS: Altura dinámica que se detiene EXACTAMENTE ~25px antes del borde inferior del navegador.
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-85px)] relative">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
@@ -540,7 +540,6 @@ export default function SocialReelsPage() {
       ) : (
         <div className="relative flex-1 min-h-0 w-full">
           
-          {/* 🔥 FIX: Contenedor con snap ajustado al 100% de la altura sin márgenes engañosos */}
           <div
             ref={containerRef}
             className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
@@ -561,21 +560,21 @@ export default function SocialReelsPage() {
             ))}
           </div>
 
-          {/* 🔥 FIX: Controles Flotantes para indicar que se puede hacer Scroll */}
-          <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-10 pointer-events-none">
+          {/* 🔥 FIX: Flechas externas. Totalmente sacadas del bloque de comentarios. */}
+          <div className="absolute right-1 md:-right-12 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10 pointer-events-none">
             <button 
               onClick={() => scrollContainer('up')} 
-              className="pointer-events-auto p-1.5 md:p-2 bg-black/40 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
+              className="pointer-events-auto p-1.5 md:p-2 bg-black/50 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
               title="Anterior"
             >
-              <ChevronUp className="w-5 h-5 md:w-6 md:h-6" />
+              <ChevronUp className="w-5 h-5" />
             </button>
             <button 
               onClick={() => scrollContainer('down')} 
-              className="pointer-events-auto p-1.5 md:p-2 bg-black/40 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
+              className="pointer-events-auto p-1.5 md:p-2 bg-black/50 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
               title="Siguiente"
             >
-              <ChevronDown className="w-5 h-5 md:w-6 md:h-6" />
+              <ChevronDown className="w-5 h-5" />
             </button>
           </div>
 
