@@ -264,16 +264,19 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-2">
+    // 🔥 FIX: Espacio inferior. Eliminamos todo relleno (pb-1) para que llegue al borde.
+    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 FIX: VIDEO LIBRE, BG-BLACK para fusionar bordes, y sin restricciones rígidas de aspect-ratio */}
-      <div className="flex-1 bg-black border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
+      {/* 🔴 LADO IZQUIERDO: VIDEO RESPONSIVO (SIN BORDES NEGROS) */}
+      <div className="flex-1 bg-black/90 border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className={cn("w-full h-full bg-transparent mx-auto outline-none", 
-              item.platform === 'tiktok' ? "max-w-[400px]" : 
-              item.platform === 'instagram' ? "max-w-[450px] bg-white" : ""
+            // 🔥 FIX: h-full y aspect ratio forzado. Sin w-full, así evita las franjas negras de TikTok.
+            className={cn("bg-transparent mx-auto rounded", 
+              item.platform === 'tiktok' ? "h-full aspect-[9/16] max-w-full" : 
+              item.platform === 'instagram' ? "h-full aspect-[4/5] bg-white max-w-full" : 
+              "w-full h-full"
             )}
             style={{ border: "none" }}
             scrolling="no"
@@ -285,7 +288,7 @@ function SnapCard({
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className="w-full h-full max-w-[450px] shadow-sm bg-white mx-auto outline-none" 
+            className="w-full h-full max-w-[450px] shadow-sm bg-white mx-auto rounded" 
             style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
@@ -297,11 +300,11 @@ function SnapCard({
         )}
       </div>
       
-      {/* LADO DERECHO: PANEL ORDENADO */}
-      <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
+      {/* 🔴 LADO DERECHO: PANEL CON FLEXBOX PURO (A PRUEBA DE FALLOS) 🔴 */}
+      <div className="h-[45%] md:h-full md:w-[260px] lg:w-[280px] flex flex-col gap-2 shrink-0">
         
-        {/* BLOQUE SUPERIOR: Info del Autor y Likes */}
-        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-span-2 md:row-start-1 z-10">
+        {/* BLOQUE 1: Info del Autor y Likes (Ocupa todo el ancho disponible) */}
+        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -336,76 +339,77 @@ function SnapCard({
           </div>
         </div>
 
-        {/* ESPACIO VACÍO INVISIBLE PARA GRID */}
-        <div className="hidden md:block md:col-start-2 md:row-start-1 w-10 lg:w-12" />
-
-        {/* CAJA DE COMENTARIOS */}
-        <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-h-0 md:col-start-1 md:row-start-2">
-          <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
-            <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
-            {comments.map(c => (
-              <div key={c.id} className="group text-xs font-body flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <span className="text-primary font-medium">{c.display_name}: </span>
-                  <span className="text-foreground/90">{c.content}</span>
-                </div>
-                <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
-                     <Flag className="w-3 h-3" />
-                  </button>
-                  {isStaff && (
-                    <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
-                       <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {comments.length === 0 && <p className="text-xs text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
-          </div>
-          {user && (
-            <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
-              <input 
-                value={commentText} 
-                onChange={e => setCommentText(e.target.value)} 
-                onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-                placeholder="Comentar..." 
-                className="flex-1 h-8 bg-muted rounded px-2 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
-              />
-              <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 md:px-3 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* BOTONES ARCADE RETRO (w-10 para hacerlos esbeltos) */}
-        <div className="hidden md:flex flex-col gap-2 w-10 md:col-start-2 md:row-start-2 shrink-0">
-          <button 
-            onClick={onScrollUp} 
-            className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
-            title="Subir"
-          >
-            <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-            <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
-              <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
-            </div>
-          </button>
+        {/* BLOQUE 2: Comentarios a la izquierda + Botones Arcade a la derecha */}
+        <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
           
-          <button 
-            onClick={onScrollDown} 
-            className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
-            title="Bajar"
-          >
-            <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
-              <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
+          {/* CAJA DE COMENTARIOS (Ocupa el espacio restante) */}
+          <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-w-0">
+            <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
+              <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
             </div>
-            <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-          </button>
-        </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
+              {comments.map(c => (
+                <div key={c.id} className="group text-xs font-body flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <span className="text-primary font-medium">{c.display_name}: </span>
+                    <span className="text-foreground/90">{c.content}</span>
+                  </div>
+                  <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
+                       <Flag className="w-3 h-3" />
+                    </button>
+                    {isStaff && (
+                      <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
+                         <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {comments.length === 0 && <p className="text-xs text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
+            </div>
+            {user && (
+              <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
+                <input 
+                  value={commentText} 
+                  onChange={e => setCommentText(e.target.value)} 
+                  onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
+                  placeholder="Comentar..." 
+                  className="flex-1 h-8 bg-muted rounded px-2 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
+                />
+                <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
 
+          {/* BOTONES ARCADE RETRO (Ancho fijo, al lado de los comentarios) */}
+          <div className="hidden md:flex flex-col gap-2 w-10 shrink-0 h-full">
+            <button 
+              onClick={onScrollUp} 
+              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+              title="Subir"
+            >
+              <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+                <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
+              </div>
+            </button>
+            
+            <button 
+              onClick={onScrollDown} 
+              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+              title="Bajar"
+            >
+              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+                <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
+              </div>
+              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            </button>
+          </div>
+
+        </div>
       </div>
 
       {showReport && (
@@ -523,11 +527,11 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIOS FANTASMAS: Usamos `gap` y una altura `h-[calc(100vh-64px)]` para pegarlo al borde inferior
-    <div className="animate-fade-in flex flex-col h-[calc(100dvh-60px)] md:h-[calc(100vh-64px)] relative gap-2 md:gap-3 pb-2">
+    // 🔥 FIX: `h-[calc(100vh-55px)]` estira todo hasta tocar el margen de la página y previene scrolls ocultos.
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-55px)] w-full relative overflow-hidden gap-2 md:gap-3">
       
       {/* HEADER */}
-      <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
+      <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm mt-1">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
@@ -571,7 +575,7 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 w-full">
+        <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           
           <div
             ref={containerRef}
