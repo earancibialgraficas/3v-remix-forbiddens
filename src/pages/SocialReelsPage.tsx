@@ -264,29 +264,32 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 px-1 md:px-2">
+    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO EFECTO "ZOOM 80%" (Evita recortes) 🔴 */}
-      <div className="flex-1 bg-black/90 border border-border rounded-xl flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
+      {/* 🔴 LADO IZQUIERDO: VIDEO CON EFECTO ZOOM-OUT (Evita cualquier recorte interno) 🔴 */}
+      <div className="flex-1 bg-black/95 border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
-          <iframe 
-            src={finalEmbedUrl} 
-            // 🔥 FIX: max-w-[325px] a max-w-[350px] asegura que el video se vea "alejado" y completo en pantallas 1366x768
-            className={cn("w-full h-full bg-transparent mx-auto outline-none", 
-              item.platform === 'tiktok' ? "max-w-[325px] sm:max-w-[350px] rounded-lg" : 
-              item.platform === 'instagram' ? "max-w-[400px] rounded-lg bg-white" : "rounded-lg"
-            )}
-            style={{ border: "none" }}
-            scrolling="no"
-            allowFullScreen 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          />
+          <div className="w-full h-full flex items-center justify-center overflow-hidden relative">
+            <iframe 
+              src={finalEmbedUrl} 
+              // 🔥 EL TRUCO MAGICO: Le damos un tamaño físico fijo, y luego le aplicamos un `scale` del 80% para alejarlo responsivamente. ¡Nunca se recortará!
+              className={cn("bg-transparent outline-none shadow-2xl rounded-xl origin-center transition-transform", 
+                item.platform === 'tiktok' ? "w-[325px] h-[580px] scale-[0.75] sm:scale-[0.80] lg:scale-[0.95] xl:scale-100" : 
+                item.platform === 'instagram' ? "w-[350px] h-[450px] bg-white scale-[0.75] sm:scale-[0.80] lg:scale-[0.95] xl:scale-100" : 
+                "w-[85%] h-[85%] aspect-video"
+              )}
+              style={{ border: "none" }}
+              scrolling="no"
+              allowFullScreen 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            />
+          </div>
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
           <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className="w-full h-full max-w-[400px] shadow-sm bg-white mx-auto rounded-lg outline-none" 
+            className="w-[85%] h-[85%] max-w-[450px] shadow-sm bg-white mx-auto rounded-xl outline-none" 
             style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
@@ -298,10 +301,10 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: FLEXBOX PURO, MÁS ANGOSTO (w-[240px]) Y ESTABLE 🔴 */}
-      <div className="h-[45%] md:h-full md:w-[240px] flex flex-col gap-2 shrink-0">
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
+      <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
-        {/* BLOQUE SUPERIOR: Info del Autor y Likes */}
+        {/* BLOQUE 1: Info del Autor y Likes */}
         <div className="shrink-0 p-2.5 border border-border bg-card rounded-xl shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -337,7 +340,7 @@ function SnapCard({
           </div>
         </div>
 
-        {/* BLOQUE INFERIOR: COMENTARIOS Y BOTONES (En fila) */}
+        {/* BLOQUE 2: Comentarios y Botones en Fila */}
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
           
           {/* CAJA DE COMENTARIOS */}
@@ -382,7 +385,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (Delgados w-8) */}
+          {/* BOTONES ARCADE RETRO (Delgados) */}
           <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
@@ -525,7 +528,7 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIO FANTASMA: h-[calc(100vh-50px)] ajustado al máximo.
+    // 🔥 FIX: h-[calc(100vh-50px)] ajustado al máximo.
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2">
       
       {/* HEADER */}
@@ -583,7 +586,7 @@ export default function SocialReelsPage() {
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {filtered.map((item, i) => (
-              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
+              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always pb-1">
                 <SnapCard 
                   item={item} 
                   isVisible={i === visibleIndex} 
