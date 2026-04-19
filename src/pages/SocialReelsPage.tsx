@@ -47,7 +47,6 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    // 🔥 FIX: Añadimos hidecaption=true para quitar el bloque de texto feo de Instagram
     if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
   }
   if (platform === "tiktok") {
@@ -59,10 +58,18 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-const isVideoItem = (item: SocialItem) => {
-  return item.content_type === 'video' || item.content_type === 'reel' ||
-    item.platform === "youtube" || item.platform === "tiktok" ||
-    item.content_url.includes("reel") || item.content_url.includes("shorts");
+// 🔥 FIX FILTROS ESTRICTOS: Solo los /reel/ de instagram son video.
+const isVideoItem = (item: SocialItem | any) => {
+  const p = item.platform || '';
+  const url = item.content_url || '';
+  const cType = item.content_type || '';
+
+  if (cType === 'video' || cType === 'reel') return true;
+  if (p === 'youtube' || p === 'tiktok') return true;
+  if (p === 'instagram' && (url.includes('/reel/') || url.includes('/reels/'))) return true;
+  if (url.includes('shorts')) return true;
+
+  return false;
 };
 
 const isReelItem = (item: SocialItem) => {
@@ -76,9 +83,7 @@ const isHorizontalVideo = (item: SocialItem) => {
 };
 
 const isImageItem = (item: SocialItem) => {
-  return item.content_type === 'image' ||
-    item.content_url.match(/\.(jpg|jpeg|png|gif|webp)/i) ||
-    (item.platform === "instagram" && !item.content_url.includes("reel"));
+  return !isVideoItem(item);
 };
 
 function SnapCard({ 
@@ -199,21 +204,17 @@ function SnapCard({
 
       if (existingReaction) {
         if (existingReaction.reaction_type === type) {
-          const { error } = await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
-          if (error) throw error;
+          await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
         } else {
-          const { error } = await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
-          if (error) throw error;
+          await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
         }
       } else {
-        const { error } = await supabase.from("social_reactions").insert({
+        await supabase.from("social_reactions").insert({
           user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
         });
-        if (error) throw error;
       }
 
-      const { error: updateErr } = await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
-      if (updateErr) throw updateErr;
+      await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
       
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
@@ -252,34 +253,32 @@ function SnapCard({
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm("¿Seguro que deseas eliminar este comentario?")) return;
     try {
-      const { error } = await supabase.from("social_comments").delete().eq("id", commentId);
-      if (error) throw error;
+      await supabase.from("social_comments").delete().eq("id", commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
-      toast({ title: "Comentario eliminado por el Staff" });
+      toast({ title: "Comentario eliminado" });
     } catch (e) {
-      toast({ title: "Error", description: "No se pudo eliminar el comentario", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
   };
 
   return (
-    <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2" style={{ height: 'calc(100dvh - 220px)', minHeight: '400px' }}>
-      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
-        {/* 🔥 FIX: Contenedor de Iframe más responsivo y centrado */}
-        <div className="flex-1 relative bg-black/60 flex items-center justify-center overflow-hidden p-2 md:p-4">
+    // 🔥 FIX ESPACIOS: Ajustamos el contenedor principal para que no tenga espacio negro sobrante en pantallas normales
+    <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2 h-[85vh] min-h-[400px] max-h-[850px] py-2">
+      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col shadow-sm">
+        <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-0 md:p-2">
           {isVideo && embedUrl ? (
             <iframe 
               src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
-              className={cn("w-full h-full rounded-lg max-w-[450px] shadow-lg", item.platform === 'tiktok' ? "aspect-[9/16]" : "")} 
+              className={cn("w-full h-full rounded max-w-[500px]", item.platform === 'tiktok' ? "aspect-[9/16]" : "")} 
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
           ) : item.thumbnail_url || isImageItem(item) ? (
-            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain max-h-[500px]" />
+            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain max-h-full" />
           ) : embedUrl ? (
             <iframe 
               src={embedUrl} 
-              className="w-full h-full max-w-[400px] rounded-lg shadow-lg bg-white" 
-              style={{ maxHeight: item.platform === 'instagram' ? '450px' : '100%' }}
+              className="w-full h-full max-w-[500px] rounded bg-white" 
               allowFullScreen 
             />
           ) : (
@@ -288,7 +287,8 @@ function SnapCard({
             </a>
           )}
         </div>
-        <div className="p-3 border-t border-border">
+        
+        <div className="p-3 border-t border-border shrink-0 bg-card">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] flex items-center justify-center h-full">👤</span>}
@@ -310,7 +310,6 @@ function SnapCard({
                   <Flag className="w-3 h-3" />
                 </button>
               )}
-              {/* 🔥 FIX: Botón de borrar Post solo para Staff */}
               {isStaff && (
                 <button onClick={() => onDeletePost(item.id)} className="text-muted-foreground hover:text-destructive text-[10px] transition-colors" title="Eliminar (Staff)">
                   <Trash2 className="w-3 h-3" />
@@ -321,8 +320,8 @@ function SnapCard({
         </div>
       </div>
 
-      <div className="w-64 hidden md:flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0">
-        <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
+      <div className="w-64 hidden md:flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0 shadow-sm">
+        <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 shrink-0">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-3" style={{ scrollbarWidth: 'none' }}>
@@ -336,7 +335,6 @@ function SnapCard({
                 <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
                    <Flag className="w-3 h-3" />
                 </button>
-                {/* 🔥 FIX: Botón de borrar Comentario solo para Staff */}
                 {isStaff && (
                   <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
                      <Trash2 className="w-3 h-3" />
@@ -348,7 +346,7 @@ function SnapCard({
           {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4">Sin comentarios</p>}
         </div>
         {user && (
-          <div className="p-2 border-t border-border flex gap-1">
+          <div className="p-2 border-t border-border flex gap-1 shrink-0">
             <input 
               value={commentText} 
               onChange={e => setCommentText(e.target.value)} 
@@ -382,8 +380,6 @@ export default function SocialReelsPage() {
   const location = useLocation();
 
   const isReelsPage = location.pathname.includes("/reels");
-  
-  // Verificación de Staff
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   const fetchContent = async () => {
@@ -440,7 +436,6 @@ export default function SocialReelsPage() {
     return () => observer.disconnect();
   }, [items, filter]);
 
-  // Borrado general de Posts para Staff
   const handleDeletePost = async (id: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
     const { error } = await supabase.from("social_content").delete().eq("id", id);
@@ -454,15 +449,13 @@ export default function SocialReelsPage() {
 
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-  // 🔥 FIX: Lógica Estricta de Filtros (Reels solo videos, Feed tiene todo)
   const filtered = (() => {
     if (isReelsPage) {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      // "all" en Reels solo muestra videos
+      // En la pestaña Reels, incluso si selecciona "Todos", excluimos las imágenes.
       return sourceFiltered.filter(i => isVideoItem(i));
     }
-    // Si estamos en Feed, mostramos TODO (sin importar si es foto o video)
     return sourceFiltered;
   })();
 
@@ -477,8 +470,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    <div className="space-y-3 animate-fade-in">
-      <div className="bg-card border border-neon-orange/30 rounded p-4">
+    <div className="space-y-3 animate-fade-in flex flex-col h-[calc(100vh-80px)]">
+      <div className="bg-card border border-neon-orange/30 rounded p-4 shrink-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
@@ -487,7 +480,7 @@ export default function SocialReelsPage() {
         </p>
       </div>
 
-      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center">
+      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center shrink-0">
         {filterTabs.map(f => (
           <button 
             key={f.id} 
@@ -504,7 +497,6 @@ export default function SocialReelsPage() {
             <button 
               onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
               className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
-              title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
               <Users className="w-3 h-3" /> Amigos
             </button>
@@ -513,7 +505,7 @@ export default function SocialReelsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded p-6 text-center">
+        <div className="bg-card border border-border rounded p-6 text-center shrink-0">
           <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
           <Button size="sm" asChild className="mt-3 text-xs">
             <Link to="/perfil?tab=social">Agregar Contenido</Link>
@@ -522,8 +514,8 @@ export default function SocialReelsPage() {
       ) : (
         <div
           ref={containerRef}
-          className="snap-y snap-mandatory overflow-y-auto"
-          style={{ height: 'calc(100dvh - 220px)', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="snap-y snap-mandatory overflow-y-auto flex-1 pb-10"
+          style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <style>{`div::-webkit-scrollbar { display: none; }`}</style>
           {filtered.map((item, i) => (

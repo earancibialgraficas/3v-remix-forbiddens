@@ -21,10 +21,23 @@ const membershipPhotoLimits: Record<string, number> = {
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    // hidecaption=true para que las imágenes embebidas de IG se vean perfectas y sin texto
     if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
   }
   return null;
+};
+
+// Mismo filtro estricto pero inverso (Todo lo que NO sea video viene aquí)
+const isVideoItem = (item: any) => {
+  const p = item.platform || '';
+  const url = item.content_url || '';
+  const cType = item.content_type || '';
+
+  if (cType === 'video' || cType === 'reel') return true;
+  if (p === 'youtube' || p === 'tiktok') return true;
+  if (p === 'instagram' && (url.includes('/reel/') || url.includes('/reels/'))) return true;
+  if (url.includes('shorts')) return true;
+
+  return false;
 };
 
 export default function PhotoWallPage() {
@@ -46,7 +59,6 @@ export default function PhotoWallPage() {
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
 
   const fetchPhotos = async () => {
-    // 🔥 FIX: Traemos fotos nativas Y fotos subidas por link en el Social Feed
     const [photosRes, socialRes] = await Promise.all([
       supabase.from("photos").select("*").order("likes", { ascending: false }).limit(50),
       supabase.from("social_content").select("*").eq("is_public", true).order("likes", { ascending: false }).limit(50)
@@ -59,14 +71,8 @@ export default function PhotoWallPage() {
     }
     
     if (socialRes.data) {
-      // Filtramos TODO lo que sea video/reel y nos quedamos solo con imágenes
-      const socialImages = socialRes.data.filter(item => {
-         const p = item.platform || '';
-         const cUrl = item.content_url || '';
-         const cType = item.content_type || '';
-         const isVideo = cType === 'video' || cType === 'reel' || p === "youtube" || p === "tiktok" || cUrl.includes("reel") || cUrl.includes("shorts");
-         return !isVideo;
-      }).map(item => ({
+      // Filtramos las imágenes basándonos en la lógica invertida
+      const socialImages = socialRes.data.filter(item => !isVideoItem(item)).map(item => ({
          id: item.id,
          user_id: item.user_id,
          image_url: item.thumbnail_url || item.content_url,
@@ -80,7 +86,6 @@ export default function PhotoWallPage() {
       combined = [...combined, ...socialImages];
     }
 
-    // Ordenamos todo por la cantidad de likes
     combined.sort((a, b) => b.likes - a.likes);
     setPhotos(combined.slice(0, 50));
 
@@ -188,13 +193,12 @@ export default function PhotoWallPage() {
   const restPhotos = displayPhotos.slice(6);
 
   const renderImage = (photo: any) => {
-    // Si viene del feed social como un IG Embed sin thumbnail, lo dibujamos como Iframe (ocultando clicks)
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
       if (embed) {
         return (
           <div className="w-full h-full relative overflow-hidden bg-white pointer-events-none">
-            <iframe src={embed} className="w-full h-full transform scale-125" />
+            <iframe src={embed} className="w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} />
           </div>
         );
       }
@@ -211,18 +215,16 @@ export default function PhotoWallPage() {
         <p className="text-xs text-muted-foreground font-body">Galería de la comunidad — Las fotos más populares aparecen primero</p>
       </div>
 
-      <div className="flex items-center justify-between">
-        {user && (
-          <div className="flex gap-1 bg-card border border-border rounded p-1">
-            <button onClick={() => setSourceTab("all")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-              <Globe className="w-3 h-3" /> Todos
-            </button>
-            <button onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-              <Users className="w-3 h-3" /> Amigos
-            </button>
-          </div>
-        )}
-      </div>
+      {user && (
+        <div className="flex gap-1 bg-card border border-border rounded p-1 w-fit">
+          <button onClick={() => setSourceTab("all")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Globe className="w-3 h-3" /> Todos
+          </button>
+          <button onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <Users className="w-3 h-3" /> Amigos
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground font-body">
@@ -262,7 +264,6 @@ export default function PhotoWallPage() {
                         <Flag className="w-3 h-3" />
                       </button>
                     )}
-                    {/* 🔥 FIX: Borrado exclusivo para Staff */}
                     {isStaff && (
                       <button onClick={() => handleDeletePhoto(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive transition-colors" title="Eliminar (Staff)">
                         <Trash2 className="w-3 h-3" />
