@@ -81,6 +81,10 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
+const isImageItem = (item: SocialItem) => {
+  return !isVideoItem(item);
+};
+
 function SnapCard({ 
   item, 
   isVisible, 
@@ -264,19 +268,22 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // 🔥 FIX: Eliminado cualquier pb- o márgenes que causaran el espacio inferior
-    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1">
       
-      {/* LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
-      <div className="flex-1 bg-black/90 border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
+      {/* 🔴 LADO IZQUIERDO: VIDEO CON ASPECT RATIO PERFECTO */}
+      <div className="flex-1 bg-black/90 border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative p-1 md:p-2">
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className={cn("w-full h-full bg-transparent mx-auto", 
-              item.platform === 'tiktok' ? "max-w-[400px] rounded" : 
-              item.platform === 'instagram' ? "max-w-[450px] rounded bg-white" : "rounded"
-            )}
-            style={{ border: "none", maxWidth: "100%" }}
+            // 🔥 FIX: Aquí está la magia. width: auto, height: 100% y el aspect ratio forzado aseguran que nunca se recorte.
+            className={cn("bg-transparent rounded-md shadow-lg", item.platform === 'instagram' && "bg-white")}
+            style={{ 
+              border: "none", 
+              height: "100%", 
+              width: "auto", 
+              maxWidth: "100%",
+              aspectRatio: item.platform === 'tiktok' ? '9/16' : item.platform === 'instagram' ? '4/5' : '16/9' 
+            }}
             scrolling="no"
             allowFullScreen 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -298,11 +305,11 @@ function SnapCard({
         )}
       </div>
       
-      {/* LADO DERECHO: PANEL ORDENADO CON INFO ARRIBA Y COMENTARIOS/BOTONES ABAJO */}
-      <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col gap-2 shrink-0">
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON INFO ARRIBA Y COMENTARIOS/BOTONES ABAJO */}
+      <div className="h-[45%] md:h-full md:w-[280px] lg:w-[320px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
         
         {/* BLOQUE SUPERIOR: Info del Autor y Likes */}
-        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col z-10">
+        <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-span-2 md:row-start-1 z-10">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -338,7 +345,7 @@ function SnapCard({
         </div>
 
         {/* BLOQUE INFERIOR: Comentarios + Botones Arcade */}
-        <div className="flex-1 flex flex-row gap-2 min-h-0">
+        <div className="flex-1 flex flex-row gap-2 min-h-0 md:col-start-1 md:row-start-2">
           
           {/* CAJA DE COMENTARIOS */}
           <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-w-0">
@@ -381,33 +388,33 @@ function SnapCard({
               </div>
             )}
           </div>
-
-          {/* 🔥 FIX: BOTONES ARCADE RETRO (w-10 y texto separado manualmente a prueba de bugs) */}
-          <div className="hidden md:flex flex-col gap-2 w-10 shrink-0">
-            <button 
-              onClick={onScrollUp} 
-              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
-              title="Subir"
-            >
-              <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
-                <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
-              </div>
-            </button>
-            
-            <button 
-              onClick={onScrollDown} 
-              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
-              title="Bajar"
-            >
-              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
-                <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
-              </div>
-              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-            </button>
-          </div>
-
         </div>
+
+        {/* BOTONES ARCADE RETRO */}
+        <div className="hidden md:flex flex-col gap-2 w-10 md:col-start-2 md:row-start-2 shrink-0">
+          <button 
+            onClick={onScrollUp} 
+            className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+            title="Subir"
+          >
+            <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+              <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
+            </div>
+          </button>
+          
+          <button 
+            onClick={onScrollDown} 
+            className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-lg flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+            title="Bajar"
+          >
+            <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+              <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
+            </div>
+            <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+          </button>
+        </div>
+
       </div>
 
       {showReport && (
@@ -525,8 +532,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX ESPACIOS: h-[calc(100vh-20px)] o h-[calc(100dvh-60px)] ajustado al milímetro para que elimine el borde negro de abajo
-    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-60px)] relative">
+    // 🔥 FIX ESPACIOS: h-[calc(100vh-60px)] ajusta milimétricamente el contenedor sin dejar fondos extra.
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100vh-60px)] relative pb-1">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
@@ -573,7 +580,8 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 w-full">
+        <div className="relative flex-1 min-h-0 w-full overflow-hidden">
+          
           <div
             ref={containerRef}
             className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
@@ -595,6 +603,7 @@ export default function SocialReelsPage() {
               </div>
             ))}
           </div>
+
         </div>
       )}
     </div>
