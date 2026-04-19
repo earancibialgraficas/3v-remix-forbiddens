@@ -81,6 +81,10 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
+const isImageItem = (item: SocialItem) => {
+  return !isVideoItem(item);
+};
+
 function SnapCard({ 
   item, 
   isVisible, 
@@ -264,7 +268,8 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1 md:pb-2">
+    // 🔥 FIX: Espacio inferior ajustado (quitamos márgenes extra abajo para que llegue más al fondo)
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1">
       
       {/* LADO IZQUIERDO: VIDEO LIBRE Y MAXIMIZADO */}
       <div className="flex-1 bg-card border border-border rounded-lg flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
@@ -297,10 +302,10 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: MÁS ANGOSTO Y CON DESCRIPCIÓN EXPANDIDA 🔴 */}
-      <div className="h-[45%] md:h-full md:w-[250px] lg:w-[270px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
+      {/* LADO DERECHO: PANEL ORDENADO CON CSS GRID */}
+      <div className="h-[45%] md:h-full md:w-[260px] lg:w-[280px] flex flex-col md:grid gap-2 shrink-0 md:grid-cols-[1fr_auto] md:grid-rows-[auto_1fr]">
         
-        {/* 🔥 FIX: INFO DEL AUTOR (col-span-2 hace que ocupe todo el ancho de la derecha, sobre comentarios y flechas) */}
+        {/* INFO DEL AUTOR Y LIKES (col-span-2) */}
         <div className="shrink-0 p-3 border border-border bg-card rounded-lg shadow-sm flex flex-col md:col-span-2 md:row-start-1 z-10">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -336,6 +341,9 @@ function SnapCard({
           </div>
         </div>
 
+        {/* ESPACIO VACÍO INVISIBLE PARA GRID */}
+        <div className="hidden md:block md:col-start-2 md:row-start-1 w-10 lg:w-12" />
+
         {/* CAJA DE COMENTARIOS */}
         <div className="flex-1 flex flex-col bg-card border border-border rounded-lg shadow-sm overflow-hidden min-h-0 md:col-start-1 md:row-start-2">
           <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
@@ -369,7 +377,7 @@ function SnapCard({
                 onChange={e => setCommentText(e.target.value)} 
                 onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
                 placeholder="Comentar..." 
-                className="flex-1 h-8 bg-muted rounded px-3 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors w-full" 
+                className="flex-1 h-8 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
               />
               <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
                 <Send className="w-3.5 h-3.5" />
@@ -378,15 +386,15 @@ function SnapCard({
           )}
         </div>
 
-        {/* BOTONES ARCADE RETRO (Al lado de los comentarios) */}
-        <div className="hidden md:flex flex-col gap-2 w-12 lg:w-14 md:col-start-2 md:row-start-2 shrink-0">
+        {/* 🔥 FIX: BOTONES MÁS DELGADOS (w-10) Y ESTÉTICOS */}
+        <div className="hidden md:flex flex-col gap-2 w-10 md:col-start-2 md:row-start-2 shrink-0">
           <button 
             onClick={onScrollUp} 
             className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
             title="Subir"
           >
-            <ChevronUp className="w-6 h-6 md:w-7 md:h-7 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-            <span className="font-pixel text-[6px] md:text-[7px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mt-0.5">SUBIR</span>
+            <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <span className="font-pixel text-[6px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mt-0.5" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>SUBIR</span>
           </button>
           
           <button 
@@ -394,8 +402,8 @@ function SnapCard({
             className="flex-1 bg-muted/40 border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/10 rounded-xl flex flex-col items-center justify-center gap-1 transition-all group shadow-[0_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[4px] relative"
             title="Bajar"
           >
-            <span className="font-pixel text-[6px] md:text-[7px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mb-0.5">BAJAR</span>
-            <ChevronDown className="w-6 h-6 md:w-7 md:h-7 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+            <span className="font-pixel text-[6px] text-muted-foreground group-hover:text-neon-cyan uppercase tracking-widest transition-colors mb-0.5" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>BAJAR</span>
+            <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
           </button>
         </div>
 
@@ -516,11 +524,11 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: Espacio inferior ajustado estrictamente. Ahora llega hasta el final sin "pasarse" de la pantalla.
-    <div className="space-y-2 animate-fade-in flex flex-col h-[calc(100dvh-65px)] md:h-[calc(100dvh-70px)] relative">
+    // 🔥 FIX: h-[calc(100vh-60px)] ajusta milimétricamente el contenedor al fondo de la pantalla dejando un mini margen de aire
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100vh-60px)] relative pb-1">
       
       {/* HEADER */}
-      <div className="bg-card border border-neon-orange/30 rounded p-2 md:p-3 shrink-0 shadow-sm">
+      <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
@@ -535,7 +543,7 @@ export default function SocialReelsPage() {
           <button 
             key={f.id} 
             onClick={() => setFilter(f.id)} 
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-[10px] md:text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             <f.icon className="w-3 h-3" /> {f.label}
           </button>
@@ -546,7 +554,7 @@ export default function SocialReelsPage() {
             {filterTabs.length > 1 && <div className="w-px h-5 bg-border mx-1" />}
             <button 
               onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
-              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-[10px] md:text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
               title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
               <Users className="w-3 h-3" /> Amigos
