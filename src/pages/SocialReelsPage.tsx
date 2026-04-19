@@ -264,24 +264,19 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // Contenedor principal de la tarjeta, ajustado al milímetro
-    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
+    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO PERFECTAMENTE RESPONSIVO Y SIN BORDES 🔴 */}
-      <div className="flex-1 flex items-center justify-center min-h-0 overflow-hidden relative bg-transparent">
+      {/* 🔴 LADO IZQUIERDO: VIDEO EFECTO "ZOOM 80%" (Evita recortes) 🔴 */}
+      <div className="flex-1 bg-black/90 border border-border rounded-xl flex items-center justify-center shadow-sm min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            // 🔥 LA MAGIA CSS: height 100%, width auto, aspect-ratio perfecto. ¡Nunca se corta, nunca hace bandas negras feísimas!
-            className="rounded-xl shadow-2xl bg-black outline-none"
-            style={{ 
-              border: "none", 
-              height: "100%", 
-              width: item.platform === 'tiktok' || item.platform === 'instagram' ? "auto" : "100%", 
-              maxWidth: "100%",
-              maxHeight: "100%",
-              aspectRatio: item.platform === 'tiktok' ? '9/16' : item.platform === 'instagram' ? '4/5' : '16/9'
-            }}
+            // 🔥 FIX: max-w-[325px] a max-w-[350px] asegura que el video se vea "alejado" y completo en pantallas 1366x768
+            className={cn("w-full h-full bg-transparent mx-auto outline-none", 
+              item.platform === 'tiktok' ? "max-w-[325px] sm:max-w-[350px] rounded-lg" : 
+              item.platform === 'instagram' ? "max-w-[400px] rounded-lg bg-white" : "rounded-lg"
+            )}
+            style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -291,7 +286,7 @@ function SnapCard({
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className="w-full h-full max-w-[450px] shadow-sm bg-white mx-auto rounded-xl outline-none" 
+            className="w-full h-full max-w-[400px] shadow-sm bg-white mx-auto rounded-lg outline-none" 
             style={{ border: "none" }}
             scrolling="no"
             allowFullScreen 
@@ -303,112 +298,112 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (A PRUEBA DE FALLOS) 🔴 */}
-      <div className="h-[45%] md:h-full md:w-[260px] lg:w-[280px] flex flex-col gap-2 shrink-0">
+      {/* 🔴 LADO DERECHO: FLEXBOX PURO, MÁS ANGOSTO (w-[240px]) Y ESTABLE 🔴 */}
+      <div className="h-[45%] md:h-full md:w-[240px] flex flex-col gap-2 shrink-0">
         
-        {/* BLOQUE 1: Info del Autor y Likes (Ocupa todo el ancho disponible) */}
-        <div className="shrink-0 p-3 border border-border bg-card rounded-xl shadow-sm flex flex-col z-10 w-full">
+        {/* BLOQUE SUPERIOR: Info del Autor y Likes */}
+        <div className="shrink-0 p-2.5 border border-border bg-card rounded-xl shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-muted border-2 border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
+            <div className="w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <Link to={`/usuario/${item.user_id}`} className="text-xs font-body font-bold text-foreground hover:text-primary truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
-              <span className="text-[9px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
+              <Link to={`/usuario/${item.user_id}`} className="text-[11px] font-body font-bold text-foreground hover:text-primary truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
+              <span className="text-[8px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
             </div>
             <div className="ml-auto flex items-center gap-1 shrink-0">
               {user && (
                 <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
-                  <Flag className="w-3.5 h-3.5" />
+                  <Flag className="w-3 h-3" />
                 </button>
               )}
               {isStaff && (
                 <button onClick={() => onDeletePost(item.id)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3" />
                 </button>
               )}
             </div>
           </div>
           
-          <p className="text-xs font-body text-foreground line-clamp-2 leading-snug mb-3">{item.title || "Contenido de la comunidad"}</p>
+          <p className="text-[10px] font-body text-foreground line-clamp-2 leading-snug mb-2">{item.title || "Contenido de la comunidad"}</p>
           
-          <div className="flex items-center gap-4">
-            <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1.5 text-xs font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
-              <ThumbsUp className="w-4 h-4" /> {likes}
+          <div className="flex items-center gap-3">
+            <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
+              <ThumbsUp className="w-3.5 h-3.5" /> {likes}
             </button>
-            <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-1.5 text-xs font-body font-medium transition-all hover:scale-105", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
-              <ThumbsDown className="w-4 h-4" /> {dislikes}
+            <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
+              <ThumbsDown className="w-3.5 h-3.5" /> {dislikes}
             </button>
           </div>
         </div>
 
-        {/* BLOQUE 2: Comentarios a la izquierda + Botones Arcade a la derecha */}
+        {/* BLOQUE INFERIOR: COMENTARIOS Y BOTONES (En fila) */}
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
           
-          {/* CAJA DE COMENTARIOS (Ocupa el espacio restante) */}
+          {/* CAJA DE COMENTARIOS */}
           <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden min-w-0">
-            <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
-              <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
+            <div className="shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
+              <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
             </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
-                <div key={c.id} className="group text-xs font-body flex items-start justify-between gap-2">
+                <div key={c.id} className="group text-[10px] font-body flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
                   </div>
                   <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
-                       <Flag className="w-3 h-3" />
+                       <Flag className="w-2.5 h-2.5" />
                     </button>
                     {isStaff && (
                       <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
-                         <Trash2 className="w-3 h-3" />
+                         <Trash2 className="w-2.5 h-2.5" />
                       </button>
                     )}
                   </div>
                 </div>
               ))}
-              {comments.length === 0 && <p className="text-xs text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
+              {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="shrink-0 p-2 border-t border-border flex gap-1 bg-card">
+              <div className="shrink-0 p-1.5 border-t border-border flex gap-1 bg-card">
                 <input 
                   value={commentText} 
                   onChange={e => setCommentText(e.target.value)} 
                   onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
                   placeholder="Comentar..." 
-                  className="flex-1 h-8 bg-muted rounded px-2 text-[10px] md:text-xs font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
+                  className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
                 />
-                <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 md:px-3 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
-                  <Send className="w-3.5 h-3.5" />
+                <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
+                  <Send className="w-3 h-3" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (Ancho fijo, al lado de los comentarios) */}
-          <div className="hidden md:flex flex-col gap-2 w-10 shrink-0 h-full">
+          {/* BOTONES ARCADE RETRO (Delgados w-8) */}
+          <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
-              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-xl flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-xl flex flex-col items-center justify-center gap-1 shadow-[0_3px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[3px] transition-all group"
               title="Subir"
             >
-              <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
-              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+              <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+              <div className="font-pixel text-[7px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[1px]">
                 <span>S</span><span>U</span><span>B</span><span>I</span><span>R</span>
               </div>
             </button>
             
             <button 
               onClick={onScrollDown} 
-              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-xl flex flex-col items-center justify-center gap-1 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[4px] transition-all group"
+              className="flex-1 bg-card border-2 border-border hover:border-neon-cyan hover:bg-neon-cyan/5 rounded-xl flex flex-col items-center justify-center gap-1 shadow-[0_3px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[3px] transition-all group"
               title="Bajar"
             >
-              <div className="font-pixel text-[8px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[2px]">
+              <div className="font-pixel text-[7px] text-muted-foreground group-hover:text-neon-cyan transition-colors flex flex-col items-center gap-[1px]">
                 <span>B</span><span>A</span><span>J</span><span>A</span><span>R</span>
               </div>
-              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
+              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
             </button>
           </div>
 
@@ -530,15 +525,15 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: Espacio inferior fantasma eliminado. h-[calc(100vh-65px)] toca el borde milimétricamente.
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-65px)] w-full relative overflow-hidden gap-2 md:gap-3">
+    // 🔥 FIX ESPACIO FANTASMA: h-[calc(100vh-50px)] ajustado al máximo.
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2">
       
       {/* HEADER */}
-      <div className="bg-card border border-neon-orange/30 rounded-xl p-3 md:p-4 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
+      <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
-        <p className="text-[10px] md:text-xs text-muted-foreground font-body">
+        <p className="text-[10px] text-muted-foreground font-body">
           {isReelsPage ? "Videos horizontales y reels verticales de la comunidad" : "Todo el contenido social de la comunidad"}
         </p>
       </div>
@@ -549,7 +544,7 @@ export default function SocialReelsPage() {
           <button 
             key={f.id} 
             onClick={() => setFilter(f.id)} 
-            className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             <f.icon className="w-3 h-3" /> {f.label}
           </button>
@@ -560,7 +555,7 @@ export default function SocialReelsPage() {
             {filterTabs.length > 1 && <div className="w-px h-5 bg-border mx-1" />}
             <button 
               onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
-              className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
               title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
               <Users className="w-3 h-3" /> Amigos
