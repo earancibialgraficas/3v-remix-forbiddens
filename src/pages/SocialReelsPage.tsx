@@ -91,6 +91,9 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
+  
+  // 🔥 FIX: Referencia para bloquear el spam de likes
+  const votingRef = useRef(false);
 
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
@@ -130,7 +133,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         .select("user_id, display_name, avatar_url")
         .in("user_id", uids);
         
-      // 🔥 FIX: Tipamos explícitamente el Map a <string, any>
       const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
       
       setComments(data.map(c => {
@@ -151,32 +153,43 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       return; 
     }
     
+    // 🔥 FIX: Bloquea clicks muy rápidos
+    if (votingRef.current) return;
+    votingRef.current = true;
+    
     try {
-      const { data: existingReaction } = await supabase
+      const { data: existingReaction, error: fetchErr } = await supabase
         .from("social_reactions")
         .select("id, reaction_type")
         .eq("user_id", user.id)
         .eq("target_id", item.id)
         .maybeSingle();
 
+      if (fetchErr) throw fetchErr;
+
       let newLikes = likes;
       let newDislikes = dislikes;
 
       if (existingReaction) {
         if (existingReaction.reaction_type === type) {
+          // Quitar reacción
           await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
           setUserReaction(null);
           if (type === "like") newLikes--; else newDislikes--;
         } else {
+          // Cambiar reacción
           await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
           setUserReaction(type);
           if (type === "like") { newLikes++; newDislikes--; } 
           else { newDislikes++; newLikes--; }
         }
       } else {
-        await supabase.from("social_reactions").insert({
+        // Nueva reacción
+        const { error: insertErr } = await supabase.from("social_reactions").insert({
           user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
         });
+        if (insertErr) throw insertErr;
+        
         setUserReaction(type);
         if (type === "like") newLikes++; else newDislikes++;
       }
@@ -185,9 +198,12 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       setDislikes(Math.max(0, newDislikes));
       await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
       
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error toggling reaction:", e);
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
+    } finally {
+      // Liberar el botón
+      votingRef.current = false;
     }
   };
 
@@ -198,7 +214,11 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       const { error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: item.id, content: commentText.trim() 
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Error DB Insert:", error);
+        throw error;
+      }
       
       setCommentText("");
       
@@ -207,7 +227,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         const uids = [...new Set(data.map(c => c.user_id))];
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
         
-        // 🔥 FIX: Tipamos el Map aquí también
         const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
         
         setComments(data.map(c => {
@@ -219,9 +238,9 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
           };
         }));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error posting comment:", e);
-      toast({ title: "Error", description: "No se pudo publicar tu comentario", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo publicar tu comentario. Verifica tu conexión.", variant: "destructive" });
     }
   };
 
@@ -337,7 +356,6 @@ export default function SocialReelsPage() {
         .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
         .in("user_id", userIds);
         
-      // 🔥 FIX: Tipamos explícitamente el Map a <string, any>
       const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
       
       setItems(content.map(c => {
