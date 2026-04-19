@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +46,7 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
+    // hidecaption=true esconde el texto enorme de IG
     if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
   }
   if (platform === "tiktok") {
@@ -58,7 +58,7 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-// 🔥 FIX FILTROS ESTRICTOS: Solo los /reel/ de instagram son video.
+// 🔥 FIX: Lógica estricta de detección
 const isVideoItem = (item: SocialItem | any) => {
   const p = item.platform || '';
   const url = item.content_url || '';
@@ -82,10 +82,6 @@ const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
 };
 
-const isImageItem = (item: SocialItem) => {
-  return !isVideoItem(item);
-};
-
 function SnapCard({ 
   item, 
   isVisible, 
@@ -103,6 +99,7 @@ function SnapCard({
   const { toast } = useToast();
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
+  
   const [likes, setLikes] = useState(item.likes || 0);
   const [dislikes, setDislikes] = useState(item.dislikes || 0);
   const [userReaction, setUserReaction] = useState<string | null>(null);
@@ -165,11 +162,7 @@ function SnapCard({
   }, [item.id]);
 
   const handleReaction = async (type: "like" | "dislike") => {
-    if (!user) { 
-      toast({ title: "Inicia sesión", variant: "destructive" }); 
-      return; 
-    }
-    
+    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     if (votingRef.current) return;
     votingRef.current = true;
 
@@ -213,9 +206,7 @@ function SnapCard({
           user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
         });
       }
-
       await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
-      
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
       setLikes(prevLikes);
@@ -233,8 +224,8 @@ function SnapCard({
         user_id: user.id, content_id: item.id, content: commentText.trim() 
       });
       if (error) throw error;
-      setCommentText("");
       
+      setCommentText("");
       const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
       if (data) {
         const uids = [...new Set(data.map(c => c.user_id))];
@@ -262,30 +253,35 @@ function SnapCard({
   };
 
   return (
-    // 🔥 FIX ESPACIOS: Ajustamos el contenedor principal para que no tenga espacio negro sobrante en pantallas normales
-    <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2 h-[85vh] min-h-[400px] max-h-[850px] py-2">
-      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col shadow-sm">
-        <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-0 md:p-2">
-          {isVideo && embedUrl ? (
+    // 🔥 FIX RESPONSIVE: h-[calc(100vh-140px)] permite que no se corte por abajo y se adapte.
+    <div className="snap-start w-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-3 px-2 py-2 h-[calc(100dvh-130px)] min-h-[450px]">
+      
+      {/* Contenedor Izquierdo: Video / Imagen */}
+      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col shadow-sm min-h-0">
+        <div className="flex-1 relative bg-black/50 flex items-center justify-center overflow-hidden p-0 md:p-2 min-h-0">
+          
+          {/* 🔥 FIX EMBEDS: Lógica mejorada para renderizar sin romper el muro */}
+          {embedUrl ? (
             <iframe 
-              src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
-              className={cn("w-full h-full rounded max-w-[500px]", item.platform === 'tiktok' ? "aspect-[9/16]" : "")} 
+              src={isVisible && item.platform === 'youtube' ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
+              className={cn("w-full h-full max-h-full rounded shadow-md bg-white", 
+                item.platform === 'tiktok' ? "max-w-[340px] mx-auto aspect-[9/16]" : 
+                item.platform === 'instagram' ? "max-w-[400px] mx-auto" : ""
+              )}
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
-          ) : item.thumbnail_url || isImageItem(item) ? (
+          ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
             <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain max-h-full" />
-          ) : embedUrl ? (
-            <iframe 
-              src={embedUrl} 
-              className="w-full h-full max-w-[500px] rounded bg-white" 
-              allowFullScreen 
-            />
           ) : (
-            <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
-              <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
-            </a>
+            <div className="flex flex-col items-center gap-3">
+              <ExternalLink className="w-8 h-8 text-muted-foreground" />
+              <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline bg-background/80 px-4 py-2 rounded-full border border-border">
+                Ver original en {item.platform}
+              </a>
+            </div>
           )}
+
         </div>
         
         <div className="p-3 border-t border-border shrink-0 bg-card">
@@ -294,9 +290,9 @@ function SnapCard({
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] flex items-center justify-center h-full">👤</span>}
             </div>
             <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body font-medium text-foreground hover:text-primary" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
-            <span className="text-[9px] text-muted-foreground font-body ml-auto">{item.platform}</span>
+            <span className="text-[9px] text-muted-foreground font-body ml-auto capitalize">{item.platform}</span>
           </div>
-          <p className="text-[10px] font-body text-foreground truncate">{item.title || "Sin título"}</p>
+          <p className="text-[10px] font-body text-foreground truncate">{item.title || "Contenido compartido"}</p>
           <div className="flex items-center gap-3 mt-1.5">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-0.5 text-[10px] font-body transition-colors", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3 h-3" /> {likes}
@@ -320,7 +316,8 @@ function SnapCard({
         </div>
       </div>
 
-      <div className="w-64 hidden md:flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0 shadow-sm">
+      {/* Contenedor Derecho: Comentarios (Adaptable) */}
+      <div className="w-full md:w-72 flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0 shadow-sm min-h-[150px] md:min-h-0">
         <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 shrink-0">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
@@ -331,7 +328,7 @@ function SnapCard({
                 <span className="text-primary font-medium">{c.display_name}: </span>
                 <span className="text-foreground">{c.content}</span>
               </div>
-              <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
                    <Flag className="w-3 h-3" />
                 </button>
@@ -407,9 +404,9 @@ export default function SocialReelsPage() {
       const p = profileMap.get(c.user_id);
       return {
         ...c,
-        content_type: (c as any).content_type || 'video',
-        likes: (c as any).likes || 0,
-        dislikes: (c as any).dislikes || 0,
+        content_type: c.content_type || null, // 🔥 FIX: Ya no forzamos 'video' por defecto
+        likes: c.likes || 0,
+        dislikes: c.dislikes || 0,
         display_name: p?.display_name || "Anónimo",
         avatar_url: p?.avatar_url,
         color_name: p?.color_name || null,
@@ -449,13 +446,15 @@ export default function SocialReelsPage() {
 
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
+  // 🔥 FIX FILTROS: Si estamos en Reels, excluye las fotos/posts de IG. Si estamos en Feed, muestra TODO.
   const filtered = (() => {
     if (isReelsPage) {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      // En la pestaña Reels, incluso si selecciona "Todos", excluimos las imágenes.
+      // En "Reels & Videos" el 'all' solo muestra videos y reels
       return sourceFiltered.filter(i => isVideoItem(i));
     }
+    // Si la ruta es Feed (/social/feed), mostramos absolutamente todo mezclado.
     return sourceFiltered;
   })();
 
@@ -471,7 +470,7 @@ export default function SocialReelsPage() {
 
   return (
     <div className="space-y-3 animate-fade-in flex flex-col h-[calc(100vh-80px)]">
-      <div className="bg-card border border-neon-orange/30 rounded p-4 shrink-0">
+      <div className="bg-card border border-neon-orange/30 rounded p-4 shrink-0 shadow-sm">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
@@ -480,7 +479,7 @@ export default function SocialReelsPage() {
         </p>
       </div>
 
-      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center shrink-0">
+      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center shrink-0 shadow-sm">
         {filterTabs.map(f => (
           <button 
             key={f.id} 
@@ -497,6 +496,7 @@ export default function SocialReelsPage() {
             <button 
               onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} 
               className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+              title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}
             >
               <Users className="w-3 h-3" /> Amigos
             </button>
@@ -505,8 +505,9 @@ export default function SocialReelsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded p-6 text-center shrink-0">
-          <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
+        <div className="bg-card border border-border rounded p-6 text-center shrink-0 shadow-sm">
+          <ImageIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-xs text-muted-foreground font-body">No hay contenido disponible aquí.</p>
           <Button size="sm" asChild className="mt-3 text-xs">
             <Link to="/perfil?tab=social">Agregar Contenido</Link>
           </Button>
