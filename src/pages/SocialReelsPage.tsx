@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +47,6 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    // hidecaption=true esconde el texto enorme de IG
     if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
   }
   if (platform === "tiktok") {
@@ -58,7 +58,6 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-// 🔥 FIX: Lógica estricta de detección
 const isVideoItem = (item: SocialItem | any) => {
   const p = item.platform || '';
   const url = item.content_url || '';
@@ -80,6 +79,10 @@ const isReelItem = (item: SocialItem) => {
 
 const isHorizontalVideo = (item: SocialItem) => {
   return isVideoItem(item) && !isReelItem(item);
+};
+
+const isImageItem = (item: SocialItem) => {
+  return !isVideoItem(item);
 };
 
 function SnapCard({ 
@@ -252,39 +255,55 @@ function SnapCard({
     }
   };
 
+  // 🔥 FIX: Autoplay dinámico y silencioso
+  const finalEmbedUrl = isVisible && embedUrl
+    ? item.platform === 'youtube'
+      ? `${embedUrl}?autoplay=1&mute=0`
+      : item.platform === 'tiktok'
+        ? `${embedUrl}?autoplay=1`
+        : embedUrl
+    : embedUrl;
+
   return (
-    // 🔥 FIX RESPONSIVE: h-[calc(100vh-140px)] permite que no se corte por abajo y se adapte.
-    <div className="snap-start w-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-3 px-2 py-2 h-[calc(100dvh-130px)] min-h-[450px]">
+    // 🔥 FIX: h-full asegura que la carta ocupe exactamente el espacio del scroll
+    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-3 px-2 py-2">
       
       {/* Contenedor Izquierdo: Video / Imagen */}
-      <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col shadow-sm min-h-0">
-        <div className="flex-1 relative bg-black/50 flex items-center justify-center overflow-hidden p-0 md:p-2 min-h-0">
-          
-          {/* 🔥 FIX EMBEDS: Lógica mejorada para renderizar sin romper el muro */}
-          {embedUrl ? (
+      <div className="flex-1 bg-card border border-border rounded-lg flex flex-col shadow-sm min-h-0 overflow-hidden">
+        
+        {/* 🔥 FIX: min-h-0 vital para que Flexbox no se expanda al infinito */}
+        <div className="flex-1 relative bg-black/60 flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
+          {isVideo && finalEmbedUrl ? (
             <iframe 
-              src={isVisible && item.platform === 'youtube' ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
-              className={cn("w-full h-full max-h-full rounded shadow-md bg-white", 
-                item.platform === 'tiktok' ? "max-w-[340px] mx-auto aspect-[9/16]" : 
-                item.platform === 'instagram' ? "max-w-[400px] mx-auto" : ""
+              src={finalEmbedUrl} 
+              className={cn("w-full h-full max-h-full bg-transparent", 
+                item.platform === 'tiktok' ? "max-w-[340px] mx-auto rounded" : 
+                item.platform === 'instagram' ? "max-w-[400px] mx-auto rounded bg-white" : "rounded"
               )}
+              style={{ border: "none", overflow: "hidden" }}
+              scrolling="no"
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
           ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
-            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain max-h-full" />
+            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
+          ) : finalEmbedUrl ? (
+            <iframe 
+              src={finalEmbedUrl} 
+              className="w-full h-full max-w-[400px] rounded shadow-sm bg-white" 
+              style={{ border: "none", overflow: "hidden" }}
+              scrolling="no"
+              allowFullScreen 
+            />
           ) : (
-            <div className="flex flex-col items-center gap-3">
-              <ExternalLink className="w-8 h-8 text-muted-foreground" />
-              <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline bg-background/80 px-4 py-2 rounded-full border border-border">
-                Ver original en {item.platform}
-              </a>
-            </div>
+            <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
+            </a>
           )}
-
         </div>
         
-        <div className="p-3 border-t border-border shrink-0 bg-card">
+        {/* 🔥 FIX: shrink-0 asegura que esta barra NUNCA desaparezca por culpa del video */}
+        <div className="shrink-0 p-3 border-t border-border bg-card">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] flex items-center justify-center h-full">👤</span>}
@@ -292,7 +311,7 @@ function SnapCard({
             <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body font-medium text-foreground hover:text-primary" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
             <span className="text-[9px] text-muted-foreground font-body ml-auto capitalize">{item.platform}</span>
           </div>
-          <p className="text-[10px] font-body text-foreground truncate">{item.title || "Contenido compartido"}</p>
+          <p className="text-[10px] font-body text-foreground truncate">{item.title || "Sin título"}</p>
           <div className="flex items-center gap-3 mt-1.5">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-0.5 text-[10px] font-body transition-colors", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3 h-3" /> {likes}
@@ -316,12 +335,13 @@ function SnapCard({
         </div>
       </div>
 
-      {/* Contenedor Derecho: Comentarios (Adaptable) */}
-      <div className="w-full md:w-72 flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0 shadow-sm min-h-[150px] md:min-h-0">
-        <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1 shrink-0">
+      {/* Contenedor Derecho: Comentarios */}
+      {/* 🔥 FIX: min-h-0 evita que los comentarios empujen su propio contenedor */}
+      <div className="w-full md:w-72 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden h-[30%] md:h-full">
+        <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-3" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto p-2 space-y-3 min-h-0" style={{ scrollbarWidth: 'none' }}>
           {comments.map(c => (
             <div key={c.id} className="group text-[10px] font-body flex items-start justify-between gap-2">
               <div className="flex-1">
@@ -343,7 +363,7 @@ function SnapCard({
           {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4">Sin comentarios</p>}
         </div>
         {user && (
-          <div className="p-2 border-t border-border flex gap-1 shrink-0">
+          <div className="shrink-0 p-2 border-t border-border flex gap-1">
             <input 
               value={commentText} 
               onChange={e => setCommentText(e.target.value)} 
@@ -404,7 +424,7 @@ export default function SocialReelsPage() {
       const p = profileMap.get(c.user_id);
       return {
         ...c,
-        content_type: c.content_type || null, // 🔥 FIX: Ya no forzamos 'video' por defecto
+        content_type: c.content_type || null,
         likes: c.likes || 0,
         dislikes: c.dislikes || 0,
         display_name: p?.display_name || "Anónimo",
@@ -446,15 +466,12 @@ export default function SocialReelsPage() {
 
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-  // 🔥 FIX FILTROS: Si estamos en Reels, excluye las fotos/posts de IG. Si estamos en Feed, muestra TODO.
   const filtered = (() => {
     if (isReelsPage) {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      // En "Reels & Videos" el 'all' solo muestra videos y reels
       return sourceFiltered.filter(i => isVideoItem(i));
     }
-    // Si la ruta es Feed (/social/feed), mostramos absolutamente todo mezclado.
     return sourceFiltered;
   })();
 
@@ -507,7 +524,7 @@ export default function SocialReelsPage() {
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded p-6 text-center shrink-0 shadow-sm">
           <ImageIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-xs text-muted-foreground font-body">No hay contenido disponible aquí.</p>
+          <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
           <Button size="sm" asChild className="mt-3 text-xs">
             <Link to="/perfil?tab=social">Agregar Contenido</Link>
           </Button>
@@ -515,12 +532,13 @@ export default function SocialReelsPage() {
       ) : (
         <div
           ref={containerRef}
-          className="snap-y snap-mandatory overflow-y-auto flex-1 pb-10"
+          className="snap-y snap-mandatory overflow-y-auto flex-1 pb-4"
           style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <style>{`div::-webkit-scrollbar { display: none; }`}</style>
           {filtered.map((item, i) => (
-            <div key={item.id} data-card-index={i}>
+            // 🔥 FIX: Añadimos h-full aquí para que la carta se adapte exactamente a un "pantallazo" de scroll
+            <div key={item.id} data-card-index={i} className="h-full py-2">
               <SnapCard 
                 item={item} 
                 isVisible={i === visibleIndex} 
