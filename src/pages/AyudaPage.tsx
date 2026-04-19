@@ -36,23 +36,50 @@ export default function AyudaPage() {
     const email = user.email!;
     setSending(true);
 
-    // Save to DB
-    await supabase.from("contact_messages").insert({
-      user_id: user.id, name, email, message,
-    } as any);
-
-    // Send notification email to admin via Resend
     try {
-      const res = await supabase.functions.invoke("send-contact-email", {
-        body: { name, email, message },
-      });
-      if (res.error) console.error("Email send error:", res.error);
-    } catch (e) {
-      console.error("Email function error:", e);
-    }
+      // 1. Guardar en Base de Datos (Opcional, pero recomendado como respaldo)
+      await supabase.from("contact_messages").insert({
+        user_id: user.id, name, email, message,
+      } as any);
 
-    setSending(false);
-    setSent(true);
+      // 2. Enviar correo directamente usando la API de Resend
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer re_CH7h6Grx_GXG6mMB5484i3TaZrsNp6AM1"
+        },
+        body: JSON.stringify({
+          // IMPORTANTE: Resend requiere que el correo de origen ('from') sea un dominio verificado,
+          // o que uses su correo de prueba 'onboarding@resend.dev' si aún no tienes un dominio propio validado en Resend.
+          from: "onboarding@resend.dev", 
+          to: ["forobiddens@gmail.com"], // 🔥 PON AQUÍ TU CORREO REAL DONDE QUIERES RECIBIR LAS CONSULTAS
+          subject: `Nueva Consulta de Soporte Forbiddens - ${name}`,
+          html: `
+            <h2>Nueva solicitud de contacto</h2>
+            <p><strong>Nombre:</strong> ${name}</p>
+            <p><strong>Email del usuario:</strong> ${email}</p>
+            <hr />
+            <p><strong>Mensaje:</strong></p>
+            <p>${message}</p>
+          `
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("No se pudo enviar el correo a través de Resend.");
+      }
+
+      setSent(true);
+      toast({ title: "Enviado", description: "Tu consulta fue enviada exitosamente." });
+    } catch (e) {
+      console.error("Error al enviar consulta:", e);
+      toast({ title: "Aviso", description: "El mensaje se guardó en el sistema, pero el correo falló.", variant: "destructive" });
+      // Aunque falle el correo, mostramos que se envió porque se guardó en la DB
+      setSent(true); 
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

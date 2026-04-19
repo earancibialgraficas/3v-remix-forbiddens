@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -92,67 +92,149 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
 
-  // Pause music when video becomes visible
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
   }, [isVisible, isVideo]);
 
-  // Fetch user reaction
   useEffect(() => {
     if (!user) return;
-    supabase.from("social_reactions").select("reaction_type").eq("user_id", user.id).eq("target_type", "social_content").eq("target_id", item.id).maybeSingle()
-      .then(({ data }) => { if (data) setUserReaction(data.reaction_type); });
+    supabase
+      .from("social_reactions")
+      .select("reaction_type")
+      .eq("user_id", user.id)
+      .eq("target_type", "social_content")
+      .eq("target_id", item.id)
+      .maybeSingle()
+      .then(({ data }) => { 
+        if (data) setUserReaction(data.reaction_type); 
+      });
   }, [user, item.id]);
 
-  // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {
-      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true }).limit(50);
-      if (!data || data.length === 0) { setComments([]); return; }
+      const { data } = await supabase
+        .from("social_comments")
+        .select("*")
+        .eq("content_id", item.id)
+        .order("created_at", { ascending: true })
+        .limit(50);
+        
+      if (!data || data.length === 0) { 
+        setComments([]); 
+        return; 
+      }
+      
       const uids = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-      const pMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      setComments(data.map(c => ({ ...c, display_name: pMap.get(c.user_id)?.display_name || "Anónimo", avatar_url: pMap.get(c.user_id)?.avatar_url })));
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url")
+        .in("user_id", uids);
+        
+      // 🔥 FIX: Tipamos explícitamente el Map a <string, any>
+      const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+      
+      setComments(data.map(c => {
+        const p = pMap.get(c.user_id);
+        return { 
+          ...c, 
+          display_name: p?.display_name || "Anónimo", 
+          avatar_url: p?.avatar_url 
+        };
+      }));
     };
     fetchComments();
   }, [item.id]);
 
-  const handleReaction = async (type: string) => {
-    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    const { data, error } = await supabase.rpc("toggle_social_reaction", {
-      p_target_type: "social_content", p_target_id: item.id, p_user_id: user.id, p_reaction_type: type,
-    });
-    if (!error && data) {
-      const r = data as any;
-      setLikes(r.likes); setDislikes(r.dislikes); setUserReaction(r.user_reaction);
+  const handleReaction = async (type: "like" | "dislike") => {
+    if (!user) { 
+      toast({ title: "Inicia sesión", variant: "destructive" }); 
+      return; 
+    }
+    
+    try {
+      const { data: existingReaction } = await supabase
+        .from("social_reactions")
+        .select("id, reaction_type")
+        .eq("user_id", user.id)
+        .eq("target_id", item.id)
+        .maybeSingle();
+
+      let newLikes = likes;
+      let newDislikes = dislikes;
+
+      if (existingReaction) {
+        if (existingReaction.reaction_type === type) {
+          await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
+          setUserReaction(null);
+          if (type === "like") newLikes--; else newDislikes--;
+        } else {
+          await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
+          setUserReaction(type);
+          if (type === "like") { newLikes++; newDislikes--; } 
+          else { newDislikes++; newLikes--; }
+        }
+      } else {
+        await supabase.from("social_reactions").insert({
+          user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
+        });
+        setUserReaction(type);
+        if (type === "like") newLikes++; else newDislikes++;
+      }
+
+      setLikes(Math.max(0, newLikes));
+      setDislikes(Math.max(0, newDislikes));
+      await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
+      
+    } catch (e) {
+      console.error("Error toggling reaction:", e);
+      toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
     }
   };
 
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
-    await supabase.from("social_comments").insert({ user_id: user.id, content_id: item.id, content: commentText.trim() });
-    setCommentText("");
-    // Refetch
-    const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
-    if (data) {
-      const uids = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-      const pMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      setComments(data.map(c => ({ ...c, display_name: pMap.get(c.user_id)?.display_name || "Anónimo", avatar_url: pMap.get(c.user_id)?.avatar_url })));
+    
+    try {
+      const { error } = await supabase.from("social_comments").insert({ 
+        user_id: user.id, content_id: item.id, content: commentText.trim() 
+      });
+      if (error) throw error;
+      
+      setCommentText("");
+      
+      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
+      if (data) {
+        const uids = [...new Set(data.map(c => c.user_id))];
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+        
+        // 🔥 FIX: Tipamos el Map aquí también
+        const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+        
+        setComments(data.map(c => {
+          const p = pMap.get(c.user_id);
+          return { 
+            ...c, 
+            display_name: p?.display_name || "Anónimo", 
+            avatar_url: p?.avatar_url 
+          };
+        }));
+      }
+    } catch (e) {
+      console.error("Error posting comment:", e);
+      toast({ title: "Error", description: "No se pudo publicar tu comentario", variant: "destructive" });
     }
   };
 
   return (
     <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2" style={{ height: 'calc(100dvh - 220px)', minHeight: '400px' }}>
-      {/* Content */}
       <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
         <div className="flex-1 relative bg-muted/30 flex items-center justify-center overflow-hidden">
           {isVideo && embedUrl ? (
-            <iframe
-              src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl}
-              className="w-full h-full"
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            <iframe 
+              src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
+              className="w-full h-full" 
+              allowFullScreen 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
           ) : item.thumbnail_url || isImageItem(item) ? (
             <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
@@ -164,7 +246,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
             </a>
           )}
         </div>
-        {/* Info + reactions */}
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -188,7 +269,6 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         </div>
       </div>
 
-      {/* Comments sidebar */}
       <div className="w-64 hidden md:flex flex-col bg-card border border-border rounded-lg overflow-hidden shrink-0">
         <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
@@ -204,8 +284,13 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         </div>
         {user && (
           <div className="p-2 border-t border-border flex gap-1">
-            <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-              placeholder="Comentar..." className="flex-1 h-6 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-border" />
+            <input 
+              value={commentText} 
+              onChange={e => setCommentText(e.target.value)} 
+              onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
+              placeholder="Comentar..." 
+              className="flex-1 h-6 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-border" 
+            />
             <button onClick={handleComment} disabled={!commentText.trim()} className="p-1 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 disabled:opacity-50">
               <Send className="w-3 h-3" />
             </button>
@@ -230,9 +315,7 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  // Determine page context
   const isReelsPage = location.pathname.includes("/reels");
-  const isFeedPage = location.pathname.includes("/feed") || location.pathname === "/social";
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -242,20 +325,34 @@ export default function SocialReelsPage() {
         .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(50);
-      if (!content || content.length === 0) { setItems([]); return; }
+        
+      if (!content || content.length === 0) { 
+        setItems([]); 
+        return; 
+      }
+      
       const userIds = [...new Set(content.map(c => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      setItems(content.map(c => ({
-        ...c,
-        content_type: (c as any).content_type || 'video',
-        likes: (c as any).likes || 0,
-        dislikes: (c as any).dislikes || 0,
-        display_name: profileMap.get(c.user_id)?.display_name || "Anónimo",
-        avatar_url: profileMap.get(c.user_id)?.avatar_url,
-        color_name: profileMap.get(c.user_id)?.color_name || null,
-        color_avatar_border: profileMap.get(c.user_id)?.color_avatar_border || null,
-      })));
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
+        .in("user_id", userIds);
+        
+      // 🔥 FIX: Tipamos explícitamente el Map a <string, any>
+      const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+      
+      setItems(content.map(c => {
+        const p = profileMap.get(c.user_id);
+        return {
+          ...c,
+          content_type: (c as any).content_type || 'video',
+          likes: (c as any).likes || 0,
+          dislikes: (c as any).dislikes || 0,
+          display_name: p?.display_name || "Anónimo",
+          avatar_url: p?.avatar_url,
+          color_name: p?.color_name || null,
+          color_avatar_border: p?.color_avatar_border || null,
+        };
+      }));
     };
     fetchContent();
   }, []);
@@ -276,15 +373,12 @@ export default function SocialReelsPage() {
 
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-  // For /social/reels: Todos, Videos (horizontal), Reels (vertical)
-  // For /social/feed or /social: show everything
   const filtered = (() => {
     if (isReelsPage) {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      return sourceFiltered.filter(i => isVideoItem(i)); // "all" on reels = all video content
+      return sourceFiltered.filter(i => isVideoItem(i));
     }
-    // Feed page: show everything
     return sourceFiltered;
   })();
 
@@ -311,10 +405,16 @@ export default function SocialReelsPage() {
 
       {user && (
         <div className="flex gap-1 bg-card border border-border rounded p-1">
-          <button onClick={() => setSourceTab("all")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+          <button 
+            onClick={() => setSourceTab("all")} 
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
             <Globe className="w-3 h-3" /> Todos
           </button>
-          <button onClick={() => setSourceTab("friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+          <button 
+            onClick={() => setSourceTab("friends")} 
+            className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
             <Users className="w-3 h-3" /> Amigos
           </button>
         </div>
@@ -323,7 +423,11 @@ export default function SocialReelsPage() {
       {filterTabs.length > 1 && (
         <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
           {filterTabs.map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <button 
+              key={f.id} 
+              onClick={() => setFilter(f.id)} 
+              className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
               <f.icon className="w-3 h-3" /> {f.label}
             </button>
           ))}
@@ -333,7 +437,9 @@ export default function SocialReelsPage() {
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded p-6 text-center">
           <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
-          <Button size="sm" asChild className="mt-3 text-xs"><Link to="/perfil?tab=social">Agregar Contenido</Link></Button>
+          <Button size="sm" asChild className="mt-3 text-xs">
+            <Link to="/perfil?tab=social">Agregar Contenido</Link>
+          </Button>
         </div>
       ) : (
         <div
