@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, X, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,7 +47,8 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/`;
+    // 🔥 FIX: Añadimos hidecaption=true para quitar el bloque de texto feo de Instagram
+    if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
   }
   if (platform === "tiktok") {
     const tkMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
@@ -80,7 +81,19 @@ const isImageItem = (item: SocialItem) => {
     (item.platform === "instagram" && !item.content_url.includes("reel"));
 };
 
-function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisible: boolean; onPauseMusic: () => void }) {
+function SnapCard({ 
+  item, 
+  isVisible, 
+  onPauseMusic, 
+  isStaff,
+  onDeletePost
+}: { 
+  item: SocialItem; 
+  isVisible: boolean; 
+  onPauseMusic: () => void;
+  isStaff: boolean;
+  onDeletePost: (id: string) => void;
+}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
@@ -203,9 +216,7 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       if (updateErr) throw updateErr;
       
     } catch (e: any) {
-      console.error("Error toggling reaction:", e);
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
-      
       setLikes(prevLikes);
       setDislikes(prevDislikes);
       setUserReaction(prevReaction);
@@ -216,59 +227,64 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
 
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
-    
     try {
       const { error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: item.id, content: commentText.trim() 
       });
-      
-      if (error) {
-        console.error("Error DB Insert:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
       setCommentText("");
       
       const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
       if (data) {
         const uids = [...new Set(data.map(c => c.user_id))];
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-        
         const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-        
         setComments(data.map(c => {
           const p = pMap.get(c.user_id);
-          return { 
-            ...c, 
-            display_name: p?.display_name || "Anónimo", 
-            avatar_url: p?.avatar_url 
-          };
+          return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
         }));
       }
     } catch (e: any) {
-      console.error("Error posting comment:", e);
-      toast({ title: "Error", description: "No se pudo publicar tu comentario. Verifica tu conexión.", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("¿Seguro que deseas eliminar este comentario?")) return;
+    try {
+      const { error } = await supabase.from("social_comments").delete().eq("id", commentId);
+      if (error) throw error;
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      toast({ title: "Comentario eliminado por el Staff" });
+    } catch (e) {
+      toast({ title: "Error", description: "No se pudo eliminar el comentario", variant: "destructive" });
     }
   };
 
   return (
     <div className="snap-start w-full flex-shrink-0 flex items-stretch gap-3 px-2" style={{ height: 'calc(100dvh - 220px)', minHeight: '400px' }}>
       <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
-        <div className="flex-1 relative bg-muted/30 flex items-center justify-center overflow-hidden">
+        {/* 🔥 FIX: Contenedor de Iframe más responsivo y centrado */}
+        <div className="flex-1 relative bg-black/60 flex items-center justify-center overflow-hidden p-2 md:p-4">
           {isVideo && embedUrl ? (
             <iframe 
               src={isVisible ? `${embedUrl}?autoplay=1&mute=0` : embedUrl} 
-              className="w-full h-full" 
+              className={cn("w-full h-full rounded-lg max-w-[450px] shadow-lg", item.platform === 'tiktok' ? "aspect-[9/16]" : "")} 
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
           ) : item.thumbnail_url || isImageItem(item) ? (
-            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
+            <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain max-h-[500px]" />
           ) : embedUrl ? (
-            <iframe src={embedUrl} className="w-full h-full" allowFullScreen />
+            <iframe 
+              src={embedUrl} 
+              className="w-full h-full max-w-[400px] rounded-lg shadow-lg bg-white" 
+              style={{ maxHeight: item.platform === 'instagram' ? '450px' : '100%' }}
+              allowFullScreen 
+            />
           ) : (
             <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
-              <ExternalLink className="w-3 h-3" /> Ver original
+              <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
             </a>
           )}
         </div>
@@ -288,9 +304,19 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
             <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-0.5 text-[10px] font-body transition-colors", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
               <ThumbsDown className="w-3 h-3" /> {dislikes}
             </button>
-            {user && (
-              <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive text-[10px] ml-auto"><Flag className="w-3 h-3" /></button>
-            )}
+            <div className="flex gap-2 ml-auto">
+              {user && (
+                <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive text-[10px] transition-colors" title="Reportar">
+                  <Flag className="w-3 h-3" />
+                </button>
+              )}
+              {/* 🔥 FIX: Botón de borrar Post solo para Staff */}
+              {isStaff && (
+                <button onClick={() => onDeletePost(item.id)} className="text-muted-foreground hover:text-destructive text-[10px] transition-colors" title="Eliminar (Staff)">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -299,11 +325,24 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         <div className="px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto p-2 space-y-3" style={{ scrollbarWidth: 'none' }}>
           {comments.map(c => (
-            <div key={c.id} className="text-[10px] font-body">
-              <span className="text-primary font-medium">{c.display_name}: </span>
-              <span className="text-foreground">{c.content}</span>
+            <div key={c.id} className="group text-[10px] font-body flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <span className="text-primary font-medium">{c.display_name}: </span>
+                <span className="text-foreground">{c.content}</span>
+              </div>
+              <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
+                   <Flag className="w-3 h-3" />
+                </button>
+                {/* 🔥 FIX: Botón de borrar Comentario solo para Staff */}
+                {isStaff && (
+                  <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
+                     <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4">Sin comentarios</p>}
@@ -332,8 +371,9 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
 }
 
 export default function SocialReelsPage() {
-  const { user, pauseMusic } = useAuth();
+  const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
+  const { toast } = useToast();
   const [items, setItems] = useState<SocialItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
@@ -342,43 +382,47 @@ export default function SocialReelsPage() {
   const location = useLocation();
 
   const isReelsPage = location.pathname.includes("/reels");
+  
+  // Verificación de Staff
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+
+  const fetchContent = async () => {
+    const { data: content } = await supabase
+      .from("social_content")
+      .select("*")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+      
+    if (!content || content.length === 0) { 
+      setItems([]); 
+      return; 
+    }
+    
+    const userIds = [...new Set(content.map(c => c.user_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
+      .in("user_id", userIds);
+      
+    const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+    
+    setItems(content.map(c => {
+      const p = profileMap.get(c.user_id);
+      return {
+        ...c,
+        content_type: (c as any).content_type || 'video',
+        likes: (c as any).likes || 0,
+        dislikes: (c as any).dislikes || 0,
+        display_name: p?.display_name || "Anónimo",
+        avatar_url: p?.avatar_url,
+        color_name: p?.color_name || null,
+        color_avatar_border: p?.color_avatar_border || null,
+      };
+    }));
+  };
 
   useEffect(() => {
-    const fetchContent = async () => {
-      const { data: content } = await supabase
-        .from("social_content")
-        .select("*")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(50);
-        
-      if (!content || content.length === 0) { 
-        setItems([]); 
-        return; 
-      }
-      
-      const userIds = [...new Set(content.map(c => c.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
-        .in("user_id", userIds);
-        
-      const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-      
-      setItems(content.map(c => {
-        const p = profileMap.get(c.user_id);
-        return {
-          ...c,
-          content_type: (c as any).content_type || 'video',
-          likes: (c as any).likes || 0,
-          dislikes: (c as any).dislikes || 0,
-          display_name: p?.display_name || "Anónimo",
-          avatar_url: p?.avatar_url,
-          color_name: p?.color_name || null,
-          color_avatar_border: p?.color_avatar_border || null,
-        };
-      }));
-    };
     fetchContent();
   }, []);
 
@@ -396,14 +440,29 @@ export default function SocialReelsPage() {
     return () => observer.disconnect();
   }, [items, filter]);
 
+  // Borrado general de Posts para Staff
+  const handleDeletePost = async (id: string) => {
+    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    const { error } = await supabase.from("social_content").delete().eq("id", id);
+    if (!error) {
+      setItems(prev => prev.filter(i => i.id !== id));
+      toast({ title: "Publicación eliminada por el Staff" });
+    } else {
+      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
+    }
+  };
+
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
+  // 🔥 FIX: Lógica Estricta de Filtros (Reels solo videos, Feed tiene todo)
   const filtered = (() => {
     if (isReelsPage) {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
+      // "all" en Reels solo muestra videos
       return sourceFiltered.filter(i => isVideoItem(i));
     }
+    // Si estamos en Feed, mostramos TODO (sin importar si es foto o video)
     return sourceFiltered;
   })();
 
@@ -428,7 +487,6 @@ export default function SocialReelsPage() {
         </p>
       </div>
 
-      {/* 🔥 FIX: Barra unificada de filtros sin duplicar el botón de 'Todos' */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center">
         {filterTabs.map(f => (
           <button 
@@ -440,7 +498,6 @@ export default function SocialReelsPage() {
           </button>
         ))}
 
-        {/* Separador visual y botón de alternar (toggle) para Amigos */}
         {user && (
           <>
             {filterTabs.length > 1 && <div className="w-px h-5 bg-border mx-1" />}
@@ -471,7 +528,13 @@ export default function SocialReelsPage() {
           <style>{`div::-webkit-scrollbar { display: none; }`}</style>
           {filtered.map((item, i) => (
             <div key={item.id} data-card-index={i}>
-              <SnapCard item={item} isVisible={i === visibleIndex} onPauseMusic={pauseMusic} />
+              <SnapCard 
+                item={item} 
+                isVisible={i === visibleIndex} 
+                onPauseMusic={pauseMusic} 
+                isStaff={isStaff}
+                onDeletePost={handleDeletePost}
+              />
             </div>
           ))}
         </div>
