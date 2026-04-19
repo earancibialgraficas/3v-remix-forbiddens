@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,7 +254,6 @@ function SnapCard({
     }
   };
 
-  // 🔥 FIX: Autoplay dinámico y silencioso
   const finalEmbedUrl = isVisible && embedUrl
     ? item.platform === 'youtube'
       ? `${embedUrl}?autoplay=1&mute=0`
@@ -265,22 +263,21 @@ function SnapCard({
     : embedUrl;
 
   return (
-    // 🔥 FIX: h-full asegura que la carta ocupe exactamente el espacio del scroll
-    <div className="snap-start w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-3 px-2 py-2">
+    // 🔥 FIX: Diseño responsivo milimétrico. En móvil flex-col, en escritorio flex-row.
+    <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-2">
       
-      {/* Contenedor Izquierdo: Video / Imagen */}
+      {/* Contenedor Izquierdo: Video / Imagen (Adaptable y restringido por aspect-ratio) */}
       <div className="flex-1 bg-card border border-border rounded-lg flex flex-col shadow-sm min-h-0 overflow-hidden">
-        
-        {/* 🔥 FIX: min-h-0 vital para que Flexbox no se expanda al infinito */}
         <div className="flex-1 relative bg-black/60 flex items-center justify-center min-h-0 overflow-hidden p-0 md:p-2">
           {isVideo && finalEmbedUrl ? (
             <iframe 
               src={finalEmbedUrl} 
-              className={cn("w-full h-full max-h-full bg-transparent", 
-                item.platform === 'tiktok' ? "max-w-[340px] mx-auto rounded" : 
-                item.platform === 'instagram' ? "max-w-[400px] mx-auto rounded bg-white" : "rounded"
+              className={cn("bg-transparent", 
+                item.platform === 'tiktok' ? "h-full max-h-full aspect-[9/16] rounded mx-auto" : 
+                item.platform === 'instagram' ? "h-full max-h-full aspect-[4/5] rounded bg-white mx-auto" : 
+                "w-full h-full rounded"
               )}
-              style={{ border: "none", overflow: "hidden" }}
+              style={{ border: "none", maxWidth: "100%" }}
               scrolling="no"
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -290,8 +287,8 @@ function SnapCard({
           ) : finalEmbedUrl ? (
             <iframe 
               src={finalEmbedUrl} 
-              className="w-full h-full max-w-[400px] rounded shadow-sm bg-white" 
-              style={{ border: "none", overflow: "hidden" }}
+              className="w-full h-full max-w-[400px] rounded shadow-sm bg-white mx-auto" 
+              style={{ border: "none" }}
               scrolling="no"
               allowFullScreen 
             />
@@ -302,10 +299,10 @@ function SnapCard({
           )}
         </div>
         
-        {/* 🔥 FIX: shrink-0 asegura que esta barra NUNCA desaparezca por culpa del video */}
-        <div className="shrink-0 p-3 border-t border-border bg-card">
+        {/* Barra Inferior del Video (Siempre Visible) */}
+        <div className="shrink-0 p-2 md:p-3 border-t border-border bg-card">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
+            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] flex items-center justify-center h-full">👤</span>}
             </div>
             <Link to={`/usuario/${item.user_id}`} className="text-[10px] font-body font-medium text-foreground hover:text-primary" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
@@ -336,8 +333,8 @@ function SnapCard({
       </div>
 
       {/* Contenedor Derecho: Comentarios */}
-      {/* 🔥 FIX: min-h-0 evita que los comentarios empujen su propio contenedor */}
-      <div className="w-full md:w-72 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden h-[30%] md:h-full">
+      {/* 🔥 FIX: En móvil toma un tercio de la altura, en escritorio se fija al lado derecho */}
+      <div className="h-1/3 md:h-full md:w-80 flex flex-col bg-card border border-border rounded-lg shrink-0 shadow-sm overflow-hidden">
         <div className="shrink-0 px-3 py-2 border-b border-border text-[10px] font-pixel text-neon-cyan flex items-center gap-1">
           <MessageSquare className="w-3 h-3" /> COMENTARIOS ({comments.length})
         </div>
@@ -464,6 +461,13 @@ export default function SocialReelsPage() {
     }
   };
 
+  const scrollContainer = (direction: 'up' | 'down') => {
+    if (containerRef.current) {
+      const height = containerRef.current.clientHeight;
+      containerRef.current.scrollBy({ top: direction === 'down' ? height : -height, behavior: 'smooth' });
+    }
+  };
+
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
   const filtered = (() => {
@@ -486,16 +490,20 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    <div className="space-y-3 animate-fade-in flex flex-col h-[calc(100vh-80px)]">
-      <div className="bg-card border border-neon-orange/30 rounded p-4 shrink-0 shadow-sm">
+    // 🔥 FIX: Altura calculada exacta para llenar la pantalla sin dejar espacios en negro
+    <div className="space-y-2 md:space-y-3 animate-fade-in flex flex-col h-[calc(100dvh-130px)] md:h-[calc(100dvh-100px)]">
+      
+      {/* HEADER */}
+      <div className="bg-card border border-neon-orange/30 rounded p-3 md:p-4 shrink-0 shadow-sm">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Music2 className="w-4 h-4" /> {isReelsPage ? "VIDEOS & REELS" : "SOCIAL FEED"}
         </h1>
-        <p className="text-xs text-muted-foreground font-body">
+        <p className="text-[10px] md:text-xs text-muted-foreground font-body">
           {isReelsPage ? "Videos horizontales y reels verticales de la comunidad" : "Todo el contenido social de la comunidad"}
         </p>
       </div>
 
+      {/* FILTROS */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap items-center shrink-0 shadow-sm">
         {filterTabs.map(f => (
           <button 
@@ -530,24 +538,47 @@ export default function SocialReelsPage() {
           </Button>
         </div>
       ) : (
-        <div
-          ref={containerRef}
-          className="snap-y snap-mandatory overflow-y-auto flex-1 pb-4"
-          style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-          {filtered.map((item, i) => (
-            // 🔥 FIX: Añadimos h-full aquí para que la carta se adapte exactamente a un "pantallazo" de scroll
-            <div key={item.id} data-card-index={i} className="h-full py-2">
-              <SnapCard 
-                item={item} 
-                isVisible={i === visibleIndex} 
-                onPauseMusic={pauseMusic} 
-                isStaff={isStaff}
-                onDeletePost={handleDeletePost}
-              />
-            </div>
-          ))}
+        <div className="relative flex-1 min-h-0 w-full">
+          
+          {/* 🔥 FIX: Contenedor con snap ajustado al 100% de la altura sin márgenes engañosos */}
+          <div
+            ref={containerRef}
+            className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
+            style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+            
+            {filtered.map((item, i) => (
+              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
+                <SnapCard 
+                  item={item} 
+                  isVisible={i === visibleIndex} 
+                  onPauseMusic={pauseMusic} 
+                  isStaff={isStaff}
+                  onDeletePost={handleDeletePost}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* 🔥 FIX: Controles Flotantes para indicar que se puede hacer Scroll */}
+          <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-10 pointer-events-none">
+            <button 
+              onClick={() => scrollContainer('up')} 
+              className="pointer-events-auto p-1.5 md:p-2 bg-black/40 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
+              title="Anterior"
+            >
+              <ChevronUp className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <button 
+              onClick={() => scrollContainer('down')} 
+              className="pointer-events-auto p-1.5 md:p-2 bg-black/40 text-white/50 hover:text-white rounded-full backdrop-blur-md transition-all shadow-lg border border-white/10 hover:bg-primary/80"
+              title="Siguiente"
+            >
+              <ChevronDown className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          </div>
+
         </div>
       )}
     </div>
