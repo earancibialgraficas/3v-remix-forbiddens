@@ -92,7 +92,7 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
   
-  // 🔥 FIX: Referencia para bloquear el spam de likes
+  // 🔥 FIX: Bloqueo anti-spam para los likes
   const votingRef = useRef(false);
 
   useEffect(() => {
@@ -153,9 +153,30 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
       return; 
     }
     
-    // 🔥 FIX: Bloquea clicks muy rápidos
+    // Bloqueo para evitar que hagan clics infinitos muy rápido
     if (votingRef.current) return;
     votingRef.current = true;
+
+    // 🔥 FIX: Lógica de Rollback (como en ForumPage)
+    const prevLikes = likes;
+    const prevDislikes = dislikes;
+    const prevReaction = userReaction;
+
+    let newLikes = likes;
+    let newDislikes = dislikes;
+
+    // Actualización optimista en pantalla
+    if (userReaction === type) {
+      setUserReaction(null);
+      if (type === "like") newLikes--; else newDislikes--;
+    } else {
+      setUserReaction(type);
+      if (type === "like") { newLikes++; if (userReaction === "dislike") newDislikes--; } 
+      else { newDislikes++; if (userReaction === "like") newLikes--; }
+    }
+
+    setLikes(Math.max(0, newLikes));
+    setDislikes(Math.max(0, newDislikes));
     
     try {
       const { data: existingReaction, error: fetchErr } = await supabase
@@ -165,44 +186,35 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         .eq("target_id", item.id)
         .maybeSingle();
 
-      if (fetchErr) throw fetchErr;
-
-      let newLikes = likes;
-      let newDislikes = dislikes;
+      if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr;
 
       if (existingReaction) {
         if (existingReaction.reaction_type === type) {
-          // Quitar reacción
-          await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
-          setUserReaction(null);
-          if (type === "like") newLikes--; else newDislikes--;
+          const { error } = await supabase.from("social_reactions").delete().eq("id", existingReaction.id);
+          if (error) throw error;
         } else {
-          // Cambiar reacción
-          await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
-          setUserReaction(type);
-          if (type === "like") { newLikes++; newDislikes--; } 
-          else { newDislikes++; newLikes--; }
+          const { error } = await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existingReaction.id);
+          if (error) throw error;
         }
       } else {
-        // Nueva reacción
-        const { error: insertErr } = await supabase.from("social_reactions").insert({
+        const { error } = await supabase.from("social_reactions").insert({
           user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
         });
-        if (insertErr) throw insertErr;
-        
-        setUserReaction(type);
-        if (type === "like") newLikes++; else newDislikes++;
+        if (error) throw error;
       }
 
-      setLikes(Math.max(0, newLikes));
-      setDislikes(Math.max(0, newDislikes));
-      await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
+      const { error: updateErr } = await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
+      if (updateErr) throw updateErr;
       
     } catch (e: any) {
       console.error("Error toggling reaction:", e);
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
+      
+      // Revertimos a como estaba si la base de datos falla
+      setLikes(prevLikes);
+      setDislikes(prevDislikes);
+      setUserReaction(prevReaction);
     } finally {
-      // Liberar el botón
       votingRef.current = false;
     }
   };
@@ -215,10 +227,7 @@ function SnapCard({ item, isVisible, onPauseMusic }: { item: SocialItem; isVisib
         user_id: user.id, content_id: item.id, content: commentText.trim() 
       });
       
-      if (error) {
-        console.error("Error DB Insert:", error);
-        throw error;
-      }
+      if (error) throw error;
       
       setCommentText("");
       
