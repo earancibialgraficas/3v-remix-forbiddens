@@ -110,11 +110,50 @@ function SnapCard({
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
   
+  // 🔥 AQUÍ ESTÁ TU IDEA: Un state para guardar las medidas exactas en píxeles
+  const [iframeSize, setIframeSize] = useState({ width: 0, height: 0 });
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const votingRef = useRef(false);
 
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
   }, [isVisible, isVideo]);
+
+  // 🔥 EL OBSERVADOR: Calcula en vivo el tamaño de la caja negra y saca el ancho por matemáticas.
+  useEffect(() => {
+    if (!videoContainerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Obtenemos el ancho y alto real del contenedor rojo que marcaste
+        const { width: containerWidth, height: containerHeight } = entry.contentRect;
+        
+        // Asignamos la proporción matemática de cada plataforma
+        let targetRatio = 16 / 9; // YouTube por defecto
+        if (item.platform === 'tiktok' || item.content_type === 'reel' || item.content_url?.includes('shorts')) {
+          targetRatio = 9 / 16;
+        } else if (item.platform === 'instagram') {
+          targetRatio = 4 / 5;
+        }
+
+        // Calculamos: El alto es el de la caja, el ancho lo sacamos con regla de 3
+        let newWidth = containerHeight * targetRatio;
+        let newHeight = containerHeight;
+
+        // Si la pantalla es muy flaquita y el ancho calculado se sale del contenedor:
+        if (newWidth > containerWidth) {
+          newWidth = containerWidth;
+          newHeight = containerWidth / targetRatio;
+        }
+
+        // Guardamos los píxeles exactos
+        setIframeSize({ width: newWidth, height: newHeight });
+      }
+    });
+
+    observer.observe(videoContainerRef.current);
+    return () => observer.disconnect();
+  }, [item.platform, item.content_type, item.content_url]);
 
   useEffect(() => {
     if (!user) return;
@@ -255,20 +294,6 @@ function SnapCard({
     }
   };
 
-  // 🔥 SOLUCIÓN FINAL: Medidas AÚN MÁS PEQUEÑAS para evitar cortes en 1366x768
-  const getResponsiveSize = (platform: string) => {
-    if (platform === 'tiktok') {
-      // 9:16 exacto - Tamaños reducidos para que respire más en pantallas pequeñas
-      return "w-[180px] h-[320px] sm:w-[200px] sm:h-[355px] md:w-[225px] md:h-[400px] lg:w-[250px] lg:h-[444px] xl:w-[280px] xl:h-[498px] 2xl:w-[330px] 2xl:h-[586px]";
-    }
-    if (platform === 'instagram') {
-      // 4:5 exacto
-      return "bg-white w-[220px] h-[275px] sm:w-[250px] sm:h-[312px] md:w-[280px] md:h-[350px] lg:w-[310px] lg:h-[387px] xl:w-[350px] xl:h-[437px] 2xl:w-[400px] 2xl:h-[500px]";
-    }
-    // YouTube (16:9)
-    return "bg-black w-[260px] h-[146px] sm:w-[300px] sm:h-[168px] md:w-[340px] md:h-[191px] lg:w-[400px] lg:h-[225px] xl:w-[480px] xl:h-[270px] 2xl:w-[600px] 2xl:h-[337px]";
-  };
-
   const finalEmbedUrl = isVisible && embedUrl
     ? item.platform === 'youtube'
       ? `${embedUrl}?autoplay=1&mute=0`
@@ -280,24 +305,47 @@ function SnapCard({
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA FLEXIBLE, VIDEO FIJO CENTRADO CON NUEVAS MEDIDAS 🔴 */}
-      <div className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative">
+      {/* 🔴 LADO IZQUIERDO: CAJA ESPÍA (La que marcaste en rojo) 🔴 */}
+      {/* Le agregamos un p-1 sutil para que no quede 100% pegado al borde, pero es puro cálculo exacto. */}
+      <div 
+        ref={videoContainerRef} 
+        className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-1"
+      >
         {isVideo && finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className={cn("bg-transparent outline-none shadow-2xl rounded-xl flex-shrink-0 transition-all duration-300", getResponsiveSize(item.platform))}
-            style={{ border: "none" }}
+            className={cn("bg-transparent outline-none shadow-2xl rounded-xl transition-all duration-100", 
+              item.platform === 'instagram' ? "bg-white" : ""
+            )}
+            // 🔥 LE INYECTAMOS LOS PÍXELES EXACTOS MATEMÁTICOS 🔥
+            style={{ 
+              border: "none", 
+              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
+              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
+            }}
             scrolling="no"
             allowFullScreen 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
           />
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
-          <img src={item.thumbnail_url || item.content_url} alt="" className={cn("object-contain flex-shrink-0 transition-all duration-300", getResponsiveSize('instagram'))} />
+          <img 
+            src={item.thumbnail_url || item.content_url} 
+            alt="" 
+            style={{ 
+              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
+              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
+              objectFit: 'contain'
+            }}
+          />
         ) : finalEmbedUrl ? (
           <iframe 
             src={finalEmbedUrl} 
-            className={cn("shadow-sm bg-white rounded-xl outline-none flex-shrink-0 transition-all duration-300", getResponsiveSize('youtube'))}
-            style={{ border: "none" }}
+            className="shadow-sm bg-white rounded-xl outline-none" 
+            style={{ 
+              border: "none",
+              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
+              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
+            }}
             scrolling="no"
             allowFullScreen 
           />
@@ -308,7 +356,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO */}
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -535,7 +583,7 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-0">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
@@ -592,7 +640,7 @@ export default function SocialReelsPage() {
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {filtered.map((item, i) => (
-              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
+              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always pb-1">
                 <SnapCard 
                   item={item} 
                   isVisible={i === visibleIndex} 
