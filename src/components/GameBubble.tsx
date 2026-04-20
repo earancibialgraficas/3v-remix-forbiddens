@@ -150,17 +150,28 @@ export default function GameBubble() {
       await new Promise(r => setTimeout(r, 200));
       const el = canvasRef.current;
       if (!el) return;
+      
       try {
         const { Nostalgist } = await import("nostalgist");
         
-        // Monkey-patch AudioContext to track instances for volume control
+        // 🔥 PARCHE MAESTRO PARA EL VOLUMEN: Secuestramos el AudioContext global 🔥
         const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
         if (OrigAudioContext && !(window as any).__audioContextPatched) {
-          (window as any).__audioContexts = (window as any).__audioContexts || [];
+          (window as any).__masterGains = [];
           const origCtor = OrigAudioContext;
           (window as any).AudioContext = function(...args: any[]) {
             const ctx = new origCtor(...args);
-            (window as any).__audioContexts.push(ctx);
+            const gain = ctx.createGain();
+            gain.connect(ctx.destination);
+            (window as any).__masterGains.push(gain);
+
+            const origConnect = ctx.connect;
+            ctx.connect = function(dest: any, ...rest: any[]) {
+              if (dest === ctx.destination) {
+                return origConnect.call(this, gain, ...rest);
+              }
+              return origConnect.call(this, dest, ...rest);
+            };
             return ctx;
           };
           (window as any).AudioContext.prototype = origCtor.prototype;
@@ -180,6 +191,12 @@ export default function GameBubble() {
         setRomLoaded(true);
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
+
+        // 🔥 OBLIGAMOS AL CANVAS A RECIBIR FOCO PARA QUE FUNCIONE EL JOYSTICK 🔥
+        setTimeout(() => {
+          if (canvasRef.current) canvasRef.current.focus();
+        }, 500);
+
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -228,52 +245,23 @@ export default function GameBubble() {
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // Volume control - patch global AudioContext to intercept game audio
+  // 🔥 CONTROL DE VOLUMEN ATADO AL NODO MAESTRO 🔥
   useEffect(() => {
     if (!romLoaded) return;
     const vol = volume / 100;
-    // 1. Find and control all AudioContext instances via canvas element
-    try {
-      const canvasEl = canvasRef.current;
-      if (canvasEl) {
-        // Nostalgist/RetroArch uses Emscripten which creates AudioContext on SDL2
-        const mod = nostalgistRef.current?.getEmscriptenModule?.() || (nostalgistRef.current as any)?.Module;
-        if (mod?.SDL2?.audioContext) {
-          const ctx = mod.SDL2.audioContext as AudioContext;
-          // Find or create a master gain node
-          if (!(mod as any).__masterGain) {
-            const gain = ctx.createGain();
-            // We need to intercept the destination
-            // Patch ctx.destination by connecting gain
-            (mod as any).__masterGain = gain;
-            // Try to reconnect existing sources through gain
-            gain.connect(ctx.destination);
-          }
-          (mod as any).__masterGain.gain.value = vol;
-        }
-      }
-    } catch {}
-    // 2. Control all audio/video elements on page
+    
+    // Controlamos etiquetas multimedia normales
     document.querySelectorAll("audio, video").forEach((el: any) => {
       el.volume = vol;
     });
-    // 3. Patch all AudioContext gain nodes we can find
-    try {
-      // @ts-ignore - Access global audio contexts
-      const contexts = (window as any).__audioContexts as AudioContext[] | undefined;
-      if (contexts) {
-        contexts.forEach(ctx => {
-          try {
-            if (!(ctx as any).__gainNode) {
-              const g = ctx.createGain();
-              g.connect(ctx.destination);
-              (ctx as any).__gainNode = g;
-            }
-            (ctx as any).__gainNode.gain.value = vol;
-          } catch {}
-        });
-      }
-    } catch {}
+    
+    // Controlamos el Emulador (Emscripten) a través de nuestros nodos maestros secuestrados
+    const gains = (window as any).__masterGains;
+    if (gains) {
+      gains.forEach((g: GainNode) => {
+        try { g.gain.value = vol; } catch {}
+      });
+    }
   }, [volume, romLoaded]);
 
   const togglePause = useCallback(() => {
@@ -296,7 +284,6 @@ export default function GameBubble() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [activeGame, romLoaded, minimized, togglePause]);
 
-  // Save/Load helpers - store as base64
   const stateToBase64 = async (state: any): Promise<string> => {
     let bytes: Uint8Array;
     if (state instanceof Blob) {
@@ -328,7 +315,6 @@ export default function GameBubble() {
     if (!nostalgistRef.current || !activeGame) return;
     try {
       const result = await nostalgistRef.current.saveState();
-      // saveState() returns { state: Blob, thumbnail: Blob | undefined }
       const stateBlob: Blob = result.state;
       const b64 = await stateToBase64(stateBlob);
       const name = `Auto-save ${new Date().toLocaleString()}`;
@@ -346,7 +332,6 @@ export default function GameBubble() {
     if (!nostalgistRef.current || !activeGame) return;
     try {
       const result = await nostalgistRef.current.saveState();
-      // saveState() returns { state: Blob, thumbnail: Blob | undefined }
       const stateBlob: Blob = result.state;
       const b64 = await stateToBase64(stateBlob);
       const name = slotName.trim() || `Slot ${saveSlots.length + 1}`;
@@ -366,7 +351,6 @@ export default function GameBubble() {
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      // Convert base64 back to Blob - nostalgist's loadState expects a Blob
       const blob = base64ToBlob(slot.data);
       await nostalgistRef.current.loadState(blob);
       toast({ title: "Partida cargada", description: `"${slot.name}"` });
@@ -385,37 +369,54 @@ export default function GameBubble() {
     toast({ title: "Slot eliminado" });
   };
 
+  // 🔥 GUARDADO DE PUNTAJE REPARADO (Agregado try/catch y alertas reales de error) 🔥
   const handleSaveScore = async () => {
     if (!user || !activeGame || scoreRef.current <= 0) return;
     const currentScore = scoreRef.current;
     const currentTime = timeRef.current;
-    const { data: existing } = await supabase
-      .from("leaderboard_scores").select("id, score")
-      .eq("user_id", user.id).eq("game_name", activeGame.gameName).eq("console_type", activeGame.consoleName)
-      .order("score", { ascending: false }).limit(1).maybeSingle();
+    
+    try {
+      const { data: existing, error: fetchError } = await supabase
+        .from("leaderboard_scores").select("id, score")
+        .eq("user_id", user.id).eq("game_name", activeGame.gameName).eq("console_type", activeGame.consoleName)
+        .order("score", { ascending: false }).limit(1).maybeSingle();
 
-    if (existing && (existing as any).score >= currentScore) {
-      toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
-      return;
-    }
-    if (existing) {
-      const { error } = await supabase.from("leaderboard_scores").update({
-        score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
-      } as any).eq("id", (existing as any).id);
-      if (!error) toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
-    } else {
-      const { error } = await supabase.from("leaderboard_scores").insert({
-        user_id: user.id, display_name: profile?.display_name || "Anónimo",
-        game_name: activeGame.gameName, console_type: activeGame.consoleName,
-        score: currentScore, play_time_seconds: currentTime,
-      } as any);
-      if (!error) toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
+      if (fetchError) throw fetchError;
+
+      if (existing && (existing as any).score >= currentScore) {
+        toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
+        return;
+      }
+      
+      if (existing) {
+        const { error } = await supabase.from("leaderboard_scores").update({
+          score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
+        } as any).eq("id", (existing as any).id);
+        
+        if (error) throw error;
+        toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
+      } else {
+        const { error } = await supabase.from("leaderboard_scores").insert({
+          user_id: user.id, display_name: profile?.display_name || "Anónimo",
+          game_name: activeGame.gameName, console_type: activeGame.consoleName,
+          score: currentScore, play_time_seconds: currentTime,
+        } as any);
+        
+        if (error) throw error;
+        toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
+      }
+    } catch (error: any) {
+      console.error("Score save error:", error);
+      toast({ title: "Error al guardar puntaje", description: error.message, variant: "destructive" });
     }
   };
 
+  // 🔥 CIERRE REPARADO: Ahora ESPERA a que el puntaje se guarde antes de destruir el juego 🔥
   const handleClose = async (idx?: number) => {
     await autoSaveOnClose();
-    if (activeGame && scoreRef.current > 0 && user) handleSaveScore();
+    if (activeGame && scoreRef.current > 0 && user) {
+      await handleSaveScore();
+    }
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
@@ -424,7 +425,6 @@ export default function GameBubble() {
     closeGame(idx);
   };
 
-  // Dragging
   const onMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPosX: position.x, startPosY: position.y };
@@ -444,7 +444,6 @@ export default function GameBubble() {
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, [dragging]);
 
-  // Resize - use RAF to avoid lag
   const onResizeDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     setResizing(true);
@@ -467,8 +466,6 @@ export default function GameBubble() {
     window.addEventListener("mouseup", onUp);
     return () => { cancelAnimationFrame(rafId); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, [resizing, scheduleCanvasSurfaceSync]);
-
-  // Click outside to minimize (already handled by backdrop)
 
   if (activeGames.length === 0 || !activeGame) return null;
 
@@ -548,7 +545,14 @@ export default function GameBubble() {
                 </div>
               )}
 
-              <canvas ref={canvasRef} id="game-bubble-canvas" style={{ width: "100%", height: "100%", display: "block" }} />
+              {/* 🔥 CANVAS CON PERMISO DE ENFOQUE PARA EL JOYSTICK 🔥 */}
+              <canvas 
+                ref={canvasRef} 
+                id="game-bubble-canvas" 
+                tabIndex={0} 
+                onClick={(e) => e.currentTarget.focus()}
+                style={{ width: "100%", height: "100%", display: "block", outline: "none" }} 
+              />
 
               {minimized && (
                 <>
@@ -584,7 +588,7 @@ export default function GameBubble() {
             {!minimized && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible · Click fuera para minimizar
+                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · Click fuera para minimizar
                 </p>
               </div>
             )}
