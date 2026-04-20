@@ -75,6 +75,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
+  const [socialContentCount, setSocialContentCount] = useState(0); // 🔥 Nuevo estado para contar posts sociales
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff">("border");
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
@@ -121,6 +122,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     
+    // Buscar posts del foro
     supabase
       .from("posts")
       .select("*")
@@ -130,6 +132,14 @@ export default function ProfilePage() {
       .then(({ data }) => { 
         if (data) setUserPosts(data); 
       });
+
+    // 🔥 Buscar conteo total de posts del Social Hub (Fotos + Videos/Reels)
+    Promise.all([
+      supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+    ]).then(([socialRes, photosRes]) => {
+      setSocialContentCount((socialRes.count || 0) + (photosRes.count || 0));
+    });
     
     supabase
       .from("leaderboard_scores")
@@ -979,11 +989,12 @@ export default function ProfilePage() {
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">
             Estadísticas
           </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { val: followerCount, label: "Seguidores" },
               { val: followingCount, label: "Siguiendo" },
-              { val: userPosts.length, label: "Posts" },
+              { val: userPosts.length, label: "Posts Foro" },
+              { val: socialContentCount, label: "Posts Social" },
               { val: displayTier, label: "Membresía" },
             ].map((s, i) => (
               <div key={i} className="bg-muted/30 rounded p-3 text-center">
@@ -1363,7 +1374,6 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
-// 🔥 AQUÍ ESTÁ LA MAGIA: El "cerebro" que clasifica links automáticamente
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
@@ -1394,7 +1404,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
     
     const url = newUrl.toLowerCase();
     
-    // Clasificador Automático Inteligente
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
       platform = "youtube";
       contentType = url.includes("shorts") ? "reel" : "video";
@@ -1403,7 +1412,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post";
     } else if (url.includes("tiktok.com")) {
       platform = "tiktok";
-      contentType = "reel"; // TikTok siempre va a Reels
+      contentType = "reel"; 
     } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
       platform = "facebook";
       contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post";
@@ -1432,7 +1441,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
 
   return (
     <div className="space-y-3">
-      {/* Botón para editar los links estáticos de la biografía */}
       <div className="bg-card border rounded p-4 text-center">
         <h3 className="font-pixel text-[10px] opacity-60 mb-3 uppercase font-pixel tracking-tighter">
           Perfiles de Redes Sociales
@@ -1442,7 +1450,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
         </Button>
       </div>
 
-      {/* 🔥 Formulario nuevo para subir contenido al Social Hub 🔥 */}
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Publicar en Social Hub</h3>
         <p className="text-[10px] text-muted-foreground font-body leading-tight">
