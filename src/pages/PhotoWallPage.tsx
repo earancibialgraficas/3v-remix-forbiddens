@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2 } from "lucide-react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ReportModal from "@/components/ReportModal";
+
+interface SocialComment {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  parent_id?: string | null;
+  display_name?: string;
+  avatar_url?: string | null;
+}
 
 const membershipPhotoLimits: Record<string, number> = {
   novato: 15,
@@ -53,6 +63,12 @@ export default function PhotoWallPage() {
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; name: string } | null>(null);
+  
+  // 🔥 ESTADO DEL MODAL DE COMENTARIOS
+  const [commentModal, setCommentModal] = useState<any | null>(null);
+  const [modalComments, setModalComments] = useState<SocialComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
 
   const tier = profile?.membership_tier || "novato";
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -110,6 +126,34 @@ export default function PhotoWallPage() {
         .then(({ count }) => setUserPhotoCount(count || 0));
     }
   }, [user]);
+
+  // Cargar comentarios cuando se abre el modal
+  useEffect(() => {
+    if (!commentModal) return;
+    const loadComments = async () => {
+      const { data } = await supabase
+        .from("social_comments")
+        .select("*")
+        .eq("content_id", commentModal.id)
+        .order("created_at", { ascending: true })
+        .limit(50);
+        
+      if (!data || data.length === 0) { 
+        setModalComments([]); 
+        return; 
+      }
+      
+      const uids = [...new Set(data.map(c => c.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+      const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+      
+      setModalComments(data.map(c => {
+        const p = pMap.get(c.user_id);
+        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
+      }));
+    };
+    loadComments();
+  }, [commentModal]);
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
@@ -188,6 +232,44 @@ export default function PhotoWallPage() {
     }
   };
 
+  const submitModalComment = async () => {
+    if (!user || !commentModal || !commentText.trim()) return;
+    try {
+      const { error } = await supabase.from("social_comments").insert({ 
+        user_id: user.id, content_id: commentModal.id, content: commentText.trim(), parent_id: replyTo 
+      });
+      if (error) throw error;
+      
+      setCommentText("");
+      setReplyTo(null);
+      
+      // Recargar comentarios
+      const { data } = await supabase.from("social_comments").select("*").eq("content_id", commentModal.id).order("created_at", { ascending: true });
+      if (data) {
+        const uids = [...new Set(data.map(c => c.user_id))];
+        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+        const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+        setModalComments(data.map(c => {
+          const p = pMap.get(c.user_id);
+          return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
+        }));
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteModalComment = async (commentId: string) => {
+    if (!confirm("¿Seguro que deseas eliminar este comentario?")) return;
+    try {
+      await supabase.from("social_comments").delete().eq("id", commentId);
+      setModalComments(prev => prev.filter(c => c.id !== commentId));
+      toast({ title: "Comentario eliminado" });
+    } catch (e) {
+      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
+    }
+  };
+
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const topPhotos = displayPhotos.slice(0, 6);
   const restPhotos = displayPhotos.slice(6);
@@ -258,6 +340,10 @@ export default function PhotoWallPage() {
                   <button onClick={() => handleReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-0.5 transition-colors", userReactions[photo.id] === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
                     <ThumbsDown className="w-3 h-3" /> {photo.dislikes}
                   </button>
+                  {/* Botón de comentarios añadido */}
+                  <button onClick={() => setCommentModal(photo)} className="flex items-center gap-0.5 transition-colors text-muted-foreground hover:text-neon-cyan">
+                    <MessageSquare className="w-3 h-3" />
+                  </button>
                   <div className="flex ml-auto gap-2">
                     {user && (
                       <button onClick={() => setReportTarget({ userId: photo.user_id, name: "usuario" })} className="text-muted-foreground hover:text-destructive transition-colors">
@@ -289,6 +375,10 @@ export default function PhotoWallPage() {
                 <button onClick={() => handleReaction(photo.id, "dislike", photo.target_type)} className={cn("text-[10px] flex items-center gap-0.5", userReactions[photo.id] === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
                   <ThumbsDown className="w-3 h-3" /> {photo.dislikes}
                 </button>
+                {/* Botón de comentarios añadido */}
+                <button onClick={() => setCommentModal(photo)} className="text-[10px] flex items-center gap-0.5 text-muted-foreground hover:text-neon-cyan">
+                  <MessageSquare className="w-3 h-3" />
+                </button>
                 {isStaff && (
                   <button onClick={() => handleDeletePhoto(photo.id, photo.target_type)} className="absolute top-1 right-1 text-muted-foreground hover:text-destructive transition-colors bg-black/50 rounded-full p-1">
                     <Trash2 className="w-3 h-3" />
@@ -304,6 +394,74 @@ export default function PhotoWallPage() {
         <div className="bg-card border border-border rounded p-8 text-center">
           <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground font-body">{sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "Aún no hay fotos"}</p>
+        </div>
+      )}
+
+      {/* 🔥 MODAL FLOTANTE DE COMENTARIOS PARA LAS FOTOS 🔥 */}
+      {commentModal && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setCommentModal(null); setReplyTo(null); }} />
+          <div className="relative bg-card border border-neon-orange/30 rounded-lg p-4 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-3 shrink-0 border-b border-border pb-2">
+              <h3 className="font-pixel text-[11px] text-neon-orange flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> COMENTARIOS ({modalComments.length})
+              </h3>
+              <button onClick={() => { setCommentModal(null); setReplyTo(null); }} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2 retro-scrollbar">
+              {modalComments.map(c => (
+                <div key={c.id} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
+                  <div className="flex-1">
+                    <span className="text-primary font-medium">{c.display_name}: </span>
+                    <span className="text-foreground/90">{c.content}</span>
+                    {user && (
+                      <button onClick={() => setReplyTo(c.id)} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
+                        <Reply className="w-2.5 h-2.5" /> Responder
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button onClick={() => setReportTarget({ userId: c.user_id, name: c.display_name || "Anónimo" })} className="text-muted-foreground hover:text-destructive" title="Reportar">
+                       <Flag className="w-2.5 h-2.5" />
+                    </button>
+                    {isStaff && (
+                      <button onClick={() => handleDeleteModalComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
+                         <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {modalComments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios. ¡Sé el primero!</p>}
+            </div>
+
+            {user ? (
+              <div className="shrink-0 flex flex-col border-t border-border pt-3 gap-2">
+                {replyTo && (
+                   <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
+                     <Reply className="w-3 h-3" /> Respondiendo
+                     <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
+                   </div>
+                )}
+                <div className="flex gap-2">
+                  <Textarea 
+                    value={commentText} 
+                    onChange={e => setCommentText(e.target.value)} 
+                    placeholder="Escribe tu comentario..." 
+                    className="bg-muted text-xs min-h-[40px] resize-none" 
+                  />
+                  <Button onClick={submitModalComment} disabled={!commentText.trim()} className="shrink-0 h-auto">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+               <p className="text-[10px] text-muted-foreground font-body text-center mt-2 shrink-0 border-t border-border pt-3">Inicia sesión para comentar</p>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +34,7 @@ interface SocialComment {
   user_id: string;
   content: string;
   created_at: string;
+  parent_id?: string | null;
   display_name?: string;
   avatar_url?: string | null;
 }
@@ -103,7 +104,6 @@ function SnapCard({
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
   
-  // 🔥 LA SOLUCIÓN DEFINITIVA: Guardar el Scale (Achique Uniforme)
   const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   
@@ -112,11 +112,11 @@ function SnapCard({
   const [userReaction, setUserReaction] = useState<string | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   
   const votingRef = useRef(false);
 
-  // Tamaños base fijos (suficientemente grandes para que TikTok no corte nada internamente)
   const getBaseSize = (platform: string, cType: string, url: string) => {
     if (platform === 'tiktok') return { w: 340, h: 605 };
     if (platform === 'instagram') return { w: 400, h: 500 }; 
@@ -128,7 +128,6 @@ function SnapCard({
     if (isVisible && isVideo) onPauseMusic();
   }, [isVisible, isVideo]);
 
-  // 🔥 EL ESPÍA QUE CALCULA EL ACHIQUE UNIFORME
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo) return;
 
@@ -137,18 +136,13 @@ function SnapCard({
         const { width, height } = entry.contentRect;
         const base = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
         
-        // Dejamos 16px de margen para que nunca choque con los bordes (8px por lado)
         const safeWidth = width - 16;
         const safeHeight = height - 16;
 
-        // Calculamos cuánto hay que encogerlo a lo ancho y a lo alto
         const scaleX = safeWidth / base.w;
         const scaleY = safeHeight / base.h;
         
-        // Tomamos el menor para que quepa perfectamente sin deformarse
         let newScale = Math.min(scaleX, scaleY);
-        
-        // Evitamos que se haga asquerosamente gigante en monitores 4K (tope en 1.2)
         newScale = Math.min(newScale, 1.2);
 
         setScale(newScale);
@@ -267,11 +261,13 @@ function SnapCard({
     if (!user || !commentText.trim()) return;
     try {
       const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: item.id, content: commentText.trim() 
+        user_id: user.id, content_id: item.id, content: commentText.trim(), parent_id: replyTo 
       });
       if (error) throw error;
       
       setCommentText("");
+      setReplyTo(null);
+      
       const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
       if (data) {
         const uids = [...new Set(data.map(c => c.user_id))];
@@ -317,7 +313,6 @@ function SnapCard({
         className="flex-1 bg-[#09090b] border border-border rounded-xl shadow-md min-h-0 overflow-hidden relative"
       >
         {isVideo && finalEmbedUrl ? (
-          // 🔥 MAGIA DE ESCALADO: Posición absoluta centrada y con scale() matemático
           <div 
             className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ 
@@ -371,7 +366,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (Queda intacto) 🔴 */}
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -420,10 +415,15 @@ function SnapCard({
             </div>
             <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
-                <div key={c.id} className="group text-[10px] font-body flex items-start justify-between gap-2">
+                <div key={c.id} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
+                    {user && (
+                      <button onClick={() => setReplyTo(c.id)} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
+                        <Reply className="w-2.5 h-2.5" /> Responder
+                      </button>
+                    )}
                   </div>
                   <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
@@ -440,17 +440,25 @@ function SnapCard({
               {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="shrink-0 p-1.5 border-t border-border flex gap-1 bg-card">
-                <input 
-                  value={commentText} 
-                  onChange={e => setCommentText(e.target.value)} 
-                  onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-                  placeholder="Comentar..." 
-                  className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
-                />
-                <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
-                  <Send className="w-3 h-3" />
-                </button>
+              <div className="shrink-0 flex flex-col border-t border-border bg-card p-1.5 gap-1.5">
+                {replyTo && (
+                   <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
+                     <Reply className="w-3 h-3" /> Respondiendo
+                     <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
+                   </div>
+                )}
+                <div className="flex gap-1">
+                  <input 
+                    value={commentText} 
+                    onChange={e => setCommentText(e.target.value)} 
+                    onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
+                    placeholder="Comentar..." 
+                    className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
+                  />
+                  <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
+                    <Send className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -505,11 +513,12 @@ export default function SocialReelsPage() {
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   const fetchContent = async () => {
+    // 🔥 Ahora ordena por likes para mostrar lo más popular
     const { data: content } = await supabase
       .from("social_content")
       .select("*")
       .eq("is_public", true)
-      .order("created_at", { ascending: false })
+      .order("likes", { ascending: false }) 
       .limit(50);
       
     if (!content || content.length === 0) { 
