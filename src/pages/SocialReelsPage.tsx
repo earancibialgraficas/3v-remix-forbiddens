@@ -27,6 +27,7 @@ interface SocialItem {
   avatar_url?: string | null;
   color_name?: string | null;
   color_avatar_border?: string | null;
+  target_type?: string; // Para distinguir entre foto nativa o contenido de red social
 }
 
 interface SocialComment {
@@ -85,7 +86,7 @@ function SnapCard({
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
-  onDeletePost: (id: string) => void;
+  onDeletePost: (id: string, targetType: string) => void;
   onScrollUp: () => void;
   onScrollDown: () => void;
 }) {
@@ -93,6 +94,7 @@ function SnapCard({
   const { toast } = useToast();
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
+  const targetType = item.target_type || "social_content";
   
   const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -105,7 +107,6 @@ function SnapCard({
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   
-  // 🔥 ESTADO NUEVO PARA EL PANEL DESPLEGABLE MÓVIL 🔥
   const [showMobilePanel, setShowMobilePanel] = useState(false);
   
   const votingRef = useRef(false);
@@ -155,13 +156,13 @@ function SnapCard({
       .from("social_reactions")
       .select("reaction_type")
       .eq("user_id", user.id)
-      .eq("target_type", "social_content")
+      .eq("target_type", targetType)
       .eq("target_id", item.id)
       .maybeSingle()
       .then(({ data }) => { 
         if (data) setUserReaction(data.reaction_type); 
       });
-  }, [user, item.id]);
+  }, [user, item.id, targetType]);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -227,6 +228,7 @@ function SnapCard({
         .select("id, reaction_type")
         .eq("user_id", user.id)
         .eq("target_id", item.id)
+        .eq("target_type", targetType)
         .maybeSingle();
 
       if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr;
@@ -239,10 +241,13 @@ function SnapCard({
         }
       } else {
         await supabase.from("social_reactions").insert({
-          user_id: user.id, target_id: item.id, target_type: "social_content", reaction_type: type
+          user_id: user.id, target_id: item.id, target_type: targetType, reaction_type: type
         });
       }
-      await supabase.from("social_content").update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
+      
+      const table = targetType === "photo" ? "photos" : "social_content";
+      await supabase.from(table).update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", item.id);
+      
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo procesar tu voto", variant: "destructive" });
       setLikes(prevLikes);
@@ -424,7 +429,7 @@ function SnapCard({
                 </button>
               )}
               {isStaff && (
-                <button onClick={() => onDeletePost(item.id)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
+                <button onClick={() => onDeletePost(item.id, targetType)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
                   <Trash2 className="w-3 h-3" />
                 </button>
               )}
@@ -548,10 +553,14 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  // 🔥 DETECCIÓN INTELIGENTE DE PÁGINA (Feed global vs Reels&Videos) 🔥
   const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   const fetchContent = async () => {
+    let combined: SocialItem[] = [];
+
+    // 1. Buscamos el contenido social (YouTube, TikTok, IG, FB)
     const { data: content } = await supabase
       .from("social_content")
       .select("*")
@@ -559,12 +568,52 @@ export default function SocialReelsPage() {
       .order("likes", { ascending: false }) 
       .limit(50);
       
-    if (!content || content.length === 0) { 
+    if (content) {
+       combined = [...combined, ...content.map(c => ({
+         ...c,
+         content_type: c.content_type || 'post',
+         platform: c.platform || 'web',
+         target_type: 'social_content'
+       }))];
+    }
+
+    // 2. Buscamos las FOTOS solo si estamos en el "Feed" general (No en Reels/Videos)
+    if (!isReelsPage) {
+      const { data: photos } = await supabase
+        .from("photos")
+        .select("*")
+        .order("likes", { ascending: false })
+        .limit(50);
+
+      if (photos) {
+        const photoItems = photos.map(p => ({
+          id: p.id,
+          user_id: p.user_id,
+          platform: 'upload', // Para saber que es una foto subida directamente
+          content_url: p.image_url,
+          content_type: 'photo',
+          title: p.caption,
+          thumbnail_url: p.image_url,
+          is_public: true,
+          created_at: p.created_at,
+          likes: p.likes || 0,
+          dislikes: p.dislikes || 0,
+          target_type: 'photo' // Etiqueta crucial para que los likes se guarden en la tabla correcta
+        }));
+        combined = [...combined, ...photoItems];
+      }
+    }
+
+    if (combined.length === 0) { 
       setItems([]); 
       return; 
     }
     
-    const userIds = [...new Set(content.map(c => c.user_id))];
+    // Ordenamos todo junto (Social + Fotos) de más popular a menos popular
+    combined.sort((a, b) => b.likes - a.likes);
+
+    // Extraemos los perfiles de los usuarios
+    const userIds = [...new Set(combined.map(c => c.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, display_name, avatar_url, color_name, color_avatar_border")
@@ -572,13 +621,11 @@ export default function SocialReelsPage() {
       
     const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
     
-    setItems(content.map(c => {
+    // Solo mostramos los 50 más populares
+    setItems(combined.slice(0, 50).map(c => {
       const p = profileMap.get(c.user_id);
       return {
         ...c,
-        content_type: c.content_type || null,
-        likes: c.likes || 0,
-        dislikes: c.dislikes || 0,
         display_name: p?.display_name || "Anónimo",
         avatar_url: p?.avatar_url,
         color_name: p?.color_name || null,
@@ -589,7 +636,7 @@ export default function SocialReelsPage() {
 
   useEffect(() => {
     fetchContent();
-  }, []);
+  }, [location.pathname]); // Refrescar cuando cambia la URL entre feed y reels
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -605,9 +652,10 @@ export default function SocialReelsPage() {
     return () => observer.disconnect();
   }, [items, filter]);
 
-  const handleDeletePost = async (id: string) => {
+  const handleDeletePost = async (id: string, tType: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
-    const { error } = await supabase.from("social_content").delete().eq("id", id);
+    const table = tType === "photo" ? "photos" : "social_content";
+    const { error } = await supabase.from(table).delete().eq("id", id);
     if (!error) {
       setItems(prev => prev.filter(i => i.id !== id));
       toast({ title: "Publicación eliminada por el Staff" });
@@ -631,6 +679,7 @@ export default function SocialReelsPage() {
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
       return sourceFiltered.filter(isVideoItem); 
     }
+    // Si es el FEED global, mandamos de todo
     return sourceFiltered;
   })();
 
