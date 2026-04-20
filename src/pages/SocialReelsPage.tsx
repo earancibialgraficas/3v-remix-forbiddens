@@ -263,65 +263,40 @@ function SnapCard({
         : embedUrl
     : embedUrl;
 
-  // 🔥 MAGIA MATEMÁTICA: Calculamos el ancho exacto del video en función a la altura de la pantalla
-  const getIframeStyles = () => {
-    if (item.platform === 'tiktok') {
-      return { 
-        width: 'calc((100vh - 140px) * (9/16))', 
-        maxWidth: '100%', 
-        aspectRatio: '9/16' 
-      };
-    }
-    if (item.platform === 'instagram') {
-      return { 
-        width: 'calc((100vh - 140px) * (4/5))', 
-        maxWidth: '100%', 
-        aspectRatio: '4/5' 
-      };
-    }
-    return { 
-      width: '100%', 
-      maxWidth: '600px', 
-      aspectRatio: '16/9' 
-    };
-  };
-
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO PERFECTO Y MATEMÁTICAMENTE ESCALABLE 🔴 */}
-      <div className="flex-1 bg-black/95 border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-3 sm:p-5">
+      {/* 🔴 LADO IZQUIERDO: VIDEO CON MAGIA MATEMÁTICA CSS 🔴 */}
+      <div className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-3 sm:p-5 lg:p-6">
         {isVideo && finalEmbedUrl ? (
-          <div 
-            className="relative flex items-center justify-center flex-shrink-0 transition-all duration-300"
-            style={getIframeStyles()}
-          >
+          item.platform === 'tiktok' || item.platform === 'instagram' ? (
             <iframe 
               src={finalEmbedUrl} 
-              className={cn("absolute inset-0 w-full h-full bg-transparent outline-none rounded-xl shadow-2xl", 
-                item.platform === 'instagram' && "bg-white"
-              )}
-              style={{ border: "none" }}
+              // 🔥 LA MAGIA: Forzamos la relación de aspecto, limitamos la altura máxima (para que no sea gigante en PC) y dejamos que el ancho fluya solo.
+              className={cn("outline-none shadow-2xl rounded-xl transition-all duration-200", item.platform === 'instagram' ? "bg-white" : "bg-transparent")}
+              style={{ 
+                border: "none", 
+                height: "100%", 
+                maxHeight: "580px", // Tope máximo para que no se coma la pantalla
+                maxWidth: "100%", 
+                aspectRatio: item.platform === 'tiktok' ? "9/16" : "4/5" 
+              }}
               scrolling="no"
               allowFullScreen 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
-          </div>
-        ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
-          <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
-        ) : finalEmbedUrl ? (
-          <div 
-             className="relative flex items-center justify-center"
-             style={{ width: "100%", maxWidth: "450px", aspectRatio: "16/9" }}
-          >
+          ) : (
             <iframe 
               src={finalEmbedUrl} 
-              className="absolute inset-0 w-full h-full shadow-sm bg-white rounded-xl outline-none" 
-              style={{ border: "none" }}
+              className="w-full max-w-[700px] outline-none shadow-2xl rounded-xl bg-transparent"
+              style={{ border: "none", aspectRatio: "16/9" }}
               scrolling="no"
               allowFullScreen 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
-          </div>
+          )
+        ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
+          <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
         ) : (
           <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
             <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
@@ -329,7 +304,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (El que te gustó) 🔴 */}
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -413,7 +388,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (Delgados w-8) */}
+          {/* BOTONES ARCADE RETRO */}
           <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
@@ -556,8 +531,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: h-[calc(100vh-50px)] ajustado al máximo.
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1">
+    // 🔥 FIX: Espacio inferior. h-[calc(100dvh-64px)] para tocar el fondo. 
+    <div className="animate-fade-in flex flex-col h-[calc(100dvh-64px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
