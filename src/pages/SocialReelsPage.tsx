@@ -103,6 +103,10 @@ function SnapCard({
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
   
+  // 🔥 EL ESPÍA DE TAMAÑOS
+  const [iframeSize, setIframeSize] = useState({ width: 0, height: 0 });
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  
   const [likes, setLikes] = useState(item.likes || 0);
   const [dislikes, setDislikes] = useState(item.dislikes || 0);
   const [userReaction, setUserReaction] = useState<string | null>(null);
@@ -110,43 +114,40 @@ function SnapCard({
   const [commentText, setCommentText] = useState("");
   const [showReport, setShowReport] = useState(false);
   
-  // 🔥 AQUÍ ESTÁ TU IDEA: Un state para guardar las medidas exactas en píxeles
-  const [iframeSize, setIframeSize] = useState({ width: 0, height: 0 });
-  const videoContainerRef = useRef<HTMLDivElement>(null);
   const votingRef = useRef(false);
 
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
   }, [isVisible, isVideo]);
 
-  // 🔥 EL OBSERVADOR: Calcula en vivo el tamaño de la caja negra y saca el ancho por matemáticas.
+  // 🔥 MATEMÁTICA EN VIVO: Calculamos la caja exacta basándonos en la UI de TikTok
   useEffect(() => {
     if (!videoContainerRef.current) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // Obtenemos el ancho y alto real del contenedor rojo que marcaste
         const { width: containerWidth, height: containerHeight } = entry.contentRect;
         
-        // Asignamos la proporción matemática de cada plataforma
-        let targetRatio = 16 / 9; // YouTube por defecto
-        if (item.platform === 'tiktok' || item.content_type === 'reel' || item.content_url?.includes('shorts')) {
-          targetRatio = 9 / 16;
+        let targetRatio = 16 / 9; // Default (YouTube)
+        
+        if (item.platform === 'tiktok') {
+          // 🔥 EL TRUCO ESTÁ AQUÍ: Un ratio más "estirado" (9/17.8) para compensar 
+          // la franja blanca inferior de TikTok y evitar las bandas negras a los lados.
+          targetRatio = 9 / 17.8; 
         } else if (item.platform === 'instagram') {
           targetRatio = 4 / 5;
+        } else if (item.content_type === 'reel' || item.content_url?.includes('shorts')) {
+          targetRatio = 9 / 16;
         }
 
-        // Calculamos: El alto es el de la caja, el ancho lo sacamos con regla de 3
-        let newWidth = containerHeight * targetRatio;
         let newHeight = containerHeight;
+        let newWidth = containerHeight * targetRatio;
 
-        // Si la pantalla es muy flaquita y el ancho calculado se sale del contenedor:
         if (newWidth > containerWidth) {
           newWidth = containerWidth;
           newHeight = containerWidth / targetRatio;
         }
 
-        // Guardamos los píxeles exactos
         setIframeSize({ width: newWidth, height: newHeight });
       }
     });
@@ -305,28 +306,31 @@ function SnapCard({
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA ESPÍA (La que marcaste en rojo) 🔴 */}
-      {/* Le agregamos un p-1 sutil para que no quede 100% pegado al borde, pero es puro cálculo exacto. */}
+      {/* 🔴 LADO IZQUIERDO: CAJA ESPÍA CON MATEMÁTICA EN VIVO 🔴 */}
       <div 
         ref={videoContainerRef} 
-        className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-1"
+        className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-1 sm:p-2"
       >
         {isVideo && finalEmbedUrl ? (
-          <iframe 
-            src={finalEmbedUrl} 
-            className={cn("bg-transparent outline-none shadow-2xl rounded-xl transition-all duration-100", 
-              item.platform === 'instagram' ? "bg-white" : ""
-            )}
-            // 🔥 LE INYECTAMOS LOS PÍXELES EXACTOS MATEMÁTICOS 🔥
+          <div 
+            className="relative flex items-center justify-center transition-all duration-100"
             style={{ 
-              border: "none", 
               width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
               height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
             }}
-            scrolling="no"
-            allowFullScreen 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          />
+          >
+            <iframe 
+              src={finalEmbedUrl} 
+              // 🔥 El Iframe ahora solo tiene que llenar la caja perfecta que le calculamos. Cero cortes.
+              className={cn("absolute inset-0 w-full h-full bg-transparent outline-none rounded-xl", 
+                item.platform === 'instagram' ? "bg-white" : ""
+              )}
+              style={{ border: "none" }}
+              scrolling="no"
+              allowFullScreen 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            />
+          </div>
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
           <img 
             src={item.thumbnail_url || item.content_url} 
@@ -356,7 +360,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
+      {/* 🔴 LADO DERECHO: INTACTO, TAL CUAL TE GUSTÓ 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -583,7 +587,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-0">
+    // 🔥 FIX: Espacio inferior fantasma eliminado. h-[calc(100vh-64px)]
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-64px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
@@ -640,7 +645,7 @@ export default function SocialReelsPage() {
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {filtered.map((item, i) => (
-              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always pb-1">
+              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
                   isVisible={i === visibleIndex} 
