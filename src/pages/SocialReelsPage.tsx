@@ -255,6 +255,21 @@ function SnapCard({
     }
   };
 
+  // 🔥 LA SOLUCIÓN DE EDU: Medidas fijas que cambian por escalones (breakpoints).
+  // Esto obliga al video a tener siempre un tamaño de píxeles exacto, evitando que TikTok lo mutile.
+  const getResponsiveSize = (platform: string) => {
+    if (platform === 'tiktok') {
+      // 9:16 exacto. Se encoge y agranda en tamaños predefinidos.
+      return "w-[200px] h-[355px] sm:w-[225px] sm:h-[400px] md:w-[240px] md:h-[426px] lg:w-[270px] lg:h-[480px] xl:w-[300px] xl:h-[533px] 2xl:w-[360px] 2xl:h-[640px]";
+    }
+    if (platform === 'instagram') {
+      // 4:5
+      return "bg-white w-[240px] h-[300px] sm:w-[280px] sm:h-[350px] md:w-[300px] md:h-[375px] lg:w-[340px] lg:h-[425px] xl:w-[400px] xl:h-[500px] 2xl:w-[440px] 2xl:h-[550px]";
+    }
+    // YouTube (16:9)
+    return "bg-black w-[280px] h-[157px] sm:w-[320px] sm:h-[180px] md:w-[360px] md:h-[202px] lg:w-[440px] lg:h-[247px] xl:w-[520px] xl:h-[292px] 2xl:w-[640px] 2xl:h-[360px]";
+  };
+
   const finalEmbedUrl = isVisible && embedUrl
     ? item.platform === 'youtube'
       ? `${embedUrl}?autoplay=1&mute=0`
@@ -266,37 +281,27 @@ function SnapCard({
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO CON MAGIA MATEMÁTICA CSS 🔴 */}
-      <div className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-3 sm:p-5 lg:p-6">
+      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA FLEXIBLE, VIDEO FIJO CENTRADO 🔴 */}
+      <div className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
-          item.platform === 'tiktok' || item.platform === 'instagram' ? (
-            <iframe 
-              src={finalEmbedUrl} 
-              // 🔥 LA MAGIA: Forzamos la relación de aspecto, limitamos la altura máxima (para que no sea gigante en PC) y dejamos que el ancho fluya solo.
-              className={cn("outline-none shadow-2xl rounded-xl transition-all duration-200", item.platform === 'instagram' ? "bg-white" : "bg-transparent")}
-              style={{ 
-                border: "none", 
-                height: "100%", 
-                maxHeight: "580px", // Tope máximo para que no se coma la pantalla
-                maxWidth: "100%", 
-                aspectRatio: item.platform === 'tiktok' ? "9/16" : "4/5" 
-              }}
-              scrolling="no"
-              allowFullScreen 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            />
-          ) : (
-            <iframe 
-              src={finalEmbedUrl} 
-              className="w-full max-w-[700px] outline-none shadow-2xl rounded-xl bg-transparent"
-              style={{ border: "none", aspectRatio: "16/9" }}
-              scrolling="no"
-              allowFullScreen 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            />
-          )
+          <iframe 
+            src={finalEmbedUrl} 
+            className={cn("bg-transparent outline-none shadow-2xl rounded-xl flex-shrink-0 transition-all duration-300", getResponsiveSize(item.platform))}
+            style={{ border: "none" }}
+            scrolling="no"
+            allowFullScreen 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          />
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
-          <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
+          <img src={item.thumbnail_url || item.content_url} alt="" className={cn("object-contain flex-shrink-0 transition-all duration-300", getResponsiveSize('instagram'))} />
+        ) : finalEmbedUrl ? (
+          <iframe 
+            src={finalEmbedUrl} 
+            className={cn("shadow-sm bg-white rounded-xl outline-none flex-shrink-0 transition-all duration-300", getResponsiveSize('youtube'))}
+            style={{ border: "none" }}
+            scrolling="no"
+            allowFullScreen 
+          />
         ) : (
           <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
             <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
@@ -304,7 +309,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
+      {/* LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (El que quedó perfecto) */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -388,7 +393,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO */}
+          {/* BOTONES ARCADE RETRO (Delgados w-8) */}
           <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
@@ -531,8 +536,7 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: Espacio inferior. h-[calc(100dvh-64px)] para tocar el fondo. 
-    <div className="animate-fade-in flex flex-col h-[calc(100dvh-64px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
