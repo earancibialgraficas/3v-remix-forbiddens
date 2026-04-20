@@ -59,7 +59,7 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-// 🔥 AHORA LOS FILTROS SON ESTRICTOS USANDO LA ETIQUETA DE LA BASE DE DATOS 🔥
+// 🔥 FILTROS ESTRICTOS USANDO LA ETIQUETA DE LA BASE DE DATOS 🔥
 const isVideoItem = (item: SocialItem | any) => {
   return item.content_type === 'video' || item.content_type === 'reel';
 };
@@ -105,14 +105,16 @@ function SnapCard({
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   
+  // 🔥 ESTADO NUEVO PARA EL PANEL DESPLEGABLE MÓVIL 🔥
+  const [showMobilePanel, setShowMobilePanel] = useState(false);
+  
   const votingRef = useRef(false);
 
   const getBaseSize = (platform: string, cType: string, url: string) => {
     if (platform === 'tiktok') return { w: 340, h: 605 };
     if (platform === 'instagram') {
-      // 🔥 Dimensiones especiales y alargadas solo para Reels de Instagram 🔥
       if (cType === 'reel' || url?.includes('/reel')) return { w: 340, h: 605 };
-      return { w: 400, h: 500 }; // Para posts/fotos normales de IG
+      return { w: 400, h: 500 }; 
     }
     if (cType === 'reel' || url?.includes('shorts')) return { w: 324, h: 576 };
     return { w: 640, h: 360 };
@@ -299,12 +301,13 @@ function SnapCard({
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
 
   return (
-    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
+    // 🔥 CAMBIO DE DISEÑO: absolute y relative integrados para móvil vs pc 🔥
+    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA ESPÍA 🔴 */}
+      {/* 🔴 LADO IZQUIERDO: CAJA DE MEDIA (Video/Foto) 🔴 */}
       <div 
         ref={videoContainerRef} 
-        className="flex-1 bg-[#09090b] border border-border rounded-xl shadow-md min-h-0 overflow-hidden relative"
+        className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0"
       >
         {isVideo && finalEmbedUrl ? (
           <div 
@@ -318,7 +321,7 @@ function SnapCard({
           >
             <iframe 
               src={finalEmbedUrl} 
-              className={cn("w-full h-full bg-transparent outline-none rounded-xl shadow-2xl", 
+              className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", 
                 item.platform === 'instagram' ? "bg-white" : ""
               )}
               style={{ border: "none" }}
@@ -345,7 +348,7 @@ function SnapCard({
           >
             <iframe 
               src={finalEmbedUrl} 
-              className="w-full h-full shadow-sm bg-white rounded-xl outline-none" 
+              className="w-full h-full shadow-sm bg-white md:rounded-xl outline-none" 
               style={{ border: "none" }}
               scrolling="no"
               allowFullScreen 
@@ -359,12 +362,53 @@ function SnapCard({
           </div>
         )}
       </div>
+
+      {/* 🔴 BOTONES FLOTANTES MÓVIL (Likes / Dislikes / Abrir Panel) 🔴 */}
+      <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
+        <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
+          <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
+            <ThumbsUp className={cn("w-5 h-5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+          </div>
+          <span className="text-white text-[11px] font-bold drop-shadow-md">{likes}</span>
+        </button>
+
+        <button onClick={() => handleReaction("dislike")} className="flex flex-col items-center gap-1 group">
+          <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
+            <ThumbsDown className={cn("w-5 h-5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+          </div>
+          <span className="text-white text-[11px] font-bold drop-shadow-md">{dislikes}</span>
+        </button>
+
+        <button onClick={() => setShowMobilePanel(true)} className="flex flex-col items-center gap-1 group">
+          <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
+            <MessageSquare className="w-5 h-5 text-white transition-transform group-active:scale-90" />
+          </div>
+          <span className="text-white text-[11px] font-bold drop-shadow-md">{comments.length}</span>
+        </button>
+      </div>
+
+      {/* BACKDROP PARA MÓVIL (Oscurece el video al abrir el panel) */}
+      <div 
+        className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-300 md:hidden", showMobilePanel ? "opacity-100" : "opacity-0 pointer-events-none")}
+        onClick={() => setShowMobilePanel(false)}
+      />
       
-      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO 🔴 */}
-      <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
+      {/* 🔴 LADO DERECHO: PANEL (Drawer en Móvil, Estático en Desktop) 🔴 */}
+      <div className={cn(
+        "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0 z-40 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none p-3 md:p-0 border-l border-border md:border-none transition-transform duration-300 ease-out shadow-2xl md:shadow-none",
+        showMobilePanel ? "translate-x-0" : "translate-x-full md:translate-x-0"
+      )}>
         
-        {/* BLOQUE 1: Info del Autor y Likes */}
-        <div className="shrink-0 p-2.5 border border-border bg-card rounded-xl shadow-sm flex flex-col z-10 w-full">
+        {/* Header MÓVIL para cerrar el panel */}
+        <div className="flex md:hidden justify-between items-center mb-1">
+          <span className="font-pixel text-[11px] text-neon-cyan">Detalles del Post</span>
+          <button onClick={() => setShowMobilePanel(false)} className="p-1.5 bg-muted/50 rounded-full text-muted-foreground hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* BLOQUE 1: Info del Autor y Título */}
+        <div className="shrink-0 md:p-2.5 p-3 border border-border bg-card/90 md:bg-card md:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
               {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] flex items-center justify-center h-full">👤</span>}
@@ -387,9 +431,10 @@ function SnapCard({
             </div>
           </div>
           
-          <p className="text-[10px] font-body text-foreground line-clamp-2 leading-snug mb-2">{item.title || "Contenido de la comunidad"}</p>
+          <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || "Contenido de la comunidad"}</p>
           
-          <div className="flex items-center gap-3">
+          {/* Botones Like/Dislike (Solo visibles en Desktop porque en móvil están flotantes) */}
+          <div className="hidden md:flex items-center gap-3">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3.5 h-3.5" /> {likes}
             </button>
@@ -403,7 +448,7 @@ function SnapCard({
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
           
           {/* CAJA DE COMENTARIOS */}
-          <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden min-w-0">
+          <div className="flex-1 flex flex-col bg-card/90 md:bg-card border border-border md:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
             <div className="shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
             </div>
@@ -434,7 +479,7 @@ function SnapCard({
               {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="shrink-0 flex flex-col border-t border-border bg-card p-1.5 gap-1.5">
+              <div className="shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
                      <Reply className="w-3 h-3" /> Respondiendo
@@ -457,7 +502,7 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (Delgados w-8) */}
+          {/* BOTONES ARCADE RETRO (Delgados w-8) - Solo Desktop */}
           <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
@@ -503,7 +548,6 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  // Aseguramos que detecte bien la ruta de Reels & Videos vs Feed General
   const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
@@ -583,12 +627,10 @@ export default function SocialReelsPage() {
 
   const filtered = (() => {
     if (isReelsPage) {
-      // Si estamos en "Reels & Videos", NO mostramos fotos
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
       return sourceFiltered.filter(isVideoItem); 
     }
-    // Si estamos en el "Feed" principal, mostramos todo junto
     return sourceFiltered;
   })();
 
