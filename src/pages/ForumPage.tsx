@@ -290,6 +290,7 @@ export default function ForumPage() {
 
   const votingRef = useRef<Record<string, boolean>>({});
 
+  // 🔥 LA SOLUCIÓN DIRECTA A LA BASE DE DATOS SIN FUNCIONES SQL 🔥
   const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
     if (votingRef.current[postId]) return;
@@ -317,24 +318,45 @@ export default function ForumPage() {
       newVote = voteType;
     }
 
+    // Actualización optimista de la UI (Caché visual instantáneo)
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) } : p));
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      const { data, error } = await supabase.rpc("toggle_post_vote", {
-        p_post_id: postId,
-        p_user_id: user.id,
-        p_vote_type: voteType,
-      });
-      if (error) throw error;
-      if (data) {
-        const result = data as any;
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: result.upvotes, downvotes: result.downvotes } : p));
-        setUserVotes(prev => ({ ...prev, [postId]: result.user_vote }));
+      // 1. Buscamos si ya existe el voto en la tabla post_votes
+      const { data: existingVote } = await supabase
+        .from("post_votes")
+        .select("id, vote_type")
+        .eq("post_id", postId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // 2. Insertamos, actualizamos o eliminamos DIRECTO en la base de datos
+      if (!existingVote) {
+        await supabase.from("post_votes").insert({
+          id: crypto.randomUUID(), // Le pasamos un ID seguro para evitar errores "not null"
+          post_id: postId,
+          user_id: user.id,
+          vote_type: voteType
+        });
+      } else if (existingVote.vote_type === voteType) {
+        await supabase.from("post_votes").delete().eq("id", existingVote.id);
+      } else {
+        await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id);
       }
-    } catch {
+
+      // 3. Forzamos la actualización de los contadores en la tabla posts
+      await supabase.from("posts").update({
+        upvotes: Math.max(0, newUp),
+        downvotes: Math.max(0, newDown)
+      }).eq("id", postId);
+
+    } catch (error) {
+      // Si todo falla, hacemos rollback (el rebote visual)
+      console.error("Error al votar:", error);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
+      toast({ title: "Error", description: "No se pudo guardar tu voto.", variant: "destructive" });
     } finally {
       votingRef.current[postId] = false;
     }
