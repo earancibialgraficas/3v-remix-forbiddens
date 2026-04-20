@@ -255,19 +255,18 @@ function SnapCard({
     }
   };
 
-  // 🔥 LA SOLUCIÓN DE EDU: Medidas fijas que cambian por escalones (breakpoints).
-  // Esto obliga al video a tener siempre un tamaño de píxeles exacto, evitando que TikTok lo mutile.
+  // 🔥 SOLUCIÓN FINAL: Medidas AÚN MÁS PEQUEÑAS para evitar cortes en 1366x768
   const getResponsiveSize = (platform: string) => {
     if (platform === 'tiktok') {
-      // 9:16 exacto. Se encoge y agranda en tamaños predefinidos.
-      return "w-[200px] h-[355px] sm:w-[225px] sm:h-[400px] md:w-[240px] md:h-[426px] lg:w-[270px] lg:h-[480px] xl:w-[300px] xl:h-[533px] 2xl:w-[360px] 2xl:h-[640px]";
+      // 9:16 exacto - Tamaños reducidos para que respire más en pantallas pequeñas
+      return "w-[180px] h-[320px] sm:w-[200px] sm:h-[355px] md:w-[225px] md:h-[400px] lg:w-[250px] lg:h-[444px] xl:w-[280px] xl:h-[498px] 2xl:w-[330px] 2xl:h-[586px]";
     }
     if (platform === 'instagram') {
-      // 4:5
-      return "bg-white w-[240px] h-[300px] sm:w-[280px] sm:h-[350px] md:w-[300px] md:h-[375px] lg:w-[340px] lg:h-[425px] xl:w-[400px] xl:h-[500px] 2xl:w-[440px] 2xl:h-[550px]";
+      // 4:5 exacto
+      return "bg-white w-[220px] h-[275px] sm:w-[250px] sm:h-[312px] md:w-[280px] md:h-[350px] lg:w-[310px] lg:h-[387px] xl:w-[350px] xl:h-[437px] 2xl:w-[400px] 2xl:h-[500px]";
     }
     // YouTube (16:9)
-    return "bg-black w-[280px] h-[157px] sm:w-[320px] sm:h-[180px] md:w-[360px] md:h-[202px] lg:w-[440px] lg:h-[247px] xl:w-[520px] xl:h-[292px] 2xl:w-[640px] 2xl:h-[360px]";
+    return "bg-black w-[260px] h-[146px] sm:w-[300px] sm:h-[168px] md:w-[340px] md:h-[191px] lg:w-[400px] lg:h-[225px] xl:w-[480px] xl:h-[270px] 2xl:w-[600px] 2xl:h-[337px]";
   };
 
   const finalEmbedUrl = isVisible && embedUrl
@@ -281,7 +280,7 @@ function SnapCard({
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA FLEXIBLE, VIDEO FIJO CENTRADO 🔴 */}
+      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA FLEXIBLE, VIDEO FIJO CENTRADO CON NUEVAS MEDIDAS 🔴 */}
       <div className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
           <iframe 
@@ -309,7 +308,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (El que quedó perfecto) */}
+      {/* LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
