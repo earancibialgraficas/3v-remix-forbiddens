@@ -59,27 +59,17 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
+// 🔥 AHORA LOS FILTROS SON ESTRICTOS USANDO LA ETIQUETA DE LA BASE DE DATOS 🔥
 const isVideoItem = (item: SocialItem | any) => {
-  const p = item.platform || '';
-  const url = item.content_url || '';
-  const cType = item.content_type || '';
-
-  if (cType === 'video' || cType === 'reel') return true;
-  if (p === 'youtube' || p === 'tiktok') return true;
-  if (p === 'instagram' && (url.includes('/reel/') || url.includes('/reels/'))) return true;
-  if (url.includes('shorts')) return true;
-
-  return false;
+  return item.content_type === 'video' || item.content_type === 'reel';
 };
 
 const isReelItem = (item: SocialItem) => {
-  return item.content_type === 'reel' ||
-    item.content_url.includes("shorts") || item.content_url.includes("reel") ||
-    item.platform === "tiktok";
+  return item.content_type === 'reel';
 };
 
 const isHorizontalVideo = (item: SocialItem) => {
-  return isVideoItem(item) && !isReelItem(item);
+  return item.content_type === 'video';
 };
 
 function SnapCard({ 
@@ -119,7 +109,11 @@ function SnapCard({
 
   const getBaseSize = (platform: string, cType: string, url: string) => {
     if (platform === 'tiktok') return { w: 340, h: 605 };
-    if (platform === 'instagram') return { w: 400, h: 500 }; 
+    if (platform === 'instagram') {
+      // 🔥 Dimensiones especiales y alargadas solo para Reels de Instagram 🔥
+      if (cType === 'reel' || url?.includes('/reel')) return { w: 340, h: 605 };
+      return { w: 400, h: 500 }; // Para posts/fotos normales de IG
+    }
     if (cType === 'reel' || url?.includes('shorts')) return { w: 324, h: 576 };
     return { w: 640, h: 360 };
   };
@@ -330,7 +324,7 @@ function SnapCard({
               style={{ border: "none" }}
               scrolling="no"
               allowFullScreen 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             />
           </div>
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
@@ -509,11 +503,11 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const isReelsPage = location.pathname.includes("/reels");
+  // Aseguramos que detecte bien la ruta de Reels & Videos vs Feed General
+  const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   const fetchContent = async () => {
-    // 🔥 Ahora ordena por likes para mostrar lo más popular
     const { data: content } = await supabase
       .from("social_content")
       .select("*")
@@ -589,10 +583,12 @@ export default function SocialReelsPage() {
 
   const filtered = (() => {
     if (isReelsPage) {
+      // Si estamos en "Reels & Videos", NO mostramos fotos
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      return sourceFiltered.filter(i => isVideoItem(i));
+      return sourceFiltered.filter(isVideoItem); 
     }
+    // Si estamos en el "Feed" principal, mostramos todo junto
     return sourceFiltered;
   })();
 
