@@ -264,30 +264,26 @@ function SnapCard({
     : embedUrl;
 
   return (
-    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2 pb-1">
+    <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: VIDEO ZOOM 85% SIN RECORTES */}
+      {/* 🔴 LADO IZQUIERDO: VIDEO ZOOM OUT CON BASE DE 500px (Imposible que se recorte) 🔴 */}
       <div className="flex-1 bg-black/95 border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative">
         {isVideo && finalEmbedUrl ? (
-          <iframe 
-            src={finalEmbedUrl} 
-            // 🔥 EL TRUCO MAGICO: En lugar de "scale", le decimos que su altura física sea el 85%. 
-            // Así se aleja, respira en la caja negra, pero NUNCA se recorta porque mantiene su aspect-ratio intacto.
-            className={cn("bg-transparent outline-none shadow-2xl rounded-xl transition-all duration-300", 
-              item.platform === 'instagram' ? "bg-white" : ""
-            )}
-            style={{ 
-              border: "none", 
-              height: item.platform === 'tiktok' || item.platform === 'instagram' ? "85%" : "100%", 
-              width: item.platform === 'tiktok' || item.platform === 'instagram' ? "auto" : "100%", 
-              maxWidth: "92%",
-              maxHeight: "92%",
-              aspectRatio: item.platform === 'tiktok' ? '9/16' : item.platform === 'instagram' ? '4/5' : '16/9'
-            }}
-            scrolling="no"
-            allowFullScreen 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          />
+          <div className="w-full h-full flex items-center justify-center relative">
+            <iframe 
+              src={finalEmbedUrl} 
+              // 🔥 FIX: Dimensiones base más pequeñas (w-280px h-500px) para que NUNCA toque los bordes al hacer zoom out
+              className={cn("bg-transparent outline-none shadow-2xl rounded-xl origin-center transition-transform", 
+                item.platform === 'tiktok' ? "w-[280px] h-[500px] scale-[0.85] sm:scale-[0.90] lg:scale-[0.95] xl:scale-100" : 
+                item.platform === 'instagram' ? "w-[320px] h-[400px] bg-white scale-[0.85] sm:scale-[0.90] lg:scale-[0.95] xl:scale-100" : 
+                "w-[85%] h-[85%] aspect-video"
+              )}
+              style={{ border: "none" }}
+              scrolling="no"
+              allowFullScreen 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            />
+          </div>
         ) : (item.thumbnail_url || item.content_url.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
           <img src={item.thumbnail_url || item.content_url} alt="" className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
@@ -305,7 +301,7 @@ function SnapCard({
         )}
       </div>
       
-      {/* LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO */}
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (El que te gustó) 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -344,7 +340,7 @@ function SnapCard({
           </div>
         </div>
 
-        {/* BLOQUE INFERIOR: COMENTARIOS Y BOTONES (En fila) */}
+        {/* BLOQUE 2: Comentarios y Botones en Fila */}
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
           
           {/* CAJA DE COMENTARIOS */}
@@ -532,8 +528,8 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX MARGEN: Reducido a `h-[calc(100dvh-45px)]` empujando la caja al borde inferior real de la ventana.
-    <div className="animate-fade-in flex flex-col h-[calc(100dvh-45px)] w-full relative overflow-hidden gap-2">
+    // 🔥 FIX: h-[calc(100vh-50px)] ajustado al máximo inferior sin dejar márgenes.
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
