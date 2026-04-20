@@ -29,7 +29,7 @@ export default function GameBubble() {
   const { toast } = useToast();
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const scoreRef = useRef(0);
   const timeRef = useRef(0);
 
@@ -82,7 +82,7 @@ export default function GameBubble() {
     window.addEventListener("keydown", onInput);
     window.addEventListener("mousedown", onInput);
     window.addEventListener("gamepadconnected", onInput);
-    let gpInterval: NodeJS.Timeout | null = null;
+    let gpInterval: ReturnType<typeof setInterval> | null = null;
     if (activeGame && romLoaded) {
       gpInterval = setInterval(() => {
         const gamepads = navigator.getGamepads?.();
@@ -308,7 +308,6 @@ export default function GameBubble() {
     }
   };
 
-  // 🔥 NUEVA FUNCIÓN MEJORADA: GUARDAR PUNTAJE (Con opción silenciosa para cuando cerramos el juego)
   const handleSaveScore = async (silent = false) => {
     if (!user || !activeGame || scoreRef.current <= 0) return;
     const currentScore = scoreRef.current;
@@ -383,7 +382,6 @@ export default function GameBubble() {
       setSlotName("");
       setShowSaveDialog(false);
 
-      // 🔥 AUTO-GUARDAR PUNTAJE AL GUARDAR PARTIDA MANUALMENTE
       if (user && scoreRef.current > 0) {
         await handleSaveScore(false);
       }
@@ -416,10 +414,8 @@ export default function GameBubble() {
   };
 
   const handleClose = async (idx?: number) => {
-    // 🔥 AUTO-GUARDADO DE PARTIDA AL CERRAR 
     await autoSaveOnClose();
     
-    // 🔥 AUTO-GUARDADO DE PUNTOS AL CERRAR (Silencioso para no meter mucho ruido)
     if (activeGame && scoreRef.current > 0 && user) {
       await handleSaveScore(true); 
     }
