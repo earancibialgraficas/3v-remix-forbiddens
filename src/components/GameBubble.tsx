@@ -154,7 +154,7 @@ export default function GameBubble() {
       try {
         const { Nostalgist } = await import("nostalgist");
         
-        // 🔥 PARCHE MAESTRO PARA EL VOLUMEN: Secuestramos el AudioContext global 🔥
+        // PARCHE MAESTRO PARA EL VOLUMEN
         const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
         if (OrigAudioContext && !(window as any).__audioContextPatched) {
           (window as any).__masterGains = [];
@@ -192,7 +192,6 @@ export default function GameBubble() {
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
 
-        // 🔥 OBLIGAMOS AL CANVAS A RECIBIR FOCO PARA QUE FUNCIONE EL JOYSTICK 🔥
         setTimeout(() => {
           if (canvasRef.current) canvasRef.current.focus();
         }, 500);
@@ -245,17 +244,15 @@ export default function GameBubble() {
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // 🔥 CONTROL DE VOLUMEN ATADO AL NODO MAESTRO 🔥
+  // CONTROL DE VOLUMEN
   useEffect(() => {
     if (!romLoaded) return;
     const vol = volume / 100;
     
-    // Controlamos etiquetas multimedia normales
     document.querySelectorAll("audio, video").forEach((el: any) => {
       el.volume = vol;
     });
     
-    // Controlamos el Emulador (Emscripten) a través de nuestros nodos maestros secuestrados
     const gains = (window as any).__masterGains;
     if (gains) {
       gains.forEach((g: GainNode) => {
@@ -311,6 +308,48 @@ export default function GameBubble() {
     }
   };
 
+  // 🔥 NUEVA FUNCIÓN MEJORADA: GUARDAR PUNTAJE (Con opción silenciosa para cuando cerramos el juego)
+  const handleSaveScore = async (silent = false) => {
+    if (!user || !activeGame || scoreRef.current <= 0) return;
+    const currentScore = scoreRef.current;
+    const currentTime = timeRef.current;
+    
+    try {
+      const { data: existing, error: fetchError } = await supabase
+        .from("leaderboard_scores").select("id, score")
+        .eq("user_id", user.id).eq("game_name", activeGame.gameName).eq("console_type", activeGame.consoleName)
+        .order("score", { ascending: false }).limit(1).maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (existing && (existing as any).score >= currentScore) {
+        if (!silent) toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
+        return;
+      }
+      
+      if (existing) {
+        const { error } = await supabase.from("leaderboard_scores").update({
+          score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
+        } as any).eq("id", (existing as any).id);
+        
+        if (error) throw error;
+        if (!silent) toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
+      } else {
+        const { error } = await supabase.from("leaderboard_scores").insert({
+          user_id: user.id, display_name: profile?.display_name || "Anónimo",
+          game_name: activeGame.gameName, console_type: activeGame.consoleName,
+          score: currentScore, play_time_seconds: currentTime,
+        } as any);
+        
+        if (error) throw error;
+        if (!silent) toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
+      }
+    } catch (error: any) {
+      console.error("Score save error:", error);
+      if (!silent) toast({ title: "Error al guardar puntaje", description: error.message, variant: "destructive" });
+    }
+  };
+
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     try {
@@ -339,9 +378,16 @@ export default function GameBubble() {
       const updated = [...saveSlots, newSlot];
       setSaveSlots(updated);
       localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+      
       toast({ title: "Partida guardada", description: `"${name}"` });
       setSlotName("");
       setShowSaveDialog(false);
+
+      // 🔥 AUTO-GUARDAR PUNTAJE AL GUARDAR PARTIDA MANUALMENTE
+      if (user && scoreRef.current > 0) {
+        await handleSaveScore(false);
+      }
+
     } catch (err) {
       console.error("Save error:", err);
       toast({ title: "Error al guardar", variant: "destructive" });
@@ -369,54 +415,15 @@ export default function GameBubble() {
     toast({ title: "Slot eliminado" });
   };
 
-  // 🔥 GUARDADO DE PUNTAJE REPARADO (Agregado try/catch y alertas reales de error) 🔥
-  const handleSaveScore = async () => {
-    if (!user || !activeGame || scoreRef.current <= 0) return;
-    const currentScore = scoreRef.current;
-    const currentTime = timeRef.current;
-    
-    try {
-      const { data: existing, error: fetchError } = await supabase
-        .from("leaderboard_scores").select("id, score")
-        .eq("user_id", user.id).eq("game_name", activeGame.gameName).eq("console_type", activeGame.consoleName)
-        .order("score", { ascending: false }).limit(1).maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (existing && (existing as any).score >= currentScore) {
-        toast({ title: "Puntaje no superado", description: `Tu récord actual es ${(existing as any).score}. ¡Sigue jugando!` });
-        return;
-      }
-      
-      if (existing) {
-        const { error } = await supabase.from("leaderboard_scores").update({
-          score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
-        } as any).eq("id", (existing as any).id);
-        
-        if (error) throw error;
-        toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
-      } else {
-        const { error } = await supabase.from("leaderboard_scores").insert({
-          user_id: user.id, display_name: profile?.display_name || "Anónimo",
-          game_name: activeGame.gameName, console_type: activeGame.consoleName,
-          score: currentScore, play_time_seconds: currentTime,
-        } as any);
-        
-        if (error) throw error;
-        toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
-      }
-    } catch (error: any) {
-      console.error("Score save error:", error);
-      toast({ title: "Error al guardar puntaje", description: error.message, variant: "destructive" });
-    }
-  };
-
-  // 🔥 CIERRE REPARADO: Ahora ESPERA a que el puntaje se guarde antes de destruir el juego 🔥
   const handleClose = async (idx?: number) => {
+    // 🔥 AUTO-GUARDADO DE PARTIDA AL CERRAR 
     await autoSaveOnClose();
+    
+    // 🔥 AUTO-GUARDADO DE PUNTOS AL CERRAR (Silencioso para no meter mucho ruido)
     if (activeGame && scoreRef.current > 0 && user) {
-      await handleSaveScore();
+      await handleSaveScore(true); 
     }
+    
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
@@ -545,7 +552,6 @@ export default function GameBubble() {
                 </div>
               )}
 
-              {/* 🔥 CANVAS CON PERMISO DE ENFOQUE PARA EL JOYSTICK 🔥 */}
               <canvas 
                 ref={canvasRef} 
                 id="game-bubble-canvas" 
@@ -608,7 +614,7 @@ export default function GameBubble() {
                   </Button>
                 )}
                 {user && activeGame.score > 0 && (
-                  <Button size="icon" variant="ghost" onClick={handleSaveScore} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
+                  <Button size="icon" variant="ghost" onClick={() => handleSaveScore(false)} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
                     <Upload className="w-4 h-4" />
                   </Button>
                 )}
