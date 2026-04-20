@@ -103,8 +103,8 @@ function SnapCard({
   const embedUrl = getEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
   
-  // 🔥 EL ESPÍA DE TAMAÑOS
-  const [iframeSize, setIframeSize] = useState({ width: 0, height: 0 });
+  // 🔥 LA SOLUCIÓN DEFINITIVA: Guardar el Scale (Achique Uniforme)
+  const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   
   const [likes, setLikes] = useState(item.likes || 0);
@@ -116,45 +116,48 @@ function SnapCard({
   
   const votingRef = useRef(false);
 
+  // Tamaños base fijos (suficientemente grandes para que TikTok no corte nada internamente)
+  const getBaseSize = (platform: string, cType: string, url: string) => {
+    if (platform === 'tiktok') return { w: 340, h: 605 };
+    if (platform === 'instagram') return { w: 400, h: 500 }; 
+    if (cType === 'reel' || url?.includes('shorts')) return { w: 324, h: 576 };
+    return { w: 640, h: 360 };
+  };
+
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
   }, [isVisible, isVideo]);
 
-  // 🔥 MATEMÁTICA EN VIVO: Calculamos la caja exacta basándonos en la UI de TikTok
+  // 🔥 EL ESPÍA QUE CALCULA EL ACHIQUE UNIFORME
   useEffect(() => {
-    if (!videoContainerRef.current) return;
+    if (!videoContainerRef.current || !isVideo) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width: containerWidth, height: containerHeight } = entry.contentRect;
+        const { width, height } = entry.contentRect;
+        const base = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
         
-        let targetRatio = 16 / 9; // Default (YouTube)
+        // Dejamos 16px de margen para que nunca choque con los bordes (8px por lado)
+        const safeWidth = width - 16;
+        const safeHeight = height - 16;
+
+        // Calculamos cuánto hay que encogerlo a lo ancho y a lo alto
+        const scaleX = safeWidth / base.w;
+        const scaleY = safeHeight / base.h;
         
-        if (item.platform === 'tiktok') {
-          // 🔥 EL TRUCO ESTÁ AQUÍ: Un ratio más "estirado" (9/17.8) para compensar 
-          // la franja blanca inferior de TikTok y evitar las bandas negras a los lados.
-          targetRatio = 9 / 17.8; 
-        } else if (item.platform === 'instagram') {
-          targetRatio = 4 / 5;
-        } else if (item.content_type === 'reel' || item.content_url?.includes('shorts')) {
-          targetRatio = 9 / 16;
-        }
+        // Tomamos el menor para que quepa perfectamente sin deformarse
+        let newScale = Math.min(scaleX, scaleY);
+        
+        // Evitamos que se haga asquerosamente gigante en monitores 4K (tope en 1.2)
+        newScale = Math.min(newScale, 1.2);
 
-        let newHeight = containerHeight;
-        let newWidth = containerHeight * targetRatio;
-
-        if (newWidth > containerWidth) {
-          newWidth = containerWidth;
-          newHeight = containerWidth / targetRatio;
-        }
-
-        setIframeSize({ width: newWidth, height: newHeight });
+        setScale(newScale);
       }
     });
 
     observer.observe(videoContainerRef.current);
     return () => observer.disconnect();
-  }, [item.platform, item.content_type, item.content_url]);
+  }, [item.platform, item.content_type, item.content_url, isVideo]);
 
   useEffect(() => {
     if (!user) return;
@@ -303,26 +306,30 @@ function SnapCard({
         : embedUrl
     : embedUrl;
 
+  const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
+
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex flex-col md:flex-row items-stretch gap-2 md:gap-3 px-1 md:px-2">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA ESPÍA CON MATEMÁTICA EN VIVO 🔴 */}
+      {/* 🔴 LADO IZQUIERDO: CAJA NEGRA ESPÍA 🔴 */}
       <div 
         ref={videoContainerRef} 
-        className="flex-1 bg-[#09090b] border border-border rounded-xl flex items-center justify-center shadow-md min-h-0 overflow-hidden relative p-1 sm:p-2"
+        className="flex-1 bg-[#09090b] border border-border rounded-xl shadow-md min-h-0 overflow-hidden relative"
       >
         {isVideo && finalEmbedUrl ? (
+          // 🔥 MAGIA DE ESCALADO: Posición absoluta centrada y con scale() matemático
           <div 
-            className="relative flex items-center justify-center transition-all duration-100"
+            className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ 
-              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
-              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
+              width: `${baseSize.w}px`,
+              height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`,
+              aspectRatio: baseSize.w === 640 ? '16/9' : 'auto',
+              transform: `translate(-50%, -50%) scale(${scale})`
             }}
           >
             <iframe 
               src={finalEmbedUrl} 
-              // 🔥 El Iframe ahora solo tiene que llenar la caja perfecta que le calculamos. Cero cortes.
-              className={cn("absolute inset-0 w-full h-full bg-transparent outline-none rounded-xl", 
+              className={cn("w-full h-full bg-transparent outline-none rounded-xl shadow-2xl", 
                 item.platform === 'instagram' ? "bg-white" : ""
               )}
               style={{ border: "none" }}
@@ -335,32 +342,36 @@ function SnapCard({
           <img 
             src={item.thumbnail_url || item.content_url} 
             alt="" 
-            style={{ 
-              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
-              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
-              objectFit: 'contain'
-            }}
+            className="w-full h-full object-contain p-2"
           />
         ) : finalEmbedUrl ? (
-          <iframe 
-            src={finalEmbedUrl} 
-            className="shadow-sm bg-white rounded-xl outline-none" 
+          <div 
+            className="absolute top-1/2 left-1/2 flex items-center justify-center"
             style={{ 
-              border: "none",
-              width: iframeSize.width > 0 ? `${iframeSize.width}px` : '100%',
-              height: iframeSize.height > 0 ? `${iframeSize.height}px` : '100%',
+              width: `${baseSize.w}px`,
+              height: 'auto',
+              aspectRatio: '16/9',
+              transform: `translate(-50%, -50%) scale(${scale})`
             }}
-            scrolling="no"
-            allowFullScreen 
-          />
+          >
+            <iframe 
+              src={finalEmbedUrl} 
+              className="w-full h-full shadow-sm bg-white rounded-xl outline-none" 
+              style={{ border: "none" }}
+              scrolling="no"
+              allowFullScreen 
+            />
+          </div>
         ) : (
-          <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
-          </a>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <a href={item.content_url} target="_blank" rel="noopener" className="text-primary text-xs font-body hover:underline flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" /> Ver original en {item.platform}
+            </a>
+          </div>
         )}
       </div>
       
-      {/* 🔴 LADO DERECHO: INTACTO, TAL CUAL TE GUSTÓ 🔴 */}
+      {/* 🔴 LADO DERECHO: PANEL ORDENADO CON FLEXBOX PURO (Queda intacto) 🔴 */}
       <div className="h-[45%] md:h-full md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0">
         
         {/* BLOQUE 1: Info del Autor y Likes */}
@@ -587,8 +598,7 @@ export default function SocialReelsPage() {
       ];
 
   return (
-    // 🔥 FIX: Espacio inferior fantasma eliminado. h-[calc(100vh-64px)]
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-64px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       
       {/* HEADER */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
