@@ -54,7 +54,6 @@ export default function ProfilePage() {
   const [tiktok, setTiktok] = useState("");
   const [signature, setSignature] = useState("");
   
-  // 🔥 ESTADOS LOCALES PARA SLIDERS Y CONTROLES FLUIDOS
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
   const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
@@ -75,7 +74,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
-  const [socialContentCount, setSocialContentCount] = useState(0); // 🔥 Nuevo estado para contar posts sociales
+  const [socialContentCount, setSocialContentCount] = useState(0); 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff">("border");
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
@@ -122,7 +121,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     
-    // Buscar posts del foro
     supabase
       .from("posts")
       .select("*")
@@ -133,7 +131,6 @@ export default function ProfilePage() {
         if (data) setUserPosts(data); 
       });
 
-    // 🔥 Buscar conteo total de posts del Social Hub (Fotos + Videos/Reels)
     Promise.all([
       supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
@@ -1055,8 +1052,6 @@ export default function ProfilePage() {
   );
 }
 
-// 🔥 COMPONENTES DE APOYO EXPANDIDOS
-
 function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
   const storagePercent = maxStorage === Infinity ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
@@ -1206,13 +1201,19 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
                     .maybeSingle();
                     
                   if (data) {
-                    await supabase
+                    const { error } = await supabase
                       .from("user_roles")
                       .insert({ user_id: data.user_id, role: "moderator" });
+                      
+                    if (error) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Moderador asignado" });
+                      setModEmail(""); 
+                    }
+                  } else {
+                    toast({ title: "Usuario no encontrado", variant: "destructive" });
                   }
-                  
-                  setModEmail(""); 
-                  toast({ title: "Moderador asignado" });
                }} 
                className="flex-1 text-xs"
              >
@@ -1229,13 +1230,19 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
                     .maybeSingle();
                     
                   if (data) {
-                    await supabase
+                    const { error } = await supabase
                       .from("user_roles")
                       .insert({ user_id: data.user_id, role: "admin" });
+                      
+                    if (error) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Admin asignado" });
+                      setModEmail("");
+                    }
+                  } else {
+                    toast({ title: "Usuario no encontrado", variant: "destructive" });
                   }
-                  
-                  setModEmail("");
-                  toast({ title: "Admin asignado" });
                }} 
                className="flex-1 text-xs"
              >
@@ -1284,17 +1291,21 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
                 .maybeSingle();
                 
               if (!tp) { 
-                toast({ title: "No encontrado" }); 
+                toast({ title: "No encontrado", variant: "destructive" }); 
                 return; 
               }
               
-              await supabase
+              const { error } = await supabase
                 .from("profiles")
                 .update({ membership_tier: selectedTier } as any)
                 .eq("user_id", tp.user_id);
                 
-              setMembershipSearch("");
-              toast({ title: "Membresía actualizada" });
+              if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+              } else {
+                setMembershipSearch("");
+                toast({ title: "Membresía actualizada" });
+              }
             }} 
             className="w-full bg-neon-yellow/20 text-neon-yellow hover:bg-neon-yellow/30 border border-neon-yellow/30 transition-colors"
           >
