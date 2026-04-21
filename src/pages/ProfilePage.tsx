@@ -1775,6 +1775,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
           className="h-8 bg-muted text-xs w-full font-body" 
         />
 
+        {/* 🔥 PREVISUALIZADOR LIBRE DE LÍMITES 🔥 */}
         {newUrl.trim().startsWith("http") && (
           <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
             {isFetchingPreview ? (
@@ -1785,9 +1786,9 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
-                {/* 🔥 CONTENEDOR FLEXIBLE QUE DEJA QUE LA IMAGEN RESPIRE 🔥 */}
+                {/* 🔥 CONTENEDOR 100% LIBRE, SIN CORTAR 🔥 */}
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  <img src={previewImage} alt="Preview" className="max-w-full max-h-[300px] object-contain rounded" />
+                  <img src={previewImage} alt="Preview" className="max-w-full max-h-[350px] w-auto h-auto object-contain rounded" />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
