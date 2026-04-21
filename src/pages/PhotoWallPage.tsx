@@ -52,7 +52,7 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA (FOTO + COMENTARIOS) 🔥
+// 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA 🔥
 function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -122,15 +122,14 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
   return (
     <div className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
       
-      {/* LADO IZQUIERDO: IMAGEN COMPLETA */}
-      <div className="relative bg-[#09090b] flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-4 md:p-8">
+      {/* 🔥 LADO IZQUIERDO: IMAGEN EXPANDIDA (REVERTIDA A COMO ESTABA, SIN PADDING EXCESIVO) 🔥 */}
+      <div className="relative bg-black flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[400px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
            <img src={photo.image_url} alt={photo.caption} className="w-full h-full max-h-[60vh] md:max-h-[75vh] object-contain rounded-lg" />
         )}
         
-        {/* Botón flotante para cerrar en móvil (opcional) */}
         <button onClick={onClose} className="absolute top-4 right-4 md:hidden bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-white/20">
           <X className="w-4 h-4" />
         </button>
@@ -139,7 +138,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
       {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:max-h-[75vh]">
         
-        {/* Cabecera (Usuario + Botón Cerrar) */}
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Link to={`/usuario/${photo.user_id}`} className="flex items-center gap-2 group truncate">
@@ -162,7 +160,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
           </button>
         </div>
 
-        {/* Descripción y Acciones */}
         <div className="p-4 border-b border-border space-y-4 shrink-0">
           {photo.caption && (
             <p className="text-xs text-foreground font-body leading-relaxed">{photo.caption}</p>
@@ -193,7 +190,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
           </div>
         </div>
 
-        {/* Lista de Comentarios */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar bg-background/30 min-h-[200px]">
           {comments.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-50 space-y-2">
@@ -229,7 +225,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
           )}
         </div>
 
-        {/* Input de Comentarios */}
         {user ? (
           <div className="shrink-0 border-t border-border bg-muted/10 p-3 flex flex-col gap-2">
             {replyTo && (
@@ -261,7 +256,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
     </div>
   );
 }
-
 
 export default function PhotoWallPage() {
   const { user, profile, roles, isMasterWeb, isAdmin } = useAuth();
@@ -317,7 +311,6 @@ export default function PhotoWallPage() {
 
     combined.sort((a, b) => b.likes - a.likes);
 
-    // Extraemos perfiles para pasárselos a las tarjetas expandidas
     const userIds = [...new Set(combined.map(c => c.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
     const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
@@ -418,7 +411,6 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
-  // 🔥 RENDERIZADOR DEL THUMBNAIL (CUADRADO PERFECTO Y MÁS PEQUEÑO CON MARCO) 🔥
   const renderSquareImage = (photo: any) => {
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
@@ -436,7 +428,6 @@ export default function PhotoWallPage() {
   return (
     <div className="space-y-4 animate-fade-in pb-10 max-w-[1200px] mx-auto">
       
-      {/* Cabecera */}
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-md mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
@@ -444,7 +435,6 @@ export default function PhotoWallPage() {
         <p className="text-[10px] md:text-xs text-muted-foreground font-body">Galería de la comunidad — Haz clic en una imagen para expandirla.</p>
       </div>
 
-      {/* Controles: Filtros y Botón de Subida */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mx-2 md:mx-0">
         {user && (
           <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-fit shadow-sm shrink-0">
@@ -469,7 +459,6 @@ export default function PhotoWallPage() {
         </div>
       </div>
 
-      {/* Caja de Subida */}
       {showUpload && (
         <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-md mx-2 md:mx-0">
           <Input placeholder="URL de la imagen (.jpg, .png, .gif)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/50 text-xs font-body" />
@@ -489,7 +478,6 @@ export default function PhotoWallPage() {
           <p className="text-sm text-muted-foreground font-body uppercase">{sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "El muro está vacío"}</p>
         </div>
       ) : (
-        /* 🔥 GRID DE 2 COLUMNAS 🔥 */
         <div className="grid grid-cols-2 gap-2 md:gap-4 px-2 md:px-0">
           {displayPhotos.map(photo => {
             
@@ -507,7 +495,7 @@ export default function PhotoWallPage() {
               );
             }
 
-            // 🔥 CORRECCIÓN: Padding añadido para hacer el marco negro y la imagen más pequeña
+            {/* 🔥 TARJETAS DEL MURO: Cuadrado, p-2 para achicarla adentro, y -translate-y-[3%] 🔥 */}
             return (
               <div 
                 key={photo.id} 
@@ -515,12 +503,11 @@ export default function PhotoWallPage() {
                   setExpandedPhotoId(photo.id);
                   setTimeout(() => window.scrollBy({ top: 100, behavior: 'smooth' }), 50);
                 }}
-                className="relative group rounded-xl bg-[#09090b] aspect-square border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-1.5 md:p-2.5 flex flex-col"
+                className="relative group rounded-xl bg-[#09090b] aspect-square border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
               >
-                <div className="relative w-full h-full overflow-hidden rounded-lg">
+                <div className="relative w-full h-full overflow-hidden rounded-lg transform -translate-y-[3%]">
                   {renderSquareImage(photo)}
                   
-                  {/* Capa oscura al hacer hover (ajustada al marco interno) */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
                     <Maximize2 className="w-8 h-8 text-white/50 mb-2" />
                     <div className="flex items-center gap-4 text-white font-body text-xs">
