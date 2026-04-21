@@ -27,6 +27,7 @@ import SocialReelsPage from "./pages/SocialReelsPage";
 import NotFound from "./pages/NotFound";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
+import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
@@ -56,7 +57,10 @@ const App = () => {
                   <Route path="/motociclismo/rutas" element={<ForumPage />} />
                   <Route path="/mercado/gaming" element={<ForumPage />} />
                   <Route path="/mercado/motor" element={<ForumPage />} />
-                  <Route path="/social/feed" element={<ForumPage />} />
+                  
+                  {/* 🔥 AQUÍ CONECTAMOS LA RUTA CON NUESTRO NUEVO COMPONENTE 🔥 */}
+                  <Route path="/social/feed" element={<FeedPage />} />
+                  
                   <Route path="/social/reels" element={<SocialReelsPage />} />
                   <Route path="/social/fotos" element={<PhotoWallPage />} />
                   <Route path="/trending" element={<ForumPage />} />
