@@ -1653,6 +1653,30 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
+// 🔥 NUEVA FUNCIÓN PARA EXTRAER LA IMAGEN ORIGINAL DE INSTAGRAM 🔥
+const getInstagramImage = async (url: string) => {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`);
+    const html = await res.text();
+
+    let match = html.match(/"display_url":"([^"]+)"/);
+    if (!match) {
+      match = html.match(/"thumbnail_src":"([^"]+)"/);
+    }
+    
+    if (match && match[1]) {
+      // 🔥 REEMPLAZO DOBLE CRÍTICO 🔥
+      return match[1]
+        .replace(/\\u0026/g, "&")
+        .replace(/\\u0026amp;/g, "&");
+    }
+    return null;
+  } catch (err) {
+    console.error("Instagram parse error:", err);
+    return null;
+  }
+};
+
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
@@ -1687,39 +1711,26 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       
       setIsFetchingPreview(true);
       try {
-        let extractedUrl: string | null = null;
         const isInstagram = newUrl.includes("instagram.com");
 
         if (isInstagram) {
-          try {
-            // Usamos Jina.ai como Proxy Bypass
-            const res = await fetch(`https://r.jina.ai/${newUrl}`);
-            const html = await res.text();
-
-            let match = html.match(/"display_url":"([^"]+)"/);
-            if (!match) {
-              match = html.match(/"thumbnail_src":"([^"]+)"/);
-            }
-            
-            if (match && match[1]) {
-              extractedUrl = match[1].replace(/\\u0026/g, "&");
-            }
-          } catch (err) {
-            console.error("Error extrayendo de IG:", err);
+          const image = await getInstagramImage(newUrl);
+          if (image) {
+            setPreviewImage(image);
+            setIsFetchingPreview(false);
+            return;
           }
         }
 
-        // Fallback / Otras plataformas con Microlink normal
-        if (!extractedUrl) {
-          const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-          const data = await res.json();
-          
-          if (data.status === "success" && data.data.image?.url) {
-            extractedUrl = data.data.image.url;
-          }
+        // 🔥 FALLBACK A MICROLINK PARA TODO LO DEMÁS 🔥
+        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+        const data = await res.json();
+        
+        if (data.status === "success" && data.data.image?.url) {
+          setPreviewImage(data.data.image.url);
+        } else {
+          setPreviewImage(null);
         }
-
-        setPreviewImage(extractedUrl || null);
       } catch (e) {
         setPreviewImage(null);
       } finally {
@@ -1815,8 +1826,12 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
                   <img 
                     src={previewImage} 
                     alt="Preview" 
-                    className="w-full object-contain rounded" 
-                    style={{ maxHeight: "400px" }}
+                    style={{
+                      width: "100%",
+                      maxHeight: "400px",
+                      objectFit: "contain",
+                      borderRadius: "8px"
+                    }}
                   />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
