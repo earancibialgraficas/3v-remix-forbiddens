@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock, X } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock, X, Crop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -490,8 +490,6 @@ export default function ProfilePage() {
         <AvatarSelector
           currentAvatar={profile?.avatar_url || null}
           membershipTier={tier}
-          // 🔥 Si el código de AvatarSelector dice "STAFF" por dentro, ignora esto,
-          // pero aquí le pasamos que sí tiene permisos de Staff para saltarse el bloqueo visual
           isStaff={isStaff || isMod || tier !== "novato"}
           onSelect={handleAvatarSelect}
           onUpload={(isStaff || isMod || tier !== "novato") ? handleAvatarUpload : undefined}
@@ -1660,12 +1658,44 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
+// 🔥 EXTRAER URL DEL PREVISUALIZADOR 🔥
+const getPreviewUrl = (url: string) => {
+  if (!url) return null;
+  const lowerUrl = url.toLowerCase();
+  
+  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
+    let videoId = "";
+    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    else if (url.includes("youtube.com/shorts/")) videoId = url.split("youtube.com/shorts/")[1]?.split("?")[0];
+    else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
+    if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1`;
+  }
+  if (lowerUrl.includes("tiktok.com")) {
+    const match = url.match(/video\/(\d+)/);
+    if (match && match[1]) return `https://www.tiktok.com/embed/v2/${match[1]}`;
+  }
+  if (lowerUrl.includes("instagram.com")) {
+    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
+    if (match && match[1]) return `https://www.instagram.com/p/${match[1]}/embed/?hidecaption=true`;
+  }
+  if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
+    const encodedUrl = encodeURIComponent(url);
+    return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
+  }
+  return url;
+};
+
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
   const [newUrl, setNewUrl] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
+
+  // 🔥 NUEVOS ESTADOS PARA EL RECORTADOR (CROPPER) 🔥
+  const [cropScale, setCropScale] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
   
   const fetchContents = async () => {
     const { data } = await supabase
@@ -1695,7 +1725,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       contentType = url.includes("shorts") ? "reel" : "video";
     } else if (url.includes("instagram.com")) {
       platform = "instagram";
-      // 🔥 CORRECCIÓN: Si no dice reel explícitamente, asume que es una foto/post normal.
       contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post";
     } else if (url.includes("tiktok.com")) {
       platform = "tiktok";
@@ -1711,8 +1740,9 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       title: newTitle.trim() || null,
       platform: platform,
       content_type: contentType,
-      is_public: true
-    });
+      is_public: true,
+      crop_data: { scale: cropScale, x: cropX, y: cropY } // 🔥 GUARDAMOS EL RECORTE EN LA BD
+    } as any);
     
     setAdding(false);
     
@@ -1722,9 +1752,15 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
       setNewUrl("");
       setNewTitle("");
+      setCropScale(1);
+      setCropX(0);
+      setCropY(0);
       fetchContents();
     }
   };
+
+  const previewUrl = getPreviewUrl(newUrl);
+  const isImage = previewUrl && previewUrl.match(/\.(jpeg|jpg|gif|png|webp)/i);
 
   return (
     <div className="space-y-3">
@@ -1748,6 +1784,67 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
           onChange={e => setNewUrl(e.target.value)} 
           className="h-8 bg-muted text-xs w-full font-body" 
         />
+
+        {/* 🔥 PREVISUALIZADOR Y HERRAMIENTA DE RECORTE (CROPPER) 🔥 */}
+        {previewUrl && (
+          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in">
+            <p className="text-[10px] font-pixel text-neon-cyan mb-3 uppercase tracking-tighter flex items-center gap-2">
+              <Crop className="w-3 h-3" /> Ajuste de Encuadre
+            </p>
+            <div className="flex flex-col md:flex-row gap-4 items-center md:items-stretch">
+              {/* Contenedor simulando la tarjeta del muro (aspect ratio 3:4 aprox) */}
+              <div className="w-[150px] md:w-[180px] aspect-[3/4] bg-black rounded-lg overflow-hidden relative border border-white/10 shrink-0">
+                 <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]"></div>
+                 {isImage ? (
+                   <img
+                     src={previewUrl}
+                     className="w-full h-full object-cover"
+                     style={{ transform: `scale(${cropScale}) translate(${cropX}%, ${cropY}%)`, transformOrigin: 'center center' }}
+                   />
+                 ) : (
+                   <iframe
+                     src={previewUrl}
+                     className="w-full h-full bg-white"
+                     style={{
+                       transform: `scale(${cropScale}) translate(${cropX}%, ${cropY}%)`,
+                       transformOrigin: 'center center',
+                       border: 'none'
+                     }}
+                     tabIndex={-1}
+                     scrolling="no"
+                   />
+                 )}
+              </div>
+
+              {/* Controles de Sliders */}
+              <div className="flex-1 w-full space-y-4 flex flex-col justify-center bg-card p-3 rounded-lg border border-border/50 shadow-sm">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Zoom</label>
+                    <span className="text-[9px] text-neon-cyan">{cropScale}x</span>
+                  </div>
+                  <input type="range" min="1" max="3" step="0.1" value={cropScale} onChange={e => setCropScale(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Mover X</label>
+                    <span className="text-[9px] text-neon-cyan">{cropX}%</span>
+                  </div>
+                  <input type="range" min="-50" max="50" step="1" value={cropX} onChange={e => setCropX(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Mover Y</label>
+                    <span className="text-[9px] text-neon-cyan">{cropY}%</span>
+                  </div>
+                  <input type="range" min="-50" max="50" step="1" value={cropY} onChange={e => setCropY(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { setCropScale(1); setCropX(0); setCropY(0); }} className="text-[10px] h-7 w-full uppercase font-pixel tracking-tighter">Restaurar</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Input 
           placeholder="Título o descripción (Opcional)" 
           value={newTitle} 
