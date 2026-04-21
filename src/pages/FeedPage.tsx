@@ -19,6 +19,7 @@ interface FeedItem {
   image_url?: string;
   content_type: string;
   title: string | null;
+  caption?: string | null; // 🔥 ESTO SOLUCIONA EL ERROR DE TYPESCRIPT 🔥
   thumbnail_url: string | null;
   is_public: boolean;
   created_at: string;
@@ -427,7 +428,7 @@ export default function FeedPage() {
     if (photos) {
       const photoItems = photos.map(p => ({
         id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
-        title: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
+        title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
         likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo'
       }));
       combined = [...combined, ...photoItems];
