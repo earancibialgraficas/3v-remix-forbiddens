@@ -41,6 +41,10 @@ export default function PublicProfilePage() {
   const [gameScores, setGameScores] = useState<{ game_name: string; console_type: string; score: number }[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
+  
+  // 🔥 Nuevos estados para las estadísticas adicionales
+  const [socialContentCount, setSocialContentCount] = useState(0);
+  const [totalForumPosts, setTotalForumPosts] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -68,13 +72,26 @@ export default function PublicProfilePage() {
         else setFriendStatus("none");
       }
 
-      // Fetch scores and posts
-      const [{ data: scores }, { data: posts }] = await Promise.all([
+      // 🔥 Fetch de TODOS los contadores y puntajes en paralelo para la tabla de Stats
+      const [
+        { data: scores }, 
+        { data: posts }, 
+        { count: socialCount }, 
+        { count: photosCount }, 
+        { count: forumPostsCount }
+      ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
         supabase.from("posts").select("id, title, category, upvotes, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+        supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId)
       ]);
+      
       if (scores) setGameScores(scores as any);
       if (posts) setUserPosts(posts);
+      setSocialContentCount((socialCount || 0) + (photosCount || 0));
+      setTotalForumPosts(forumPostsCount || 0);
+      
       setLoading(false);
     };
     fetchProfile();
@@ -83,17 +100,14 @@ export default function PublicProfilePage() {
   const handleFollow = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
     
-    // Guardamos el estado anterior por si falla
     const wasFollowing = isFollowing;
     
-    // UI Optimista
     setIsFollowing(!wasFollowing);
     setFollowerCount(p => wasFollowing ? p - 1 : p + 1);
 
     if (wasFollowing) {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) {
-        // Revertir si falla
         setIsFollowing(wasFollowing);
         setFollowerCount(p => p + 1);
         toast({ title: "Error al dejar de seguir", description: error.message, variant: "destructive" });
@@ -101,7 +115,6 @@ export default function PublicProfilePage() {
     } else {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
       if (error) {
-        // Revertir si falla
         setIsFollowing(wasFollowing);
         setFollowerCount(p => p - 1);
         toast({ title: "Error al seguir", description: error.message, variant: "destructive" });
@@ -146,7 +159,6 @@ export default function PublicProfilePage() {
   const isMod = roles.includes("moderator");
   const memberSince = new Date(profile.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" });
 
-  // Best score per game
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
       const key = `${gs.game_name}-${gs.console_type}`;
@@ -155,6 +167,7 @@ export default function PublicProfilePage() {
     }, {})
   );
   const totalScore = bestScores.reduce((sum, gs) => sum + gs.score, 0);
+  const displayTier = (isStaff || isMod) ? "STAFF" : profile.membership_tier.toUpperCase();
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -235,22 +248,30 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* 🔥 Nueva Tabla de Stats Expandida y Colorida 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-muted/30 rounded p-3 text-center">
-            <p className="text-lg font-bold font-body text-neon-green">{Math.max(profile.total_score, totalScore).toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground font-body">Puntos</p>
-          </div>
-          <div className="bg-muted/30 rounded p-3 text-center">
-            <p className="text-lg font-bold font-body text-neon-cyan">{userPosts.length}</p>
-            <p className="text-[10px] text-muted-foreground font-body">Posts</p>
-          </div>
-          <div className="bg-muted/30 rounded p-3 text-center">
-            <p className="text-lg font-bold font-body text-neon-yellow">{bestScores.length}</p>
-            <p className="text-[10px] text-muted-foreground font-body">Juegos</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            { val: Math.max(profile.total_score, totalScore).toLocaleString(), label: "Puntos", color: "text-neon-green" },
+            { val: followerCount, label: "Seguidores", color: "text-foreground" },
+            { val: followingCount, label: "Siguiendo", color: "text-foreground" },
+            { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
+            { val: socialContentCount, label: "Posts Social", color: "text-neon-yellow" },
+            { val: bestScores.length, label: "Juegos", color: "text-neon-orange" },
+            { 
+              val: displayTier, 
+              label: "Membresía", 
+              color: (isStaff || isMod) 
+                ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" 
+                : "text-muted-foreground" 
+            },
+          ].map((s, i) => (
+            <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
+              <p className={cn("text-lg font-bold font-body", s.color)}>{s.val}</p>
+              <p className="text-[10px] text-muted-foreground font-body uppercase mt-1">{s.label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
