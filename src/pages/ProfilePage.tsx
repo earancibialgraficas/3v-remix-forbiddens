@@ -1785,9 +1785,9 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
-                {/* 🔥 CONTENEDOR 100% RESPONSIVO PARA LA PREVIEW 🔥 */}
-                <div className="w-full max-w-[240px] aspect-square sm:aspect-video bg-black rounded-lg overflow-hidden border border-white/20 shadow-xl flex items-center justify-center p-2">
-                  <img src={previewImage} alt="Preview" className="max-w-full max-h-full object-contain rounded" />
+                {/* 🔥 CONTENEDOR FLEXIBLE QUE DEJA QUE LA IMAGEN RESPIRE 🔥 */}
+                <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
+                  <img src={previewImage} alt="Preview" className="max-w-full max-h-[300px] object-contain rounded" />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
