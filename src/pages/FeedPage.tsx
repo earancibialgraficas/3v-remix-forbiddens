@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Heart, MessageSquare, ThumbsUp, ThumbsDown, Share2, 
-  Send, CornerDownRight, ImageIcon, PlayCircle, MoreVertical 
+  Send, CornerDownRight, ImageIcon, PlayCircle, MoreVertical, Ghost 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,13 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
-// Estructura combinada para el Feed
 interface FeedItem {
   id: string;
   user_id: string;
   created_at: string;
   type: 'photo' | 'video';
-  content_url?: string; // Para videos/reels
-  image_url?: string;   // Para fotos
+  content_url?: string; 
+  image_url?: string;   
   title?: string;
   caption?: string;
   platform?: string;
@@ -41,13 +40,15 @@ export default function FeedPage() {
   const fetchFeed = async () => {
     setLoading(true);
     try {
-      // 1. Traer Fotos y Videos en paralelo
       const [photosRes, socialRes] = await Promise.all([
         supabase.from("photos").select("*, profiles(display_name, avatar_url)").order("created_at", { ascending: false }),
         supabase.from("social_content").select("*, profiles(display_name, avatar_url)").order("created_at", { ascending: false })
       ]);
 
-      // 2. Normalizar y mezclar
+      // 🔥 Detectores de errores por si fallan las relaciones en Supabase 🔥
+      if (photosRes.error) console.error("❌ Error cargando fotos:", photosRes.error.message);
+      if (socialRes.error) console.error("❌ Error cargando social_content:", socialRes.error.message);
+
       const normalizedPhotos = (photosRes.data || []).map(p => ({ ...p, type: 'photo' as const }));
       const normalizedSocial = (socialRes.data || []).map(s => ({ ...s, type: 'video' as const }));
 
@@ -55,12 +56,12 @@ export default function FeedPage() {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      // 3. Obtener reacciones para cada item (esto se podría optimizar luego con una View en SQL)
       const feedWithData = await Promise.all(combined.map(async (item) => {
         const { data: reactions } = await supabase.from("social_reactions").select("reaction_type, user_id").eq("content_id", item.id);
         
         return {
           ...item,
+          profiles: item.profiles || { display_name: "Usuario Desconocido", avatar_url: null }, // Fallback si el perfil fue borrado
           reactions_count: {
             likes: reactions?.filter(r => r.reaction_type === 'like').length || 0,
             dislikes: reactions?.filter(r => r.reaction_type === 'dislike').length || 0
@@ -71,7 +72,7 @@ export default function FeedPage() {
 
       setItems(feedWithData as any);
     } catch (error) {
-      console.error("Feed error:", error);
+      console.error("❌ Error crítico en Feed:", error);
     } finally {
       setLoading(false);
     }
@@ -95,13 +96,13 @@ export default function FeedPage() {
           reaction_type: type
         } as any);
       }
-      fetchFeed(); // Recargar para actualizar conteos
+      fetchFeed(); 
     } catch (error) {
       toast({ title: "Error en reacción", variant: "destructive" });
     }
   };
 
-  if (loading) return <div className="p-10 text-center animate-pulse font-pixel text-neon-cyan text-xs">CARGANDO SUPER MURO...</div>;
+  if (loading) return <div className="p-10 text-center animate-pulse font-pixel text-neon-cyan text-xs uppercase tracking-widest">Cargando Super Muro...</div>;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20 animate-fade-in">
@@ -109,6 +110,17 @@ export default function FeedPage() {
         <PlayCircle className="w-5 h-5 text-neon-cyan" />
         <h1 className="font-pixel text-sm text-foreground">FEED GLOBAL</h1>
       </div>
+
+      {/* 🔥 ESTADO VACÍO (Por si no hay posts) 🔥 */}
+      {items.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-50">
+          <Ghost className="w-16 h-16 text-muted-foreground animate-bounce" />
+          <div>
+            <p className="font-pixel text-xs text-muted-foreground uppercase">El muro está vacío</p>
+            <p className="font-body text-[10px] text-muted-foreground/70 mt-1">Sé el primero en publicar una foto o video.</p>
+          </div>
+        </div>
+      )}
 
       {items.map((item) => (
         <div key={item.id} className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-2xl">
@@ -188,7 +200,6 @@ export default function FeedPage() {
   );
 }
 
-// Sub-componente para manejar reproductores externos
 function VideoPlayer({ url }: { url: string }) {
   const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
   const isInstagram = url.includes("instagram.com");
@@ -222,7 +233,6 @@ function VideoPlayer({ url }: { url: string }) {
   );
 }
 
-// Sub-componente de Comentarios y Respuestas
 function CommentsSection({ contentId }: { contentId: string }) {
   const { user } = useAuth();
   const [comments, setComments] = useState<any[]>([]);
