@@ -122,7 +122,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
   return (
     <div className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
       
-      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA (Mantiene object-contain normal para verse completa) */}
       <div className="relative bg-black flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[400px] bg-white rounded-lg shadow-xl" allowFullScreen />
@@ -411,19 +410,19 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
-  // 🔥 RENDERIZADOR DEL THUMBNAIL (CON EL 5% DE DESPLAZAMIENTO HACIA ARRIBA) 🔥
+  // 🔥 RENDERIZADOR DEL THUMBNAIL (CON EL 5% DE DESPLAZAMIENTO HACIA ARRIBA Y ALTURA 105%) 🔥
   const renderSquareImage = (photo: any) => {
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
       if (embed) {
         return (
           <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none rounded-lg">
-            <iframe src={embed} className="absolute top-0 left-0 w-full h-[110%] transform -translate-y-[5%] scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
+            <iframe src={embed} className="absolute top-0 left-0 w-full h-[105%] transform -translate-y-[5%] scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
           </div>
         );
       }
     }
-    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="absolute top-0 left-0 w-full h-[110%] object-cover rounded-lg transform -translate-y-[5%]" loading="lazy" />;
+    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="absolute top-0 left-0 w-full h-[105%] object-cover rounded-lg transform -translate-y-[5%]" loading="lazy" />;
   };
 
   return (
@@ -496,7 +495,7 @@ export default function PhotoWallPage() {
               );
             }
 
-            {/* 🔥 TARJETAS DEL MURO: Contenedor más largo (aspect-[4/5]) 🔥 */}
+            {/* 🔥 TARJETAS DEL MURO: aspect-[3/4] para alargarlas más hacia abajo 🔥 */}
             return (
               <div 
                 key={photo.id} 
@@ -504,7 +503,7 @@ export default function PhotoWallPage() {
                   setExpandedPhotoId(photo.id);
                   setTimeout(() => window.scrollBy({ top: 100, behavior: 'smooth' }), 50);
                 }}
-                className="relative group rounded-xl bg-[#09090b] aspect-[4/5] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
+                className="relative group rounded-xl bg-[#09090b] aspect-[3/4] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
               >
                 <div className="relative w-full h-full overflow-hidden rounded-lg">
                   {renderSquareImage(photo)}
