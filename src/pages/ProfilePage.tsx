@@ -438,7 +438,6 @@ export default function ProfilePage() {
   
   const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
 
-  // Deduplicar juegos
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
       const key = `${gs.game_name}-${gs.console_type}`;
@@ -1320,11 +1319,9 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const [membershipSearch, setMembershipSearch] = useState("");
   const [selectedTier, setSelectedTier] = useState("entusiasta");
   
-  // 🔥 Nuevos estados para el Panel de Banned Users
   const [bannedUsers, setBannedUsers] = useState<any[]>([]);
   const [expandedBanned, setExpandedBanned] = useState(false);
 
-  // Cargar lista de baneados
   useEffect(() => {
     if (expandedBanned) {
       supabase
@@ -1377,7 +1374,6 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
       toast({ title: "Usuario baneado permanentemente" }); 
       setBanEmail(""); 
       setBanReason(""); 
-      // Refrescar lista si está abierta
       if (expandedBanned) setExpandedBanned(false);
     }
   };
@@ -1413,7 +1409,6 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         </Button>
       </div>
 
-      {/* 🔥 Nuevo Panel de Usuarios Sancionados 🔥 */}
       <div className="bg-card border border-destructive/30 rounded p-4">
         <button 
           onClick={() => setExpandedBanned(!expandedBanned)} 
@@ -1665,7 +1660,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
 
-  // 🔥 NUEVOS ESTADOS PARA EL EXTRACTOR DE PORTADAS 🔥
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
@@ -1683,7 +1677,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
     fetchContents(); 
   }, [user.id]);
 
-  // 🔥 DEBOUNCE PARA BUSCAR LA IMAGEN CUANDO PEGAN EL LINK 🔥
   useEffect(() => {
     const fetchPreview = async () => {
       if (!newUrl.trim() || !newUrl.startsWith("http")) {
@@ -1694,7 +1687,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       
       setIsFetchingPreview(true);
       try {
-        // Usamos Microlink (Gratis y rapidísimo) para extraer la foto del post
         const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
         const data = await res.json();
         
@@ -1710,7 +1702,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       }
     };
 
-    // Espera 1 segundo después de escribir para no saturar la API
     const timer = setTimeout(fetchPreview, 1000);
     return () => clearTimeout(timer);
   }, [newUrl]);
@@ -1744,7 +1735,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       title: newTitle.trim() || null,
       platform: platform,
       content_type: contentType,
-      thumbnail_url: previewImage, // 🔥 GUARDAMOS EL LINK EN LA BD (0 Megabytes gastados)
+      thumbnail_url: previewImage, 
       is_public: true
     } as any);
     
@@ -1784,7 +1775,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
           className="h-8 bg-muted text-xs w-full font-body" 
         />
 
-        {/* 🔥 PREVISUALIZADOR MÁGICO DE METADATA 🔥 */}
         {newUrl.trim().startsWith("http") && (
           <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
             {isFetchingPreview ? (
@@ -1793,10 +1783,11 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
                 <span className="text-[10px] font-pixel uppercase tracking-widest">Extrayendo portada...</span>
               </div>
             ) : previewImage ? (
-              <div className="w-full flex flex-col items-center gap-2">
-                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest">¡Portada Extraída con Éxito!</p>
-                <div className="w-[120px] aspect-[3/4] bg-black rounded-lg overflow-hidden border border-white/20 shadow-xl">
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+              <div className="w-full flex flex-col items-center gap-3">
+                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
+                {/* 🔥 CONTENEDOR 100% RESPONSIVO PARA LA PREVIEW 🔥 */}
+                <div className="w-full max-w-[240px] aspect-square sm:aspect-video bg-black rounded-lg overflow-hidden border border-white/20 shadow-xl flex items-center justify-center p-2">
+                  <img src={previewImage} alt="Preview" className="max-w-full max-h-full object-contain rounded" />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
