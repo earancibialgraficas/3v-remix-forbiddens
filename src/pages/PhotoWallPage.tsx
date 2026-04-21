@@ -122,7 +122,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
   return (
     <div className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
       
-      <div className="relative bg-black flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2">
+      {/* 🔥 LADO IZQUIERDO: IMAGEN EXPANDIDA (Toma el 70% - 75% del ancho) 🔥 */}
+      <div className="relative bg-black w-full md:w-[70%] lg:w-[75%] min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2 shrink-0 md:shrink">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[400px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
@@ -134,8 +135,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
         </button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL */}
-      <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:max-h-[75vh]">
+      {/* 🔥 LADO DERECHO: PANEL SOCIAL (Toma el 30% - 25% del ancho restante) 🔥 */}
+      <div className="w-full md:w-[30%] lg:w-[25%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:max-h-[75vh] shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -410,7 +411,6 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
-  // 🔥 RENDERIZADOR DEL THUMBNAIL (CON EL 5% DE DESPLAZAMIENTO HACIA ARRIBA Y ALTURA 105%) 🔥
   const renderSquareImage = (photo: any) => {
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
@@ -495,7 +495,6 @@ export default function PhotoWallPage() {
               );
             }
 
-            {/* 🔥 TARJETAS DEL MURO: aspect-[3/4] para alargarlas más hacia abajo 🔥 */}
             return (
               <div 
                 key={photo.id} 
