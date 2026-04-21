@@ -496,7 +496,8 @@ export default function ProfilePage() {
           membershipTier={tier}
           isStaff={isStaff || isMod}
           onSelect={handleAvatarSelect}
-          onUpload={(isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier)) ? handleAvatarUpload : undefined}
+          // 🔥 AQUÍ ESTÁ EL CAMBIO: Permite subir a cualquiera que no sea 'novato'
+          onUpload={(isStaff || isMod || tier !== "novato") ? handleAvatarUpload : undefined}
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
