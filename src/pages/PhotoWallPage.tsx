@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,11 +120,11 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
   const embedSrc = isEmbed ? getEmbedUrl(photo.image_url, photo.platform) : null;
 
   return (
-    // 🔥 ASPECT-[1.52]: El truco mágico para que mida exactamente lo mismo que el contenedor sin expandir 🔥
-    <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2 md:aspect-[1.52]">
+    // 🔥 ELIMINÉ el my-2 y le agregué aspect-[3/2] para que iguale matemáticamente la altura exacta 🔥
+    <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in md:aspect-[3/2]">
       
-      {/* 🔥 IMAGEN (70% a 75% del ancho, su altura se adapta automáticamente al padre) 🔥 */}
-      <div className="relative bg-black w-full md:w-[70%] lg:w-[75%] aspect-[1.52] md:aspect-auto flex items-center justify-center p-2 shrink-0 md:shrink">
+      {/* 🔥 LADO IZQUIERDO: IMAGEN EXPANDIDA (60%) 🔥 */}
+      <div className="relative bg-black w-full md:w-[60%] flex items-center justify-center p-2 shrink-0 md:shrink">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[450px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
@@ -136,8 +136,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
         </button>
       </div>
 
-      {/* 🔥 PANEL SOCIAL (30% a 25% del ancho, hereda la altura exacta de la imagen) 🔥 */}
-      <div className="w-full md:w-[30%] lg:w-[25%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
+      {/* 🔥 LADO DERECHO: PANEL SOCIAL (40%) 🔥 */}
+      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -273,9 +273,6 @@ export default function PhotoWallPage() {
   
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
-  
-  // 🔥 REFERENCIA PARA GUARDAR LA POSICIÓN EXACTA DEL SCROLL 🔥
-  const scrollPosRef = useRef(0);
 
   const tier = profile?.membership_tier || "novato";
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -490,13 +487,8 @@ export default function PhotoWallPage() {
                 <ExpandedPhotoCard 
                   key={photo.id} 
                   photo={photo} 
-                  onClose={() => {
-                    // 🔥 CERRAR Y RESTAURAR EL SCROLL GUARDADO INSTANTÁNEAMENTE 🔥
-                    setExpandedPhotoId(null);
-                    setTimeout(() => {
-                      window.scrollTo({ top: scrollPosRef.current, behavior: 'instant' });
-                    }, 10);
-                  }}
+                  // 🔥 NINGÚN CÓDIGO DE SCROLL AQUÍ, SOLO CERRAR 🔥
+                  onClose={() => setExpandedPhotoId(null)}
                   onReaction={handleReaction}
                   onDelete={handleDeletePhoto}
                   userReaction={userReactions[photo.id]}
@@ -508,19 +500,8 @@ export default function PhotoWallPage() {
             return (
               <div 
                 key={photo.id} 
-                onClick={() => {
-                  // 🔥 GUARDAR EL SCROLL EXACTO ANTES DE ABRIR 🔥
-                  scrollPosRef.current = window.scrollY;
-                  setExpandedPhotoId(photo.id);
-                  
-                  // Centramos suavemente la tarjeta expandida
-                  setTimeout(() => {
-                    const el = document.getElementById(`expanded-card-${photo.id}`);
-                    if (el) {
-                      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
-                    }
-                  }, 50);
-                }}
+                // 🔥 NINGÚN CÓDIGO DE SCROLL AQUÍ, SOLO ABRIR 🔥
+                onClick={() => setExpandedPhotoId(photo.id)}
                 className="relative group rounded-xl bg-[#09090b] aspect-[3/4] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
               >
                 <div className="relative w-full h-full overflow-hidden rounded-lg">
