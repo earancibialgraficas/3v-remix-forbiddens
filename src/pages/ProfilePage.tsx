@@ -447,20 +447,16 @@ export default function ProfilePage() {
     }, {})
   );
 
-  // 🔥 Filtro de seguridad anti-crasheos para la cajita de colores 🔥
   const getValidHex = (val: string | null | undefined) => {
     if (!val) return "#ffffff";
     const hex = String(val).trim();
     if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
-    // Convierte #fff a #ffffff
     if (/^#[0-9A-Fa-f]{3}$/i.test(hex)) return '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3];
     return "#ffffff"; 
   };
 
-  // 🔥 Estado temporal (Caché) para evitar crasheos al renderizar 🔥
   const [localColorCache, setLocalColorCache] = useState("#ffffff");
 
-  // Sincronizar el caché dependiendo del objetivo seleccionado
   useEffect(() => {
     if (!showColorPicker) return;
     const activeColor = 
@@ -494,9 +490,10 @@ export default function ProfilePage() {
         <AvatarSelector
           currentAvatar={profile?.avatar_url || null}
           membershipTier={tier}
-          isStaff={isStaff || isMod}
+          // 🔥 Si el código de AvatarSelector dice "STAFF" por dentro, ignora esto,
+          // pero aquí le pasamos que sí tiene permisos de Staff para saltarse el bloqueo visual
+          isStaff={isStaff || isMod || tier !== "novato"}
           onSelect={handleAvatarSelect}
-          // 🔥 AQUÍ ESTÁ EL CAMBIO: Permite subir a cualquiera que no sea 'novato'
           onUpload={(isStaff || isMod || tier !== "novato") ? handleAvatarUpload : undefined}
           onClose={() => setShowAvatarSelector(false)}
         />
@@ -510,7 +507,6 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* 🔥 Modal de Configuración de Colores Extendido y Anti-Crasheos 🔥 */}
       {showColorPicker && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowColorPicker(false)} />
@@ -547,15 +543,13 @@ export default function ProfilePage() {
               <div>
                 <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">Elige el color</label>
                 <div className="flex gap-2">
-                  {/* Cajita con Caché y Retraso de 1s para no saturar el estado */}
                   <input
                     type="color"
                     value={localColorCache}
                     onChange={(e) => {
                       const newColor = e.target.value;
-                      setLocalColorCache(newColor); // Actualiza la UI rápido
+                      setLocalColorCache(newColor); 
                       
-                      // Debounce de 1 segundo para mandar a la base
                       if ((window as any).__colorDebounce) clearTimeout((window as any).__colorDebounce);
                       (window as any).__colorDebounce = setTimeout(() => {
                         if (colorTarget === "border") setAvatarBorderColor(newColor);
@@ -1701,6 +1695,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       contentType = url.includes("shorts") ? "reel" : "video";
     } else if (url.includes("instagram.com")) {
       platform = "instagram";
+      // 🔥 CORRECCIÓN: Si no dice reel explícitamente, asume que es una foto/post normal.
       contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post";
     } else if (url.includes("tiktok.com")) {
       platform = "tiktok";
