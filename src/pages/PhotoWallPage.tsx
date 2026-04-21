@@ -123,7 +123,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
     <div className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
       
       {/* LADO IZQUIERDO: IMAGEN COMPLETA */}
-      <div className="relative bg-black flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2">
+      <div className="relative bg-[#09090b] flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-4 md:p-8">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[400px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
@@ -418,19 +418,19 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
-  // 🔥 RENDERIZADOR DEL THUMBNAIL (CUADRADO PERFECTO) 🔥
+  // 🔥 RENDERIZADOR DEL THUMBNAIL (CUADRADO PERFECTO Y MÁS PEQUEÑO CON MARCO) 🔥
   const renderSquareImage = (photo: any) => {
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
       if (embed) {
         return (
-          <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none">
+          <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none rounded-lg">
             <iframe src={embed} className="absolute inset-0 w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
           </div>
         );
       }
     }
-    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />;
+    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="absolute inset-0 w-full h-full object-cover rounded-lg" loading="lazy" />;
   };
 
   return (
@@ -493,7 +493,6 @@ export default function PhotoWallPage() {
         <div className="grid grid-cols-2 gap-2 md:gap-4 px-2 md:px-0">
           {displayPhotos.map(photo => {
             
-            // Si es la foto clickeada, se expande abarcando las 2 columnas
             if (expandedPhotoId === photo.id) {
               return (
                 <ExpandedPhotoCard 
@@ -508,25 +507,26 @@ export default function PhotoWallPage() {
               );
             }
 
-            // Si NO está expandida, es un cuadrito normal
+            // 🔥 CORRECCIÓN: Padding añadido para hacer el marco negro y la imagen más pequeña
             return (
               <div 
                 key={photo.id} 
                 onClick={() => {
                   setExpandedPhotoId(photo.id);
-                  // Opcional: Hacer scroll automático hacia la foto expandida
                   setTimeout(() => window.scrollBy({ top: 100, behavior: 'smooth' }), 50);
                 }}
-                className="relative group rounded-xl overflow-hidden bg-black aspect-square border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10"
+                className="relative group rounded-xl bg-[#09090b] aspect-square border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-1.5 md:p-2.5 flex flex-col"
               >
-                {renderSquareImage(photo)}
-                
-                {/* Capa oscura al hacer hover (Muestra likes y comentarios) */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
-                  <Maximize2 className="w-8 h-8 text-white/50 mb-2" />
-                  <div className="flex items-center gap-4 text-white font-body text-xs">
-                    <span className="flex items-center gap-1.5"><ThumbsUp className="w-4 h-4" /> {photo.likes}</span>
-                    <span className="flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /></span>
+                <div className="relative w-full h-full overflow-hidden rounded-lg">
+                  {renderSquareImage(photo)}
+                  
+                  {/* Capa oscura al hacer hover (ajustada al marco interno) */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                    <Maximize2 className="w-8 h-8 text-white/50 mb-2" />
+                    <div className="flex items-center gap-4 text-white font-body text-xs">
+                      <span className="flex items-center gap-1.5"><ThumbsUp className="w-4 h-4" /> {photo.likes}</span>
+                      <span className="flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /></span>
+                    </div>
                   </div>
                 </div>
               </div>
