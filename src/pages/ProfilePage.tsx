@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -450,10 +450,33 @@ export default function ProfilePage() {
   // 🔥 Filtro de seguridad anti-crasheos para la cajita de colores 🔥
   const getValidHex = (val: string | null | undefined) => {
     if (!val) return "#ffffff";
-    const hex = val.trim();
+    const hex = String(val).trim();
     if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
-    return "#ffffff"; // Si detecta un gradiente o palabra rara, devuelve blanco para no romperse
+    // Convierte #fff a #ffffff
+    if (/^#[0-9A-Fa-f]{3}$/i.test(hex)) return '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3];
+    return "#ffffff"; 
   };
+
+  // 🔥 Estado temporal (Caché) para evitar crasheos al renderizar 🔥
+  const [localColorCache, setLocalColorCache] = useState("#ffffff");
+
+  // Sincronizar el caché dependiendo del objetivo seleccionado
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const activeColor = 
+      colorTarget === "border" ? avatarBorderColor :
+      colorTarget === "name" ? nameColor :
+      colorTarget === "role" ? roleColor :
+      colorTarget === "staff" ? staffRoleColor :
+      colorTarget === "stat_points" ? statPointsColor :
+      colorTarget === "stat_followers" ? statFollowersColor :
+      colorTarget === "stat_following" ? statFollowingColor :
+      colorTarget === "stat_posts_forum" ? statPostsForumColor :
+      colorTarget === "stat_posts_social" ? statPostsSocialColor :
+      statGamesColor;
+    
+    setLocalColorCache(getValidHex(activeColor));
+  }, [colorTarget, showColorPicker, avatarBorderColor, nameColor, roleColor, staffRoleColor, statPointsColor, statFollowersColor, statFollowingColor, statPostsForumColor, statPostsSocialColor, statGamesColor]);
 
   const tabs = [
     { id: "avisos" as const, label: "Avisos", icon: Bell },
@@ -486,7 +509,7 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* 🔥 Modal de Configuración de Colores Extendido 🔥 */}
+      {/* 🔥 Modal de Configuración de Colores Extendido y Anti-Crasheos 🔥 */}
       {showColorPicker && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowColorPicker(false)} />
@@ -523,31 +546,28 @@ export default function ProfilePage() {
               <div>
                 <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">Elige el color</label>
                 <div className="flex gap-2">
+                  {/* Cajita con Caché y Retraso de 1s para no saturar el estado */}
                   <input
                     type="color"
-                    value={getValidHex(
-                      colorTarget === "border" ? avatarBorderColor :
-                      colorTarget === "name" ? nameColor :
-                      colorTarget === "role" ? roleColor :
-                      colorTarget === "staff" ? staffRoleColor :
-                      colorTarget === "stat_points" ? statPointsColor :
-                      colorTarget === "stat_followers" ? statFollowersColor :
-                      colorTarget === "stat_following" ? statFollowingColor :
-                      colorTarget === "stat_posts_forum" ? statPostsForumColor :
-                      colorTarget === "stat_posts_social" ? statPostsSocialColor :
-                      statGamesColor
-                    )}
+                    value={localColorCache}
                     onChange={(e) => {
-                      if (colorTarget === "border") setAvatarBorderColor(e.target.value);
-                      else if (colorTarget === "name") setNameColor(e.target.value);
-                      else if (colorTarget === "role") setRoleColor(e.target.value);
-                      else if (colorTarget === "staff") setStaffRoleColor(e.target.value);
-                      else if (colorTarget === "stat_points") setStatPointsColor(e.target.value);
-                      else if (colorTarget === "stat_followers") setStatFollowersColor(e.target.value);
-                      else if (colorTarget === "stat_following") setStatFollowingColor(e.target.value);
-                      else if (colorTarget === "stat_posts_forum") setStatPostsForumColor(e.target.value);
-                      else if (colorTarget === "stat_posts_social") setStatPostsSocialColor(e.target.value);
-                      else setStatGamesColor(e.target.value);
+                      const newColor = e.target.value;
+                      setLocalColorCache(newColor); // Actualiza la UI rápido
+                      
+                      // Debounce de 1 segundo para mandar a la base
+                      if ((window as any).__colorDebounce) clearTimeout((window as any).__colorDebounce);
+                      (window as any).__colorDebounce = setTimeout(() => {
+                        if (colorTarget === "border") setAvatarBorderColor(newColor);
+                        else if (colorTarget === "name") setNameColor(newColor);
+                        else if (colorTarget === "role") setRoleColor(newColor);
+                        else if (colorTarget === "staff") setStaffRoleColor(newColor);
+                        else if (colorTarget === "stat_points") setStatPointsColor(newColor);
+                        else if (colorTarget === "stat_followers") setStatFollowersColor(newColor);
+                        else if (colorTarget === "stat_following") setStatFollowingColor(newColor);
+                        else if (colorTarget === "stat_posts_forum") setStatPostsForumColor(newColor);
+                        else if (colorTarget === "stat_posts_social") setStatPostsSocialColor(newColor);
+                        else setStatGamesColor(newColor);
+                      }, 1000);
                     }}
                     className="h-10 flex-1 rounded border border-border cursor-pointer bg-muted"
                   />
