@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,11 +76,21 @@ export default function ProfilePage() {
   const [storageUsed, setStorageUsed] = useState(0);
   const [socialContentCount, setSocialContentCount] = useState(0); 
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff">("border");
+  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff" | "stat_points" | "stat_followers" | "stat_following" | "stat_posts_forum" | "stat_posts_social" | "stat_games">("border");
+  
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
   const [nameColor, setNameColor] = useState("");
   const [roleColor, setRoleColor] = useState("");
   const [staffRoleColor, setStaffRoleColor] = useState("");
+  
+  // 🔥 Nuevos estados para colores de estadísticas
+  const [statPointsColor, setStatPointsColor] = useState("");
+  const [statFollowersColor, setStatFollowersColor] = useState("");
+  const [statFollowingColor, setStatFollowingColor] = useState("");
+  const [statPostsForumColor, setStatPostsForumColor] = useState("");
+  const [statPostsSocialColor, setStatPostsSocialColor] = useState("");
+  const [statGamesColor, setStatGamesColor] = useState("");
+
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -115,6 +125,14 @@ export default function ProfilePage() {
       setNameColor((profile as any).color_name || "");
       setRoleColor((profile as any).color_role || "");
       setStaffRoleColor((profile as any).color_staff_role || "");
+
+      // Cargar colores de stats
+      setStatPointsColor((profile as any).color_stat_points || "#39ff14");
+      setStatFollowersColor((profile as any).color_stat_followers || "#ffffff");
+      setStatFollowingColor((profile as any).color_stat_following || "#ffffff");
+      setStatPostsForumColor((profile as any).color_stat_posts_forum || "#00ffff");
+      setStatPostsSocialColor((profile as any).color_stat_posts_social || "#ffff00");
+      setStatGamesColor((profile as any).color_stat_games || "#ff8c00");
     }
   }, [profile, editing]);
 
@@ -296,6 +314,35 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSaveColors = async () => {
+    if (!user) return;
+    setSavingColors(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        color_avatar_border: avatarBorderColor || null,
+        color_name: nameColor || null,
+        color_role: roleColor || null,
+        color_staff_role: staffRoleColor || null,
+        color_stat_points: statPointsColor || null,
+        color_stat_followers: statFollowersColor || null,
+        color_stat_following: statFollowingColor || null,
+        color_stat_posts_forum: statPostsForumColor || null,
+        color_stat_posts_social: statPostsSocialColor || null,
+        color_stat_games: statGamesColor || null,
+      } as any)
+      .eq("user_id", user.id);
+      
+    setSavingColors(false);
+    if (!error) {
+      toast({ title: "Colores guardados" });
+      setShowColorPicker(false);
+      await refreshProfile();
+    } else {
+      toast({ title: "Error al guardar", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleAvatarSelect = async (url: string) => {
     if (!user) return;
     const nextAvatarUrl = withImageVersion(url, Date.now());
@@ -388,11 +435,19 @@ export default function ProfilePage() {
   const tier = profile?.membership_tier || "novato";
   const maxFriends = (isAdmin || isMasterWeb) ? Infinity : (friendLimits[tier] || 25);
   const maxStorage = (isAdmin || isMasterWeb) ? Infinity : (storageLimits[tier] || 50);
-  const storagePercent = maxStorage === Infinity ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
   const isMod = roles.includes("moderator");
   const isStaff = isAdmin || isMasterWeb;
   
   const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
+
+  // Deduplicar juegos
+  const bestScores = Object.values(
+    gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
+      const key = `${gs.game_name}-${gs.console_type}`;
+      if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
+      return acc;
+    }, {})
+  );
 
   const tabs = [
     { id: "avisos" as const, label: "Avisos", icon: Bell },
@@ -423,6 +478,105 @@ export default function ProfilePage() {
           onSelect={handleRoleIconSelect}
           onClose={() => setShowRoleIconSelector(false)}
         />
+      )}
+
+      {/* 🔥 Modal de Configuración de Colores Extendido 🔥 */}
+      {showColorPicker && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowColorPicker(false)} />
+          <div className="relative bg-card border border-border rounded-lg p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto retro-scrollbar shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-pixel text-[11px] text-primary">PALETA DE COLORES</h3>
+              <button onClick={() => setShowColorPicker(false)} className="text-muted-foreground hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">¿Qué deseas pintar?</label>
+                <select 
+                  value={colorTarget} 
+                  onChange={(e) => setColorTarget(e.target.value as any)}
+                  className="w-full bg-muted border border-border rounded p-2 text-xs font-body"
+                >
+                  <option value="border">Borde de Avatar</option>
+                  <option value="name">Nombre de Usuario</option>
+                  {(isStaff || isMod) && <option value="staff">Rango de Staff</option>}
+                  {!(isStaff || isMod) && <option value="role">Rango de Membresía</option>}
+                  <option disabled>──────────</option>
+                  <option value="stat_points">Stat: Puntos</option>
+                  <option value="stat_followers">Stat: Seguidores</option>
+                  <option value="stat_following">Stat: Siguiendo</option>
+                  <option value="stat_posts_forum">Stat: Posts Foro</option>
+                  <option value="stat_posts_social">Stat: Posts Social</option>
+                  <option value="stat_games">Stat: Juegos</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">Elige el color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={
+                      colorTarget === "border" ? (avatarBorderColor || "#ffffff") :
+                      colorTarget === "name" ? (nameColor || "#ffffff") :
+                      colorTarget === "role" ? (roleColor || "#ffffff") :
+                      colorTarget === "staff" ? (staffRoleColor || "#ffffff") :
+                      colorTarget === "stat_points" ? (statPointsColor || "#ffffff") :
+                      colorTarget === "stat_followers" ? (statFollowersColor || "#ffffff") :
+                      colorTarget === "stat_following" ? (statFollowingColor || "#ffffff") :
+                      colorTarget === "stat_posts_forum" ? (statPostsForumColor || "#ffffff") :
+                      colorTarget === "stat_posts_social" ? (statPostsSocialColor || "#ffffff") :
+                      (statGamesColor || "#ffffff")
+                    }
+                    onChange={(e) => {
+                      if (colorTarget === "border") setAvatarBorderColor(e.target.value);
+                      else if (colorTarget === "name") setNameColor(e.target.value);
+                      else if (colorTarget === "role") setRoleColor(e.target.value);
+                      else if (colorTarget === "staff") setStaffRoleColor(e.target.value);
+                      else if (colorTarget === "stat_points") setStatPointsColor(e.target.value);
+                      else if (colorTarget === "stat_followers") setStatFollowersColor(e.target.value);
+                      else if (colorTarget === "stat_following") setStatFollowingColor(e.target.value);
+                      else if (colorTarget === "stat_posts_forum") setStatPostsForumColor(e.target.value);
+                      else if (colorTarget === "stat_posts_social") setStatPostsSocialColor(e.target.value);
+                      else setStatGamesColor(e.target.value);
+                    }}
+                    className="h-10 flex-1 rounded border border-border cursor-pointer bg-muted"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      if (colorTarget === "border") setAvatarBorderColor("");
+                      else if (colorTarget === "name") setNameColor("");
+                      else if (colorTarget === "role") setRoleColor("");
+                      else if (colorTarget === "staff") setStaffRoleColor("");
+                      else if (colorTarget === "stat_points") setStatPointsColor("");
+                      else if (colorTarget === "stat_followers") setStatFollowersColor("");
+                      else if (colorTarget === "stat_following") setStatFollowingColor("");
+                      else if (colorTarget === "stat_posts_forum") setStatPostsForumColor("");
+                      else if (colorTarget === "stat_posts_social") setStatPostsSocialColor("");
+                      else setStatGamesColor("");
+                    }}
+                    className="px-3"
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border flex gap-2">
+                <Button onClick={handleSaveColors} disabled={savingColors} className="flex-1 text-xs">
+                  {savingColors ? "Guardando..." : "Guardar Paleta"}
+                </Button>
+                <Button variant="outline" onClick={() => setShowColorPicker(false)} className="flex-1 text-xs">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
@@ -880,7 +1034,7 @@ export default function ProfilePage() {
 
                   {(["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) || isStaff || isMod) && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
-                      <Palette className="w-3 h-3" /> Personalizar Colores
+                      <Palette className="w-3 h-3" /> Colores
                     </Button>
                   )}
                   
@@ -986,27 +1140,43 @@ export default function ProfilePage() {
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">
             Estadísticas
           </h3>
+          {/* 🔥 Tabla de Stats con Colores Personalizables y Efecto Neón para Staff 🔥 */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { val: followerCount, label: "Seguidores" },
-              { val: followingCount, label: "Siguiendo" },
-              { val: userPosts.length, label: "Posts Foro" },
-              { val: socialContentCount, label: "Posts Social" },
-              { val: displayTier, label: "Membresía" },
+              { val: profile?.total_score?.toLocaleString() || 0, label: "Puntos", color: statPointsColor || "#39ff14" },
+              { val: followerCount, label: "Seguidores", color: statFollowersColor || "#ffffff" },
+              { val: followingCount, label: "Siguiendo", color: statFollowingColor || "#ffffff" },
+              { val: userPosts.length, label: "Posts Foro", color: statPostsForumColor || "#00ffff" },
+              { val: socialContentCount, label: "Posts Social", color: statPostsSocialColor || "#ffff00" },
+              { val: bestScores.length, label: "Juegos", color: statGamesColor || "#ff8c00" },
+              { 
+                val: displayTier, 
+                label: "Membresía", 
+                color: (isStaff || isMod) ? "#39ff14" : "#a1a1aa",
+                isStaffTier: (isStaff || isMod) 
+              },
             ].map((s, i) => (
-              <div key={i} className="bg-muted/30 rounded p-3 text-center">
-                <p className="text-lg font-bold font-body text-neon-green">{s.val}</p>
-                <p className="text-[10px] uppercase opacity-60 font-body">{s.label}</p>
+              <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
+                <p 
+                  className={cn("text-lg font-bold font-body", s.isStaffTier && "animate-pulse")} 
+                  style={{ 
+                    color: s.color, 
+                    filter: s.isStaffTier ? `drop-shadow(0 0 8px ${s.color}cc)` : undefined 
+                  }}
+                >
+                  {s.val}
+                </p>
+                <p className="text-[10px] uppercase opacity-60 font-body mt-1">{s.label}</p>
               </div>
             ))}
           </div>
-          {gameScores.length > 0 && (
+          {bestScores.length > 0 && (
             <div className="mt-4">
               <h4 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center justify-center md:justify-start gap-1 uppercase">
                 <Gamepad2 className="w-3 h-3" /> Puntajes por Juego
               </h4>
               <div className="space-y-1">
-                {gameScores.map((gs, i) => (
+                {bestScores.map((gs, i) => (
                   <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
                     <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
                       {gs.console_type.toUpperCase()}
@@ -1051,6 +1221,8 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+// 🔥 COMPONENTES DE APOYO EXPANDIDOS
 
 function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
@@ -1129,6 +1301,35 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
   const [modEmail, setModEmail] = useState("");
   const [membershipSearch, setMembershipSearch] = useState("");
   const [selectedTier, setSelectedTier] = useState("entusiasta");
+  
+  // 🔥 Nuevos estados para el Panel de Banned Users
+  const [bannedUsers, setBannedUsers] = useState<any[]>([]);
+  const [expandedBanned, setExpandedBanned] = useState(false);
+
+  // Cargar lista de baneados
+  useEffect(() => {
+    if (expandedBanned) {
+      supabase
+        .from("banned_users")
+        .select("id, user_id, reason, ban_type, created_at")
+        .then(async ({ data }) => {
+          if (!data || data.length === 0) {
+            setBannedUsers([]);
+            return;
+          }
+          const ids = data.map(b => b.user_id);
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", ids);
+            
+          setBannedUsers(data.map(b => ({
+            ...b,
+            display_name: profs?.find(p => p.user_id === b.user_id)?.display_name || "Desconocido"
+          })));
+        });
+    }
+  }, [expandedBanned]);
 
   const handleBan = async () => {
     if (!banEmail.trim() || !banReason.trim()) return;
@@ -1158,6 +1359,18 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
       toast({ title: "Usuario baneado permanentemente" }); 
       setBanEmail(""); 
       setBanReason(""); 
+      // Refrescar lista si está abierta
+      if (expandedBanned) setExpandedBanned(false);
+    }
+  };
+
+  const handleUnban = async (banId: string) => {
+    const { error } = await supabase.from("banned_users").delete().eq("id", banId);
+    if (!error) {
+      setBannedUsers(prev => prev.filter(b => b.id !== banId));
+      toast({ title: "Sanción revocada. El usuario ha sido desbaneado." });
+    } else {
+      toast({ title: "Error al desbanear", description: error.message, variant: "destructive" });
     }
   };
 
@@ -1180,6 +1393,48 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         <Button variant="destructive" onClick={handleBan} disabled={banning} className="w-full text-xs">
           Procesar Baneo
         </Button>
+      </div>
+
+      {/* 🔥 Nuevo Panel de Usuarios Sancionados 🔥 */}
+      <div className="bg-card border border-destructive/30 rounded p-4">
+        <button 
+          onClick={() => setExpandedBanned(!expandedBanned)} 
+          className="w-full flex justify-between font-pixel text-[10px] text-destructive uppercase items-center"
+        >
+          <span>Usuarios Sancionados ({expandedBanned ? bannedUsers.length : "?"})</span>
+          <span className="text-xs">{expandedBanned ? "▲" : "▼"}</span>
+        </button>
+        
+        {expandedBanned && (
+          <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1 retro-scrollbar">
+            {bannedUsers.length === 0 ? (
+               <p className="text-[10px] text-muted-foreground text-center py-2 uppercase opacity-60">
+                 No hay usuarios sancionados
+               </p>
+            ) : (
+              bannedUsers.map(b => (
+                <div key={b.id} className="flex flex-col bg-muted/20 p-2.5 rounded border border-destructive/20 gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold font-body text-foreground">{b.display_name}</span>
+                    <span className={cn("text-[9px] font-pixel px-1.5 py-0.5 rounded", b.ban_type === 'kick' ? "bg-neon-orange/20 text-neon-orange" : "bg-destructive/20 text-destructive")}>
+                      {b.ban_type === 'kick' ? 'KICK' : 'BAN'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-body leading-tight">Razón: {b.reason || "Sin especificar"}</p>
+                  <div className="flex justify-between items-end mt-1">
+                    <span className="text-[8px] text-muted-foreground/60">{new Date(b.created_at).toLocaleDateString()}</span>
+                    <button 
+                      onClick={() => handleUnban(b.id)} 
+                      className="text-neon-green hover:text-neon-green/80 text-[9px] font-body flex items-center gap-1 border border-neon-green/30 px-1.5 py-0.5 rounded hover:bg-neon-green/10 transition-colors"
+                    >
+                      <Unlock className="w-2.5 h-2.5" /> Revocar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {isMasterWeb && (
