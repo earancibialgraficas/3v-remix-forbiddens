@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock, X, Crop } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, MapPin, Globe, Gamepad2, Calendar, Shield, MessageSquare, UserPlus, UserMinus, Ban, Clock, Eye, EyeOff, Plus, Trash2, Link2, Music2, Palette, HardDrive, Image as ImageIcon, Save, Search, Bell, Heart, Users, Unlock, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -438,6 +438,7 @@ export default function ProfilePage() {
   
   const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
 
+  // Deduplicar juegos
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
       const key = `${gs.game_name}-${gs.console_type}`;
@@ -1657,34 +1658,6 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
-// 🔥 EXTRAER URL DEL PREVISUALIZADOR (Permite interactuar con él) 🔥
-const getPreviewUrl = (url: string) => {
-  if (!url) return null;
-  const lowerUrl = url.toLowerCase();
-  
-  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
-    let videoId = "";
-    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/shorts/")) videoId = url.split("youtube.com/shorts/")[1]?.split("?")[0];
-    else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
-    // Sin mute=1 para que puedan interactuar libremente en el preview
-    if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=0`;
-  }
-  if (lowerUrl.includes("tiktok.com")) {
-    const match = url.match(/video\/(\d+)/);
-    if (match && match[1]) return `https://www.tiktok.com/embed/v2/${match[1]}`;
-  }
-  if (lowerUrl.includes("instagram.com")) {
-    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
-    if (match && match[1]) return `https://www.instagram.com/p/${match[1]}/embed/?hidecaption=true`;
-  }
-  if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
-    const encodedUrl = encodeURIComponent(url);
-    return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
-  }
-  return url;
-};
-
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
@@ -1692,12 +1665,10 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
 
-  // 🔥 NUEVOS ESTADOS PARA EL RECORTADOR (CROPPER) 🔥
-  const [cropScale, setCropScale] = useState(1);
-  const [cropX, setCropX] = useState(0);
-  const [cropY, setCropY] = useState(0);
-  const [previewFormat, setPreviewFormat] = useState<"muro" | "feed">("muro");
-  
+  // 🔥 NUEVOS ESTADOS PARA EL EXTRACTOR DE PORTADAS 🔥
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+
   const fetchContents = async () => {
     const { data } = await supabase
       .from("social_content")
@@ -1711,6 +1682,38 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
   useEffect(() => { 
     fetchContents(); 
   }, [user.id]);
+
+  // 🔥 DEBOUNCE PARA BUSCAR LA IMAGEN CUANDO PEGAN EL LINK 🔥
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (!newUrl.trim() || !newUrl.startsWith("http")) {
+        setPreviewImage(null);
+        setIsFetchingPreview(false);
+        return;
+      }
+      
+      setIsFetchingPreview(true);
+      try {
+        // Usamos Microlink (Gratis y rapidísimo) para extraer la foto del post
+        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+        const data = await res.json();
+        
+        if (data.status === "success" && data.data.image?.url) {
+          setPreviewImage(data.data.image.url);
+        } else {
+          setPreviewImage(null);
+        }
+      } catch (e) {
+        setPreviewImage(null);
+      } finally {
+        setIsFetchingPreview(false);
+      }
+    };
+
+    // Espera 1 segundo después de escribir para no saturar la API
+    const timer = setTimeout(fetchPreview, 1000);
+    return () => clearTimeout(timer);
+  }, [newUrl]);
 
   const handleAddLink = async () => {
     if (!newUrl.trim()) return;
@@ -1741,8 +1744,8 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       title: newTitle.trim() || null,
       platform: platform,
       content_type: contentType,
-      is_public: true,
-      crop_data: { scale: cropScale, x: cropX, y: cropY } // 🔥 GUARDAMOS EL RECORTE EN LA BD
+      thumbnail_url: previewImage, // 🔥 GUARDAMOS EL LINK EN LA BD (0 Megabytes gastados)
+      is_public: true
     } as any);
     
     setAdding(false);
@@ -1753,15 +1756,10 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
       setNewUrl("");
       setNewTitle("");
-      setCropScale(1);
-      setCropX(0);
-      setCropY(0);
+      setPreviewImage(null);
       fetchContents();
     }
   };
-
-  const previewUrl = getPreviewUrl(newUrl);
-  const isImage = previewUrl && previewUrl.match(/\.(jpeg|jpg|gif|png|webp)/i);
 
   return (
     <div className="space-y-3">
@@ -1777,7 +1775,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Publicar en Social Hub</h3>
         <p className="text-[10px] text-muted-foreground font-body leading-tight">
-          Pega el link de tu video, reel o foto. Usa el encuadre para seleccionar la parte que deseas destacar.
+          Pega el link de tu video, reel o foto. El sistema detectará automáticamente si va a "Videos & Reels" o al "Muro Fotográfico".
         </p>
         <Input 
           placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
@@ -1786,83 +1784,30 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
           className="h-8 bg-muted text-xs w-full font-body" 
         />
 
-        {/* 🔥 PREVISUALIZADOR INTERACTIVO Y HERRAMIENTA DE RECORTE 🔥 */}
-        {previewUrl && (
-          <div className="mt-3 p-4 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-pixel text-neon-cyan uppercase tracking-tighter flex items-center gap-2">
-                <Crop className="w-3 h-3" /> Ajuste de Encuadre
-              </p>
-            </div>
-            
-            <div className="flex gap-2 w-full mb-4">
-              <button
-                onClick={() => setPreviewFormat("muro")}
-                className={cn("flex-1 py-1.5 text-[9px] font-pixel uppercase tracking-widest rounded border transition-colors", previewFormat === "muro" ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan" : "bg-muted border-border text-muted-foreground hover:border-neon-cyan/50")}
-              >
-                Previsualizar Muro
-              </button>
-              <button
-                onClick={() => setPreviewFormat("feed")}
-                className={cn("flex-1 py-1.5 text-[9px] font-pixel uppercase tracking-widest rounded border transition-colors", previewFormat === "feed" ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan" : "bg-muted border-border text-muted-foreground hover:border-neon-cyan/50")}
-              >
-                Previsualizar Feed
-              </button>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 items-center md:items-start w-full">
-              {/* Contenedor Dinámico */}
-              <div className={cn(
-                "bg-black rounded-lg overflow-hidden relative border border-white/20 shrink-0 mx-auto md:mx-0",
-                previewFormat === "muro" ? "w-[200px] aspect-[3/4]" : "w-full max-w-[320px] aspect-video"
-              )}>
-                 {isImage ? (
-                   <img
-                     src={previewUrl}
-                     className="w-full h-full object-cover"
-                     style={{ transform: `scale(${cropScale}) translate(${cropX}%, ${cropY}%)`, transformOrigin: 'center center' }}
-                   />
-                 ) : (
-                   <iframe
-                     src={previewUrl}
-                     className="w-full h-full bg-white"
-                     style={{
-                       transform: `scale(${cropScale}) translate(${cropX}%, ${cropY}%)`,
-                       transformOrigin: 'center center',
-                       border: 'none'
-                     }}
-                     allow="autoplay; encrypted-media"
-                     allowFullScreen
-                   />
-                 )}
+        {/* 🔥 PREVISUALIZADOR MÁGICO DE METADATA 🔥 */}
+        {newUrl.trim().startsWith("http") && (
+          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
+            {isFetchingPreview ? (
+              <div className="flex flex-col items-center text-neon-cyan gap-2">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="text-[10px] font-pixel uppercase tracking-widest">Extrayendo portada...</span>
               </div>
-
-              {/* Controles de Sliders */}
-              <div className="flex-1 w-full space-y-4 flex flex-col justify-center bg-card p-4 rounded-lg border border-border/50 shadow-sm">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Zoom</label>
-                    <span className="text-[9px] text-neon-cyan">{cropScale}x</span>
-                  </div>
-                  <input type="range" min="1" max="3" step="0.1" value={cropScale} onChange={e => setCropScale(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
+            ) : previewImage ? (
+              <div className="w-full flex flex-col items-center gap-2">
+                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest">¡Portada Extraída con Éxito!</p>
+                <div className="w-[120px] aspect-[3/4] bg-black rounded-lg overflow-hidden border border-white/20 shadow-xl">
+                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
                 </div>
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Mover X</label>
-                    <span className="text-[9px] text-neon-cyan">{cropX}%</span>
-                  </div>
-                  <input type="range" min="-50" max="50" step="1" value={cropX} onChange={e => setCropX(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-[9px] text-muted-foreground font-pixel uppercase">Mover Y</label>
-                    <span className="text-[9px] text-neon-cyan">{cropY}%</span>
-                  </div>
-                  <input type="range" min="-50" max="50" step="1" value={cropY} onChange={e => setCropY(parseFloat(e.target.value))} className="w-full accent-neon-cyan" />
-                </div>
-                <Button variant="outline" size="sm" onClick={() => { setCropScale(1); setCropX(0); setCropY(0); }} className="text-[10px] h-7 w-full uppercase font-pixel tracking-tighter">Restaurar</Button>
+                <p className="text-[9px] text-muted-foreground font-body text-center">
+                  Esta imagen se usará en el Muro y Feed. Cero MB gastados.
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center text-muted-foreground gap-2 opacity-50">
+                <ImageIcon className="w-6 h-6" />
+                <span className="text-[9px] font-body text-center">No se pudo extraer imagen miniatura.<br/>Se usará el reproductor por defecto.</span>
+              </div>
+            )}
           </div>
         )}
 
