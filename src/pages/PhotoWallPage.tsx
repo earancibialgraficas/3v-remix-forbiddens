@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send } from "lucide-react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,9 @@ import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
 interface SocialComment {
@@ -49,10 +52,222 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA (FOTO + COMENTARIOS) 🔥
+function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction, isStaff }: any) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [comments, setComments] = useState<SocialComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
+  const [showReport, setShowReport] = useState(false);
+
+  const fetchComments = async () => {
+    const { data: rawComments, error } = await supabase
+      .from("social_comments")
+      .select("*")
+      .eq("content_id", photo.id)
+      .order("created_at", { ascending: true });
+
+    if (error) return;
+
+    if (rawComments && rawComments.length > 0) {
+      const userIds = [...new Set(rawComments.map(c => c.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      const pMap = new Map<string, any>(profs?.map(p => [p.user_id, p]) || []);
+      
+      setComments(rawComments.map(c => {
+        const p = pMap.get(c.user_id);
+        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
+      }));
+    } else {
+      setComments([]);
+    }
+  };
+
+  useEffect(() => { fetchComments(); }, [photo.id]);
+
+  const handleSubmitComment = async () => {
+    if (!user || !commentText.trim()) return;
+    try {
+      const { error } = await supabase.from("social_comments").insert({ 
+        user_id: user.id, 
+        content_id: photo.id, 
+        content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), 
+        parent_id: replyTo?.id || null 
+      } as any);
+      if (error) throw error;
+      
+      setCommentText("");
+      setReplyTo(null);
+      fetchComments();
+    } catch (e: any) {
+      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("¿Seguro que deseas eliminar este comentario?")) return;
+    try {
+      await supabase.from("social_comments").delete().eq("id", commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      toast({ title: "Comentario eliminado" });
+    } catch (e) {
+      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
+    }
+  };
+
+  const isEmbed = photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png');
+  const embedSrc = isEmbed ? getEmbedUrl(photo.image_url, photo.platform) : null;
+
+  return (
+    <div className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
+      
+      {/* LADO IZQUIERDO: IMAGEN COMPLETA */}
+      <div className="relative bg-black flex-1 min-h-[300px] md:min-h-[500px] flex items-center justify-center p-2">
+        {isEmbed && embedSrc ? (
+           <iframe src={embedSrc} className="w-full h-full max-w-[400px] bg-white rounded-lg shadow-xl" allowFullScreen />
+        ) : (
+           <img src={photo.image_url} alt={photo.caption} className="w-full h-full max-h-[60vh] md:max-h-[75vh] object-contain rounded-lg" />
+        )}
+        
+        {/* Botón flotante para cerrar en móvil (opcional) */}
+        <button onClick={onClose} className="absolute top-4 right-4 md:hidden bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-white/20">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* LADO DERECHO: PANEL SOCIAL */}
+      <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:max-h-[75vh]">
+        
+        {/* Cabecera (Usuario + Botón Cerrar) */}
+        <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link to={`/usuario/${photo.user_id}`} className="flex items-center gap-2 group truncate">
+              <Avatar className="w-8 h-8 border border-neon-orange/30 shrink-0">
+                <AvatarImage src={photo.profiles?.avatar_url || ""} />
+                <AvatarFallback className="bg-muted font-pixel text-[10px]">?</AvatarFallback>
+              </Avatar>
+              <div className="truncate">
+                <p className="text-xs font-bold text-foreground group-hover:text-neon-orange transition-colors truncate">
+                  {photo.profiles?.display_name || "Anónimo"}
+                </p>
+                <p className="text-[9px] text-muted-foreground font-body">
+                  {new Date(photo.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </Link>
+          </div>
+          <button onClick={onClose} className="hidden md:flex p-1.5 text-muted-foreground hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Descripción y Acciones */}
+        <div className="p-4 border-b border-border space-y-4 shrink-0">
+          {photo.caption && (
+            <p className="text-xs text-foreground font-body leading-relaxed">{photo.caption}</p>
+          )}
+          
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex gap-4">
+              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1.5 text-[11px] font-body transition-transform hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
+                <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}
+              </button>
+              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1.5 text-[11px] font-body transition-transform hover:scale-105", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
+                <ThumbsDown className={cn("w-4 h-4", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}
+              </button>
+            </div>
+            
+            <div className="flex gap-2">
+              {user && (
+                <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar">
+                  <Flag className="w-4 h-4" />
+                </button>
+              )}
+              {isStaff && (
+                <button onClick={() => onDelete(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive" title="Eliminar">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Lista de Comentarios */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar bg-background/30 min-h-[200px]">
+          {comments.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center opacity-50 space-y-2">
+              <MessageSquare className="w-8 h-8 text-muted-foreground" />
+              <p className="text-[10px] text-muted-foreground font-pixel uppercase">Sin comentarios</p>
+            </div>
+          ) : (
+            comments.map(c => (
+              <div key={c.id} className={cn("group flex items-start gap-2 text-[11px] font-body", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
+                <Avatar className="w-6 h-6 border border-white/10 shrink-0 mt-0.5">
+                  <AvatarImage src={c.avatar_url || ""} />
+                  <AvatarFallback>?</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="bg-white/5 rounded-xl rounded-tl-sm px-3 py-2 inline-block max-w-full">
+                    <span className="text-primary font-bold block mb-0.5 text-[10px]">{c.display_name}</span>
+                    <span className="text-foreground/90 break-words">{c.content}</span>
+                  </div>
+                  {user && (
+                    <div className="flex items-center gap-3 mt-1 px-1">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[9px] text-muted-foreground hover:text-primary transition-colors font-bold">
+                        Responder
+                      </button>
+                      <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive"><Flag className="w-2.5 h-2.5" /></button>
+                        {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-2.5 h-2.5" /></button>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Input de Comentarios */}
+        {user ? (
+          <div className="shrink-0 border-t border-border bg-muted/10 p-3 flex flex-col gap-2">
+            {replyTo && (
+               <div className="flex items-center gap-1 text-[9px] text-neon-orange font-pixel uppercase tracking-widest px-1">
+                 <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
+                 <button onClick={() => setReplyTo(null)} className="text-destructive ml-2 hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
+               </div>
+            )}
+            <div className="flex gap-2">
+              <Textarea 
+                value={commentText} 
+                onChange={e => setCommentText(e.target.value)} 
+                placeholder="Añade un comentario..." 
+                className="bg-black/40 border-border text-xs min-h-[44px] resize-none font-body" 
+              />
+              <Button onClick={handleSubmitComment} disabled={!commentText.trim()} className="shrink-0 h-auto bg-neon-orange text-black hover:bg-neon-orange/80">
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 border-t border-border bg-muted/10 text-center shrink-0">
+            <p className="text-[10px] text-muted-foreground font-pixel uppercase">Inicia sesión para comentar</p>
+          </div>
+        )}
+      </div>
+      
+      {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
+    </div>
+  );
+}
+
+
 export default function PhotoWallPage() {
   const { user, profile, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
+  
   const [photos, setPhotos] = useState<any[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
@@ -60,13 +275,9 @@ export default function PhotoWallPage() {
   const [uploading, setUploading] = useState(false);
   const [userPhotoCount, setUserPhotoCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
-  const [userReactions, setUserReactions] = useState<Record<string, string>>({});
-  const [reportTarget, setReportTarget] = useState<{ userId: string; name: string } | null>(null);
   
-  const [commentModal, setCommentModal] = useState<any | null>(null);
-  const [modalComments, setModalComments] = useState<SocialComment[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [userReactions, setUserReactions] = useState<Record<string, string>>({});
+  const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
 
   const tier = profile?.membership_tier || "novato";
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -99,57 +310,38 @@ export default function PhotoWallPage() {
       combined = [...combined, ...socialImages];
     }
 
-    combined.sort((a, b) => b.likes - a.likes);
-    setPhotos(combined.slice(0, 50));
+    if (combined.length === 0) {
+      setPhotos([]);
+      return;
+    }
 
-    if (user && combined.length > 0) {
+    combined.sort((a, b) => b.likes - a.likes);
+
+    // Extraemos perfiles para pasárselos a las tarjetas expandidas
+    const userIds = [...new Set(combined.map(c => c.user_id))];
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+    const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+    
+    const photosWithProfiles = combined.map(p => ({
+      ...p,
+      profiles: profileMap.get(p.user_id) || { display_name: "Anónimo", avatar_url: null }
+    }));
+
+    setPhotos(photosWithProfiles.slice(0, 50));
+
+    if (user) {
       const ids = combined.map(p => p.id);
-      const { data: reactions } = await supabase
-        .from("social_reactions")
-        .select("target_id, reaction_type")
-        .eq("user_id", user.id)
-        .in("target_id", ids);
-        
+      const { data: reactions } = await supabase.from("social_reactions").select("target_id, reaction_type").eq("user_id", user.id).in("target_id", ids);
       const rMap: Record<string, string> = {};
       reactions?.forEach((r: any) => { rMap[r.target_id] = r.reaction_type; });
       setUserReactions(rMap);
-    }
-  };
-
-  useEffect(() => {
-    fetchPhotos();
-    if (user) {
+      
       supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id)
         .then(({ count }) => setUserPhotoCount(count || 0));
     }
-  }, [user]);
+  };
 
-  useEffect(() => {
-    if (!commentModal) return;
-    const loadComments = async () => {
-      const { data } = await supabase
-        .from("social_comments")
-        .select("*")
-        .eq("content_id", commentModal.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
-        
-      if (!data || data.length === 0) { 
-        setModalComments([]); 
-        return; 
-      }
-      
-      const uids = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-      const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-      
-      setModalComments(data.map(c => {
-        const p = pMap.get(c.user_id);
-        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
-      }));
-    };
-    loadComments();
-  }, [commentModal]);
+  useEffect(() => { fetchPhotos(); }, [user]);
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
@@ -192,9 +384,7 @@ export default function PhotoWallPage() {
     setUserReactions(prev => ({ ...prev, [itemId]: prevReaction === type ? null : type }));
 
     try {
-      const { data: existing } = await supabase.from("social_reactions")
-        .select("id, reaction_type").eq("user_id", user.id).eq("target_id", itemId).maybeSingle();
-
+      const { data: existing } = await supabase.from("social_reactions").select("id, reaction_type").eq("user_id", user.id).eq("target_id", itemId).maybeSingle();
       if (existing) {
         if (existing.reaction_type === type) {
           await supabase.from("social_reactions").delete().eq("id", existing.id);
@@ -202,11 +392,8 @@ export default function PhotoWallPage() {
           await supabase.from("social_reactions").update({ reaction_type: type }).eq("id", existing.id);
         }
       } else {
-        await supabase.from("social_reactions").insert({
-          user_id: user.id, target_id: itemId, target_type: targetType, reaction_type: type
-        });
+        await supabase.from("social_reactions").insert({ user_id: user.id, target_id: itemId, target_type: targetType, reaction_type: type });
       }
-
       const table = targetType === "photo" ? "photos" : "social_content";
       await supabase.from(table).update({ likes: Math.max(0, newLikes), dislikes: Math.max(0, newDislikes) }).eq("id", itemId);
     } catch (e) {
@@ -222,61 +409,23 @@ export default function PhotoWallPage() {
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (!error) {
       setPhotos(prev => prev.filter(p => p.id !== id));
+      if (expandedPhotoId === id) setExpandedPhotoId(null);
       toast({ title: "Foto eliminada por el Staff" });
     } else {
       toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
   };
 
-  const submitModalComment = async () => {
-    if (!user || !commentModal || !commentText.trim()) return;
-    try {
-      const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: commentModal.id, content: commentText.trim(), parent_id: replyTo 
-      });
-      if (error) throw error;
-      
-      setCommentText("");
-      setReplyTo(null);
-      
-      const { data } = await supabase.from("social_comments").select("*").eq("content_id", commentModal.id).order("created_at", { ascending: true });
-      if (data) {
-        const uids = [...new Set(data.map(c => c.user_id))];
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-        const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-        setModalComments(data.map(c => {
-          const p = pMap.get(c.user_id);
-          return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
-        }));
-      }
-    } catch (e: any) {
-      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
-    }
-  };
-
-  const handleDeleteModalComment = async (commentId: string) => {
-    if (!confirm("¿Seguro que deseas eliminar este comentario?")) return;
-    try {
-      await supabase.from("social_comments").delete().eq("id", commentId);
-      setModalComments(prev => prev.filter(c => c.id !== commentId));
-      toast({ title: "Comentario eliminado" });
-    } catch (e) {
-      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
-    }
-  };
-
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
-  const topPhotos = displayPhotos.slice(0, 6);
-  const restPhotos = displayPhotos.slice(6);
 
-  // 🔥 CORRECCIÓN: Renderizado Absoluto y Object-Cover para responsividad perfecta 🔥
-  const renderImage = (photo: any) => {
+  // 🔥 RENDERIZADOR DEL THUMBNAIL (CUADRADO PERFECTO) 🔥
+  const renderSquareImage = (photo: any) => {
     if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
       const embed = getEmbedUrl(photo.image_url, photo.platform);
       if (embed) {
         return (
           <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none">
-            <iframe src={embed} className="absolute inset-0 w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} />
+            <iframe src={embed} className="absolute inset-0 w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
           </div>
         );
       }
@@ -285,185 +434,106 @@ export default function PhotoWallPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in pb-10">
-      <div className="bg-card border border-neon-orange/30 rounded p-4 shadow-md">
+    <div className="space-y-4 animate-fade-in pb-10 max-w-[1200px] mx-auto">
+      
+      {/* Cabecera */}
+      <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-md mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
         </h1>
-        <p className="text-xs text-muted-foreground font-body">Galería de la comunidad — Las fotos más populares aparecen primero</p>
+        <p className="text-[10px] md:text-xs text-muted-foreground font-body">Galería de la comunidad — Haz clic en una imagen para expandirla.</p>
       </div>
 
-      {user && (
-        <div className="flex gap-1 bg-card border border-border rounded p-1 w-fit shadow-sm">
-          <button onClick={() => setSourceTab("all")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-            <Globe className="w-3 h-3" /> Todos
-          </button>
-          <button onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded text-xs font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-            <Users className="w-3 h-3" /> Amigos
-          </button>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] text-muted-foreground font-body">
-          {user ? `${userPhotoCount}/${photoLimit === Infinity ? "∞" : photoLimit} fotos subidas (Plan ${isStaff ? "STAFF" : tier.toUpperCase()})` : "Inicia sesión para subir fotos directas"}
-        </p>
+      {/* Controles: Filtros y Botón de Subida */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mx-2 md:mx-0">
         {user && (
-          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={() => setShowUpload(!showUpload)}>
-            Subir Foto Directa
-          </Button>
+          <div className="flex gap-1 bg-card border border-border rounded-lg p-1 w-fit shadow-sm shrink-0">
+            <button onClick={() => { setSourceTab("all"); setExpandedPhotoId(null); }} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-body transition-all", sourceTab === "all" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <Globe className="w-3 h-3" /> Todos
+            </button>
+            <button onClick={() => { setSourceTab("friends"); setExpandedPhotoId(null); }} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <Users className="w-3 h-3" /> Amigos
+            </button>
+          </div>
         )}
+
+        <div className="flex items-center gap-3">
+          <p className="text-[9px] md:text-[10px] text-muted-foreground font-body text-right">
+            {user ? `${userPhotoCount}/${photoLimit === Infinity ? "∞" : photoLimit} fotos (Plan ${isStaff ? "STAFF" : tier.toUpperCase()})` : ""}
+          </p>
+          {user && (
+            <Button size="sm" className="h-8 text-xs font-body bg-neon-orange text-black hover:bg-neon-orange/80 rounded-lg shrink-0" onClick={() => setShowUpload(!showUpload)}>
+              <Camera className="w-3 h-3 mr-1" /> Subir Foto
+            </Button>
+          )}
+        </div>
       </div>
 
+      {/* Caja de Subida */}
       {showUpload && (
-        <div className="bg-card border border-neon-orange/30 rounded p-4 space-y-3 animate-fade-in shadow-md">
-          <Input placeholder="URL de la imagen (.jpg, .png)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-          <Textarea placeholder="Descripción (opcional)..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
-          <Button size="sm" onClick={handleUpload} disabled={uploading || !imageUrl.trim()} className="text-xs">{uploading ? "Subiendo..." : "Publicar"}</Button>
-        </div>
-      )}
-
-      {/* 🔥 CORRECCIÓN: aspect-square para hacerlo cuadrado y perfecto 🔥 */}
-      {topPhotos.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {topPhotos.map((photo, i) => (
-            <div key={photo.id} className={cn("relative group rounded-xl overflow-hidden bg-black border border-border/50 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange aspect-square", i === 0 && "col-span-2 row-span-2")}>
-              {renderImage(photo)}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                <div className="flex items-center gap-3 text-[10px] font-body w-full">
-                  <button onClick={() => handleReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1 transition-transform hover:scale-110", userReactions[photo.id] === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
-                    <ThumbsUp className={cn("w-4 h-4", userReactions[photo.id] === "like" && "fill-current")} /> {photo.likes}
-                  </button>
-                  <button onClick={() => handleReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 transition-transform hover:scale-110", userReactions[photo.id] === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
-                    <ThumbsDown className={cn("w-4 h-4", userReactions[photo.id] === "dislike" && "fill-current")} /> {photo.dislikes}
-                  </button>
-                  <button onClick={() => setCommentModal(photo)} className="flex items-center gap-1 transition-transform hover:scale-110 text-white hover:text-neon-cyan">
-                    <MessageSquare className="w-4 h-4" />
-                  </button>
-                  <div className="flex ml-auto gap-2">
-                    {user && (
-                      <button onClick={() => setReportTarget({ userId: photo.user_id, name: "usuario" })} className="text-white hover:text-destructive transition-colors">
-                        <Flag className="w-4 h-4" />
-                      </button>
-                    )}
-                    {isStaff && (
-                      <button onClick={() => handleDeletePhoto(photo.id, photo.target_type)} className="text-white hover:text-destructive transition-colors" title="Eliminar (Staff)">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 🔥 CORRECCIÓN: aspect-square para hacerlo cuadrado y perfecto 🔥 */}
-      {restPhotos.length > 0 && (
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
-          {restPhotos.map(photo => (
-            <div key={photo.id} className="relative group rounded-lg overflow-hidden bg-black aspect-square border border-border/50 shadow-sm transition-all duration-200 hover:border-neon-orange hover:scale-[1.02]">
-              {renderImage(photo)}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                <div className="flex items-center gap-4">
-                  <button onClick={() => handleReaction(photo.id, "like", photo.target_type)} className={cn("text-[10px] flex items-center gap-1 transition-transform hover:scale-110", userReactions[photo.id] === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
-                    <ThumbsUp className={cn("w-4 h-4", userReactions[photo.id] === "like" && "fill-current")} /> {photo.likes}
-                  </button>
-                  <button onClick={() => handleReaction(photo.id, "dislike", photo.target_type)} className={cn("text-[10px] flex items-center gap-1 transition-transform hover:scale-110", userReactions[photo.id] === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
-                    <ThumbsDown className={cn("w-4 h-4", userReactions[photo.id] === "dislike" && "fill-current")} /> {photo.dislikes}
-                  </button>
-                </div>
-                <button onClick={() => setCommentModal(photo)} className="text-[10px] flex items-center gap-1 text-white hover:text-neon-cyan transition-transform hover:scale-110">
-                  <MessageSquare className="w-4 h-4" /> Comentar
-                </button>
-                {isStaff && (
-                  <button onClick={() => handleDeletePhoto(photo.id, photo.target_type)} className="absolute top-2 right-2 text-white hover:text-destructive transition-colors bg-black/50 rounded-full p-1.5">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {displayPhotos.length === 0 && (
-        <div className="bg-card border border-border rounded-xl p-10 text-center shadow-sm">
-          <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-          <p className="text-sm text-muted-foreground font-body uppercase">{sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "Aún no hay fotos"}</p>
-        </div>
-      )}
-
-      {/* MODAL FLOTANTE DE COMENTARIOS */}
-      {commentModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setCommentModal(null); setReplyTo(null); }} />
-          <div className="relative bg-card border border-neon-orange/30 rounded-xl p-5 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between mb-4 shrink-0 border-b border-white/10 pb-3">
-              <h3 className="font-pixel text-[11px] text-neon-orange flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> COMENTARIOS ({modalComments.length})
-              </h3>
-              <button onClick={() => { setCommentModal(null); setReplyTo(null); }} className="text-muted-foreground hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 retro-scrollbar">
-              {modalComments.map(c => (
-                <div key={c.id} className={cn("group text-[11px] font-body flex items-start justify-between gap-3", c.parent_id && "ml-5 border-l border-white/10 pl-3")}>
-                  <div className="flex-1">
-                    <span className="text-primary font-bold">{c.display_name}: </span>
-                    <span className="text-foreground/90">{c.content}</span>
-                    {user && (
-                      <button onClick={() => setReplyTo(c.id)} className="flex items-center gap-1 mt-1.5 text-[9px] text-muted-foreground hover:text-primary transition-colors uppercase font-pixel tracking-wider">
-                        <Reply className="w-3 h-3" /> Responder
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button onClick={() => setReportTarget({ userId: c.user_id, name: c.display_name || "Anónimo" })} className="text-muted-foreground hover:text-destructive" title="Reportar">
-                       <Flag className="w-3.5 h-3.5" />
-                    </button>
-                    {isStaff && (
-                      <button onClick={() => handleDeleteModalComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)">
-                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {modalComments.length === 0 && <p className="text-[11px] text-muted-foreground font-body text-center py-6 opacity-70">Aún no hay comentarios. ¡Sé el primero!</p>}
-            </div>
-
-            {user ? (
-              <div className="shrink-0 flex flex-col border-t border-white/10 pt-4 gap-2">
-                {replyTo && (
-                   <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-pixel uppercase tracking-widest px-1">
-                     <Reply className="w-3 h-3" /> Respondiendo
-                     <button onClick={() => setReplyTo(null)} className="text-destructive ml-2 hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
-                   </div>
-                )}
-                <div className="flex gap-2">
-                  <Textarea 
-                    value={commentText} 
-                    onChange={e => setCommentText(e.target.value)} 
-                    placeholder="Escribe tu comentario..." 
-                    className="bg-black/50 border-white/10 text-xs min-h-[44px] resize-none" 
-                  />
-                  <Button onClick={submitModalComment} disabled={!commentText.trim()} className="shrink-0 h-auto bg-neon-cyan text-black hover:bg-neon-cyan/80">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-               <p className="text-[11px] text-muted-foreground font-body text-center mt-2 shrink-0 border-t border-white/10 pt-4">Inicia sesión para comentar</p>
-            )}
+        <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-md mx-2 md:mx-0">
+          <Input placeholder="URL de la imagen (.jpg, .png, .gif)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/50 text-xs font-body" />
+          <Textarea placeholder="Descripción de tu foto..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/50 text-xs font-body min-h-[60px] resize-none" />
+          <div className="flex justify-end gap-2">
+             <Button variant="ghost" size="sm" onClick={() => setShowUpload(false)} className="text-xs h-8">Cancelar</Button>
+             <Button size="sm" onClick={handleUpload} disabled={uploading || !imageUrl.trim()} className="text-xs h-8 bg-neon-orange text-black hover:bg-neon-orange/80">
+               {uploading ? "Subiendo..." : "Publicar Foto"}
+             </Button>
           </div>
         </div>
       )}
 
-      {reportTarget && <ReportModal reportedUserId={reportTarget.userId} reportedUserName={reportTarget.name} onClose={() => setReportTarget(null)} />}
+      {displayPhotos.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm mx-2 md:mx-0">
+          <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+          <p className="text-sm text-muted-foreground font-body uppercase">{sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "El muro está vacío"}</p>
+        </div>
+      ) : (
+        /* 🔥 GRID DE 2 COLUMNAS 🔥 */
+        <div className="grid grid-cols-2 gap-2 md:gap-4 px-2 md:px-0">
+          {displayPhotos.map(photo => {
+            
+            // Si es la foto clickeada, se expande abarcando las 2 columnas
+            if (expandedPhotoId === photo.id) {
+              return (
+                <ExpandedPhotoCard 
+                  key={photo.id} 
+                  photo={photo} 
+                  onClose={() => setExpandedPhotoId(null)}
+                  onReaction={handleReaction}
+                  onDelete={handleDeletePhoto}
+                  userReaction={userReactions[photo.id]}
+                  isStaff={isStaff}
+                />
+              );
+            }
+
+            // Si NO está expandida, es un cuadrito normal
+            return (
+              <div 
+                key={photo.id} 
+                onClick={() => {
+                  setExpandedPhotoId(photo.id);
+                  // Opcional: Hacer scroll automático hacia la foto expandida
+                  setTimeout(() => window.scrollBy({ top: 100, behavior: 'smooth' }), 50);
+                }}
+                className="relative group rounded-xl overflow-hidden bg-black aspect-square border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10"
+              >
+                {renderSquareImage(photo)}
+                
+                {/* Capa oscura al hacer hover (Muestra likes y comentarios) */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                  <Maximize2 className="w-8 h-8 text-white/50 mb-2" />
+                  <div className="flex items-center gap-4 text-white font-body text-xs">
+                    <span className="flex items-center gap-1.5"><ThumbsUp className="w-4 h-4" /> {photo.likes}</span>
+                    <span className="flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /></span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
