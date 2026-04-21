@@ -40,7 +40,6 @@ export default function FeedPage() {
   const fetchFeed = async () => {
     setLoading(true);
     try {
-      // 1. Descargamos fotos y videos SIN intentar forzar el Join con profiles
       const [photosRes, socialRes] = await Promise.all([
         supabase.from("photos").select("*").order("created_at", { ascending: false }),
         supabase.from("social_content").select("*").order("created_at", { ascending: false })
@@ -62,21 +61,18 @@ export default function FeedPage() {
         return;
       }
 
-      // 2. Extraemos todos los IDs de los autores y descargamos sus perfiles manualmente
       const uniqueUserIds = [...new Set(combined.map(item => item.user_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("user_id, display_name, avatar_url")
         .in("user_id", uniqueUserIds);
 
-      // 3. Extraemos todas las reacciones de estos posts manualmente
       const postIds = combined.map(item => item.id);
       const { data: reactionsData } = await supabase
         .from("social_reactions")
         .select("reaction_type, user_id, content_id")
         .in("content_id", postIds);
 
-      // 4. Unimos todo con JavaScript (A prueba de balas)
       const feedWithData = combined.map((item) => {
         const authorProfile = profilesData?.find(p => p.user_id === item.user_id) || { display_name: "Usuario Desconocido", avatar_url: null };
         const itemReactions = reactionsData?.filter(r => r.content_id === item.id) || [];
@@ -165,7 +161,7 @@ export default function FeedPage() {
           </div>
 
           {/* Contenido Visual */}
-          <div className="relative bg-black min-h-[300px] flex items-center justify-center">
+          <div className="relative bg-black min-h-[300px] flex items-center justify-center border-y border-white/5">
             {item.type === 'photo' ? (
               <img src={item.image_url} alt="" className="max-w-full max-h-[600px] object-contain" />
             ) : (
@@ -221,35 +217,62 @@ export default function FeedPage() {
   );
 }
 
+// 🔥 REPRODUCTOR DE VIDEO MEJORADO 🔥
 function VideoPlayer({ url }: { url: string }) {
-  const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
-  const isInstagram = url.includes("instagram.com");
+  if (!url) return <div className="text-[10px] font-pixel text-muted-foreground">SIN URL</div>;
 
+  const lowerUrl = url.toLowerCase();
+  const isYoutube = lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be");
+  const isInstagram = lowerUrl.includes("instagram.com");
+  const isTikTok = lowerUrl.includes("tiktok.com");
+  const isFacebook = lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch");
+  const isDirectVideo = lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".webm") || lowerUrl.endsWith(".ogg");
+
+  // Archivo directo de video
+  if (isDirectVideo) {
+    return <video src={url} controls className="w-full max-h-[600px] object-contain" />;
+  }
+
+  // Reproductor de YouTube
   if (isYoutube) {
-    const videoId = url.split("v=")[1] || url.split("/").pop();
-    return (
-      <iframe 
-        className="w-full aspect-video border-0"
-        src={`https://www.youtube.com/embed/${videoId}`}
-        allowFullScreen
-      />
-    );
+    let videoId = "";
+    if (url.includes("youtu.be/")) {
+      videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    } else if (url.includes("youtube.com/shorts/")) {
+      videoId = url.split("youtube.com/shorts/")[1]?.split("?")[0];
+    } else if (url.includes("v=")) {
+      videoId = url.split("v=")[1]?.split("&")[0];
+    }
+    
+    if (videoId) {
+      return (
+        <iframe 
+          className="w-full aspect-video border-0"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          allowFullScreen
+        />
+      );
+    }
   }
 
-  if (isInstagram) {
-    return (
-      <div className="w-full p-10 text-center flex flex-col items-center gap-3">
-        <PlayCircle className="w-12 h-12 text-neon-magenta animate-pulse" />
-        <a href={url} target="_blank" rel="noreferrer" className="text-xs text-neon-cyan underline font-pixel">
-          VER REEL EN INSTAGRAM
-        </a>
-      </div>
-    );
-  }
+  // Fallback Inteligente para redes que no dejan incrustar fácil
+  let platformName = "VER ENLACE EXTERNO";
+  if (isInstagram) platformName = "VER EN INSTAGRAM";
+  if (isTikTok) platformName = "VER EN TIKTOK";
+  if (isFacebook) platformName = "VER EN FACEBOOK";
+  if (isYoutube) platformName = "VER EN YOUTUBE";
 
   return (
-    <div className="text-[10px] font-pixel text-muted-foreground">
-      REPRODUCTOR NO SOPORTADO
+    <div className="w-full p-10 text-center flex flex-col items-center justify-center gap-4">
+      <PlayCircle className="w-16 h-16 text-neon-cyan animate-pulse" />
+      <a 
+        href={url} 
+        target="_blank" 
+        rel="noreferrer" 
+        className="px-4 py-2 bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 border border-neon-cyan/50 rounded-lg text-[10px] uppercase font-pixel tracking-widest transition-colors"
+      >
+        {platformName}
+      </a>
     </div>
   );
 }
@@ -261,7 +284,6 @@ function CommentsSection({ contentId }: { contentId: string }) {
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
 
   const fetchComments = async () => {
-    // Descargamos comentarios crudos
     const { data: rawComments, error } = await supabase
       .from("social_comments")
       .select("*")
@@ -274,7 +296,6 @@ function CommentsSection({ contentId }: { contentId: string }) {
     }
 
     if (rawComments && rawComments.length > 0) {
-      // Unimos con los perfiles manualmente
       const userIds = [...new Set(rawComments.map(c => c.user_id))];
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
 
