@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,11 +11,12 @@ import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 
-interface SocialItem {
+interface FeedItem {
   id: string;
   user_id: string;
   platform: string;
   content_url: string;
+  image_url?: string;
   content_type: string;
   title: string | null;
   thumbnail_url: string | null;
@@ -66,15 +67,15 @@ const getAdvancedEmbedUrl = (url: string, platform: string) => {
   return url;
 };
 
-const isVideoItem = (item: SocialItem | any) => {
+const isVideoItem = (item: FeedItem | any) => {
   return item.content_type === 'video' || item.content_type === 'reel';
 };
 
-const isReelItem = (item: SocialItem) => {
+const isReelItem = (item: FeedItem) => {
   return item.content_type === 'reel';
 };
 
-const isHorizontalVideo = (item: SocialItem) => {
+const isHorizontalVideo = (item: FeedItem) => {
   return item.content_type === 'video';
 };
 
@@ -87,7 +88,7 @@ function SnapCard({
   onScrollUp,
   onScrollDown
 }: { 
-  item: SocialItem; 
+  item: FeedItem; 
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
@@ -111,7 +112,7 @@ function SnapCard({
   const [userReaction, setUserReaction] = useState<string | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [showMobilePanel, setShowMobilePanel] = useState(false);
   const votingRef = useRef(false);
@@ -131,7 +132,7 @@ function SnapCard({
   }, [isVisible, isVideo]);
 
   useEffect(() => {
-    if (!videoContainerRef.current || !isVideo || isDirectMp4) return;
+    if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -149,7 +150,7 @@ function SnapCard({
 
     observer.observe(videoContainerRef.current);
     return () => observer.disconnect();
-  }, [item.platform, item.content_type, item.content_url, isVideo, isDirectMp4]);
+  }, [item.platform, item.content_type, item.content_url, isVideo, isDirectMp4, isPhoto]);
 
   useEffect(() => {
     if (!user) return;
@@ -157,20 +158,19 @@ function SnapCard({
       .then(({ data }) => { if (data) setUserReaction(data.reaction_type); });
   }, [user, item.id, targetType]);
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true }).limit(50);
-      if (!data || data.length === 0) { setComments([]); return; }
-      const uids = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-      const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-      setComments(data.map(c => {
-        const p = pMap.get(c.user_id);
-        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
-      }));
-    };
-    fetchComments();
-  }, [item.id]);
+  const fetchComments = async () => {
+    const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true }).limit(50);
+    if (!data || data.length === 0) { setComments([]); return; }
+    const uids = [...new Set(data.map(c => c.user_id))];
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
+    const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+    setComments(data.map(c => {
+      const p = pMap.get(c.user_id);
+      return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
+    }));
+  };
+
+  useEffect(() => { fetchComments(); }, [item.id]);
 
   const handleReaction = async (type: "like" | "dislike") => {
     if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
@@ -227,20 +227,11 @@ function SnapCard({
     if (!user || !commentText.trim()) return;
     try {
       const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: item.id, content: commentText.trim(), parent_id: replyTo 
+        user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
       });
       if (error) throw error;
       setCommentText(""); setReplyTo(null);
-      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
-      if (data) {
-        const uids = [...new Set(data.map(c => c.user_id))];
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-        const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-        setComments(data.map(c => {
-          const p = pMap.get(c.user_id);
-          return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
-        }));
-      }
+      fetchComments();
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
@@ -266,10 +257,10 @@ function SnapCard({
 
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
-      <div ref={videoContainerRef} className="absolute inset-0 md:relative md:flex-1 bg-black md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0">
+      <div ref={videoContainerRef} className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0 flex items-center justify-center">
         
         {isPhoto ? (
-          <img src={item.thumbnail_url || item.content_url || item.image_url} alt="" className="w-full h-full object-contain p-2" />
+          <img src={item.image_url || item.thumbnail_url || item.content_url} alt={item.title || "Imagen"} className="w-full h-full object-contain p-2" />
         ) : isDirectMp4 ? (
           <video src={item.content_url} controls autoPlay={isVisible} muted className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
@@ -364,7 +355,7 @@ function SnapCard({
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
                     {user && (
-                      <button onClick={() => setReplyTo(c.id)} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
                         <Reply className="w-2.5 h-2.5" /> Responder
                       </button>
                     )}
@@ -381,7 +372,7 @@ function SnapCard({
               <div className="shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
-                     <Reply className="w-3 h-3" /> Respondiendo
+                     <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
                      <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
                    </div>
                 )}
@@ -414,7 +405,7 @@ export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
-  const [items, setItems] = useState<SocialItem[]>([]);
+  const [items, setItems] = useState<FeedItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -423,19 +414,19 @@ export default function FeedPage() {
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   const fetchContent = async () => {
-    let combined: SocialItem[] = [];
+    let combined: FeedItem[] = [];
 
-    const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).order("likes", { ascending: false }).limit(50);
+    const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
     if (content) {
        combined = [...combined, ...content.map(c => ({
          ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
        }))];
     }
 
-    const { data: photos } = await supabase.from("photos").select("*").order("likes", { ascending: false }).limit(50);
+    const { data: photos } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
     if (photos) {
       const photoItems = photos.map(p => ({
-        id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, content_type: 'photo',
+        id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
         title: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
         likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo'
       }));
@@ -511,9 +502,9 @@ export default function FeedPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
         <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2">
-          <PlayCircle className="w-4 h-4" /> FEED GLOBAL
+          <Globe className="w-4 h-4" /> FEED GLOBAL
         </h1>
-        <p className="text-[10px] text-muted-foreground font-body">Todo el contenido social de la comunidad</p>
+        <p className="text-[10px] text-muted-foreground font-body">Todo el contenido social de la comunidad en un solo lugar</p>
       </div>
 
       <div className="flex gap-1 bg-card border border-border rounded-xl p-1 flex-wrap items-center shrink-0 shadow-sm mx-1 md:mx-2">
@@ -535,8 +526,8 @@ export default function FeedPage() {
 
       {filtered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
-          <Globe className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
-          <p className="text-xs text-muted-foreground font-body">No hay contenido aún. ¡Sé el primero en compartir!</p>
+          <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+          <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
           <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
             <Link to="/perfil?tab=social">Agregar Contenido</Link>
           </Button>
