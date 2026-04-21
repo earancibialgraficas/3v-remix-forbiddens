@@ -83,7 +83,6 @@ export default function ProfilePage() {
   const [roleColor, setRoleColor] = useState("");
   const [staffRoleColor, setStaffRoleColor] = useState("");
   
-  // 🔥 Nuevos estados para colores de estadísticas
   const [statPointsColor, setStatPointsColor] = useState("");
   const [statFollowersColor, setStatFollowersColor] = useState("");
   const [statFollowingColor, setStatFollowingColor] = useState("");
@@ -126,7 +125,6 @@ export default function ProfilePage() {
       setRoleColor((profile as any).color_role || "");
       setStaffRoleColor((profile as any).color_staff_role || "");
 
-      // Cargar colores de stats
       setStatPointsColor((profile as any).color_stat_points || "#39ff14");
       setStatFollowersColor((profile as any).color_stat_followers || "#ffffff");
       setStatFollowingColor((profile as any).color_stat_following || "#ffffff");
@@ -449,6 +447,14 @@ export default function ProfilePage() {
     }, {})
   );
 
+  // 🔥 Filtro de seguridad anti-crasheos para la cajita de colores 🔥
+  const getValidHex = (val: string | null | undefined) => {
+    if (!val) return "#ffffff";
+    const hex = val.trim();
+    if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
+    return "#ffffff"; // Si detecta un gradiente o palabra rara, devuelve blanco para no romperse
+  };
+
   const tabs = [
     { id: "avisos" as const, label: "Avisos", icon: Bell },
     { id: "posts" as const, label: "Posts", icon: MessageSquare },
@@ -504,7 +510,7 @@ export default function ProfilePage() {
                   <option value="name">Nombre de Usuario</option>
                   {(isStaff || isMod) && <option value="staff">Rango de Staff</option>}
                   {!(isStaff || isMod) && <option value="role">Rango de Membresía</option>}
-                  <option disabled>──────────</option>
+                  <option disabled value="separator">──────────</option>
                   <option value="stat_points">Stat: Puntos</option>
                   <option value="stat_followers">Stat: Seguidores</option>
                   <option value="stat_following">Stat: Siguiendo</option>
@@ -519,18 +525,18 @@ export default function ProfilePage() {
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={
-                      colorTarget === "border" ? (avatarBorderColor || "#ffffff") :
-                      colorTarget === "name" ? (nameColor || "#ffffff") :
-                      colorTarget === "role" ? (roleColor || "#ffffff") :
-                      colorTarget === "staff" ? (staffRoleColor || "#ffffff") :
-                      colorTarget === "stat_points" ? (statPointsColor || "#ffffff") :
-                      colorTarget === "stat_followers" ? (statFollowersColor || "#ffffff") :
-                      colorTarget === "stat_following" ? (statFollowingColor || "#ffffff") :
-                      colorTarget === "stat_posts_forum" ? (statPostsForumColor || "#ffffff") :
-                      colorTarget === "stat_posts_social" ? (statPostsSocialColor || "#ffffff") :
-                      (statGamesColor || "#ffffff")
-                    }
+                    value={getValidHex(
+                      colorTarget === "border" ? avatarBorderColor :
+                      colorTarget === "name" ? nameColor :
+                      colorTarget === "role" ? roleColor :
+                      colorTarget === "staff" ? staffRoleColor :
+                      colorTarget === "stat_points" ? statPointsColor :
+                      colorTarget === "stat_followers" ? statFollowersColor :
+                      colorTarget === "stat_following" ? statFollowingColor :
+                      colorTarget === "stat_posts_forum" ? statPostsForumColor :
+                      colorTarget === "stat_posts_social" ? statPostsSocialColor :
+                      statGamesColor
+                    )}
                     onChange={(e) => {
                       if (colorTarget === "border") setAvatarBorderColor(e.target.value);
                       else if (colorTarget === "name") setNameColor(e.target.value);
@@ -1140,7 +1146,6 @@ export default function ProfilePage() {
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">
             Estadísticas
           </h3>
-          {/* 🔥 Tabla de Stats con Colores Personalizables y Efecto Neón para Staff 🔥 */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { val: profile?.total_score?.toLocaleString() || 0, label: "Puntos", color: statPointsColor || "#39ff14" },
