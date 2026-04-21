@@ -82,31 +82,60 @@ export default function PublicProfilePage() {
 
   const handleFollow = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
-    if (isFollowing) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
-      setIsFollowing(false);
-      setFollowerCount(p => p - 1);
+    
+    // Guardamos el estado anterior por si falla
+    const wasFollowing = isFollowing;
+    
+    // UI Optimista
+    setIsFollowing(!wasFollowing);
+    setFollowerCount(p => wasFollowing ? p - 1 : p + 1);
+
+    if (wasFollowing) {
+      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      if (error) {
+        // Revertir si falla
+        setIsFollowing(wasFollowing);
+        setFollowerCount(p => p + 1);
+        toast({ title: "Error al dejar de seguir", description: error.message, variant: "destructive" });
+      }
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
-      setIsFollowing(true);
-      setFollowerCount(p => p + 1);
+      const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
+      if (error) {
+        // Revertir si falla
+        setIsFollowing(wasFollowing);
+        setFollowerCount(p => p - 1);
+        toast({ title: "Error al seguir", description: error.message, variant: "destructive" });
+      }
     }
   };
 
   const handleFriendRequest = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
+    
     if (friendStatus === "none") {
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
-      if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
+      if (error) {
+        toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
+      } else { 
+        setFriendStatus("pending_sent"); 
+        toast({ title: "Solicitud enviada" }); 
+      }
     } else if (friendStatus === "pending_received") {
-      await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
-      setFriendStatus("accepted");
-      toast({ title: "Amistad aceptada" });
-      // Notification is now handled by the database trigger automatically
+      const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
+      if (error) {
+        toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
+      } else {
+        setFriendStatus("accepted");
+        toast({ title: "Amistad aceptada" });
+      }
     } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
-      await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
-      setFriendStatus("none");
-      toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" });
+      const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
+      if (error) {
+        toast({ title: "Error al cancelar/eliminar", description: error.message, variant: "destructive" });
+      } else {
+        setFriendStatus("none");
+        toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" });
+      }
     }
   };
 
