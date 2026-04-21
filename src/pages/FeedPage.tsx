@@ -217,24 +217,19 @@ export default function FeedPage() {
   );
 }
 
-// 🔥 REPRODUCTOR DE VIDEO MEJORADO 🔥
+// 🔥 REPRODUCTOR DE VIDEO OMNIPOTENTE 🔥
 function VideoPlayer({ url }: { url: string }) {
   if (!url) return <div className="text-[10px] font-pixel text-muted-foreground">SIN URL</div>;
 
   const lowerUrl = url.toLowerCase();
-  const isYoutube = lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be");
-  const isInstagram = lowerUrl.includes("instagram.com");
-  const isTikTok = lowerUrl.includes("tiktok.com");
-  const isFacebook = lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch");
-  const isDirectVideo = lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".webm") || lowerUrl.endsWith(".ogg");
 
-  // Archivo directo de video
-  if (isDirectVideo) {
+  // 1. Archivo directo de video
+  if (lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".webm") || lowerUrl.endsWith(".ogg")) {
     return <video src={url} controls className="w-full max-h-[600px] object-contain" />;
   }
 
-  // Reproductor de YouTube
-  if (isYoutube) {
+  // 2. YouTube & Shorts
+  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
     let videoId = "";
     if (url.includes("youtu.be/")) {
       videoId = url.split("youtu.be/")[1]?.split("?")[0];
@@ -243,7 +238,6 @@ function VideoPlayer({ url }: { url: string }) {
     } else if (url.includes("v=")) {
       videoId = url.split("v=")[1]?.split("&")[0];
     }
-    
     if (videoId) {
       return (
         <iframe 
@@ -255,25 +249,54 @@ function VideoPlayer({ url }: { url: string }) {
     }
   }
 
-  // Fallback Inteligente para redes que no dejan incrustar fácil
-  let platformName = "VER ENLACE EXTERNO";
-  if (isInstagram) platformName = "VER EN INSTAGRAM";
-  if (isTikTok) platformName = "VER EN TIKTOK";
-  if (isFacebook) platformName = "VER EN FACEBOOK";
-  if (isYoutube) platformName = "VER EN YOUTUBE";
+  // 3. TikTok
+  if (lowerUrl.includes("tiktok.com")) {
+    const match = url.match(/video\/(\d+)/);
+    if (match && match[1]) {
+      return (
+        <iframe 
+          className="w-full aspect-[9/16] max-h-[600px] border-0" 
+          src={`https://www.tiktok.com/embed/v2/${match[1]}`} 
+          allowFullScreen 
+        />
+      );
+    }
+  }
 
+  // 4. Instagram (Posts & Reels)
+  if (lowerUrl.includes("instagram.com")) {
+    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
+    if (match && match[1]) {
+      return (
+        <iframe 
+          className="w-full aspect-square md:aspect-[4/5] border-0 max-h-[600px] bg-white" 
+          src={`https://www.instagram.com/p/${match[1]}/embed`} 
+          allowFullScreen 
+        />
+      );
+    }
+  }
+
+  // 5. Facebook
+  if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
+    const encodedUrl = encodeURIComponent(url);
+    return (
+      <iframe 
+        className="w-full aspect-video border-0" 
+        src={`https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`} 
+        allowFullScreen 
+        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" 
+      />
+    );
+  }
+
+  // 6. Extraterrestre (Intento de iframe genérico para forzar incrustación)
   return (
-    <div className="w-full p-10 text-center flex flex-col items-center justify-center gap-4">
-      <PlayCircle className="w-16 h-16 text-neon-cyan animate-pulse" />
-      <a 
-        href={url} 
-        target="_blank" 
-        rel="noreferrer" 
-        className="px-4 py-2 bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 border border-neon-cyan/50 rounded-lg text-[10px] uppercase font-pixel tracking-widest transition-colors"
-      >
-        {platformName}
-      </a>
-    </div>
+    <iframe 
+      className="w-full aspect-video border-0 bg-black" 
+      src={url} 
+      allowFullScreen 
+    />
   );
 }
 
