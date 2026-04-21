@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,27 +116,34 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
     }
   };
 
-  const isEmbed = photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png');
-  const embedSrc = isEmbed ? getEmbedUrl(photo.image_url, photo.platform) : null;
+  // Si no tenemos un thumbnail y es Instagram, usamos iframe como rescate
+  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url.includes('.jpg') && !photo.content_url.includes('.png');
+  const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    // 🔥 ELIMINÉ el my-2 y le agregué aspect-[3/2] para que iguale matemáticamente la altura exacta 🔥
     <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in md:aspect-[3/2]">
       
-      {/* 🔥 LADO IZQUIERDO: IMAGEN EXPANDIDA (60%) 🔥 */}
-      <div className="relative bg-black w-full md:w-[60%] flex items-center justify-center p-2 shrink-0 md:shrink">
+      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-2 shrink-0 md:shrink">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[450px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
-           <img src={photo.image_url} alt={photo.caption} className="w-full h-full object-contain rounded-lg" />
+           <img src={photo.thumbnail_url || photo.image_url} alt={photo.caption} className="w-full h-full object-contain rounded-lg" />
         )}
         
-        <button onClick={onClose} className="absolute top-4 right-4 md:hidden bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-white/20">
+        {/* Link para ver el post original si viene de Social Hub */}
+        {photo.target_type === 'social_content' && (
+           <a href={photo.content_url} target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 rounded-lg text-[9px] uppercase font-pixel tracking-widest flex items-center gap-1 hover:bg-neon-cyan/20 hover:text-neon-cyan transition-colors z-20">
+             <ExternalLink className="w-3 h-3" /> Ver original
+           </a>
+        )}
+
+        <button onClick={onClose} className="absolute top-4 right-4 md:hidden bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-white/20 z-20">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* 🔥 LADO DERECHO: PANEL SOCIAL (40%) 🔥 */}
+      {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
@@ -273,6 +280,8 @@ export default function PhotoWallPage() {
   
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
+  
+  const scrollPosRef = useRef(0);
 
   const tier = profile?.membership_tier || "novato";
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -294,7 +303,9 @@ export default function PhotoWallPage() {
       const socialImages = socialRes.data.filter(item => !isVideoItem(item)).map(item => ({
          id: item.id,
          user_id: item.user_id,
-         image_url: item.thumbnail_url || item.content_url,
+         thumbnail_url: item.thumbnail_url, // 🔥 Ahora mapeamos el thumbnail
+         content_url: item.content_url,     // 🔥 Mantenemos el original para el botón "Ver publicación"
+         image_url: item.image_url || item.thumbnail_url || item.content_url,
          caption: item.title || "",
          likes: item.likes || 0,
          dislikes: item.dislikes || 0,
@@ -412,9 +423,14 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
+  // 🔥 EL THUMBNAIL RENDERIZA LA IMAGEN NATIVA SI EXISTE 🔥
   const renderSquareImage = (photo: any) => {
-    if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.image_url.includes('.jpg') && !photo.image_url.includes('.png')) {
-      const embed = getEmbedUrl(photo.image_url, photo.platform);
+    if (photo.thumbnail_url) {
+      return <img src={photo.thumbnail_url} alt={photo.caption || "Foto"} className="absolute top-0 left-0 w-full h-[105%] object-cover rounded-lg transform -translate-y-[5%]" loading="lazy" />;
+    }
+    
+    if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url.includes('.jpg') && !photo.content_url.includes('.png')) {
+      const embed = getEmbedUrl(photo.content_url, photo.platform);
       if (embed) {
         return (
           <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none rounded-lg">
@@ -487,8 +503,12 @@ export default function PhotoWallPage() {
                 <ExpandedPhotoCard 
                   key={photo.id} 
                   photo={photo} 
-                  // 🔥 NINGÚN CÓDIGO DE SCROLL AQUÍ, SOLO CERRAR 🔥
-                  onClose={() => setExpandedPhotoId(null)}
+                  onClose={() => {
+                    setExpandedPhotoId(null);
+                    setTimeout(() => {
+                      window.scrollTo({ top: scrollPosRef.current, behavior: 'instant' });
+                    }, 10);
+                  }}
                   onReaction={handleReaction}
                   onDelete={handleDeletePhoto}
                   userReaction={userReactions[photo.id]}
@@ -500,8 +520,16 @@ export default function PhotoWallPage() {
             return (
               <div 
                 key={photo.id} 
-                // 🔥 NINGÚN CÓDIGO DE SCROLL AQUÍ, SOLO ABRIR 🔥
-                onClick={() => setExpandedPhotoId(photo.id)}
+                onClick={() => {
+                  scrollPosRef.current = window.scrollY;
+                  setExpandedPhotoId(photo.id);
+                  setTimeout(() => {
+                    const el = document.getElementById(`expanded-card-${photo.id}`);
+                    if (el) {
+                      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+                    }
+                  }, 50);
+                }}
                 className="relative group rounded-xl bg-[#09090b] aspect-[3/4] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
               >
                 <div className="relative w-full h-full overflow-hidden rounded-lg">
