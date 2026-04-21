@@ -438,7 +438,6 @@ export default function ProfilePage() {
   
   const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
 
-  // Deduplicar juegos
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
       const key = `${gs.game_name}-${gs.console_type}`;
@@ -1658,7 +1657,7 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
-// 🔥 EXTRAER URL DEL PREVISUALIZADOR 🔥
+// 🔥 EXTRAER URL DEL PREVISUALIZADOR (Permite interactuar con él) 🔥
 const getPreviewUrl = (url: string) => {
   if (!url) return null;
   const lowerUrl = url.toLowerCase();
@@ -1668,7 +1667,8 @@ const getPreviewUrl = (url: string) => {
     if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
     else if (url.includes("youtube.com/shorts/")) videoId = url.split("youtube.com/shorts/")[1]?.split("?")[0];
     else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
-    if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1`;
+    // Sin mute=1 para que puedan interactuar libremente en el preview
+    if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=0`;
   }
   if (lowerUrl.includes("tiktok.com")) {
     const match = url.match(/video\/(\d+)/);
@@ -1696,6 +1696,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const [cropScale, setCropScale] = useState(1);
   const [cropX, setCropX] = useState(0);
   const [cropY, setCropY] = useState(0);
+  const [previewFormat, setPreviewFormat] = useState<"muro" | "feed">("muro");
   
   const fetchContents = async () => {
     const { data } = await supabase
@@ -1776,7 +1777,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Publicar en Social Hub</h3>
         <p className="text-[10px] text-muted-foreground font-body leading-tight">
-          Pega el link de tu video, reel o foto. El sistema detectará automáticamente si va a "Videos & Reels" o al "Muro Fotográfico".
+          Pega el link de tu video, reel o foto. Usa el encuadre para seleccionar la parte que deseas destacar.
         </p>
         <Input 
           placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
@@ -1785,16 +1786,36 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
           className="h-8 bg-muted text-xs w-full font-body" 
         />
 
-        {/* 🔥 PREVISUALIZADOR Y HERRAMIENTA DE RECORTE (CROPPER) 🔥 */}
+        {/* 🔥 PREVISUALIZADOR INTERACTIVO Y HERRAMIENTA DE RECORTE 🔥 */}
         {previewUrl && (
-          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in">
-            <p className="text-[10px] font-pixel text-neon-cyan mb-3 uppercase tracking-tighter flex items-center gap-2">
-              <Crop className="w-3 h-3" /> Ajuste de Encuadre
-            </p>
-            <div className="flex flex-col md:flex-row gap-4 items-center md:items-stretch">
-              {/* Contenedor simulando la tarjeta del muro (aspect ratio 3:4 aprox) */}
-              <div className="w-[150px] md:w-[180px] aspect-[3/4] bg-black rounded-lg overflow-hidden relative border border-white/10 shrink-0">
-                 <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]"></div>
+          <div className="mt-3 p-4 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-pixel text-neon-cyan uppercase tracking-tighter flex items-center gap-2">
+                <Crop className="w-3 h-3" /> Ajuste de Encuadre
+              </p>
+            </div>
+            
+            <div className="flex gap-2 w-full mb-4">
+              <button
+                onClick={() => setPreviewFormat("muro")}
+                className={cn("flex-1 py-1.5 text-[9px] font-pixel uppercase tracking-widest rounded border transition-colors", previewFormat === "muro" ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan" : "bg-muted border-border text-muted-foreground hover:border-neon-cyan/50")}
+              >
+                Previsualizar Muro
+              </button>
+              <button
+                onClick={() => setPreviewFormat("feed")}
+                className={cn("flex-1 py-1.5 text-[9px] font-pixel uppercase tracking-widest rounded border transition-colors", previewFormat === "feed" ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan" : "bg-muted border-border text-muted-foreground hover:border-neon-cyan/50")}
+              >
+                Previsualizar Feed
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-center md:items-start w-full">
+              {/* Contenedor Dinámico */}
+              <div className={cn(
+                "bg-black rounded-lg overflow-hidden relative border border-white/20 shrink-0 mx-auto md:mx-0",
+                previewFormat === "muro" ? "w-[200px] aspect-[3/4]" : "w-full max-w-[320px] aspect-video"
+              )}>
                  {isImage ? (
                    <img
                      src={previewUrl}
@@ -1810,14 +1831,14 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
                        transformOrigin: 'center center',
                        border: 'none'
                      }}
-                     tabIndex={-1}
-                     scrolling="no"
+                     allow="autoplay; encrypted-media"
+                     allowFullScreen
                    />
                  )}
               </div>
 
               {/* Controles de Sliders */}
-              <div className="flex-1 w-full space-y-4 flex flex-col justify-center bg-card p-3 rounded-lg border border-border/50 shadow-sm">
+              <div className="flex-1 w-full space-y-4 flex flex-col justify-center bg-card p-4 rounded-lg border border-border/50 shadow-sm">
                 <div>
                   <div className="flex justify-between mb-1">
                     <label className="text-[9px] text-muted-foreground font-pixel uppercase">Zoom</label>
