@@ -1687,16 +1687,39 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       
       setIsFetchingPreview(true);
       try {
-        // 🔥 VOLVEMOS A LA EXTRACCIÓN OFICIAL DE METADATA (OPEN GRAPH) 🔥
-        // Sin el screenshot=true, Instagram no nos lanza el muro de login
-        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-        const data = await res.json();
-        
-        if (data.status === "success" && data.data.image?.url) {
-          setPreviewImage(data.data.image.url);
-        } else {
-          setPreviewImage(null);
+        let extractedUrl: string | null = null;
+        const isInstagram = newUrl.includes("instagram.com");
+
+        if (isInstagram) {
+          try {
+            // Usamos Jina.ai como Proxy Bypass
+            const res = await fetch(`https://r.jina.ai/${newUrl}`);
+            const html = await res.text();
+
+            let match = html.match(/"display_url":"([^"]+)"/);
+            if (!match) {
+              match = html.match(/"thumbnail_src":"([^"]+)"/);
+            }
+            
+            if (match && match[1]) {
+              extractedUrl = match[1].replace(/\\u0026/g, "&");
+            }
+          } catch (err) {
+            console.error("Error extrayendo de IG:", err);
+          }
         }
+
+        // Fallback / Otras plataformas con Microlink normal
+        if (!extractedUrl) {
+          const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+          const data = await res.json();
+          
+          if (data.status === "success" && data.data.image?.url) {
+            extractedUrl = data.data.image.url;
+          }
+        }
+
+        setPreviewImage(extractedUrl || null);
       } catch (e) {
         setPreviewImage(null);
       } finally {
@@ -1788,7 +1811,13 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  <img src={previewImage} alt="Preview" className="max-w-full max-h-[350px] w-auto h-auto object-contain rounded" />
+                  {/* 🔥 APLICANDO OBJECT-CONTAIN CON MAX-HEIGHT PARA EVITAR CORTES 🔥 */}
+                  <img 
+                    src={previewImage} 
+                    alt="Preview" 
+                    className="w-full object-contain rounded" 
+                    style={{ maxHeight: "400px" }}
+                  />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
