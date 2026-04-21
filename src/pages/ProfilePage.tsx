@@ -1687,43 +1687,16 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       
       setIsFetchingPreview(true);
       try {
-        let extractedUrl: string | null = null;
-
-        // 🔥 INTENTO 1: Extraer HTML real vía Proxy (Opción 3 de tu imagen) 🔥
-        if (newUrl.includes("instagram.com")) {
-          try {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(newUrl)}`;
-            const proxyRes = await fetch(proxyUrl);
-            const proxyData = await proxyRes.json();
-            const html = proxyData.contents || "";
-
-            const match1 = html.match(/"display_url":"([^"]+)"/);
-            const match2 = html.match(/"thumbnail_src":"([^"]+)"/);
-            const match3 = html.match(/<meta property="og:image" content="([^"]+)"/);
-
-            if (match1 && match1[1]) {
-              extractedUrl = match1[1].replace(/\\u0026/g, "&").replace(/\\/g, "");
-            } else if (match2 && match2[1]) {
-              extractedUrl = match2[1].replace(/\\u0026/g, "&").replace(/\\/g, "");
-            } else if (match3 && match3[1]) {
-              extractedUrl = match3[1].replace(/&amp;/g, "&");
-            }
-          } catch (e) {
-            console.log("Fallo extracción HTML, usando proxy render");
-          }
+        // 🔥 VOLVEMOS A LA EXTRACCIÓN OFICIAL DE METADATA (OPEN GRAPH) 🔥
+        // Sin el screenshot=true, Instagram no nos lanza el muro de login
+        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+        const data = await res.json();
+        
+        if (data.status === "success" && data.data.image?.url) {
+          setPreviewImage(data.data.image.url);
+        } else {
+          setPreviewImage(null);
         }
-
-        // 🔥 INTENTO 2: Si falló, usamos Microlink con screenshot=true (Opción 4 de tu imagen) 🔥
-        if (!extractedUrl) {
-          const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}&screenshot=true&meta=false`);
-          const data = await res.json();
-          
-          if (data.status === "success") {
-            extractedUrl = data.data.screenshot?.url || data.data.image?.url;
-          }
-        }
-
-        setPreviewImage(extractedUrl || null);
       } catch (e) {
         setPreviewImage(null);
       } finally {
@@ -1731,7 +1704,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       }
     };
 
-    const timer = setTimeout(fetchPreview, 1500);
+    const timer = setTimeout(fetchPreview, 1000);
     return () => clearTimeout(timer);
   }, [newUrl]);
 
@@ -1814,7 +1787,6 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
-                {/* 🔥 CONTENEDOR TOTALMENTE LIBERADO (SIN ASPECT-SQUARE) 🔥 */}
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
                   <img src={previewImage} alt="Preview" className="max-w-full max-h-[350px] w-auto h-auto object-contain rounded" />
                 </div>
