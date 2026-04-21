@@ -120,14 +120,15 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
   const embedSrc = isEmbed ? getEmbedUrl(photo.image_url, photo.platform) : null;
 
   return (
-    <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2">
+    // 🔥 ASPECT-[1.52]: El truco mágico para que mida exactamente lo mismo que el contenedor sin expandir 🔥
+    <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in my-2 md:aspect-[1.52]">
       
-      {/* 🔥 LADO IZQUIERDO: IMAGEN EXPANDIDA (Altura liberada para no aplastarla) 🔥 */}
-      <div className="relative bg-black w-full md:w-[70%] lg:w-[75%] min-h-[400px] md:min-h-[600px] flex items-center justify-center p-2 shrink-0 md:shrink">
+      {/* 🔥 IMAGEN (70% a 75% del ancho, su altura se adapta automáticamente al padre) 🔥 */}
+      <div className="relative bg-black w-full md:w-[70%] lg:w-[75%] aspect-[1.52] md:aspect-auto flex items-center justify-center p-2 shrink-0 md:shrink">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full max-w-[450px] bg-white rounded-lg shadow-xl" allowFullScreen />
         ) : (
-           <img src={photo.image_url} alt={photo.caption} className="w-full h-full max-h-[80vh] md:max-h-[85vh] object-contain rounded-lg" />
+           <img src={photo.image_url} alt={photo.caption} className="w-full h-full object-contain rounded-lg" />
         )}
         
         <button onClick={onClose} className="absolute top-4 right-4 md:hidden bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-white/20">
@@ -135,8 +136,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
         </button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL */}
-      <div className="w-full md:w-[30%] lg:w-[25%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:max-h-[85vh] shrink-0">
+      {/* 🔥 PANEL SOCIAL (30% a 25% del ancho, hereda la altura exacta de la imagen) 🔥 */}
+      <div className="w-full md:w-[30%] lg:w-[25%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -190,7 +191,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar bg-background/30 min-h-[200px]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar bg-background/30 min-h-[150px]">
           {comments.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-50 space-y-2">
               <MessageSquare className="w-8 h-8 text-muted-foreground" />
