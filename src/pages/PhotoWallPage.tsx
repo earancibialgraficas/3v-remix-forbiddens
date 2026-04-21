@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, ExternalLink } from "lucide-react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,8 +52,81 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA 🔥
-function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction, isStaff }: any) {
+/* 🔥 COMPONENTE INTERNO: TARJETA DE MINIATURA (ESTILO PINTEREST) 🔥 */
+function PhotoCardMiniature({ photo, onReaction, onDelete, onExpand, onSave, userReaction, isStaff }: any) {
+  const { user } = useAuth();
+  
+  const isEmbed = photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
+  const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
+
+  const renderImage = () => {
+    if (photo.thumbnail_url) {
+      return <img src={photo.thumbnail_url} alt={photo.caption || "Foto"} className="w-full h-full object-cover" loading="lazy" />;
+    }
+    if (isEmbed && embedSrc) {
+      return (
+        <div className="w-full h-full overflow-hidden bg-white pointer-events-none relative min-h-[250px]">
+          <iframe src={embedSrc} className="absolute inset-0 w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
+        </div>
+      );
+    }
+    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="w-full h-full object-cover" loading="lazy" />;
+  };
+
+  return (
+    <div className="break-inside-avoid mb-2 md:mb-4 relative group rounded-xl bg-[#09090b] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 flex flex-col overflow-hidden">
+      <div className="relative w-full h-full overflow-hidden">
+        {renderImage()}
+        
+        {/* CAPA DE INTERACCIÓN FLOTANTE */}
+        <div 
+          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3"
+          onClick={onExpand}
+        >
+          
+          <div className="flex justify-between items-start">
+            {isStaff && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} 
+                className="p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20" 
+                title="Eliminar (Staff)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            
+            {user && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} 
+                className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto" 
+                title="Guardar en mi Perfil"
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-4">
+             <Maximize2 className="w-8 h-8 text-white/50 mb-2 pointer-events-none" />
+             <div className="flex items-center gap-4 text-white font-body text-xs">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} 
+                  className={cn("flex items-center gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}
+                >
+                   <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}
+                </button>
+                <span className="flex items-center gap-1.5 pointer-events-none"><MessageSquare className="w-4 h-4" /></span>
+             </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA (DISEÑO 60/40 UNIFORME) 🔥 */
+function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -116,22 +189,20 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
     }
   };
 
-  // Si no tenemos un thumbnail y es Instagram, usamos iframe como rescate
   const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url.includes('.jpg') && !photo.content_url.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    <div id={`expanded-card-${photo.id}`} className="col-span-2 bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in md:aspect-[3/2]">
+    <div id={`expanded-card-${photo.id}`} className="col-span-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in aspect-auto md:aspect-[3/2] w-full max-w-full break-inside-avoid mb-4">
       
-      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-2 shrink-0 md:shrink">
+      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA (60% UNIFORME) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-2 shrink-0 md:shrink overflow-hidden">
         {isEmbed && embedSrc ? (
-           <iframe src={embedSrc} className="w-full h-full max-w-[450px] bg-white rounded-lg shadow-xl" allowFullScreen />
+           <iframe src={embedSrc} className="max-w-full max-h-full object-contain rounded" allowFullScreen />
         ) : (
-           <img src={photo.thumbnail_url || photo.image_url} alt={photo.caption} className="w-full h-full object-contain rounded-lg" />
+           <img src={photo.thumbnail_url || photo.image_url} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" />
         )}
         
-        {/* Link para ver el post original si viene de Social Hub */}
         {photo.target_type === 'social_content' && (
            <a href={photo.content_url} target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 rounded-lg text-[9px] uppercase font-pixel tracking-widest flex items-center gap-1 hover:bg-neon-cyan/20 hover:text-neon-cyan transition-colors z-20">
              <ExternalLink className="w-3 h-3" /> Ver original
@@ -143,7 +214,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, userReaction,
         </button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL */}
+      {/* LADO DERECHO: PANEL SOCIAL (40% UNIFORME) */}
       <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
@@ -303,8 +374,8 @@ export default function PhotoWallPage() {
       const socialImages = socialRes.data.filter(item => !isVideoItem(item)).map(item => ({
          id: item.id,
          user_id: item.user_id,
-         thumbnail_url: item.thumbnail_url, // 🔥 Ahora mapeamos el thumbnail
-         content_url: item.content_url,     // 🔥 Mantenemos el original para el botón "Ver publicación"
+         thumbnail_url: item.thumbnail_url, 
+         content_url: item.content_url,     
          image_url: item.image_url || item.thumbnail_url || item.content_url,
          caption: item.title || "",
          likes: item.likes || 0,
@@ -421,26 +492,18 @@ export default function PhotoWallPage() {
     }
   };
 
-  const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
-
-  // 🔥 EL THUMBNAIL RENDERIZA LA IMAGEN NATIVA SI EXISTE 🔥
-  const renderSquareImage = (photo: any) => {
-    if (photo.thumbnail_url) {
-      return <img src={photo.thumbnail_url} alt={photo.caption || "Foto"} className="absolute top-0 left-0 w-full h-[105%] object-cover rounded-lg transform -translate-y-[5%]" loading="lazy" />;
+  const handleSaveToProfile = async (photoId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId });
+      if (error) throw error;
+      toast({ title: "Guardado en tu perfil", description: "Podrás verla en tu colección." });
+    } catch (e: any) {
+      toast({ title: "Error al guardar", description: "Es posible que ya esté guardada.", variant: "destructive" });
     }
-    
-    if (photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url.includes('.jpg') && !photo.content_url.includes('.png')) {
-      const embed = getEmbedUrl(photo.content_url, photo.platform);
-      if (embed) {
-        return (
-          <div className="absolute inset-0 w-full h-full overflow-hidden bg-white pointer-events-none rounded-lg">
-            <iframe src={embed} className="absolute top-0 left-0 w-full h-[105%] transform -translate-y-[5%] scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
-          </div>
-        );
-      }
-    }
-    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="absolute top-0 left-0 w-full h-[105%] object-cover rounded-lg transform -translate-y-[5%]" loading="lazy" />;
   };
+
+  const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
   return (
     <div className="space-y-4 animate-fade-in pb-10 max-w-[1200px] mx-auto">
@@ -495,7 +558,8 @@ export default function PhotoWallPage() {
           <p className="text-sm text-muted-foreground font-body uppercase">{sourceTab === "friends" ? "Tus amigos aún no han subido fotos" : "El muro está vacío"}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 md:gap-4 px-2 md:px-0">
+        /* 🔥 CUADRICULA TIPO PINTEREST (CSS COLUMNS) 🔥 */
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-2 md:gap-4 px-2 md:px-0 space-y-2 md:space-y-4">
           {displayPhotos.map(photo => {
             
             if (expandedPhotoId === photo.id) {
@@ -511,6 +575,7 @@ export default function PhotoWallPage() {
                   }}
                   onReaction={handleReaction}
                   onDelete={handleDeletePhoto}
+                  onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
                 />
@@ -518,32 +583,25 @@ export default function PhotoWallPage() {
             }
 
             return (
-              <div 
-                key={photo.id} 
-                onClick={() => {
-                  scrollPosRef.current = window.scrollY;
-                  setExpandedPhotoId(photo.id);
-                  setTimeout(() => {
-                    const el = document.getElementById(`expanded-card-${photo.id}`);
-                    if (el) {
-                      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
-                    }
-                  }, 50);
-                }}
-                className="relative group rounded-xl bg-[#09090b] aspect-[3/4] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 p-2 md:p-3 flex flex-col"
-              >
-                <div className="relative w-full h-full overflow-hidden rounded-lg">
-                  {renderSquareImage(photo)}
-                  
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
-                    <Maximize2 className="w-8 h-8 text-white/50 mb-2" />
-                    <div className="flex items-center gap-4 text-white font-body text-xs">
-                      <span className="flex items-center gap-1.5"><ThumbsUp className="w-4 h-4" /> {photo.likes}</span>
-                      <span className="flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+               <PhotoCardMiniature
+                 key={photo.id}
+                 photo={photo}
+                 onReaction={handleReaction}
+                 onDelete={handleDeletePhoto}
+                 onSave={handleSaveToProfile}
+                 onExpand={() => {
+                   scrollPosRef.current = window.scrollY;
+                   setExpandedPhotoId(photo.id);
+                   setTimeout(() => {
+                     const el = document.getElementById(`expanded-card-${photo.id}`);
+                     if (el) {
+                       window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+                     }
+                   }, 50);
+                 }}
+                 userReaction={userReactions[photo.id]}
+                 isStaff={isStaff}
+               />
             );
           })}
         </div>
