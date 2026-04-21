@@ -40,12 +40,12 @@ export default function FeedPage() {
   const fetchFeed = async () => {
     setLoading(true);
     try {
+      // 1. Descargamos fotos y videos SIN intentar forzar el Join con profiles
       const [photosRes, socialRes] = await Promise.all([
-        supabase.from("photos").select("*, profiles(display_name, avatar_url)").order("created_at", { ascending: false }),
-        supabase.from("social_content").select("*, profiles(display_name, avatar_url)").order("created_at", { ascending: false })
+        supabase.from("photos").select("*").order("created_at", { ascending: false }),
+        supabase.from("social_content").select("*").order("created_at", { ascending: false })
       ]);
 
-      // 🔥 Detectores de errores por si fallan las relaciones en Supabase 🔥
       if (photosRes.error) console.error("❌ Error cargando fotos:", photosRes.error.message);
       if (socialRes.error) console.error("❌ Error cargando social_content:", socialRes.error.message);
 
@@ -56,19 +56,41 @@ export default function FeedPage() {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      const feedWithData = await Promise.all(combined.map(async (item) => {
-        const { data: reactions } = await supabase.from("social_reactions").select("reaction_type, user_id").eq("content_id", item.id);
+      if (combined.length === 0) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Extraemos todos los IDs de los autores y descargamos sus perfiles manualmente
+      const uniqueUserIds = [...new Set(combined.map(item => item.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url")
+        .in("user_id", uniqueUserIds);
+
+      // 3. Extraemos todas las reacciones de estos posts manualmente
+      const postIds = combined.map(item => item.id);
+      const { data: reactionsData } = await supabase
+        .from("social_reactions")
+        .select("reaction_type, user_id, content_id")
+        .in("content_id", postIds);
+
+      // 4. Unimos todo con JavaScript (A prueba de balas)
+      const feedWithData = combined.map((item) => {
+        const authorProfile = profilesData?.find(p => p.user_id === item.user_id) || { display_name: "Usuario Desconocido", avatar_url: null };
+        const itemReactions = reactionsData?.filter(r => r.content_id === item.id) || [];
         
         return {
           ...item,
-          profiles: item.profiles || { display_name: "Usuario Desconocido", avatar_url: null }, // Fallback si el perfil fue borrado
+          profiles: authorProfile,
           reactions_count: {
-            likes: reactions?.filter(r => r.reaction_type === 'like').length || 0,
-            dislikes: reactions?.filter(r => r.reaction_type === 'dislike').length || 0
+            likes: itemReactions.filter(r => r.reaction_type === 'like').length,
+            dislikes: itemReactions.filter(r => r.reaction_type === 'dislike').length
           },
-          user_reaction: reactions?.find(r => r.user_id === user?.id)?.reaction_type || null
+          user_reaction: itemReactions.find(r => r.user_id === user?.id)?.reaction_type || null
         };
-      }));
+      });
 
       setItems(feedWithData as any);
     } catch (error) {
@@ -111,7 +133,6 @@ export default function FeedPage() {
         <h1 className="font-pixel text-sm text-foreground">FEED GLOBAL</h1>
       </div>
 
-      {/* 🔥 ESTADO VACÍO (Por si no hay posts) 🔥 */}
       {items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-50">
           <Ghost className="w-16 h-16 text-muted-foreground animate-bounce" />
@@ -208,7 +229,7 @@ function VideoPlayer({ url }: { url: string }) {
     const videoId = url.split("v=")[1] || url.split("/").pop();
     return (
       <iframe 
-        className="w-full aspect-video"
+        className="w-full aspect-video border-0"
         src={`https://www.youtube.com/embed/${videoId}`}
         allowFullScreen
       />
@@ -240,12 +261,31 @@ function CommentsSection({ contentId }: { contentId: string }) {
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
 
   const fetchComments = async () => {
-    const { data } = await supabase
+    // Descargamos comentarios crudos
+    const { data: rawComments, error } = await supabase
       .from("social_comments")
-      .select("*, profiles(display_name, avatar_url)")
+      .select("*")
       .eq("content_id", contentId)
       .order("created_at", { ascending: true });
-    if (data) setComments(data);
+
+    if (error) {
+      console.error("Error cargando comentarios:", error);
+      return;
+    }
+
+    if (rawComments && rawComments.length > 0) {
+      // Unimos con los perfiles manualmente
+      const userIds = [...new Set(rawComments.map(c => c.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+
+      const mergedComments = rawComments.map(c => ({
+        ...c,
+        profiles: profs?.find(p => p.user_id === c.user_id) || { display_name: "Usuario", avatar_url: null }
+      }));
+      setComments(mergedComments);
+    } else {
+      setComments([]);
+    }
   };
 
   useEffect(() => { fetchComments(); }, [contentId]);
@@ -271,26 +311,30 @@ function CommentsSection({ contentId }: { contentId: string }) {
   return (
     <div className="space-y-4">
       <div className="max-h-60 overflow-y-auto space-y-3 pr-2 retro-scrollbar">
-        {comments.map((c) => (
-          <div key={c.id} className={cn("flex gap-2", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
-            <Avatar className="w-6 h-6 border border-white/10">
-              <AvatarImage src={c.profiles.avatar_url} />
-              <AvatarFallback>?</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="bg-white/5 rounded-lg p-2">
-                <p className="text-[10px] font-bold text-neon-cyan">{c.profiles.display_name}</p>
-                <p className="text-xs text-foreground font-body">{c.comment_text}</p>
+        {comments.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body opacity-50 text-center py-2">Sé el primero en comentar.</p>
+        ) : (
+          comments.map((c) => (
+            <div key={c.id} className={cn("flex gap-2", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
+              <Avatar className="w-6 h-6 border border-white/10">
+                <AvatarImage src={c.profiles.avatar_url} />
+                <AvatarFallback>?</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="bg-white/5 rounded-lg p-2">
+                  <p className="text-[10px] font-bold text-neon-cyan">{c.profiles.display_name}</p>
+                  <p className="text-xs text-foreground font-body">{c.comment_text}</p>
+                </div>
+                <button 
+                  onClick={() => setReplyTo({ id: c.id, name: c.profiles.display_name })}
+                  className="text-[9px] text-muted-foreground mt-1 hover:text-white uppercase font-pixel"
+                >
+                  Responder
+                </button>
               </div>
-              <button 
-                onClick={() => setReplyTo({ id: c.id, name: c.profiles.display_name })}
-                className="text-[9px] text-muted-foreground mt-1 hover:text-white uppercase font-pixel"
-              >
-                Responder
-              </button>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="relative">
@@ -307,7 +351,7 @@ function CommentsSection({ contentId }: { contentId: string }) {
             placeholder="Escribe un comentario..."
             className="h-9 bg-black/40 border-white/10 text-xs font-body"
           />
-          <Button type="submit" size="icon" className="h-9 w-9 bg-neon-cyan text-black shrink-0">
+          <Button type="submit" size="icon" className="h-9 w-9 bg-neon-cyan text-black shrink-0 hover:bg-neon-cyan/80">
             <Send className="w-4 h-4" />
           </Button>
         </div>
