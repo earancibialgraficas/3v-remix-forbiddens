@@ -12,26 +12,26 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
-// 🔥 ANIMACIONES CSS ESTILO GOMA/CARICATURA 🔥
+// 🔥 ANIMACIONES DE GOMA MÁS LENTAS Y CON "EMPUJE" VERTICAL 🔥
 const jellyStyles = `
   @keyframes jelly-pop {
-    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; }
-    30% { transform: scale3d(1.15, 0.75, 1); opacity: 1; }
-    45% { transform: scale3d(0.85, 1.15, 1); }
-    65% { transform: scale3d(1.05, 0.95, 1); }
-    80% { transform: scale3d(0.98, 1.02, 1); }
-    100% { transform: scale3d(1, 1, 1); opacity: 1; }
+    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; max-height: 100px; }
+    30% { transform: scale3d(1.15, 0.75, 1); opacity: 1; max-height: 300px; }
+    45% { transform: scale3d(0.85, 1.15, 1); max-height: 500px; }
+    65% { transform: scale3d(1.05, 0.95, 1); max-height: 600px; }
+    80% { transform: scale3d(0.98, 1.02, 1); max-height: 700px; }
+    100% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; }
   }
   @keyframes jelly-hide {
-    0% { transform: scale3d(1, 1, 1); opacity: 1; }
-    25% { transform: scale3d(1.1, 0.8, 1); opacity: 1; }
-    100% { transform: scale3d(0, 0, 1); opacity: 0; }
+    0% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; overflow: hidden; }
+    25% { transform: scale3d(1.1, 0.8, 1); opacity: 1; max-height: 700px; overflow: hidden; }
+    100% { transform: scale3d(0, 0, 1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; overflow: hidden; }
   }
   .animate-jelly-open {
-    animation: jelly-pop 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: jelly-pop 1.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
   .animate-jelly-close {
-    animation: jelly-hide 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: jelly-hide 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
 `;
 
@@ -104,7 +104,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   return (
     <div 
       className={cn(
-        "break-inside-avoid mb-6 relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm",
+        "break-inside-avoid mb-6 relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-1000 ease-in-out overflow-hidden shadow-sm",
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}
@@ -115,7 +115,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-1000 group-hover:scale-105" 
           loading="lazy" 
           onClick={onExpand}
           onError={(e) => {
@@ -152,7 +152,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (FÍSICA DE GOMA, 35%, X EN LA DERECHA) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -225,10 +225,9 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       style={{ columnSpan: 'all', transformOrigin: origin, ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (ALTURA 35vh, aprox 300px min) 🔥 CAMBIADO DE 25vh a 35vh 🔥 */}
+      {/* LADO IZQUIERDO: IMAGEN (35vh) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh] min-h-[300px]">
         
-        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
           href={originalUrl} 
           target="_blank" 
@@ -255,10 +254,9 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (ALTURA 35vh, aprox 300px min) 🔥 CAMBIADO DE 25vh a 35vh 🔥 */}
+      {/* LADO DERECHO: PANEL SOCIAL (35vh) */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh] min-h-[300px]">
         
-        {/* 🔥 LA 'X' REUBICADA EN LA ESQUINA SUPERIOR DERECHA DE LOS COMENTARIOS 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -464,7 +462,7 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
@@ -481,7 +479,7 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 550);
+    }, 850); // Ajustado para esperar que termine la animación de 0.9s
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -565,6 +563,7 @@ export default function PhotoWallPage() {
 
                   setExpandedPhotoId(photo.id);
                   
+                  // 🔥 Scroll sincronizado con el "boom" de la animación de 1.3s 🔥
                   setTimeout(() => {
                     const el = document.getElementById(`expanded-card-${photo.id}`);
                     if (el) {
@@ -573,7 +572,7 @@ export default function PhotoWallPage() {
                       const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
                       window.scrollTo({ top: middle, behavior: 'smooth' });
                     }
-                  }, 150); 
+                  }, 400); 
                 }}
                 onReaction={handleReaction}
                 onHide={handleHide}
