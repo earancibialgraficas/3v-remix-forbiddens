@@ -51,27 +51,47 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 FUNCIÓN PROXY PARA EVITAR IMÁGENES ROTAS DE INSTAGRAM 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
+// 🔥 PALETA DE COLORES NEÓN PARA LAS FOTOS DE APIFY 🔥
+const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
+
+const getPhotoNeonStyle = (photo: any) => {
+  if (!photo.is_apify) return {}; // Si no es de Apify, no hay marco
+  // Asignamos un color fijo basado en los caracteres del ID de la foto
+  const sum = String(photo.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const color = NEON_COLORS[sum % NEON_COLORS.length];
+  return {
+    borderColor: color,
+    boxShadow: `0 0 15px ${color}60`,
+  };
+};
+
 /* 🔥 COMPONENTE: TARJETA MINIATURA (3 COLUMNAS) 🔥 */
 function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const targetUrl = photo.thumbnail_url || photo.image_url;
+  const neonStyle = getPhotoNeonStyle(photo);
 
   return (
-    <div className="break-inside-avoid mb-4 relative group rounded-xl bg-[#09090b] border border-border/50 cursor-pointer transition-all duration-300 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] flex flex-col overflow-hidden shadow-sm">
-      <div className="relative w-full h-full overflow-hidden rounded-xl">
+    <div 
+      className={cn(
+        "break-inside-avoid mb-4 relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm",
+        photo.is_apify ? "border-2" : "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
+      )}
+      style={neonStyle}
+    >
+      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black">
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl" 
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
           loading="lazy" 
           onClick={onExpand}
           onError={(e) => {
@@ -121,7 +141,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (DISEÑO 60/40 COMPLETO CON RESPUESTAS) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (DISEÑO 60/40) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -130,6 +150,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const targetUrl = photo.thumbnail_url || photo.image_url;
+  const neonStyle = getPhotoNeonStyle(photo);
 
   const fetchComments = async () => {
     const { data: rawComments, error } = await supabase.from("social_comments").select("*").eq("content_id", photo.id).order("created_at", { ascending: true });
@@ -140,23 +161,11 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
       
       const pMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
-      
-      if (profs) {
-        profs.forEach((p: any) => {
-          pMap[p.user_id] = {
-            display_name: p.display_name,
-            avatar_url: p.avatar_url
-          };
-        });
-      }
+      if (profs) profs.forEach((p: any) => { pMap[p.user_id] = { display_name: p.display_name, avatar_url: p.avatar_url }; });
       
       setComments(rawComments.map((c: any) => {
         const profileData = pMap[c.user_id];
-        return { 
-          ...c, 
-          display_name: profileData ? profileData.display_name : "Anónimo", 
-          avatar_url: profileData ? profileData.avatar_url : null
-        };
+        return { ...c, display_name: profileData ? profileData.display_name : "Anónimo", avatar_url: profileData ? profileData.avatar_url : null };
       }));
     } else {
       setComments([]);
@@ -169,17 +178,12 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     if (!user || !commentText.trim()) return;
     try {
       const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, 
-        content_id: photo.id, 
-        content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), 
-        parent_id: replyTo?.id || null 
+        user_id: user.id, content_id: photo.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
       } as any);
       if (error) throw error;
-      setCommentText("");
-      setReplyTo(null);
-      fetchComments();
+      setCommentText(""); setReplyTo(null); fetchComments();
     } catch (e: any) {
-      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+      toast({ title: "Error", variant: "destructive" });
     }
   };
 
@@ -190,7 +194,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       setComments(prev => prev.filter(c => c.id !== commentId));
       toast({ title: "Comentario eliminado" });
     } catch (e) {
-      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
+      toast({ title: "Error", variant: "destructive" });
     }
   };
 
@@ -198,20 +202,27 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    /* 🔥 ALTURA ESTRICTA DEL 50% (50vh) 🔥 */
-    <div id={`expanded-card-${photo.id}`} className="col-span-full w-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden mb-6 flex flex-col md:flex-row animate-fade-in shadow-[0_0_30px_rgba(255,107,0,0.2)]" style={{ columnSpan: 'all' } as any}>
+    // 🔥 TRANSICIÓN SUAVE Y LENTA AÑADIDA: animate-in fade-in zoom-in-95 duration-700 ease-out 🔥
+    <div 
+      id={`expanded-card-${photo.id}`} 
+      className={cn(
+        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-6 flex flex-col md:flex-row animate-in fade-in zoom-in-95 duration-700 ease-out",
+        photo.is_apify ? "border-2 shadow-2xl" : "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
+      )} 
+      style={{ minHeight: '550px', columnSpan: 'all', ...neonStyle } as any}
+    >
       
       {/* LADO IZQUIERDO: IMAGEN (60% ANCHO, 50vh ALTO) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 overflow-hidden h-[50vh]">
         {isEmbed && embedSrc ? (
-           <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
+           <iframe src={embedSrc} className="w-full h-full object-contain rounded animate-in fade-in duration-1000" allowFullScreen />
         ) : (
            <img 
              src={getProxyUrl(targetUrl)} 
              alt={photo.caption} 
              referrerPolicy="no-referrer"
              crossOrigin="anonymous"
-             className="w-auto h-full max-w-full object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+             className="w-auto h-full max-w-full object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)] animate-in fade-in duration-1000" 
              onError={(e) => {
                if (!e.currentTarget.src.includes('wsrv.nl')) return;
                e.currentTarget.src = targetUrl;
@@ -240,7 +251,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
           
           <div className="space-y-4">
             {comments.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-30 py-10">
+              <div className="h-full flex flex-col items-center justify-center opacity-30 py-10 animate-pulse">
                 <MessageSquare className="w-8 h-8 mb-2" />
                 <p className="text-[10px] uppercase font-pixel">Sin comentarios aún</p>
               </div>
@@ -319,16 +330,26 @@ export default function PhotoWallPage() {
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
 
   const fetchPhotosAndDaily = async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    // 🔥 CONTADOR ESTRICTO: SOLO IS_APIFY = TRUE 🔥
-    const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', todayStr);
-    
-    // 🔥 COMPENSACIÓN POR LAS 4 EXTRACCIONES DE HOY 🔥
-    // Sumamos 4 manualmente para sincronizar con tu captura de Apify
-    setDailyApifyCount((count || 0) + 4);
+    // 🔥 LÓGICA DE REINICIO A LA MEDIANOCHE (HORA CHILE) 🔥
+    const getChileMidnightISO = () => {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' });
+      const chileDateStr = formatter.format(now);
+      // Esto crea un string ISO asumiendo UTC-4 (Horario estándar de Chile), 
+      // así la base de datos contará desde las 00:00 de Chile con total precisión.
+      return `${chileDateStr}T04:00:00.000Z`; 
+    };
 
-    // 🔥 REVERTIMOS A LA FORMA ORIGINAL QUE SÍ FUNCIONA EN TU SUPABASE 🔥
+    const midnightChile = getChileMidnightISO();
+    
+    // Contamos extracciones de Apify desde la medianoche chilena
+    const { count } = await supabase.from('photos')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_apify', true)
+      .gte('created_at', midnightChile);
+    
+    setDailyApifyCount(count || 0);
+
     const { data: photosRes } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
     const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
 
@@ -510,13 +531,13 @@ export default function PhotoWallPage() {
       )}
 
       {/* 🔥 GRILLA PINTEREST: ESTRICTAMENTE 3 COLUMNAS 🔥 */}
-      <div className="columns-3 gap-4 px-2 md:px-0">
+      <div className="columns-3 gap-4 px-2 md:px-0 relative">
         {displayPhotos.map(photo => (
           <div key={`${photo.target_type}-${photo.id}`}>
             {expandedPhotoId === photo.id ? (
               <ExpandedPhotoCard 
                 photo={photo} 
-                onClose={() => setExpandedPhotoId(null)} /* 🔥 Sin scrollTo 🔥 */
+                onClose={() => setExpandedPhotoId(null)}
                 onReaction={handleReaction}
                 onHide={handleHide}
                 onSave={handleSaveToProfile}
@@ -526,7 +547,19 @@ export default function PhotoWallPage() {
             ) : (
               <PhotoCardMiniature
                 photo={photo}
-                onExpand={() => setExpandedPhotoId(photo.id)} /* 🔥 Sin scrollTo 🔥 */
+                onExpand={() => {
+                  setExpandedPhotoId(photo.id);
+                  // 🔥 SCROLL CENTRADO SUAVE 🔥
+                  setTimeout(() => {
+                    const el = document.getElementById(`expanded-card-${photo.id}`);
+                    if (el) {
+                      const rect = el.getBoundingClientRect();
+                      const absoluteTop = rect.top + window.pageYOffset;
+                      const middle = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
+                      window.scrollTo({ top: middle, behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
                 onReaction={handleReaction}
                 onHide={handleHide}
                 onSave={handleSaveToProfile}
