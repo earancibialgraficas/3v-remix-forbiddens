@@ -51,13 +51,14 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// 🔥 FUNCIÓN PROXY PARA EVITAR IMÁGENES ROTAS DE INSTAGRAM 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-/* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
+/* 🔥 COMPONENTE: TARJETA MINIATURA (3 COLUMNAS) 🔥 */
 function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const targetUrl = photo.thumbnail_url || photo.image_url;
@@ -82,20 +83,33 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3 rounded-xl" onClick={onExpand}>
           <div className="flex justify-between items-start">
             {isStaff && (
-              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} 
+                className="p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20" 
+                title="Ocultar (Solo Staff)"
+              >
                 <Ban className="w-3.5 h-3.5" />
               </button>
             )}
+            
             {user && (
-              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} 
+                className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto" 
+                title="Guardar"
+              >
                 <Bookmark className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+
           <div className="flex flex-col items-center gap-4">
              <Maximize2 className="w-8 h-8 text-white/50 mb-2 pointer-events-none" />
              <div className="flex items-center gap-4 text-white font-body text-xs">
-                <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} 
+                  className={cn("flex items-center gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}
+                >
                    <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}
                 </button>
                 <span className="flex items-center gap-1.5 pointer-events-none"><MessageSquare className="w-4 h-4" /></span>
@@ -107,7 +121,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (DISEÑO 60/40) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (DISEÑO 60/40 COMPLETO CON RESPUESTAS) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -123,11 +137,17 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     if (rawComments && rawComments.length > 0) {
       const userIds = [...new Set(rawComments.map(c => c.user_id))];
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
-      // 🔥 FIX: Agregamos <string, any> para solucionar el error de TypeScript 🔥
+      
+      // 🔥 FIX DE TYPESCRIPT: Declarado explícitamente como <string, any> 🔥
       const pMap = new Map<string, any>(profs?.map(p => [p.user_id, p]) || []);
+      
       setComments(rawComments.map(c => {
         const p = pMap.get(c.user_id);
-        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
+        return { 
+          ...c, 
+          display_name: p?.display_name || "Anónimo", 
+          avatar_url: p?.avatar_url 
+        };
       }));
     } else {
       setComments([]);
@@ -140,12 +160,15 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     if (!user || !commentText.trim()) return;
     try {
       const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: photo.id, 
+        user_id: user.id, 
+        content_id: photo.id, 
         content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), 
         parent_id: replyTo?.id || null 
       } as any);
       if (error) throw error;
-      setCommentText(""); setReplyTo(null); fetchComments();
+      setCommentText("");
+      setReplyTo(null);
+      fetchComments();
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
@@ -167,16 +190,30 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
 
   return (
     <div id={`expanded-card-${photo.id}`} className="col-span-full w-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden mb-6 flex flex-col md:flex-row animate-fade-in shadow-[0_0_30px_rgba(255,107,0,0.2)]" style={{ minHeight: '550px', columnSpan: 'all' } as any}>
+      
+      {/* LADO IZQUIERDO: IMAGEN (60%) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 md:shrink overflow-hidden min-h-[350px]">
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="max-w-full h-[500px] w-full object-contain rounded" allowFullScreen />
         ) : (
-           <img src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous" className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }} />
+           <img 
+             src={getProxyUrl(targetUrl)} 
+             alt={photo.caption} 
+             referrerPolicy="no-referrer"
+             crossOrigin="anonymous"
+             className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+             onError={(e) => {
+               if (!e.currentTarget.src.includes('wsrv.nl')) return;
+               e.currentTarget.src = targetUrl;
+             }}
+           />
         )}
         <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X className="w-6 h-6" /></button>
       </div>
 
+      {/* LADO DERECHO: PANEL SOCIAL (40%) */}
       <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border shrink-0">
+        
         <div className="p-4 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0">
           <Avatar className="w-10 h-10 border border-neon-orange/30">
             <AvatarImage src={photo.profiles?.avatar_url} />
@@ -190,30 +227,38 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar min-h-[200px]">
           {photo.caption && <p className="text-xs leading-relaxed text-foreground/90 bg-white/5 p-3 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
+          
           <div className="space-y-4">
-            {comments.map(c => (
-              <div key={c.id} className={cn("group flex items-start gap-2 text-[11px] font-body", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
-                <Avatar className="w-6 h-6 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="bg-white/5 rounded-lg px-2.5 py-2 inline-block max-w-full">
-                    <span className="text-primary font-bold block text-[10px] mb-0.5">{c.display_name}</span>
-                    <span className="text-foreground/90 break-words">{c.content}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 px-1">
-                    <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[9px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                    {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[9px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+            {comments.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center opacity-30 py-10">
+                <MessageSquare className="w-8 h-8 mb-2" />
+                <p className="text-[10px] uppercase font-pixel">Sin comentarios aún</p>
+              </div>
+            ) : (
+              comments.map(c => (
+                <div key={c.id} className={cn("group flex items-start gap-2 text-[11px] font-body", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
+                  <Avatar className="w-6 h-6 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-white/5 rounded-lg px-2.5 py-2 inline-block max-w-full">
+                      <span className="text-primary font-bold block text-[10px] mb-0.5">{c.display_name}</span>
+                      <span className="text-foreground/90 break-words">{c.content}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 px-1">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[9px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
+                      {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[9px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         <div className="p-4 border-t border-border bg-muted/5 space-y-4 mt-auto">
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
-              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground")}><ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
-              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground")}><ThumbsDown className={cn("w-4 h-4", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
+              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
+              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-4 h-4", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
             </div>
             <div className="flex gap-3">
               {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-4 h-4" /></button>}
@@ -221,11 +266,17 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
               {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive" title="Ocultar (Staff)"><Ban className="w-4 h-4" /></button>}
             </div>
           </div>
+
           {user ? (
             <div className="space-y-2">
-              {replyTo && <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-1 rounded text-[9px] text-neon-orange font-bold"><span>Respondiendo a {replyTo.name}</span><button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-3 h-3"/></button></div>}
+              {replyTo && (
+                 <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-1 rounded text-[9px] text-neon-orange font-bold">
+                   <span>Respondiendo a {replyTo.name}</span>
+                   <button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-3 h-3"/></button>
+                 </div>
+              )}
               <div className="flex gap-2">
-                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="h-9 text-xs bg-black/40 border-border" />
+                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Escribe un comentario..." className="h-9 text-xs bg-black/40 border-border" />
                 <Button onClick={handleSubmitComment} size="sm" className="bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-4 h-4" /></Button>
               </div>
             </div>
@@ -241,6 +292,7 @@ export default function PhotoWallPage() {
   const { user, profile, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
+  
   const [photos, setPhotos] = useState<any[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
@@ -251,6 +303,7 @@ export default function PhotoWallPage() {
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
+  
   const scrollPosRef = useRef(0);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = profile?.membership_tier || "novato";
@@ -258,6 +311,8 @@ export default function PhotoWallPage() {
 
   const fetchPhotosAndDaily = async () => {
     const todayStr = new Date().toISOString().split('T')[0];
+    
+    // 🔥 CONTADOR ESTRICTO: SOLO IS_APIFY = TRUE 🔥
     const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', todayStr);
     setDailyApifyCount(count || 0);
 
@@ -266,15 +321,23 @@ export default function PhotoWallPage() {
 
     let combined = [...(photosRes?.map(p => ({ ...p, target_type: 'photo' })) || [])];
     if (socialRes) {
-      const socialImages = socialRes.filter(item => !isVideoItem(item)).map(item => ({ ...item, id: item.id, target_type: 'social_content', image_url: item.thumbnail_url || item.content_url, caption: item.title || "" }));
+      const socialImages = socialRes.filter(item => !isVideoItem(item)).map(item => ({
+        ...item, id: item.id, target_type: 'social_content',
+        image_url: item.thumbnail_url || item.content_url,
+        caption: item.title || ""
+      }));
       combined = [...combined, ...socialImages];
     }
-    setPhotos(combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setPhotos(combined);
 
     if (user) {
       const { data: reactions } = await supabase.from("social_reactions").select("target_id, reaction_type").eq("user_id", user.id);
-      const rMap: any = {}; reactions?.forEach(r => rMap[r.target_id] = r.reaction_type);
+      const rMap: any = {};
+      reactions?.forEach(r => rMap[r.target_id] = r.reaction_type);
       setUserReactions(rMap);
+      
       supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id).then(({ count }) => setUserPhotoCount(count || 0));
     }
   };
@@ -283,18 +346,42 @@ export default function PhotoWallPage() {
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
-    if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) { toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return; }
+    
+    if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
+       toast({ title: "Servidor Lleno", description: "Se han agotado los cupos de extracción para el día de hoy.", variant: "destructive" });
+       return;
+    }
+
     setUploading(true);
-    let finalUrl = imageUrl.trim(); let usedApify = false;
+    let finalUrl = imageUrl.trim();
+    let usedApify = false;
+
     if (finalUrl.includes("instagram.com")) {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
-        if (!error && data?.imageUrl) { finalUrl = data.imageUrl; usedApify = true; }
-      } catch (err) { console.error(err); }
+        if (!error && data?.imageUrl) {
+          finalUrl = data.imageUrl;
+          usedApify = true;
+        }
+      } catch (err) { console.error("Error extrayendo de IG:", err); }
     }
-    // 🔥 GENERAMOS ID MANUAL 🔥
-    const { error } = await supabase.from("photos").insert({ id: crypto.randomUUID(), user_id: user.id, image_url: finalUrl, caption: caption.trim(), is_apify: usedApify } as any);
-    if (!error) { setCaption(""); setImageUrl(""); setShowUpload(false); fetchPhotosAndDaily(); toast({ title: usedApify ? "¡Extracción Exitosa!" : "Subida con éxito" }); }
+
+    // 🔥 GENERAMOS ID MANUAL PARA EVITAR ERROR NULL 🔥
+    const { error } = await supabase.from("photos").insert({ 
+      id: crypto.randomUUID(), 
+      user_id: user.id, 
+      image_url: finalUrl, 
+      caption: caption.trim(),
+      is_apify: usedApify 
+    } as any);
+
+    if (!error) {
+      setCaption(""); setImageUrl(""); setShowUpload(false);
+      fetchPhotosAndDaily();
+      toast({ title: usedApify ? "¡Extracción Exitosa!" : "Foto subida con éxito" });
+    } else {
+      toast({ title: "Error al publicar", description: error.message, variant: "destructive" });
+    }
     setUploading(false);
   };
 
@@ -303,6 +390,7 @@ export default function PhotoWallPage() {
     const table = targetType === "photo" ? "photos" : "social_content";
     const current = photos.find(p => p.id === itemId);
     if (!current) return;
+    
     let newLikes = current.likes || 0;
     if (userReactions[itemId] === type) {
       await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
@@ -311,21 +399,29 @@ export default function PhotoWallPage() {
       await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
       newLikes = type === "like" ? newLikes + 1 : (userReactions[itemId] === "like" ? newLikes - 1 : newLikes);
     }
+    
     await supabase.from(table).update({ likes: Math.max(0, newLikes) }).eq("id", itemId);
     fetchPhotosAndDaily();
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
-      if (!error) { toast({ title: "Ocultada por el Staff" }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
+      if (!error) {
+        toast({ title: "La imagen ha sido ocultada por el Staff." });
+        fetchPhotosAndDaily();
+        setExpandedPhotoId(null);
+      }
     }
   };
 
   const handleSaveToProfile = async (photoId: string) => {
     if (!user) return;
-    try { await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); toast({ title: "Guardada" }); } catch (e) { }
+    try {
+      const { error } = await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId });
+      toast({ title: error ? "Ya está en tu colección" : "Guardada en tu perfil" });
+    } catch (e) { console.error(e); }
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -333,15 +429,22 @@ export default function PhotoWallPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-4">
+      
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left">
-        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2"><Camera className="w-4 h-4" /> MURO FOTOGRÁFICO</h1>
+        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
+          <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
+        </h1>
         <p className="text-[10px] text-muted-foreground font-body uppercase tracking-tight">Galería de la comunidad — Haz clic para expandir</p>
       </div>
 
+      {/* 🔥 BARRA DE CAPACIDAD: STICKY TOP-0 🔥 */}
       <div className="sticky top-0 z-[100] py-2 bg-background/80 backdrop-blur-md">
         <div className="bg-black/60 border border-neon-cyan/40 rounded-xl p-3 shadow-neon-sm">
            <div className="flex justify-between items-end mb-1.5 font-pixel">
-             <div className="flex items-center gap-1.5"><Zap className={cn("w-3.5 h-3.5", dailyApifyCount >= APIFY_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} /><span className="text-[9px] uppercase tracking-widest text-foreground">Capacidad Diaria del Servidor</span></div>
+             <div className="flex items-center gap-1.5">
+               <Zap className={cn("w-3.5 h-3.5", dailyApifyCount >= APIFY_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} />
+               <span className="text-[9px] uppercase tracking-widest text-foreground">Capacidad Diaria del Servidor</span>
+             </div>
              <span className="text-[11px] text-neon-cyan">{dailyApifyCount} / {APIFY_DAILY_LIMIT}</span>
            </div>
            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -362,29 +465,58 @@ export default function PhotoWallPage() {
 
       {showUpload && (
         <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-xl mx-2 md:mx-0">
-          <Input placeholder="Instagram Link o URL imagen" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/40 text-xs border-border font-body" />
-          <Textarea placeholder="Descripción..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/40 text-xs min-h-[60px] border-border font-body" />
+          <Input placeholder="URL de imagen o Link de Instagram" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/40 text-xs border-border font-body" />
+          <Textarea placeholder="Escribe una descripción..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/40 text-xs min-h-[60px] border-border font-body" />
           <div className="flex justify-end gap-2 items-center">
              {uploading && <Loader2 className="w-4 h-4 animate-spin text-neon-orange mr-2" />}
              <Button variant="ghost" size="sm" onClick={() => setShowUpload(false)}>Cancelar</Button>
-             <Button size="sm" onClick={handleUpload} disabled={uploading || !imageUrl.trim()} className="bg-neon-orange text-black">Publicar</Button>
+             <Button size="sm" onClick={handleUpload} disabled={uploading || !imageUrl.trim()} className="bg-neon-orange text-black">Publicar Foto</Button>
           </div>
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST: 3 COLUMNAS 🔥 */}
+      {/* 🔥 GRILLA PINTEREST: ESTRICTAMENTE 3 COLUMNAS 🔥 */}
       <div className="columns-3 gap-4 px-2 md:px-0">
         {displayPhotos.map(photo => (
           <div key={`${photo.target_type}-${photo.id}`}>
             {expandedPhotoId === photo.id ? (
-              <ExpandedPhotoCard photo={photo} onClose={() => setExpandedPhotoId(null)} onReaction={handleReaction} onHide={handleHide} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} />
+              <ExpandedPhotoCard 
+                photo={photo} 
+                onClose={() => setExpandedPhotoId(null)}
+                onReaction={handleReaction}
+                onHide={handleHide}
+                onSave={handleSaveToProfile}
+                userReaction={userReactions[photo.id]}
+                isStaff={isStaff}
+              />
             ) : (
-              <PhotoCardMiniature photo={photo} onExpand={() => { scrollPosRef.current = window.scrollY; setExpandedPhotoId(photo.id); setTimeout(() => { const el = document.getElementById(`expanded-card-${photo.id}`); if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' }); }, 50); }} onReaction={handleReaction} onHide={handleHide} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} />
+              <PhotoCardMiniature
+                photo={photo}
+                onExpand={() => {
+                  scrollPosRef.current = window.scrollY;
+                  setExpandedPhotoId(photo.id);
+                  setTimeout(() => {
+                    const el = document.getElementById(`expanded-card-${photo.id}`);
+                    if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
+                  }, 50);
+                }}
+                onReaction={handleReaction}
+                onHide={handleHide}
+                onSave={handleSaveToProfile}
+                userReaction={userReactions[photo.id]}
+                isStaff={isStaff}
+              />
             )}
           </div>
         ))}
       </div>
-      {displayPhotos.length === 0 && <div className="py-20 text-center opacity-30"><ImageIcon className="w-16 h-16 mx-auto mb-4" /><p className="font-pixel text-xs uppercase">No hay fotos</p></div>}
+
+      {displayPhotos.length === 0 && (
+        <div className="py-20 text-center opacity-30">
+          <ImageIcon className="w-16 h-16 mx-auto mb-4" />
+          <p className="font-pixel text-xs uppercase">No hay fotos para mostrar</p>
+        </div>
+      )}
     </div>
   );
 }
