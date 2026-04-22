@@ -12,6 +12,29 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
+// 🔥 ANIMACIONES DE GOMA HIPER-LENTAS Y ELÁSTICAS 🔥
+const jellyStyles = `
+  @keyframes jelly-pop-windows {
+    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; }
+    30% { transform: scale3d(1.15, 0.85, 1); opacity: 1; }
+    45% { transform: scale3d(0.9, 1.1, 1); }
+    60% { transform: scale3d(1.05, 0.95, 1); }
+    75% { transform: scale3d(0.98, 1.02, 1); }
+    100% { transform: scale3d(1, 1, 1); opacity: 1; }
+  }
+  @keyframes jelly-hide-windows {
+    0% { transform: scale3d(1, 1, 1); opacity: 1; }
+    30% { transform: scale3d(1.05, 0.95, 1); opacity: 1; }
+    100% { transform: scale3d(0, 0, 1); opacity: 0; }
+  }
+  .animate-jelly-open {
+    animation: jelly-pop-windows 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+  .animate-jelly-close {
+    animation: jelly-hide-windows 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+`;
+
 interface SocialComment {
   id: string;
   user_id: string;
@@ -129,7 +152,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA LÍMPIA (SIN ENVOLTORIOS) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (MÁS ALTURA: 40vh) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -190,8 +213,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
 
   return (
     <div className="w-full h-full bg-card flex flex-col md:flex-row relative">
-      {/* LADO IZQUIERDO: IMAGEN (35vh ALTURA FIJA) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh]">
+      {/* LADO IZQUIERDO: IMAGEN (40vh ALTURA MEJORADA) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[40vh] min-h-[380px]">
         <a 
           href={originalUrl} 
           target="_blank" 
@@ -218,8 +241,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (35vh ALTURA FIJA) */}
-      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh]">
+      {/* LADO DERECHO: PANEL SOCIAL (40vh ALTURA MEJORADA) */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[40vh] min-h-[380px]">
         
         {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
@@ -382,7 +405,7 @@ export default function PhotoWallPage() {
     if (!user || !imageUrl.trim()) return;
     
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
-       toast({ title: "Servidor Lleno", description: "Se han agotado los cupos de extracción para el día de hoy.", variant: "destructive" }); return;
+       toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
     }
 
     setUploading(true);
@@ -445,18 +468,20 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 1100); // 1.1s para la animación de cierre súper elástica
+    }, 1100); 
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
 
-  // Constantes matemáticas para la animación "Windows"
-  const expandedWidth = "min(calc(100vw - 2rem), 950px)";
-  const halfExpandedWidth = "calc(min(calc(100vw - 2rem), 950px) / -2)";
+  // Variables dinámicas para el ancho que NO atraviesa el sidebar
+  const expandedWidth = "min(calc(100vw - 2rem), 850px)";
+  const halfExpandedWidth = "calc(min(calc(100vw - 2rem), 850px) / -2)";
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
+      <style>{jellyStyles}</style>
+
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
@@ -502,7 +527,7 @@ export default function PhotoWallPage() {
       )}
 
       {/* 🔥 GRILLA PINTEREST ESTRICTA 🔥 */}
-      <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
+      <div id="masonry-wall" className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
           const isActive = activePhotoId === photo.id;
@@ -514,26 +539,25 @@ export default function PhotoWallPage() {
               key={`${photo.target_type}-${photo.id}`}
               className={cn("w-full mb-4 sm:mb-6 break-inside-avoid relative", showFull ? "z-50" : "z-10")}
             >
-              {/* MINIATURA: Se desvanece suavemente cuando el ventanal se abre encima */}
               <div className={cn("transition-opacity duration-700 w-full h-full", showFull ? "opacity-0" : "opacity-100")}>
                 <PhotoCardMiniature
                   photo={photo}
                   onExpand={(e: React.MouseEvent) => {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const wallWidth = window.innerWidth;
-                    const xCenter = rect.left + rect.width / 2;
+                    const wall = document.getElementById("masonry-wall");
+                    const wallRect = wall ? wall.getBoundingClientRect() : { left: 0, width: window.innerWidth };
                     
-                    // Lógica mágica de anclaje (Windows Style)
-                    if (xCenter < wallWidth / 3) setExpandOrigin("top left");
-                    else if (xCenter > (wallWidth / 3) * 2) setExpandOrigin("top right");
+                    // 🔥 DETECCIÓN ANTI-DESBORDE DE SIDEBAR 🔥
+                    const relativeX = (rect.left + rect.width / 2) - wallRect.left;
+                    const oneThird = wallRect.width / 3;
+
+                    if (relativeX < oneThird) setExpandOrigin("top left");
+                    else if (relativeX > oneThird * 2) setExpandOrigin("top right");
                     else setExpandOrigin("top center");
 
                     setExpandedPhotoId(photo.id);
-                    
-                    // Retraso minúsculo para permitir que React renderice el overlay y comience la transición de 1.5s
                     setTimeout(() => setActivePhotoId(photo.id), 50);
 
-                    // Scroll para centrarlo y que lo veas crecer majestuosamente
                     setTimeout(() => {
                       const absoluteTop = rect.top + window.pageYOffset;
                       const middle = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
@@ -548,26 +572,19 @@ export default function PhotoWallPage() {
                 />
               </div>
 
-              {/* OVERLAY TIPO VENTANA DE WINDOWS (Posición Absoluta Flotante) */}
+              {/* OVERLAY TIPO VENTANA DE WINDOWS */}
               {showFull && (
                 <div
                   className={cn(
                     "absolute z-[100] overflow-hidden rounded-xl bg-card",
-                    !Object.keys(getPhotoNeonStyle(photo)).length && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
+                    !Object.keys(getPhotoNeonStyle(photo)).length && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
+                    isClosingThis ? "animate-jelly-close" : "animate-jelly-open"
                   )}
                   style={{
                     top: 0,
-                    // Ancho elástico
                     width: isActive ? expandedWidth : "100%",
-                    // Efecto de Goma/Pop en escala y opacidad
-                    transform: isActive ? "scale(1)" : "scale(0.5)",
-                    opacity: isActive ? 1 : 0,
                     transformOrigin: expandOrigin,
-                    // Curva de animación lenta y elástica
-                    transition: isActive
-                       ? "all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)" // Apertura súper elástica
-                       : "all 1.1s cubic-bezier(0.36, 0, 0.66, -0.56)", // Cierre chupando hacia adentro
-                    // Anclajes Matemáticos
+                    // 🔥 ANCLAJES INTELIGENTES 🔥
                     ...(expandOrigin === "top left" && { left: 0 }),
                     ...(expandOrigin === "top right" && { right: 0 }),
                     ...(expandOrigin === "top center" && {
