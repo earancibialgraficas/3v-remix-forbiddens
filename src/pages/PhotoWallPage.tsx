@@ -12,26 +12,27 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
-// 🔥 ANIMACIONES DE GOMA MÁS LENTAS Y CON "EMPUJE" VERTICAL 🔥
+// 🔥 ANIMACIONES EXTREMAS DE GOMA OPTIMIZADAS PARA PINTEREST (COLUMNS) 🔥
 const jellyStyles = `
-  @keyframes jelly-pop {
-    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; max-height: 100px; }
-    30% { transform: scale3d(1.15, 0.75, 1); opacity: 1; max-height: 300px; }
-    45% { transform: scale3d(0.85, 1.15, 1); max-height: 500px; }
-    65% { transform: scale3d(1.05, 0.95, 1); max-height: 600px; }
-    80% { transform: scale3d(0.98, 1.02, 1); max-height: 700px; }
-    100% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; }
+  @keyframes jelly-pop-columns {
+    0% { transform: scale(0.3); opacity: 0; max-height: 0px; }
+    40% { transform: scale(1.05); opacity: 1; max-height: 45vh; }
+    60% { transform: scale(0.95); max-height: 35vh; }
+    80% { transform: scale(1.02); max-height: 38vh; }
+    100% { transform: scale(1); opacity: 1; max-height: 800px; }
   }
-  @keyframes jelly-hide {
-    0% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; overflow: hidden; }
-    25% { transform: scale3d(1.1, 0.8, 1); opacity: 1; max-height: 700px; overflow: hidden; }
-    100% { transform: scale3d(0, 0, 1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; overflow: hidden; }
+  @keyframes jelly-hide-columns {
+    0% { transform: scale(1); opacity: 1; max-height: 500px; }
+    30% { transform: scale(1.05); opacity: 1; max-height: 500px; }
+    100% { transform: scale(0.1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; }
   }
   .animate-jelly-open {
-    animation: jelly-pop 1.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: jelly-pop-columns 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    overflow: hidden;
   }
   .animate-jelly-close {
-    animation: jelly-hide 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: jelly-hide-columns 0.9s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+    overflow: hidden;
   }
 `;
 
@@ -104,7 +105,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   return (
     <div 
       className={cn(
-        "break-inside-avoid mb-6 relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-1000 ease-in-out overflow-hidden shadow-sm",
+        "relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}
@@ -115,7 +116,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-1000 group-hover:scale-105" 
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
           loading="lazy" 
           onClick={onExpand}
           onError={(e) => {
@@ -124,26 +125,26 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           }}
         />
         
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3 rounded-xl" onClick={onExpand}>
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl" onClick={onExpand}>
           <div className="flex justify-between items-start">
             {isStaff && (
-              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
-                <Ban className="w-3.5 h-3.5" />
+              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
+                <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
             {user && (
-              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
-                <Bookmark className="w-3.5 h-3.5" />
+              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
+                <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
           </div>
-          <div className="flex flex-col items-center gap-4">
-             <Maximize2 className="w-8 h-8 text-white/50 mb-2 pointer-events-none" />
-             <div className="flex items-center gap-4 text-white font-body text-xs">
-                <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
-                   <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}
+          <div className="flex flex-col items-center gap-2 sm:gap-4">
+             <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white/50 mb-1 sm:mb-2 pointer-events-none" />
+             <div className="flex items-center gap-2 sm:gap-4 text-white font-body text-[10px] sm:text-xs">
+                <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
+                   <ThumbsUp className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "like" && "fill-current")} /> <span className="hidden sm:inline">{photo.likes}</span>
                 </button>
-                <span className="flex items-center gap-1.5 pointer-events-none"><MessageSquare className="w-4 h-4" /></span>
+                <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
              </div>
           </div>
         </div>
@@ -152,7 +153,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (35% ALTURA) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -218,23 +219,24 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     <div 
       id={`expanded-card-${photo.id}`} 
       className={cn(
-        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row",
+        "w-full bg-card rounded-xl flex flex-col md:flex-row",
         !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
         isClosing ? "animate-jelly-close" : "animate-jelly-open"
       )} 
-      style={{ columnSpan: 'all', transformOrigin: origin, ...neonStyle } as any}
+      style={{ transformOrigin: origin, ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (35vh) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh] min-h-[300px]">
+      {/* LADO IZQUIERDO: IMAGEN (35vh ALTURA FIJA) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh]">
         
+        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
           href={originalUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
         >
-          <ExternalLink className="w-3.5 h-3.5"/> Ver original
+          <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
         </a>
 
         {isEmbed && embedSrc ? (
@@ -254,9 +256,10 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (35vh) */}
-      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh] min-h-[300px]">
+      {/* LADO DERECHO: PANEL SOCIAL (35vh ALTURA FIJA) */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh]">
         
+        {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -327,7 +330,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
                 <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
-          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión para interactuar</p>}
+          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión</p>}
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
@@ -462,7 +465,7 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
@@ -479,24 +482,24 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 850); // Ajustado para esperar que termine la animación de 0.9s
+    }, 850); 
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-4">
+    <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
       <style>{jellyStyles}</style>
 
-      <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left">
+      <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
         </h1>
         <p className="text-[10px] text-muted-foreground font-body uppercase tracking-tight">Galería de la comunidad — Haz clic para expandir</p>
       </div>
 
-      <div className="sticky top-0 z-[100] py-2 bg-background/80 backdrop-blur-md">
+      <div className="sticky top-0 z-[100] py-2 bg-background/80 backdrop-blur-md px-2 md:px-0">
         <div className="bg-black/60 border border-neon-cyan/40 rounded-xl p-3 shadow-neon-sm">
            <div className="flex justify-between items-end mb-1.5 font-pixel">
              <div className="flex items-center gap-1.5">
@@ -511,13 +514,13 @@ export default function PhotoWallPage() {
         </div>
       </div>
 
-      <div className="flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50">
+      <div className="flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50 mx-2 md:mx-0">
         <div className="flex gap-1">
-          <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1" /> Todos</Button>
-          <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1" /> Amigos</Button>
+          <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1 hidden sm:inline" /> Todos</Button>
+          <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
         </div>
         <Button size="sm" className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" onClick={() => setShowUpload(!showUpload)} disabled={dailyApifyCount >= APIFY_DAILY_LIMIT && !isStaff}>
-          <Camera className="w-3 h-3 mr-1" /> {dailyApifyCount >= APIFY_DAILY_LIMIT && !isStaff ? "Servidor Lleno" : "Subir Foto"}
+          <Camera className="w-3 h-3 mr-1 hidden sm:inline" /> {dailyApifyCount >= APIFY_DAILY_LIMIT && !isStaff ? "Servidor Lleno" : "Subir Foto"}
         </Button>
       </div>
 
@@ -533,56 +536,65 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST 🔥 */}
-      <div className="columns-3 gap-4 px-2 md:px-0 relative">
-        {displayPhotos.map(photo => (
-          <div key={`${photo.target_type}-${photo.id}`}>
-            {expandedPhotoId === photo.id || closingPhotoId === photo.id ? (
-              <ExpandedPhotoCard 
-                photo={photo} 
-                onClose={() => triggerClose(photo.id)}
-                onReaction={handleReaction}
-                onHide={handleHide}
-                onSave={handleSaveToProfile}
-                userReaction={userReactions[photo.id]}
-                isStaff={isStaff}
-                origin={expandOrigin}
-                isClosing={closingPhotoId === photo.id}
-              />
-            ) : (
-              <PhotoCardMiniature
-                photo={photo}
-                onExpand={(e: React.MouseEvent) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const xCenter = rect.left + rect.width / 2;
-                  const third = window.innerWidth / 3;
-                  
-                  if (xCenter < third) setExpandOrigin("top left");
-                  else if (xCenter > third * 2) setExpandOrigin("bottom right");
-                  else setExpandOrigin("center center");
+      {/* 🔥 ESTRICTAMENTE 3 COLUMNAS SIEMPRE (INCLUSO EN CELULARES) 🔥 */}
+      <div className="columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
+        {displayPhotos.map(photo => {
+          const isExpanded = expandedPhotoId === photo.id;
+          const isClosing = closingPhotoId === photo.id;
+          const showFull = isExpanded || isClosing;
 
-                  setExpandedPhotoId(photo.id);
-                  
-                  // 🔥 Scroll sincronizado con el "boom" de la animación de 1.3s 🔥
-                  setTimeout(() => {
-                    const el = document.getElementById(`expanded-card-${photo.id}`);
-                    if (el) {
-                      const elRect = el.getBoundingClientRect();
-                      const absoluteTop = elRect.top + window.pageYOffset;
-                      const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
-                      window.scrollTo({ top: middle, behavior: 'smooth' });
-                    }
-                  }, 400); 
-                }}
-                onReaction={handleReaction}
-                onHide={handleHide}
-                onSave={handleSaveToProfile}
-                userReaction={userReactions[photo.id]}
-                isStaff={isStaff}
-              />
-            )}
-          </div>
-        ))}
+          return (
+            <div 
+              key={`${photo.target_type}-${photo.id}`}
+              className={cn("w-full mb-2 sm:mb-6", !showFull && "break-inside-avoid inline-block")}
+              style={{ columnSpan: showFull ? 'all' : 'none', WebkitColumnSpan: showFull ? 'all' : 'none' } as any}
+            >
+              {showFull ? (
+                <ExpandedPhotoCard 
+                  photo={photo} 
+                  onClose={() => triggerClose(photo.id)}
+                  onReaction={handleReaction}
+                  onHide={handleHide}
+                  onSave={handleSaveToProfile}
+                  userReaction={userReactions[photo.id]}
+                  isStaff={isStaff}
+                  origin={expandOrigin}
+                  isClosing={isClosing}
+                />
+              ) : (
+                <PhotoCardMiniature
+                  photo={photo}
+                  onExpand={(e: React.MouseEvent) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const xCenter = rect.left + rect.width / 2;
+                    const third = window.innerWidth / 3;
+                    
+                    if (xCenter < third) setExpandOrigin("top left");
+                    else if (xCenter > third * 2) setExpandOrigin("bottom right");
+                    else setExpandOrigin("center center");
+
+                    setExpandedPhotoId(photo.id);
+                    
+                    setTimeout(() => {
+                      const el = document.getElementById(`expanded-card-${photo.id}`);
+                      if (el) {
+                        const elRect = el.getBoundingClientRect();
+                        const absoluteTop = elRect.top + window.pageYOffset;
+                        const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
+                        window.scrollTo({ top: middle, behavior: 'smooth' });
+                      }
+                    }, 400); 
+                  }}
+                  onReaction={handleReaction}
+                  onHide={handleHide}
+                  onSave={handleSaveToProfile}
+                  userReaction={userReactions[photo.id]}
+                  isStaff={isStaff}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {displayPhotos.length === 0 && (
