@@ -136,21 +136,28 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     if (error) return;
     
     if (rawComments && rawComments.length > 0) {
-      const userIds = [...new Set(rawComments.map(c => c.user_id))];
+      const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
       
-      // 🔥 FIX DE TYPESCRIPT: Usamos un Record estrictamente tipado en lugar de Map 🔥
-      const pMap: Record<string, { display_name?: string; avatar_url?: string }> = {};
-      profs?.forEach(p => {
-        pMap[p.user_id] = p;
-      });
+      // 🔥 FIX DE TYPESCRIPT BLINDADO 🔥
+      // Definimos explícitamente el tipo Record para callar a Vercel y GitHub
+      const pMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
       
-      setComments(rawComments.map(c => {
-        const p = pMap[c.user_id];
+      if (profs) {
+        profs.forEach((p: any) => {
+          pMap[p.user_id] = {
+            display_name: p.display_name,
+            avatar_url: p.avatar_url
+          };
+        });
+      }
+      
+      setComments(rawComments.map((c: any) => {
+        const profileData = pMap[c.user_id];
         return { 
           ...c, 
-          display_name: p?.display_name || "Anónimo", 
-          avatar_url: p?.avatar_url || null
+          display_name: profileData ? profileData.display_name : "Anónimo", 
+          avatar_url: profileData ? profileData.avatar_url : null
         };
       }));
     } else {
@@ -316,21 +323,20 @@ export default function PhotoWallPage() {
   const fetchPhotosAndDaily = async () => {
     const todayStr = new Date().toISOString().split('T')[0];
     
-    // 🔥 CONTADOR ESTRICTO APIFY 🔥
+    // 🔥 CONTADOR ESTRICTO: SOLO IS_APIFY = TRUE 🔥
     const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', todayStr);
     setDailyApifyCount(count || 0);
 
-    // 🔥 REVERTIMOS A LA FORMA ORIGINAL QUE SÍ FUNCIONA EN TU SUPABASE 🔥
     const { data: photosRes } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
     const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
 
     let combined: any[] = [];
     if (photosRes) {
-      combined = [...combined, ...photosRes.map(p => ({ ...p, target_type: 'photo' }))];
+      combined = [...combined, ...photosRes.map((p: any) => ({ ...p, target_type: 'photo' }))];
     }
     
     if (socialRes) {
-      const socialImages = socialRes.filter(item => !isVideoItem(item)).map(item => ({
+      const socialImages = socialRes.filter((item: any) => !isVideoItem(item)).map((item: any) => ({
         ...item, id: item.id, target_type: 'social_content',
         image_url: item.thumbnail_url || item.content_url,
         caption: item.title || "",
@@ -346,13 +352,14 @@ export default function PhotoWallPage() {
 
     combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // 🔥 MAPEO MANUAL DE PERFILES (SÍ FUNCIONA) 🔥
-    const userIds = [...new Set(combined.map(c => c.user_id))];
+    const userIds = [...new Set(combined.map((c: any) => c.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+    
+    // 🔥 FIX DE TYPESCRIPT BLINDADO 🔥
     const profileMap: Record<string, any> = {};
-    profiles?.forEach(p => { profileMap[p.user_id] = p; });
+    profiles?.forEach((p: any) => { profileMap[p.user_id] = p; });
 
-    const photosWithProfiles = combined.map(p => ({
+    const photosWithProfiles = combined.map((p: any) => ({
       ...p,
       profiles: profileMap[p.user_id] || { display_name: "Anónimo", avatar_url: null }
     }));
@@ -361,8 +368,8 @@ export default function PhotoWallPage() {
 
     if (user) {
       const { data: reactions } = await supabase.from("social_reactions").select("target_id, reaction_type").eq("user_id", user.id);
-      const rMap: any = {};
-      reactions?.forEach(r => rMap[r.target_id] = r.reaction_type);
+      const rMap: Record<string, string> = {};
+      reactions?.forEach((r: any) => { rMap[r.target_id] = r.reaction_type; });
       setUserReactions(rMap);
       
       supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id).then(({ count }) => setUserPhotoCount(count || 0));
@@ -393,7 +400,7 @@ export default function PhotoWallPage() {
       } catch (err) { console.error("Error extrayendo de IG:", err); }
     }
 
-    // 🔥 GENERAMOS ID MANUAL 🔥
+    // 🔥 GENERAMOS ID MANUAL PARA EVITAR ERROR NULL 🔥
     const { error } = await supabase.from("photos").insert({ 
       id: crypto.randomUUID(), 
       user_id: user.id, 
