@@ -1824,14 +1824,21 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
 <img 
-  src={previewImage} 
+  /* 🔥 AQUÍ ESTÁ LA MAGIA: Pasamos el link por el túnel proxy de wsrv.nl 🔥 */
+  src={`https://wsrv.nl/?url=${encodeURIComponent(previewImage)}`} 
   alt="Preview" 
-  referrerPolicy="no-referrer" /* 🔥 LA MÁSCARA MÁGICA 🔥 */
+  referrerPolicy="no-referrer"
+  crossOrigin="anonymous"
   style={{
     width: "100%",
     maxHeight: "400px",
     objectFit: "contain",
     borderRadius: "8px"
+  }}
+  onError={(e) => {
+    // Si incluso el proxy falla (muy raro), intentamos cargarla directo como último recurso
+    if (!e.currentTarget.src.includes('wsrv.nl')) return;
+    e.currentTarget.src = previewImage;
   }}
 />
                 </div>
