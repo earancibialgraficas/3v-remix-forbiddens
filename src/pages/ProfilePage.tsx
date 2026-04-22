@@ -1653,30 +1653,6 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
-// 🔥 NUEVA FUNCIÓN PARA EXTRAER LA IMAGEN ORIGINAL DE INSTAGRAM 🔥
-const getInstagramImage = async (url: string) => {
-  try {
-    const res = await fetch(`https://r.jina.ai/${url}`);
-    const html = await res.text();
-
-    let match = html.match(/"display_url":"([^"]+)"/);
-    if (!match) {
-      match = html.match(/"thumbnail_src":"([^"]+)"/);
-    }
-    
-    if (match && match[1]) {
-      // 🔥 REEMPLAZO DOBLE CRÍTICO 🔥
-      return match[1]
-        .replace(/\\u0026/g, "&")
-        .replace(/\\u0026amp;/g, "&");
-    }
-    return null;
-  } catch (err) {
-    console.error("Instagram parse error:", err);
-    return null;
-  }
-};
-
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
@@ -1701,46 +1677,66 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
     fetchContents(); 
   }, [user.id]);
 
-  useEffect(() => {
-    const fetchPreview = async () => {
-      if (!newUrl.trim() || !newUrl.startsWith("http")) {
-        setPreviewImage(null);
-        setIsFetchingPreview(false);
-        return;
-      }
-      
-      setIsFetchingPreview(true);
-      try {
-        const isInstagram = newUrl.includes("instagram.com");
+useEffect(() => {
+  const fetchPreview = async () => {
+    if (!newUrl.trim() || !newUrl.startsWith("http")) {
+      setPreviewImage(null);
+      setIsFetchingPreview(false);
+      return;
+    }
+    
+    setIsFetchingPreview(true);
 
-        if (isInstagram) {
-          const image = await getInstagramImage(newUrl);
-          if (image) {
-            setPreviewImage(image);
-            setIsFetchingPreview(false);
-            return;
-          }
+    try {
+      const isInstagram = newUrl.includes("instagram.com");
+
+      if (isInstagram) {
+        const res = await fetch(`https://r.jina.ai/${newUrl}`);
+        const html = await res.text();
+
+        const clean = (str: string) =>
+          str.replace(/\\u0026/g, "&").replace(/\\u0026amp;/g, "&");
+
+        let video = html.match(/"video_url":"([^"]+)"/);
+        if (video?.[1]) {
+          setPreviewImage(clean(video[1]));
+          return;
         }
 
-        // 🔥 FALLBACK A MICROLINK PARA TODO LO DEMÁS 🔥
-        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-        const data = await res.json();
-        
-        if (data.status === "success" && data.data.image?.url) {
-          setPreviewImage(data.data.image.url);
-        } else {
-          setPreviewImage(null);
+        let images = [...html.matchAll(/"display_url":"([^"]+)"/g)];
+        if (images.length > 0) {
+          setPreviewImage(clean(images[0][1]));
+          return;
         }
-      } catch (e) {
-        setPreviewImage(null);
-      } finally {
-        setIsFetchingPreview(false);
-      }
-    };
 
-    const timer = setTimeout(fetchPreview, 1000);
-    return () => clearTimeout(timer);
-  }, [newUrl]);
+        let thumb = html.match(/"thumbnail_src":"([^"]+)"/);
+        if (thumb?.[1]) {
+          setPreviewImage(clean(thumb[1]));
+          return;
+        }
+      }
+
+      const res = await fetch(
+        `https://api.microlink.io?url=${encodeURIComponent(newUrl)}`
+      );
+      const data = await res.json();
+
+      if (data.status === "success") {
+        setPreviewImage(data.data.image?.url || null);
+      } else {
+        setPreviewImage(null);
+      }
+
+    } catch (e) {
+      setPreviewImage(null);
+    } finally {
+      setIsFetchingPreview(false);
+    }
+  };
+
+  const timer = setTimeout(fetchPreview, 1200);
+  return () => clearTimeout(timer);
+}, [newUrl]);
 
   const handleAddLink = async () => {
     if (!newUrl.trim()) return;
@@ -1821,18 +1817,9 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
+                {/* 🔥 CONTENEDOR TOTALMENTE LIBERADO (SIN ASPECT-SQUARE) 🔥 */}
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  {/* 🔥 APLICANDO OBJECT-CONTAIN CON MAX-HEIGHT PARA EVITAR CORTES 🔥 */}
-                  <img 
-                    src={previewImage} 
-                    alt="Preview" 
-                    style={{
-                      width: "100%",
-                      maxHeight: "400px",
-                      objectFit: "contain",
-                      borderRadius: "8px"
-                    }}
-                  />
+                  <img src={previewImage} alt="Preview" className="max-w-full max-h-[350px] w-auto h-auto object-contain rounded" />
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
