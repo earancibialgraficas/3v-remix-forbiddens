@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink } from "lucide-react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
@@ -30,6 +29,10 @@ const membershipPhotoLimits: Record<string, number> = {
   "leyenda arcade": 100,
   "creador verificado": 200,
 };
+
+// 🔥 LÍMITE GLOBAL DIARIO (Gamificación + Protección Apify) 🔥
+// 80 fotos al día = ~$0.16 diarios = ~$4.8 al mes (¡Gratis con el plan de $5!)
+const GLOBAL_DAILY_LIMIT = 80;
 
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "instagram") {
@@ -52,6 +55,13 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// Función mágica para saltar el bloqueo de Instagram
+const getProxyUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('wsrv.nl')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
 /* 🔥 COMPONENTE INTERNO: TARJETA DE MINIATURA (ESTILO PINTEREST) 🔥 */
 function PhotoCardMiniature({ photo, onReaction, onDelete, onExpand, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
@@ -60,30 +70,45 @@ function PhotoCardMiniature({ photo, onReaction, onDelete, onExpand, onSave, use
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   const renderImage = () => {
-    if (photo.thumbnail_url) {
-      return <img src={photo.thumbnail_url} alt={photo.caption || "Foto"} className="w-full h-full object-cover" loading="lazy" />;
+    const targetUrl = photo.thumbnail_url || photo.image_url;
+    
+    if (targetUrl) {
+      return (
+        <img 
+          src={getProxyUrl(targetUrl)} 
+          alt={photo.caption || "Foto"} 
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          className="w-full h-auto object-cover rounded-xl" 
+          loading="lazy" 
+          onError={(e) => {
+            // Si el proxy falla, intentamos la ruta directa
+            if (!e.currentTarget.src.includes('wsrv.nl')) return;
+            e.currentTarget.src = targetUrl;
+          }}
+        />
+      );
     }
     if (isEmbed && embedSrc) {
       return (
-        <div className="w-full h-full overflow-hidden bg-white pointer-events-none relative min-h-[250px]">
+        <div className="w-full h-full overflow-hidden bg-white pointer-events-none relative min-h-[250px] rounded-xl">
           <iframe src={embedSrc} className="absolute inset-0 w-full h-full transform scale-[1.05]" style={{ transformOrigin: 'top center' }} tabIndex={-1} />
         </div>
       );
     }
-    return <img src={photo.image_url} alt={photo.caption || "Foto"} className="w-full h-full object-cover" loading="lazy" />;
+    return <div className="w-full min-h-[200px] bg-muted flex items-center justify-center rounded-xl"><ImageIcon className="w-8 h-8 opacity-50"/></div>;
   };
 
   return (
-    <div className="break-inside-avoid mb-2 md:mb-4 relative group rounded-xl bg-[#09090b] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 flex flex-col overflow-hidden">
-      <div className="relative w-full h-full overflow-hidden">
+    <div className="break-inside-avoid mb-4 relative group rounded-xl bg-[#09090b] border border-border/50 shadow-sm cursor-pointer transition-all duration-300 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:z-10 flex flex-col overflow-hidden">
+      <div className="relative w-full h-full overflow-hidden rounded-xl">
         {renderImage()}
         
         {/* CAPA DE INTERACCIÓN FLOTANTE */}
         <div 
-          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3"
+          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3 rounded-xl"
           onClick={onExpand}
         >
-          
           <div className="flex justify-between items-start">
             {isStaff && (
               <button 
@@ -125,7 +150,7 @@ function PhotoCardMiniature({ photo, onReaction, onDelete, onExpand, onSave, use
   );
 }
 
-/* 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA (DISEÑO 60/40 UNIFORME) 🔥 */
+/* 🔥 COMPONENTE INTERNO: TARJETA EXPANDIDA 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -189,18 +214,29 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, onSave, userR
     }
   };
 
-  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url.includes('.jpg') && !photo.content_url.includes('.png');
+  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
+  const targetUrl = photo.thumbnail_url || photo.image_url;
 
   return (
     <div id={`expanded-card-${photo.id}`} className="col-span-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.15)] flex flex-col md:flex-row animate-fade-in aspect-auto md:aspect-[3/2] w-full max-w-full break-inside-avoid mb-4">
       
-      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA (60% UNIFORME) */}
+      {/* LADO IZQUIERDO: IMAGEN EXPANDIDA (60%) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-2 shrink-0 md:shrink overflow-hidden">
         {isEmbed && embedSrc ? (
-           <iframe src={embedSrc} className="max-w-full max-h-full object-contain rounded" allowFullScreen />
+           <iframe src={embedSrc} className="max-w-full max-h-[80vh] object-contain rounded" allowFullScreen />
         ) : (
-           <img src={photo.thumbnail_url || photo.image_url} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" />
+           <img 
+             src={getProxyUrl(targetUrl)} 
+             alt={photo.caption} 
+             referrerPolicy="no-referrer"
+             crossOrigin="anonymous"
+             className="w-auto h-auto max-w-full max-h-[80vh] object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+             onError={(e) => {
+               if (!e.currentTarget.src.includes('wsrv.nl')) return;
+               e.currentTarget.src = targetUrl;
+             }}
+           />
         )}
         
         {photo.target_type === 'social_content' && (
@@ -214,7 +250,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onDelete, onSave, userR
         </button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (40% UNIFORME) */}
+      {/* LADO DERECHO: PANEL SOCIAL (40%) */}
       <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-sm border-t md:border-t-0 md:border-l border-border h-auto md:h-full shrink-0">
         
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/20 shrink-0">
@@ -349,6 +385,7 @@ export default function PhotoWallPage() {
   const [userPhotoCount, setUserPhotoCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
+  const [dailyUploads, setDailyUploads] = useState(0);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   
@@ -358,11 +395,19 @@ export default function PhotoWallPage() {
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
 
-  const fetchPhotos = async () => {
-    const [photosRes, socialRes] = await Promise.all([
+  const fetchPhotosAndDailyCount = async () => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayStr = today.toISOString();
+
+    const [photosRes, socialRes, dailyPhotosRes, dailySocialRes] = await Promise.all([
       supabase.from("photos").select("*").order("likes", { ascending: false }).limit(50),
-      supabase.from("social_content").select("*").eq("is_public", true).order("likes", { ascending: false }).limit(50)
+      supabase.from("social_content").select("*").eq("is_public", true).order("likes", { ascending: false }).limit(50),
+      supabase.from('photos').select('*', { count: 'exact', head: true }).gte('created_at', todayStr),
+      supabase.from('social_content').select('*', { count: 'exact', head: true }).gte('created_at', todayStr)
     ]);
+
+    setDailyUploads((dailyPhotosRes.count || 0) + (dailySocialRes.count || 0));
 
     let combined: any[] = [];
     
@@ -417,22 +462,50 @@ export default function PhotoWallPage() {
     }
   };
 
-  useEffect(() => { fetchPhotos(); }, [user]);
+  useEffect(() => { fetchPhotosAndDailyCount(); }, [user]);
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
+    
     if (!isStaff && userPhotoCount >= photoLimit) {
       toast({ title: "Límite alcanzado", description: `Tu plan ${tier} permite ${photoLimit} fotos.`, variant: "destructive" });
       return;
     }
+
+    if (!isStaff && dailyUploads >= GLOBAL_DAILY_LIMIT) {
+       toast({ title: "Servidor Lleno", description: "La comunidad ya llenó los cupos de hoy. ¡Vuelve mañana!", variant: "destructive" });
+       return;
+    }
+
     setUploading(true);
-    const { error } = await supabase.from("photos").insert({ user_id: user.id, image_url: imageUrl.trim(), caption: caption.trim() } as any);
+    let finalImageUrl = imageUrl.trim();
+    const isInstagram = finalImageUrl.includes("instagram.com");
+
+    // 🔥 SI PEGAN UN LINK DE INSTAGRAM, LLAMAMOS A LA FUNCIÓN DE APIFY 🔥
+    if (isInstagram) {
+      try {
+        const { data, error } = await supabase.functions.invoke('extract-instagram', {
+          body: { url: finalImageUrl }
+        });
+        if (!error && data?.imageUrl) {
+          finalImageUrl = data.imageUrl;
+        } else {
+          toast({ title: "Aviso", description: "No se pudo extraer la imagen original de IG." });
+        }
+      } catch (err) {
+        console.error("Error extrayendo foto de IG en muro:", err);
+      }
+    }
+
+    const { error } = await supabase.from("photos").insert({ user_id: user.id, image_url: finalImageUrl, caption: caption.trim() } as any);
     setUploading(false);
+    
     if (error) { 
       toast({ title: "Error", description: error.message, variant: "destructive" }); 
     } else { 
-      setCaption(""); setImageUrl(""); setShowUpload(false); setUserPhotoCount(p => p + 1); fetchPhotos(); 
-      toast({ title: "Foto publicada" }); 
+      setCaption(""); setImageUrl(""); setShowUpload(false); 
+      toast({ title: "¡Publicación Exitosa!", description: "Has ganado un cupo de hoy." });
+      fetchPhotosAndDailyCount();
     }
   };
 
@@ -505,6 +578,9 @@ export default function PhotoWallPage() {
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
 
+  const uploadPercentage = Math.min(100, (dailyUploads / GLOBAL_DAILY_LIMIT) * 100);
+  const isServerFull = dailyUploads >= GLOBAL_DAILY_LIMIT;
+
   return (
     <div className="space-y-4 animate-fade-in pb-10 max-w-[1200px] mx-auto">
       
@@ -513,6 +589,35 @@ export default function PhotoWallPage() {
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
         </h1>
         <p className="text-[10px] md:text-xs text-muted-foreground font-body">Galería de la comunidad — Haz clic en una imagen para expandirla.</p>
+      </div>
+
+      {/* 🔥 BARRA DE PROGRESO DE GAMIFICACIÓN (STICKY) 🔥 */}
+      <div className="sticky top-[60px] md:top-[70px] z-30 pt-2 pb-2 px-2 md:px-0 bg-background/90 backdrop-blur-md">
+        <div className="bg-black/80 border border-neon-cyan/40 rounded-xl p-3 shadow-[0_0_15px_rgba(0,255,255,0.15)] flex flex-col gap-2">
+           <div className="flex justify-between items-end">
+             <div className="flex items-center gap-1.5">
+               <Zap className={cn("w-4 h-4", isServerFull ? "text-destructive" : "text-neon-cyan")} />
+               <span className="font-pixel text-[10px] uppercase tracking-widest text-foreground">
+                 Capacidad Diaria del Servidor
+               </span>
+             </div>
+             <span className={cn("font-pixel text-[12px]", isServerFull ? "text-destructive animate-pulse" : "text-neon-cyan")}>
+               {dailyUploads} / {GLOBAL_DAILY_LIMIT}
+             </span>
+           </div>
+           <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-white/10 relative">
+             <div 
+               className={cn("h-full transition-all duration-1000", isServerFull ? "bg-destructive" : "bg-neon-cyan")} 
+               style={{ width: `${uploadPercentage}%` }}
+             />
+             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" />
+           </div>
+           {isServerFull && (
+             <p className="text-[9px] text-destructive text-center font-body mt-1">
+               El servidor se ha llenado por hoy. Los cupos se reinician a la medianoche.
+             </p>
+           )}
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mx-2 md:mx-0">
@@ -529,24 +634,30 @@ export default function PhotoWallPage() {
 
         <div className="flex items-center gap-3">
           <p className="text-[9px] md:text-[10px] text-muted-foreground font-body text-right">
-            {user ? `${userPhotoCount}/${photoLimit === Infinity ? "∞" : photoLimit} fotos (Plan ${isStaff ? "STAFF" : tier.toUpperCase()})` : ""}
+            {user ? `${userPhotoCount}/${photoLimit === Infinity ? "∞" : photoLimit} fotos propias` : ""}
           </p>
           {user && (
-            <Button size="sm" className="h-8 text-xs font-body bg-neon-orange text-black hover:bg-neon-orange/80 rounded-lg shrink-0" onClick={() => setShowUpload(!showUpload)}>
-              <Camera className="w-3 h-3 mr-1" /> Subir Foto
+            <Button 
+              size="sm" 
+              className="h-8 text-xs font-body bg-neon-orange text-black hover:bg-neon-orange/80 rounded-lg shrink-0 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground" 
+              onClick={() => setShowUpload(!showUpload)}
+              disabled={isServerFull && !isStaff}
+            >
+              <Camera className="w-3 h-3 mr-1" /> {isServerFull && !isStaff ? "Servidor Lleno" : "Subir Foto"}
             </Button>
           )}
         </div>
       </div>
 
-      {showUpload && (
+      {showUpload && !isServerFull && (
         <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-md mx-2 md:mx-0">
-          <Input placeholder="URL de la imagen (.jpg, .png, .gif)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/50 text-xs font-body" />
+          <Input placeholder="URL de la imagen (.jpg, .png) o link de Instagram" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/50 text-xs font-body" />
           <Textarea placeholder="Descripción de tu foto..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/50 text-xs font-body min-h-[60px] resize-none" />
-          <div className="flex justify-end gap-2">
-             <Button variant="ghost" size="sm" onClick={() => setShowUpload(false)} className="text-xs h-8">Cancelar</Button>
+          <div className="flex justify-end gap-2 items-center">
+             {uploading && <Loader2 className="w-4 h-4 text-neon-orange animate-spin mr-2" />}
+             <Button variant="ghost" size="sm" onClick={() => setShowUpload(false)} disabled={uploading} className="text-xs h-8">Cancelar</Button>
              <Button size="sm" onClick={handleUpload} disabled={uploading || !imageUrl.trim()} className="text-xs h-8 bg-neon-orange text-black hover:bg-neon-orange/80">
-               {uploading ? "Subiendo..." : "Publicar Foto"}
+               {uploading ? "Procesando..." : "Publicar Foto"}
              </Button>
           </div>
         </div>
@@ -559,7 +670,7 @@ export default function PhotoWallPage() {
         </div>
       ) : (
         /* 🔥 CUADRICULA TIPO PINTEREST (CSS COLUMNS) 🔥 */
-        <div className="columns-2 sm:columns-3 md:columns-4 gap-2 md:gap-4 px-2 md:px-0 space-y-2 md:space-y-4">
+        <div className="columns-2 sm:columns-3 md:columns-4 gap-4 px-2 md:px-0">
           {displayPhotos.map(photo => {
             
             if (expandedPhotoId === photo.id) {
