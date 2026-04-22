@@ -1830,10 +1830,13 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
   referrerPolicy="no-referrer"
   crossOrigin="anonymous"
   style={{
-    width: "100%",
-    maxHeight: "400px",
+    width: "auto", /* 🔥 Cambiado de 100% a auto para no estirarse 🔥 */
+    height: "auto",
+    maxHeight: "250px", /* 🔥 Reducido de 400px a 250px 🔥 */
+    maxWidth: "100%", /* Asegura que no se salga del contenedor en móviles */
     objectFit: "contain",
-    borderRadius: "8px"
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.5)" /* Un sombreado elegante */
   }}
   onError={(e) => {
     // Si incluso el proxy falla (muy raro), intentamos cargarla directo como último recurso
