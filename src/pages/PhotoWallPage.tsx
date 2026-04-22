@@ -12,29 +12,6 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
-// 🔥 ANIMACIONES DE GOMA HIPER-LENTAS Y ELÁSTICAS 🔥
-const jellyStyles = `
-  @keyframes jelly-pop-windows {
-    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; }
-    30% { transform: scale3d(1.25, 0.75, 1); opacity: 1; }
-    45% { transform: scale3d(0.75, 1.25, 1); }
-    60% { transform: scale3d(1.15, 0.85, 1); }
-    75% { transform: scale3d(0.95, 1.05, 1); }
-    100% { transform: scale3d(1, 1, 1); opacity: 1; }
-  }
-  @keyframes jelly-hide-windows {
-    0% { transform: scale3d(1, 1, 1); opacity: 1; }
-    30% { transform: scale3d(1.1, 0.9, 1); opacity: 1; }
-    100% { transform: scale3d(0, 0, 1); opacity: 0; }
-  }
-  .animate-jelly-open {
-    animation: jelly-pop-windows 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-  }
-  .animate-jelly-close {
-    animation: jelly-hide-windows 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-  }
-`;
-
 interface SocialComment {
   id: string;
   user_id: string;
@@ -108,6 +85,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}
+      onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-black">
         <img 
@@ -117,23 +95,22 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
           loading="lazy" 
-          onClick={onExpand}
           onError={(e) => {
             if (!e.currentTarget.src.includes('wsrv.nl')) return;
             e.currentTarget.src = targetUrl;
           }}
         />
         
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl" onClick={onExpand}>
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl">
           <div className="flex justify-between items-start">
             {isStaff && (
               <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
-                <Ban className="w-3.5 h-3.5" />
+                <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
             {user && (
               <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
-                <Bookmark className="w-3.5 h-3.5" />
+                <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
           </div>
@@ -152,8 +129,8 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (35% ALTURA, FÍSICA DE GOMA) 🔥 */
-function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA LÍMPIA (SIN ENVOLTORIOS) 🔥 */
+function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -163,9 +140,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   
   const targetUrl = photo.thumbnail_url || photo.image_url;
   const originalUrl = photo.content_url || targetUrl;
-  const neonStyle = getPhotoNeonStyle(photo);
-  const hasNeon = Object.keys(neonStyle).length > 0;
-
   const displayDate = photo.created_at ? new Date(photo.created_at).toLocaleDateString() : "Recientemente";
 
   const fetchComments = async () => {
@@ -215,15 +189,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    <div 
-      id={`expanded-card-${photo.id}`} 
-      className={cn(
-        "w-full bg-card rounded-xl flex flex-col md:flex-row overflow-hidden",
-        !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
-        isClosing ? "animate-jelly-close" : "animate-jelly-open"
-      )} 
-      style={{ transformOrigin: origin, ...neonStyle } as any}
-    >
+    <div className="w-full h-full bg-card flex flex-col md:flex-row relative">
       {/* LADO IZQUIERDO: IMAGEN (35vh ALTURA FIJA) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh]">
         <a 
@@ -234,6 +200,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         >
           <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
         </a>
+
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
@@ -254,7 +221,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       {/* LADO DERECHO: PANEL SOCIAL (35vh ALTURA FIJA) */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh]">
         
-        {/* 🔥 BOTÓN X EN LA ESQUINA SUPERIOR DERECHA DEL PANEL SOCIAL 🔥 */}
+        {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -324,7 +291,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
                 <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
-          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión</p>}
+          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión para comentar</p>}
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
@@ -347,7 +314,8 @@ export default function PhotoWallPage() {
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
-  const [expandOrigin, setExpandOrigin] = useState("center center");
+  const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
+  const [expandOrigin, setExpandOrigin] = useState("top center");
   const [closingPhotoId, setClosingPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
@@ -414,7 +382,7 @@ export default function PhotoWallPage() {
     if (!user || !imageUrl.trim()) return;
     
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
-       toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
+       toast({ title: "Servidor Lleno", description: "Se han agotado los cupos de extracción para el día de hoy.", variant: "destructive" }); return;
     }
 
     setUploading(true);
@@ -462,7 +430,7 @@ export default function PhotoWallPage() {
     if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
-      if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
+      if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); setActivePhotoId(null); }
     }
   };
 
@@ -472,20 +440,23 @@ export default function PhotoWallPage() {
   };
 
   const triggerClose = (id: string) => {
+    setActivePhotoId(null);
     setClosingPhotoId(id);
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 1050); 
+    }, 1100); // 1.1s para la animación de cierre súper elástica
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
 
+  // Constantes matemáticas para la animación "Windows"
+  const expandedWidth = "min(calc(100vw - 2rem), 950px)";
+  const halfExpandedWidth = "calc(min(calc(100vw - 2rem), 950px) / -2)";
+
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
-      <style>{jellyStyles}</style>
-
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
@@ -530,56 +501,44 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST: RESPONSIVE 🔥 */}
+      {/* 🔥 GRILLA PINTEREST ESTRICTA 🔥 */}
       <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
-          const isClosing = closingPhotoId === photo.id;
-          const showFull = isExpanded || isClosing;
+          const isActive = activePhotoId === photo.id;
+          const isClosingThis = closingPhotoId === photo.id;
+          const showFull = isExpanded || isClosingThis;
 
           return (
             <div 
               key={`${photo.target_type}-${photo.id}`}
-              className={cn("w-full mb-4 sm:mb-6", !showFull && "break-inside-avoid inline-block")}
-              style={{ columnSpan: showFull ? 'all' : 'none', WebkitColumnSpan: showFull ? 'all' : 'none' } as any}
+              className={cn("w-full mb-4 sm:mb-6 break-inside-avoid relative", showFull ? "z-50" : "z-10")}
             >
-              {showFull ? (
-                <ExpandedPhotoCard 
-                  photo={photo} 
-                  onClose={() => triggerClose(photo.id)}
-                  onReaction={handleReaction}
-                  onHide={handleHide}
-                  onSave={handleSaveToProfile}
-                  userReaction={userReactions[photo.id]}
-                  isStaff={isStaff}
-                  origin={expandOrigin}
-                  isClosing={isClosing}
-                />
-              ) : (
+              {/* MINIATURA: Se desvanece suavemente cuando el ventanal se abre encima */}
+              <div className={cn("transition-opacity duration-700 w-full h-full", showFull ? "opacity-0" : "opacity-100")}>
                 <PhotoCardMiniature
                   photo={photo}
                   onExpand={(e: React.MouseEvent) => {
-                    // 🔥 LÓGICA DE ANCLAJE: Detectamos columna para fijar el origen 🔥
                     const rect = e.currentTarget.getBoundingClientRect();
                     const wallWidth = window.innerWidth;
                     const xCenter = rect.left + rect.width / 2;
                     
-                    if (xCenter < wallWidth / 3) setExpandOrigin("left center");
-                    else if (xCenter > (wallWidth / 3) * 2) setExpandOrigin("right center");
-                    else setExpandOrigin("center center");
+                    // Lógica mágica de anclaje (Windows Style)
+                    if (xCenter < wallWidth / 3) setExpandOrigin("top left");
+                    else if (xCenter > (wallWidth / 3) * 2) setExpandOrigin("top right");
+                    else setExpandOrigin("top center");
 
                     setExpandedPhotoId(photo.id);
                     
-                    // 🔥 Scroll suave sincronizado con el estiramiento de goma (1.5s) 🔥
+                    // Retraso minúsculo para permitir que React renderice el overlay y comience la transición de 1.5s
+                    setTimeout(() => setActivePhotoId(photo.id), 50);
+
+                    // Scroll para centrarlo y que lo veas crecer majestuosamente
                     setTimeout(() => {
-                      const el = document.getElementById(`expanded-card-${photo.id}`);
-                      if (el) {
-                        const elRect = el.getBoundingClientRect();
-                        const absoluteTop = elRect.top + window.pageYOffset;
-                        const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
-                        window.scrollTo({ top: middle, behavior: 'smooth' });
-                      }
-                    }, 400); 
+                      const absoluteTop = rect.top + window.pageYOffset;
+                      const middle = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
+                      window.scrollTo({ top: middle, behavior: 'smooth' });
+                    }, 200); 
                   }}
                   onReaction={handleReaction}
                   onHide={handleHide}
@@ -587,6 +546,47 @@ export default function PhotoWallPage() {
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
                 />
+              </div>
+
+              {/* OVERLAY TIPO VENTANA DE WINDOWS (Posición Absoluta Flotante) */}
+              {showFull && (
+                <div
+                  className={cn(
+                    "absolute z-[100] overflow-hidden rounded-xl bg-card",
+                    !Object.keys(getPhotoNeonStyle(photo)).length && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
+                  )}
+                  style={{
+                    top: 0,
+                    // Ancho elástico
+                    width: isActive ? expandedWidth : "100%",
+                    // Efecto de Goma/Pop en escala y opacidad
+                    transform: isActive ? "scale(1)" : "scale(0.5)",
+                    opacity: isActive ? 1 : 0,
+                    transformOrigin: expandOrigin,
+                    // Curva de animación lenta y elástica
+                    transition: isActive
+                       ? "all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)" // Apertura súper elástica
+                       : "all 1.1s cubic-bezier(0.36, 0, 0.66, -0.56)", // Cierre chupando hacia adentro
+                    // Anclajes Matemáticos
+                    ...(expandOrigin === "top left" && { left: 0 }),
+                    ...(expandOrigin === "top right" && { right: 0 }),
+                    ...(expandOrigin === "top center" && {
+                       left: "50%",
+                       marginLeft: isActive ? halfExpandedWidth : "-50%"
+                    }),
+                    ...getPhotoNeonStyle(photo)
+                  }}
+                >
+                  <ExpandedPhotoCard 
+                    photo={photo} 
+                    onClose={() => triggerClose(photo.id)}
+                    onReaction={handleReaction}
+                    onHide={handleHide}
+                    onSave={handleSaveToProfile}
+                    userReaction={userReactions[photo.id]}
+                    isStaff={isStaff}
+                  />
+                </div>
               )}
             </div>
           );
