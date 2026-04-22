@@ -533,56 +533,66 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST 🔥 */}
-      <div className="columns-3 gap-4 px-2 md:px-0 relative">
-        {displayPhotos.map(photo => (
-          <div key={`${photo.target_type}-${photo.id}`}>
-            {expandedPhotoId === photo.id || closingPhotoId === photo.id ? (
-              <ExpandedPhotoCard 
-                photo={photo} 
-                onClose={() => triggerClose(photo.id)}
-                onReaction={handleReaction}
-                onHide={handleHide}
-                onSave={handleSaveToProfile}
-                userReaction={userReactions[photo.id]}
-                isStaff={isStaff}
-                origin={expandOrigin}
-                isClosing={closingPhotoId === photo.id}
-              />
-            ) : (
-              <PhotoCardMiniature
-                photo={photo}
-                onExpand={(e: React.MouseEvent) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const xCenter = rect.left + rect.width / 2;
-                  const third = window.innerWidth / 3;
-                  
-                  if (xCenter < third) setExpandOrigin("top left");
-                  else if (xCenter > third * 2) setExpandOrigin("bottom right");
-                  else setExpandOrigin("center center");
+{/* 🔥 NUEVO SISTEMA: CSS GRID EN LUGAR DE COLUMNS 🔥 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-2 md:px-0 relative items-start">
+        {displayPhotos.map(photo => {
+          const isExpanded = expandedPhotoId === photo.id || closingPhotoId === photo.id;
+          
+          return (
+            <div 
+              key={`${photo.target_type}-${photo.id}`}
+              // 🔥 Aquí está la magia: Cuando se expande, le decimos al Grid que ocupe las 3 columnas enteras 🔥
+              className={cn(
+                "transition-all duration-1000 ease-in-out w-full",
+                isExpanded ? "col-span-1 sm:col-span-2 md:col-span-3" : "col-span-1"
+              )}
+            >
+              {isExpanded ? (
+                <ExpandedPhotoCard 
+                  photo={photo} 
+                  onClose={() => triggerClose(photo.id)}
+                  onReaction={handleReaction}
+                  onHide={handleHide}
+                  onSave={handleSaveToProfile}
+                  userReaction={userReactions[photo.id]}
+                  isStaff={isStaff}
+                  origin={expandOrigin}
+                  isClosing={closingPhotoId === photo.id}
+                />
+              ) : (
+                <PhotoCardMiniature
+                  photo={photo}
+                  onExpand={(e: React.MouseEvent) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const xCenter = rect.left + rect.width / 2;
+                    const third = window.innerWidth / 3;
+                    
+                    if (xCenter < third) setExpandOrigin("top left");
+                    else if (xCenter > third * 2) setExpandOrigin("bottom right");
+                    else setExpandOrigin("center center");
 
-                  setExpandedPhotoId(photo.id);
-                  
-                  // 🔥 Scroll sincronizado con el "boom" de la animación de 1.3s 🔥
-                  setTimeout(() => {
-                    const el = document.getElementById(`expanded-card-${photo.id}`);
-                    if (el) {
-                      const elRect = el.getBoundingClientRect();
-                      const absoluteTop = elRect.top + window.pageYOffset;
-                      const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
-                      window.scrollTo({ top: middle, behavior: 'smooth' });
-                    }
-                  }, 400); 
-                }}
-                onReaction={handleReaction}
-                onHide={handleHide}
-                onSave={handleSaveToProfile}
-                userReaction={userReactions[photo.id]}
-                isStaff={isStaff}
-              />
-            )}
-          </div>
-        ))}
+                    setExpandedPhotoId(photo.id);
+                    
+                    setTimeout(() => {
+                      const el = document.getElementById(`expanded-card-${photo.id}`);
+                      if (el) {
+                        const elRect = el.getBoundingClientRect();
+                        const absoluteTop = elRect.top + window.pageYOffset;
+                        const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
+                        window.scrollTo({ top: middle, behavior: 'smooth' });
+                      }
+                    }, 400); 
+                  }}
+                  onReaction={handleReaction}
+                  onHide={handleHide}
+                  onSave={handleSaveToProfile}
+                  userReaction={userReactions[photo.id]}
+                  isStaff={isStaff}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {displayPhotos.length === 0 && (
