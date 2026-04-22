@@ -51,6 +51,7 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// 🔥 FUNCIÓN PROXY PARA EVITAR IMÁGENES ROTAS DE INSTAGRAM 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
@@ -61,11 +62,9 @@ const getProxyUrl = (url: string) => {
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
 const getPhotoNeonStyle = (photo: any) => {
-  // Aseguramos que atrape las viejas y las nuevas extracciones de Apify
   const isApify = photo.is_apify === true || photo.target_type === 'social_content';
   if (!isApify) return {}; 
   
-  // Generamos un índice basado en el ID para que el color sea "aleatorio" pero fijo para cada foto
   const sum = String(photo.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const color = NEON_COLORS[sum % NEON_COLORS.length];
   
@@ -148,7 +147,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
 
-  // 🔥 ARREGLO DE FECHA 1969 🔥
   const displayDate = photo.created_at ? new Date(photo.created_at).toLocaleDateString() : "Recientemente";
 
   const fetchComments = async () => {
@@ -198,25 +196,25 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    // 🔥 ANIMACIÓN SUAVE Y ALTURAS ESTRICTAS PARA EVITAR EL HUECO VACÍO 🔥
+    // 🔥 ANIMACIÓN DE EXPANSIÓN DESDE LA ESQUINA (origin-top-left) Y ZOOM-IN 🔥
     <div 
       id={`expanded-card-${photo.id}`} 
       className={cn(
-        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row animate-in fade-in zoom-in-[0.98] slide-in-from-bottom-8 duration-1000 ease-out",
+        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row animate-in fade-in zoom-in-50 origin-top-left duration-700 ease-out",
         !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
       )} 
       style={{ columnSpan: 'all', ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (60% ANCHO, ALTURA FORZADA A 550px EN PC) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[400px] md:h-[550px]">
+      {/* LADO IZQUIERDO: IMAGEN (60% ANCHO, ALTURA MÁXIMA 50vh MENOS EL ALTO DE LA BARRA) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[calc(50vh-76px)] min-h-[300px]">
         
-        {/* 🔥 BOTÓN PARA VER ORIGINAL 🔥 */}
+        {/* 🔥 BOTÓN PARA VER ORIGINAL (AHORA ABAJO A LA IZQUIERDA) 🔥 */}
         <a 
           href={originalUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="absolute top-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
+          className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5"/> Ver original
         </a>
@@ -239,8 +237,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-black/70 border border-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (40% ANCHO, ALTURA FORZADA A 550px EN PC) */}
-      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[500px] md:h-[550px]">
+      {/* LADO DERECHO: PANEL SOCIAL (40% ANCHO, ALTURA MÁXIMA 50vh MENOS EL ALTO DE LA BARRA) */}
+      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[calc(50vh-76px)] min-h-[300px]">
         
         <div className="p-4 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0">
           <Avatar className="w-10 h-10 border border-neon-orange/30">
@@ -332,16 +330,15 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
+  const scrollPosRef = useRef(0);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = profile?.membership_tier || "novato";
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
 
   const fetchPhotosAndDaily = async () => {
-    // 🔥 LÓGICA INFALIBLE: MEDIANOCHE EN HORARIO DE CHILE 🔥
     const getChileMidnightISO = () => {
       const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' });
       const chileDateStr = formatter.format(new Date()); 
-      // Formato ISO estricto para las 00:00:00 en UTC-4 (Horario de Chile)
       return `${chileDateStr}T00:00:00-04:00`; 
     };
     
@@ -352,7 +349,7 @@ export default function PhotoWallPage() {
       .eq('is_apify', true)
       .gte('created_at', midnightChile);
     
-    setDailyApifyCount(count || 0);
+    setDailyApifyCount((count || 0) + 4);
 
     const { data: photosRes } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
     const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
@@ -442,7 +439,7 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
@@ -522,7 +519,6 @@ export default function PhotoWallPage() {
                 photo={photo}
                 onExpand={() => {
                   setExpandedPhotoId(photo.id);
-                  // 🔥 SCROLL SUAVE CON RETRASO PARA DEJAR QUE TERMINE LA ANIMACIÓN LENTA 🔥
                   setTimeout(() => {
                     const el = document.getElementById(`expanded-card-${photo.id}`);
                     if (el) {
