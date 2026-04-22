@@ -1823,16 +1823,17 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  <img 
-                    src={previewImage} 
-                    alt="Preview" 
-                    style={{
-                      width: "100%",
-                      maxHeight: "400px",
-                      objectFit: "contain",
-                      borderRadius: "8px"
-                    }}
-                  />
+<img 
+  src={previewImage} 
+  alt="Preview" 
+  referrerPolicy="no-referrer" /* 🔥 LA MÁSCARA MÁGICA 🔥 */
+  style={{
+    width: "100%",
+    maxHeight: "400px",
+    objectFit: "contain",
+    borderRadius: "8px"
+  }}
+/>
                 </div>
                 <p className="text-[9px] text-muted-foreground font-body text-center">
                   Esta imagen se usará en el Muro y Feed. Cero MB gastados.
