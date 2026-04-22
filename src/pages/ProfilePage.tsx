@@ -1693,22 +1693,32 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
 
         if (isInstagram) {
           try {
-            // 🔥 Intento 1: Llamamos a tu Edge Function protegida en Supabase 🔥
+            console.log("🚀 LLAMANDO A SUPABASE EDGE FUNCTION...");
             const { data, error } = await supabase.functions.invoke('extract-instagram', {
               body: { url: newUrl }
             });
 
-            // Si la función responde bien, guardamos la imagen
-            if (!error && data?.imageUrl) {
+            console.log("📦 RESPUESTA DE SUPABASE:", data, error);
+
+            if (error) {
+              toast({ title: "Error en Supabase", description: error.message, variant: "destructive" });
+              throw error;
+            }
+            
+            if (data?.imageUrl) {
+              console.log("✅ IMAGEN ENCONTRADA EN APIFY:", data.imageUrl);
               finalUrl = data.imageUrl;
+            } else {
+              toast({ title: "Apify no encontró la imagen", description: JSON.stringify(data), variant: "destructive" });
             }
           } catch (err) {
-            console.error("Error en Edge Function (Supabase):", err);
+            console.error("❌ ERROR CRÍTICO EN EDGE FUNCTION:", err);
+            toast({ title: "Falló la extracción", description: "Revisa la consola (F12)", variant: "destructive" });
           }
         }
 
-        // 🔥 Intento 2: Fallback a Microlink (Si falló Supabase, o si NO es Instagram) 🔥
-        if (!finalUrl) {
+        // Ya NO hacemos fallback a Microlink si es Instagram, para OBLIGAR a ver el error.
+        if (!finalUrl && !isInstagram) {
           try {
             const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
             const fallbackData = await res.json();
@@ -1811,7 +1821,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
               </div>
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
-                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Imagen Extraída con Éxito!</p>
+                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
                   <img 
                     src={previewImage} 
