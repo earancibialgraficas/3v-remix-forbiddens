@@ -1686,29 +1686,45 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       }
       
       setIsFetchingPreview(true);
-      try {
-        // 🔥 LLAMAMOS A TU EDGE FUNCTION PROTEGIDA EN SUPABASE 🔥
-        const { data, error } = await supabase.functions.invoke('extract-instagram', {
-          body: { url: newUrl }
-        });
+      let finalUrl = null;
 
-        if (error) throw error;
-        
-        if (data?.imageUrl) {
-          setPreviewImage(data.imageUrl);
-        } else {
-          // Fallback a Microlink si la edge function no lo encuentra
-          const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-          const fallbackData = await res.json();
-          if (fallbackData.status === "success" && fallbackData.data.image?.url) {
-            setPreviewImage(fallbackData.data.image.url);
-          } else {
-            setPreviewImage(null);
+      try {
+        const isInstagram = newUrl.includes("instagram.com");
+
+        if (isInstagram) {
+          try {
+            // 🔥 Intento 1: Llamamos a tu Edge Function protegida en Supabase 🔥
+            const { data, error } = await supabase.functions.invoke('extract-instagram', {
+              body: { url: newUrl }
+            });
+
+            // Si la función responde bien, guardamos la imagen
+            if (!error && data?.imageUrl) {
+              finalUrl = data.imageUrl;
+            }
+          } catch (err) {
+            console.error("Error en Edge Function (Supabase):", err);
           }
         }
+
+        // 🔥 Intento 2: Fallback a Microlink (Si falló Supabase, o si NO es Instagram) 🔥
+        if (!finalUrl) {
+          try {
+            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+            const fallbackData = await res.json();
+            
+            if (fallbackData.status === "success" && fallbackData.data.image?.url) {
+              finalUrl = fallbackData.data.image.url;
+            }
+          } catch (err) {
+            console.error("Error en Microlink:", err);
+          }
+        }
+        
       } catch (e) {
-        setPreviewImage(null);
+        console.error("Error crítico extrayendo preview:", e);
       } finally {
+        setPreviewImage(finalUrl);
         setIsFetchingPreview(false);
       }
     };
@@ -1791,7 +1807,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             {isFetchingPreview ? (
               <div className="flex flex-col items-center text-neon-cyan gap-2">
                 <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="text-[10px] font-pixel uppercase tracking-widest">Llamando a Apify...</span>
+                <span className="text-[10px] font-pixel uppercase tracking-widest">Cargando...</span>
               </div>
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
