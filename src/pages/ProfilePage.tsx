@@ -1653,30 +1653,6 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   );
 }
 
-// 🔥 NUEVA FUNCIÓN PARA EXTRAER LA IMAGEN ORIGINAL DE INSTAGRAM 🔥
-const getInstagramImage = async (url: string) => {
-  try {
-    const res = await fetch(`https://r.jina.ai/${url}`);
-    const html = await res.text();
-
-    let match = html.match(/"display_url":"([^"]+)"/);
-    if (!match) {
-      match = html.match(/"thumbnail_src":"([^"]+)"/);
-    }
-    
-    if (match && match[1]) {
-      // 🔥 REEMPLAZO DOBLE CRÍTICO 🔥
-      return match[1]
-        .replace(/\\u0026/g, "&")
-        .replace(/\\u0026amp;/g, "&");
-    }
-    return null;
-  } catch (err) {
-    console.error("Instagram parse error:", err);
-    return null;
-  }
-};
-
 function SocialContentTab({ profile, user, onEditNetworks }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
@@ -1711,25 +1687,24 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
       
       setIsFetchingPreview(true);
       try {
-        const isInstagram = newUrl.includes("instagram.com");
+        // 🔥 LLAMAMOS A TU EDGE FUNCTION PROTEGIDA EN SUPABASE 🔥
+        const { data, error } = await supabase.functions.invoke('extract-instagram', {
+          body: { url: newUrl }
+        });
 
-        if (isInstagram) {
-          const image = await getInstagramImage(newUrl);
-          if (image) {
-            setPreviewImage(image);
-            setIsFetchingPreview(false);
-            return;
-          }
-        }
-
-        // 🔥 FALLBACK A MICROLINK PARA TODO LO DEMÁS 🔥
-        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-        const data = await res.json();
+        if (error) throw error;
         
-        if (data.status === "success" && data.data.image?.url) {
-          setPreviewImage(data.data.image.url);
+        if (data?.imageUrl) {
+          setPreviewImage(data.imageUrl);
         } else {
-          setPreviewImage(null);
+          // Fallback a Microlink si la edge function no lo encuentra
+          const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+          const fallbackData = await res.json();
+          if (fallbackData.status === "success" && fallbackData.data.image?.url) {
+            setPreviewImage(fallbackData.data.image.url);
+          } else {
+            setPreviewImage(null);
+          }
         }
       } catch (e) {
         setPreviewImage(null);
@@ -1816,13 +1791,12 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
             {isFetchingPreview ? (
               <div className="flex flex-col items-center text-neon-cyan gap-2">
                 <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="text-[10px] font-pixel uppercase tracking-widest">Extrayendo portada...</span>
+                <span className="text-[10px] font-pixel uppercase tracking-widest">Llamando a Apify...</span>
               </div>
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
                 <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  {/* 🔥 APLICANDO OBJECT-CONTAIN CON MAX-HEIGHT PARA EVITAR CORTES 🔥 */}
                   <img 
                     src={previewImage} 
                     alt="Preview" 
