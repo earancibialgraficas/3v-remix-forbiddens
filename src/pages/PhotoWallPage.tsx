@@ -12,27 +12,26 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
-// 🔥 ANIMACIONES EXTREMAS DE GOMA OPTIMIZADAS PARA PINTEREST (COLUMNS) 🔥
+// 🔥 ANIMACIONES DE GOMA HIPER-LENTAS Y ELÁSTICAS 🔥
 const jellyStyles = `
-  @keyframes jelly-pop-columns {
-    0% { transform: scale(0.3); opacity: 0; max-height: 0px; }
-    40% { transform: scale(1.05); opacity: 1; max-height: 45vh; }
-    60% { transform: scale(0.95); max-height: 35vh; }
-    80% { transform: scale(1.02); max-height: 38vh; }
-    100% { transform: scale(1); opacity: 1; max-height: 800px; }
+  @keyframes jelly-pop-windows {
+    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; }
+    30% { transform: scale3d(1.25, 0.75, 1); opacity: 1; }
+    45% { transform: scale3d(0.75, 1.25, 1); }
+    60% { transform: scale3d(1.15, 0.85, 1); }
+    75% { transform: scale3d(0.95, 1.05, 1); }
+    100% { transform: scale3d(1, 1, 1); opacity: 1; }
   }
-  @keyframes jelly-hide-columns {
-    0% { transform: scale(1); opacity: 1; max-height: 500px; }
-    30% { transform: scale(1.05); opacity: 1; max-height: 500px; }
-    100% { transform: scale(0.1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; }
+  @keyframes jelly-hide-windows {
+    0% { transform: scale3d(1, 1, 1); opacity: 1; }
+    30% { transform: scale3d(1.1, 0.9, 1); opacity: 1; }
+    100% { transform: scale3d(0, 0, 1); opacity: 0; }
   }
   .animate-jelly-open {
-    animation: jelly-pop-columns 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    overflow: hidden;
+    animation: jelly-pop-windows 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
   .animate-jelly-close {
-    animation: jelly-hide-columns 0.9s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-    overflow: hidden;
+    animation: jelly-hide-windows 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
 `;
 
@@ -129,12 +128,12 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           <div className="flex justify-between items-start">
             {isStaff && (
               <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
-                <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Ban className="w-3.5 h-3.5" />
               </button>
             )}
             {user && (
               <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
-                <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Bookmark className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -153,7 +152,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (35% ALTURA, FÍSICA DE GOMA) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -219,12 +218,13 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     <div 
       id={`expanded-card-${photo.id}`} 
       className={cn(
-        "w-full bg-card rounded-xl flex flex-col md:flex-row",
+        "w-full bg-card rounded-xl flex flex-col md:flex-row overflow-hidden",
         !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
         isClosing ? "animate-jelly-close" : "animate-jelly-open"
       )} 
       style={{ transformOrigin: origin, ...neonStyle } as any}
     >
+      {/* LADO IZQUIERDO: IMAGEN (35vh ALTURA FIJA) */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh]">
         <a 
           href={originalUrl} 
@@ -251,7 +251,10 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
+      {/* LADO DERECHO: PANEL SOCIAL (35vh ALTURA FIJA) */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh]">
+        
+        {/* 🔥 BOTÓN X EN LA ESQUINA SUPERIOR DERECHA DEL PANEL SOCIAL 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -411,7 +414,7 @@ export default function PhotoWallPage() {
     if (!user || !imageUrl.trim()) return;
     
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
-       toast({ title: "Servidor Lleno", description: "Se han agotado los cupos de extracción para el día de hoy.", variant: "destructive" }); return;
+       toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
     }
 
     setUploading(true);
@@ -473,7 +476,7 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 850); 
+    }, 1050); 
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -527,7 +530,7 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST: BARRERA ESTRICTA (2 cols móvil, 3 cols md y lg) 🔥 */}
+      {/* 🔥 GRILLA PINTEREST: RESPONSIVE 🔥 */}
       <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
@@ -537,7 +540,7 @@ export default function PhotoWallPage() {
           return (
             <div 
               key={`${photo.target_type}-${photo.id}`}
-              className={cn("w-full mb-2 sm:mb-6", !showFull && "break-inside-avoid inline-block")}
+              className={cn("w-full mb-4 sm:mb-6", !showFull && "break-inside-avoid inline-block")}
               style={{ columnSpan: showFull ? 'all' : 'none', WebkitColumnSpan: showFull ? 'all' : 'none' } as any}
             >
               {showFull ? (
@@ -556,16 +559,18 @@ export default function PhotoWallPage() {
                 <PhotoCardMiniature
                   photo={photo}
                   onExpand={(e: React.MouseEvent) => {
+                    // 🔥 LÓGICA DE ANCLAJE: Detectamos columna para fijar el origen 🔥
                     const rect = e.currentTarget.getBoundingClientRect();
+                    const wallWidth = window.innerWidth;
                     const xCenter = rect.left + rect.width / 2;
-                    const third = window.innerWidth / 3;
                     
-                    if (xCenter < third) setExpandOrigin("top left");
-                    else if (xCenter > third * 2) setExpandOrigin("bottom right");
+                    if (xCenter < wallWidth / 3) setExpandOrigin("left center");
+                    else if (xCenter > (wallWidth / 3) * 2) setExpandOrigin("right center");
                     else setExpandOrigin("center center");
 
                     setExpandedPhotoId(photo.id);
                     
+                    // 🔥 Scroll suave sincronizado con el estiramiento de goma (1.5s) 🔥
                     setTimeout(() => {
                       const el = document.getElementById(`expanded-card-${photo.id}`);
                       if (el) {
