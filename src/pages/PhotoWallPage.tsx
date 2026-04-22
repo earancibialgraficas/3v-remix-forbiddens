@@ -12,6 +12,29 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
+// 🔥 ANIMACIONES CSS ESTILO GOMA/CARICATURA 🔥
+const jellyStyles = `
+  @keyframes jelly-pop {
+    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; }
+    30% { transform: scale3d(1.15, 0.75, 1); opacity: 1; }
+    45% { transform: scale3d(0.85, 1.15, 1); }
+    65% { transform: scale3d(1.05, 0.95, 1); }
+    80% { transform: scale3d(0.98, 1.02, 1); }
+    100% { transform: scale3d(1, 1, 1); opacity: 1; }
+  }
+  @keyframes jelly-hide {
+    0% { transform: scale3d(1, 1, 1); opacity: 1; }
+    25% { transform: scale3d(1.1, 0.8, 1); opacity: 1; }
+    100% { transform: scale3d(0, 0, 1); opacity: 0; }
+  }
+  .animate-jelly-open {
+    animation: jelly-pop 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+  .animate-jelly-close {
+    animation: jelly-hide 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+`;
+
 interface SocialComment {
   id: string;
   user_id: string;
@@ -51,23 +74,19 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 FUNCIÓN PROXY PARA EVITAR IMÁGENES ROTAS DE INSTAGRAM 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-// 🔥 PALETA DE COLORES NEÓN PARA FOTOS DE APIFY 🔥
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
 const getPhotoNeonStyle = (photo: any) => {
   const isApify = photo.is_apify === true || photo.target_type === 'social_content';
   if (!isApify) return {}; 
-  
   const sum = String(photo.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const color = NEON_COLORS[sum % NEON_COLORS.length];
-  
   return {
     borderColor: color,
     boxShadow: `0 0 20px ${color}60, inset 0 0 10px ${color}30`,
@@ -133,8 +152,8 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
-function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (FÍSICA DE GOMA, 25%, X EN LA DERECHA) 🔥 */
+function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -196,20 +215,20 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    // 🔥 ANIMACIÓN DE EXPANSIÓN DESDE LA ESQUINA (origin-top-left) Y ZOOM-IN 🔥
     <div 
       id={`expanded-card-${photo.id}`} 
       className={cn(
-        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row animate-in fade-in zoom-in-50 origin-top-left duration-700 ease-out",
-        !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
+        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row",
+        !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
+        isClosing ? "animate-jelly-close" : "animate-jelly-open"
       )} 
-      style={{ columnSpan: 'all', ...neonStyle } as any}
+      style={{ columnSpan: 'all', transformOrigin: origin, ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (60% ANCHO, ALTURA MÁXIMA 50vh MENOS EL ALTO DE LA BARRA) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[calc(50vh-76px)] min-h-[300px]">
+      {/* LADO IZQUIERDO: IMAGEN (ALTURA 25vh, aprox 300px min) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[25vh] min-h-[300px]">
         
-        {/* 🔥 BOTÓN PARA VER ORIGINAL (AHORA ABAJO A LA IZQUIERDA) 🔥 */}
+        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
           href={originalUrl} 
           target="_blank" 
@@ -234,44 +253,48 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
              }}
            />
         )}
-        <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-black/70 border border-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (40% ANCHO, ALTURA MÁXIMA 50vh MENOS EL ALTO DE LA BARRA) */}
-      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[calc(50vh-76px)] min-h-[300px]">
+      {/* LADO DERECHO: PANEL SOCIAL (ALTURA 25vh, aprox 300px min) */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[25vh] min-h-[300px]">
         
-        <div className="p-4 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0">
-          <Avatar className="w-10 h-10 border border-neon-orange/30">
+        {/* 🔥 LA 'X' REUBICADA EN LA ESQUINA SUPERIOR DERECHA DE LOS COMENTARIOS 🔥 */}
+        <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
+          <Avatar className="w-8 h-8 border border-neon-orange/30">
             <AvatarImage src={photo.profiles?.avatar_url} />
-            <AvatarFallback className="font-pixel text-xs">?</AvatarFallback>
+            <AvatarFallback className="font-pixel text-[10px]">?</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate text-foreground">{photo.profiles?.display_name || "Anónimo"}</p>
-            <p className="text-[10px] text-muted-foreground font-body">{displayDate}</p>
+            <p className="text-xs font-bold truncate text-foreground">{photo.profiles?.display_name || "Anónimo"}</p>
+            <p className="text-[9px] text-muted-foreground font-body">{displayDate}</p>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar">
-          {photo.caption && <p className="text-xs leading-relaxed text-foreground/90 bg-white/5 p-3 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 retro-scrollbar">
+          {photo.caption && <p className="text-[11px] leading-relaxed text-foreground/90 bg-white/5 p-2 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             {comments.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-30 py-10">
-                <MessageSquare className="w-8 h-8 mb-2" />
-                <p className="text-[10px] uppercase font-pixel tracking-widest">Sin comentarios</p>
+              <div className="h-full flex flex-col items-center justify-center opacity-30 py-4">
+                <MessageSquare className="w-6 h-6 mb-1" />
+                <p className="text-[9px] uppercase font-pixel tracking-widest">Sin comentarios</p>
               </div>
             ) : (
               comments.map(c => (
-                <div key={c.id} className={cn("group flex items-start gap-2 text-[11px] font-body", c.parent_id && "ml-6 border-l border-white/10 pl-3")}>
-                  <Avatar className="w-6 h-6 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
+                <div key={c.id} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
+                  <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="bg-white/5 rounded-lg px-2.5 py-2 inline-block max-w-full">
-                      <span className="text-primary font-bold block text-[10px] mb-0.5">{c.display_name}</span>
+                    <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
+                      <span className="text-primary font-bold block text-[9px] mb-0.5">{c.display_name}</span>
                       <span className="text-foreground/90 break-words">{c.content}</span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 px-1">
-                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[9px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                      {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[9px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
+                      {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                     </div>
                   </div>
                 </div>
@@ -280,33 +303,33 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
           </div>
         </div>
 
-        <div className="p-4 border-t border-border bg-muted/5 space-y-4 shrink-0">
+        <div className="p-3 border-t border-border bg-muted/5 space-y-3 shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex gap-4">
-              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
-              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-4 h-4", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
-            </div>
             <div className="flex gap-3">
-              {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-4 h-4" /></button>}
-              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan" title="Guardar"><Bookmark className="w-4 h-4" /></button>
-              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive" title="Ocultar (Staff)"><Ban className="w-4 h-4" /></button>}
+              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-3.5 h-3.5", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
+              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
+            </div>
+            <div className="flex gap-2">
+              {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive"><Flag className="w-3.5 h-3.5" /></button>}
+              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan"><Bookmark className="w-3.5 h-3.5" /></button>
+              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive"><Ban className="w-3.5 h-3.5" /></button>}
             </div>
           </div>
 
           {user ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {replyTo && (
-                 <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-1 rounded text-[9px] text-neon-orange font-bold">
+                 <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-0.5 rounded text-[8px] text-neon-orange font-bold">
                    <span>Respondiendo a {replyTo.name}</span>
-                   <button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-3 h-3"/></button>
+                   <button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-2.5 h-2.5"/></button>
                  </div>
               )}
               <div className="flex gap-2">
-                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Escribe un comentario..." className="h-9 text-xs bg-black/40 border-border" />
-                <Button onClick={handleSubmitComment} size="sm" className="bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-4 h-4" /></Button>
+                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="h-7 text-[10px] bg-black/40 border-border" />
+                <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
-          ) : <p className="text-[10px] text-center text-muted-foreground font-pixel uppercase py-2">Inicia sesión para interactuar</p>}
+          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión para interactuar</p>}
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
@@ -327,10 +350,12 @@ export default function PhotoWallPage() {
   const [userPhotoCount, setUserPhotoCount] = useState(0);
   const [dailyApifyCount, setDailyApifyCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
+  
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
+  const [expandOrigin, setExpandOrigin] = useState("center center");
+  const [closingPhotoId, setClosingPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
-  const scrollPosRef = useRef(0);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = profile?.membership_tier || "novato";
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
@@ -439,7 +464,7 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
@@ -451,11 +476,21 @@ export default function PhotoWallPage() {
     try { await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); toast({ title: "Guardada en tu perfil" }); } catch (e) { }
   };
 
+  const triggerClose = (id: string) => {
+    setClosingPhotoId(id);
+    setTimeout(() => {
+      setExpandedPhotoId(null);
+      setClosingPhotoId(null);
+    }, 550); // Tiempo justo de la animación de cierre jelly-hide
+  };
+
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-4">
+      <style>{jellyStyles}</style>
+
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
@@ -504,30 +539,43 @@ export default function PhotoWallPage() {
       <div className="columns-3 gap-4 px-2 md:px-0 relative">
         {displayPhotos.map(photo => (
           <div key={`${photo.target_type}-${photo.id}`}>
-            {expandedPhotoId === photo.id ? (
+            {expandedPhotoId === photo.id || closingPhotoId === photo.id ? (
               <ExpandedPhotoCard 
                 photo={photo} 
-                onClose={() => setExpandedPhotoId(null)}
+                onClose={() => triggerClose(photo.id)}
                 onReaction={handleReaction}
                 onHide={handleHide}
                 onSave={handleSaveToProfile}
                 userReaction={userReactions[photo.id]}
                 isStaff={isStaff}
+                origin={expandOrigin}
+                isClosing={closingPhotoId === photo.id}
               />
             ) : (
               <PhotoCardMiniature
                 photo={photo}
-                onExpand={() => {
+                onExpand={(e: React.MouseEvent) => {
+                  // 🔥 DETECCIÓN DINÁMICA DE ORIGEN BASADA EN LA POSICIÓN DEL CLIC 🔥
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const xCenter = rect.left + rect.width / 2;
+                  const third = window.innerWidth / 3;
+                  
+                  if (xCenter < third) setExpandOrigin("top left");
+                  else if (xCenter > third * 2) setExpandOrigin("bottom right");
+                  else setExpandOrigin("center center");
+
                   setExpandedPhotoId(photo.id);
+                  
+                  // Scroll suave al centro
                   setTimeout(() => {
                     const el = document.getElementById(`expanded-card-${photo.id}`);
                     if (el) {
-                      const rect = el.getBoundingClientRect();
-                      const absoluteTop = rect.top + window.pageYOffset;
-                      const middle = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
+                      const elRect = el.getBoundingClientRect();
+                      const absoluteTop = elRect.top + window.pageYOffset;
+                      const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
                       window.scrollTo({ top: middle, behavior: 'smooth' });
                     }
-                  }, 300); 
+                  }, 150); 
                 }}
                 onReaction={handleReaction}
                 onHide={handleHide}
