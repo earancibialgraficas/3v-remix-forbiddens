@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,20 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
+
+// 🔥 ANIMACIÓN DE GOMA SEGURA (SIN CRASHEOS) 🔥
+// Solo animamos la escala (zoom) y la opacidad para que el navegador no sufra.
+const jellyStyles = `
+  @keyframes jelly-pop-safe {
+    0% { transform: scale(0.85); opacity: 0; }
+    40% { transform: scale(1.03); opacity: 1; }
+    70% { transform: scale(0.98); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-jelly-safe {
+    animation: jelly-pop-safe 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+`;
 
 interface SocialComment {
   id: string;
@@ -93,7 +107,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
             if (!e.currentTarget.src.includes('wsrv.nl')) return;
@@ -129,6 +143,186 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (45vh, SIN CRASHEOS) 🔥 */
+function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [comments, setComments] = useState<SocialComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
+  const [showReport, setShowReport] = useState(false);
+  
+  const targetUrl = photo.thumbnail_url || photo.image_url;
+  const originalUrl = photo.content_url || targetUrl;
+  const neonStyle = getPhotoNeonStyle(photo);
+  const hasNeon = Object.keys(neonStyle).length > 0;
+
+  const displayDate = photo.created_at ? new Date(photo.created_at).toLocaleDateString() : "Recientemente";
+
+  const fetchComments = async () => {
+    const { data: rawComments, error } = await supabase.from("social_comments").select("*").eq("content_id", photo.id).order("created_at", { ascending: true });
+    if (error) return;
+    
+    if (rawComments && rawComments.length > 0) {
+      const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      
+      const pMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
+      if (profs) profs.forEach((p: any) => { pMap[p.user_id] = { display_name: p.display_name, avatar_url: p.avatar_url }; });
+      
+      setComments(rawComments.map((c: any) => {
+        const profileData = pMap[c.user_id];
+        return { ...c, display_name: profileData ? profileData.display_name : "Anónimo", avatar_url: profileData ? profileData.avatar_url : null };
+      }));
+    } else {
+      setComments([]);
+    }
+  };
+
+  useEffect(() => { fetchComments(); }, [photo.id]);
+
+  const handleSubmitComment = async () => {
+    if (!user || !commentText.trim()) return;
+    try {
+      const { error } = await supabase.from("social_comments").insert({ 
+        user_id: user.id, content_id: photo.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
+      } as any);
+      if (error) throw error;
+      setCommentText(""); setReplyTo(null); fetchComments();
+    } catch (e: any) {
+      toast({ title: "Error al comentar", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("¿Eliminar este comentario?")) return;
+    try {
+      await supabase.from("social_comments").delete().eq("id", commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (e) { }
+  };
+
+  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
+  const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
+
+  return (
+    <div 
+      className={cn(
+        "w-full bg-card rounded-xl flex flex-col md:flex-row overflow-hidden animate-jelly-safe",
+        !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
+      )}
+      style={neonStyle}
+    >
+      {/* LADO IZQUIERDO: IMAGEN (45vh ALTURA) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[45vh] min-h-[400px]">
+        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
+        <a 
+          href={originalUrl} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
+        >
+          <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
+        </a>
+
+        {isEmbed && embedSrc ? (
+           <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
+        ) : (
+           <img 
+             src={getProxyUrl(targetUrl)} 
+             alt={photo.caption} 
+             referrerPolicy="no-referrer"
+             crossOrigin="anonymous"
+             className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
+             onError={(e) => {
+               if (!e.currentTarget.src.includes('wsrv.nl')) return;
+               e.currentTarget.src = targetUrl;
+             }}
+           />
+        )}
+      </div>
+
+      {/* LADO DERECHO: PANEL SOCIAL (45vh ALTURA) */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[45vh] min-h-[400px]">
+        
+        {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
+        <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
+          <Avatar className="w-8 h-8 border border-neon-orange/30">
+            <AvatarImage src={photo.profiles?.avatar_url} />
+            <AvatarFallback className="font-pixel text-[10px]">?</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold truncate text-foreground">{photo.profiles?.display_name || "Anónimo"}</p>
+            <p className="text-[9px] text-muted-foreground font-body">{displayDate}</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 retro-scrollbar">
+          {photo.caption && <p className="text-[11px] leading-relaxed text-foreground/90 bg-white/5 p-2 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
+          <div className="space-y-3">
+            {comments.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center opacity-30 py-4">
+                <MessageSquare className="w-6 h-6 mb-1" />
+                <p className="text-[9px] uppercase font-pixel tracking-widest">Sin comentarios</p>
+              </div>
+            ) : (
+              comments.map(c => (
+                <div key={c.id} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
+                  <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
+                      <span className="text-primary font-bold block text-[9px] mb-0.5">{c.display_name}</span>
+                      <span className="text-foreground/90 break-words">{c.content}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
+                      {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="p-3 border-t border-border bg-muted/5 space-y-3 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3">
+              <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-3.5 h-3.5", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
+              <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
+            </div>
+            <div className="flex gap-2">
+              {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive"><Flag className="w-3.5 h-3.5" /></button>}
+              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan"><Bookmark className="w-3.5 h-3.5" /></button>
+              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive"><Ban className="w-3.5 h-3.5" /></button>}
+            </div>
+          </div>
+
+          {user ? (
+            <div className="space-y-1.5">
+              {replyTo && (
+                 <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-0.5 rounded text-[8px] text-neon-orange font-bold">
+                   <span>Respondiendo a {replyTo.name}</span>
+                   <button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-2.5 h-2.5"/></button>
+                 </div>
+              )}
+              <div className="flex gap-2">
+                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="h-7 text-[10px] bg-black/40 border-border" />
+                <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
+              </div>
+            </div>
+          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión</p>}
+        </div>
+      </div>
+      {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
+    </div>
+  );
+}
+
 export default function PhotoWallPage() {
   const { user, profile, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -142,35 +336,13 @@ export default function PhotoWallPage() {
   const [userPhotoCount, setUserPhotoCount] = useState(0);
   const [dailyApifyCount, setDailyApifyCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
+  
+  const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
-  // 🔥 ESTADOS PARA LA ANIMACIÓN FÍSICA DE VENTANA 🔥
-  const wallRef = useRef<HTMLDivElement>(null);
-  const [wallWidth, setWallWidth] = useState(0);
-  const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
-  const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
-  const [closingPhotoId, setClosingPhotoId] = useState<string | null>(null);
-  const [cardOffset, setCardOffset] = useState(0); // Distancia desde la miniatura al borde del muro
-  
-  // Comentarios y respuestas del panel social
-  const [comments, setComments] = useState<Record<string, SocialComment[]>>({});
-  const [commentText, setCommentText] = useState("");
-  const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
-  const [showReport, setShowReport] = useState<string | null>(null);
-
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = profile?.membership_tier || "novato";
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
-
-  // Calcula el ancho real del contenedor Muro constantemente
-  useEffect(() => {
-    const updateWidth = () => {
-      if (wallRef.current) setWallWidth(wallRef.current.clientWidth);
-    };
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, []);
 
   const fetchPhotosAndDaily = async () => {
     const getChileMidnightISO = () => {
@@ -227,68 +399,31 @@ export default function PhotoWallPage() {
 
   useEffect(() => { fetchPhotosAndDaily(); }, [user]);
 
-  // Carga de comentarios solo para la foto expandida
-  useEffect(() => {
-    if (expandedPhotoId && !comments[expandedPhotoId]) {
-      loadComments(expandedPhotoId);
-    }
-  }, [expandedPhotoId]);
-
-  const loadComments = async (photoId: string) => {
-    const { data: rawComments, error } = await supabase.from("social_comments").select("*").eq("content_id", photoId).order("created_at", { ascending: true });
-    if (!error && rawComments) {
-      const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
-      const pMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
-      if (profs) profs.forEach((p: any) => { pMap[p.user_id] = { display_name: p.display_name, avatar_url: p.avatar_url }; });
-      
-      const mappedComments = rawComments.map((c: any) => ({
-        ...c, 
-        display_name: pMap[c.user_id] ? pMap[c.user_id].display_name : "Anónimo", 
-        avatar_url: pMap[c.user_id] ? pMap[c.user_id].avatar_url : null
-      }));
-      setComments(prev => ({ ...prev, [photoId]: mappedComments }));
-    }
-  };
-
-  const handleSubmitComment = async (photoId: string) => {
-    if (!user || !commentText.trim()) return;
-    try {
-      await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: photoId, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
-      } as any);
-      setCommentText(""); setReplyTo(null); loadComments(photoId);
-    } catch (e: any) {
-      toast({ title: "Error al comentar", variant: "destructive" });
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string, photoId: string) => {
-    if (!confirm("¿Eliminar este comentario?")) return;
-    try {
-      await supabase.from("social_comments").delete().eq("id", commentId);
-      setComments(prev => ({ ...prev, [photoId]: prev[photoId].filter(c => c.id !== commentId) }));
-    } catch (e) { }
-  };
-
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
+    
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
-       toast({ title: "Servidor Lleno", description: "Se han agotado los cupos de extracción para el día de hoy.", variant: "destructive" }); return;
+       toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
     }
+
     setUploading(true);
     let finalUrl = imageUrl.trim();
     let usedApify = false;
+
     if (finalUrl.includes("instagram.com")) {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
         if (!error && data?.imageUrl) { finalUrl = data.imageUrl; usedApify = true; }
       } catch (err) { console.error("Error IG:", err); }
     }
+
     const { error } = await supabase.from("photos").insert({ id: crypto.randomUUID(), user_id: user.id, image_url: finalUrl, caption: caption.trim(), is_apify: usedApify } as any);
+
     if (!error) {
       setCaption(""); setImageUrl(""); setShowUpload(false); fetchPhotosAndDaily();
       toast({ title: usedApify ? "¡Extracción Exitosa!" : "Foto subida con éxito" });
+    } else {
+      toast({ title: "Error al publicar", description: error.message, variant: "destructive" });
     }
     setUploading(false);
   };
@@ -298,6 +433,7 @@ export default function PhotoWallPage() {
     const table = targetType === "photo" ? "photos" : "social_content";
     const current = photos.find(p => p.id === itemId);
     if (!current) return;
+    
     let newLikes = current.likes || 0;
     if (userReactions[itemId] === type) {
       await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
@@ -306,6 +442,7 @@ export default function PhotoWallPage() {
       await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
       newLikes = type === "like" ? newLikes + 1 : (userReactions[itemId] === "like" ? newLikes - 1 : newLikes);
     }
+    
     await supabase.from(table).update({ likes: Math.max(0, newLikes) }).eq("id", itemId);
     fetchPhotosAndDaily();
   };
@@ -313,47 +450,14 @@ export default function PhotoWallPage() {
   const handleHide = async (id: string, targetType: string) => {
     if (confirm("¿Ocultar esta imagen al público?")) {
       const table = targetType === "photo" ? "photos" : "social_content";
-      await supabase.from(table).delete().eq("id", id);
-      toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); triggerClose(id);
+      const { error } = await supabase.from(table).delete().eq("id", id);
+      if (!error) { toast({ title: "Ocultada." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
     }
   };
 
   const handleSaveToProfile = async (photoId: string) => {
     if (!user) return;
-    try { await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); toast({ title: "Guardada en tu perfil" }); } catch (e) { }
-  };
-
-  const triggerExpand = (e: React.MouseEvent, id: string) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const wall = wallRef.current;
-    
-    // Si tenemos el muro detectado, calculamos la distancia exacta entre el borde izq de la miniatura y el borde izq del muro.
-    if (wall) {
-      const wallRect = wall.getBoundingClientRect();
-      const offset = rect.left - wallRect.left;
-      setCardOffset(offset); // Guardamos la coordenada matemática para expandir hacia el lado correcto.
-    }
-    
-    setExpandedPhotoId(id);
-    
-    // Esperamos 10ms para que React renderice y luego disparamos la animación elástica
-    setTimeout(() => setActivePhotoId(id), 10);
-    
-    // Scroll centrado suave
-    setTimeout(() => {
-      const absoluteTop = rect.top + window.pageYOffset;
-      const middle = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
-      window.scrollTo({ top: middle, behavior: 'smooth' });
-    }, 200); 
-  };
-
-  const triggerClose = (id: string) => {
-    setActivePhotoId(null); // Quita la clase de expansión, la ventana colapsa a su tamaño miniatura original
-    setClosingPhotoId(id);
-    setTimeout(() => {
-      setExpandedPhotoId(null);
-      setClosingPhotoId(null);
-    }, 1100); // Esperamos 1.1s de la animación de cierre antes de desmontarlo
+    try { await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); toast({ title: "Guardada" }); } catch (e) { }
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -361,7 +465,8 @@ export default function PhotoWallPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
-      
+      <style>{jellyStyles}</style>
+
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0">
         <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
           <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
@@ -406,167 +511,53 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 CONTENEDOR MAESTRO DEL MURO (wallRef) 🔥 */}
-      <div ref={wallRef} className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
-        
+      {/* 🔥 GRILLA PINTEREST CLÁSICA Y SEGURA (columns) 🔥 */}
+      <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
-          const isActive = activePhotoId === photo.id;
-          const isClosingThis = closingPhotoId === photo.id;
-          const showFull = isExpanded || isClosingThis;
-
-          const targetUrl = photo.thumbnail_url || photo.image_url;
-          const originalUrl = photo.content_url || targetUrl;
-          const neonStyle = getPhotoNeonStyle(photo);
-          const hasNeon = Object.keys(neonStyle).length > 0;
-          const displayDate = photo.created_at ? new Date(photo.created_at).toLocaleDateString() : "Recientemente";
-          const photoComments = comments[photo.id] || [];
-
-          const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
-          const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
           return (
             <div 
               key={`${photo.target_type}-${photo.id}`}
-              className={cn("w-full mb-4 sm:mb-6 break-inside-avoid relative", showFull ? "z-50" : "z-10")}
+              className={cn("w-full mb-4 sm:mb-6 break-inside-avoid relative", isExpanded ? "z-50" : "z-10")}
+              // 🔥 EL SECRETO: Permite que la imagen se expanda rompiendo la columna y empujando las demás hacia abajo naturalmente 🔥
+              style={{ columnSpan: isExpanded ? 'all' : 'none', WebkitColumnSpan: isExpanded ? 'all' : 'none' } as any}
             >
-              {/* MINIATURA BASE: Mantiene su tamaño en el grid */}
-              <div className="w-full h-full opacity-100">
+              {isExpanded ? (
+                <div id={`expanded-card-${photo.id}`}>
+                  <ExpandedPhotoCard 
+                    photo={photo} 
+                    onClose={() => setExpandedPhotoId(null)}
+                    onReaction={handleReaction}
+                    onHide={handleHide}
+                    onSave={handleSaveToProfile}
+                    userReaction={userReactions[photo.id]}
+                    isStaff={isStaff}
+                  />
+                </div>
+              ) : (
                 <PhotoCardMiniature
                   photo={photo}
-                  onExpand={(e: React.MouseEvent) => triggerExpand(e, photo.id)}
+                  onExpand={(e: React.MouseEvent) => {
+                    setExpandedPhotoId(photo.id);
+                    // Scroll suave para ver la expansión
+                    setTimeout(() => {
+                      const el = document.getElementById(`expanded-card-${photo.id}`);
+                      if (el) {
+                        const elRect = el.getBoundingClientRect();
+                        const absoluteTop = elRect.top + window.pageYOffset;
+                        const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
+                        window.scrollTo({ top: middle, behavior: 'smooth' });
+                      }
+                    }, 50); 
+                  }}
                   onReaction={handleReaction}
                   onHide={handleHide}
                   onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
                 />
-              </div>
-
-              {/* 🔥 VENTANA ELÁSTICA FLOTANTE (La magia de Windows) 🔥 */}
-              {showFull && (
-                <div
-                  className={cn(
-                    "absolute z-[100] overflow-hidden rounded-xl bg-card flex flex-col md:flex-row",
-                    !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]"
-                  )}
-                  style={{
-                    // Coordenada Inicial: Cima de la miniatura
-                    top: 0, 
-                    // Matemática de Anclaje Anti-Desborde
-                    // Si está activa, viaja a la izquierda los pixeles exactos para tocar el borde del Muro. Si no, vuelve a 0 (tamaño miniatura).
-                    left: isActive ? `-${cardOffset}px` : "0px",
-                    width: isActive ? `${wallWidth}px` : "100%",
-                    height: isActive ? "max(45vh, 450px)" : "100%",
-                    // Curva hiper-lenta de goma
-                    transition: "all 1.1s cubic-bezier(0.34, 1.56, 0.64, 1)", 
-                    ...neonStyle
-                  }}
-                >
-                  
-                  {/* PANELES INTERNOS: Se ajustan orgánicamente a la transición de tamaño */}
-                  <div className={cn("relative bg-black flex flex-col items-center justify-center shrink-0 transition-all duration-[1.1s]", isActive ? "w-full md:w-[60%] h-[50%] md:h-full p-2 sm:p-4" : "w-full h-full p-0")}>
-                    
-                    {/* BOTÓN VER ORIGINAL - ESQUINA INFERIOR IZQUIERDA */}
-                    {isActive && (
-                      <a 
-                        href={originalUrl} target="_blank" rel="noopener noreferrer" 
-                        className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all animate-fade-in"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
-                      </a>
-                    )}
-
-                    {isEmbed && embedSrc ? (
-                       <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
-                    ) : (
-                       <img 
-                         src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
-                         className={cn("w-full h-full rounded transition-all duration-[1.1s]", isActive ? "object-contain shadow-2xl" : "object-cover")} 
-                         onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
-                       />
-                    )}
-                  </div>
-
-                  {/* PANEL DERECHO: COMENTARIOS Y SOCIAL (Se oculta suavemente al cerrar) */}
-                  <div className={cn("relative flex flex-col bg-background/95 backdrop-blur-md border-border transition-all duration-[1.1s]", isActive ? "w-full md:w-[40%] h-[50%] md:h-full opacity-100 border-t md:border-t-0 md:border-l" : "w-0 h-0 opacity-0 overflow-hidden")}>
-                    
-                    {/* 🔥 BOTÓN 'X' - ESQUINA SUPERIOR DERECHA DEL PANEL SOCIAL 🔥 */}
-                    <button onClick={() => triggerClose(photo.id)} className="absolute top-3 right-3 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
-                      <X className="w-4 h-4" />
-                    </button>
-
-                    <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
-                      <Avatar className="w-8 h-8 border border-neon-orange/30">
-                        <AvatarImage src={photo.profiles?.avatar_url} />
-                        <AvatarFallback className="font-pixel text-[10px]">?</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold truncate text-foreground">{photo.profiles?.display_name || "Anónimo"}</p>
-                        <p className="text-[9px] text-muted-foreground font-body">{displayDate}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3 retro-scrollbar min-h-[150px]">
-                      {photo.caption && <p className="text-[11px] leading-relaxed text-foreground/90 bg-white/5 p-2 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
-                      <div className="space-y-3">
-                        {photoComments.length === 0 ? (
-                          <div className="h-full flex flex-col items-center justify-center opacity-30 py-4">
-                            <MessageSquare className="w-6 h-6 mb-1" />
-                            <p className="text-[9px] uppercase font-pixel tracking-widest">Sin comentarios</p>
-                          </div>
-                        ) : (
-                          photoComments.map(c => (
-                            <div key={c.id} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
-                              <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
-                              <div className="flex-1 min-w-0">
-                                <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
-                                  <span className="text-primary font-bold block text-[9px] mb-0.5">{c.display_name}</span>
-                                  <span className="text-foreground/90 break-words">{c.content}</span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-1 px-1">
-                                  <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                                  {isStaff && <button onClick={() => handleDeleteComment(c.id, photo.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-3 border-t border-border bg-muted/5 space-y-3 shrink-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-3">
-                          <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-3.5 h-3.5", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
-                          <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
-                        </div>
-                        <div className="flex gap-2">
-                          {user && <button onClick={() => setShowReport(photo.id)} className="text-muted-foreground hover:text-destructive"><Flag className="w-3.5 h-3.5" /></button>}
-                          <button onClick={() => handleSaveToProfile(photo.id)} className="text-muted-foreground hover:text-neon-cyan"><Bookmark className="w-3.5 h-3.5" /></button>
-                          {isStaff && <button onClick={() => handleHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive"><Ban className="w-3.5 h-3.5" /></button>}
-                        </div>
-                      </div>
-
-                      {user ? (
-                        <div className="space-y-1.5">
-                          {replyTo && (
-                             <div className="flex items-center justify-between bg-neon-orange/10 px-2 py-0.5 rounded text-[8px] text-neon-orange font-bold">
-                               <span>Respondiendo a {replyTo.name}</span>
-                               <button onClick={() => setReplyTo(null)} className="hover:text-white"><X className="w-2.5 h-2.5"/></button>
-                             </div>
-                          )}
-                          <div className="flex gap-2">
-                            <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="h-7 text-[10px] bg-black/40 border-border" />
-                            <Button onClick={() => handleSubmitComment(photo.id)} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
-                          </div>
-                        </div>
-                      ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión para comentar</p>}
-                    </div>
-                  </div>
-                </div>
               )}
-              {showReport === photo.id && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(null)} />}
             </div>
           );
         })}
