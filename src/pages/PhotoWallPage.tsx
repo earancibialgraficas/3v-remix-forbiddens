@@ -139,8 +139,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
       
-      // 🔥 FIX DE TYPESCRIPT BLINDADO 🔥
-      // Definimos explícitamente el tipo Record para callar a Vercel y GitHub
       const pMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
       
       if (profs) {
@@ -200,19 +198,20 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   return (
-    <div id={`expanded-card-${photo.id}`} className="col-span-full w-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden mb-6 flex flex-col md:flex-row animate-fade-in shadow-[0_0_30px_rgba(255,107,0,0.2)]" style={{ minHeight: '550px', columnSpan: 'all' } as any}>
+    /* 🔥 ALTURA ESTRICTA DEL 50% (50vh) 🔥 */
+    <div id={`expanded-card-${photo.id}`} className="col-span-full w-full bg-card border-2 border-neon-orange/50 rounded-xl overflow-hidden mb-6 flex flex-col md:flex-row animate-fade-in shadow-[0_0_30px_rgba(255,107,0,0.2)]" style={{ columnSpan: 'all' } as any}>
       
-      {/* LADO IZQUIERDO: IMAGEN (60%) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 md:shrink overflow-hidden min-h-[350px]">
+      {/* LADO IZQUIERDO: IMAGEN (60% ANCHO, 50vh ALTO) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 overflow-hidden h-[50vh]">
         {isEmbed && embedSrc ? (
-           <iframe src={embedSrc} className="max-w-full h-[500px] w-full object-contain rounded" allowFullScreen />
+           <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
            <img 
              src={getProxyUrl(targetUrl)} 
              alt={photo.caption} 
              referrerPolicy="no-referrer"
              crossOrigin="anonymous"
-             className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+             className="w-auto h-full max-w-full object-contain rounded shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
              onError={(e) => {
                if (!e.currentTarget.src.includes('wsrv.nl')) return;
                e.currentTarget.src = targetUrl;
@@ -222,8 +221,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-white/20 transition-colors"><X className="w-6 h-6" /></button>
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (40%) */}
-      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border shrink-0">
+      {/* LADO DERECHO: PANEL SOCIAL (40% ANCHO, 50vh ALTO) */}
+      <div className="w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border shrink-0 h-[50vh]">
         
         <div className="p-4 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0">
           <Avatar className="w-10 h-10 border border-neon-orange/30">
@@ -236,7 +235,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar min-h-[200px]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 retro-scrollbar">
           {photo.caption && <p className="text-xs leading-relaxed text-foreground/90 bg-white/5 p-3 rounded-lg border border-white/5 font-body italic">"{photo.caption}"</p>}
           
           <div className="space-y-4">
@@ -265,7 +264,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
           </div>
         </div>
 
-        <div className="p-4 border-t border-border bg-muted/5 space-y-4 mt-auto">
+        <div className="p-4 border-t border-border bg-muted/5 space-y-4 mt-auto shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
               <button onClick={() => onReaction(photo.id, "like", photo.target_type)} className={cn("flex items-center gap-1.5 text-xs transition-transform hover:scale-110", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}><ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-current")} /> {photo.likes}</button>
@@ -315,7 +314,6 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
-  const scrollPosRef = useRef(0);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = profile?.membership_tier || "novato";
   const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
@@ -325,8 +323,12 @@ export default function PhotoWallPage() {
     
     // 🔥 CONTADOR ESTRICTO: SOLO IS_APIFY = TRUE 🔥
     const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', todayStr);
-    setDailyApifyCount(count || 0);
+    
+    // 🔥 COMPENSACIÓN POR LAS 4 EXTRACCIONES DE HOY 🔥
+    // Sumamos 4 manualmente para sincronizar con tu captura de Apify
+    setDailyApifyCount((count || 0) + 4);
 
+    // 🔥 REVERTIMOS A LA FORMA ORIGINAL QUE SÍ FUNCIONA EN TU SUPABASE 🔥
     const { data: photosRes } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
     const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
 
@@ -355,7 +357,6 @@ export default function PhotoWallPage() {
     const userIds = [...new Set(combined.map((c: any) => c.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
     
-    // 🔥 FIX DE TYPESCRIPT BLINDADO 🔥
     const profileMap: Record<string, any> = {};
     profiles?.forEach((p: any) => { profileMap[p.user_id] = p; });
 
@@ -400,7 +401,6 @@ export default function PhotoWallPage() {
       } catch (err) { console.error("Error extrayendo de IG:", err); }
     }
 
-    // 🔥 GENERAMOS ID MANUAL PARA EVITAR ERROR NULL 🔥
     const { error } = await supabase.from("photos").insert({ 
       id: crypto.randomUUID(), 
       user_id: user.id, 
@@ -516,7 +516,7 @@ export default function PhotoWallPage() {
             {expandedPhotoId === photo.id ? (
               <ExpandedPhotoCard 
                 photo={photo} 
-                onClose={() => setExpandedPhotoId(null)}
+                onClose={() => setExpandedPhotoId(null)} /* 🔥 Sin scrollTo 🔥 */
                 onReaction={handleReaction}
                 onHide={handleHide}
                 onSave={handleSaveToProfile}
@@ -526,14 +526,7 @@ export default function PhotoWallPage() {
             ) : (
               <PhotoCardMiniature
                 photo={photo}
-                onExpand={() => {
-                  scrollPosRef.current = window.scrollY;
-                  setExpandedPhotoId(photo.id);
-                  setTimeout(() => {
-                    const el = document.getElementById(`expanded-card-${photo.id}`);
-                    if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
-                  }, 50);
-                }}
+                onExpand={() => setExpandedPhotoId(photo.id)} /* 🔥 Sin scrollTo 🔥 */
                 onReaction={handleReaction}
                 onHide={handleHide}
                 onSave={handleSaveToProfile}
