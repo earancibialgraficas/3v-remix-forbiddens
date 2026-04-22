@@ -152,7 +152,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (FÍSICA DE GOMA, 25%, X EN LA DERECHA) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA (FÍSICA DE GOMA, 35%, X EN LA DERECHA) 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -225,8 +225,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       style={{ columnSpan: 'all', transformOrigin: origin, ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (ALTURA 25vh, aprox 300px min) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[25vh] min-h-[300px]">
+      {/* LADO IZQUIERDO: IMAGEN (ALTURA 35vh, aprox 300px min) 🔥 CAMBIADO DE 25vh a 35vh 🔥 */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh] min-h-[300px]">
         
         {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
@@ -255,8 +255,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (ALTURA 25vh, aprox 300px min) */}
-      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[25vh] min-h-[300px]">
+      {/* LADO DERECHO: PANEL SOCIAL (ALTURA 35vh, aprox 300px min) 🔥 CAMBIADO DE 25vh a 35vh 🔥 */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh] min-h-[300px]">
         
         {/* 🔥 LA 'X' REUBICADA EN LA ESQUINA SUPERIOR DERECHA DE LOS COMENTARIOS 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
@@ -481,7 +481,7 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 550); // Tiempo justo de la animación de cierre jelly-hide
+    }, 550);
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -555,7 +555,6 @@ export default function PhotoWallPage() {
               <PhotoCardMiniature
                 photo={photo}
                 onExpand={(e: React.MouseEvent) => {
-                  // 🔥 DETECCIÓN DINÁMICA DE ORIGEN BASADA EN LA POSICIÓN DEL CLIC 🔥
                   const rect = e.currentTarget.getBoundingClientRect();
                   const xCenter = rect.left + rect.width / 2;
                   const third = window.innerWidth / 3;
@@ -566,7 +565,6 @@ export default function PhotoWallPage() {
 
                   setExpandedPhotoId(photo.id);
                   
-                  // Scroll suave al centro
                   setTimeout(() => {
                     const el = document.getElementById(`expanded-card-${photo.id}`);
                     if (el) {
