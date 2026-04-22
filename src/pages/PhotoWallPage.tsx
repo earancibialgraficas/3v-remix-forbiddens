@@ -12,27 +12,26 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 
-// 🔥 ANIMACIONES EXTREMAS DE GOMA OPTIMIZADAS PARA PINTEREST (COLUMNS) 🔥
+// 🔥 ANIMACIONES DE GOMA MÁS LENTAS Y CON "EMPUJE" VERTICAL 🔥
 const jellyStyles = `
-  @keyframes jelly-pop-columns {
-    0% { transform: scale(0.3); opacity: 0; max-height: 0px; }
-    40% { transform: scale(1.05); opacity: 1; max-height: 45vh; }
-    60% { transform: scale(0.95); max-height: 35vh; }
-    80% { transform: scale(1.02); max-height: 38vh; }
-    100% { transform: scale(1); opacity: 1; max-height: 800px; } /* max-height holgado para que quepa el 35vh */
+  @keyframes jelly-pop {
+    0% { transform: scale3d(0.1, 0.1, 1); opacity: 0; max-height: 100px; }
+    30% { transform: scale3d(1.15, 0.75, 1); opacity: 1; max-height: 300px; }
+    45% { transform: scale3d(0.85, 1.15, 1); max-height: 500px; }
+    65% { transform: scale3d(1.05, 0.95, 1); max-height: 600px; }
+    80% { transform: scale3d(0.98, 1.02, 1); max-height: 700px; }
+    100% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; }
   }
-  @keyframes jelly-hide-columns {
-    0% { transform: scale(1); opacity: 1; max-height: 500px; }
-    30% { transform: scale(1.05); opacity: 1; max-height: 500px; }
-    100% { transform: scale(0.1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; }
+  @keyframes jelly-hide {
+    0% { transform: scale3d(1, 1, 1); opacity: 1; max-height: 900px; overflow: hidden; }
+    25% { transform: scale3d(1.1, 0.8, 1); opacity: 1; max-height: 700px; overflow: hidden; }
+    100% { transform: scale3d(0, 0, 1); opacity: 0; max-height: 0px; margin-bottom: 0px; border-width: 0px; padding: 0px; overflow: hidden; }
   }
   .animate-jelly-open {
-    animation: jelly-pop-columns 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    overflow: hidden;
+    animation: jelly-pop 1.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
   .animate-jelly-close {
-    animation: jelly-hide-columns 0.9s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-    overflow: hidden;
+    animation: jelly-hide 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   }
 `;
 
@@ -105,7 +104,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   return (
     <div 
       className={cn(
-        "relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
+        "break-inside-avoid mb-6 relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-1000 ease-in-out overflow-hidden shadow-sm",
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}
@@ -116,7 +115,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-700 group-hover:scale-105" 
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-1000 group-hover:scale-105" 
           loading="lazy" 
           onClick={onExpand}
           onError={(e) => {
@@ -153,7 +152,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (35% ALTURA) 🔥 */
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
 function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, origin, isClosing }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -219,17 +218,16 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
     <div 
       id={`expanded-card-${photo.id}`} 
       className={cn(
-        "w-full bg-card rounded-xl flex flex-col md:flex-row",
+        "col-span-full w-full bg-card rounded-xl overflow-hidden mb-8 flex flex-col md:flex-row",
         !hasNeon && "border-2 border-neon-orange/50 shadow-[0_0_30px_rgba(255,107,0,0.2)]",
         isClosing ? "animate-jelly-close" : "animate-jelly-open"
       )} 
-      style={{ transformOrigin: origin, ...neonStyle } as any}
+      style={{ columnSpan: 'all', transformOrigin: origin, ...neonStyle } as any}
     >
       
-      {/* LADO IZQUIERDO: IMAGEN (35vh ALTURA FIJA) */}
-      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh]">
+      {/* LADO IZQUIERDO: IMAGEN (35vh) */}
+      <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[35vh] min-h-[300px]">
         
-        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
           href={originalUrl} 
           target="_blank" 
@@ -256,10 +254,9 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (35vh ALTURA FIJA) */}
-      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh]">
+      {/* LADO DERECHO: PANEL SOCIAL (35vh) */}
+      <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[35vh] min-h-[300px]">
         
-        {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -330,7 +327,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
                 <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
-          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión</p>}
+          ) : <p className="text-[9px] text-center text-muted-foreground font-pixel uppercase py-1">Inicia sesión para interactuar</p>}
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
@@ -465,7 +462,7 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff.")) {
+    if (confirm("¿Ocultar esta imagen al público? El dueño podrá hablar con el Staff para recuperarla.")) {
       const table = targetType === "photo" ? "photos" : "social_content";
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (!error) { toast({ title: "Ocultada por el Staff." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
@@ -482,7 +479,7 @@ export default function PhotoWallPage() {
     setTimeout(() => {
       setExpandedPhotoId(null);
       setClosingPhotoId(null);
-    }, 850); 
+    }, 850); // Ajustado para esperar que termine la animación de 0.9s
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
@@ -536,66 +533,56 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST (VOLVIMOS A COLUMNS-3 PARA MANTENER EL CAOS ORDENADO) 🔥 */}
-      <div className="columns-1 sm:columns-2 md:columns-3 gap-4 px-2 md:px-0 relative">
-        {displayPhotos.map(photo => {
-          const isExpanded = expandedPhotoId === photo.id;
-          const isClosing = closingPhotoId === photo.id;
-          const showFull = isExpanded || isClosing;
+      {/* 🔥 GRILLA PINTEREST 🔥 */}
+      <div className="columns-3 gap-4 px-2 md:px-0 relative">
+        {displayPhotos.map(photo => (
+          <div key={`${photo.target_type}-${photo.id}`}>
+            {expandedPhotoId === photo.id || closingPhotoId === photo.id ? (
+              <ExpandedPhotoCard 
+                photo={photo} 
+                onClose={() => triggerClose(photo.id)}
+                onReaction={handleReaction}
+                onHide={handleHide}
+                onSave={handleSaveToProfile}
+                userReaction={userReactions[photo.id]}
+                isStaff={isStaff}
+                origin={expandOrigin}
+                isClosing={closingPhotoId === photo.id}
+              />
+            ) : (
+              <PhotoCardMiniature
+                photo={photo}
+                onExpand={(e: React.MouseEvent) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const xCenter = rect.left + rect.width / 2;
+                  const third = window.innerWidth / 3;
+                  
+                  if (xCenter < third) setExpandOrigin("top left");
+                  else if (xCenter > third * 2) setExpandOrigin("bottom right");
+                  else setExpandOrigin("center center");
 
-          return (
-            <div 
-              key={`${photo.target_type}-${photo.id}`}
-              className={cn("w-full mb-6", !showFull && "break-inside-avoid inline-block")}
-              style={{ columnSpan: showFull ? 'all' : 'none', WebkitColumnSpan: showFull ? 'all' : 'none' } as any}
-            >
-              {showFull ? (
-                <ExpandedPhotoCard 
-                  photo={photo} 
-                  onClose={() => triggerClose(photo.id)}
-                  onReaction={handleReaction}
-                  onHide={handleHide}
-                  onSave={handleSaveToProfile}
-                  userReaction={userReactions[photo.id]}
-                  isStaff={isStaff}
-                  origin={expandOrigin}
-                  isClosing={isClosing}
-                />
-              ) : (
-                <PhotoCardMiniature
-                  photo={photo}
-                  onExpand={(e: React.MouseEvent) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const xCenter = rect.left + rect.width / 2;
-                    const third = window.innerWidth / 3;
-                    
-                    if (xCenter < third) setExpandOrigin("top left");
-                    else if (xCenter > third * 2) setExpandOrigin("bottom right");
-                    else setExpandOrigin("center center");
-
-                    setExpandedPhotoId(photo.id);
-                    
-                    // Scroll sincronizado con el "boom" de la animación de 1.3s
-                    setTimeout(() => {
-                      const el = document.getElementById(`expanded-card-${photo.id}`);
-                      if (el) {
-                        const elRect = el.getBoundingClientRect();
-                        const absoluteTop = elRect.top + window.pageYOffset;
-                        const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
-                        window.scrollTo({ top: middle, behavior: 'smooth' });
-                      }
-                    }, 400); 
-                  }}
-                  onReaction={handleReaction}
-                  onHide={handleHide}
-                  onSave={handleSaveToProfile}
-                  userReaction={userReactions[photo.id]}
-                  isStaff={isStaff}
-                />
-              )}
-            </div>
-          );
-        })}
+                  setExpandedPhotoId(photo.id);
+                  
+                  // 🔥 Scroll sincronizado con el "boom" de la animación de 1.3s 🔥
+                  setTimeout(() => {
+                    const el = document.getElementById(`expanded-card-${photo.id}`);
+                    if (el) {
+                      const elRect = el.getBoundingClientRect();
+                      const absoluteTop = elRect.top + window.pageYOffset;
+                      const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
+                      window.scrollTo({ top: middle, behavior: 'smooth' });
+                    }
+                  }, 400); 
+                }}
+                onReaction={handleReaction}
+                onHide={handleHide}
+                onSave={handleSaveToProfile}
+                userReaction={userReactions[photo.id]}
+                isStaff={isStaff}
+              />
+            )}
+          </div>
+        ))}
       </div>
 
       {displayPhotos.length === 0 && (
