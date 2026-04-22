@@ -1811,7 +1811,7 @@ function SocialContentTab({ profile, user, onEditNetworks }: any) {
               </div>
             ) : previewImage ? (
               <div className="w-full flex flex-col items-center gap-3">
-                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
+                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Imagen Extraída con Éxito!</p>
                 <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
                   <img 
                     src={previewImage} 
