@@ -1,127 +1,171 @@
-import { useState } from "react";
-import { createPortal } from "react-dom";
-import { X, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Upload, Loader2, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-const avatarSets: Record<string, string[]> = {
-  novato: Array.from({ length: 25 }, (_, i) => `https://api.dicebear.com/9.x/pixel-art/svg?seed=novato${i}`),
-  entusiasta: [
-    ...Array.from({ length: 25 }, (_, i) => `https://api.dicebear.com/9.x/adventurer/svg?seed=entusiasta${i}`),
-    ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/bottts/svg?seed=entusiasta-bot${i}`),
-  ],
-  coleccionista: [
-    ...Array.from({ length: 25 }, (_, i) => `https://api.dicebear.com/9.x/avataaars/svg?seed=coleccionista${i}`),
-    ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/fun-emoji/svg?seed=coleccionista-fun${i}`),
-    ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/thumbs/svg?seed=coleccionista-anim${i}`),
-  ],
-  "leyenda arcade": [
-    ...Array.from({ length: 30 }, (_, i) => `https://api.dicebear.com/9.x/lorelei/svg?seed=leyenda${i}`),
-    ...Array.from({ length: 10 }, (_, i) => `https://api.dicebear.com/9.x/notionists/svg?seed=leyenda-n${i}`),
-    ...Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/9.x/open-peeps/svg?seed=leyenda-op${i}`),
-  ],
-};
-
-const staffAvatars = [
-  ...Array.from({ length: 30 }, (_, i) => `https://api.dicebear.com/9.x/personas/svg?seed=staff${i}`),
-  ...Array.from({ length: 20 }, (_, i) => `https://api.dicebear.com/9.x/big-smile/svg?seed=staff-bs${i}`),
-];
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
 interface AvatarSelectorProps {
-  currentAvatar: string | null;
-  membershipTier: string;
-  isStaff: boolean;
+  currentAvatarUrl?: string | null;
   onSelect: (url: string) => void;
-  onUpload?: (file: File) => void;
-  onClose: () => void;
 }
 
-export default function AvatarSelector({ currentAvatar, membershipTier, isStaff, onSelect, onUpload, onClose }: AvatarSelectorProps) {
-  const [selectedTab, setSelectedTab] = useState<string>(membershipTier);
+// Lista extendida de avatares predefinidos (Pixel Art, Adventurer, Bottts)
+const PREDEFINED_AVATARS = [
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Aneka",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Milo",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Luna",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Oliver",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Buster",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Peanut",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Daisy",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Jasper",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Smokey",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Ginger",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Rocky",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Shadow",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Toby",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Lucky",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Patch",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Rex",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Buddy",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Coco",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Ruby",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Oscar",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Missy",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Bear",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Sam",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Zoe",
+  // 25 Iniciales (Novato)
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Alexander",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Sofia",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Leo",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Maya",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo1",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo2",
+  // ... (puedes seguir agregando hasta los 60 o más)
+];
 
-  const stripVersionParam = (value: string | null) => {
-    if (!value) return "";
+export default function AvatarSelector({ currentAvatarUrl, onSelect }: AvatarSelectorProps) {
+  const { user, profile, isMasterWeb, isAdmin } = useAuth();
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  // Obtener rango y límites correspondientes
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const isStaff = isMasterWeb || isAdmin;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
+  // Filtrar avatares según el límite del plan
+  const visibleAvatars = PREDEFINED_AVATARS.slice(0, limits.maxAvatars);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      const parsed = new URL(value);
-      parsed.searchParams.delete("v");
-      return parsed.toString();
-    } catch {
-      return value.replace(/([?&])v=[^&]+&?/, "$1").replace(/[?&]$/, "");
+      if (!limits.canUploadAvatar) {
+        toast({
+          title: "Acceso denegado",
+          description: "Tu membresía actual no permite subir avatares personalizados.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) return;
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user?.id}/${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      onSelect(publicUrl);
+      toast({ title: "Avatar subido con éxito" });
+    } catch (error: any) {
+      toast({
+        title: "Error al subir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
-  const tiers = isStaff
-    ? [...Object.keys(avatarSets), "staff"]
-    : Object.keys(avatarSets).slice(0, Object.keys(avatarSets).indexOf(membershipTier) + 1);
-
-  const currentAvatars = selectedTab === "staff" ? staffAvatars : (avatarSets[selectedTab] || avatarSets.novato);
-  const normalizedCurrentAvatar = stripVersionParam(currentAvatar);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative my-auto bg-card border border-neon-cyan/30 rounded-lg p-5 max-w-lg w-full animate-scale-in max-h-[80vh] flex flex-col">
-        <button onClick={onClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
-          <X className="w-5 h-5" />
-        </button>
-        <h2 className="font-pixel text-[10px] text-neon-cyan mb-3">SELECCIONAR AVATAR</h2>
-
-        <div className="flex gap-1 mb-3 flex-wrap">
-          {tiers.map((t) => (
-            <button
-              key={t}
-              onClick={() => setSelectedTab(t)}
-              className={cn(
-                "px-2 py-1 rounded text-[10px] font-body transition-all",
-                selectedTab === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t === "staff" ? "⭐ Staff" : t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {isStaff && selectedTab === "staff" && onUpload && (
-          <div className="mb-3">
-            <label className="flex items-center gap-2 p-2 border border-dashed border-border rounded cursor-pointer hover:bg-muted/30 transition-colors">
-              <span className="text-[10px] font-body text-muted-foreground">📤 Subir imagen personalizada (max 500x500px, JPG/PNG/GIF)</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/gif"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onUpload(file);
-                }}
-              />
-            </label>
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto retro-scrollbar">
-          <div className="grid grid-cols-6 gap-2">
-            {currentAvatars.map((url, i) => (
-              <button
-                key={i}
-                onClick={() => onSelect(url)}
-                className={cn(
-                  "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-105",
-                  normalizedCurrentAvatar === stripVersionParam(url) ? "border-neon-green shadow-lg shadow-neon-green/20" : "border-border hover:border-primary/50"
-                )}
-              >
-                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                {normalizedCurrentAvatar === stripVersionParam(url) && (
-                  <div className="absolute inset-0 bg-neon-green/20 flex items-center justify-center">
-                    <Check className="w-4 h-4 text-neon-green" />
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative group">
+          <label 
+            className={cn(
+              "flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed rounded-full transition-all cursor-pointer overflow-hidden",
+              limits.canUploadAvatar 
+                ? "border-primary/50 hover:border-primary bg-muted/30" 
+                : "border-muted bg-muted/10 cursor-not-allowed opacity-60"
+            )}
+          >
+            {uploading ? (
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            ) : (
+              <>
+                <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                <span className="text-[10px] font-pixel uppercase">Subir Propio</span>
+                {!limits.canUploadAvatar && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Lock className="w-6 h-6 text-white" />
                   </div>
                 )}
-              </button>
-            ))}
-          </div>
+              </>
+            )}
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={handleFileUpload} 
+              disabled={uploading || !limits.canUploadAvatar}
+              accept="image/*"
+            />
+          </label>
         </div>
+        {!limits.canUploadAvatar && (
+          <p className="text-[9px] text-neon-orange font-pixel animate-pulse">
+            Mejora tu plan para subir tu propio avatar
+          </p>
+        )}
       </div>
-    </div>,
-    document.body
+
+      <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+        {visibleAvatars.map((url, index) => (
+          <button
+            key={index}
+            onClick={() => onSelect(url)}
+            className={cn(
+              "relative aspect-square rounded-lg border-2 transition-all hover:scale-105 overflow-hidden group",
+              currentAvatarUrl === url ? "border-primary shadow-neon-sm" : "border-border/50 hover:border-primary/50"
+            )}
+          >
+            <img src={url} alt={`Avatar ${index + 1}`} className="w-full h-full object-cover" />
+            {currentAvatarUrl === url && (
+              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                <Check className="w-6 h-6 text-primary" />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+      
+      <p className="text-[9px] text-muted-foreground text-center font-body uppercase">
+        Viendo {visibleAvatars.length} de {PREDEFINED_AVATARS.length} avatares disponibles para tu plan
+      </p>
+    </div>
   );
 }
