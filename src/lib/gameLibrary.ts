@@ -7,21 +7,21 @@ export interface GameEntry {
 }
 
 export const nesGames: GameEntry[] = [
-  { id: "alien3", name: "Alien 3", console: "nes", romUrl: "/roms/nes/Alien_3_(USA).nes", coverUrl: "/roms/covers/alien3.jpg" },
-  { id: "asterix", name: "Asterix", console: "nes", romUrl: "/roms/nes/Asterix_(E).nes", coverUrl: "/roms/covers/asterix.jpg" },
-  { id: "contra", name: "Contra", console: "nes", romUrl: "/roms/nes/Contra_(USA).nes", coverUrl: "/roms/covers/contra.jpg" },
-  { id: "darkman", name: "Darkman", console: "nes", romUrl: "/roms/nes/Darkman_(USA).nes", coverUrl: "/roms/covers/darkman.jpg" },
-  { id: "godzilla", name: "Godzilla", console: "nes", romUrl: "/roms/nes/Godzilla_-_Monster_of_Monsters!_(USA).nes", coverUrl: "/roms/covers/godzilla.jpg" },
-  { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: "/roms/nes/Gravity_Armor_Metal_Storm_(Tr).nes", coverUrl: "/roms/covers/metalstorm.jpg" },
+  { id: "alien3", name: "Alien 3", console: "nes", romUrl: "/roms/nes/Alien_3_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Alien%203%20(USA).png" },
+  { id: "asterix", name: "Asterix", console: "nes", romUrl: "/roms/nes/Asterix_(E).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Asterix%20(Europe).png" },
+  { id: "contra", name: "Contra", console: "nes", romUrl: "/roms/nes/Contra_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Contra%20(USA).png" },
+  { id: "darkman", name: "Darkman", console: "nes", romUrl: "/roms/nes/Darkman_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Darkman%20(USA).png" },
+  { id: "godzilla", name: "Godzilla", console: "nes", romUrl: "/roms/nes/Godzilla_-_Monster_of_Monsters!_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Godzilla%20-%20Monster%20of%20Monsters!%20(USA).png" },
+  { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: "/roms/nes/Gravity_Armor_Metal_Storm_(Tr).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Metal%20Storm%20(USA).png" },
   { id: "kof99", name: "King of Fighters 99", console: "nes", romUrl: "/roms/nes/King_of_Fighters_99.nes", coverUrl: "/roms/covers/kof99.jpg" },
-  { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: "/roms/nes/Kirby's_Adventure_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/kirby.jpg" },
-  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_%26_Machine_(USA).nes", coverUrl: "/roms/covers/metalmech.jpg" },
-  { id: "metroid", name: "Metroid", console: "nes", romUrl: "/roms/nes/Metroid_(U).nes", coverUrl: "/roms/covers/metroid.jpg" },
+  { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: "/roms/nes/Kirby's_Adventure_(USA)_(Rev_1).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Kirby's%20Adventure%20(USA).png" },
+  { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_%26_Machine_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Metal%20Mech%20-%20Man%20&%20Machine%20(USA).png" },
+  { id: "metroid", name: "Metroid", console: "nes", romUrl: "/roms/nes/Metroid_(U).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Metroid%20(USA).png" },
   { id: "sonic3d", name: "Sonic 3D Blast 5", console: "nes", romUrl: "/roms/nes/Sonic_3D_Blast_5_%5B!%5D.nes", coverUrl: "/roms/covers/sonic3d.jpg" },
-  { id: "spiderman", name: "Spider-Man", console: "nes", romUrl: "/roms/nes/Spider-Man_-_Return_of_the_Sinister_Six_(USA).nes", coverUrl: "/roms/covers/spiderman.jpg" },
-  { id: "mario3", name: "Super Mario Bros. 3", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros._3_(USA)_(Rev_1).nes", coverUrl: "/roms/covers/mario3.jpg" },
-  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_2_(E)_%5Bh1%5D.nes", coverUrl: "/roms/covers/mario2.jpg" },
-  { id: "mario3alt", name: "Super Mario Bros. 3 (Alt)", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_3_(U)_(PRG_1)_%5Bh1%5D.nes", coverUrl: "/roms/covers/mario3.jpg" },
+  { id: "spiderman", name: "Spider-Man", console: "nes", romUrl: "/roms/nes/Spider-Man_-_Return_of_the_Sinister_Six_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Spider-Man%20-%20Return%20of%20the%20Sinister%20Six%20(USA).png" },
+  { id: "mario3", name: "Super Mario Bros. 3", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros._3_(USA)_(Rev_1).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Super%20Mario%20Bros.%203%20(USA).png" },
+  { id: "mario2", name: "Super Mario Bros. 2", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_2_(E)_%5Bh1%5D.nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Super%20Mario%20Bros.%202%20(USA).png" },
+  { id: "mario3alt", name: "Super Mario Bros. 3 (Alt)", console: "nes", romUrl: "/roms/nes/Super_Mario_Bros_3_(U)_(PRG_1)_%5Bh1%5D.nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Super%20Mario%20Bros.%203%20(USA).png" },
 ];
 
 export const snesGames: GameEntry[] = [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -235,6 +235,23 @@ export default function GameBubble() {
       setTimeout(() => {
         canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
       }, 100);
+      canvas.focus();
+    }
+  }, [romLoaded]);
+
+  // 🔥 NUEVO: CONTROL DE VOLUMEN NATIVO 🔥
+  const adjustVolume = useCallback((direction: 'up' | 'down') => {
+    const canvas = canvasRef.current;
+    if (canvas && romLoaded) {
+      // Usamos el código de la tecla de suma (+) y resta (-) del Numpad que controla el volumen de RetroArch
+      const key = direction === 'up' ? '+' : '-';
+      const code = direction === 'up' ? 'NumpadAdd' : 'NumpadSubtract';
+      const keyCode = direction === 'up' ? 107 : 109;
+      
+      canvas.dispatchEvent(new KeyboardEvent('keydown', { key, code, keyCode, bubbles: true }));
+      setTimeout(() => {
+        canvas.dispatchEvent(new KeyboardEvent('keyup', { key, code, keyCode, bubbles: true }));
+      }, 50);
       canvas.focus();
     }
   }, [romLoaded]);
@@ -584,17 +601,39 @@ export default function GameBubble() {
                   </Button>
                 )}
                 
-                {/* 🔥 BOTÓN DE MENÚ NATIVO (Reemplaza el slider de volumen con fallos) 🔥 */}
+                {/* 🔥 BOTONES DE VOLUMEN Y MENÚ NATIVO 🔥 */}
                 {romLoaded && (
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={toggleEmulatorMenu} 
-                    className="h-10 w-10 text-neon-magenta hover:text-neon-magenta hover:bg-neon-magenta/10 rounded-lg shadow-[0_0_10px_rgba(255,0,255,0.2)]" 
-                    title="Menú del Emulador (Volumen, Controles, Cheats)"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
+                  <div className="flex flex-col gap-1 items-center bg-black/40 border border-neon-magenta/20 p-1 rounded-xl shadow-[0_0_10px_rgba(255,0,255,0.1)]">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => adjustVolume('up')} 
+                      className="h-7 w-7 text-neon-magenta hover:bg-neon-magenta/20 rounded-lg" 
+                      title="Subir Volumen"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </Button>
+                    
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={toggleEmulatorMenu} 
+                      className="h-9 w-9 text-neon-magenta hover:text-white hover:bg-neon-magenta/40 rounded-lg" 
+                      title="Menú Nativo del Emulador (Ajustes, Cheats)"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => adjustVolume('down')} 
+                      className="h-7 w-7 text-neon-magenta hover:bg-neon-magenta/20 rounded-lg" 
+                      title="Bajar Volumen"
+                    >
+                      <Volume1 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 )}
 
                 {romLoaded && (

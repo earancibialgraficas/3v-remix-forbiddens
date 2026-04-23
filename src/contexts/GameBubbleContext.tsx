@@ -36,7 +36,7 @@ const GameBubbleContext = createContext<GameBubbleContextType>({
   setMaxGames: () => {},
 });
 
-// 🔥 LÍMITES EXACTOS DEL EXCEL 🔥
+// 🔥 LÍMITES EXACTOS DE MEMBRESÍAS 🔥
 const tierMaxGames: Record<string, number> = {
   novato: 3,
   entusiasta: 4,
@@ -72,7 +72,7 @@ export function GameBubbleProvider({ children }: { children: React.ReactNode }) 
         return prev;
       }
       if (prev.length >= maxGames) {
-        // Reemplaza el juego más antiguo si excede el límite
+        // Reemplaza el juego más antiguo si excede el límite para no crashear
         const newGames = [...prev.slice(1), session];
         setCurrentGameIndex(newGames.length - 1);
         return newGames;

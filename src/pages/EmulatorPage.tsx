@@ -88,12 +88,13 @@ export default function EmulatorPage() {
     });
   };
 
+  // 🔥 FIX: AHORA ESPERA A QUE CARGUE EL 'user' PARA NO TIRAR EL ERROR FALSO 🔥
   useEffect(() => {
-    if (gameId) {
+    if (gameId && user) {
       const game = allGames.find((g) => g.id === gameId);
       if (game) handleLaunch(game.romUrl, game.console, game.name);
     }
-  }, [gameId]);
+  }, [gameId, user]);
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
