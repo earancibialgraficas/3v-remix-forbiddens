@@ -15,20 +15,7 @@ import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
 import SignatureDisplay from "@/components/SignatureDisplay";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-const friendLimits: Record<string, number> = {
-  novato: 25,
-  entusiasta: 50,
-  coleccionista: 100,
-  "leyenda arcade": 200,
-};
-
-const storageLimits: Record<string, number> = {
-  novato: 50,
-  entusiasta: 150,
-  coleccionista: 500,
-  "leyenda arcade": 2000,
-};
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 IMPORTACIÓN DEL CEREBRO DE LÍMITES 🔥
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
@@ -93,6 +80,15 @@ export default function ProfilePage() {
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // 🔥 IDENTIFICACIÓN ESTRICTA DE MEMBRESÍAS Y LÍMITES 🔥
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
+  const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
+  const canUseSignature = isStaff || userTier !== 'novato';
+  const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
 
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
@@ -356,51 +352,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarUpload = async (file: File) => {
-    if (!user) return;
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      toast({ title: "Error", description: "Solo JPG, PNG o GIF", variant: "destructive" }); 
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "Error", description: "Máximo 2MB", variant: "destructive" }); 
-      return;
-    }
-    
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    const dimOk = await new Promise<boolean>((resolve) => {
-      img.onload = () => { 
-        resolve(img.width <= 500 && img.height <= 500); 
-        URL.revokeObjectURL(url); 
-      };
-      img.onerror = () => { 
-        resolve(false); 
-        URL.revokeObjectURL(url); 
-      };
-      img.src = url;
-    });
-    
-    if (!dimOk) {
-      toast({ title: "Error", description: "Máximo 500x500 píxeles", variant: "destructive" }); 
-      return;
-    }
-    
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-    const path = `${user.id}/avatar_${Date.now()}.${ext}`;
-    
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    
-    if (error) { 
-      toast({ title: "Error", description: error.message, variant: "destructive" }); 
-      return; 
-    }
-    
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-    await handleAvatarSelect(publicUrl);
-  };
-
   const handleRoleIconSelect = async (icon: string) => {
     if (!user) return;
     await supabase.from("profiles").update({ role_icon: icon }).eq("user_id", user.id);
@@ -430,13 +381,7 @@ export default function ProfilePage() {
     ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) 
     : "Desconocido";
     
-  const tier = profile?.membership_tier || "novato";
-  const maxFriends = (isAdmin || isMasterWeb) ? Infinity : (friendLimits[tier] || 25);
-  const maxStorage = (isAdmin || isMasterWeb) ? Infinity : (storageLimits[tier] || 50);
-  const isMod = roles.includes("moderator");
-  const isStaff = isAdmin || isMasterWeb;
-  
-  const displayTier = (isStaff || isMod) ? "STAFF" : tier.toUpperCase();
+  const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
 
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
@@ -480,20 +425,26 @@ export default function ProfilePage() {
     { id: "friends" as const, label: "Amigos", icon: UserPlus },
     { id: "social" as const, label: "Redes", icon: Globe },
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
-    ...((isStaff || isMod) ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
+    ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
   ];
 
   return (
     <div className="space-y-4 animate-fade-in">
+      
       {showAvatarSelector && (
-        <AvatarSelector
-          currentAvatar={profile?.avatar_url || null}
-          membershipTier={tier}
-          isStaff={isStaff || isMod || tier !== "novato"}
-          onSelect={handleAvatarSelect}
-          onUpload={(isStaff || isMod || tier !== "novato") ? handleAvatarUpload : undefined}
-          onClose={() => setShowAvatarSelector(false)}
-        />
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAvatarSelector(false)} />
+          <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto">
+            <button onClick={() => setShowAvatarSelector(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-pixel text-[11px] text-neon-cyan mb-4 uppercase text-center">Selecciona tu Avatar</h3>
+            <AvatarSelector
+              currentAvatarUrl={profile?.avatar_url || null}
+              onSelect={handleAvatarSelect}
+            />
+          </div>
+        </div>
       )}
       
       {showRoleIconSelector && (
@@ -525,8 +476,7 @@ export default function ProfilePage() {
                 >
                   <option value="border">Borde de Avatar</option>
                   <option value="name">Nombre de Usuario</option>
-                  {(isStaff || isMod) && <option value="staff">Rango de Staff</option>}
-                  {!(isStaff || isMod) && <option value="role">Rango de Membresía</option>}
+                  {isStaff ? <option value="staff">Rango de Staff</option> : <option value="role">Rango de Membresía</option>}
                   <option disabled value="separator">──────────</option>
                   <option value="stat_points">Stat: Puntos</option>
                   <option value="stat_followers">Stat: Seguidores</option>
@@ -695,281 +645,108 @@ export default function ProfilePage() {
                   />
                 </div>
                 
-                {(tier !== "novato" || isStaff || isMod) && (() => {
-                  const sigFontFamily = (profile as any)?.signature_font_family || "Inter";
-                  const sigFontSize = localSigFontSize;
-                  const sigColor = (profile as any)?.signature_color || "#facc15";
-                  const sigStroke = (profile as any)?.signature_stroke_color || "";
-                  const sigStrokeWidth = localSigStrokeWidth;
-                  const sigStrokePos = (profile as any)?.signature_stroke_position || "middle";
-                  const sigFontStyle = (profile as any)?.signature_font || "normal";
-                  const sigTextAlign = (profile as any)?.signature_text_align || "center";
-                  const sigImageAlign = (profile as any)?.signature_image_align || "center";
-                  const sigImageWidth = (profile as any)?.signature_image_width || 100;
-                  const sigImageUrl = (profile as any)?.signature_image_url || "";
-                  const sigOverImage = (profile as any)?.signature_text_over_image ?? false;
-                  
-                  const canAdvanced = isStaff || isMod || ["coleccionista", "leyenda arcade", "creador verificado"].includes(tier);
-                  
-                  const previewProfile = { 
-                    ...(profile as any), 
-                    signature, 
-                    signature_font_size: localSigFontSize,
-                    signature_stroke_width: localSigStrokeWidth,
-                    signature_image_offset: localSigImageOffset
-                  };
-                  
-                  const googleFonts = ["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"];
-                  const fontSizesOptions = [10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28, 30];
-
-                  return (
-                    <div className="space-y-2 border border-border/50 rounded p-3">
-                      <label className="text-[10px] font-body text-muted-foreground block mb-0.5 uppercase tracking-tighter">
-                        ✍️ Firma personalizada
-                      </label>
-                      <Input
-                        value={signature}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setSignature(v);
-                          updateSig({ signature: v.trim() || null });
-                        }}
-                        className="h-8 bg-muted text-xs font-body w-full"
-                        placeholder={`— ${profile?.display_name} [${displayTier}]`}
-                        maxLength={isStaff ? 500 : tier === "entusiasta" ? 50 : tier === "coleccionista" ? 100 : 200}
-                      />
-                      
-                      {canAdvanced && (
-                        <>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipografía</label>
-                              <select
-                                value={sigFontFamily}
-                                onChange={(e) => updateSig({ signature_font_family: e.target.value })}
-                                className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
-                              >
-                                {googleFonts.map(f => <option key={f} value={f}>{f}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tamaño de letra</label>
-                              <select
-                                value={sigFontSize}
-                                onChange={(e) => {
-                                  const val = parseInt(e.target.value, 10);
-                                  setLocalSigFontSize(val);
-                                  updateSig({ signature_font_size: val });
-                                }}
-                                className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
-                              >
-                                {fontSizesOptions.map(size => <option key={size} value={size}>{size}px</option>)}
-                              </select>
-                            </div>
+                {/* 🔥 GESTIÓN DE FIRMA BLOQUEADA POR MEMBRESÍA 🔥 */}
+                {canUseSignature ? (
+                  <div className="space-y-2 border border-border/50 rounded p-3">
+                    <label className="text-[10px] font-body text-muted-foreground block mb-0.5 uppercase tracking-tighter">
+                      ✍️ Firma personalizada
+                    </label>
+                    <Input
+                      value={signature}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setSignature(v);
+                        updateSig({ signature: v.trim() || null });
+                      }}
+                      className="h-8 bg-muted text-xs font-body w-full"
+                      placeholder={`— ${profile?.display_name} [${displayTier}]`}
+                      maxLength={isStaff ? 500 : userTier === "entusiasta" ? 100 : userTier === "coleccionista" ? 150 : 250}
+                    />
+                    
+                    {canAdvancedSignature && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipografía</label>
+                            <select
+                              value={(profile as any)?.signature_font_family || "Inter"}
+                              onChange={(e) => updateSig({ signature_font_family: e.target.value })}
+                              className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
+                            >
+                              {["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"].map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Estilo</label>
-                              <select
-                                value={sigFontStyle}
-                                onChange={(e) => updateSig({ signature_font: e.target.value })}
-                                className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
-                              >
-                                <option value="normal">Regular</option>
-                                <option value="bold">Bold</option>
-                                <option value="italic">Italic</option>
-                                <option value="bold-italic">Bold + Italic</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color trazo</label>
-                              <div className="flex gap-1">
-                                <input
-                                  type="color"
-                                  value={sigStroke || "#000000"}
-                                  onChange={(e) => updateSig({ signature_stroke_color: e.target.value })}
-                                  className="flex-1 h-7 rounded border border-border cursor-pointer bg-muted"
-                                />
-                                {sigStroke && (
-                                  <button 
-                                    type="button" 
-                                    onClick={() => updateSig({ signature_stroke_color: null })} 
-                                    className="h-7 px-2 text-[9px] bg-muted border border-border rounded"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                            </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tamaño de letra</label>
+                            <select
+                              value={localSigFontSize}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setLocalSigFontSize(val);
+                                updateSig({ signature_font_size: val });
+                              }}
+                              className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
+                            >
+                              {[10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28, 30].map(size => <option key={size} value={size}>{size}px</option>)}
+                            </select>
                           </div>
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color relleno</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color relleno</label>
+                            <input
+                              type="color"
+                              value={(profile as any)?.signature_color || "#facc15"}
+                              onChange={(e) => updateSig({ signature_color: e.target.value })}
+                              className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color trazo</label>
+                            <div className="flex gap-1">
                               <input
                                 type="color"
-                                value={sigColor}
-                                onChange={(e) => updateSig({ signature_color: e.target.value })}
-                                className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
+                                value={(profile as any)?.signature_stroke_color || "#000000"}
+                                onChange={(e) => updateSig({ signature_stroke_color: e.target.value })}
+                                className="flex-1 h-7 rounded border border-border cursor-pointer bg-muted"
                               />
+                              {(profile as any)?.signature_stroke_color && (
+                                <button type="button" onClick={() => updateSig({ signature_stroke_color: null })} className="h-7 px-2 text-[9px] bg-muted border border-border rounded">×</button>
+                              )}
                             </div>
-                            {sigStroke && (
-                               <div>
-                                 <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">
-                                   Grosor trazo: {localSigStrokeWidth}px
-                                 </label>
-                                 <input
-                                   type="range"
-                                   min={1}
-                                   max={6}
-                                   step={1}
-                                   value={localSigStrokeWidth}
-                                   onChange={(e) => {
-                                      const val = parseInt(e.target.value, 10);
-                                      setLocalSigStrokeWidth(val);
-                                      updateSig({ signature_stroke_width: val });
-                                   }}
-                                   className="w-full h-7 cursor-pointer accent-primary"
-                                 />
-                               </div>
-                            )}
                           </div>
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Posición trazo</label>
-                              <div className="flex gap-1">
-                                {(["outside", "middle", "inside"] as const).map(p => (
-                                  <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => updateSig({ signature_stroke_position: p })}
-                                    className={cn(
-                                      "flex-1 h-7 text-[8px] rounded border font-body uppercase transition-colors", 
-                                      sigStrokePos === p ? "border-primary bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                                    )}
-                                  >
-                                    {p.slice(0, 3)}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación texto</label>
-                                <div className="flex gap-1">
-                                  {["left", "center", "right"].map(a => (
-                                    <button
-                                      key={a}
-                                      type="button"
-                                      onClick={() => updateSig({ signature_text_align: a })}
-                                      className={cn(
-                                        "flex-1 h-7 text-[8px] rounded border uppercase transition-colors", 
-                                        sigTextAlign === a ? "border-primary bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                                      )}
-                                    >
-                                      {a.slice(0, 3)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                          </div>
-
-                          <div>
-                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Imagen (URL)</label>
-                            <Input
-                              value={sigImageUrl}
-                              onChange={(e) => updateSig({ signature_image_url: e.target.value || null })}
-                              className="h-7 bg-muted text-[10px] font-body w-full"
-                              placeholder="URL .png o .gif"
-                            />
-                          </div>
-                          
-                          {sigImageUrl && (
-                            <>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación imagen</label>
-                                  <div className="flex gap-1">
-                                    {["left", "center", "right"].map(a => (
-                                      <button
-                                        key={a}
-                                        type="button"
-                                        onClick={() => updateSig({ signature_image_align: a })}
-                                        className={cn(
-                                          "flex-1 h-7 text-[8px] rounded border font-body uppercase transition-colors", 
-                                          sigImageAlign === a ? "border-primary bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                                        )}
-                                      >
-                                        {a.slice(0, 3)}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ancho imagen</label>
-                                  <div className="flex gap-1">
-                                    {[35, 70, 100].map(w => (
-                                      <button
-                                        key={w}
-                                        type="button"
-                                        onClick={() => updateSig({ signature_image_width: w })}
-                                        className={cn(
-                                          "flex-1 h-7 text-[8px] rounded border font-body transition-colors", 
-                                          sigImageWidth === w ? "border-primary bg-primary/20" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                                        )}
-                                      >
-                                        {w}%
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">
-                                  Encuadre vertical: {localSigImageOffset}%
-                                </label>
-                                <input
-                                  type="range"
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  value={localSigImageOffset}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value, 10);
-                                    setLocalSigImageOffset(val);
-                                    updateSig({ signature_image_offset: val });
-                                  }}
-                                  className="w-full h-7 cursor-pointer accent-primary"
-                                />
-                              </div>
-                              <label className="flex items-center gap-2 text-[10px] font-body text-muted-foreground cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={sigOverImage}
-                                  onChange={(e) => updateSig({ signature_text_over_image: e.target.checked })}
-                                  className="accent-primary"
-                                />
-                                Texto sobre la imagen
-                              </label>
-                            </>
-                          )}
-                          <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
-                            <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
-                            <SignatureDisplay
-                              text={signature || `— ${profile?.display_name} [${displayTier}]`}
-                              profile={previewProfile}
-                              fontSize={localSigFontSize}
-                            />
-                          </div>
-                        </>
-                      )}
-                      <p className="text-[9px] text-muted-foreground text-center mt-2">
-                        {isStaff ? "Sin límite (Staff)" : tier === "entusiasta" ? "Máx. 50 caracteres (texto)" : tier === "coleccionista" ? "Máx. 100 caracteres + estilos" : "Máx. 200 caracteres + diseño completo"}
-                      </p>
-                    </div>
-                  );
-                })()}
+                        <div>
+                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Imagen (URL)</label>
+                          <Input
+                            value={(profile as any)?.signature_image_url || ""}
+                            onChange={(e) => updateSig({ signature_image_url: e.target.value || null })}
+                            className="h-7 bg-muted text-[10px] font-body w-full"
+                            placeholder="URL .png o .gif"
+                          />
+                        </div>
+                        
+                        <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
+                          <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
+                          <SignatureDisplay
+                            text={signature || `— ${profile?.display_name} [${displayTier}]`}
+                            profile={{ ...(profile as any), signature, signature_font_size: localSigFontSize, signature_stroke_width: localSigStrokeWidth, signature_image_offset: localSigImageOffset }}
+                            fontSize={localSigFontSize}
+                          />
+                        </div>
+                      </>
+                    )}
+                    <p className="text-[9px] text-muted-foreground text-center mt-2">
+                      {isStaff ? "Sin límite (Staff)" : userTier === "entusiasta" ? "Máx. 100 caracteres (texto)" : userTier === "coleccionista" ? "Máx. 150 caracteres + estilos" : "Máx. 250 caracteres + diseño completo"}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-destructive/80 font-body p-2 border border-destructive/20 rounded bg-destructive/10 text-center">
+                    Las firmas personalizadas no están disponibles para el nivel Novato.
+                  </p>
+                )}
                 
                 <div className="flex gap-2 w-full mt-3">
                   <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs flex-1">
@@ -979,8 +756,7 @@ export default function ProfilePage() {
                     Cancelar
                   </Button>
                 </div>
-              </div>
-            ) : (
+              </div>) : (
               <>
                 <div className={cn("flex items-center gap-2 flex-wrap", isMobile ? "justify-center" : "")}>
                   <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>
@@ -999,13 +775,13 @@ export default function ProfilePage() {
                 </p>
                 
                 <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
-                  {(isStaff || isMod) ? (
+                  {isStaff ? (
                     <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}>
                       <Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}
                     </span>
                   ) : (
                     <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile?.color_role)}>
-                      <Star className="w-3 h-3" /> {tier.toUpperCase()}
+                      <Star className="w-3 h-3" /> {userTier.toUpperCase()}
                     </span>
                   )}
                   <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
@@ -1044,25 +820,26 @@ export default function ProfilePage() {
                     <Edit2 className="w-3 h-3" /> Editar Perfil
                   </Button>
                   
-                  {!(isStaff || isMod) && (
+                  {!isStaff && (
                     <Button size="sm" variant="outline" asChild className="text-xs">
                       <Link to="/membresias">Actualizar Plan</Link>
                     </Button>
                   )}
 
-                  {(["coleccionista", "creador verificado", "leyenda arcade"].includes(tier) || isStaff || isMod) && (
+                  {/* 🔥 BLOQUEO DE COLORES POR MEMBRESÍA 🔥 */}
+                  {canUseColors && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
                       <Palette className="w-3 h-3" /> Colores
                     </Button>
                   )}
                   
-                  {(isStaff || isMod) && !roles.includes("moderator") && (
+                  {isStaff && !roles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
                       <span>{profile?.role_icon || "⭐"}</span> Icono Rol
                     </Button>
                   )}
                   
-                  {(isStaff || isMod) && (
+                  {isStaff && (
                     <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">
                       {profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       {profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
@@ -1169,8 +946,8 @@ export default function ProfilePage() {
               { 
                 val: displayTier, 
                 label: "Membresía", 
-                color: (isStaff || isMod) ? "#39ff14" : "#a1a1aa",
-                isStaffTier: (isStaff || isMod) 
+                color: isStaff ? "#39ff14" : "#a1a1aa",
+                isStaffTier: isStaff 
               },
             ].map((s, i) => (
               <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
@@ -1209,7 +986,7 @@ export default function ProfilePage() {
       )}
 
       {activeTab === "friends" && user && (
-        <FriendsTab userId={user.id} />
+        <FriendsTab userId={user.id} limits={limits} isStaff={isStaff} />
       )}
 
       {activeTab === "social" && (
@@ -1217,13 +994,15 @@ export default function ProfilePage() {
           profile={profile}
           user={user}
           onEditNetworks={() => setEditing(true)}
+          limits={limits}
+          isStaff={isStaff}
         />
       )}
 
       {activeTab === "storage" && (
         <AlmacenamientoTab 
           userId={user.id} 
-          maxStorage={maxStorage} 
+          maxStorage={limits.storageMB} 
           storageUsed={storageUsed} 
           storageItems={storageItems} 
           setStorageItems={setStorageItems} 
@@ -1231,7 +1010,7 @@ export default function ProfilePage() {
         />
       )}
 
-      {activeTab === "moderation" && (isStaff || isMod) && (
+      {activeTab === "moderation" && isStaff && (
         <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />
       )}
       
@@ -1239,11 +1018,10 @@ export default function ProfilePage() {
   );
 }
 
-// 🔥 COMPONENTES DE APOYO EXPANDIDOS
-
+// 🔥 COMPONENTE DE ALMACENAMIENTO CON LÍMITE 🔥
 function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
-  const storagePercent = maxStorage === Infinity ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
+  const storagePercent = maxStorage >= 9999 ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
   
   return (
     <div className="bg-card border border-border rounded p-4 space-y-3 text-center md:text-left">
@@ -1253,11 +1031,16 @@ function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setS
       <div className="space-y-2">
         <div className="flex justify-between text-xs font-body">
           <span className="text-muted-foreground uppercase opacity-70">Usado</span>
-          <span className="text-foreground">{storageUsed.toFixed(1)} MB / {maxStorage === Infinity ? "∞" : `${maxStorage} MB`}</span>
+          <span className="text-foreground">{storageUsed.toFixed(1)} MB / {maxStorage >= 9999 ? "∞" : `${maxStorage} MB`}</span>
         </div>
         <div className="w-full h-3 bg-muted rounded overflow-hidden border border-border">
           <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
         </div>
+        {storagePercent >= 100 && (
+          <p className="text-[10px] text-destructive/80 font-body italic">
+            Almacenamiento lleno. Elimina archivos o mejora tu plan para continuar subiendo.
+          </p>
+        )}
       </div>
       
       <div className="mt-4 overflow-x-auto">
@@ -1305,6 +1088,401 @@ function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setS
             ))
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 🔥 COMPONENTE DE AMIGOS CON LÍMITE 🔥
+function FriendsTab({ userId, limits, isStaff }: any) {
+  const { toast } = useToast();
+  const [friends, setFriends] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [res, setRes] = useState<any[]>([]);
+
+  const fetchFriends = async () => {
+     const { data } = await supabase
+       .from("friend_requests")
+       .select("*")
+       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+       .eq("status", "accepted");
+       
+     if (!data) return;
+     
+     const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
+     
+     const { data: profs } = await supabase
+       .from("profiles")
+       .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+       .in("user_id", ids);
+       
+     setFriends(profs || []);
+  };
+
+  useEffect(() => { 
+    fetchFriends(); 
+  }, [userId]);
+
+  const reachedLimit = !isStaff && friends.length >= limits.maxFriends;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 text-center">
+        <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-1">Buscar Amigos</h3>
+        <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body mb-3">
+          <span>Límite de amigos: {friends.length} / {limits.maxFriends >= 999 ? "∞" : limits.maxFriends}</span>
+        </div>
+
+        <div className="flex gap-1">
+          <Input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            className="h-8 bg-muted flex-1 text-xs font-body" 
+            placeholder="Nombre..." 
+            disabled={reachedLimit}
+          />
+          <Button 
+            onClick={async () => { 
+               const { data } = await supabase
+                 .from("profiles")
+                 .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+                 .ilike("display_name", `%${search}%`)
+                 .neq("user_id", userId)
+                 .limit(5);
+               setRes(data || []); 
+            }} 
+            className="h-8"
+            disabled={reachedLimit || !search.trim()}
+          >
+            <Search className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {reachedLimit && (
+          <p className="text-[10px] text-destructive/80 mt-2 font-body italic">
+            Has alcanzado el límite de amigos de tu membresía.
+          </p>
+        )}
+        
+        {res.map(r => (
+          <div key={r.user_id} className="mt-2 flex justify-between items-center bg-muted/20 p-2 rounded text-xs border border-border/20">
+             <span className="font-body" style={getNameStyle(r.color_name)}>
+               {r.display_name}
+             </span>
+             <Button 
+               onClick={async () => { 
+                  await supabase
+                    .from("friend_requests")
+                    .insert({ sender_id: userId, receiver_id: r.user_id }); 
+                  toast({ title: "Solicitud enviada" }); 
+                  setRes([]);
+                  setSearch("");
+               }} 
+               className="h-6 text-[9px] uppercase font-pixel tracking-tighter"
+             >
+               Añadir
+             </Button>
+          </div>
+        ))}
+      </div>
+      
+      <div className="bg-card border rounded p-4">
+        <h3 className="font-pixel text-[10px] opacity-60 mb-2 uppercase text-center md:text-left">
+          Amigos ({friends.length})
+        </h3>
+        
+        {friends.length === 0 ? (
+           <p className="text-xs text-muted-foreground text-center py-4 font-body opacity-60 uppercase">
+             Sin amigos
+           </p>
+        ) : (
+           <div className="space-y-1.5">
+             {friends.map(f => (
+               <div key={f.user_id} className="p-2 border-b border-border/30 text-xs font-body flex justify-between items-center group">
+                 <span style={getNameStyle(f.color_name)}>{f.display_name}</span>
+                 <button 
+                   onClick={async () => { 
+                      await supabase
+                        .from("friend_requests")
+                        .delete()
+                        .or(`and(sender_id.eq.${userId},receiver_id.eq.${f.user_id}),and(sender_id.eq.${f.user_id},receiver_id.eq.${userId})`); 
+                      fetchFriends(); 
+                   }} 
+                   className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                 >
+                   <UserMinus className="w-4 h-4" />
+                 </button>
+               </div>
+             ))}
+           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔥 COMPONENTE REDES SOCIALES CON LÍMITE 🔥
+function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: any) {
+  const { toast } = useToast();
+  const [contents, setContents] = useState<any[]>([]);
+  const [newUrl, setNewUrl] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+
+  const fetchContents = async () => {
+    const { data } = await supabase
+      .from("social_content")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+      
+    if (data) setContents(data);
+  };
+
+  useEffect(() => { 
+    fetchContents(); 
+  }, [user.id]);
+
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (!newUrl.trim() || !newUrl.startsWith("http")) {
+        setPreviewImage(null);
+        setIsFetchingPreview(false);
+        return;
+      }
+      
+      setIsFetchingPreview(true);
+      let finalUrl = null;
+
+      try {
+        const isInstagram = newUrl.includes("instagram.com");
+
+        if (isInstagram) {
+          try {
+            console.log("🚀 LLAMANDO A SUPABASE EDGE FUNCTION...");
+            const { data, error } = await supabase.functions.invoke('extract-instagram', {
+              body: { url: newUrl }
+            });
+
+            console.log("📦 RESPUESTA DE SUPABASE:", data, error);
+
+            if (error) {
+              toast({ title: "Error en Supabase", description: error.message, variant: "destructive" });
+              throw error;
+            }
+            
+            if (data?.imageUrl) {
+              console.log("✅ IMAGEN ENCONTRADA EN APIFY:", data.imageUrl);
+              finalUrl = data.imageUrl;
+            } else {
+              toast({ title: "Apify no encontró la imagen", description: JSON.stringify(data), variant: "destructive" });
+            }
+          } catch (err) {
+            console.error("❌ ERROR CRÍTICO EN EDGE FUNCTION:", err);
+            toast({ title: "Falló la extracción", description: "Revisa la consola (F12)", variant: "destructive" });
+          }
+        }
+
+        if (!finalUrl && !isInstagram) {
+          try {
+            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
+            const fallbackData = await res.json();
+            
+            if (fallbackData.status === "success" && fallbackData.data.image?.url) {
+              finalUrl = fallbackData.data.image.url;
+            }
+          } catch (err) {
+            console.error("Error en Microlink:", err);
+          }
+        }
+        
+      } catch (e) {
+        console.error("Error crítico extrayendo preview:", e);
+      } finally {
+        setPreviewImage(finalUrl);
+        setIsFetchingPreview(false);
+      }
+    };
+
+    const timer = setTimeout(fetchPreview, 1000);
+    return () => clearTimeout(timer);
+  }, [newUrl]);
+
+  const reachedLimit = !isStaff && contents.length >= limits.maxSocialContent;
+
+  const handleAddLink = async () => {
+    if (!newUrl.trim()) return;
+    setAdding(true);
+    
+    let platform = "web";
+    let contentType = "post";
+    
+    const url = newUrl.toLowerCase();
+    
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+      platform = "youtube";
+      contentType = url.includes("shorts") ? "reel" : "video";
+    } else if (url.includes("instagram.com")) {
+      platform = "instagram";
+      contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post";
+    } else if (url.includes("tiktok.com")) {
+      platform = "tiktok";
+      contentType = "reel"; 
+    } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
+      platform = "facebook";
+      contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post";
+    }
+    
+    const { error } = await supabase.from("social_content").insert({
+      user_id: user.id,
+      content_url: newUrl.trim(),
+      title: newTitle.trim() || null,
+      platform: platform,
+      content_type: contentType,
+      thumbnail_url: previewImage, 
+      is_public: true
+    } as any);
+    
+    setAdding(false);
+    
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
+      setNewUrl("");
+      setNewTitle("");
+      setPreviewImage(null);
+      fetchContents();
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-card border rounded p-4 text-center">
+        <h3 className="font-pixel text-[10px] opacity-60 mb-3 uppercase font-pixel tracking-tighter">
+          Perfiles de Redes Sociales
+        </h3>
+        <Button variant="outline" onClick={onEditNetworks} className="w-full text-xs mb-2">
+          Editar Vínculos de Perfil
+        </Button>
+      </div>
+
+      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
+        <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body">
+           <h3 className="font-pixel text-neon-cyan uppercase">Publicar en Social Hub</h3>
+           <span>Límite: {contents.length} / {limits.maxSocialContent >= 999 ? "∞" : limits.maxSocialContent} posts</span>
+        </div>
+        <p className="text-[10px] text-muted-foreground font-body leading-tight">
+          Pega el link de tu video, reel o foto. El sistema detectará automáticamente si va a "Videos & Reels" o al "Muro Fotográfico".
+        </p>
+        <Input 
+          placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
+          value={newUrl} 
+          onChange={e => setNewUrl(e.target.value)} 
+          className="h-8 bg-muted text-xs w-full font-body"
+          disabled={reachedLimit}
+        />
+
+        {reachedLimit && (
+          <p className="text-[10px] text-destructive/80 font-body italic text-center">
+            Has alcanzado el límite de publicaciones de tu membresía.
+          </p>
+        )}
+
+        {newUrl.trim().startsWith("http") && !reachedLimit && (
+          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
+            {isFetchingPreview ? (
+              <div className="flex flex-col items-center text-neon-cyan gap-2">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="text-[10px] font-pixel uppercase tracking-widest">Cargando...</span>
+              </div>
+            ) : previewImage ? (
+              <div className="w-full flex flex-col items-center gap-3">
+                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
+                <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
+                  <img 
+                    src={`https://wsrv.nl/?url=${encodeURIComponent(previewImage)}`} 
+                    alt="Preview" 
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    style={{
+                      width: "auto", 
+                      height: "auto",
+                      maxHeight: "250px", 
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
+                    }}
+                    onError={(e) => {
+                      if (!e.currentTarget.src.includes('wsrv.nl')) return;
+                      e.currentTarget.src = previewImage;
+                    }}
+                  />
+                </div>
+                <p className="text-[9px] text-muted-foreground font-body text-center">
+                  Esta imagen se usará en el Muro y Feed. Cero MB gastados.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-muted-foreground gap-2 opacity-50">
+                <ImageIcon className="w-6 h-6" />
+                <span className="text-[9px] font-body text-center">No se pudo extraer imagen miniatura.<br/>Se usará el reproductor por defecto.</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Input 
+          placeholder="Título o descripción (Opcional)" 
+          value={newTitle} 
+          onChange={e => setNewTitle(e.target.value)} 
+          className="h-8 bg-muted text-xs w-full font-body"
+          disabled={reachedLimit}
+        />
+        <Button 
+          size="sm" 
+          onClick={handleAddLink} 
+          disabled={adding || !newUrl.trim() || reachedLimit} 
+          className="w-full text-xs bg-neon-cyan text-black hover:bg-neon-cyan/80"
+        >
+          {reachedLimit ? "Límite Alcanzado" : adding ? "Publicando..." : "Publicar en el Hub"}
+        </Button>
+      </div>
+      
+      <div className="space-y-2">
+        <h3 className="font-pixel text-[10px] opacity-60 mb-2 uppercase text-center mt-4">
+          Tu Contenido Publicado
+        </h3>
+        {contents.length === 0 ? (
+           <p className="text-xs text-muted-foreground text-center py-4 font-body opacity-60">
+             Aún no has publicado nada
+           </p>
+        ) : (
+          contents.map(c => (
+            <div key={c.id} className="p-2 bg-muted/30 rounded text-xs font-body border border-border/20 flex justify-between items-center group gap-2">
+               <div className="flex flex-col flex-1 min-w-0">
+                 <span className="truncate">{c.title || c.content_url}</span>
+                 <span className="text-[9px] text-muted-foreground uppercase opacity-70">
+                   {c.platform} • {c.content_type}
+                 </span>
+               </div>
+               <button 
+                 onClick={async () => { 
+                   if (!confirm("¿Eliminar esta publicación?")) return;
+                   await supabase.from("social_content").delete().eq("id", c.id); 
+                   fetchContents(); 
+                 }} 
+                 className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
+               >
+                 <Trash2 className="w-3.5 h-3.5" />
+               </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -1533,7 +1711,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
           />
           
           <div className="flex flex-wrap gap-1.5 justify-center">
-            {["novato", "entusiasta", "coleccionista", "leyenda arcade"].map(t => (
+            {["novato", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => (
               <button 
                 key={t} 
                 onClick={() => setSelectedTier(t)} 
@@ -1649,375 +1827,6 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function SocialContentTab({ profile, user, onEditNetworks }: any) {
-  const { toast } = useToast();
-  const [contents, setContents] = useState<any[]>([]);
-  const [newUrl, setNewUrl] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
-
-  const fetchContents = async () => {
-    const { data } = await supabase
-      .from("social_content")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-      
-    if (data) setContents(data);
-  };
-
-  useEffect(() => { 
-    fetchContents(); 
-  }, [user.id]);
-
-  useEffect(() => {
-    const fetchPreview = async () => {
-      if (!newUrl.trim() || !newUrl.startsWith("http")) {
-        setPreviewImage(null);
-        setIsFetchingPreview(false);
-        return;
-      }
-      
-      setIsFetchingPreview(true);
-      let finalUrl = null;
-
-      try {
-        const isInstagram = newUrl.includes("instagram.com");
-
-        if (isInstagram) {
-          try {
-            console.log("🚀 LLAMANDO A SUPABASE EDGE FUNCTION...");
-            const { data, error } = await supabase.functions.invoke('extract-instagram', {
-              body: { url: newUrl }
-            });
-
-            console.log("📦 RESPUESTA DE SUPABASE:", data, error);
-
-            if (error) {
-              toast({ title: "Error en Supabase", description: error.message, variant: "destructive" });
-              throw error;
-            }
-            
-            if (data?.imageUrl) {
-              console.log("✅ IMAGEN ENCONTRADA EN APIFY:", data.imageUrl);
-              finalUrl = data.imageUrl;
-            } else {
-              toast({ title: "Apify no encontró la imagen", description: JSON.stringify(data), variant: "destructive" });
-            }
-          } catch (err) {
-            console.error("❌ ERROR CRÍTICO EN EDGE FUNCTION:", err);
-            toast({ title: "Falló la extracción", description: "Revisa la consola (F12)", variant: "destructive" });
-          }
-        }
-
-        // Ya NO hacemos fallback a Microlink si es Instagram, para OBLIGAR a ver el error.
-        if (!finalUrl && !isInstagram) {
-          try {
-            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-            const fallbackData = await res.json();
-            
-            if (fallbackData.status === "success" && fallbackData.data.image?.url) {
-              finalUrl = fallbackData.data.image.url;
-            }
-          } catch (err) {
-            console.error("Error en Microlink:", err);
-          }
-        }
-        
-      } catch (e) {
-        console.error("Error crítico extrayendo preview:", e);
-      } finally {
-        setPreviewImage(finalUrl);
-        setIsFetchingPreview(false);
-      }
-    };
-
-    const timer = setTimeout(fetchPreview, 1000);
-    return () => clearTimeout(timer);
-  }, [newUrl]);
-
-  const handleAddLink = async () => {
-    if (!newUrl.trim()) return;
-    setAdding(true);
-    
-    let platform = "web";
-    let contentType = "post";
-    
-    const url = newUrl.toLowerCase();
-    
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      platform = "youtube";
-      contentType = url.includes("shorts") ? "reel" : "video";
-    } else if (url.includes("instagram.com")) {
-      platform = "instagram";
-      contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post";
-    } else if (url.includes("tiktok.com")) {
-      platform = "tiktok";
-      contentType = "reel"; 
-    } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
-      platform = "facebook";
-      contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post";
-    }
-    
-    const { error } = await supabase.from("social_content").insert({
-      user_id: user.id,
-      content_url: newUrl.trim(),
-      title: newTitle.trim() || null,
-      platform: platform,
-      content_type: contentType,
-      thumbnail_url: previewImage, 
-      is_public: true
-    } as any);
-    
-    setAdding(false);
-    
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
-      setNewUrl("");
-      setNewTitle("");
-      setPreviewImage(null);
-      fetchContents();
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="bg-card border rounded p-4 text-center">
-        <h3 className="font-pixel text-[10px] opacity-60 mb-3 uppercase font-pixel tracking-tighter">
-          Perfiles de Redes Sociales
-        </h3>
-        <Button variant="outline" onClick={onEditNetworks} className="w-full text-xs mb-2">
-          Editar Vínculos de Perfil
-        </Button>
-      </div>
-
-      <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
-        <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Publicar en Social Hub</h3>
-        <p className="text-[10px] text-muted-foreground font-body leading-tight">
-          Pega el link de tu video, reel o foto. El sistema detectará automáticamente si va a "Videos & Reels" o al "Muro Fotográfico".
-        </p>
-        <Input 
-          placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
-          value={newUrl} 
-          onChange={e => setNewUrl(e.target.value)} 
-          className="h-8 bg-muted text-xs w-full font-body" 
-        />
-
-        {newUrl.trim().startsWith("http") && (
-          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
-            {isFetchingPreview ? (
-              <div className="flex flex-col items-center text-neon-cyan gap-2">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="text-[10px] font-pixel uppercase tracking-widest">Cargando...</span>
-              </div>
-            ) : previewImage ? (
-              <div className="w-full flex flex-col items-center gap-3">
-                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
-                <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-<img 
-  /* 🔥 AQUÍ ESTÁ LA MAGIA: Pasamos el link por el túnel proxy de wsrv.nl 🔥 */
-  src={`https://wsrv.nl/?url=${encodeURIComponent(previewImage)}`} 
-  alt="Preview" 
-  referrerPolicy="no-referrer"
-  crossOrigin="anonymous"
-  style={{
-    width: "auto", /* 🔥 Cambiado de 100% a auto para no estirarse 🔥 */
-    height: "auto",
-    maxHeight: "250px", /* 🔥 Reducido de 400px a 250px 🔥 */
-    maxWidth: "100%", /* Asegura que no se salga del contenedor en móviles */
-    objectFit: "contain",
-    borderRadius: "8px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.5)" /* Un sombreado elegante */
-  }}
-  onError={(e) => {
-    // Si incluso el proxy falla (muy raro), intentamos cargarla directo como último recurso
-    if (!e.currentTarget.src.includes('wsrv.nl')) return;
-    e.currentTarget.src = previewImage;
-  }}
-/>
-                </div>
-                <p className="text-[9px] text-muted-foreground font-body text-center">
-                  Esta imagen se usará en el Muro y Feed. Cero MB gastados.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center text-muted-foreground gap-2 opacity-50">
-                <ImageIcon className="w-6 h-6" />
-                <span className="text-[9px] font-body text-center">No se pudo extraer imagen miniatura.<br/>Se usará el reproductor por defecto.</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        <Input 
-          placeholder="Título o descripción (Opcional)" 
-          value={newTitle} 
-          onChange={e => setNewTitle(e.target.value)} 
-          className="h-8 bg-muted text-xs w-full font-body" 
-        />
-        <Button 
-          size="sm" 
-          onClick={handleAddLink} 
-          disabled={adding || !newUrl.trim()} 
-          className="w-full text-xs bg-neon-cyan text-black hover:bg-neon-cyan/80"
-        >
-          {adding ? "Publicando..." : "Publicar en el Hub"}
-        </Button>
-      </div>
-      
-      <div className="space-y-2">
-        <h3 className="font-pixel text-[10px] opacity-60 mb-2 uppercase text-center mt-4">
-          Tu Contenido Publicado
-        </h3>
-        {contents.length === 0 ? (
-           <p className="text-xs text-muted-foreground text-center py-4 font-body opacity-60">
-             Aún no has publicado nada
-           </p>
-        ) : (
-          contents.map(c => (
-            <div key={c.id} className="p-2 bg-muted/30 rounded text-xs font-body border border-border/20 flex justify-between items-center group gap-2">
-               <div className="flex flex-col flex-1 min-w-0">
-                 <span className="truncate">{c.title || c.content_url}</span>
-                 <span className="text-[9px] text-muted-foreground uppercase opacity-70">
-                   {c.platform} • {c.content_type}
-                 </span>
-               </div>
-               <button 
-                 onClick={async () => { 
-                   if (!confirm("¿Eliminar esta publicación?")) return;
-                   await supabase.from("social_content").delete().eq("id", c.id); 
-                   fetchContents(); 
-                 }} 
-                 className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-               >
-                 <Trash2 className="w-3.5 h-3.5" />
-               </button>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function FriendsTab({ userId }: any) {
-  const { toast } = useToast();
-  const [friends, setFriends] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [res, setRes] = useState<any[]>([]);
-
-  const fetchFriends = async () => {
-     const { data } = await supabase
-       .from("friend_requests")
-       .select("*")
-       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-       .eq("status", "accepted");
-       
-     if (!data) return;
-     
-     const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
-     
-     const { data: profs } = await supabase
-       .from("profiles")
-       .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-       .in("user_id", ids);
-       
-     setFriends(profs || []);
-  };
-
-  useEffect(() => { 
-    fetchFriends(); 
-  }, [userId]);
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-card border border-neon-cyan/30 rounded p-4 text-center">
-        <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-3">Buscar Amigos</h3>
-        <div className="flex gap-1">
-          <Input 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="h-8 bg-muted flex-1 text-xs font-body" 
-            placeholder="Nombre..." 
-          />
-          <Button 
-            onClick={async () => { 
-               const { data } = await supabase
-                 .from("profiles")
-                 .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-                 .ilike("display_name", `%${search}%`)
-                 .neq("user_id", userId)
-                 .limit(5);
-               setRes(data || []); 
-            }} 
-            className="h-8"
-          >
-            <Search className="w-4 h-4" />
-          </Button>
-        </div>
-        
-        {res.map(r => (
-          <div key={r.user_id} className="mt-2 flex justify-between items-center bg-muted/20 p-2 rounded text-xs border border-border/20">
-             <span className="font-body" style={getNameStyle(r.color_name)}>
-               {r.display_name}
-             </span>
-             <Button 
-               onClick={async () => { 
-                  await supabase
-                    .from("friend_requests")
-                    .insert({ sender_id: userId, receiver_id: r.user_id }); 
-                  toast({ title: "Solicitud enviada" }); 
-                  setRes([]);
-                  setSearch("");
-               }} 
-               className="h-6 text-[9px] uppercase font-pixel tracking-tighter"
-             >
-               Añadir
-             </Button>
-          </div>
-        ))}
-      </div>
-      
-      <div className="bg-card border rounded p-4">
-        <h3 className="font-pixel text-[10px] opacity-60 mb-2 uppercase text-center md:text-left">
-          Amigos ({friends.length})
-        </h3>
-        
-        {friends.length === 0 ? (
-           <p className="text-xs text-muted-foreground text-center py-4 font-body opacity-60 uppercase">
-             Sin amigos
-           </p>
-        ) : (
-           <div className="space-y-1.5">
-             {friends.map(f => (
-               <div key={f.user_id} className="p-2 border-b border-border/30 text-xs font-body flex justify-between items-center group">
-                 <span style={getNameStyle(f.color_name)}>{f.display_name}</span>
-                 <button 
-                   onClick={async () => { 
-                      await supabase
-                        .from("friend_requests")
-                        .delete()
-                        .or(`and(sender_id.eq.${userId},receiver_id.eq.${f.user_id}),and(sender_id.eq.${f.user_id},receiver_id.eq.${userId})`); 
-                      fetchFriends(); 
-                   }} 
-                   className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                 >
-                   <UserMinus className="w-4 h-4" />
-                 </button>
-               </div>
-             ))}
-           </div>
-        )}
-      </div>
     </div>
   );
 }
