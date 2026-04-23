@@ -10,6 +10,7 @@ import { Link, useLocation } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 IMPORTAMOS EL CEREBRO DE LÍMITES 🔥
 
 interface SocialItem {
   id: string;
@@ -27,7 +28,7 @@ interface SocialItem {
   avatar_url?: string | null;
   color_name?: string | null;
   color_avatar_border?: string | null;
-  target_type?: string; // Para distinguir entre foto nativa o contenido de red social
+  target_type?: string; 
 }
 
 interface SocialComment {
@@ -60,7 +61,6 @@ const getEmbedUrl = (url: string, platform: string) => {
   return null;
 };
 
-// 🔥 FILTROS ESTRICTOS USANDO LA ETIQUETA DE LA BASE DE DATOS 🔥
 const isVideoItem = (item: SocialItem | any) => {
   return item.content_type === 'video' || item.content_type === 'reel';
 };
@@ -80,7 +80,8 @@ function SnapCard({
   isStaff,
   onDeletePost,
   onScrollUp,
-  onScrollDown
+  onScrollDown,
+  limits // 🔥 RECIBIMOS LOS LÍMITES 🔥
 }: { 
   item: SocialItem; 
   isVisible: boolean; 
@@ -89,6 +90,7 @@ function SnapCard({
   onDeletePost: (id: string, targetType: string) => void;
   onScrollUp: () => void;
   onScrollDown: () => void;
+  limits: any; // Tipado de los límites
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -260,6 +262,17 @@ function SnapCard({
 
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
+
+    // 🔥 BLOQUEO DE LÍMITE DE CARACTERES SEGÚN LA MEMBRESÍA 🔥
+    if (commentText.length > limits.maxForumChars) {
+      toast({ 
+        title: "Límite excedido", 
+        description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: item.id, content: commentText.trim(), parent_id: replyTo 
@@ -306,10 +319,9 @@ function SnapCard({
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
 
   return (
-    // 🔥 CAMBIO DE DISEÑO: absolute y relative integrados para móvil vs pc 🔥
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       
-      {/* 🔴 LADO IZQUIERDO: CAJA DE MEDIA (Video/Foto) 🔴 */}
+      {/* LADO IZQUIERDO: CAJA DE MEDIA */}
       <div 
         ref={videoContainerRef} 
         className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0"
@@ -368,7 +380,7 @@ function SnapCard({
         )}
       </div>
 
-      {/* 🔴 BOTONES FLOTANTES MÓVIL (Likes / Dislikes / Abrir Panel) 🔴 */}
+      {/* BOTONES FLOTANTES MÓVIL */}
       <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
         <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
@@ -392,19 +404,17 @@ function SnapCard({
         </button>
       </div>
 
-      {/* BACKDROP PARA MÓVIL (Oscurece el video al abrir el panel) */}
       <div 
         className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-300 md:hidden", showMobilePanel ? "opacity-100" : "opacity-0 pointer-events-none")}
         onClick={() => setShowMobilePanel(false)}
       />
       
-      {/* 🔴 LADO DERECHO: PANEL (Drawer en Móvil, Estático en Desktop) 🔴 */}
+      {/* LADO DERECHO: PANEL */}
       <div className={cn(
         "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0 z-40 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none p-3 md:p-0 border-l border-border md:border-none transition-transform duration-300 ease-out shadow-2xl md:shadow-none",
         showMobilePanel ? "translate-x-0" : "translate-x-full md:translate-x-0"
       )}>
         
-        {/* Header MÓVIL para cerrar el panel */}
         <div className="flex md:hidden justify-between items-center mb-1">
           <span className="font-pixel text-[11px] text-neon-cyan">Detalles del Post</span>
           <button onClick={() => setShowMobilePanel(false)} className="p-1.5 bg-muted/50 rounded-full text-muted-foreground hover:text-white transition-colors">
@@ -412,7 +422,6 @@ function SnapCard({
           </button>
         </div>
 
-        {/* BLOQUE 1: Info del Autor y Título */}
         <div className="shrink-0 md:p-2.5 p-3 border border-border bg-card/90 md:bg-card md:rounded-xl rounded-lg shadow-sm flex flex-col z-10 w-full">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-full bg-muted border border-border shrink-0 overflow-hidden" style={getAvatarBorderStyle(item.color_avatar_border)}>
@@ -438,7 +447,6 @@ function SnapCard({
           
           <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || "Contenido de la comunidad"}</p>
           
-          {/* Botones Like/Dislike (Solo visibles en Desktop porque en móvil están flotantes) */}
           <div className="hidden md:flex items-center gap-3">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3.5 h-3.5" /> {likes}
@@ -449,10 +457,7 @@ function SnapCard({
           </div>
         </div>
 
-        {/* BLOQUE 2: Comentarios y Botones en Fila */}
         <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
-          
-          {/* CAJA DE COMENTARIOS */}
           <div className="flex-1 flex flex-col bg-card/90 md:bg-card border border-border md:rounded-xl rounded-lg shadow-sm overflow-hidden min-w-0">
             <div className="shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
@@ -492,11 +497,13 @@ function SnapCard({
                    </div>
                 )}
                 <div className="flex gap-1">
+                  {/* 🔥 INPUT BLOQUEADO POR LÍMITE DE MEMBRESÍA 🔥 */}
                   <input 
                     value={commentText} 
                     onChange={e => setCommentText(e.target.value)} 
                     onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-                    placeholder="Comentar..." 
+                    placeholder={`Comentar... (Máx ${limits.maxForumChars} carac.)`} 
+                    maxLength={limits.maxForumChars}
                     className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
                   />
                   <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0">
@@ -507,7 +514,6 @@ function SnapCard({
             )}
           </div>
 
-          {/* BOTONES ARCADE RETRO (Delgados w-8) - Solo Desktop */}
           <div className="hidden md:flex flex-col gap-2 w-8 shrink-0 h-full">
             <button 
               onClick={onScrollUp} 
@@ -531,7 +537,6 @@ function SnapCard({
               <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-neon-cyan transition-colors" strokeWidth={3} />
             </button>
           </div>
-
         </div>
       </div>
 
@@ -543,7 +548,7 @@ function SnapCard({
 }
 
 export default function SocialReelsPage() {
-  const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
+  const { user, profile, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const [items, setItems] = useState<SocialItem[]>([]);
@@ -553,14 +558,16 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  // 🔥 DETECCIÓN INTELIGENTE DE PÁGINA (Feed global vs Reels&Videos) 🔥
   const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
+  
+  // 🔥 LÓGICA DE MEMBRESÍAS 🔥
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchContent = async () => {
     let combined: SocialItem[] = [];
 
-    // 1. Buscamos el contenido social (YouTube, TikTok, IG, FB)
     const { data: content } = await supabase
       .from("social_content")
       .select("*")
@@ -577,7 +584,6 @@ export default function SocialReelsPage() {
        }))];
     }
 
-    // 2. Buscamos las FOTOS solo si estamos en el "Feed" general (No en Reels/Videos)
     if (!isReelsPage) {
       const { data: photos } = await supabase
         .from("photos")
@@ -589,7 +595,7 @@ export default function SocialReelsPage() {
         const photoItems = photos.map(p => ({
           id: p.id,
           user_id: p.user_id,
-          platform: 'upload', // Para saber que es una foto subida directamente
+          platform: 'upload', 
           content_url: p.image_url,
           content_type: 'photo',
           title: p.caption,
@@ -598,7 +604,7 @@ export default function SocialReelsPage() {
           created_at: p.created_at,
           likes: p.likes || 0,
           dislikes: p.dislikes || 0,
-          target_type: 'photo' // Etiqueta crucial para que los likes se guarden en la tabla correcta
+          target_type: 'photo' 
         }));
         combined = [...combined, ...photoItems];
       }
@@ -609,10 +615,8 @@ export default function SocialReelsPage() {
       return; 
     }
     
-    // Ordenamos todo junto (Social + Fotos) de más popular a menos popular
     combined.sort((a, b) => b.likes - a.likes);
 
-    // Extraemos los perfiles de los usuarios
     const userIds = [...new Set(combined.map(c => c.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -621,7 +625,6 @@ export default function SocialReelsPage() {
       
     const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
     
-    // Solo mostramos los 50 más populares
     setItems(combined.slice(0, 50).map(c => {
       const p = profileMap.get(c.user_id);
       return {
@@ -636,7 +639,7 @@ export default function SocialReelsPage() {
 
   useEffect(() => {
     fetchContent();
-  }, [location.pathname]); // Refrescar cuando cambia la URL entre feed y reels
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -679,7 +682,6 @@ export default function SocialReelsPage() {
       if (filter === "reels") return sourceFiltered.filter(isReelItem);
       return sourceFiltered.filter(isVideoItem); 
     }
-    // Si es el FEED global, mandamos de todo
     return sourceFiltered;
   })();
 
@@ -742,7 +744,6 @@ export default function SocialReelsPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          
           <div
             ref={containerRef}
             className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0"
@@ -760,11 +761,11 @@ export default function SocialReelsPage() {
                   onDeletePost={handleDeletePost}
                   onScrollUp={() => scrollContainer('up')}
                   onScrollDown={() => scrollContainer('down')}
+                  limits={limits} // 🔥 PASAMOS LOS LÍMITES A LA TARJETA 🔥
                 />
               </div>
             ))}
           </div>
-
         </div>
       )}
     </div>
