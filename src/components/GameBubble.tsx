@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1 } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -47,6 +47,10 @@ export default function GameBubble() {
   const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   const [paused, setPaused] = useState(false);
+  
+  // 🔥 ESTADO DEL DESLIZADOR DE VOLUMEN NATIVO HTML5 🔥
+  const [volume, setVolume] = useState(1); // De 0 a 1
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -70,7 +74,6 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
-  // Detección de AFK
   useEffect(() => {
     const onInput = () => {
       lastInputRef.current = Date.now();
@@ -226,48 +229,54 @@ export default function GameBubble() {
     } catch {}
   }, [paused, romLoaded]);
 
-  // 🔥 NUEVO SISTEMA DE INYECCIÓN DE TECLAS PARA RETROARCH (Emscripten) 🔥
-  const sendEmulatorKey = useCallback((key: string, code: string, keyCode: number) => {
-    // Emscripten suele escuchar en el canvas directamente o en document
-    const target = canvasRef.current || document;
-    
-    // Es VITAL redefinir la propiedad keyCode porque WebAssembly la lee directamente 
-    // y los navegadores modernos ya no la mandan por defecto en eventos sintéticos.
-    const downEvent = new KeyboardEvent("keydown", { key, code, bubbles: true, cancelable: true });
-    Object.defineProperty(downEvent, "keyCode", { get: () => keyCode });
-    Object.defineProperty(downEvent, "which", { get: () => keyCode });
-    target.dispatchEvent(downEvent);
-
-    // Simulamos la liberación de la tecla 50ms después
-    setTimeout(() => {
-      const upEvent = new KeyboardEvent("keyup", { key, code, bubbles: true, cancelable: true });
-      Object.defineProperty(upEvent, "keyCode", { get: () => keyCode });
-      Object.defineProperty(upEvent, "which", { get: () => keyCode });
-      target.dispatchEvent(upEvent);
-    }, 50);
-  }, []);
-
+  // 🔥 MENÚ NATIVO MEDIANTE F1 🔥
   const toggleEmulatorMenu = useCallback(() => {
-    if (romLoaded) {
-      // F1 (KeyCode 112) abre el Menú Nativo de RetroArch Web
-      sendEmulatorKey("F1", "F1", 112);
-      setTimeout(() => canvasRef.current?.focus(), 100);
+    const canvas = canvasRef.current;
+    if (canvas && romLoaded) {
+      canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
+      setTimeout(() => {
+        canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
+      }, 100);
+      canvas.focus();
     }
-  }, [romLoaded, sendEmulatorKey]);
+  }, [romLoaded]);
 
-  const adjustVolume = useCallback((direction: 'up' | 'down') => {
-    if (romLoaded) {
-      if (direction === 'up') {
-        // En RetroArch, Volume Up es la tecla NumpadAdd (+) o la tecla (+) normal
-        sendEmulatorKey("+", "NumpadAdd", 107);
-        setTimeout(() => sendEmulatorKey("+", "Equal", 187), 60); 
-      } else {
-        // En RetroArch, Volume Down es la tecla NumpadSubtract (-) o la tecla (-) normal
-        sendEmulatorKey("-", "NumpadSubtract", 109);
-        setTimeout(() => sendEmulatorKey("-", "Minus", 189), 60);
+  // 🔥 HACK HTML5: ENCONTRAR Y BAJAR EL VOLUMEN A TODOS LOS NODOS DE AUDIO INYECTADOS 🔥
+  useEffect(() => {
+    if (!romLoaded) return;
+    // Nostalgist inyecta nodos <audio> o usa AudioContext para el sonido.
+    // Si usa Web Audio API pura, esta solución busca elementos media o silencia el contexto si es posible.
+    const adjustVolumeNative = () => {
+      // Método 1: Bajar volumen a todas las etiquetas de medios
+      const mediaElements = document.querySelectorAll('audio, video');
+      mediaElements.forEach((media: any) => {
+        media.volume = volume;
+      });
+      
+      // Método 2: Intentar ajustar ganancia si Nostalgist expone el AudioContext globalmente
+      // Nostalgist internamente crea un GainNode. Podemos capturarlo con un hack global si existe.
+      if (window.AudioContext || (window as any).webkitAudioContext) {
+        // Al modificar la variable del emulador, afectamos la salida maestra.
+        try {
+          if (nostalgistRef.current && typeof nostalgistRef.current.getEmscriptenModule === 'function') {
+            const mod = nostalgistRef.current.getEmscriptenModule();
+            if (mod && mod.SDL && mod.SDL.audioContext) {
+              // Si podemos acceder al contexto de audio de SDL, lo silenciamos
+              if (volume === 0 && mod.SDL.audioContext.state === 'running') {
+                 mod.SDL.audioContext.suspend();
+              } else if (volume > 0 && mod.SDL.audioContext.state === 'suspended') {
+                 mod.SDL.audioContext.resume();
+              }
+            }
+          }
+        } catch (e) {
+          console.log("No se pudo acceder al contexto de SDL directo");
+        }
       }
-    }
-  }, [romLoaded, sendEmulatorKey]);
+    };
+    
+    adjustVolumeNative();
+  }, [volume, romLoaded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -589,7 +598,7 @@ export default function GameBubble() {
             {!minimized && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar)
+                  Flechas + Z/X/A/S · Gamepad compatible · F1 para menú nativo
                 </p>
               </div>
             )}
@@ -613,40 +622,45 @@ export default function GameBubble() {
                     <Upload className="w-4 h-4" />
                   </Button>
                 )}
-                
-                {/* 🔥 BOTONES DE VOLUMEN Y MENÚ NATIVO 🔥 */}
-                {romLoaded && (
-                  <div className="flex flex-col gap-1 items-center bg-black/40 border border-neon-magenta/20 p-1 rounded-xl shadow-[0_0_10px_rgba(255,0,255,0.1)]">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => adjustVolume('up')} 
-                      className="h-7 w-7 text-neon-magenta hover:bg-neon-magenta/20 rounded-lg" 
-                      title="Subir Volumen"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                    </Button>
-                    
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={toggleEmulatorMenu} 
-                      className="h-9 w-9 text-neon-magenta hover:text-white hover:bg-neon-magenta/40 rounded-lg" 
-                      title="Menú Nativo del Emulador (Ajustes, Cheats)"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
 
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => adjustVolume('down')} 
-                      className="h-7 w-7 text-neon-magenta hover:bg-neon-magenta/20 rounded-lg" 
-                      title="Bajar Volumen"
-                    >
-                      <Volume1 className="w-3.5 h-3.5" />
-                    </Button>
+                {/* 🔥 SLIDER DE VOLUMEN (HTML5 / NATIVO BROWSER) 🔥 */}
+                {romLoaded && (
+                  <div 
+                    className="relative group flex items-center justify-center h-10 w-10 rounded-lg hover:bg-neon-magenta/10"
+                    onMouseEnter={() => setShowVolumeSlider(true)}
+                    onMouseLeave={() => setShowVolumeSlider(false)}
+                  >
+                    {volume === 0 ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : volume > 0.5 ? <Volume2 className="w-4 h-4 text-neon-magenta" /> : <Volume1 className="w-4 h-4 text-neon-magenta" />}
+                    
+                    {showVolumeSlider && (
+                      <div className="absolute right-[110%] top-1/2 -translate-y-1/2 bg-card border border-border p-3 rounded-lg shadow-xl animate-fade-in flex flex-col items-center gap-2">
+                        <span className="text-[9px] font-pixel text-neon-magenta">{Math.round(volume * 100)}%</span>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="1" 
+                          step="0.05" 
+                          value={volume}
+                          onChange={(e) => setVolume(parseFloat(e.target.value))}
+                          className="h-24 writing-mode-vertical appearance-none bg-muted rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-neon-magenta [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                          style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+                        />
+                      </div>
+                    )}
                   </div>
+                )}
+                
+                {/* BOTÓN MENÚ DE EMULADOR */}
+                {romLoaded && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={toggleEmulatorMenu} 
+                    className="h-10 w-10 text-muted-foreground hover:text-white hover:bg-white/10 rounded-lg" 
+                    title="Ajustes del Emulador"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
                 )}
 
                 {romLoaded && (
