@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SignatureDisplay from "@/components/SignatureDisplay";
 import ReportModal from "@/components/ReportModal";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 CEREBRO DE LÍMITES IMPORTADO 🔥
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -36,8 +37,6 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/faq": { title: "FAQ", description: "Preguntas frecuentes", color: "text-muted-foreground" },
   "/mensajes": { title: "MENSAJES", description: "Bandeja de mensajes privados", color: "text-neon-cyan" },
 };
-
-const MAX_COMMENT_LENGTH = 2000;
 
 const mockPostsByCategory: Record<string, Array<{ id: string; title: string; content: string; upvotes: number; downvotes: number; is_pinned: boolean; user_id: string; created_at: string; category: string }>> = {
   "gaming-anime": [
@@ -170,8 +169,9 @@ interface PostProfile {
 export default function ForumPage() {
   const location = useLocation();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
-  const { user, profile, isAdmin, isMasterWeb } = useAuth();
+  const { user, profile, roles, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
+  
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -194,10 +194,20 @@ export default function ForumPage() {
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
-  const hasUnlimited = isAdmin || isMasterWeb;
-
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
+
+  // 🔥 IDENTIFICACIÓN ESTRICTA DE MEMBRESÍAS Y LÍMITES 🔥
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
+  // 🔥 PERMISOS MODULARES BASADOS EN LA MEMBRESÍA 🔥
+  const canUseImages = isStaff || userTier !== 'novato';
+  const canUseBoldItalic = isStaff || userTier !== 'novato';
+  const canUseVideo = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
+  const canUseLinks = canUseVideo; // Mismo permiso que videos
+  const canUseSignature = isStaff || userTier !== 'novato';
 
   const fetchPosts = async () => {
     const query = supabase.from("posts").select("*").eq("category", category).order("is_pinned", { ascending: false });
@@ -274,23 +284,24 @@ export default function ForumPage() {
     }
     if (!title.trim()) return;
     setPosting(true);
+    
+    // 🔥 FIRMA BLOQUEADA PARA NOVATOS 🔥
     const customSig = (profile as any)?.signature;
-    const signature = customSig
-      ? customSig
-      : ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited
-        ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`
-        : null);
+    const signature = canUseSignature 
+      ? (customSig ? customSig : `— ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`) 
+      : null;
+
     const { error } = await supabase.from("posts").insert({
       user_id: user.id, title: title.trim(), content: content.trim(), category, signature,
     } as any);
+    
     setPosting(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); }
+    else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
   };
 
   const votingRef = useRef<Record<string, boolean>>({});
 
-  // 🔥 LA SOLUCIÓN DIRECTA A LA BASE DE DATOS SIN FUNCIONES SQL 🔥
   const handleVote = async (postId: string, voteType: "up" | "down") => {
     if (!user) { toast({ title: "Inicia sesión para votar", variant: "destructive" }); return; }
     if (votingRef.current[postId]) return;
@@ -318,12 +329,10 @@ export default function ForumPage() {
       newVote = voteType;
     }
 
-    // Actualización optimista de la UI (Caché visual instantáneo)
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) } : p));
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      // 1. Buscamos si ya existe el voto en la tabla post_votes
       const { data: existingVote } = await supabase
         .from("post_votes")
         .select("id, vote_type")
@@ -331,10 +340,9 @@ export default function ForumPage() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // 2. Insertamos, actualizamos o eliminamos DIRECTO en la base de datos
       if (!existingVote) {
         await supabase.from("post_votes").insert({
-          id: crypto.randomUUID(), // Le pasamos un ID seguro para evitar errores "not null"
+          id: crypto.randomUUID(),
           post_id: postId,
           user_id: user.id,
           vote_type: voteType
@@ -345,14 +353,12 @@ export default function ForumPage() {
         await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id);
       }
 
-      // 3. Forzamos la actualización de los contadores en la tabla posts
       await supabase.from("posts").update({
         upvotes: Math.max(0, newUp),
         downvotes: Math.max(0, newDown)
       }).eq("id", postId);
 
     } catch (error) {
-      // Si todo falla, hacemos rollback (el rebote visual)
       console.error("Error al votar:", error);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
@@ -368,13 +374,15 @@ export default function ForumPage() {
       return;
     }
     if (!commentText.trim()) return;
-    if (commentText.length > MAX_COMMENT_LENGTH) {
-      toast({ title: "Comentario muy largo", description: `Máximo ${MAX_COMMENT_LENGTH} caracteres`, variant: "destructive" });
+
+    // 🔥 BLOQUEO DEL LÍMITE DE CARACTERES DE LA MEMBRESÍA 🔥
+    if (commentText.length > limits.maxForumChars) {
+      toast({ title: "Comentario muy largo", description: `Tu membresía permite un máximo de ${limits.maxForumChars} caracteres.`, variant: "destructive" });
       return;
     }
-    const tier = profile?.membership_tier || "novato";
+
     const { error } = await supabase.from("comments").insert({
-      post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
+      post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: userTier, parent_id: replyTo,
     } as any);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
@@ -456,29 +464,49 @@ export default function ForumPage() {
           </div>
           <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
           <Textarea id="post-content-area" placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
+          
+          {/* 🔥 BOTONES DE EDICIÓN BLOQUEADOS POR MEMBRESÍA 🔥 */}
           <div className="flex items-center gap-1 flex-wrap">
-            <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
-              <Image className="w-3 h-3" /> Imagen
-            </button>
-            <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar video">
-              <Video className="w-3 h-3" /> Video
-            </button>
-            <button onClick={() => setContent(prev => prev + "**texto**")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Negrita">
-              <Bold className="w-3 h-3" /> Negrita
-            </button>
-            <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Enlace">
-              <Link2 className="w-3 h-3" /> Enlace
-            </button>
+            {canUseImages && (
+              <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
+                <Image className="w-3 h-3" /> Imagen
+              </button>
+            )}
+            {canUseVideo && (
+              <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar video">
+                <Video className="w-3 h-3" /> Video
+              </button>
+            )}
+            {canUseBoldItalic && (
+              <button onClick={() => setContent(prev => prev + "**texto**")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Negrita">
+                <Bold className="w-3 h-3" /> Negrita
+              </button>
+            )}
+            {canUseLinks && (
+              <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Enlace">
+                <Link2 className="w-3 h-3" /> Enlace
+              </button>
+            )}
           </div>
-          <div className="bg-muted/50 rounded p-2 text-[9px] text-muted-foreground font-body space-y-0.5 border border-border/50">
-            <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>
-            <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>
-          </div>
-          {((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited) ? (
+          
+          {(canUseImages || canUseVideo) && (
+            <div className="bg-muted/50 rounded p-2 text-[9px] text-muted-foreground font-body space-y-0.5 border border-border/50">
+              {canUseImages && <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>}
+              {canUseVideo && <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>}
+            </div>
+          )}
+
+          {/* 🔥 FIRMA MOSTRADA U OCULTA SEGÚN MEMBRESÍA 🔥 */}
+          {canUseSignature ? (
             <p className="text-[9px] text-muted-foreground font-body italic">
-              Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
+              Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
             </p>
-          ) : null}
+          ) : (
+            <p className="text-[9px] text-destructive/80 font-body italic">
+              Las firmas automáticas están desactivadas en el plan Novato.
+            </p>
+          )}
+
           <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs">
             {posting ? "Publicando..." : "Publicar"}
           </Button>
@@ -637,26 +665,31 @@ export default function ForumPage() {
                           <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
                         </div>
                       )}
+                      
+                      {/* 🔥 INPUT LIMITADO MATEMÁTICAMENTE 🔥 */}
                       <Textarea
-                        placeholder="Escribe tu comentario..."
+                        placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
-                        maxLength={MAX_COMMENT_LENGTH}
+                        maxLength={limits.maxForumChars}
                         className="bg-muted text-xs font-body min-h-[80px] resize-y"
                       />
                       <div className="flex items-center gap-1 flex-wrap">
-                        <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>
+                        {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
+                        {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                        {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
+                        {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
+                        {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
+                        
                         <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
                         <div className="flex-1" />
-                        <span className="text-[9px] text-muted-foreground font-body">{commentText.length}/{MAX_COMMENT_LENGTH}</span>
+                        <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>
+                          {commentText.length}/{limits.maxForumChars}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-[9px] text-muted-foreground font-body italic">
-                          {hasUnlimited ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : "ADMIN"}]` : ""}
+                          {canUseSignature ? `Firma: — ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : userTier.toUpperCase()}]` : "Sin firma (Requiere actualización de plan)"}
                         </p>
                         <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
                           <Send className="w-3 h-3" /> Comentar
