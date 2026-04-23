@@ -76,7 +76,7 @@ const tiers = [
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
       { label: "Avatar/Perfil", value: "55 Avatares" },
-      { label: "Subir Avatar", value: "No", bad: true },
+      { label: "Subir Avatar", value: "Si" }, // 🔥 CAMBIADO DE "NO" A "SI"
       { label: "Post en Foro", value: "Ilimitado - Texto + Imagenes" },
       { label: "Comentarios", value: "1000 Caracteres Maximo" },
       { label: "Amigos", value: "Maximo 50" },
