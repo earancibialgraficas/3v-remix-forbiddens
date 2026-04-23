@@ -20,100 +20,100 @@ const countryPricing: PriceByCountry = {
   GB: { symbol: "£", multiplier: 0.79 },
 };
 
-// Datos exactos basados en tus archivos Excel
+// Datos exactos extraídos de tus archivos Excel
 const tiers = [
   {
     name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
     features: [
-      { label: "Emuladores", value: "3 juegos" },
-      { label: "Avatar", value: "25 Pixel-Art" },
+      { label: "Emuladores", value: "3 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "25 avatares Pixel-Art" },
       { label: "Subir Avatar", value: "No", bad: true },
-      { label: "Foro", value: "Texto Plano" },
-      { label: "Comentarios", value: "500 caracteres" },
-      { label: "Amigos", value: "Max 25" },
-      { label: "Storage", value: "50 MB" },
-      { label: "Social Hub", value: "15 archivos" },
-      { label: "Muro", value: "15 fotos" },
+      { label: "Post en Foro", value: "Texto plano ilimitado" },
+      { label: "Comentarios", value: "500 caracteres máximo" },
+      { label: "Amigos", value: "Máximo 25" },
+      { label: "Almacenamiento", value: "50 MB" },
+      { label: "Social Hub", value: "15 imágenes/videos" },
+      { label: "Muro Fotográfico", value: "15 fotos" },
     ],
   },
   {
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
     features: [
-      { label: "Emuladores", value: "4 juegos" },
-      { label: "Avatar", value: "55 predefinidos" },
+      { label: "Emuladores", value: "4 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "55 avatares" },
       { label: "Subir Avatar", value: "No", bad: true },
-      { label: "Foro", value: "Texto + Bold" },
-      { label: "Comentarios", value: "1000 caracteres" },
-      { label: "Amigos", value: "Max 50" },
-      { label: "Storage", value: "150 MB" },
-      { label: "Social Hub", value: "30 archivos" },
-      { label: "Muro", value: "30 fotos" },
+      { label: "Post en Foro", value: "Texto + Bold + Imágenes" },
+      { label: "Comentarios", value: "1000 caracteres máximo" },
+      { label: "Amigos", value: "Máximo 50" },
+      { label: "Almacenamiento", value: "150 MB" },
+      { label: "Social Hub", value: "30 imágenes/videos" },
+      { label: "Muro Fotográfico", value: "30 fotos" },
     ],
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
     features: [
-      { label: "Emuladores", value: "5 juegos" },
-      { label: "Avatar", value: "60 + Propio" },
-      { label: "Subir Avatar", value: "Sí" },
-      { label: "Foro", value: "Formato Full" },
-      { label: "Comentarios", value: "1500 caracteres" },
-      { label: "Amigos", value: "Max 100" },
-      { label: "Storage", value: "500 MB" },
-      { label: "Social Hub", value: "50 archivos" },
-      { label: "Muro", value: "50 fotos" },
+      { label: "Emuladores", value: "5 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "60 avatares" },
+      { label: "Subir Avatar", value: "Sí (500x500px)" },
+      { label: "Post en Foro", value: "Formato completo + Multimedia" },
+      { label: "Comentarios", value: "1500 caracteres máximo" },
+      { label: "Amigos", value: "Máximo 100" },
+      { label: "Almacenamiento", value: "500 MB" },
+      { label: "Social Hub", value: "50 imágenes/videos" },
+      { label: "Muro Fotográfico", value: "50 fotos" },
     ],
   },
   {
     name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
-    shadow: "shadow-[0_0_15px_rgba(57,255,20,0.1)]",
+    shadow: "shadow-[0_0_20px_rgba(57,255,20,0.1)]",
     features: [
-      { label: "Emuladores", value: "6 juegos" },
-      { label: "Avatar", value: "Todos + Propio" },
-      { label: "Subir Avatar", value: "Sí" },
-      { label: "Foro", value: "Formato Full" },
-      { label: "Comentarios", value: "2000 caracteres" },
-      { label: "Amigos", value: "Max 200" },
-      { label: "Storage", value: "1000 MB" },
-      { label: "Social Hub", value: "90 archivos" },
-      { label: "Muro", value: "90 fotos" },
+      { label: "Emuladores", value: "6 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
+      { label: "Subir Avatar", value: "Sí (500x500px)" },
+      { label: "Post en Foro", value: "Formato Completo" },
+      { label: "Comentarios", value: "2000 caracteres máximo" },
+      { label: "Amigos", value: "Máximo 200" },
+      { label: "Almacenamiento", value: "1000 MB" },
+      { label: "Social Hub", value: "90 imágenes/videos" },
+      { label: "Muro Fotográfico", value: "90 fotos" },
     ],
   },
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
-    requirements: "Requisitos: 750+ Seg. / 30 Hrs",
+    requirements: "Requisitos: 750+ seguidores y 30 horas",
     features: [
-      { label: "Emuladores", value: "8 juegos" },
-      { label: "Avatar", value: "Todos + Propio" },
-      { label: "Subir Avatar", value: "Sí" },
-      { label: "Foro", value: "Multimedia" },
-      { label: "Comentarios", value: "3000 caracteres" },
-      { label: "Amigos", value: "Max 500" },
-      { label: "Storage", value: "3000 MB" },
-      { label: "Social Hub", value: "100 archivos" },
-      { label: "Muro", value: "100 fotos" },
+      { label: "Emuladores", value: "8 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
+      { label: "Subir Avatar", value: "Sí (500x500px)" },
+      { label: "Post en Foro", value: "Todo tipo de contenido" },
+      { label: "Comentarios", value: "3000 caracteres máximo" },
+      { label: "Amigos", value: "Máximo 500" },
+      { label: "Almacenamiento", value: "3000 MB" },
+      { label: "Social Hub", value: "100 imágenes/videos" },
+      { label: "Muro Fotográfico", value: "100 fotos" },
     ],
   },
   {
     name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
-    shadow: "shadow-[0_0_20px_rgba(0,255,255,0.15)]",
-    requirements: "Requisitos: 1000+ Seg. / 50 Hrs",
+    shadow: "shadow-[0_0_25px_rgba(0,255,255,0.15)]",
+    requirements: "Requisitos: 1000+ seguidores y 50 horas",
     features: [
-      { label: "Emuladores", value: "10 juegos" },
-      { label: "Avatar", value: "Todos + Propio" },
-      { label: "Subir Avatar", value: "Sí" },
-      { label: "Foro", value: "HTML + Embeds" },
-      { label: "Comentarios", value: "5000 caracteres" },
+      { label: "Emuladores", value: "10 juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
+      { label: "Subir Avatar", value: "Sí (500x500px)" },
+      { label: "Post en Foro", value: "Todo + HTML + Embeds" },
+      { label: "Comentarios", value: "5000 caracteres máximo" },
       { label: "Amigos", value: "Ilimitados" },
-      { label: "Storage", value: "5000 MB" },
+      { label: "Almacenamiento", value: "5000 MB" },
       { label: "Social Hub", value: "Ilimitado" },
-      { label: "Muro", value: "Ilimitado" },
+      { label: "Muro Fotográfico", value: "Ilimitado" },
     ],
   },
 ];
 
 export default function MembershipsPage() {
-  const [userCountry, setUserCountry] = useState("CL");
+  const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -121,80 +121,91 @@ export default function MembershipsPage() {
       try {
         const res = await fetch("https://ipapi.co/json/");
         const data = await res.json();
-        if (data.country_code && countryPricing[data.country_code]) setUserCountry(data.country_code);
-      } catch {}
-      setLoading(false);
+        if (data.country_code && countryPricing[data.country_code]) {
+          setUserCountry(data.country_code);
+        }
+      } catch (err) {
+        console.error("Error detectando país:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     detectCountry();
   }, []);
 
   const pricing = countryPricing[userCountry] || countryPricing.US;
+  
   const formatPrice = (basePrice: number) => {
-    if (basePrice === 0) return "Gratis";
-    return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}`;
+    if (basePrice === 0) return "Gratuito";
+    return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
   return (
-    <div className="space-y-4 animate-fade-in pb-20 px-1 sm:px-4 max-w-5xl mx-auto">
-      <div className="text-center space-y-1">
-        <h1 className="font-pixel text-base sm:text-xl text-neon-yellow uppercase tracking-tighter">Membresías VIP</h1>
-        <p className="text-[9px] sm:text-xs text-muted-foreground font-body max-w-xs mx-auto leading-tight">
-          Mejora tu cuenta y desbloquea beneficios exclusivos.
+    <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-4 max-w-7xl mx-auto">
+      <div className="text-center space-y-3">
+        <h1 className="font-pixel text-xl sm:text-2xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
+        
+        {/* 🔥 RESTAURADO EL TEXTO LARGO ORIGINAL 🔥 */}
+        <p className="text-[10px] sm:text-xs text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed">
+          Elige el plan que mejor se adapte a tu estilo. Todos los planes permiten posts ilimitados en el foro. El límite de "Social Hub" y "Muro Fotográfico" se refiere a la cantidad de imágenes/videos que puedes publicar.
         </p>
         
-        <div className="flex items-center justify-center gap-1.5 mt-2 bg-card/30 border border-border/50 w-fit mx-auto px-2 py-1 rounded-full">
-          <Globe className="w-3 h-3 text-neon-cyan" />
+        <div className="flex items-center justify-center gap-2 mt-4 bg-card/40 border border-border/50 w-fit mx-auto px-4 py-2 rounded-full backdrop-blur-md">
+          <Globe className="w-4 h-4 text-neon-cyan" />
           <select 
             value={userCountry} 
             onChange={e => setUserCountry(e.target.value)} 
-            className="bg-transparent outline-none border-none text-[9px] font-pixel text-foreground uppercase cursor-pointer"
+            className="bg-transparent outline-none border-none text-[11px] font-pixel text-foreground uppercase cursor-pointer"
           >
             {Object.keys(countryPricing).map(code => <option key={code} value={code} className="bg-background">{code}</option>)}
           </select>
-          <span className="text-[8px] text-muted-foreground font-body uppercase tracking-tighter">
-            {loading ? "..." : pricing.symbol}
+          <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest ml-1">
+            {loading ? "Detectando..." : `Viendo precios en ${pricing.symbol}`}
           </span>
         </div>
       </div>
 
-      {/* 🔥 GRID AJUSTADO: 1 Columna en móvil, 2 Columnas por defecto 🔥 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mt-4">
+      {/* 🔥 GRID ULTRA-RESPONSIVO CON AUTO-FIT (No aplasta letras) 🔥 */}
+      <div 
+        className="grid gap-4 sm:gap-6 mt-8"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+      >
         {tiers.map(tier => (
           <div 
             key={tier.name} 
             className={cn(
-              "bg-card rounded-xl p-3 sm:p-5 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden flex flex-col h-full min-h-[320px]",
-              tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color}`
+              "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-1 relative overflow-hidden flex flex-col h-full min-h-[380px]",
+              tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
             )}
           >
             {tier.isVIP && (
-              <div className={cn("absolute inset-0 opacity-[0.03] pointer-events-none bg-gradient-to-br from-current to-transparent", tier.textColor)} />
+              <div className={cn("absolute inset-0 opacity-[0.04] pointer-events-none bg-gradient-to-br from-current to-transparent", tier.textColor)} />
             )}
 
             <div className="relative z-10 flex-1 flex flex-col h-full">
-              <div className="flex items-center justify-between mb-0.5">
-                <h3 className={cn("font-pixel text-[10px] sm:text-sm tracking-tighter leading-none", tier.textColor)}>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className={cn("font-pixel text-[11px] sm:text-xs tracking-tight", tier.textColor)}>
                   {tier.name}
                 </h3>
-                {tier.isVIP && <Sparkles className="w-3 h-3 animate-pulse text-white/50" />}
+                {tier.isVIP && <Sparkles className={cn("w-4 h-4 animate-pulse text-white/40")} />}
               </div>
               
               {tier.requirements && (
-                <p className="text-[7px] sm:text-[9px] text-muted-foreground font-body italic mb-1 border-b border-border/20 pb-1">
+                <p className="text-[8px] sm:text-[9px] text-muted-foreground font-body italic mb-2 border-b border-border/20 pb-2">
                   {tier.requirements}
                 </p>
               )}
               
-              <div className="my-2 sm:my-4">
-                <p className="text-base sm:text-2xl font-bold font-body text-foreground leading-none">
+              <div className="my-4 sm:my-6">
+                <p className="text-xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
                   {formatPrice(tier.basePrice)}
                 </p>
               </div>
 
-              <div className="space-y-1 sm:space-y-2 text-[9px] sm:text-[11px] font-body flex-1 mt-1">
+              <div className="space-y-1.5 sm:space-y-2.5 text-[10px] sm:text-[11px] font-body flex-1">
                 {tier.features.map((f, i) => (
-                  <div key={i} className="flex justify-between gap-x-2 border-b border-border/5 py-0.5 sm:py-1 last:border-0">
-                    <span className="text-muted-foreground truncate max-w-[100px] sm:max-w-[150px]">{f.label}</span>
+                  <div key={i} className="flex justify-between gap-x-3 border-b border-white/[0.03] py-1 last:border-0">
+                    <span className="text-muted-foreground">{f.label}</span>
                     <span className={cn("text-right font-medium", f.bad ? "text-destructive/60" : "text-foreground/90")}>
                       {f.value}
                     </span>
@@ -204,13 +215,13 @@ export default function MembershipsPage() {
 
               <Button 
                 className={cn(
-                  "w-full mt-4 h-8 sm:h-10 font-pixel text-[8px] sm:text-[10px] uppercase tracking-wider transition-all shadow-sm",
+                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-[0.15em] transition-all duration-300",
                   tier.isVIP 
-                    ? `bg-transparent border ${tier.color} ${tier.textColor} hover:bg-white/5` 
+                    ? `bg-transparent border-2 ${tier.color} ${tier.textColor} hover:bg-current hover:text-black shadow-lg` 
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
-                {tier.basePrice === 0 ? "Plan Actual" : "Suscribirme"}
+                {tier.basePrice === 0 ? "Tu Plan Actual" : "Obtener Rango"}
               </Button>
             </div>
           </div>
