@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Star, Globe, Shield, Sparkles } from "lucide-react";
+import { Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,94 +20,99 @@ const countryPricing: PriceByCountry = {
   GB: { symbol: "£", multiplier: 0.79 },
 };
 
-// Datos exactos extraídos de tus archivos Excel
+// Tiers ordenados: Novato, Legado y Creador primero como especialidades.
 const tiers = [
   {
     name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
     features: [
-      { label: "Emuladores", value: "3 juegos en simultaneo" },
-      { label: "Avatar/Perfil", value: "25 avatares Pixel-Art" },
+      { label: "Emuladores", value: "3 Juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "25 Avatares Pixel-Art" },
       { label: "Subir Avatar", value: "No", bad: true },
-      { label: "Post en Foro", value: "Texto plano ilimitado" },
-      { label: "Comentarios", value: "500 caracteres máximo" },
-      { label: "Amigos", value: "Máximo 25" },
+      { label: "Post en Foro", value: "Texto Plano Ilimitado" },
+      { label: "Comentarios", value: "500 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 25" },
       { label: "Almacenamiento", value: "50 MB" },
-      { label: "Social Hub", value: "15 imágenes/videos" },
-      { label: "Muro Fotográfico", value: "15 fotos" },
+      { label: "Social Hub", value: "15 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "15 Fotos" },
+    ],
+  },
+  {
+    name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
+    shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
+    features: [
+      { label: "Emuladores", value: "6 Juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
+      { label: "Subir Avatar", value: "Si (500x500px)" },
+      { label: "Post en Foro", value: "Ilimitado - Formato Completo" },
+      { label: "Comentarios", value: "2000 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 200" },
+      { label: "Almacenamiento", value: "1000 MB" },
+      { label: "Social Hub", value: "90 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "90 Fotos" },
+      { label: "Firma en posts", value: "Diseño Personalizado" },
+      { label: "Badge Exclusivo", value: "🏛️ LEGADO" },
+    ],
+  },
+  {
+    name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
+    shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
+    requirements: "Requisitos: 1000+ Seguidores y 50 Horas",
+    features: [
+      { label: "Emuladores", value: "10 Juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
+      { label: "Subir Avatar", value: "Si (500x500px)" },
+      { label: "Post en Foro", value: "Todo + HTML + Embeds" },
+      { label: "Comentarios", value: "5000 Caracteres Maximo" },
+      { label: "Amigos", value: "Ilimitados" },
+      { label: "Almacenamiento", value: "5000 MB" },
+      { label: "Social Hub", value: "Ilimitado" },
+      { label: "Muro Fotografico", value: "Ilimitado" },
+      { label: "Firma en posts", value: "Diseño Total" },
+      { label: "Badge Exclusivo", value: "🎬 CREADOR VERIFICADO" },
     ],
   },
   {
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
     features: [
-      { label: "Emuladores", value: "4 juegos en simultaneo" },
-      { label: "Avatar/Perfil", value: "55 avatares" },
+      { label: "Emuladores", value: "4 Juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "55 Avatares" },
       { label: "Subir Avatar", value: "No", bad: true },
-      { label: "Post en Foro", value: "Texto + Bold + Imágenes" },
-      { label: "Comentarios", value: "1000 caracteres máximo" },
-      { label: "Amigos", value: "Máximo 50" },
+      { label: "Post en Foro", value: "Ilimitado - Texto + Imagenes" },
+      { label: "Comentarios", value: "1000 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 50" },
       { label: "Almacenamiento", value: "150 MB" },
-      { label: "Social Hub", value: "30 imágenes/videos" },
-      { label: "Muro Fotográfico", value: "30 fotos" },
+      { label: "Social Hub", value: "30 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "30 Fotos" },
     ],
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
     features: [
-      { label: "Emuladores", value: "5 juegos en simultaneo" },
-      { label: "Avatar/Perfil", value: "60 avatares" },
-      { label: "Subir Avatar", value: "Sí (500x500px)" },
-      { label: "Post en Foro", value: "Formato completo + Multimedia" },
-      { label: "Comentarios", value: "1500 caracteres máximo" },
-      { label: "Amigos", value: "Máximo 100" },
+      { label: "Emuladores", value: "5 Juegos en simultaneo" },
+      { label: "Avatar/Perfil", value: "60 Avatares" },
+      { label: "Subir Avatar", value: "Si (500x500px)" },
+      { label: "Post en Foro", value: "Formato Completo + Multimedia" },
+      { label: "Comentarios", value: "1500 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 100" },
       { label: "Almacenamiento", value: "500 MB" },
-      { label: "Social Hub", value: "50 imágenes/videos" },
-      { label: "Muro Fotográfico", value: "50 fotos" },
-    ],
-  },
-  {
-    name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
-    shadow: "shadow-[0_0_20px_rgba(57,255,20,0.1)]",
-    features: [
-      { label: "Emuladores", value: "6 juegos en simultaneo" },
-      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
-      { label: "Subir Avatar", value: "Sí (500x500px)" },
-      { label: "Post en Foro", value: "Formato Completo" },
-      { label: "Comentarios", value: "2000 caracteres máximo" },
-      { label: "Amigos", value: "Máximo 200" },
-      { label: "Almacenamiento", value: "1000 MB" },
-      { label: "Social Hub", value: "90 imágenes/videos" },
-      { label: "Muro Fotográfico", value: "90 fotos" },
+      { label: "Social Hub", value: "50 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "50 Fotos" },
     ],
   },
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
-    requirements: "Requisitos: 750+ seguidores y 30 horas",
+    requirements: "Requisitos: 750+ Seguidores y 30 Horas",
     features: [
-      { label: "Emuladores", value: "8 juegos en simultaneo" },
+      { label: "Emuladores", value: "8 Juegos en simultaneo" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
-      { label: "Subir Avatar", value: "Sí (500x500px)" },
+      { label: "Subir Avatar", value: "Si (500x500px)" },
       { label: "Post en Foro", value: "Todo tipo de contenido" },
-      { label: "Comentarios", value: "3000 caracteres máximo" },
-      { label: "Amigos", value: "Máximo 500" },
+      { label: "Comentarios", value: "3000 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 500" },
       { label: "Almacenamiento", value: "3000 MB" },
-      { label: "Social Hub", value: "100 imágenes/videos" },
-      { label: "Muro Fotográfico", value: "100 fotos" },
-    ],
-  },
-  {
-    name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
-    shadow: "shadow-[0_0_25px_rgba(0,255,255,0.15)]",
-    requirements: "Requisitos: 1000+ seguidores y 50 horas",
-    features: [
-      { label: "Emuladores", value: "10 juegos en simultaneo" },
-      { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
-      { label: "Subir Avatar", value: "Sí (500x500px)" },
-      { label: "Post en Foro", value: "Todo + HTML + Embeds" },
-      { label: "Comentarios", value: "5000 caracteres máximo" },
-      { label: "Amigos", value: "Ilimitados" },
-      { label: "Almacenamiento", value: "5000 MB" },
-      { label: "Social Hub", value: "Ilimitado" },
-      { label: "Muro Fotográfico", value: "Ilimitado" },
+      { label: "Social Hub", value: "100 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "100 Fotos" },
+      { label: "Badge Exclusivo", value: "⭐ LEYENDA ARCADE" },
     ],
   },
 ];
@@ -134,7 +139,6 @@ export default function MembershipsPage() {
   }, []);
 
   const pricing = countryPricing[userCountry] || countryPricing.US;
-  
   const formatPrice = (basePrice: number) => {
     if (basePrice === 0) return "Gratuito";
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
@@ -144,8 +148,6 @@ export default function MembershipsPage() {
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-4 max-w-7xl mx-auto">
       <div className="text-center space-y-3">
         <h1 className="font-pixel text-xl sm:text-2xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
-        
-        {/* 🔥 RESTAURADO EL TEXTO LARGO ORIGINAL 🔥 */}
         <p className="text-[10px] sm:text-xs text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed">
           Elige el plan que mejor se adapte a tu estilo. Todos los planes permiten posts ilimitados en el foro. El límite de "Social Hub" y "Muro Fotográfico" se refiere a la cantidad de imágenes/videos que puedes publicar.
         </p>
@@ -160,12 +162,11 @@ export default function MembershipsPage() {
             {Object.keys(countryPricing).map(code => <option key={code} value={code} className="bg-background">{code}</option>)}
           </select>
           <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest ml-1">
-            {loading ? "Detectando..." : `Viendo precios en ${pricing.symbol}`}
+            {loading ? "Detectando..." : `Precios en ${pricing.symbol}`}
           </span>
         </div>
       </div>
 
-      {/* 🔥 GRID ULTRA-RESPONSIVO CON AUTO-FIT (No aplasta letras) 🔥 */}
       <div 
         className="grid gap-4 sm:gap-6 mt-8"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
@@ -174,7 +175,7 @@ export default function MembershipsPage() {
           <div 
             key={tier.name} 
             className={cn(
-              "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-1 relative overflow-hidden flex flex-col h-full min-h-[380px]",
+              "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-1 relative overflow-hidden flex flex-col h-full min-h-[400px]",
               tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
             )}
           >
@@ -202,7 +203,7 @@ export default function MembershipsPage() {
                 </p>
               </div>
 
-              <div className="space-y-1.5 sm:space-y-2.5 text-[10px] sm:text-[11px] font-body flex-1">
+              <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px] font-body flex-1">
                 {tier.features.map((f, i) => (
                   <div key={i} className="flex justify-between gap-x-3 border-b border-white/[0.03] py-1 last:border-0">
                     <span className="text-muted-foreground">{f.label}</span>
@@ -215,13 +216,13 @@ export default function MembershipsPage() {
 
               <Button 
                 className={cn(
-                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-[0.15em] transition-all duration-300",
+                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300",
                   tier.isVIP 
                     ? `bg-transparent border-2 ${tier.color} ${tier.textColor} hover:bg-current hover:text-black shadow-lg` 
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
-                {tier.basePrice === 0 ? "Tu Plan Actual" : "Obtener Rango"}
+                {tier.basePrice === 0 ? "Plan Actual" : "Obtener Rango"}
               </Button>
             </div>
           </div>
