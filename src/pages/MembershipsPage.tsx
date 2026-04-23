@@ -218,7 +218,7 @@ export default function MembershipsPage() {
                 className={cn(
                   "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300",
                   tier.isVIP 
-                    ? `bg-transparent border-2 ${tier.color} ${tier.textColor} hover:bg-current hover:text-black shadow-lg` 
+                    ? `bg-transparent border-2 ${tier.color} ${tier.textColor} hover:bg-current hover:text-white shadow-lg` 
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
