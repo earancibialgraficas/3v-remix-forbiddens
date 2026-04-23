@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 IMPORTAMOS EL CEREBRO DE LÍMITES 🔥
 
 // 🔥 ANIMACIÓN DE GOMA SEGURA (SIN CRASHEOS) 🔥
-// Solo animamos la escala (zoom) y la opacidad para que el navegador no sufra.
 const jellyStyles = `
   @keyframes jelly-pop-safe {
     0% { transform: scale(0.85); opacity: 0; }
@@ -35,14 +35,6 @@ interface SocialComment {
   display_name?: string;
   avatar_url?: string | null;
 }
-
-const membershipPhotoLimits: Record<string, number> = {
-  novato: 15,
-  entusiasta: 30,
-  coleccionista: 50,
-  "leyenda arcade": 100,
-  "creador verificado": 200,
-};
 
 const APIFY_DAILY_LIMIT = 80;
 
@@ -118,12 +110,12 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl">
           <div className="flex justify-between items-start">
             {isStaff && (
-              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
+              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20" title="Banear publicación">
                 <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
             {user && (
-              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto">
+              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto" title="Guardar">
                 <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
@@ -143,8 +135,8 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
   );
 }
 
-/* 🔥 COMPONENTE: TARJETA EXPANDIDA (45vh, SIN CRASHEOS) 🔥 */
-function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff }: any) {
+/* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
+function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, limits }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -183,6 +175,13 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
 
   const handleSubmitComment = async () => {
     if (!user || !commentText.trim()) return;
+    
+    // 🔥 LÍMITE DE CARACTERES EN COMENTARIOS SEGÚN MEMBRESÍA 🔥
+    if (commentText.length > limits.maxForumChars) {
+      toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, variant: "destructive" });
+      return;
+    }
+
     try {
       const { error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: photo.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
@@ -213,13 +212,10 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       )}
       style={neonStyle}
     >
-      {/* LADO IZQUIERDO: IMAGEN (45vh ALTURA) */}
+      {/* LADO IZQUIERDO: IMAGEN */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[45vh] min-h-[400px]">
-        {/* 🔥 BOTÓN "VER ORIGINAL" ABAJO A LA IZQUIERDA 🔥 */}
         <a 
-          href={originalUrl} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+          href={originalUrl} target="_blank" rel="noopener noreferrer" 
           className="absolute bottom-4 left-4 z-20 bg-black/70 border border-white/10 hover:border-neon-cyan p-2 rounded-lg text-white hover:text-neon-cyan backdrop-blur-md flex items-center gap-2 font-pixel text-[9px] uppercase tracking-widest transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
@@ -229,23 +225,15 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
            <img 
-             src={getProxyUrl(targetUrl)} 
-             alt={photo.caption} 
-             referrerPolicy="no-referrer"
-             crossOrigin="anonymous"
+             src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-             onError={(e) => {
-               if (!e.currentTarget.src.includes('wsrv.nl')) return;
-               e.currentTarget.src = targetUrl;
-             }}
+             onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
            />
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL (45vh ALTURA) */}
+      {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[45vh] min-h-[400px]">
-        
-        {/* 🔥 LA 'X' EN LA ESQUINA SUPERIOR DERECHA 🔥 */}
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
         </button>
@@ -297,8 +285,8 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
             </div>
             <div className="flex gap-2">
               {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive"><Flag className="w-3.5 h-3.5" /></button>}
-              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan"><Bookmark className="w-3.5 h-3.5" /></button>
-              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive"><Ban className="w-3.5 h-3.5" /></button>}
+              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>
+              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive" title="Banear publicación"><Ban className="w-3.5 h-3.5" /></button>}
             </div>
           </div>
 
@@ -311,7 +299,13 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
                  </div>
               )}
               <div className="flex gap-2">
-                <Input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="h-7 text-[10px] bg-black/40 border-border" />
+                <Input 
+                  value={commentText} 
+                  onChange={e => setCommentText(e.target.value)} 
+                  placeholder={`Comentar... (Máx ${limits.maxForumChars} carac.)`} 
+                  maxLength={limits.maxForumChars}
+                  className="h-7 text-[10px] bg-black/40 border-border" 
+                />
                 <Button onClick={handleSubmitComment} size="sm" className="h-7 px-2 bg-neon-orange text-black shrink-0 hover:bg-neon-orange/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
@@ -340,9 +334,10 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   
+  // 🔥 IDENTIFICACIÓN DE MEMBRESÍA Y LÍMITES 🔥
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
-  const tier = profile?.membership_tier || "novato";
-  const photoLimit = isStaff ? Infinity : (membershipPhotoLimits[tier] || 15);
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
     const getChileMidnightISO = () => {
@@ -360,8 +355,18 @@ export default function PhotoWallPage() {
     
     setDailyApifyCount((count || 0) + 4);
 
-    const { data: photosRes } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
-    const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
+    const { data: photosRes } = await supabase.from("photos")
+      .select("*")
+      .neq('is_banned', true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+      
+    const { data: socialRes } = await supabase.from("social_content")
+      .select("*")
+      .eq("is_public", true)
+      .neq('is_banned', true)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     let combined: any[] = [];
     if (photosRes) combined = [...combined, ...photosRes.map((p: any) => ({ ...p, target_type: 'photo' }))];
@@ -393,6 +398,8 @@ export default function PhotoWallPage() {
       const rMap: Record<string, string> = {};
       reactions?.forEach((r: any) => { rMap[r.target_id] = r.reaction_type; });
       setUserReactions(rMap);
+      
+      // 🔥 OBTENEMOS CUÁNTAS FOTOS HA SUBIDO EL USUARIO EN TOTAL 🔥
       supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id).then(({ count }) => setUserPhotoCount(count || 0));
     }
   };
@@ -402,6 +409,16 @@ export default function PhotoWallPage() {
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
     
+    // 🔥 LÓGICA DE BLOQUEO POR MEMBRESÍA 🔥
+    if (!isStaff && userPhotoCount >= limits.maxPhotos) {
+      toast({ 
+        title: "Límite de Membresía Alcanzado", 
+        description: `Tu plan actual permite un máximo de ${limits.maxPhotos} fotos. Actualiza tu rango para subir más.`, 
+        variant: "destructive" 
+      }); 
+      return;
+    }
+
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
        toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
     }
@@ -448,20 +465,28 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Ocultar esta imagen al público?")) {
+    if (confirm("¿Banear y ocultar esta imagen del muro público?")) {
       const table = targetType === "photo" ? "photos" : "social_content";
-      const { error } = await supabase.from(table).delete().eq("id", id);
-      if (!error) { toast({ title: "Ocultada." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
+      const { error } = await supabase.from(table).update({ is_banned: true }).eq("id", id);
+      if (!error) { toast({ title: "Publicación baneada." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
     }
   };
 
   const handleSaveToProfile = async (photoId: string) => {
     if (!user) return;
-    try { await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); toast({ title: "Guardada" }); } catch (e) { }
+    try { 
+      const { error } = await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta foto guardada." });
+      else if (!error) toast({ title: "¡Guardada!" }); 
+    } catch (e) { }
   };
 
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
+
+  // 🔥 VARIABLE DE BLOQUEO DE BOTÓN 🔥
+  const reachedPhotoLimit = !isStaff && userPhotoCount >= limits.maxPhotos;
+  const reachedDailyLimit = !isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT;
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
@@ -494,13 +519,24 @@ export default function PhotoWallPage() {
           <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1 hidden sm:inline" /> Todos</Button>
           <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
         </div>
-        <Button size="sm" className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" onClick={() => setShowUpload(!showUpload)} disabled={dailyApifyCount >= APIFY_DAILY_LIMIT && !isStaff}>
-          <Camera className="w-3 h-3 mr-1 hidden sm:inline" /> {dailyApifyCount >= APIFY_DAILY_LIMIT && !isStaff ? "Servidor Lleno" : "Subir Foto"}
+        
+        {/* 🔥 BOTÓN CON ESTADO DINÁMICO DE LÍMITES 🔥 */}
+        <Button 
+          size="sm" 
+          className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" 
+          onClick={() => setShowUpload(!showUpload)} 
+          disabled={reachedDailyLimit || reachedPhotoLimit}
+        >
+          <Camera className="w-3 h-3 mr-1 hidden sm:inline" /> 
+          {reachedDailyLimit ? "Servidor Lleno" : reachedPhotoLimit ? "Límite Alcanzado" : "Subir Foto"}
         </Button>
       </div>
 
       {showUpload && (
         <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-xl mx-2 md:mx-0">
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body">
+             <span>Límite de cuenta: {userPhotoCount} / {limits.maxPhotos} fotos</span>
+          </div>
           <Input placeholder="URL de imagen o Link de Instagram" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/40 text-xs border-border font-body" />
           <Textarea placeholder="Escribe una descripción..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/40 text-xs min-h-[60px] border-border font-body" />
           <div className="flex justify-end gap-2 items-center">
@@ -511,7 +547,7 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST CLÁSICA Y SEGURA (columns) 🔥 */}
+      {/* 🔥 GRILLA PINTEREST CLÁSICA 🔥 */}
       <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
@@ -520,7 +556,6 @@ export default function PhotoWallPage() {
             <div 
               key={`${photo.target_type}-${photo.id}`}
               className={cn("w-full mb-4 sm:mb-6 break-inside-avoid relative", isExpanded ? "z-50" : "z-10")}
-              // 🔥 EL SECRETO: Permite que la imagen se expanda rompiendo la columna y empujando las demás hacia abajo naturalmente 🔥
               style={{ columnSpan: isExpanded ? 'all' : 'none', WebkitColumnSpan: isExpanded ? 'all' : 'none' } as any}
             >
               {isExpanded ? (
@@ -533,6 +568,7 @@ export default function PhotoWallPage() {
                     onSave={handleSaveToProfile}
                     userReaction={userReactions[photo.id]}
                     isStaff={isStaff}
+                    limits={limits} // 🔥 PASAMOS LOS LÍMITES A LA TARJETA EXPANDIDA 🔥
                   />
                 </div>
               ) : (
@@ -540,7 +576,6 @@ export default function PhotoWallPage() {
                   photo={photo}
                   onExpand={(e: React.MouseEvent) => {
                     setExpandedPhotoId(photo.id);
-                    // Scroll suave para ver la expansión
                     setTimeout(() => {
                       const el = document.getElementById(`expanded-card-${photo.id}`);
                       if (el) {
