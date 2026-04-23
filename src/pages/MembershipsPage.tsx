@@ -20,7 +20,7 @@ const countryPricing: PriceByCountry = {
   GB: { symbol: "£", multiplier: 0.79 },
 };
 
-// Datos exactos de tus membresías
+// Datos exactos basados en tus archivos Excel
 const tiers = [
   {
     name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
@@ -135,11 +135,11 @@ export default function MembershipsPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in pb-20 px-1 sm:px-4">
+    <div className="space-y-4 animate-fade-in pb-20 px-1 sm:px-4 max-w-5xl mx-auto">
       <div className="text-center space-y-1">
-        <h1 className="font-pixel text-base sm:text-xl text-neon-yellow uppercase tracking-tighter">Planes VIP</h1>
+        <h1 className="font-pixel text-base sm:text-xl text-neon-yellow uppercase tracking-tighter">Membresías VIP</h1>
         <p className="text-[9px] sm:text-xs text-muted-foreground font-body max-w-xs mx-auto leading-tight">
-          Mejora tu cuenta y desbloquea límites.
+          Mejora tu cuenta y desbloquea beneficios exclusivos.
         </p>
         
         <div className="flex items-center justify-center gap-1.5 mt-2 bg-card/30 border border-border/50 w-fit mx-auto px-2 py-1 rounded-full">
@@ -157,13 +157,13 @@ export default function MembershipsPage() {
         </div>
       </div>
 
-      {/* 🔥 GRID DE 2 COLUMNAS EN MÓVIL 🔥 */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 mt-4">
+      {/* 🔥 GRID AJUSTADO: 1 Columna en móvil, 2 Columnas por defecto 🔥 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mt-4">
         {tiers.map(tier => (
           <div 
             key={tier.name} 
             className={cn(
-              "bg-card rounded-xl p-3 sm:p-5 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden flex flex-col h-full",
+              "bg-card rounded-xl p-3 sm:p-5 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden flex flex-col h-full min-h-[320px]",
               tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color}`
             )}
           >
@@ -173,28 +173,28 @@ export default function MembershipsPage() {
 
             <div className="relative z-10 flex-1 flex flex-col h-full">
               <div className="flex items-center justify-between mb-0.5">
-                <h3 className={cn("font-pixel text-[9px] sm:text-xs tracking-tighter leading-none", tier.textColor)}>
+                <h3 className={cn("font-pixel text-[10px] sm:text-sm tracking-tighter leading-none", tier.textColor)}>
                   {tier.name}
                 </h3>
                 {tier.isVIP && <Sparkles className="w-3 h-3 animate-pulse text-white/50" />}
               </div>
               
               {tier.requirements && (
-                <p className="text-[7px] sm:text-[8px] text-muted-foreground font-body italic mb-1 border-b border-border/20 pb-1">
+                <p className="text-[7px] sm:text-[9px] text-muted-foreground font-body italic mb-1 border-b border-border/20 pb-1">
                   {tier.requirements}
                 </p>
               )}
               
-              <div className="my-1.5 sm:my-3">
-                <p className="text-sm sm:text-2xl font-bold font-body text-foreground leading-none">
+              <div className="my-2 sm:my-4">
+                <p className="text-base sm:text-2xl font-bold font-body text-foreground leading-none">
                   {formatPrice(tier.basePrice)}
                 </p>
               </div>
 
-              <div className="space-y-0.5 sm:space-y-1.5 text-[8px] sm:text-[10px] font-body flex-1 mt-1">
+              <div className="space-y-1 sm:space-y-2 text-[9px] sm:text-[11px] font-body flex-1 mt-1">
                 {tier.features.map((f, i) => (
-                  <div key={i} className="flex justify-between gap-x-1 border-b border-border/5 py-0.5 last:border-0">
-                    <span className="text-muted-foreground truncate max-w-[50px] sm:max-w-[100px]">{f.label}</span>
+                  <div key={i} className="flex justify-between gap-x-2 border-b border-border/5 py-0.5 sm:py-1 last:border-0">
+                    <span className="text-muted-foreground truncate max-w-[100px] sm:max-w-[150px]">{f.label}</span>
                     <span className={cn("text-right font-medium", f.bad ? "text-destructive/60" : "text-foreground/90")}>
                       {f.value}
                     </span>
@@ -204,13 +204,13 @@ export default function MembershipsPage() {
 
               <Button 
                 className={cn(
-                  "w-full mt-3 h-7 sm:h-10 font-pixel text-[8px] sm:text-[10px] uppercase tracking-wider transition-all",
+                  "w-full mt-4 h-8 sm:h-10 font-pixel text-[8px] sm:text-[10px] uppercase tracking-wider transition-all shadow-sm",
                   tier.isVIP 
                     ? `bg-transparent border ${tier.color} ${tier.textColor} hover:bg-white/5` 
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
-                {tier.basePrice === 0 ? "Actual" : "Adquirir"}
+                {tier.basePrice === 0 ? "Plan Actual" : "Suscribirme"}
               </Button>
             </div>
           </div>
