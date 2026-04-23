@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SignatureDisplay from "@/components/SignatureDisplay";
 import ReportModal from "@/components/ReportModal";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 CEREBRO DE LÍMITES IMPORTADO 🔥
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 AGREGADO: CEREBRO DE LÍMITES 🔥
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -169,9 +169,8 @@ interface PostProfile {
 export default function ForumPage() {
   const location = useLocation();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
-  const { user, profile, roles, isAdmin, isMasterWeb } = useAuth();
+  const { user, profile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
-  
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -194,20 +193,20 @@ export default function ForumPage() {
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
+  const hasUnlimited = isAdmin || isMasterWeb;
+
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
-  // 🔥 IDENTIFICACIÓN ESTRICTA DE MEMBRESÍAS Y LÍMITES 🔥
-  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  // 🔥 AGREGADO: IDENTIFICACIÓN DE LÍMITES POR MEMBRESÍA 🔥
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+  const limits = hasUnlimited ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
-  // 🔥 PERMISOS MODULARES BASADOS EN LA MEMBRESÍA 🔥
-  const canUseImages = isStaff || userTier !== 'novato';
-  const canUseBoldItalic = isStaff || userTier !== 'novato';
-  const canUseVideo = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
-  const canUseLinks = canUseVideo; // Mismo permiso que videos
-  const canUseSignature = isStaff || userTier !== 'novato';
+  const canUseImages = hasUnlimited || userTier !== 'novato';
+  const canUseBoldItalic = hasUnlimited || userTier !== 'novato';
+  const canUseVideo = hasUnlimited || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
+  const canUseLinks = canUseVideo; 
+  const canUseSignature = hasUnlimited || userTier !== 'novato';
 
   const fetchPosts = async () => {
     const query = supabase.from("posts").select("*").eq("category", category).order("is_pinned", { ascending: false });
@@ -285,16 +284,15 @@ export default function ForumPage() {
     if (!title.trim()) return;
     setPosting(true);
     
-    // 🔥 FIRMA BLOQUEADA PARA NOVATOS 🔥
+    // 🔥 AGREGADO: BLOQUEO DE FIRMA POR MEMBRESÍA 🔥
     const customSig = (profile as any)?.signature;
     const signature = canUseSignature 
-      ? (customSig ? customSig : `— ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`) 
+      ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]` : null))
       : null;
 
     const { error } = await supabase.from("posts").insert({
       user_id: user.id, title: title.trim(), content: content.trim(), category, signature,
     } as any);
-    
     setPosting(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
@@ -342,7 +340,7 @@ export default function ForumPage() {
 
       if (!existingVote) {
         await supabase.from("post_votes").insert({
-          id: crypto.randomUUID(),
+          id: crypto.randomUUID(), 
           post_id: postId,
           user_id: user.id,
           vote_type: voteType
@@ -375,14 +373,15 @@ export default function ForumPage() {
     }
     if (!commentText.trim()) return;
 
-    // 🔥 BLOQUEO DEL LÍMITE DE CARACTERES DE LA MEMBRESÍA 🔥
+    // 🔥 AGREGADO: BLOQUEO LÍMITE DE CARACTERES 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Comentario muy largo", description: `Tu membresía permite un máximo de ${limits.maxForumChars} caracteres.`, variant: "destructive" });
       return;
     }
 
+    const tier = profile?.membership_tier || "novato";
     const { error } = await supabase.from("comments").insert({
-      post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: userTier, parent_id: replyTo,
+      post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
@@ -465,7 +464,7 @@ export default function ForumPage() {
           <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
           <Textarea id="post-content-area" placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
           
-          {/* 🔥 BOTONES DE EDICIÓN BLOQUEADOS POR MEMBRESÍA 🔥 */}
+          {/* 🔥 AGREGADO: BOTONES BLOQUEADOS SEGÚN PERMISOS 🔥 */}
           <div className="flex items-center gap-1 flex-wrap">
             {canUseImages && (
               <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
@@ -495,12 +494,13 @@ export default function ForumPage() {
               {canUseVideo && <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>}
             </div>
           )}
-
-          {/* 🔥 FIRMA MOSTRADA U OCULTA SEGÚN MEMBRESÍA 🔥 */}
+          
           {canUseSignature ? (
-            <p className="text-[9px] text-muted-foreground font-body italic">
-              Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
-            </p>
+            ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited) ? (
+              <p className="text-[9px] text-muted-foreground font-body italic">
+                Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
+              </p>
+            ) : null
           ) : (
             <p className="text-[9px] text-destructive/80 font-body italic">
               Las firmas automáticas están desactivadas en el plan Novato.
@@ -613,7 +613,6 @@ export default function ForumPage() {
                 </div>
               </div>
 
-              {/* Comments section */}
               {expandedPost === post.id && (
                 <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
                   {(comments[post.id] || []).map((comment) => (
@@ -666,7 +665,7 @@ export default function ForumPage() {
                         </div>
                       )}
                       
-                      {/* 🔥 INPUT LIMITADO MATEMÁTICAMENTE 🔥 */}
+                      {/* 🔥 AGREGADO: TEXTAREA CON LÍMITE FÍSICO 🔥 */}
                       <Textarea
                         placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
                         value={commentText}
@@ -689,7 +688,7 @@ export default function ForumPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-[9px] text-muted-foreground font-body italic">
-                          {canUseSignature ? `Firma: — ${profile?.display_name} [${isStaff ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : userTier.toUpperCase()}]` : "Sin firma (Requiere actualización de plan)"}
+                          {canUseSignature ? (hasUnlimited ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : "ADMIN"}]` : "") : "Sin firma (Requiere plan superior)"}
                         </p>
                         <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
                           <Send className="w-3 h-3" /> Comentar
