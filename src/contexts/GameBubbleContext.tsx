@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface GameSession {
   romUrl: string;
@@ -35,20 +36,33 @@ const GameBubbleContext = createContext<GameBubbleContextType>({
   setMaxGames: () => {},
 });
 
-// Membership tier to max games mapping
+// 🔥 LÍMITES EXACTOS DEL EXCEL 🔥
 const tierMaxGames: Record<string, number> = {
   novato: 3,
   entusiasta: 4,
   coleccionista: 5,
-  "leyenda arcade": 6,
-  "creador verificado": 6,
+  "miembro del legado": 6,
+  "leyenda arcade": 8,
+  "creador de contenido": 10,
 };
 
 export function GameBubbleProvider({ children }: { children: React.ReactNode }) {
+  const { profile, roles, isMasterWeb, isAdmin } = useAuth();
   const [activeGames, setActiveGames] = useState<GameSession[]>([]);
   const [currentGameIndex, setCurrentGameIndex] = useState(0);
   const [minimized, setMinimized] = useState(false);
   const [maxGames, setMaxGames] = useState(3);
+
+  // 🔥 AUTO-APLICAR EL LÍMITE SEGÚN LA MEMBRESÍA 🔥
+  useEffect(() => {
+    const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+    if (isStaff) {
+      setMaxGames(999); // Staff ilimitado
+    } else {
+      const tier = profile?.membership_tier?.toLowerCase() || "novato";
+      setMaxGames(tierMaxGames[tier] || 3);
+    }
+  }, [profile, roles, isMasterWeb, isAdmin]);
 
   const launchGame = useCallback((session: GameSession) => {
     setActiveGames(prev => {
@@ -58,7 +72,7 @@ export function GameBubbleProvider({ children }: { children: React.ReactNode }) 
         return prev;
       }
       if (prev.length >= maxGames) {
-        // Replace oldest
+        // Reemplaza el juego más antiguo si excede el límite
         const newGames = [...prev.slice(1), session];
         setCurrentGameIndex(newGames.length - 1);
         return newGames;
@@ -84,6 +98,7 @@ export function GameBubbleProvider({ children }: { children: React.ReactNode }) 
     });
     setCurrentGameIndex(prev => Math.max(0, prev - 1));
   }, [currentGameIndex]);
+  
   const updateScore = useCallback((score: number, playTime: number) => {
     setActiveGames(prev => prev.map((g, i) => i === currentGameIndex ? { ...g, score, playTime } : g));
   }, [currentGameIndex]);

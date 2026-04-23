@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Volume2, VolumeX, Download, Upload, Pause, Play } from "lucide-react";
+import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,8 +46,6 @@ export default function GameBubble() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
 
-  const [volume, setVolume] = useState(100);
-  const [showVolume, setShowVolume] = useState(false);
   const [paused, setPaused] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -73,7 +70,7 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
-  // AFK detection
+  // Detección de AFK
   useEffect(() => {
     const onInput = () => {
       lastInputRef.current = Date.now();
@@ -154,30 +151,6 @@ export default function GameBubble() {
       try {
         const { Nostalgist } = await import("nostalgist");
         
-        // PARCHE MAESTRO PARA EL VOLUMEN
-        const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (OrigAudioContext && !(window as any).__audioContextPatched) {
-          (window as any).__masterGains = [];
-          const origCtor = OrigAudioContext;
-          (window as any).AudioContext = function(...args: any[]) {
-            const ctx = new origCtor(...args);
-            const gain = ctx.createGain();
-            gain.connect(ctx.destination);
-            (window as any).__masterGains.push(gain);
-
-            const origConnect = ctx.connect;
-            ctx.connect = function(dest: any, ...rest: any[]) {
-              if (dest === ctx.destination) {
-                return origConnect.call(this, gain, ...rest);
-              }
-              return origConnect.call(this, dest, ...rest);
-            };
-            return ctx;
-          };
-          (window as any).AudioContext.prototype = origCtor.prototype;
-          (window as any).__audioContextPatched = true;
-        }
-        
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
         const instance = await Nostalgist.launch({
@@ -244,23 +217,6 @@ export default function GameBubble() {
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
 
-  // CONTROL DE VOLUMEN
-  useEffect(() => {
-    if (!romLoaded) return;
-    const vol = volume / 100;
-    
-    document.querySelectorAll("audio, video").forEach((el: any) => {
-      el.volume = vol;
-    });
-    
-    const gains = (window as any).__masterGains;
-    if (gains) {
-      gains.forEach((g: GainNode) => {
-        try { g.gain.value = vol; } catch {}
-      });
-    }
-  }, [volume, romLoaded]);
-
   const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;
     try {
@@ -269,6 +225,19 @@ export default function GameBubble() {
       setPaused(!paused);
     } catch {}
   }, [paused, romLoaded]);
+
+  // 🔥 PUENTE MAESTRO: ABRIR MENÚ NATIVO DE RETROARCH 🔥
+  const toggleEmulatorMenu = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (canvas && romLoaded) {
+      // Simulamos la pulsación de F1 (que es el botón por defecto de RetroArch Web para abrir el menú)
+      canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
+      setTimeout(() => {
+        canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
+      }, 100);
+      canvas.focus();
+    }
+  }, [romLoaded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -590,7 +559,7 @@ export default function GameBubble() {
             {!minimized && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · Click fuera para minimizar
+                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
                 </p>
               </div>
             )}
@@ -614,21 +583,20 @@ export default function GameBubble() {
                     <Upload className="w-4 h-4" />
                   </Button>
                 )}
-                <div className="relative">
-                  <Button size="icon" variant="ghost" onClick={() => setShowVolume(!showVolume)} className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" title="Volumen">
-                    {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                
+                {/* 🔥 BOTÓN DE MENÚ NATIVO (Reemplaza el slider de volumen con fallos) 🔥 */}
+                {romLoaded && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={toggleEmulatorMenu} 
+                    className="h-10 w-10 text-neon-magenta hover:text-neon-magenta hover:bg-neon-magenta/10 rounded-lg shadow-[0_0_10px_rgba(255,0,255,0.2)]" 
+                    title="Menú del Emulador (Volumen, Controles, Cheats)"
+                  >
+                    <Settings className="w-4 h-4" />
                   </Button>
-                  {showVolume && (
-                    <div className="absolute right-full mr-2 top-0 bg-card border border-border rounded-lg p-3 w-36 shadow-xl z-20">
-                      <p className="text-[9px] text-muted-foreground font-body mb-2">Volumen: {volume}%</p>
-                      <Slider value={[volume]} onValueChange={(v) => setVolume(v[0])} max={100} step={5} className="w-full" />
-                      <div className="flex justify-between mt-2">
-                        <button onClick={() => setVolume(0)} className="text-[8px] text-muted-foreground hover:text-foreground">Mute</button>
-                        <button onClick={() => setVolume(100)} className="text-[8px] text-muted-foreground hover:text-foreground">Max</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
+
                 {romLoaded && (
                   <Button size="icon" variant="ghost" onClick={togglePause}
                     className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
