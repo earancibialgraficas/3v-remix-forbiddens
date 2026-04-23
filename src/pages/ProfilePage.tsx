@@ -15,7 +15,7 @@ import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
 import SignatureDisplay from "@/components/SignatureDisplay";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 IMPORTACIÓN DEL CEREBRO DE LÍMITES 🔥
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
@@ -80,15 +80,6 @@ export default function ProfilePage() {
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-
-  // 🔥 IDENTIFICACIÓN ESTRICTA DE MEMBRESÍAS Y LÍMITES 🔥
-  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
-  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
-
-  const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
-  const canUseSignature = isStaff || userTier !== 'novato';
-  const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
 
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
@@ -381,7 +372,18 @@ export default function ProfilePage() {
     ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) 
     : "Desconocido";
     
+  const isMod = roles.includes("moderator");
+  const isStaff = isAdmin || isMasterWeb || isMod;
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
+  const maxFriends = limits.maxFriends;
+  const maxStorage = limits.storageMB;
   const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
+  
+  const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
+  const canUseSignature = isStaff || userTier !== 'novato';
+  const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
 
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
@@ -645,7 +647,6 @@ export default function ProfilePage() {
                   />
                 </div>
                 
-                {/* 🔥 GESTIÓN DE FIRMA BLOQUEADA POR MEMBRESÍA 🔥 */}
                 {canUseSignature ? (
                   <div className="space-y-2 border border-border/50 rounded p-3">
                     <label className="text-[10px] font-body text-muted-foreground block mb-0.5 uppercase tracking-tighter">
@@ -738,9 +739,6 @@ export default function ProfilePage() {
                         </div>
                       </>
                     )}
-                    <p className="text-[9px] text-muted-foreground text-center mt-2">
-                      {isStaff ? "Sin límite (Staff)" : userTier === "entusiasta" ? "Máx. 100 caracteres (texto)" : userTier === "coleccionista" ? "Máx. 150 caracteres + estilos" : "Máx. 250 caracteres + diseño completo"}
-                    </p>
                   </div>
                 ) : (
                   <p className="text-[10px] text-destructive/80 font-body p-2 border border-destructive/20 rounded bg-destructive/10 text-center">
@@ -756,7 +754,8 @@ export default function ProfilePage() {
                     Cancelar
                   </Button>
                 </div>
-              </div>) : (
+              </div>
+            ) : (
               <>
                 <div className={cn("flex items-center gap-2 flex-wrap", isMobile ? "justify-center" : "")}>
                   <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>
@@ -826,7 +825,6 @@ export default function ProfilePage() {
                     </Button>
                   )}
 
-                  {/* 🔥 BLOQUEO DE COLORES POR MEMBRESÍA 🔥 */}
                   {canUseColors && (
                     <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1">
                       <Palette className="w-3 h-3" /> Colores
@@ -1002,7 +1000,7 @@ export default function ProfilePage() {
       {activeTab === "storage" && (
         <AlmacenamientoTab 
           userId={user.id} 
-          maxStorage={limits.storageMB} 
+          maxStorage={maxStorage} 
           storageUsed={storageUsed} 
           storageItems={storageItems} 
           setStorageItems={setStorageItems} 
@@ -1018,7 +1016,6 @@ export default function ProfilePage() {
   );
 }
 
-// 🔥 COMPONENTE DE ALMACENAMIENTO CON LÍMITE 🔥
 function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
   const storagePercent = maxStorage >= 9999 ? 0 : Math.min(100, (storageUsed / maxStorage) * 100);
@@ -1036,11 +1033,6 @@ function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setS
         <div className="w-full h-3 bg-muted rounded overflow-hidden border border-border">
           <div className={cn("h-full transition-all duration-500 rounded", storagePercent > 80 ? "bg-destructive" : "bg-neon-green")} style={{ width: `${storagePercent}%` }} />
         </div>
-        {storagePercent >= 100 && (
-          <p className="text-[10px] text-destructive/80 font-body italic">
-            Almacenamiento lleno. Elimina archivos o mejora tu plan para continuar subiendo.
-          </p>
-        )}
       </div>
       
       <div className="mt-4 overflow-x-auto">
@@ -1093,7 +1085,6 @@ function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setS
   );
 }
 
-// 🔥 COMPONENTE DE AMIGOS CON LÍMITE 🔥
 function FriendsTab({ userId, limits, isStaff }: any) {
   const { toast } = useToast();
   const [friends, setFriends] = useState<any[]>([]);
@@ -1221,16 +1212,12 @@ function FriendsTab({ userId, limits, isStaff }: any) {
   );
 }
 
-// 🔥 COMPONENTE REDES SOCIALES CON LÍMITE 🔥
 function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: any) {
   const { toast } = useToast();
   const [contents, setContents] = useState<any[]>([]);
   const [newUrl, setNewUrl] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
-
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
   const fetchContents = async () => {
     const { data } = await supabase
@@ -1245,71 +1232,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
   useEffect(() => { 
     fetchContents(); 
   }, [user.id]);
-
-  useEffect(() => {
-    const fetchPreview = async () => {
-      if (!newUrl.trim() || !newUrl.startsWith("http")) {
-        setPreviewImage(null);
-        setIsFetchingPreview(false);
-        return;
-      }
-      
-      setIsFetchingPreview(true);
-      let finalUrl = null;
-
-      try {
-        const isInstagram = newUrl.includes("instagram.com");
-
-        if (isInstagram) {
-          try {
-            console.log("🚀 LLAMANDO A SUPABASE EDGE FUNCTION...");
-            const { data, error } = await supabase.functions.invoke('extract-instagram', {
-              body: { url: newUrl }
-            });
-
-            console.log("📦 RESPUESTA DE SUPABASE:", data, error);
-
-            if (error) {
-              toast({ title: "Error en Supabase", description: error.message, variant: "destructive" });
-              throw error;
-            }
-            
-            if (data?.imageUrl) {
-              console.log("✅ IMAGEN ENCONTRADA EN APIFY:", data.imageUrl);
-              finalUrl = data.imageUrl;
-            } else {
-              toast({ title: "Apify no encontró la imagen", description: JSON.stringify(data), variant: "destructive" });
-            }
-          } catch (err) {
-            console.error("❌ ERROR CRÍTICO EN EDGE FUNCTION:", err);
-            toast({ title: "Falló la extracción", description: "Revisa la consola (F12)", variant: "destructive" });
-          }
-        }
-
-        if (!finalUrl && !isInstagram) {
-          try {
-            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(newUrl)}`);
-            const fallbackData = await res.json();
-            
-            if (fallbackData.status === "success" && fallbackData.data.image?.url) {
-              finalUrl = fallbackData.data.image.url;
-            }
-          } catch (err) {
-            console.error("Error en Microlink:", err);
-          }
-        }
-        
-      } catch (e) {
-        console.error("Error crítico extrayendo preview:", e);
-      } finally {
-        setPreviewImage(finalUrl);
-        setIsFetchingPreview(false);
-      }
-    };
-
-    const timer = setTimeout(fetchPreview, 1000);
-    return () => clearTimeout(timer);
-  }, [newUrl]);
 
   const reachedLimit = !isStaff && contents.length >= limits.maxSocialContent;
 
@@ -1342,7 +1264,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
       title: newTitle.trim() || null,
       platform: platform,
       content_type: contentType,
-      thumbnail_url: previewImage, 
       is_public: true
     } as any);
     
@@ -1354,7 +1275,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
       toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
       setNewUrl("");
       setNewTitle("");
-      setPreviewImage(null);
       fetchContents();
     }
   };
@@ -1375,9 +1295,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
            <h3 className="font-pixel text-neon-cyan uppercase">Publicar en Social Hub</h3>
            <span>Límite: {contents.length} / {limits.maxSocialContent >= 999 ? "∞" : limits.maxSocialContent} posts</span>
         </div>
-        <p className="text-[10px] text-muted-foreground font-body leading-tight">
-          Pega el link de tu video, reel o foto. El sistema detectará automáticamente si va a "Videos & Reels" o al "Muro Fotográfico".
-        </p>
         <Input 
           placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
           value={newUrl} 
@@ -1390,50 +1307,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
           <p className="text-[10px] text-destructive/80 font-body italic text-center">
             Has alcanzado el límite de publicaciones de tu membresía.
           </p>
-        )}
-
-        {newUrl.trim().startsWith("http") && !reachedLimit && (
-          <div className="mt-3 p-3 border border-neon-cyan/50 rounded-xl bg-black/20 animate-fade-in flex flex-col items-center justify-center min-h-[120px]">
-            {isFetchingPreview ? (
-              <div className="flex flex-col items-center text-neon-cyan gap-2">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="text-[10px] font-pixel uppercase tracking-widest">Cargando...</span>
-              </div>
-            ) : previewImage ? (
-              <div className="w-full flex flex-col items-center gap-3">
-                <p className="text-[9px] text-neon-green font-pixel uppercase tracking-widest text-center">¡Portada Extraída con Éxito!</p>
-                <div className="w-full flex items-center justify-center p-2 bg-black rounded-lg border border-white/20 shadow-xl">
-                  <img 
-                    src={`https://wsrv.nl/?url=${encodeURIComponent(previewImage)}`} 
-                    alt="Preview" 
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
-                    style={{
-                      width: "auto", 
-                      height: "auto",
-                      maxHeight: "250px", 
-                      maxWidth: "100%",
-                      objectFit: "contain",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
-                    }}
-                    onError={(e) => {
-                      if (!e.currentTarget.src.includes('wsrv.nl')) return;
-                      e.currentTarget.src = previewImage;
-                    }}
-                  />
-                </div>
-                <p className="text-[9px] text-muted-foreground font-body text-center">
-                  Esta imagen se usará en el Muro y Feed. Cero MB gastados.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center text-muted-foreground gap-2 opacity-50">
-                <ImageIcon className="w-6 h-6" />
-                <span className="text-[9px] font-body text-center">No se pudo extraer imagen miniatura.<br/>Se usará el reproductor por defecto.</span>
-              </div>
-            )}
-          </div>
         )}
 
         <Input 
@@ -1484,6 +1357,88 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+// 🔥 NUEVO COMPONENTE: CONTENIDO BANEADO 🔥
+function BannedContentPanel() {
+  const { toast } = useToast();
+  const [bannedItems, setBannedItems] = useState<any[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetchBanned = async () => {
+    const { data: photos } = await supabase.from("photos").select("id, user_id, image_url, caption, created_at").eq("is_banned", true);
+    const { data: social } = await supabase.from("social_content").select("id, user_id, thumbnail_url, content_url, title, platform, content_type, created_at").eq("is_banned", true);
+    
+    const combined = [
+      ...(photos || []).map(p => ({ ...p, type: 'photo', display_url: p.image_url, display_title: p.caption })),
+      ...(social || []).map(s => ({ ...s, type: 'social', display_url: s.thumbnail_url || s.content_url, display_title: s.title }))
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    setBannedItems(combined);
+  };
+
+  useEffect(() => {
+    if (expanded) fetchBanned();
+  }, [expanded]);
+
+  const handleRestore = async (item: any) => {
+    const table = item.type === 'photo' ? 'photos' : 'social_content';
+    const { error } = await supabase.from(table).update({ is_banned: false }).eq("id", item.id);
+    if (!error) {
+      toast({ title: "Contenido restaurado y público nuevamente" });
+      setBannedItems(prev => prev.filter(i => i.id !== item.id));
+    } else {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (item: any) => {
+    if (!confirm("¿Eliminar permanentemente este contenido? No se puede deshacer.")) return;
+    const table = item.type === 'photo' ? 'photos' : 'social_content';
+    const { error } = await supabase.from(table).delete().eq("id", item.id);
+    if (!error) {
+      toast({ title: "Contenido eliminado definitivamente" });
+      setBannedItems(prev => prev.filter(i => i.id !== item.id));
+    } else {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="bg-card border rounded p-4 mt-4 border-destructive/30">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex justify-between font-pixel text-[10px] text-destructive uppercase items-center">
+        <span>Contenido Oculto / Baneado ({bannedItems.length})</span>
+        <span className="text-xs">{expanded ? "▲" : "▼"}</span>
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1 retro-scrollbar">
+          {bannedItems.length === 0 ? (
+             <p className="text-[10px] text-muted-foreground text-center py-2 uppercase opacity-60">No hay contenido baneado</p>
+          ) : (
+            bannedItems.map(item => (
+              <div key={item.id} className="flex gap-2 bg-muted/20 p-2 rounded border border-destructive/20 items-center">
+                <div className="w-12 h-12 bg-black shrink-0 rounded overflow-hidden flex items-center justify-center border border-white/10">
+                  {item.display_url ? (
+                    <img src={item.display_url} className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all" />
+                  ) : (
+                    <Ban className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-body text-foreground truncate">{item.display_title || "Sin título"}</p>
+                  <p className="text-[8px] text-muted-foreground uppercase">{item.type} • {new Date(item.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => handleRestore(item)} className="h-5 text-[8px] px-2 text-neon-green hover:text-neon-green hover:bg-neon-green/10 border-neon-green/30">Restaurar</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(item)} className="h-5 text-[8px] px-2">Eliminar</Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1628,8 +1583,11 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         )}
       </div>
 
+      {/* 🔥 AQUÍ LLAMAMOS AL NUEVO PANEL DE CONTENIDO BANEADO 🔥 */}
+      <BannedContentPanel />
+
       {isMasterWeb && (
-        <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3 text-center">
+        <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3 text-center mt-4">
           <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Asignar Roles</h3>
           <Input 
             placeholder="Usuario" 
