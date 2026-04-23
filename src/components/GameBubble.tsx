@@ -226,35 +226,48 @@ export default function GameBubble() {
     } catch {}
   }, [paused, romLoaded]);
 
-  // 🔥 PUENTE MAESTRO: ABRIR MENÚ NATIVO DE RETROARCH 🔥
-  const toggleEmulatorMenu = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (canvas && romLoaded) {
-      // Simulamos la pulsación de F1 (que es el botón por defecto de RetroArch Web para abrir el menú)
-      canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
-      setTimeout(() => {
-        canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
-      }, 100);
-      canvas.focus();
-    }
-  }, [romLoaded]);
+  // 🔥 NUEVO SISTEMA DE INYECCIÓN DE TECLAS PARA RETROARCH (Emscripten) 🔥
+  const sendEmulatorKey = useCallback((key: string, code: string, keyCode: number) => {
+    // Emscripten suele escuchar en el canvas directamente o en document
+    const target = canvasRef.current || document;
+    
+    // Es VITAL redefinir la propiedad keyCode porque WebAssembly la lee directamente 
+    // y los navegadores modernos ya no la mandan por defecto en eventos sintéticos.
+    const downEvent = new KeyboardEvent("keydown", { key, code, bubbles: true, cancelable: true });
+    Object.defineProperty(downEvent, "keyCode", { get: () => keyCode });
+    Object.defineProperty(downEvent, "which", { get: () => keyCode });
+    target.dispatchEvent(downEvent);
 
-  // 🔥 NUEVO: CONTROL DE VOLUMEN NATIVO 🔥
-  const adjustVolume = useCallback((direction: 'up' | 'down') => {
-    const canvas = canvasRef.current;
-    if (canvas && romLoaded) {
-      // Usamos el código de la tecla de suma (+) y resta (-) del Numpad que controla el volumen de RetroArch
-      const key = direction === 'up' ? '+' : '-';
-      const code = direction === 'up' ? 'NumpadAdd' : 'NumpadSubtract';
-      const keyCode = direction === 'up' ? 107 : 109;
-      
-      canvas.dispatchEvent(new KeyboardEvent('keydown', { key, code, keyCode, bubbles: true }));
-      setTimeout(() => {
-        canvas.dispatchEvent(new KeyboardEvent('keyup', { key, code, keyCode, bubbles: true }));
-      }, 50);
-      canvas.focus();
+    // Simulamos la liberación de la tecla 50ms después
+    setTimeout(() => {
+      const upEvent = new KeyboardEvent("keyup", { key, code, bubbles: true, cancelable: true });
+      Object.defineProperty(upEvent, "keyCode", { get: () => keyCode });
+      Object.defineProperty(upEvent, "which", { get: () => keyCode });
+      target.dispatchEvent(upEvent);
+    }, 50);
+  }, []);
+
+  const toggleEmulatorMenu = useCallback(() => {
+    if (romLoaded) {
+      // F1 (KeyCode 112) abre el Menú Nativo de RetroArch Web
+      sendEmulatorKey("F1", "F1", 112);
+      setTimeout(() => canvasRef.current?.focus(), 100);
     }
-  }, [romLoaded]);
+  }, [romLoaded, sendEmulatorKey]);
+
+  const adjustVolume = useCallback((direction: 'up' | 'down') => {
+    if (romLoaded) {
+      if (direction === 'up') {
+        // En RetroArch, Volume Up es la tecla NumpadAdd (+) o la tecla (+) normal
+        sendEmulatorKey("+", "NumpadAdd", 107);
+        setTimeout(() => sendEmulatorKey("+", "Equal", 187), 60); 
+      } else {
+        // En RetroArch, Volume Down es la tecla NumpadSubtract (-) o la tecla (-) normal
+        sendEmulatorKey("-", "NumpadSubtract", 109);
+        setTimeout(() => sendEmulatorKey("-", "Minus", 189), 60);
+      }
+    }
+  }, [romLoaded, sendEmulatorKey]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -576,7 +589,7 @@ export default function GameBubble() {
             {!minimized && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
+                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar)
                 </p>
               </div>
             )}
