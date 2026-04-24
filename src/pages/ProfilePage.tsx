@@ -80,6 +80,7 @@ export default function ProfilePage() {
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]); // 🔥 ESTADO PARA LAS SOLICITUDES DE AMISTAD
 
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
@@ -124,6 +125,31 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     
+    // 🔥 FUNCIÓN PARA RESCATAR LAS SOLICITUDES DE AMISTAD 🔥
+    const fetchPendingRequests = async () => {
+      const { data } = await supabase
+        .from("friend_requests")
+        .select("id, sender_id, created_at, status")
+        .eq("receiver_id", user.id)
+        .neq("status", "accepted"); // Traemos las que no han sido aceptadas
+
+      if (data && data.length > 0) {
+        const ids = data.map((r: any) => r.sender_id);
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+          .in("user_id", ids);
+
+        setPendingRequests(data.map((r: any) => ({
+          ...r,
+          profile: profs?.find((p: any) => p.user_id === r.sender_id)
+        })));
+      } else {
+        setPendingRequests([]);
+      }
+    };
+    fetchPendingRequests();
+
     supabase
       .from("posts")
       .select("*")
@@ -246,6 +272,27 @@ export default function ProfilePage() {
       markAsRead();
     }
   }, [activeTab, user]);
+
+  // 🔥 BOTONES PARA ACEPTAR Y RECHAZAR AMISTAD 🔥
+  const handleAcceptRequest = async (reqId: string) => {
+    const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId);
+    if (!error) {
+      toast({ title: "¡Solicitud aceptada!" });
+      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+    } else {
+      toast({ title: "Error al aceptar", variant: "destructive" });
+    }
+  };
+
+  const handleRejectRequest = async (reqId: string) => {
+    const { error } = await supabase.from("friend_requests").delete().eq("id", reqId);
+    if (!error) {
+      toast({ title: "Solicitud rechazada" });
+      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+    } else {
+      toast({ title: "Error al rechazar", variant: "destructive" });
+    }
+  };
 
   const updateSig = (patch: Record<string, any>) => {
     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
@@ -372,7 +419,8 @@ export default function ProfilePage() {
     ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) 
     : "Desconocido";
     
-  const isMod = roles.includes("moderator");
+  // 🔥 SEGURO ANTI-CRASH APLICADO AQUÍ 🔥
+  const isMod = (roles || []).includes("moderator");
   const isStaff = isAdmin || isMasterWeb || isMod;
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
@@ -868,9 +916,40 @@ export default function ProfilePage() {
       {activeTab === "avisos" && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left">
-            MIS AVISOS ({notifications.length})
+            MIS AVISOS ({notifications.length + pendingRequests.length})
           </h3>
-          {notifications.length === 0 ? (
+
+          {/* 🔥 BLOQUE DE SOLICITUDES DE AMISTAD 🔥 */}
+          {pendingRequests.length > 0 && (
+            <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
+              <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
+              {pendingRequests.map(req => (
+                <div key={req.id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden border border-border/50 shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
+                      {req.profile?.avatar_url ? (
+                        <img src={req.profile.avatar_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-full h-full text-muted-foreground p-1.5" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <Link to={`/usuario/${req.sender_id}`} className="text-xs font-body font-bold hover:underline transition-colors" style={getNameStyle(req.profile?.color_name)}>
+                        {req.profile?.display_name || "Usuario"}
+                      </Link>
+                      <span className="text-[9px] text-muted-foreground font-body">Quiere ser tu amigo</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" onClick={() => handleAcceptRequest(req.id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {notifications.length === 0 && pendingRequests.length === 0 ? (
             <p className="text-xs text-muted-foreground font-body text-center md:text-left">No tienes avisos recientes</p>
           ) : (
             <div className="space-y-2">
