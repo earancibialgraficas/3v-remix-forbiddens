@@ -13,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
+// 🔥 ANIMACIÓN DE GOMA SEGURA (SIN CRASHEOS) 🔥
 const jellyStyles = `
   @keyframes jelly-pop-safe {
     0% { transform: scale(0.85); opacity: 0; }
@@ -56,9 +57,10 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 RESTAURADO EXACTAMENTE COMO LO TENÍAS AYER 🔥
-const getProxyUrl = (url: string) => {
+// 🔥 HACK DEFINITIVO DE IMÁGENES 🔥
+const getSafeUrl = (url: string) => {
   if (!url) return '';
+  if (url.includes('supabase.co')) return url; // Carga directa y rápida para tus fotos
   if (url.includes('wsrv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
@@ -94,17 +96,17 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
-        {/* 🔥 IMÁGENES EXACTAMENTE COMO AYER 🔥 */}
+        {/* 🔥 SIN CROSSORIGIN PARA EVITAR BLOQUEO DE NAVEGADOR 🔥 */}
         <img 
-          src={getProxyUrl(targetUrl)} 
+          src={getSafeUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
-            if (!e.currentTarget.src.includes('wsrv.nl')) return;
-            e.currentTarget.src = targetUrl;
+            if (e.currentTarget.src !== targetUrl) {
+              e.currentTarget.src = targetUrl;
+            }
           }}
         />
         
@@ -177,7 +179,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const handleSubmitComment = async () => {
     if (!user || !commentText.trim()) return;
     
-    // 🔥 LÍMITES DE MEMBRESÍA EN LOS COMENTARIOS 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, variant: "destructive" });
       return;
@@ -225,9 +226,15 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
            <img 
-             src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+             src={getSafeUrl(targetUrl)} 
+             alt={photo.caption} 
+             referrerPolicy="no-referrer"
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-             onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
+             onError={(e) => { 
+               if (e.currentTarget.src !== targetUrl) {
+                 e.currentTarget.src = targetUrl;
+               }
+             }}
            />
         )}
       </div>
@@ -338,7 +345,7 @@ export default function PhotoWallPage() {
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
-    // 🔥 CÁLCULO DE HUSO HORARIO DINÁMICO DE SANTIAGO DE CHILE 🔥
+    // 🔥 CÁLCULO DE HUSO HORARIO DINÁMICO (SANTIAGO DE CHILE) 🔥
     const getChileMidnightISO = () => {
       const now = new Date();
       const santiagoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
