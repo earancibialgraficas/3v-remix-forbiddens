@@ -362,7 +362,6 @@ export default function PhotoWallPage() {
     
     setDailyApifyCount((count || 0) + 4);
 
-    // 🔥 FIX: QUITAR `.neq('is_banned', true)` QUE ROMPE LA DB 🔥
     const { data: photosRes, error: pErr } = await supabase.from("photos")
       .select("*")
       .order("created_at", { ascending: false })
@@ -376,7 +375,6 @@ export default function PhotoWallPage() {
 
     let combined: any[] = [];
     
-    // 🔥 FIX: Filtrar por baneos usando JavaScript (seguro, nunca crashea) 🔥
     if (photosRes) {
       const visiblePhotos = photosRes.filter((p: any) => p.is_banned !== true);
       combined = [...combined, ...visiblePhotos.map((p: any) => ({ ...p, target_type: 'photo' }))];
@@ -455,23 +453,71 @@ export default function PhotoWallPage() {
     setUploading(false);
   };
 
+  // 🔥 INTERFAZ OPTIMISTA (Sin Delays) 🔥
   const handleReaction = async (itemId: string, type: string, targetType: string) => {
     if (!user) return;
     const table = targetType === "photo" ? "photos" : "social_content";
     const current = photos.find(p => p.id === itemId);
     if (!current) return;
     
-    let newLikes = current.likes || 0;
-    if (userReactions[itemId] === type) {
-      await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
-      newLikes = type === "like" ? newLikes - 1 : newLikes;
+    const prevReaction = userReactions[itemId];
+    const prevLikes = current.likes || 0;
+    const prevDislikes = current.dislikes || 0;
+
+    let newLikes = prevLikes;
+    let newDislikes = prevDislikes;
+    let newReaction: string | null = type;
+
+    if (prevReaction === type) {
+      newReaction = null;
+      if (type === "like") newLikes--; else newDislikes--;
     } else {
-      await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
-      newLikes = type === "like" ? newLikes + 1 : (userReactions[itemId] === "like" ? newLikes - 1 : newLikes);
+      if (type === "like") {
+        newLikes++;
+        if (prevReaction === "dislike") newDislikes--;
+      } else {
+        newDislikes++;
+        if (prevReaction === "like") newLikes--;
+      }
     }
+
+    newLikes = Math.max(0, newLikes);
+    newDislikes = Math.max(0, newDislikes);
+
+    // Actualización INMEDIATA de la UI (Caché local)
+    setUserReactions(prev => {
+      const next = { ...prev };
+      if (newReaction) next[itemId] = newReaction;
+      else delete next[itemId];
+      return next;
+    });
+
+    setPhotos(prev => prev.map(p => {
+      if (p.id === itemId) return { ...p, likes: newLikes, dislikes: newDislikes };
+      return p;
+    }));
     
-    await supabase.from(table).update({ likes: Math.max(0, newLikes) }).eq("id", itemId);
-    fetchPhotosAndDaily();
+    // Petición al servidor (Silenciosa)
+    try {
+      if (prevReaction === type) {
+        await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
+      } else {
+        await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
+      }
+      await supabase.from(table).update({ likes: newLikes, dislikes: newDislikes }).eq("id", itemId);
+    } catch (err) {
+      // Revertir si el servidor falla
+      setUserReactions(prev => {
+        const next = { ...prev };
+        if (prevReaction) next[itemId] = prevReaction;
+        else delete next[itemId];
+        return next;
+      });
+      setPhotos(prev => prev.map(p => {
+        if (p.id === itemId) return { ...p, likes: prevLikes, dislikes: prevDislikes };
+        return p;
+      }));
+    }
   };
 
   const handleHide = async (id: string, targetType: string) => {
