@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 HACK DE PROXY PARA IMÁGENES 🔥
+// 🔥 HACK DE PROXY PARA IMÁGENES (PARA POSTS DE IG) 🔥
 const getSafeUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('supabase.co')) return url;
@@ -66,6 +66,10 @@ const getAdvancedEmbedUrl = (url: string, platform: string) => {
     const match = url.match(/video\/(\d+)/);
     if (match && match[1]) return `https://www.tiktok.com/embed/v2/${match[1]}`;
   }
+  if (lowerUrl.includes("instagram.com")) {
+    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
+    if (match && match[1]) return `https://www.instagram.com/p/${match[1]}/embed/?hidecaption=true`;
+  }
   if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
     const encodedUrl = encodeURIComponent(url);
     return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
@@ -105,7 +109,7 @@ function SnapCard({
   const { user, profile } = useAuth();
   const { toast } = useToast();
   
-  // 🔥 APLICAMOS LÍMITES DE MEMBRESÍA PARA LOS COMENTARIOS 🔥
+  // 🔥 LÍMITES DE MEMBRESÍA PARA LOS COMENTARIOS 🔥
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
@@ -113,9 +117,11 @@ function SnapCard({
   const isVideo = isVideoItem(item);
   const isDirectMp4 = item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
   
-  // 🔥 ELIMINAMOS EL FEO IFRAME DE INSTAGRAM FORZÁNDOLO A SER IMAGEN 🔥
+  // 🔥 REVERTIDO: Distinguimos Reels de Posts para Instagram 🔥
   const isInstagram = item.platform === 'instagram';
-  const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.content_type === 'post' || item.platform === 'upload' || isInstagram || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
+  const isInstagramReel = isInstagram && item.content_type === 'reel';
+  // Solo tratamos como foto los posts de Instagram, no los Reels (que irán al iframe)
+  const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
   const targetType = item.target_type || "social_content";
   
@@ -139,8 +145,8 @@ function SnapCard({
   };
 
   useEffect(() => {
-    if (isVisible && isVideo && !isInstagram) onPauseMusic();
-  }, [isVisible, isVideo, isInstagram]);
+    if (isVisible && isVideo) onPauseMusic();
+  }, [isVisible, isVideo]);
 
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
@@ -237,6 +243,7 @@ function SnapCard({
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
     
+    // 🔥 LÍMITE DE CARACTERES EN COMENTARIOS SEGÚN MEMBRESÍA 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" });
       return;
@@ -290,10 +297,10 @@ function SnapCard({
                 }
               }}
             />
-            {item.content_type === 'reel' && isInstagram && (
+            {isInstagram && (
               <a href={item.content_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover/ig:opacity-100 transition-opacity md:rounded-xl">
-                <PlayCircle className="w-16 h-16 text-white mb-2" />
-                <span className="text-white font-pixel text-[10px] uppercase tracking-widest text-center px-4">Ver Reel en Instagram</span>
+                <Instagram className="w-12 h-12 text-white mb-2" />
+                <span className="text-white font-pixel text-[10px] uppercase tracking-widest text-center px-4">Ver en Instagram</span>
               </a>
             )}
           </div>
@@ -302,7 +309,7 @@ function SnapCard({
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            <iframe src={finalEmbedUrl} className="w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl" style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
