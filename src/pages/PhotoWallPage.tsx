@@ -56,6 +56,12 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+const getProxyUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('wsrv.nl')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
 const getPhotoNeonStyle = (photo: any) => {
@@ -87,16 +93,17 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
-        {/* 🔥 IMAGEN RESTAURADA A SU ESTADO ORIGINAL PERFECTO 🔥 */}
+        
         <img 
-          src={targetUrl} 
+          src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
-            if (!e.currentTarget.src.includes('wsrv.nl')) {
-              e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
-            }
+            if (!e.currentTarget.src.includes('wsrv.nl')) return;
+            e.currentTarget.src = targetUrl;
           }}
         />
         
@@ -169,7 +176,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const handleSubmitComment = async () => {
     if (!user || !commentText.trim()) return;
     
-    // 🔥 LÍMITE DE CARACTERES EN COMENTARIOS SEGÚN MEMBRESÍA 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, variant: "destructive" });
       return;
@@ -205,7 +211,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       )}
       style={neonStyle}
     >
-      {/* LADO IZQUIERDO: IMAGEN */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[45vh] min-h-[400px]">
         <a 
           href={originalUrl} target="_blank" rel="noopener noreferrer" 
@@ -217,21 +222,14 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
-           /* 🔥 IMAGEN RESTAURADA A SU ESTADO ORIGINAL PERFECTO 🔥 */
            <img 
-             src={targetUrl} 
-             alt={photo.caption} 
+             src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-             onError={(e) => { 
-               if (!e.currentTarget.src.includes('wsrv.nl')) {
-                 e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
-               }
-             }}
+             onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
            />
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[45vh] min-h-[400px]">
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
@@ -364,24 +362,29 @@ export default function PhotoWallPage() {
     
     setDailyApifyCount((count || 0) + 4);
 
-    const { data: photosRes } = await supabase.from("photos")
+    // 🔥 FIX: QUITAR `.neq('is_banned', true)` QUE ROMPE LA DB 🔥
+    const { data: photosRes, error: pErr } = await supabase.from("photos")
       .select("*")
-      .neq('is_banned', true)
       .order("created_at", { ascending: false })
       .limit(50);
       
-    const { data: socialRes } = await supabase.from("social_content")
+    const { data: socialRes, error: sErr } = await supabase.from("social_content")
       .select("*")
       .eq("is_public", true)
-      .neq('is_banned', true)
       .order("created_at", { ascending: false })
       .limit(50);
 
     let combined: any[] = [];
-    if (photosRes) combined = [...combined, ...photosRes.map((p: any) => ({ ...p, target_type: 'photo' }))];
+    
+    // 🔥 FIX: Filtrar por baneos usando JavaScript (seguro, nunca crashea) 🔥
+    if (photosRes) {
+      const visiblePhotos = photosRes.filter((p: any) => p.is_banned !== true);
+      combined = [...combined, ...visiblePhotos.map((p: any) => ({ ...p, target_type: 'photo' }))];
+    }
     
     if (socialRes) {
-      const socialImages = socialRes.filter((item: any) => !isVideoItem(item)).map((item: any) => ({
+      const visibleSocial = socialRes.filter((s: any) => s.is_banned !== true);
+      const socialImages = visibleSocial.filter((item: any) => !isVideoItem(item)).map((item: any) => ({
         ...item, id: item.id, target_type: 'social_content', image_url: item.thumbnail_url || item.content_url, caption: item.title || "", platform: item.platform
       }));
       combined = [...combined, ...socialImages];
