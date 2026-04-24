@@ -57,12 +57,6 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-const getProxyUrl = (url: string) => {
-  if (!url) return '';
-  if (url.includes('wsrv.nl')) return url;
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
-};
-
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
 const getPhotoNeonStyle = (photo: any) => {
@@ -93,17 +87,17 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
       style={neonStyle}
       onClick={onExpand}
     >
-      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black">
+      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
+        {/* 🔥 FIX IMÁGENES: Carga directa, proxy solo en caso de error 🔥 */}
         <img 
-          src={getProxyUrl(targetUrl)} 
+          src={targetUrl} 
           alt={photo.caption || "Foto"} 
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
-            if (!e.currentTarget.src.includes('wsrv.nl')) return;
-            e.currentTarget.src = targetUrl;
+            if (!e.currentTarget.src.includes('wsrv.nl')) {
+              e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
+            }
           }}
         />
         
@@ -224,10 +218,16 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
+           /* 🔥 FIX IMÁGENES: Carga directa, proxy en error 🔥 */
            <img 
-             src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+             src={targetUrl} 
+             alt={photo.caption} 
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-             onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
+             onError={(e) => { 
+               if (!e.currentTarget.src.includes('wsrv.nl')) {
+                 e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
+               }
+             }}
            />
         )}
       </div>
@@ -340,10 +340,21 @@ export default function PhotoWallPage() {
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
+    // 🔥 FIX: CÁLCULO DE HUSO HORARIO DINÁMICO (SANTIAGO DE CHILE) 🔥
     const getChileMidnightISO = () => {
-      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' });
-      const chileDateStr = formatter.format(new Date()); 
-      return `${chileDateStr}T00:00:00-04:00`; 
+      const now = new Date();
+      const santiagoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+      const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+      
+      const offsetHours = Math.round((santiagoTime.getTime() - utcTime.getTime()) / 3600000);
+      const offsetSign = offsetHours >= 0 ? '+' : '-';
+      const offsetStr = `${offsetSign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`;
+      
+      const year = santiagoTime.getFullYear();
+      const month = String(santiagoTime.getMonth() + 1).padStart(2, '0');
+      const day = String(santiagoTime.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T00:00:00${offsetStr}`;
     };
     
     const midnightChile = getChileMidnightISO();
@@ -399,7 +410,6 @@ export default function PhotoWallPage() {
       reactions?.forEach((r: any) => { rMap[r.target_id] = r.reaction_type; });
       setUserReactions(rMap);
       
-      // 🔥 OBTENEMOS CUÁNTAS FOTOS HA SUBIDO EL USUARIO EN TOTAL 🔥
       supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id).then(({ count }) => setUserPhotoCount(count || 0));
     }
   };
@@ -409,7 +419,6 @@ export default function PhotoWallPage() {
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
     
-    // 🔥 LÓGICA DE BLOQUEO POR MEMBRESÍA 🔥
     if (!isStaff && userPhotoCount >= limits.maxPhotos) {
       toast({ 
         title: "Límite de Membresía Alcanzado", 
@@ -484,7 +493,6 @@ export default function PhotoWallPage() {
   const displayPhotos = sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
 
-  // 🔥 VARIABLE DE BLOQUEO DE BOTÓN 🔥
   const reachedPhotoLimit = !isStaff && userPhotoCount >= limits.maxPhotos;
   const reachedDailyLimit = !isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT;
 
@@ -520,7 +528,6 @@ export default function PhotoWallPage() {
           <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
         </div>
         
-        {/* 🔥 BOTÓN CON ESTADO DINÁMICO DE LÍMITES 🔥 */}
         <Button 
           size="sm" 
           className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" 
@@ -547,7 +554,6 @@ export default function PhotoWallPage() {
         </div>
       )}
 
-      {/* 🔥 GRILLA PINTEREST CLÁSICA 🔥 */}
       <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
         {displayPhotos.map(photo => {
           const isExpanded = expandedPhotoId === photo.id;
@@ -568,7 +574,7 @@ export default function PhotoWallPage() {
                     onSave={handleSaveToProfile}
                     userReaction={userReactions[photo.id]}
                     isStaff={isStaff}
-                    limits={limits} // 🔥 PASAMOS LOS LÍMITES A LA TARJETA EXPANDIDA 🔥
+                    limits={limits} 
                   />
                 </div>
               ) : (
