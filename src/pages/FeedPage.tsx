@@ -10,6 +10,15 @@ import { Link } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+
+// 🔥 HACK DE PROXY PARA IMÁGENES 🔥
+const getSafeUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('supabase.co')) return url;
+  if (url.includes('wsrv.nl')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
 
 interface FeedItem {
   id: string;
@@ -19,7 +28,7 @@ interface FeedItem {
   image_url?: string;
   content_type: string;
   title: string | null;
-  caption?: string | null; // 🔥 ESTO SOLUCIONA EL ERROR DE TYPESCRIPT 🔥
+  caption?: string | null; 
   thumbnail_url: string | null;
   is_public: boolean;
   created_at: string;
@@ -57,10 +66,6 @@ const getAdvancedEmbedUrl = (url: string, platform: string) => {
     const match = url.match(/video\/(\d+)/);
     if (match && match[1]) return `https://www.tiktok.com/embed/v2/${match[1]}`;
   }
-  if (lowerUrl.includes("instagram.com")) {
-    const match = url.match(/(?:p|reel)\/([^/?#&]+)/);
-    if (match && match[1]) return `https://www.instagram.com/p/${match[1]}/embed/?hidecaption=true`;
-  }
   if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch")) {
     const encodedUrl = encodeURIComponent(url);
     return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
@@ -97,12 +102,21 @@ function SnapCard({
   onScrollUp: () => void;
   onScrollDown: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
+  
+  // 🔥 APLICAMOS LÍMITES DE MEMBRESÍA PARA LOS COMENTARIOS 🔥
+  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
   const embedUrl = getAdvancedEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
   const isDirectMp4 = item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
-  const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
+  
+  // 🔥 ELIMINAMOS EL FEO IFRAME DE INSTAGRAM FORZÁNDOLO A SER IMAGEN 🔥
+  const isInstagram = item.platform === 'instagram';
+  const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.content_type === 'post' || item.platform === 'upload' || isInstagram || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
+  
   const targetType = item.target_type || "social_content";
   
   const [scale, setScale] = useState(1);
@@ -120,17 +134,13 @@ function SnapCard({
 
   const getBaseSize = (platform: string, cType: string, url: string) => {
     if (platform === 'tiktok') return { w: 340, h: 605 };
-    if (platform === 'instagram') {
-      if (cType === 'reel' || url?.includes('/reel')) return { w: 340, h: 605 };
-      return { w: 400, h: 500 }; 
-    }
     if (cType === 'reel' || url?.includes('shorts')) return { w: 324, h: 576 };
     return { w: 640, h: 360 };
   };
 
   useEffect(() => {
-    if (isVisible && isVideo) onPauseMusic();
-  }, [isVisible, isVideo]);
+    if (isVisible && isVideo && !isInstagram) onPauseMusic();
+  }, [isVisible, isVideo, isInstagram]);
 
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
@@ -226,6 +236,12 @@ function SnapCard({
 
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
+    
+    if (commentText.length > limits.maxForumChars) {
+      toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" });
+      return;
+    }
+    
     try {
       const { error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
@@ -255,19 +271,38 @@ function SnapCard({
     : embedUrl;
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
+  const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       <div ref={videoContainerRef} className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0 flex items-center justify-center">
         
         {isPhoto ? (
-          <img src={item.image_url || item.thumbnail_url || item.content_url} alt={item.title || "Imagen"} className="w-full h-full object-contain p-2" />
+          <div className="relative w-full h-full flex items-center justify-center group/ig">
+            <img 
+              src={getSafeUrl(targetImgUrl)} 
+              alt={item.title || "Imagen"} 
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-contain p-2" 
+              onError={(e) => {
+                if (e.currentTarget.src !== targetImgUrl) {
+                  e.currentTarget.src = targetImgUrl;
+                }
+              }}
+            />
+            {item.content_type === 'reel' && isInstagram && (
+              <a href={item.content_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover/ig:opacity-100 transition-opacity md:rounded-xl">
+                <PlayCircle className="w-16 h-16 text-white mb-2" />
+                <span className="text-white font-pixel text-[10px] uppercase tracking-widest text-center px-4">Ver Reel en Instagram</span>
+              </a>
+            )}
+          </div>
         ) : isDirectMp4 ? (
           <video src={item.content_url} controls autoPlay={isVisible} muted className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            <iframe src={finalEmbedUrl} className="w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl" style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
@@ -378,7 +413,14 @@ function SnapCard({
                    </div>
                 )}
                 <div className="flex gap-1">
-                  <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleComment(); }} placeholder="Comentar..." className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" />
+                  <input 
+                    value={commentText} 
+                    onChange={e => setCommentText(e.target.value)} 
+                    onKeyDown={e => { if (e.key === "Enter") handleComment(); }} 
+                    placeholder={`Comentar... (Máx ${limits.maxForumChars})`} 
+                    maxLength={limits.maxForumChars}
+                    className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
+                  />
                   <button onClick={handleComment} disabled={!commentText.trim()} className="px-2 rounded bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 disabled:opacity-50 transition-colors shrink-0"><Send className="w-3 h-3" /></button>
                 </div>
               </div>
