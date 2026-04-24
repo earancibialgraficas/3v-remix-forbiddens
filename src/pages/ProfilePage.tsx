@@ -80,7 +80,7 @@ export default function ProfilePage() {
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [savingColors, setSavingColors] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]); // 🔥 ESTADO PARA LAS SOLICITUDES DE AMISTAD
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
@@ -122,33 +122,69 @@ export default function ProfilePage() {
     }
   }, [profile, editing]);
 
+  // 🔥 FUNCIONES DE EXTRACCIÓN (SEPARADAS PARA LLAMARLAS AL CAMBIAR DE PESTAÑA) 🔥
+  const fetchNotifs = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (data) setNotifications(data);
+  };
+
+  const fetchPendingRequests = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("friend_requests")
+      .select("sender_id, created_at, status")
+      .eq("receiver_id", user.id)
+      .neq("status", "accepted");
+
+    if (error) {
+      console.error("Error al obtener solicitudes", error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const ids = data.map((r: any) => r.sender_id);
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+        .in("user_id", ids);
+
+      setPendingRequests(data.map((r: any) => ({
+        ...r,
+        profile: profs?.find((p: any) => p.user_id === r.sender_id)
+      })));
+    } else {
+      setPendingRequests([]);
+    }
+  };
+
+  // 🔥 REFRESCO AUTOMÁTICO AL ENTRAR EN AVISOS 🔥
+  useEffect(() => {
+    if (activeTab === "avisos" && user) {
+      fetchNotifs();
+      fetchPendingRequests();
+      
+      const markAsRead = async () => {
+        await supabase
+          .from("notifications")
+          .update({ is_read: true } as any)
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+          
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
+      };
+      markAsRead();
+    }
+  }, [activeTab, user]);
+
+  // CARGA DE DATOS PRINCIPALES DEL PERFIL
   useEffect(() => {
     if (!user) return;
-    
-    // 🔥 FUNCIÓN PARA RESCATAR LAS SOLICITUDES DE AMISTAD 🔥
-    const fetchPendingRequests = async () => {
-      const { data } = await supabase
-        .from("friend_requests")
-        .select("id, sender_id, created_at, status")
-        .eq("receiver_id", user.id)
-        .neq("status", "accepted"); // Traemos las que no han sido aceptadas
-
-      if (data && data.length > 0) {
-        const ids = data.map((r: any) => r.sender_id);
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-          .in("user_id", ids);
-
-        setPendingRequests(data.map((r: any) => ({
-          ...r,
-          profile: profs?.find((p: any) => p.user_id === r.sender_id)
-        })));
-      } else {
-        setPendingRequests([]);
-      }
-    };
-    fetchPendingRequests();
 
     supabase
       .from("posts")
@@ -188,17 +224,6 @@ export default function ProfilePage() {
       .eq("follower_id", user.id)
       .then(({ count }) => setFollowingCount(count || 0));
     
-    const fetchNotifs = async () => {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(30);
-      if (data) setNotifications(data);
-    };
-    fetchNotifs();
-
     const loadStorage = async () => {
       const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
       
@@ -258,37 +283,33 @@ export default function ProfilePage() {
     loadStorage();
   }, [user]);
 
-  useEffect(() => {
-    if (activeTab === "avisos" && user) {
-      const markAsRead = async () => {
-        await supabase
-          .from("notifications")
-          .update({ is_read: true } as any)
-          .eq("user_id", user.id)
-          .eq("is_read", false);
-          
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
-      };
-      markAsRead();
-    }
-  }, [activeTab, user]);
-
-  // 🔥 BOTONES PARA ACEPTAR Y RECHAZAR AMISTAD 🔥
-  const handleAcceptRequest = async (reqId: string) => {
-    const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId);
+  // 🔥 BOTONES BLINDADOS PARA ACEPTAR Y RECHAZAR AMISTAD 🔥
+  const handleAcceptRequest = async (senderId: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("friend_requests")
+      .update({ status: "accepted" } as any)
+      .eq("sender_id", senderId)
+      .eq("receiver_id", user.id);
+      
     if (!error) {
       toast({ title: "¡Solicitud aceptada!" });
-      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+      setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
+      if (activeTab === "friends") window.location.reload();
     } else {
       toast({ title: "Error al aceptar", variant: "destructive" });
     }
   };
 
-  const handleRejectRequest = async (reqId: string) => {
-    const { error } = await supabase.from("friend_requests").delete().eq("id", reqId);
+  const handleRejectRequest = async (senderId: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("friend_requests")
+      .delete()
+      .eq("sender_id", senderId)
+      .eq("receiver_id", user.id);
+      
     if (!error) {
       toast({ title: "Solicitud rechazada" });
-      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+      setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
     } else {
       toast({ title: "Error al rechazar", variant: "destructive" });
     }
@@ -419,11 +440,11 @@ export default function ProfilePage() {
     ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) 
     : "Desconocido";
     
-  // 🔥 SEGURO ANTI-CRASH APLICADO AQUÍ 🔥
+  // 🔥 SEGURO ANTI-CRASH AL RECARGAR PÁGINA (F5) 🔥
   const isMod = (roles || []).includes("moderator");
   const isStaff = isAdmin || isMasterWeb || isMod;
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : (MEMBERSHIP_LIMITS[userTier] || MEMBERSHIP_LIMITS.novato);
 
   const maxFriends = limits.maxFriends;
   const maxStorage = limits.storageMB;
@@ -810,7 +831,7 @@ export default function ProfilePage() {
                     {profile?.display_name}
                   </h2>
                   <RoleBadge 
-                    roles={roles} 
+                    roles={roles || []} 
                     roleIcon={profile?.role_icon} 
                     showIcon={profile?.show_role_icon !== false} 
                     colorStaffRole={profile?.color_staff_role} 
@@ -879,7 +900,7 @@ export default function ProfilePage() {
                     </Button>
                   )}
                   
-                  {isStaff && !roles.includes("moderator") && (
+                  {isStaff && !(roles || []).includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
                       <span>{profile?.role_icon || "⭐"}</span> Icono Rol
                     </Button>
@@ -919,12 +940,12 @@ export default function ProfilePage() {
             MIS AVISOS ({notifications.length + pendingRequests.length})
           </h3>
 
-          {/* 🔥 BLOQUE DE SOLICITUDES DE AMISTAD 🔥 */}
+          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD (CON BOTONES) 🔥 */}
           {pendingRequests.length > 0 && (
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
               {pendingRequests.map(req => (
-                <div key={req.id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
+                <div key={req.sender_id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-muted overflow-hidden border border-border/50 shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                       {req.profile?.avatar_url ? (
@@ -941,8 +962,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button size="sm" onClick={() => handleAcceptRequest(req.id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                    <Button size="sm" onClick={() => handleAcceptRequest(req.sender_id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.sender_id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
                   </div>
                 </div>
               ))}
@@ -1243,7 +1264,7 @@ function FriendsTab({ userId, limits, isStaff }: any) {
                onClick={async () => { 
                   await supabase
                     .from("friend_requests")
-                    .insert({ sender_id: userId, receiver_id: r.user_id }); 
+                    .insert({ sender_id: userId, receiver_id: r.user_id, status: 'pending' }); 
                   toast({ title: "Solicitud enviada" }); 
                   setRes([]);
                   setSearch("");
@@ -1440,7 +1461,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
   );
 }
 
-// 🔥 NUEVO COMPONENTE: CONTENIDO BANEADO 🔥
 function BannedContentPanel() {
   const { toast } = useToast();
   const [bannedItems, setBannedItems] = useState<any[]>([]);
@@ -1662,7 +1682,6 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         )}
       </div>
 
-      {/* 🔥 AQUÍ LLAMAMOS AL NUEVO PANEL DE CONTENIDO BANEADO 🔥 */}
       <BannedContentPanel />
 
       {isMasterWeb && (
