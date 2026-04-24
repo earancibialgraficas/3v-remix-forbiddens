@@ -8,6 +8,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+// 🔥 HACK MAESTRO DE AUDIO: Intercepta la Web Audio API globalmente 🔥
+// Esto obliga al emulador a pasar por nuestro control de volumen antes de sonar.
+if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
+  (window as any).__audioDestPatched = true;
+  (window as any).__masterVolume = 1.0;
+  (window as any).__masterGains = new Set();
+
+  const OrigConnect = AudioNode.prototype.connect;
+  
+  AudioNode.prototype.connect = function (...args: any[]) {
+    const destination = args[0];
+    
+    // Si el emulador intenta enviar sonido a la salida final (parlantes)
+    if (destination === this.context.destination) {
+      const ctx = this.context as any;
+      if (!ctx.__masterGain) {
+        const gain = ctx.createGain();
+        gain.gain.value = (window as any).__masterVolume;
+        (window as any).__masterGains.add(gain);
+        ctx.__masterGain = gain;
+        // Conectamos nuestro filtro a los parlantes
+        OrigConnect.call(gain, destination);
+      }
+      // Conectamos el juego a nuestro filtro
+      return OrigConnect.call(this, ctx.__masterGain);
+    }
+    
+    return OrigConnect.call(this, ...args);
+  };
+}
+
 const consoleIcons: Record<string, string> = {
   nes: "🎮",
   snes: "🕹️",
@@ -47,9 +78,9 @@ export default function GameBubble() {
   const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   const [paused, setPaused] = useState(false);
-  
-  // 🔥 ESTADO DEL DESLIZADOR DE VOLUMEN NATIVO HTML5 🔥
-  const [volume, setVolume] = useState(1); // De 0 a 1
+
+  // 🔥 ESTADO DEL DESLIZADOR DE VOLUMEN NATIVO 🔥
+  const [volume, setVolume] = useState(1); // 0 a 1
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -74,6 +105,18 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
+  // Aplicar volumen maestro
+  const handleVolumeChange = (newVol: number) => {
+    setVolume(newVol);
+    (window as any).__masterVolume = newVol;
+    (window as any).__masterGains.forEach((gainNode: any) => {
+      if (gainNode && gainNode.gain) {
+        gainNode.gain.value = newVol;
+      }
+    });
+  };
+
+  // Detección de AFK
   useEffect(() => {
     const onInput = () => {
       lastInputRef.current = Date.now();
@@ -229,7 +272,7 @@ export default function GameBubble() {
     } catch {}
   }, [paused, romLoaded]);
 
-  // 🔥 MENÚ NATIVO MEDIANTE F1 🔥
+  // 🔥 MENÚ NATIVO (F1) 🔥
   const toggleEmulatorMenu = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas && romLoaded) {
@@ -240,43 +283,6 @@ export default function GameBubble() {
       canvas.focus();
     }
   }, [romLoaded]);
-
-  // 🔥 HACK HTML5: ENCONTRAR Y BAJAR EL VOLUMEN A TODOS LOS NODOS DE AUDIO INYECTADOS 🔥
-  useEffect(() => {
-    if (!romLoaded) return;
-    // Nostalgist inyecta nodos <audio> o usa AudioContext para el sonido.
-    // Si usa Web Audio API pura, esta solución busca elementos media o silencia el contexto si es posible.
-    const adjustVolumeNative = () => {
-      // Método 1: Bajar volumen a todas las etiquetas de medios
-      const mediaElements = document.querySelectorAll('audio, video');
-      mediaElements.forEach((media: any) => {
-        media.volume = volume;
-      });
-      
-      // Método 2: Intentar ajustar ganancia si Nostalgist expone el AudioContext globalmente
-      // Nostalgist internamente crea un GainNode. Podemos capturarlo con un hack global si existe.
-      if (window.AudioContext || (window as any).webkitAudioContext) {
-        // Al modificar la variable del emulador, afectamos la salida maestra.
-        try {
-          if (nostalgistRef.current && typeof nostalgistRef.current.getEmscriptenModule === 'function') {
-            const mod = nostalgistRef.current.getEmscriptenModule();
-            if (mod && mod.SDL && mod.SDL.audioContext) {
-              // Si podemos acceder al contexto de audio de SDL, lo silenciamos
-              if (volume === 0 && mod.SDL.audioContext.state === 'running') {
-                 mod.SDL.audioContext.suspend();
-              } else if (volume > 0 && mod.SDL.audioContext.state === 'suspended') {
-                 mod.SDL.audioContext.resume();
-              }
-            }
-          }
-        } catch (e) {
-          console.log("No se pudo acceder al contexto de SDL directo");
-        }
-      }
-    };
-    
-    adjustVolumeNative();
-  }, [volume, romLoaded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -598,7 +604,7 @@ export default function GameBubble() {
             {!minimized && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible · F1 para menú nativo
+                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
                 </p>
               </div>
             )}
@@ -622,27 +628,31 @@ export default function GameBubble() {
                     <Upload className="w-4 h-4" />
                   </Button>
                 )}
-
-                {/* 🔥 SLIDER DE VOLUMEN (HTML5 / NATIVO BROWSER) 🔥 */}
+                
+                {/* 🔥 BOTÓN Y SLIDER DE VOLUMEN (En línea, empuja hacia abajo) 🔥 */}
                 {romLoaded && (
-                  <div 
-                    className="relative group flex items-center justify-center h-10 w-10 rounded-lg hover:bg-neon-magenta/10"
-                    onMouseEnter={() => setShowVolumeSlider(true)}
-                    onMouseLeave={() => setShowVolumeSlider(false)}
-                  >
-                    {volume === 0 ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : volume > 0.5 ? <Volume2 className="w-4 h-4 text-neon-magenta" /> : <Volume1 className="w-4 h-4 text-neon-magenta" />}
+                  <div className="flex flex-col items-center w-full my-1">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => setShowVolumeSlider(!showVolumeSlider)} 
+                      className={cn("h-10 w-10 rounded-lg transition-colors", showVolumeSlider ? "bg-neon-magenta/20 text-neon-magenta" : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta")}
+                      title="Ajustar Volumen"
+                    >
+                      {volume === 0 ? <VolumeX className="w-4 h-4" /> : volume > 0.5 ? <Volume2 className="w-4 h-4" /> : <Volume1 className="w-4 h-4" />}
+                    </Button>
                     
                     {showVolumeSlider && (
-                      <div className="absolute right-[110%] top-1/2 -translate-y-1/2 bg-card border border-border p-3 rounded-lg shadow-xl animate-fade-in flex flex-col items-center gap-2">
-                        <span className="text-[9px] font-pixel text-neon-magenta">{Math.round(volume * 100)}%</span>
+                      <div className="flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in">
+                        <span className="text-[8px] font-pixel text-neon-magenta mb-2">{Math.round(volume * 100)}</span>
                         <input 
                           type="range" 
                           min="0" 
                           max="1" 
                           step="0.05" 
                           value={volume}
-                          onChange={(e) => setVolume(parseFloat(e.target.value))}
-                          className="h-24 writing-mode-vertical appearance-none bg-muted rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-neon-magenta [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                          className="h-20 appearance-none bg-muted/50 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-neon-magenta [&::-webkit-slider-thumb]:rounded-full cursor-pointer hover:[&::-webkit-slider-thumb]:bg-white transition-all"
                           style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
                         />
                       </div>
@@ -657,7 +667,7 @@ export default function GameBubble() {
                     variant="ghost" 
                     onClick={toggleEmulatorMenu} 
                     className="h-10 w-10 text-muted-foreground hover:text-white hover:bg-white/10 rounded-lg" 
-                    title="Ajustes del Emulador"
+                    title="Ajustes del Emulador (F1)"
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
