@@ -13,7 +13,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 ANIMACIÓN DE GOMA SEGURA (SIN CRASHEOS) 🔥
 const jellyStyles = `
   @keyframes jelly-pop-safe {
     0% { transform: scale(0.85); opacity: 0; }
@@ -57,14 +56,6 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 HACK DEFINITIVO DE IMÁGENES 🔥
-const getSafeUrl = (url: string) => {
-  if (!url) return '';
-  if (url.includes('supabase.co')) return url; // Carga directa y rápida para tus fotos
-  if (url.includes('wsrv.nl')) return url;
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
-};
-
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
 const getPhotoNeonStyle = (photo: any) => {
@@ -96,16 +87,15 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
-        {/* 🔥 SIN CROSSORIGIN PARA EVITAR BLOQUEO DE NAVEGADOR 🔥 */}
+        {/* 🔥 IMAGEN RESTAURADA A SU ESTADO ORIGINAL PERFECTO 🔥 */}
         <img 
-          src={getSafeUrl(targetUrl)} 
+          src={targetUrl} 
           alt={photo.caption || "Foto"} 
-          referrerPolicy="no-referrer"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
-            if (e.currentTarget.src !== targetUrl) {
-              e.currentTarget.src = targetUrl;
+            if (!e.currentTarget.src.includes('wsrv.nl')) {
+              e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
             }
           }}
         />
@@ -179,6 +169,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const handleSubmitComment = async () => {
     if (!user || !commentText.trim()) return;
     
+    // 🔥 LÍMITE DE CARACTERES EN COMENTARIOS SEGÚN MEMBRESÍA 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, variant: "destructive" });
       return;
@@ -214,6 +205,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       )}
       style={neonStyle}
     >
+      {/* LADO IZQUIERDO: IMAGEN */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[45vh] min-h-[400px]">
         <a 
           href={originalUrl} target="_blank" rel="noopener noreferrer" 
@@ -225,20 +217,21 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
         {isEmbed && embedSrc ? (
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
+           /* 🔥 IMAGEN RESTAURADA A SU ESTADO ORIGINAL PERFECTO 🔥 */
            <img 
-             src={getSafeUrl(targetUrl)} 
+             src={targetUrl} 
              alt={photo.caption} 
-             referrerPolicy="no-referrer"
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
              onError={(e) => { 
-               if (e.currentTarget.src !== targetUrl) {
-                 e.currentTarget.src = targetUrl;
+               if (!e.currentTarget.src.includes('wsrv.nl')) {
+                 e.currentTarget.src = `https://wsrv.nl/?url=${encodeURIComponent(targetUrl)}`;
                }
              }}
            />
         )}
       </div>
 
+      {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[45vh] min-h-[400px]">
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
