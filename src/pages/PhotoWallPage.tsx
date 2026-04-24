@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; 
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 ANIMACIÓN DE GOMA SEGURA (SIN CRASHEOS) 🔥
 const jellyStyles = `
   @keyframes jelly-pop-safe {
     0% { transform: scale(0.85); opacity: 0; }
@@ -57,14 +56,10 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 HACK DEFINITIVO PARA LAS IMÁGENES 🔥
-const getOptimizedImageUrl = (url: string) => {
+// 🔥 RESTAURADO EXACTAMENTE COMO LO TENÍAS AYER 🔥
+const getProxyUrl = (url: string) => {
   if (!url) return '';
-  // Si es de tu base de datos (Supabase), no usamos proxy para que no se bloquee
-  if (url.includes('supabase.co')) return url;
-  // Si ya tiene el proxy, lo dejamos igual
   if (url.includes('wsrv.nl')) return url;
-  // Para imágenes de Instagram, Apify u otras webs externas, usamos el proxy
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
@@ -99,18 +94,17 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
-        {/* 🔥 IMAGEN CON CARGA SEGURA 🔥 */}
+        {/* 🔥 IMÁGENES EXACTAMENTE COMO AYER 🔥 */}
         <img 
-          src={getOptimizedImageUrl(targetUrl)} 
+          src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
-            // Si el proxy falla, intentamos cargar la original directamente
-            if (e.currentTarget.src !== targetUrl) {
-              e.currentTarget.src = targetUrl;
-            }
+            if (!e.currentTarget.src.includes('wsrv.nl')) return;
+            e.currentTarget.src = targetUrl;
           }}
         />
         
@@ -183,6 +177,7 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
   const handleSubmitComment = async () => {
     if (!user || !commentText.trim()) return;
     
+    // 🔥 LÍMITES DE MEMBRESÍA EN LOS COMENTARIOS 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, variant: "destructive" });
       return;
@@ -218,7 +213,6 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
       )}
       style={neonStyle}
     >
-      {/* LADO IZQUIERDO: IMAGEN */}
       <div className="relative bg-black w-full md:w-[60%] flex flex-col items-center justify-center p-4 shrink-0 h-[45vh] min-h-[400px]">
         <a 
           href={originalUrl} target="_blank" rel="noopener noreferrer" 
@@ -231,20 +225,13 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
            <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
         ) : (
            <img 
-             src={getOptimizedImageUrl(targetUrl)} 
-             alt={photo.caption} 
-             referrerPolicy="no-referrer"
+             src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
              className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-             onError={(e) => { 
-               if (e.currentTarget.src !== targetUrl) {
-                 e.currentTarget.src = targetUrl;
-               }
-             }}
+             onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
            />
         )}
       </div>
 
-      {/* LADO DERECHO: PANEL SOCIAL */}
       <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[45vh] min-h-[400px]">
         <button onClick={onClose} className="absolute top-2 right-2 z-50 bg-black/50 p-1.5 rounded-full text-white hover:bg-destructive hover:text-white transition-colors border border-white/10">
           <X className="w-4 h-4" />
@@ -351,11 +338,21 @@ export default function PhotoWallPage() {
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
-    // 🔥 CÁLCULO DE HUSO HORARIO DINÁMICO (SANTIAGO DE CHILE) 🔥
+    // 🔥 CÁLCULO DE HUSO HORARIO DINÁMICO DE SANTIAGO DE CHILE 🔥
     const getChileMidnightISO = () => {
-      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' });
-      const chileDateStr = formatter.format(new Date()); 
-      return `${chileDateStr}T00:00:00-04:00`; 
+      const now = new Date();
+      const santiagoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+      const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+      
+      const offsetHours = Math.round((santiagoTime.getTime() - utcTime.getTime()) / 3600000);
+      const offsetSign = offsetHours >= 0 ? '+' : '-';
+      const offsetStr = `${offsetSign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`;
+      
+      const year = santiagoTime.getFullYear();
+      const month = String(santiagoTime.getMonth() + 1).padStart(2, '0');
+      const day = String(santiagoTime.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T00:00:00${offsetStr}`;
     };
     
     const midnightChile = getChileMidnightISO();
