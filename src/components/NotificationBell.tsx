@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,35 +22,84 @@ export default function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar al hacer clic afuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) {
-      setNotifications(data);
-      setUnread(data.filter((n: any) => !n.is_read).length);
-    }
+    try {
+      // 🔥 BUSCAMOS NOTIFICACIONES Y SOLICITUDES DE AMISTAD AL MISMO TIEMPO 🔥
+      const [notifsRes, requestsRes] = await Promise.all([
+         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+         supabase.from("friend_requests").select("id, sender_id, created_at, status").eq("receiver_id", user.id).neq("status", "accepted")
+      ]);
+
+      let combined: any[] = [];
+      if (notifsRes.data) {
+         combined = [...notifsRes.data];
+      }
+
+      if (requestsRes.data && requestsRes.data.length > 0) {
+         const ids = requestsRes.data.map(r => r.sender_id).filter(Boolean);
+         const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+         
+         const reqNotifs = requestsRes.data.map(r => ({
+            id: `req_${r.id}`,
+            type: 'friend_request',
+            title: 'Solicitud de amistad',
+            body: `${profs?.find(p => p.user_id === r.sender_id)?.display_name || 'Alguien'} quiere ser tu amigo.`,
+            created_at: r.created_at,
+            is_read: false,
+            is_request: true,
+            related_id: r.sender_id
+         }));
+         combined = [...combined, ...reqNotifs];
+      }
+
+      combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setNotifications(combined.slice(0, 30));
+      setUnread(combined.filter((n: any) => !n.is_read).length);
+    } catch(e) {}
   };
 
   useEffect(() => {
     fetchNotifications();
     if (!user?.id) return;
-    const channel = supabase
+    
+    // 🔥 CONEXIÓN EN VIVO A AMBAS TABLAS 🔥
+    const channel1 = supabase
       .channel("notifications-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifications())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      
+    const channel2 = supabase
+      .channel("friend-req-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchNotifications())
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(channel1); 
+      supabase.removeChannel(channel2); 
+    };
   }, [user?.id]);
 
   const markAllRead = async () => {
     if (!user?.id) return;
-    await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
-    setUnread(0);
+    try {
+      await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
+      // Las solicitudes de amistad se quedan sin leer hasta que las acepten/rechacen
+      setUnread(notifications.filter(n => n.is_request).length);
+    } catch(e) {}
   };
 
   const timeAgo = (date: string) => {
@@ -66,11 +115,10 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
-  // --- VISTA PARA MÓVIL (Simple Link, Cero JS complejo) ---
   if (isMobile) {
     return (
       <Link 
-        to="/notificaciones" 
+        to="/perfil?tab=avisos" 
         onClick={markAllRead}
         className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/50 transition-colors"
       >
@@ -84,9 +132,8 @@ export default function NotificationBell() {
     );
   }
 
-  // --- VISTA PARA PC (Con Desplegable) ---
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
         className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/50 transition-colors"
@@ -100,28 +147,34 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-2 w-80 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]">
+        <div className="absolute right-0 md:-right-4 mt-2 w-[320px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]">
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
             <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors"><X className="w-3.5 h-3.5 text-muted-foreground" /></button>
           </div>
-          <div className="max-h-80 overflow-y-auto retro-scrollbar">
+          <div className="max-h-[350px] overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
               <div className="py-10 text-center text-muted-foreground font-body text-xs">Todo al día 🎉</div>
             ) : (
               notifications.map((n) => {
                 const c = typeConfig[n.type] || typeConfig.general;
                 return (
-                  <div key={n.id} className={cn("flex gap-3 px-4 py-3 border-b border-border/20 last:border-0 hover:bg-muted/30 text-left", !n.is_read && "bg-primary/5")}>
-                    <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>{c.icon}</div>
+                  <Link 
+                    key={n.id} 
+                    to={n.is_request ? "/perfil?tab=avisos" : (n.related_id ? `/usuario/${n.related_id}` : "/perfil?tab=avisos")}
+                    onClick={() => setOpen(false)}
+                    className={cn("flex gap-3 px-4 py-3 border-b border-border/20 last:border-0 hover:bg-muted/30 text-left cursor-pointer transition-colors block", !n.is_read && "bg-primary/5")}
+                  >
+                    <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs mt-0.5", c.color)}>{c.icon}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-body font-medium text-foreground leading-snug">{n.title}</p>
                       <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[9px] text-muted-foreground/70">{timeAgo(n.created_at)}</span>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[9px] text-muted-foreground/70 bg-muted/50 px-1.5 py-0.5 rounded">{timeAgo(n.created_at)}</span>
+                        {n.is_request && <span className="text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 px-1.5 py-0.5 rounded">Revisar</span>}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}
