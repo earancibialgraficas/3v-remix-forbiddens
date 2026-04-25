@@ -42,18 +42,18 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   
-  // 🔥 VARIABLES OPTIMISTAS PARA LA FIRMA COMPLETA 🔥
+  // 🔥 VARIABLES OPTIMISTAS CON LOS NOMBRES EXACTOS DE TU DB 🔥
   const [signature, setSignature] = useState("");
   const [localSigFontFamily, setLocalSigFontFamily] = useState("Inter");
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [localSigColor, setLocalSigColor] = useState("#facc15");
   const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
-  const [localSigStrokeAlignment, setLocalSigStrokeAlignment] = useState("outside");
-  const [localSigTextAlign, setLocalSigTextAlign] = useState("center");
-  const [localSigTextPosition, setLocalSigTextPosition] = useState("inside");
+  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("outside");
+  const [localSigImageAlign, setLocalSigImageAlign] = useState("center");
+  const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
-  const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
+  const [localSigImageWidth, setLocalSigImageWidth] = useState(50);
   
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -139,18 +139,18 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       
       if (!editing) {
-        // 🔥 INICIALIZAR CACHÉ OPTIMISTA CON DATOS REALES 🔥
+        // 🔥 INICIALIZAMOS EL CACHÉ CON LOS NOMBRES REALES 🔥
         setSignature((profile as any).signature || "");
         setLocalSigFontFamily((profile as any).signature_font_family || "Inter");
         setLocalSigFontSize((profile as any).signature_font_size || 13);
         setLocalSigColor((profile as any).signature_color || "#facc15");
         setLocalSigStrokeColor((profile as any).signature_stroke_color || "#000000");
         setLocalSigStrokeWidth((profile as any).signature_stroke_width ?? 1);
-        setLocalSigStrokeAlignment((profile as any).signature_stroke_alignment || "outside");
-        setLocalSigTextAlign((profile as any).signature_text_align || "center");
-        setLocalSigTextPosition((profile as any).signature_text_position || "inside");
+        setLocalSigStrokePosition((profile as any).signature_stroke_position || "outside");
+        setLocalSigImageAlign((profile as any).signature_image_align || "center");
+        setLocalSigTextOverImage((profile as any).signature_text_over_image ?? true);
         setLocalSigImageUrl((profile as any).signature_image_url || "");
-        setLocalSigImageOffset((profile as any).signature_image_offset ?? 50);
+        setLocalSigImageWidth((profile as any).signature_image_width ?? 50);
       }
       
       setAvatarBorderColor((profile as any).color_avatar_border || "");
@@ -375,13 +375,13 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 LÓGICA DE OPTIMISTIC UPDATES PARA LA FIRMA: JUNTA LOS CAMBIOS Y GUARDA 🔥
+  // 🔥 LÓGICA OPTIMISTA PARA GUARDAR CON LAS CLAVES CORRECTAS DE TU DB 🔥
   const updateSig = (patch: Record<string, any>) => {
     (window as any).__sigPatch = { ...(window as any).__sigPatch || {}, ...patch };
     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
     (window as any).__sigUpdateTimer = setTimeout(() => {
       const finalPatch = { ...(window as any).__sigPatch };
-      (window as any).__sigPatch = {}; // Reset local cache
+      (window as any).__sigPatch = {}; 
       supabase.from("profiles").update(finalPatch as any).eq("user_id", user!.id).then(() => refreshProfile());
     }, 500);
   };
@@ -418,11 +418,11 @@ export default function ProfilePage() {
         signature_color: localSigColor,
         signature_stroke_color: localSigStrokeColor,
         signature_stroke_width: localSigStrokeWidth,
-        signature_stroke_alignment: localSigStrokeAlignment,
-        signature_text_align: localSigTextAlign,
-        signature_text_position: localSigTextPosition,
+        signature_stroke_position: localSigStrokePosition,
+        signature_image_align: localSigImageAlign,
+        signature_text_over_image: localSigTextOverImage,
         signature_image_url: localSigImageUrl,
-        signature_image_offset: localSigImageOffset
+        signature_image_width: localSigImageWidth
       } as any)
       .eq("user_id", user.id);
       
@@ -867,10 +867,10 @@ export default function ProfilePage() {
                                   key={align}
                                   type="button"
                                   onClick={() => {
-                                    setLocalSigStrokeAlignment(align);
-                                    updateSig({ signature_stroke_alignment: align });
+                                    setLocalSigStrokePosition(align);
+                                    updateSig({ signature_stroke_position: align });
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokeAlignment === align || (!localSigStrokeAlignment && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'outside' ? 'Fuera' : align === 'center' ? 'Medio' : 'Dentro'}
                                 </button>
@@ -889,10 +889,10 @@ export default function ProfilePage() {
                                   key={align}
                                   type="button"
                                   onClick={() => {
-                                    setLocalSigTextAlign(align);
-                                    updateSig({ signature_text_align: align });
+                                    setLocalSigImageAlign(align);
+                                    updateSig({ signature_image_align: align });
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextAlign === align || (!localSigTextAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigImageAlign === align || (!localSigImageAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
                                 </button>
@@ -902,17 +902,17 @@ export default function ProfilePage() {
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ubicación</label>
                             <div className="flex gap-1">
-                              {['inside', 'outside'].map(pos => (
+                              {[true, false].map(pos => (
                                 <button
-                                  key={pos}
+                                  key={pos ? "inside" : "outside"}
                                   type="button"
                                   onClick={() => {
-                                    setLocalSigTextPosition(pos);
-                                    updateSig({ signature_text_position: pos });
+                                    setLocalSigTextOverImage(pos);
+                                    updateSig({ signature_text_over_image: pos });
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextPosition === pos || (!localSigTextPosition && pos === 'inside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextOverImage === pos || (localSigTextOverImage == null && pos === true) ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
-                                  {pos === 'inside' ? 'Adentro' : 'Afuera'}
+                                  {pos ? 'Adentro' : 'Afuera'}
                                 </button>
                               ))}
                             </div>
@@ -933,16 +933,16 @@ export default function ProfilePage() {
                           />
                         </div>
                         
-                        {/* 🔥 SLIDER DE POSICIÓN VERTICAL OPTIMISTA 🔥 */}
+                        {/* 🔥 SLIDER DE ANCHO OPTIMISTA 🔥 */}
                         <div className="mt-2">
-                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Posición Vertical de la Imagen ({localSigImageOffset}%)</label>
+                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ancho de la Imagen ({localSigImageWidth}%)</label>
                           <input 
                             type="range" min="0" max="100" step="1" 
-                            value={localSigImageOffset} 
+                            value={localSigImageWidth} 
                             onChange={(e) => {
                               const val = parseInt(e.target.value, 10);
-                              setLocalSigImageOffset(val);
-                              updateSig({ signature_image_offset: val });
+                              setLocalSigImageWidth(val);
+                              updateSig({ signature_image_width: val });
                             }} 
                             className="w-full"
                           />
@@ -961,11 +961,11 @@ export default function ProfilePage() {
                               signature_color: localSigColor,
                               signature_stroke_color: localSigStrokeColor,
                               signature_stroke_width: localSigStrokeWidth,
-                              signature_stroke_alignment: localSigStrokeAlignment,
-                              signature_text_align: localSigTextAlign,
-                              signature_text_position: localSigTextPosition,
+                              signature_stroke_position: localSigStrokePosition,
+                              signature_image_align: localSigImageAlign,
+                              signature_text_over_image: localSigTextOverImage,
                               signature_image_url: localSigImageUrl,
-                              signature_image_offset: localSigImageOffset
+                              signature_image_width: localSigImageWidth
                             } : { signature } as any}
                             fontSize={localSigFontSize}
                           />
@@ -995,7 +995,7 @@ export default function ProfilePage() {
                     {profile?.display_name}
                   </h2>
                   <RoleBadge 
-                    roles={roles || []} 
+                    roles={safeRoles} 
                     roleIcon={profile?.role_icon} 
                     showIcon={profile?.show_role_icon !== false} 
                     colorStaffRole={profile?.color_staff_role} 
@@ -1013,11 +1013,11 @@ export default function ProfilePage() {
                     </span>
                   ) : (
                     <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile?.color_role)}>
-                      <Star className="w-3 h-3" /> {userTier.toUpperCase()}
+                      <Star className="w-3 h-3" /> {safeStr(userTier).toUpperCase()}
                     </span>
                   )}
                   <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
-                    <Trophy className="w-3 h-3" /> {profile?.total_score?.toLocaleString()} pts
+                    <Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts
                   </span>
                   <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Desde {memberSince}
@@ -1064,7 +1064,7 @@ export default function ProfilePage() {
                     </Button>
                   )}
                   
-                  {isStaff && !(roles || []).includes("moderator") && (
+                  {isStaff && !safeRoles.includes("moderator") && (
                     <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1">
                       <span>{profile?.role_icon || "⭐"}</span> Icono Rol
                     </Button>
@@ -1107,7 +1107,6 @@ export default function ProfilePage() {
              </Button>
           </div>
 
-          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD 🔥 */}
           {(pendingRequests || []).length > 0 && (
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
@@ -1364,9 +1363,8 @@ function FriendsTab({ userId, limits, isStaff }: any) {
        const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted");
        if (error || !data || data.length === 0) { setFriends([]); return; }
        
-       const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id).filter(Boolean);
-       if (ids.length === 0) return;
-
+       const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
+       
        const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
        setFriends(profs || []);
      } catch(e) { console.error(e); }
