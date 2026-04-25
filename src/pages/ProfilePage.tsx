@@ -49,7 +49,7 @@ export default function ProfilePage() {
   const [localSigColor, setLocalSigColor] = useState("#facc15");
   const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
-  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("middle"); // "outside" | "middle" | "inside"
+  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("middle");
   const [localSigTextAlign, setLocalSigTextAlign] = useState("center");
   const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
@@ -147,7 +147,9 @@ export default function ProfilePage() {
         setLocalSigColor((profile as any).signature_color || "#facc15");
         setLocalSigStrokeColor((profile as any).signature_stroke_color || "#000000");
         setLocalSigStrokeWidth((profile as any).signature_stroke_width ?? 1);
-        setLocalSigStrokePosition((profile as any).signature_stroke_position || "middle");
+        // Evitamos setear inside si venía por defecto, fallback a middle
+        const stPos = (profile as any).signature_stroke_position;
+        setLocalSigStrokePosition(stPos === "inside" ? "middle" : (stPos || "middle"));
         setLocalSigTextAlign((profile as any).signature_text_align || "center");
         setLocalSigTextOverImage((profile as any).signature_text_over_image ?? true);
         setLocalSigImageUrl((profile as any).signature_image_url || "");
@@ -846,7 +848,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* 🔥 GROSOR Y TIPO DE TRAZO OPTIMISTA 🔥 */}
+                        {/* 🔥 BOTÓN "DENTRO" ELIMINADO 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Grosor trazo ({localSigStrokeWidth}px)</label>
@@ -864,7 +866,7 @@ export default function ProfilePage() {
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipo de Trazo</label>
                             <div className="flex gap-1">
-                              {['outside', 'middle', 'inside'].map(align => (
+                              {['outside', 'middle'].map(align => (
                                 <button
                                   key={align}
                                   type="button"
@@ -874,14 +876,13 @@ export default function ProfilePage() {
                                   }}
                                   className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
-                                  {align === 'outside' ? 'Fuera' : align === 'middle' ? 'Medio' : 'Dentro'}
+                                  {align === 'outside' ? 'Fuera' : 'Medio'}
                                 </button>
                               ))}
                             </div>
                           </div>
                         </div>
 
-                        {/* 🔥 ALINEACIÓN Y POSICIÓN DEL TEXTO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación Texto</label>
