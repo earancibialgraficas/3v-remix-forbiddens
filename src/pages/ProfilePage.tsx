@@ -42,6 +42,7 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   
+  // 🔥 VARIABLES OPTIMISTAS CORREGIDAS 🔥
   const [signature, setSignature] = useState("");
   const [localSigFontFamily, setLocalSigFontFamily] = useState("Inter");
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
@@ -49,7 +50,7 @@ export default function ProfilePage() {
   const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
   const [localSigStrokePosition, setLocalSigStrokePosition] = useState("outside");
-  const [localSigImageAlign, setLocalSigImageAlign] = useState("center");
+  const [localSigTextAlign, setLocalSigTextAlign] = useState("center"); // 🔥 VUELVE A SER TEXT_ALIGN 🔥
   const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
   const [localSigImageWidth, setLocalSigImageWidth] = useState(50);
@@ -146,7 +147,7 @@ export default function ProfilePage() {
         setLocalSigStrokeColor((profile as any).signature_stroke_color || "#000000");
         setLocalSigStrokeWidth((profile as any).signature_stroke_width ?? 1);
         setLocalSigStrokePosition((profile as any).signature_stroke_position || "outside");
-        setLocalSigImageAlign((profile as any).signature_image_align || "center");
+        setLocalSigTextAlign((profile as any).signature_text_align || "center");
         setLocalSigTextOverImage((profile as any).signature_text_over_image ?? true);
         setLocalSigImageUrl((profile as any).signature_image_url || "");
         setLocalSigImageWidth((profile as any).signature_image_width ?? 50);
@@ -418,7 +419,7 @@ export default function ProfilePage() {
         signature_stroke_color: localSigStrokeColor,
         signature_stroke_width: localSigStrokeWidth,
         signature_stroke_position: localSigStrokePosition,
-        signature_image_align: localSigImageAlign,
+        signature_text_align: localSigTextAlign,
         signature_text_over_image: localSigTextOverImage,
         signature_image_url: localSigImageUrl,
         signature_image_width: localSigImageWidth,
@@ -885,10 +886,10 @@ export default function ProfilePage() {
                                   key={align}
                                   type="button"
                                   onClick={() => {
-                                    setLocalSigImageAlign(align);
-                                    updateSig({ signature_image_align: align });
+                                    setLocalSigTextAlign(align);
+                                    updateSig({ signature_text_align: align }); // 🔥 REPARADO: VUELVE A SER TEXT_ALIGN 🔥
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigImageAlign === align || (!localSigImageAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextAlign === align || (!localSigTextAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
                                 </button>
@@ -970,7 +971,7 @@ export default function ProfilePage() {
                               signature_stroke_color: localSigStrokeColor,
                               signature_stroke_width: localSigStrokeWidth,
                               signature_stroke_position: localSigStrokePosition,
-                              signature_image_align: localSigImageAlign,
+                              signature_text_align: localSigTextAlign, // 🔥 REPARADO AQUÍ TAMBIÉN 🔥
                               signature_text_over_image: localSigTextOverImage,
                               signature_image_url: localSigImageUrl,
                               signature_image_width: localSigImageWidth,
