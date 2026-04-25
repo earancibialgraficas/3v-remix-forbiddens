@@ -84,7 +84,6 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
-  // 🔥 AQUÍ ESTÁ EL HOOK QUE CAUSABA EL CRASH. AHORA ESTÁ ARRIBA 🔥
   const [localColorCache, setLocalColorCache] = useState("#ffffff");
 
   const getValidHex = (val: string | null | undefined) => {
@@ -152,8 +151,9 @@ export default function ProfilePage() {
     }
   }, [profile, editing]);
 
+  // 🔥 NUEVOS FETCHERS INDEPENDIENTES PARA LAS ALERTAS 🔥
   const fetchNotifs = async () => {
-    if (!user) return;
+    if (!user?.id) return;
     try {
       const { data } = await supabase
         .from("notifications")
@@ -166,7 +166,7 @@ export default function ProfilePage() {
   };
 
   const fetchPendingRequests = async () => {
-    if (!user) return;
+    if (!user?.id) return;
     try {
       const { data } = await supabase
         .from("friend_requests")
@@ -192,27 +192,15 @@ export default function ProfilePage() {
       } else {
         setPendingRequests([]);
       }
-    } catch(e) { console.error(e); }
+    } catch(e) {}
   };
 
-  // 🔥 Escucha de eventos en tiempo real para el Perfil 🔥
+  // 🔥 CONEXIÓN EN TIEMPO REAL PARA AVISOS 🔥
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
-    // Ejecuta la primera carga
     fetchNotifs();
     fetchPendingRequests();
-
-    const markAsRead = async () => {
-      try {
-        await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
-      } catch(e) {}
-    };
-
-    if (activeTab === "avisos") {
-      markAsRead();
-    }
 
     const channel1 = supabase
       .channel("profile-notifs")
@@ -228,7 +216,7 @@ export default function ProfilePage() {
       supabase.removeChannel(channel1); 
       supabase.removeChannel(channel2); 
     };
-  }, [activeTab, user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -260,7 +248,7 @@ export default function ProfilePage() {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
         const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
-        (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
+        (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
         (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
@@ -279,10 +267,30 @@ export default function ProfilePage() {
     
     loadCoreData();
     loadStorage();
-  }, [user]);
+  }, [user?.id]);
 
-  // 🔥 LÓGICA DE ACEPTACIÓN CON AVISO AL REMITENTE 🔥
-  const handleAcceptRequest = async (reqId: string, senderId?: string) => {
+  // 🔥 MARCAR ALERTA COMO LEÍDA AL HACER CLICK 🔥
+  const handleMarkAsRead = async (notifId: string) => {
+    if (!user) return;
+    try {
+      await supabase.from("notifications").update({ is_read: true } as any).eq("id", notifId);
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+    } catch(e) {}
+  };
+
+  // 🔥 LIMPIAR TODO EL HISTORIAL DE AVISOS 🔥
+  const handleClearNotifications = async () => {
+    if (!user) return;
+    if (!confirm("¿Deseas limpiar todo tu historial de notificaciones?")) return;
+    try {
+      await supabase.from("notifications").delete().eq("user_id", user.id);
+      fetchNotifs();
+      toast({ title: "Historial limpiado correctamente." });
+    } catch(e) {}
+  };
+
+  // 🔥 ACEPTAR AMIGO Y DEJAR HISTORIAL 🔥
+  const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId);
@@ -299,19 +307,43 @@ export default function ProfilePage() {
             related_id: user.id
           });
         }
+
+        // Registro para ti
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "general",
+          title: "Amistad Aceptada",
+          body: `Aceptaste la solicitud de amistad de ${senderName}.`,
+          is_read: true
+        });
+
+        fetchNotifs();
+        if (activeTab === "friends") window.location.reload();
       } else {
         toast({ title: "Error al aceptar", variant: "destructive" });
       }
     } catch(e) {}
   };
 
-  const handleRejectRequest = async (reqId: string) => {
+  // 🔥 RECHAZAR AMIGO Y DEJAR HISTORIAL 🔥
+  const handleRejectRequest = async (reqId: string, senderName: string) => {
     if (!user) return;
     try {
       const { error } = await supabase.from("friend_requests").delete().eq("id", reqId);
       if (!error) {
         toast({ title: "Solicitud rechazada" });
         setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+        
+        // Registro para ti
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "general",
+          title: "Amistad Rechazada",
+          body: `Rechazaste la solicitud de amistad de ${senderName}.`,
+          is_read: true
+        });
+
+        fetchNotifs();
       } else {
         toast({ title: "Error al rechazar", variant: "destructive" });
       }
@@ -427,7 +459,6 @@ export default function ProfilePage() {
     await refreshProfile();
   };
 
-  // 🔥 TODOS LOS CÁLCULOS ESTÁN AHORA DESPUÉS DE LOS HOOKS 🔥
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Desconocido";
   const isMod = (roles || []).includes("moderator");
   const isStaff = isAdmin || isMasterWeb || isMod;
@@ -461,7 +492,6 @@ export default function ProfilePage() {
     ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
   ];
 
-  // 🔥 RETURN DE SEGURIDAD. NINGÚN HOOK ESTÁ DEBAJO DE ESTA LÍNEA 🔥
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 animate-fade-in">
@@ -911,12 +941,14 @@ export default function ProfilePage() {
 
       {activeTab === "avisos" && (
         <div className="bg-card border border-border rounded p-4">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left">
-            MIS AVISOS ({notifications.length + pendingRequests.length})
-          </h3>
+          <div className="flex justify-between items-center mb-3">
+             <h3 className="font-pixel text-[10px] text-muted-foreground uppercase">MIS AVISOS ({(notifications || []).length + (pendingRequests || []).length})</h3>
+             <Button variant="outline" size="sm" onClick={handleClearNotifications} className="h-6 text-[9px] gap-1 px-2 border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors">
+                <Trash2 className="w-3 h-3" /> Limpiar Historial
+             </Button>
+          </div>
 
-          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD 🔥 */}
-          {pendingRequests.length > 0 && (
+          {(pendingRequests || []).length > 0 && (
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
               {pendingRequests.map(req => (
@@ -937,8 +969,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button size="sm" onClick={() => handleAcceptRequest(req.id, req.sender_id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                    <Button size="sm" onClick={() => handleAcceptRequest(req.id, req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
                   </div>
                 </div>
               ))}
@@ -946,13 +978,13 @@ export default function ProfilePage() {
           )}
 
           {notifications.length === 0 && pendingRequests.length === 0 ? (
-            <p className="text-xs text-muted-foreground font-body text-center md:text-left">No tienes avisos recientes</p>
+            <p className="text-xs text-muted-foreground font-body text-center md:text-left py-4">No tienes avisos recientes</p>
           ) : (
             <div className="space-y-2">
               {notifications.map((notif) => {
                 const c = typeConfig[notif.type] || typeConfig.general;
                 return (
-                  <div key={notif.id} className={cn("flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30")}>
+                  <div key={notif.id} onClick={() => handleMarkAsRead(notif.id)} className={cn("flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left cursor-pointer", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30")}>
                     <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>
                       {c.icon}
                     </div>
@@ -968,6 +1000,7 @@ export default function ProfilePage() {
                             Ver perfil
                           </Link>
                         )}
+                        {!notif.is_read && <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan ml-auto" />}
                       </div>
                     </div>
                   </div>
@@ -1239,7 +1272,7 @@ function FriendsTab({ userId, limits, isStaff }: any) {
                onClick={async () => { 
                   await supabase
                     .from("friend_requests")
-                    .insert({ sender_id: userId, receiver_id: r.user_id, status: 'pending' }); 
+                    .insert({ sender_id: userId, receiver_id: r.user_id }); 
                   toast({ title: "Solicitud enviada" }); 
                   setRes([]);
                   setSearch("");
@@ -1436,6 +1469,7 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
   );
 }
 
+// 🔥 NUEVO COMPONENTE: CONTENIDO BANEADO 🔥
 function BannedContentPanel() {
   const { toast } = useToast();
   const [bannedItems, setBannedItems] = useState<any[]>([]);
@@ -1657,6 +1691,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
         )}
       </div>
 
+      {/* 🔥 AQUÍ LLAMAMOS AL NUEVO PANEL DE CONTENIDO BANEADO 🔥 */}
       <BannedContentPanel />
 
       {isMasterWeb && (

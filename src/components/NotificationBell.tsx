@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X } from "lucide-react";
+import { Bell, UserPlus, Heart, MessageCircle, Users, Star, Trophy, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default function NotificationBell() {
     try {
       // 🔥 BUSCAMOS NOTIFICACIONES Y SOLICITUDES DE AMISTAD AL MISMO TIEMPO 🔥
       const [notifsRes, requestsRes] = await Promise.all([
-         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
          supabase.from("friend_requests").select("id, sender_id, created_at, status").eq("receiver_id", user.id).neq("status", "accepted")
       ]);
 
@@ -69,13 +69,16 @@ export default function NotificationBell() {
       }
 
       combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setNotifications(combined.slice(0, 30));
+      setNotifications(combined);
       setUnread(combined.filter((n: any) => !n.is_read).length);
     } catch(e) { console.error(e); }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (user?.id) {
+      fetchNotifications();
+    }
+    
     if (!user?.id) return;
     
     // 🔥 CONEXIÓN EN VIVO A AMBAS TABLAS 🔥
@@ -95,12 +98,23 @@ export default function NotificationBell() {
     };
   }, [user?.id]);
 
-  const markAllRead = async () => {
-    if (!user?.id) return;
+  // 🔥 NUEVA LÓGICA: SÓLO MARCA COMO LEÍDA AL HACER CLICK 🔥
+  const handleMarkAsRead = async (id: string, is_request?: boolean) => {
+    if (!user?.id || is_request) return; // Las solicitudes no se marcan leídas, se aceptan/rechazan
     try {
-      await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
-      // Las solicitudes de amistad se quedan sin leer hasta que las acepten/rechacen
-      setUnread(notifications.filter(n => n.is_request).length);
+      await supabase.from("notifications").update({ is_read: true } as any).eq("id", id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnread(prev => Math.max(0, prev - 1));
+    } catch(e) {}
+  };
+
+  // 🔥 NUEVA LÓGICA: LIMPIAR TODO EL HISTORIAL 🔥
+  const clearAllNotifications = async () => {
+    if (!user?.id) return;
+    if (!confirm("¿Borrar todo tu historial de notificaciones?")) return;
+    try {
+      await supabase.from("notifications").delete().eq("user_id", user.id);
+      fetchNotifications();
     } catch(e) {}
   };
 
@@ -121,7 +135,6 @@ export default function NotificationBell() {
     return (
       <Link 
         to="/perfil?tab=avisos" 
-        onClick={markAllRead}
         className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/50 transition-colors"
       >
         <Bell className="w-4 h-4 text-muted-foreground" />
@@ -137,7 +150,7 @@ export default function NotificationBell() {
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
-        onClick={() => { setOpen(!open); if (!open) markAllRead(); }}
+        onClick={() => setOpen(!open)}
         className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/50 transition-colors"
       >
         <Bell className="w-4 h-4 text-muted-foreground hover:text-foreground" />
@@ -152,7 +165,12 @@ export default function NotificationBell() {
         <div className="absolute right-0 md:-right-4 mt-2 w-[320px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-[9999]">
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-muted/30">
             <span className="font-pixel text-[10px] text-neon-cyan tracking-wider">NOTIFICACIONES</span>
-            <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors"><X className="w-3.5 h-3.5 text-muted-foreground" /></button>
+            <div className="flex items-center gap-2">
+              <button onClick={clearAllNotifications} className="text-[9px] text-destructive hover:text-destructive/80 uppercase font-pixel tracking-tighter flex items-center gap-1">
+                <Trash2 className="w-3 h-3" /> Limpiar
+              </button>
+              <button onClick={() => setOpen(false)} className="p-0.5 rounded-full hover:bg-muted transition-colors"><X className="w-3.5 h-3.5 text-muted-foreground" /></button>
+            </div>
           </div>
           <div className="max-h-[350px] overflow-y-auto retro-scrollbar">
             {notifications.length === 0 ? (
@@ -164,7 +182,7 @@ export default function NotificationBell() {
                   <Link 
                     key={n.id} 
                     to={n.is_request ? "/perfil?tab=avisos" : (n.related_id ? `/usuario/${n.related_id}` : "/perfil?tab=avisos")}
-                    onClick={() => setOpen(false)}
+                    onClick={() => { handleMarkAsRead(n.id, n.is_request); setOpen(false); }}
                     className={cn("flex gap-3 px-4 py-3 border-b border-border/20 last:border-0 hover:bg-muted/30 text-left cursor-pointer transition-colors block", !n.is_read && "bg-primary/5")}
                   >
                     <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs mt-0.5", c.color)}>{c.icon}</div>
@@ -174,6 +192,7 @@ export default function NotificationBell() {
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-[9px] text-muted-foreground/70 bg-muted/50 px-1.5 py-0.5 rounded">{timeAgo(n.created_at)}</span>
                         {n.is_request && <span className="text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 px-1.5 py-0.5 rounded">Revisar</span>}
+                        {!n.is_read && !n.is_request && <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan ml-auto" />}
                       </div>
                     </div>
                   </Link>
