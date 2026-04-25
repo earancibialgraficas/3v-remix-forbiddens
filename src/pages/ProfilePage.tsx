@@ -42,19 +42,20 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   
-  // 🔥 VARIABLES OPTIMISTAS CORREGIDAS 🔥
+  // 🔥 VARIABLES OPTIMISTAS DE LA FIRMA CON LAS KEYWORDS CORRECTAS 🔥
   const [signature, setSignature] = useState("");
   const [localSigFontFamily, setLocalSigFontFamily] = useState("Inter");
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
   const [localSigColor, setLocalSigColor] = useState("#facc15");
   const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
-  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("outside");
-  const [localSigTextAlign, setLocalSigTextAlign] = useState("center"); // 🔥 VUELVE A SER TEXT_ALIGN 🔥
+  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("middle"); // "outside" | "middle" | "inside"
+  const [localSigTextAlign, setLocalSigTextAlign] = useState("center");
   const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
-  const [localSigImageWidth, setLocalSigImageWidth] = useState(50);
+  const [localSigImageWidth, setLocalSigImageWidth] = useState(100);
   const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
+  const [localSigImageAlign, setLocalSigImageAlign] = useState("center");
   
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -140,18 +141,20 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       
       if (!editing) {
+        // 🔥 ASIGNACIÓN EXACTA CON LOS NOMBRES DE TU DB 🔥
         setSignature((profile as any).signature || "");
         setLocalSigFontFamily((profile as any).signature_font_family || "Inter");
         setLocalSigFontSize((profile as any).signature_font_size || 13);
         setLocalSigColor((profile as any).signature_color || "#facc15");
         setLocalSigStrokeColor((profile as any).signature_stroke_color || "#000000");
         setLocalSigStrokeWidth((profile as any).signature_stroke_width ?? 1);
-        setLocalSigStrokePosition((profile as any).signature_stroke_position || "outside");
+        setLocalSigStrokePosition((profile as any).signature_stroke_position || "middle");
         setLocalSigTextAlign((profile as any).signature_text_align || "center");
         setLocalSigTextOverImage((profile as any).signature_text_over_image ?? true);
         setLocalSigImageUrl((profile as any).signature_image_url || "");
-        setLocalSigImageWidth((profile as any).signature_image_width ?? 50);
+        setLocalSigImageWidth((profile as any).signature_image_width ?? 100);
         setLocalSigImageOffset((profile as any).signature_image_offset ?? 50);
+        setLocalSigImageAlign((profile as any).signature_image_align || "center");
       }
       
       setAvatarBorderColor((profile as any).color_avatar_border || "");
@@ -423,7 +426,8 @@ export default function ProfilePage() {
         signature_text_over_image: localSigTextOverImage,
         signature_image_url: localSigImageUrl,
         signature_image_width: localSigImageWidth,
-        signature_image_offset: localSigImageOffset
+        signature_image_offset: localSigImageOffset,
+        signature_image_align: localSigImageAlign
       } as any)
       .eq("user_id", user.id);
       
@@ -843,6 +847,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
+                        {/* 🔥 GROSOR Y TIPO DE TRAZO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Grosor trazo ({localSigStrokeWidth}px)</label>
@@ -860,7 +865,7 @@ export default function ProfilePage() {
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipo de Trazo</label>
                             <div className="flex gap-1">
-                              {['outside', 'center', 'inside'].map(align => (
+                              {['outside', 'middle', 'inside'].map(align => (
                                 <button
                                   key={align}
                                   type="button"
@@ -868,7 +873,7 @@ export default function ProfilePage() {
                                     setLocalSigStrokePosition(align);
                                     updateSig({ signature_stroke_position: align });
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'middle') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'outside' ? 'Fuera' : align === 'middle' ? 'Medio' : 'Dentro'}
                                 </button>
@@ -877,6 +882,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
+                        {/* 🔥 ALINEACIÓN Y POSICIÓN DEL TEXTO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación Texto</label>
@@ -887,7 +893,7 @@ export default function ProfilePage() {
                                   type="button"
                                   onClick={() => {
                                     setLocalSigTextAlign(align);
-                                    updateSig({ signature_text_align: align }); // 🔥 REPARADO: VUELVE A SER TEXT_ALIGN 🔥
+                                    updateSig({ signature_text_align: align }); // 🔥 VUELVE A SER signature_text_align 🔥
                                   }}
                                   className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextAlign === align || (!localSigTextAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
@@ -897,7 +903,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                           <div>
-                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ubicación</label>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ubicación de Texto</label>
                             <div className="flex gap-1">
                               {[true, false].map(pos => (
                                 <button
@@ -909,7 +915,7 @@ export default function ProfilePage() {
                                   }}
                                   className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextOverImage === pos || (localSigTextOverImage == null && pos === true) ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
-                                  {pos ? 'Adentro' : 'Afuera'}
+                                  {pos ? 'En Imagen' : 'Afuera'}
                                 </button>
                               ))}
                             </div>
@@ -971,7 +977,7 @@ export default function ProfilePage() {
                               signature_stroke_color: localSigStrokeColor,
                               signature_stroke_width: localSigStrokeWidth,
                               signature_stroke_position: localSigStrokePosition,
-                              signature_text_align: localSigTextAlign, // 🔥 REPARADO AQUÍ TAMBIÉN 🔥
+                              signature_text_align: localSigTextAlign, // 🔥 REPARADO: VUELVE A SER TEXT_ALIGN 🔥
                               signature_text_over_image: localSigTextOverImage,
                               signature_image_url: localSigImageUrl,
                               signature_image_width: localSigImageWidth,
