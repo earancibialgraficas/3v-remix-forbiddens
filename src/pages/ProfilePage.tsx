@@ -41,10 +41,18 @@ export default function ProfilePage() {
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
-  const [signature, setSignature] = useState("");
   
+  // 🔥 VARIABLES OPTIMISTAS PARA LA FIRMA COMPLETA 🔥
+  const [signature, setSignature] = useState("");
+  const [localSigFontFamily, setLocalSigFontFamily] = useState("Inter");
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
+  const [localSigColor, setLocalSigColor] = useState("#facc15");
+  const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
+  const [localSigStrokeAlignment, setLocalSigStrokeAlignment] = useState("outside");
+  const [localSigTextAlign, setLocalSigTextAlign] = useState("center");
+  const [localSigTextPosition, setLocalSigTextPosition] = useState("inside");
+  const [localSigImageUrl, setLocalSigImageUrl] = useState("");
   const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
   
   const [newPassword, setNewPassword] = useState("");
@@ -131,9 +139,17 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       
       if (!editing) {
+        // 🔥 INICIALIZAR CACHÉ OPTIMISTA CON DATOS REALES 🔥
         setSignature((profile as any).signature || "");
+        setLocalSigFontFamily((profile as any).signature_font_family || "Inter");
         setLocalSigFontSize((profile as any).signature_font_size || 13);
+        setLocalSigColor((profile as any).signature_color || "#facc15");
+        setLocalSigStrokeColor((profile as any).signature_stroke_color || "#000000");
         setLocalSigStrokeWidth((profile as any).signature_stroke_width ?? 1);
+        setLocalSigStrokeAlignment((profile as any).signature_stroke_alignment || "outside");
+        setLocalSigTextAlign((profile as any).signature_text_align || "center");
+        setLocalSigTextPosition((profile as any).signature_text_position || "inside");
+        setLocalSigImageUrl((profile as any).signature_image_url || "");
         setLocalSigImageOffset((profile as any).signature_image_offset ?? 50);
       }
       
@@ -359,10 +375,14 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
+  // 🔥 LÓGICA DE OPTIMISTIC UPDATES PARA LA FIRMA: JUNTA LOS CAMBIOS Y GUARDA 🔥
   const updateSig = (patch: Record<string, any>) => {
+    (window as any).__sigPatch = { ...(window as any).__sigPatch || {}, ...patch };
     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
     (window as any).__sigUpdateTimer = setTimeout(() => {
-      supabase.from("profiles").update(patch as any).eq("user_id", user!.id).then(() => refreshProfile());
+      const finalPatch = { ...(window as any).__sigPatch };
+      (window as any).__sigPatch = {}; // Reset local cache
+      supabase.from("profiles").update(finalPatch as any).eq("user_id", user!.id).then(() => refreshProfile());
     }, 500);
   };
 
@@ -393,8 +413,15 @@ export default function ProfilePage() {
         youtube_url: youtube || null, 
         tiktok_url: tiktok || null,
         signature: signature.trim() || null,
+        signature_font_family: localSigFontFamily,
         signature_font_size: localSigFontSize,
+        signature_color: localSigColor,
+        signature_stroke_color: localSigStrokeColor,
         signature_stroke_width: localSigStrokeWidth,
+        signature_stroke_alignment: localSigStrokeAlignment,
+        signature_text_align: localSigTextAlign,
+        signature_text_position: localSigTextPosition,
+        signature_image_url: localSigImageUrl,
         signature_image_offset: localSigImageOffset
       } as any)
       .eq("user_id", user.id);
@@ -755,8 +782,11 @@ export default function ProfilePage() {
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipografía</label>
                             <select
-                              value={(profile as any)?.signature_font_family || "Inter"}
-                              onChange={(e) => updateSig({ signature_font_family: e.target.value })}
+                              value={localSigFontFamily}
+                              onChange={(e) => {
+                                setLocalSigFontFamily(e.target.value);
+                                updateSig({ signature_font_family: e.target.value });
+                              }}
                               className="w-full h-7 rounded border border-border bg-muted text-[10px] font-body px-1"
                             >
                               {["Inter", "Roboto", "Lobster", "Pacifico", "Bebas Neue", "Press Start 2P", "Orbitron", "Dancing Script", "Permanent Marker", "Bangers"].map(f => <option key={f} value={f}>{f}</option>)}
@@ -784,8 +814,11 @@ export default function ProfilePage() {
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color relleno</label>
                             <input
                               type="color"
-                              value={(profile as any)?.signature_color || "#facc15"}
-                              onChange={(e) => updateSig({ signature_color: e.target.value })}
+                              value={localSigColor}
+                              onChange={(e) => {
+                                setLocalSigColor(e.target.value);
+                                updateSig({ signature_color: e.target.value });
+                              }}
                               className="w-full h-7 rounded border border-border cursor-pointer bg-muted"
                             />
                           </div>
@@ -794,18 +827,24 @@ export default function ProfilePage() {
                             <div className="flex gap-1">
                               <input
                                 type="color"
-                                value={(profile as any)?.signature_stroke_color || "#000000"}
-                                onChange={(e) => updateSig({ signature_stroke_color: e.target.value })}
+                                value={localSigStrokeColor || "#000000"}
+                                onChange={(e) => {
+                                  setLocalSigStrokeColor(e.target.value);
+                                  updateSig({ signature_stroke_color: e.target.value });
+                                }}
                                 className="flex-1 h-7 rounded border border-border cursor-pointer bg-muted"
                               />
-                              {(profile as any)?.signature_stroke_color && (
-                                <button type="button" onClick={() => updateSig({ signature_stroke_color: null })} className="h-7 px-2 text-[9px] bg-muted border border-border rounded">×</button>
+                              {localSigStrokeColor && (
+                                <button type="button" onClick={() => {
+                                  setLocalSigStrokeColor(null);
+                                  updateSig({ signature_stroke_color: null });
+                                }} className="h-7 px-2 text-[9px] bg-muted border border-border rounded">×</button>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        {/* 🔥 NUEVO: GROSOR Y TIPO DE TRAZO 🔥 */}
+                        {/* 🔥 GROSOR Y TIPO DE TRAZO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Grosor trazo ({localSigStrokeWidth}px)</label>
@@ -827,8 +866,11 @@ export default function ProfilePage() {
                                 <button
                                   key={align}
                                   type="button"
-                                  onClick={() => updateSig({ signature_stroke_alignment: align })}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_stroke_alignment === align || (!(profile as any)?.signature_stroke_alignment && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  onClick={() => {
+                                    setLocalSigStrokeAlignment(align);
+                                    updateSig({ signature_stroke_alignment: align });
+                                  }}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokeAlignment === align || (!localSigStrokeAlignment && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'outside' ? 'Fuera' : align === 'center' ? 'Medio' : 'Dentro'}
                                 </button>
@@ -837,7 +879,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* 🔥 NUEVO: ALINEACIÓN Y POSICIÓN DEL TEXTO 🔥 */}
+                        {/* 🔥 ALINEACIÓN Y POSICIÓN DEL TEXTO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación Texto</label>
@@ -846,8 +888,11 @@ export default function ProfilePage() {
                                 <button
                                   key={align}
                                   type="button"
-                                  onClick={() => updateSig({ signature_text_align: align })}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_text_align === align || (!(profile as any)?.signature_text_align && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  onClick={() => {
+                                    setLocalSigTextAlign(align);
+                                    updateSig({ signature_text_align: align });
+                                  }}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextAlign === align || (!localSigTextAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
                                 </button>
@@ -861,8 +906,11 @@ export default function ProfilePage() {
                                 <button
                                   key={pos}
                                   type="button"
-                                  onClick={() => updateSig({ signature_text_position: pos })}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_text_position === pos || (!(profile as any)?.signature_text_position && pos === 'inside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  onClick={() => {
+                                    setLocalSigTextPosition(pos);
+                                    updateSig({ signature_text_position: pos });
+                                  }}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextPosition === pos || (!localSigTextPosition && pos === 'inside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {pos === 'inside' ? 'Adentro' : 'Afuera'}
                                 </button>
@@ -875,14 +923,17 @@ export default function ProfilePage() {
                         <div className="mt-2">
                           <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Imagen (URL)</label>
                           <Input
-                            value={(profile as any)?.signature_image_url || ""}
-                            onChange={(e) => updateSig({ signature_image_url: e.target.value || null })}
+                            value={localSigImageUrl}
+                            onChange={(e) => {
+                              setLocalSigImageUrl(e.target.value);
+                              updateSig({ signature_image_url: e.target.value || null });
+                            }}
                             className="h-7 bg-muted text-[10px] font-body w-full"
                             placeholder="URL .png o .gif"
                           />
                         </div>
                         
-                        {/* 🔥 NUEVO: SLIDER DE POSICIÓN VERTICAL DE IMAGEN 🔥 */}
+                        {/* 🔥 SLIDER DE POSICIÓN VERTICAL OPTIMISTA 🔥 */}
                         <div className="mt-2">
                           <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Posición Vertical de la Imagen ({localSigImageOffset}%)</label>
                           <input 
@@ -897,11 +948,25 @@ export default function ProfilePage() {
                           />
                         </div>
 
+                        {/* 🔥 DISPLAY ALIMENTADO 100% POR EL CACHÉ LOCAL 🔥 */}
                         <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
                           <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
                           <SignatureDisplay
-                            text={signature || `— ${profile?.display_name} [${displayTier}]`}
-                            profile={profile ? { ...(profile as any), signature, signature_font_size: localSigFontSize, signature_stroke_width: localSigStrokeWidth, signature_image_offset: localSigImageOffset } : { signature } as any}
+                            text={signature || `— ${profile?.display_name || "Usuario"} [${displayTier}]`}
+                            profile={profile ? { 
+                              ...(profile as any), 
+                              signature, 
+                              signature_font_family: localSigFontFamily,
+                              signature_font_size: localSigFontSize, 
+                              signature_color: localSigColor,
+                              signature_stroke_color: localSigStrokeColor,
+                              signature_stroke_width: localSigStrokeWidth,
+                              signature_stroke_alignment: localSigStrokeAlignment,
+                              signature_text_align: localSigTextAlign,
+                              signature_text_position: localSigTextPosition,
+                              signature_image_url: localSigImageUrl,
+                              signature_image_offset: localSigImageOffset
+                            } : { signature } as any}
                             fontSize={localSigFontSize}
                           />
                         </div>
@@ -1173,8 +1238,8 @@ export default function ProfilePage() {
               <div className="space-y-1">
                 {bestScores.map((gs, i) => (
                   <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
-                    <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
-                      {gs.console_type.toUpperCase()}
+                    <span className={cn("font-pixel text-[9px]", safeStr(gs?.console_type) === "nes" ? "text-neon-green" : safeStr(gs?.console_type) === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
+                      {safeStr(gs?.console_type).toUpperCase()}
                     </span>
                     <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
                     <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
@@ -1296,12 +1361,11 @@ function FriendsTab({ userId, limits, isStaff }: any) {
 
   const fetchFriends = async () => {
      try {
-       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
-       if (error || !data) { setFriends([]); return; }
+       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted");
+       if (error || !data || data.length === 0) { setFriends([]); return; }
        
-       const accepted = data.filter((r: any) => r.status === "accepted");
-       const ids = accepted.map((r: any) => r.sender_id === userId ? r.receiver_id : r.sender_id).filter(Boolean);
-       if (ids.length === 0) { setFriends([]); return; }
+       const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id).filter(Boolean);
+       if (ids.length === 0) return;
 
        const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
        setFriends(profs || []);
@@ -1955,24 +2019,16 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   const [expanded, setExpanded] = useState(false);
   
   useEffect(() => {
-    supabase
-      .from("user_roles")
-      .select("id, user_id")
-      .eq("role", "moderator")
-      .then(async ({ data }) => {
-        if (!data) return;
-        
-        const ids = data.map(r => r.user_id);
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name")
-          .in("user_id", ids);
-          
-        setModerators(data.map(r => ({ 
-          ...r, 
-          display_name: profs?.find(p => p.user_id === r.user_id)?.display_name 
-        })));
-      });
+    const loadMods = async () => {
+      try {
+        const { data } = await supabase.from("user_roles").select("id, user_id").eq("role", "moderator");
+        if (!data || data.length === 0) return;
+        const ids = data.map(r => r.user_id).filter(Boolean);
+        const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+        setModerators(data.map(r => ({ ...r, display_name: (profs || []).find((p: any) => p.user_id === r.user_id)?.display_name })));
+      } catch(e){}
+    };
+    loadMods();
   }, []);
 
   return (
