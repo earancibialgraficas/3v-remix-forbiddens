@@ -154,12 +154,7 @@ export default function ProfilePage() {
   const fetchNotifs = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(30);
+      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
       if (data) setNotifications(data);
     } catch (e) {}
   };
@@ -167,20 +162,14 @@ export default function ProfilePage() {
   const fetchPendingRequests = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
-        .from("friend_requests")
-        .select("*")
-        .eq("receiver_id", user.id);
+      const { data } = await supabase.from("friend_requests").select("*").eq("receiver_id", user.id);
 
       if (data && data.length > 0) {
         const pending = data.filter((r: any) => r.status !== "accepted");
         if (pending.length > 0) {
           const uniqueSenders = Array.from(new Set(pending.map((r: any) => r.sender_id))).filter(Boolean) as string[];
           if (uniqueSenders.length > 0) {
-            const { data: profs } = await supabase
-              .from("profiles")
-              .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-              .in("user_id", uniqueSenders);
+            const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", uniqueSenders);
 
             setPendingRequests(uniqueSenders.map(senderId => {
               const req = pending.find((r: any) => r.sender_id === senderId);
@@ -292,7 +281,6 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 SOLUCIÓN ACEPTAR: AHORA VERIFICA EL IMPACTO EN DB USANDO EL ID EXACTO 🔥
   const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -314,7 +302,6 @@ export default function ProfilePage() {
       toast({ title: "¡Solicitud aceptada!" });
       setPendingRequests(prev => (prev || []).filter(r => r.id !== reqId));
 
-      // Limpieza de seguridad: borramos posibles duplicados antiguos de esta misma persona
       await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id).neq("id", reqId);
       
       if (senderId) {
@@ -344,7 +331,6 @@ export default function ProfilePage() {
     }
   };
 
-  // 🔥 SOLUCIÓN RECHAZAR: AHORA ELIMINA POR SENDER_ID PARA MATAR DUPLICADOS DE UNA 🔥
   const handleRejectRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -490,9 +476,9 @@ export default function ProfilePage() {
   const userTier = userTierStr as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : (MEMBERSHIP_LIMITS[userTier] || MEMBERSHIP_LIMITS.novato);
 
-  const maxFriends = limits?.maxFriends || 0;
-  const maxStorage = limits?.storageMB || 0;
-  const displayTier = isStaff ? "STAFF" : safeStr(userTier).toUpperCase();
+  const maxFriends = limits.maxFriends;
+  const maxStorage = limits.storageMB;
+  const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
   
   const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
   const canUseSignature = isStaff || userTier !== 'novato';
@@ -500,8 +486,8 @@ export default function ProfilePage() {
 
   const bestScores = Object.values(
     (gameScores || []).reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
-      const key = `${gs?.game_name}-${gs?.console_type}`;
-      if (!acc[key] || (gs?.score || 0) > (acc[key]?.score || 0)) acc[key] = gs;
+      const key = `${gs.game_name}-${gs.console_type}`;
+      if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
       return acc;
     }, {})
   );
@@ -764,7 +750,8 @@ export default function ProfilePage() {
                     
                     {canAdvancedSignature && (
                       <>
-                        <div className="grid grid-cols-2 gap-2">
+                        {/* TIPOGRAFÍA Y TAMAÑO DE LETRA */}
+                        <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipografía</label>
                             <select
@@ -791,7 +778,8 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        {/* COLORES DE RELLENO Y TRAZO */}
+                        <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color relleno</label>
                             <input
@@ -817,7 +805,74 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        <div>
+                        {/* 🔥 NUEVO: GROSOR Y TIPO DE TRAZO 🔥 */}
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Grosor trazo ({localSigStrokeWidth}px)</label>
+                            <input 
+                              type="range" min="0" max="10" step="0.5" 
+                              value={localSigStrokeWidth} 
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setLocalSigStrokeWidth(val);
+                                updateSig({ signature_stroke_width: val });
+                              }} 
+                              className="w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipo de Trazo</label>
+                            <div className="flex gap-1">
+                              {['outside', 'center', 'inside'].map(align => (
+                                <button
+                                  key={align}
+                                  type="button"
+                                  onClick={() => updateSig({ signature_stroke_alignment: align })}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_stroke_alignment === align || (!(profile as any)?.signature_stroke_alignment && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                >
+                                  {align === 'outside' ? 'Fuera' : align === 'center' ? 'Medio' : 'Dentro'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 🔥 NUEVO: ALINEACIÓN Y POSICIÓN DEL TEXTO 🔥 */}
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación Texto</label>
+                            <div className="flex gap-1">
+                              {['left', 'center', 'right'].map(align => (
+                                <button
+                                  key={align}
+                                  type="button"
+                                  onClick={() => updateSig({ signature_text_align: align })}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_text_align === align || (!(profile as any)?.signature_text_align && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                >
+                                  {align === 'left' ? 'Izq' : align === 'center' ? 'Centro' : 'Der'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ubicación</label>
+                            <div className="flex gap-1">
+                              {['inside', 'outside'].map(pos => (
+                                <button
+                                  key={pos}
+                                  type="button"
+                                  onClick={() => updateSig({ signature_text_position: pos })}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", (profile as any)?.signature_text_position === pos || (!(profile as any)?.signature_text_position && pos === 'inside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                >
+                                  {pos === 'inside' ? 'Adentro' : 'Afuera'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* URL DE LA IMAGEN */}
+                        <div className="mt-2">
                           <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Imagen (URL)</label>
                           <Input
                             value={(profile as any)?.signature_image_url || ""}
@@ -827,11 +882,26 @@ export default function ProfilePage() {
                           />
                         </div>
                         
+                        {/* 🔥 NUEVO: SLIDER DE POSICIÓN VERTICAL DE IMAGEN 🔥 */}
+                        <div className="mt-2">
+                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Posición Vertical de la Imagen ({localSigImageOffset}%)</label>
+                          <input 
+                            type="range" min="0" max="100" step="1" 
+                            value={localSigImageOffset} 
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              setLocalSigImageOffset(val);
+                              updateSig({ signature_image_offset: val });
+                            }} 
+                            className="w-full"
+                          />
+                        </div>
+
                         <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
                           <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
                           <SignatureDisplay
                             text={signature || `— ${profile?.display_name} [${displayTier}]`}
-                            profile={{ ...(profile as any), signature, signature_font_size: localSigFontSize, signature_stroke_width: localSigStrokeWidth, signature_image_offset: localSigImageOffset }}
+                            profile={profile ? { ...(profile as any), signature, signature_font_size: localSigFontSize, signature_stroke_width: localSigStrokeWidth, signature_image_offset: localSigImageOffset } : { signature } as any}
                             fontSize={localSigFontSize}
                           />
                         </div>
@@ -1103,8 +1173,8 @@ export default function ProfilePage() {
               <div className="space-y-1">
                 {bestScores.map((gs, i) => (
                   <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
-                    <span className={cn("font-pixel text-[9px]", safeStr(gs?.console_type) === "nes" ? "text-neon-green" : safeStr(gs?.console_type) === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
-                      {safeStr(gs?.console_type).toUpperCase()}
+                    <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
+                      {gs.console_type.toUpperCase()}
                     </span>
                     <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
                     <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
@@ -1235,7 +1305,7 @@ function FriendsTab({ userId, limits, isStaff }: any) {
 
        const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
        setFriends(profs || []);
-     } catch(e) {}
+     } catch(e) { console.error(e); }
   };
 
   useEffect(() => { 
@@ -1312,6 +1382,15 @@ function FriendsTab({ userId, limits, isStaff }: any) {
                       return;
                     }
 
+                    await supabase.from("notifications").insert({
+                       id: crypto.randomUUID(),
+                       user_id: r.user_id,
+                       type: "friend_request",
+                       title: "Nueva solicitud de amistad",
+                       body: `Alguien te ha enviado una solicitud de amistad.`,
+                       related_id: userId
+                    } as any);
+                    
                     toast({ title: "Solicitud enviada" }); 
                     setRes([]);
                     setSearch("");
