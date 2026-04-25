@@ -870,7 +870,7 @@ export default function ProfilePage() {
                                   }}
                                   className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
-                                  {align === 'outside' ? 'Fuera' : align === 'center' ? 'Medio' : 'Dentro'}
+                                  {align === 'outside' ? 'Fuera' : align === 'middle' ? 'Medio' : 'Dentro'}
                                 </button>
                               ))}
                             </div>
