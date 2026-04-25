@@ -57,39 +57,15 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
       fontSize: `${customFontSize}px`,
       lineHeight: 1.3,
       wordBreak: "break-word",
+      whiteSpace: "pre-wrap", // 🔥 Mantiene los saltos de línea sin romper la caja
     };
 
     if (strokeColor && strokeWidth > 0) {
-      if (strokePosition === "inside") {
-        return (
-          <svg
-            width="100%"
-            height={customFontSize * 1.6}
-            style={{ overflow: "visible", display: "block" }}
-            aria-label={sigText}
-          >
-            <text
-              x={textAlign === "left" ? "0%" : textAlign === "right" ? "100%" : "50%"}
-              y="50%"
-              dominantBaseline="middle"
-              textAnchor={textAlign === "left" ? "start" : textAlign === "right" ? "end" : "middle"}
-              fill={color}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth * 2}
-              style={{
-                fontFamily: `"${fontFamily}", sans-serif`,
-                fontSize: `${customFontSize}px`,
-                fontWeight: isBold ? 700 : 400,
-                fontStyle: isItalic ? "italic" : "normal",
-                paintOrder: "stroke fill",
-              }}
-            >
-              {sigText}
-            </text>
-          </svg>
-        );
-      }
-      const paintOrder = strokePosition === "outside" ? "stroke fill" : "fill stroke";
+      // 🔥 ELIMINADO EL SVG PROBLEMÁTICO. AHORA USAMOS CSS NATIVO PARA TODOS 🔥
+      let paintOrder = "normal";
+      if (strokePosition === "outside") paintOrder = "stroke fill";
+      else if (strokePosition === "inside") paintOrder = "fill stroke";
+
       return (
         <p
           style={{
@@ -113,12 +89,10 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
         className="rounded overflow-hidden border border-border/30 transition-all duration-300"
         style={{
           height: 110,
-          // 🔥 FIX: Aplicamos el ancho seleccionado y centramos según la alineación
           width: `${imageWidth}%`,
           margin: imageAlign === "center" ? "0 auto" : imageAlign === "right" ? "0 0 0 auto" : "0 auto 0 0",
           backgroundImage: `url("${sigImage}")`,
           backgroundSize: "cover",
-          // 🔥 FIX: Aplicamos el offset vertical (eje Y)
           backgroundPosition: `${imageAlign} ${vOffset}%`,
           backgroundRepeat: "no-repeat",
         }}
