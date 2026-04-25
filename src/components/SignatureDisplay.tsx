@@ -57,19 +57,19 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
       fontSize: `${customFontSize}px`,
       lineHeight: 1.3,
       wordBreak: "break-word",
-      whiteSpace: "pre-wrap", 
+      whiteSpace: "pre-wrap", // 🔥 CLAVE: Obliga a saltar de línea sin desbordar los lados
     };
 
     if (strokeColor && strokeWidth > 0) {
+      // 🔥 TRUCO CSS PARA DIFERENCIAR LOS TRAZOS SIN ROMPER EL TEXTO 🔥
       let paintOrder = "stroke fill"; 
       let finalStrokeWidth = strokeWidth;
 
       if (strokePosition === "outside") {
-        paintOrder = "stroke fill"; 
-        finalStrokeWidth = strokeWidth * 2; 
+        paintOrder = "stroke fill"; // El trazo se dibuja ATRÁS del texto
+        finalStrokeWidth = strokeWidth * 2; // Doble grosor porque la mitad queda oculta
       } else {
-        // Todo lo demás (middle o si quedó algún residuo) será Medio
-        paintOrder = "normal"; 
+        paintOrder = "normal"; // El trazo se dibuja SOBRE el texto (mitad adentro, mitad afuera)
         finalStrokeWidth = strokeWidth;
       }
 
