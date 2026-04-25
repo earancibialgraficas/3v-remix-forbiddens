@@ -24,7 +24,6 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar al hacer clic afuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -38,7 +37,6 @@ export default function NotificationBell() {
   const fetchNotifications = async () => {
     if (!user?.id) return;
     try {
-      // 🔥 BUSCAMOS NOTIFICACIONES Y SOLICITUDES DE AMISTAD AL MISMO TIEMPO 🔥
       const [notifsRes, requestsRes] = await Promise.all([
          supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
          supabase.from("friend_requests").select("id, sender_id, created_at, status").eq("receiver_id", user.id).neq("status", "accepted")
@@ -50,20 +48,24 @@ export default function NotificationBell() {
       }
 
       if (requestsRes.data && requestsRes.data.length > 0) {
-         const ids = requestsRes.data.map(r => r.sender_id).filter(Boolean);
-         if (ids.length > 0) {
-             const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+         // 🔥 ELIMINAMOS SOLICITUDES DUPLICADAS AGRUPANDO POR SENDER 🔥
+         const uniqueSenders = Array.from(new Set(requestsRes.data.map(r => r.sender_id))).filter(Boolean) as string[];
+         if (uniqueSenders.length > 0) {
+             const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", uniqueSenders);
              
-             const reqNotifs = requestsRes.data.map(r => ({
-                id: `req_${r.id}`,
-                type: 'friend_request',
-                title: 'Nueva solicitud de amistad',
-                body: `${profs?.find(p => p.user_id === r.sender_id)?.display_name || 'Alguien'} quiere ser tu amigo.`,
-                created_at: r.created_at,
-                is_read: false,
-                is_request: true,
-                related_id: r.sender_id
-             }));
+             const reqNotifs = uniqueSenders.map(senderId => {
+                const r = requestsRes.data.find(req => req.sender_id === senderId);
+                return {
+                  id: `req_${r.id}`,
+                  type: 'friend_request',
+                  title: 'Nueva solicitud de amistad',
+                  body: `${profs?.find(p => p.user_id === senderId)?.display_name || 'Alguien'} quiere ser tu amigo.`,
+                  created_at: r.created_at,
+                  is_read: false,
+                  is_request: true,
+                  related_id: senderId
+                };
+             });
              combined = [...combined, ...reqNotifs];
          }
       }
@@ -75,13 +77,9 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchNotifications();
-    }
-    
+    if (user?.id) fetchNotifications();
     if (!user?.id) return;
     
-    // 🔥 CONEXIÓN EN VIVO A AMBAS TABLAS 🔥
     const channel1 = supabase
       .channel("notifications-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifications())
@@ -98,9 +96,8 @@ export default function NotificationBell() {
     };
   }, [user?.id]);
 
-  // 🔥 NUEVA LÓGICA: SÓLO MARCA COMO LEÍDA AL HACER CLICK 🔥
   const handleMarkAsRead = async (id: string, is_request?: boolean) => {
-    if (!user?.id || is_request) return; // Las solicitudes no se marcan leídas, se aceptan/rechazan
+    if (!user?.id || is_request) return; 
     try {
       await supabase.from("notifications").update({ is_read: true } as any).eq("id", id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -108,7 +105,6 @@ export default function NotificationBell() {
     } catch(e) {}
   };
 
-  // 🔥 NUEVA LÓGICA: LIMPIAR TODO EL HISTORIAL 🔥
   const clearAllNotifications = async () => {
     if (!user?.id) return;
     if (!confirm("¿Borrar todo tu historial de notificaciones?")) return;
@@ -134,7 +130,7 @@ export default function NotificationBell() {
   if (isMobile) {
     return (
       <Link 
-        to="/perfil?tab=avisos" 
+        to="/perfil?tab=avisos"
         className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted/50 transition-colors"
       >
         <Bell className="w-4 h-4 text-muted-foreground" />
