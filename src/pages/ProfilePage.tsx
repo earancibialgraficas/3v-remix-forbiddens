@@ -167,7 +167,6 @@ export default function ProfilePage() {
       if (data && data.length > 0) {
         const pending = data.filter((r: any) => r.status !== "accepted");
         if (pending.length > 0) {
-          // 🔥 ELIMINAMOS SOLICITUDES DUPLICADAS DE LA MISMA PERSONA 🔥
           const uniqueSenders = Array.from(new Set(pending.map((r: any) => r.sender_id))).filter(Boolean) as string[];
           if (uniqueSenders.length > 0) {
             const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", uniqueSenders);
@@ -282,10 +281,11 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 ACEPTAR: AHORA AFECTA AL SENDER_ID PARA MATAR DUPLICADOS DE UNA 🔥
+  // 🔥 GENERACIÓN DE IDs DESDE REACT PARA EVITAR ERROR DE SUPABASE 🔥
   const handleAcceptRequest = async (senderId: string, senderName: string) => {
     if (!user) return;
     try {
+      // Usamos like or en sender/receiver para cerrar la solicitud
       const { error } = await supabase.from("friend_requests")
         .update({ status: "accepted" } as any)
         .eq("sender_id", senderId)
@@ -297,21 +297,23 @@ export default function ProfilePage() {
         
         if (senderId) {
           await supabase.from("notifications").insert({
+            id: crypto.randomUUID(), // <--- ESCUDO DE ID
             user_id: senderId,
             type: "friend_accepted",
             title: "Solicitud aceptada",
             body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`,
             related_id: user.id
-          });
+          } as any);
         }
 
         await supabase.from("notifications").insert({
+          id: crypto.randomUUID(), // <--- ESCUDO DE ID
           user_id: user.id,
           type: "general",
           title: "Amistad Aceptada",
           body: `Aceptaste la solicitud de amistad de ${senderName}.`,
           is_read: true
-        });
+        } as any);
 
         fetchNotifs();
         if (activeTab === "friends") window.location.reload();
@@ -321,7 +323,6 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 RECHAZAR: AHORA ELIMINA AL SENDER_ID PARA MATAR DUPLICADOS DE UNA 🔥
   const handleRejectRequest = async (senderId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -335,12 +336,13 @@ export default function ProfilePage() {
         setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
 
         await supabase.from("notifications").insert({
+          id: crypto.randomUUID(), // <--- ESCUDO DE ID
           user_id: user.id,
           type: "general",
           title: "Amistad Rechazada",
           body: `Rechazaste la solicitud de amistad de ${senderName}.`,
           is_read: true
-        });
+        } as any);
 
         fetchNotifs();
       } else {
@@ -475,7 +477,7 @@ export default function ProfilePage() {
   const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
 
   const bestScores = Object.values(
-    (gameScores || []).reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
+    gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
       const key = `${gs.game_name}-${gs.console_type}`;
       if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
       return acc;
@@ -953,7 +955,7 @@ export default function ProfilePage() {
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
               {pendingRequests.map(req => (
-                <div key={req.sender_id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
+                <div key={req.id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-muted overflow-hidden border border-border/50 shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                       {req.profile?.avatar_url ? (
@@ -970,15 +972,15 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button size="sm" onClick={() => handleAcceptRequest(req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                    <Button size="sm" onClick={() => handleAcceptRequest(req.id, req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {(notifications || []).length === 0 && (pendingRequests || []).length === 0 ? (
+          {notifications.length === 0 && pendingRequests.length === 0 ? (
             <p className="text-xs text-muted-foreground font-body text-center md:text-left py-4">No tienes avisos recientes</p>
           ) : (
             <div className="space-y-2">
@@ -997,7 +999,7 @@ export default function ProfilePage() {
                           {new Date(notif.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                         {notif.type === "friend_request" && notif.related_id && (
-                          <Link to={`/usuario/${notif.related_id}`} onClick={() => handleMarkAsRead(notif.id)} className="text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 hover:bg-neon-cyan/20 px-1.5 py-0.5 rounded transition-colors">
+                          <Link to={`/usuario/${notif.related_id}`} onClick={() => handleMarkAsRead(notif.id)} className="text-[9px] text-primary hover:underline font-body">
                             Ver perfil
                           </Link>
                         )}
@@ -1201,16 +1203,22 @@ function FriendsTab({ userId, limits, isStaff }: any) {
   const [res, setRes] = useState<any[]>([]);
 
   const fetchFriends = async () => {
-     try {
-       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted");
-       if (error || !data || data.length === 0) { setFriends([]); return; }
+     const { data } = await supabase
+       .from("friend_requests")
+       .select("*")
+       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+       .eq("status", "accepted");
        
-       const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
-       if (ids.length === 0) { setFriends([]); return; }
-
-       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
-       setFriends(profs || []);
-     } catch(e) {}
+     if (!data) return;
+     
+     const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
+     
+     const { data: profs } = await supabase
+       .from("profiles")
+       .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+       .in("user_id", ids);
+       
+     setFriends(profs || []);
   };
 
   useEffect(() => { 
@@ -1237,15 +1245,13 @@ function FriendsTab({ userId, limits, isStaff }: any) {
           />
           <Button 
             onClick={async () => { 
-               try { 
-                 const { data } = await supabase
-                   .from("profiles")
-                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-                   .ilike("display_name", `%${search}%`)
-                   .neq("user_id", userId)
-                   .limit(5);
-                 setRes(data || []); 
-               } catch(e) {}
+               const { data } = await supabase
+                 .from("profiles")
+                 .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+                 .ilike("display_name", `%${search}%`)
+                 .neq("user_id", userId)
+                 .limit(5);
+               setRes(data || []); 
             }} 
             className="h-8"
             disabled={reachedLimit || !search.trim()}
@@ -1268,33 +1274,34 @@ function FriendsTab({ userId, limits, isStaff }: any) {
              <Button 
                onClick={async () => { 
                   try {
-                    // 🔥 REVISAMOS PRIMERO SI YA HAY SOLICITUD 🔥
-                    const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
-                    if (existing && existing.length > 0) {
-                       toast({ title: "Aviso", description: "Ya existe una solicitud o amistad con este usuario.", variant: "destructive" });
-                       return;
-                    }
-                    
-                    const { error } = await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: r.user_id, status: 'pending' } as any); 
+                    // 🔥 FORZAMOS ID EN REACT Y PROTEGEMOS CONTRA DUPLICADOS 🔥
+                    const reqId = crypto.randomUUID();
+                    const { error } = await supabase.from("friend_requests").insert({ 
+                      id: reqId, 
+                      sender_id: userId, 
+                      receiver_id: r.user_id, 
+                      status: 'pending' 
+                    } as any); 
+
                     if (error) {
-                       toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
-                       return;
+                      toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
+                      return;
                     }
-                    
-                    // 🔥 FORZAMOS LA ALERTA AL OTRO USUARIO 🔥
+
                     await supabase.from("notifications").insert({
+                       id: crypto.randomUUID(),
                        user_id: r.user_id,
                        type: "friend_request",
                        title: "Nueva solicitud de amistad",
                        body: `Alguien te ha enviado una solicitud de amistad.`,
                        related_id: userId
-                    });
+                    } as any);
                     
                     toast({ title: "Solicitud enviada" }); 
                     setRes([]);
                     setSearch("");
                   } catch(e: any) {
-                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                    toast({ title: "Error fatal", description: e.message, variant: "destructive" });
                   }
                }} 
                className="h-6 text-[9px] uppercase font-pixel tracking-tighter"
@@ -1387,6 +1394,7 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
     }
     
     const { error } = await supabase.from("social_content").insert({
+      id: crypto.randomUUID(), // 🔥 ESCUDO DE ID 🔥
       user_id: user.id,
       content_url: newUrl.trim(),
       title: newTitle.trim() || null,
@@ -1624,7 +1632,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
     
     const { error } = await supabase
       .from("banned_users")
-      .insert({ user_id: target.user_id, reason: banReason, ban_type: 'ban' });
+      .insert({ id: crypto.randomUUID(), user_id: target.user_id, reason: banReason, ban_type: 'ban' } as any);
       
     setBanning(false);
     
@@ -1734,7 +1742,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
                   if (data) {
                     const { error } = await supabase
                       .from("user_roles")
-                      .insert({ user_id: data.user_id, role: "moderator" });
+                      .insert({ id: crypto.randomUUID(), user_id: data.user_id, role: "moderator" } as any);
                       
                     if (error) {
                       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1763,7 +1771,7 @@ function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterW
                   if (data) {
                     const { error } = await supabase
                       .from("user_roles")
-                      .insert({ user_id: data.user_id, role: "admin" });
+                      .insert({ id: crypto.randomUUID(), user_id: data.user_id, role: "admin" } as any);
                       
                     if (error) {
                       toast({ title: "Error", description: error.message, variant: "destructive" });
