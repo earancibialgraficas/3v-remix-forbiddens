@@ -12,7 +12,7 @@ interface SignatureProfile {
   signature_image_width?: number | null;
   signature_text_over_image?: boolean | null;
   signature_font_size?: number | null;
-  signature_image_offset?: number | null; // 🔥 Nuevo: Desplazamiento vertical
+  signature_image_offset?: number | null; 
   color_staff_role?: string | null;
 }
 
@@ -33,14 +33,14 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
   const color = profile.signature_color || profile.color_staff_role || "#facc15";
   const strokeColor = profile.signature_stroke_color || "";
   const strokeWidth = Math.max(0, profile.signature_stroke_width ?? 1);
-  const strokePosition = profile.signature_stroke_position || "middle";
+  const strokePosition = profile.signature_stroke_position || "outside";
   const fontStyleStr = profile.signature_font || "normal";
   const isBold = fontStyleStr.includes("bold");
   const isItalic = fontStyleStr.includes("italic");
   const textAlign = (profile.signature_text_align || "center") as "left" | "center" | "right";
   const imageAlign = profile.signature_image_align || "center";
   const imageWidth = profile.signature_image_width ?? 100;
-  const vOffset = profile.signature_image_offset ?? 50; // Valor por defecto: centro (50%)
+  const vOffset = profile.signature_image_offset ?? 50; 
   const overImage = !!profile.signature_text_over_image && !!sigImage && !!sigText;
   
   const customFontSize = profile.signature_font_size || fontSize;
@@ -57,39 +57,18 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
       fontSize: `${customFontSize}px`,
       lineHeight: 1.3,
       wordBreak: "break-word",
+      whiteSpace: "pre-wrap", // 🔥 CLAVE: Obliga a saltar de línea sin desbordar
     };
 
     if (strokeColor && strokeWidth > 0) {
+      // 🔥 CSS NATIVO EN VEZ DE SVG: Funciona perfecto sin romper el tamaño 🔥
+      let paintOrder = "stroke fill"; // outside por defecto
       if (strokePosition === "inside") {
-        return (
-          <svg
-            width="100%"
-            height={customFontSize * 1.6}
-            style={{ overflow: "visible", display: "block" }}
-            aria-label={sigText}
-          >
-            <text
-              x={textAlign === "left" ? "0%" : textAlign === "right" ? "100%" : "50%"}
-              y="50%"
-              dominantBaseline="middle"
-              textAnchor={textAlign === "left" ? "start" : textAlign === "right" ? "end" : "middle"}
-              fill={color}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth * 2}
-              style={{
-                fontFamily: `"${fontFamily}", sans-serif`,
-                fontSize: `${customFontSize}px`,
-                fontWeight: isBold ? 700 : 400,
-                fontStyle: isItalic ? "italic" : "normal",
-                paintOrder: "stroke fill",
-              }}
-            >
-              {sigText}
-            </text>
-          </svg>
-        );
+        paintOrder = "fill stroke";
+      } else if (strokePosition === "middle") {
+        paintOrder = "normal";
       }
-      const paintOrder = strokePosition === "outside" ? "stroke fill" : "fill stroke";
+
       return (
         <p
           style={{
@@ -113,12 +92,10 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
         className="rounded overflow-hidden border border-border/30 transition-all duration-300"
         style={{
           height: 110,
-          // 🔥 FIX: Aplicamos el ancho seleccionado y centramos según la alineación
           width: `${imageWidth}%`,
           margin: imageAlign === "center" ? "0 auto" : imageAlign === "right" ? "0 0 0 auto" : "0 auto 0 0",
           backgroundImage: `url("${sigImage}")`,
           backgroundSize: "cover",
-          // 🔥 FIX: Aplicamos el offset vertical (eje Y)
           backgroundPosition: `${imageAlign} ${vOffset}%`,
           backgroundRepeat: "no-repeat",
         }}
