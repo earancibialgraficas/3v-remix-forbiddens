@@ -154,7 +154,12 @@ export default function ProfilePage() {
   const fetchNotifs = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
       if (data) setNotifications(data);
     } catch (e) {}
   };
@@ -162,14 +167,20 @@ export default function ProfilePage() {
   const fetchPendingRequests = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase.from("friend_requests").select("*").eq("receiver_id", user.id);
+      const { data } = await supabase
+        .from("friend_requests")
+        .select("*")
+        .eq("receiver_id", user.id);
 
       if (data && data.length > 0) {
         const pending = data.filter((r: any) => r.status !== "accepted");
         if (pending.length > 0) {
           const uniqueSenders = Array.from(new Set(pending.map((r: any) => r.sender_id))).filter(Boolean) as string[];
           if (uniqueSenders.length > 0) {
-            const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", uniqueSenders);
+            const { data: profs } = await supabase
+              .from("profiles")
+              .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+              .in("user_id", uniqueSenders);
 
             setPendingRequests(uniqueSenders.map(senderId => {
               const req = pending.find((r: any) => r.sender_id === senderId);
@@ -281,49 +292,60 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 GENERACIÓN DE IDs DESDE REACT PARA EVITAR ERROR DE SUPABASE 🔥
-  const handleAcceptRequest = async (senderId: string, senderName: string) => {
+  // 🔥 SOLUCIÓN ACEPTAR: AHORA VERIFICA EL IMPACTO EN DB USANDO EL ID EXACTO 🔥
+  const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
-      // Usamos like or en sender/receiver para cerrar la solicitud
-      const { error } = await supabase.from("friend_requests")
+      const { data, error } = await supabase.from("friend_requests")
         .update({ status: "accepted" } as any)
-        .eq("sender_id", senderId)
-        .eq("receiver_id", user.id);
+        .eq("id", reqId)
+        .select();
 
-      if (!error) {
-        toast({ title: "¡Solicitud aceptada!" });
-        setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
-        
-        if (senderId) {
-          await supabase.from("notifications").insert({
-            id: crypto.randomUUID(), // <--- ESCUDO DE ID
-            user_id: senderId,
-            type: "friend_accepted",
-            title: "Solicitud aceptada",
-            body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`,
-            related_id: user.id
-          } as any);
-        }
-
-        await supabase.from("notifications").insert({
-          id: crypto.randomUUID(), // <--- ESCUDO DE ID
-          user_id: user.id,
-          type: "general",
-          title: "Amistad Aceptada",
-          body: `Aceptaste la solicitud de amistad de ${senderName}.`,
-          is_read: true
-        } as any);
-
-        fetchNotifs();
-        if (activeTab === "friends") window.location.reload();
-      } else {
-        toast({ title: "Error al aceptar", variant: "destructive" });
+      if (error) {
+        toast({ title: "Error en Base de Datos", description: error.message, variant: "destructive" });
+        return;
       }
-    } catch(e) {}
+
+      if (!data || data.length === 0) {
+        toast({ title: "Error", description: "La solicitud ya no existe o no se pudo modificar. Intenta recargar.", variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "¡Solicitud aceptada!" });
+      setPendingRequests(prev => (prev || []).filter(r => r.id !== reqId));
+
+      // Limpieza de seguridad: borramos posibles duplicados antiguos de esta misma persona
+      await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id).neq("id", reqId);
+      
+      if (senderId) {
+        await supabase.from("notifications").insert({
+          id: crypto.randomUUID(),
+          user_id: senderId,
+          type: "friend_accepted",
+          title: "Solicitud aceptada",
+          body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`,
+          related_id: user.id
+        } as any);
+      }
+
+      await supabase.from("notifications").insert({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        type: "general",
+        title: "Amistad Aceptada",
+        body: `Aceptaste la solicitud de amistad de ${senderName}.`,
+        is_read: true
+      } as any);
+
+      fetchNotifs();
+      if (activeTab === "friends") window.location.reload();
+    } catch(e: any) {
+      toast({ title: "Error fatal", description: e.message, variant: "destructive" });
+    }
   };
 
-  const handleRejectRequest = async (senderId: string, senderName: string) => {
+  // 🔥 SOLUCIÓN RECHAZAR: AHORA ELIMINA POR SENDER_ID PARA MATAR DUPLICADOS DE UNA 🔥
+  const handleRejectRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
       const { error } = await supabase.from("friend_requests")
@@ -333,10 +355,10 @@ export default function ProfilePage() {
 
       if (!error) {
         toast({ title: "Solicitud rechazada" });
-        setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
+        setPendingRequests(prev => (prev || []).filter(r => r.sender_id !== senderId));
 
         await supabase.from("notifications").insert({
-          id: crypto.randomUUID(), // <--- ESCUDO DE ID
+          id: crypto.randomUUID(),
           user_id: user.id,
           type: "general",
           title: "Amistad Rechazada",
@@ -468,18 +490,18 @@ export default function ProfilePage() {
   const userTier = userTierStr as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : (MEMBERSHIP_LIMITS[userTier] || MEMBERSHIP_LIMITS.novato);
 
-  const maxFriends = limits.maxFriends;
-  const maxStorage = limits.storageMB;
-  const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
+  const maxFriends = limits?.maxFriends || 0;
+  const maxStorage = limits?.storageMB || 0;
+  const displayTier = isStaff ? "STAFF" : safeStr(userTier).toUpperCase();
   
   const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
   const canUseSignature = isStaff || userTier !== 'novato';
   const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
 
   const bestScores = Object.values(
-    gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
-      const key = `${gs.game_name}-${gs.console_type}`;
-      if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
+    (gameScores || []).reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
+      const key = `${gs?.game_name}-${gs?.console_type}`;
+      if (!acc[key] || (gs?.score || 0) > (acc[key]?.score || 0)) acc[key] = gs;
       return acc;
     }, {})
   );
@@ -973,7 +995,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button size="sm" onClick={() => handleAcceptRequest(req.id, req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id, req.sender_id, req.profile?.display_name || "Usuario")} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
                   </div>
                 </div>
               ))}
@@ -1081,8 +1103,8 @@ export default function ProfilePage() {
               <div className="space-y-1">
                 {bestScores.map((gs, i) => (
                   <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
-                    <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
-                      {gs.console_type.toUpperCase()}
+                    <span className={cn("font-pixel text-[9px]", safeStr(gs?.console_type) === "nes" ? "text-neon-green" : safeStr(gs?.console_type) === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
+                      {safeStr(gs?.console_type).toUpperCase()}
                     </span>
                     <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
                     <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
@@ -1203,22 +1225,17 @@ function FriendsTab({ userId, limits, isStaff }: any) {
   const [res, setRes] = useState<any[]>([]);
 
   const fetchFriends = async () => {
-     const { data } = await supabase
-       .from("friend_requests")
-       .select("*")
-       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-       .eq("status", "accepted");
+     try {
+       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+       if (error || !data) { setFriends([]); return; }
        
-     if (!data) return;
-     
-     const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
-     
-     const { data: profs } = await supabase
-       .from("profiles")
-       .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-       .in("user_id", ids);
-       
-     setFriends(profs || []);
+       const accepted = data.filter((r: any) => r.status === "accepted");
+       const ids = accepted.map((r: any) => r.sender_id === userId ? r.receiver_id : r.sender_id).filter(Boolean);
+       if (ids.length === 0) { setFriends([]); return; }
+
+       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
+       setFriends(profs || []);
+     } catch(e) {}
   };
 
   useEffect(() => { 
@@ -1245,13 +1262,15 @@ function FriendsTab({ userId, limits, isStaff }: any) {
           />
           <Button 
             onClick={async () => { 
-               const { data } = await supabase
-                 .from("profiles")
-                 .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-                 .ilike("display_name", `%${search}%`)
-                 .neq("user_id", userId)
-                 .limit(5);
-               setRes(data || []); 
+               try { 
+                 const { data } = await supabase
+                   .from("profiles")
+                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+                   .ilike("display_name", `%${search}%`)
+                   .neq("user_id", userId)
+                   .limit(5);
+                 setRes(data || []); 
+               } catch(e) {}
             }} 
             className="h-8"
             disabled={reachedLimit || !search.trim()}
@@ -1274,7 +1293,12 @@ function FriendsTab({ userId, limits, isStaff }: any) {
              <Button 
                onClick={async () => { 
                   try {
-                    // 🔥 FORZAMOS ID EN REACT Y PROTEGEMOS CONTRA DUPLICADOS 🔥
+                    const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
+                    if (existing && existing.length > 0) {
+                       toast({ title: "Aviso", description: "Ya existe una solicitud o amistad con este usuario.", variant: "destructive" });
+                       return;
+                    }
+                    
                     const reqId = crypto.randomUUID();
                     const { error } = await supabase.from("friend_requests").insert({ 
                       id: reqId, 
@@ -1288,15 +1312,6 @@ function FriendsTab({ userId, limits, isStaff }: any) {
                       return;
                     }
 
-                    await supabase.from("notifications").insert({
-                       id: crypto.randomUUID(),
-                       user_id: r.user_id,
-                       type: "friend_request",
-                       title: "Nueva solicitud de amistad",
-                       body: `Alguien te ha enviado una solicitud de amistad.`,
-                       related_id: userId
-                    } as any);
-                    
                     toast({ title: "Solicitud enviada" }); 
                     setRes([]);
                     setSearch("");
@@ -1394,7 +1409,7 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
     }
     
     const { error } = await supabase.from("social_content").insert({
-      id: crypto.randomUUID(), // 🔥 ESCUDO DE ID 🔥
+      id: crypto.randomUUID(),
       user_id: user.id,
       content_url: newUrl.trim(),
       title: newTitle.trim() || null,
