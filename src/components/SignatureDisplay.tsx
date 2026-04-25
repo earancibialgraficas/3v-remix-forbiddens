@@ -57,23 +57,27 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
       fontSize: `${customFontSize}px`,
       lineHeight: 1.3,
       wordBreak: "break-word",
-      whiteSpace: "pre-wrap", // 🔥 CLAVE: Obliga a saltar de línea sin desbordar
+      whiteSpace: "pre-wrap", 
     };
 
     if (strokeColor && strokeWidth > 0) {
-      // 🔥 CSS NATIVO EN VEZ DE SVG: Funciona perfecto sin romper el tamaño 🔥
-      let paintOrder = "stroke fill"; // outside por defecto
-      if (strokePosition === "inside") {
-        paintOrder = "fill stroke";
-      } else if (strokePosition === "middle") {
-        paintOrder = "normal";
+      let paintOrder = "stroke fill"; 
+      let finalStrokeWidth = strokeWidth;
+
+      if (strokePosition === "outside") {
+        paintOrder = "stroke fill"; 
+        finalStrokeWidth = strokeWidth * 2; 
+      } else {
+        // Todo lo demás (middle o si quedó algún residuo) será Medio
+        paintOrder = "normal"; 
+        finalStrokeWidth = strokeWidth;
       }
 
       return (
         <p
           style={{
             ...baseStyle,
-            WebkitTextStroke: `${strokeWidth}px ${strokeColor}`,
+            WebkitTextStroke: `${finalStrokeWidth}px ${strokeColor}`,
             paintOrder,
           } as React.CSSProperties}
         >
