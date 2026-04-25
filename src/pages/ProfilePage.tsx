@@ -42,7 +42,6 @@ export default function ProfilePage() {
   const [youtube, setYoutube] = useState("");
   const [tiktok, setTiktok] = useState("");
   
-  // 🔥 VARIABLES OPTIMISTAS CON LOS NOMBRES EXACTOS DE TU DB 🔥
   const [signature, setSignature] = useState("");
   const [localSigFontFamily, setLocalSigFontFamily] = useState("Inter");
   const [localSigFontSize, setLocalSigFontSize] = useState(13);
@@ -54,6 +53,7 @@ export default function ProfilePage() {
   const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
   const [localSigImageWidth, setLocalSigImageWidth] = useState(50);
+  const [localSigImageOffset, setLocalSigImageOffset] = useState(50);
   
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -139,7 +139,6 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       
       if (!editing) {
-        // 🔥 INICIALIZAMOS EL CACHÉ CON LOS NOMBRES REALES 🔥
         setSignature((profile as any).signature || "");
         setLocalSigFontFamily((profile as any).signature_font_family || "Inter");
         setLocalSigFontSize((profile as any).signature_font_size || 13);
@@ -151,6 +150,7 @@ export default function ProfilePage() {
         setLocalSigTextOverImage((profile as any).signature_text_over_image ?? true);
         setLocalSigImageUrl((profile as any).signature_image_url || "");
         setLocalSigImageWidth((profile as any).signature_image_width ?? 50);
+        setLocalSigImageOffset((profile as any).signature_image_offset ?? 50);
       }
       
       setAvatarBorderColor((profile as any).color_avatar_border || "");
@@ -375,7 +375,6 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 LÓGICA OPTIMISTA PARA GUARDAR CON LAS CLAVES CORRECTAS DE TU DB 🔥
   const updateSig = (patch: Record<string, any>) => {
     (window as any).__sigPatch = { ...(window as any).__sigPatch || {}, ...patch };
     if ((window as any).__sigUpdateTimer) clearTimeout((window as any).__sigUpdateTimer);
@@ -422,7 +421,8 @@ export default function ProfilePage() {
         signature_image_align: localSigImageAlign,
         signature_text_over_image: localSigTextOverImage,
         signature_image_url: localSigImageUrl,
-        signature_image_width: localSigImageWidth
+        signature_image_width: localSigImageWidth,
+        signature_image_offset: localSigImageOffset
       } as any)
       .eq("user_id", user.id);
       
@@ -777,7 +777,6 @@ export default function ProfilePage() {
                     
                     {canAdvancedSignature && (
                       <>
-                        {/* TIPOGRAFÍA Y TAMAÑO DE LETRA */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Tipografía</label>
@@ -808,7 +807,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* COLORES DE RELLENO Y TRAZO */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Color relleno</label>
@@ -844,7 +842,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* 🔥 GROSOR Y TIPO DE TRAZO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Grosor trazo ({localSigStrokeWidth}px)</label>
@@ -879,7 +876,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* 🔥 ALINEACIÓN Y POSICIÓN DEL TEXTO OPTIMISTA 🔥 */}
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Alineación Texto</label>
@@ -919,7 +915,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* URL DE LA IMAGEN */}
                         <div className="mt-2">
                           <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Imagen (URL)</label>
                           <Input
@@ -933,22 +928,35 @@ export default function ProfilePage() {
                           />
                         </div>
                         
-                        {/* 🔥 SLIDER DE ANCHO OPTIMISTA 🔥 */}
-                        <div className="mt-2">
-                          <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ancho de la Imagen ({localSigImageWidth}%)</label>
-                          <input 
-                            type="range" min="0" max="100" step="1" 
-                            value={localSigImageWidth} 
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              setLocalSigImageWidth(val);
-                              updateSig({ signature_image_width: val });
-                            }} 
-                            className="w-full"
-                          />
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Ancho Imagen ({localSigImageWidth}%)</label>
+                            <input 
+                              type="range" min="10" max="100" step="1" 
+                              value={localSigImageWidth} 
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setLocalSigImageWidth(val);
+                                updateSig({ signature_image_width: val });
+                              }} 
+                              className="w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-body text-muted-foreground block mb-0.5 uppercase">Posición Vertical ({localSigImageOffset}%)</label>
+                            <input 
+                              type="range" min="0" max="100" step="1" 
+                              value={localSigImageOffset} 
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setLocalSigImageOffset(val);
+                                updateSig({ signature_image_offset: val });
+                              }} 
+                              className="w-full"
+                            />
+                          </div>
                         </div>
 
-                        {/* 🔥 DISPLAY ALIMENTADO 100% POR EL CACHÉ LOCAL 🔥 */}
                         <div className="mt-2 p-2 border border-dashed border-border/50 rounded bg-muted/20 text-center">
                           <p className="text-[9px] font-body text-muted-foreground mb-1 uppercase tracking-tighter">Vista previa:</p>
                           <SignatureDisplay
@@ -965,7 +973,8 @@ export default function ProfilePage() {
                               signature_image_align: localSigImageAlign,
                               signature_text_over_image: localSigTextOverImage,
                               signature_image_url: localSigImageUrl,
-                              signature_image_width: localSigImageWidth
+                              signature_image_width: localSigImageWidth,
+                              signature_image_offset: localSigImageOffset
                             } : { signature } as any}
                             fontSize={localSigFontSize}
                           />
@@ -1107,6 +1116,7 @@ export default function ProfilePage() {
              </Button>
           </div>
 
+          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD 🔥 */}
           {(pendingRequests || []).length > 0 && (
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
