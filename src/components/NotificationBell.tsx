@@ -51,25 +51,27 @@ export default function NotificationBell() {
 
       if (requestsRes.data && requestsRes.data.length > 0) {
          const ids = requestsRes.data.map(r => r.sender_id).filter(Boolean);
-         const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
-         
-         const reqNotifs = requestsRes.data.map(r => ({
-            id: `req_${r.id}`,
-            type: 'friend_request',
-            title: 'Solicitud de amistad',
-            body: `${profs?.find(p => p.user_id === r.sender_id)?.display_name || 'Alguien'} quiere ser tu amigo.`,
-            created_at: r.created_at,
-            is_read: false,
-            is_request: true,
-            related_id: r.sender_id
-         }));
-         combined = [...combined, ...reqNotifs];
+         if (ids.length > 0) {
+             const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+             
+             const reqNotifs = requestsRes.data.map(r => ({
+                id: `req_${r.id}`,
+                type: 'friend_request',
+                title: 'Nueva solicitud de amistad',
+                body: `${profs?.find(p => p.user_id === r.sender_id)?.display_name || 'Alguien'} quiere ser tu amigo.`,
+                created_at: r.created_at,
+                is_read: false,
+                is_request: true,
+                related_id: r.sender_id
+             }));
+             combined = [...combined, ...reqNotifs];
+         }
       }
 
       combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setNotifications(combined.slice(0, 30));
       setUnread(combined.filter((n: any) => !n.is_read).length);
-    } catch(e) {}
+    } catch(e) { console.error(e); }
   };
 
   useEffect(() => {

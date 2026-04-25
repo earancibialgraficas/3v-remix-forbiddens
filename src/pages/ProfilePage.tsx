@@ -27,6 +27,8 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   general: { icon: <Star className="w-3.5 h-3.5" />, color: "text-muted-foreground" },
 };
 
+const safeStr = (val: any) => (val ? String(val) : "");
+
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { toast } = useToast();
@@ -82,6 +84,34 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
+  // 🔥 AQUÍ ESTÁ EL HOOK QUE CAUSABA EL CRASH. AHORA ESTÁ ARRIBA 🔥
+  const [localColorCache, setLocalColorCache] = useState("#ffffff");
+
+  const getValidHex = (val: string | null | undefined) => {
+    if (!val) return "#ffffff";
+    const hex = String(val).trim();
+    if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
+    if (/^#[0-9A-Fa-f]{3}$/i.test(hex)) return '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3];
+    return "#ffffff"; 
+  };
+
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const activeColor = 
+      colorTarget === "border" ? avatarBorderColor :
+      colorTarget === "name" ? nameColor :
+      colorTarget === "role" ? roleColor :
+      colorTarget === "staff" ? staffRoleColor :
+      colorTarget === "stat_points" ? statPointsColor :
+      colorTarget === "stat_followers" ? statFollowersColor :
+      colorTarget === "stat_following" ? statFollowingColor :
+      colorTarget === "stat_posts_forum" ? statPostsForumColor :
+      colorTarget === "stat_posts_social" ? statPostsSocialColor :
+      statGamesColor;
+    
+    setLocalColorCache(getValidHex(activeColor));
+  }, [colorTarget, showColorPicker, avatarBorderColor, nameColor, roleColor, staffRoleColor, statPointsColor, statFollowersColor, statFollowingColor, statPostsForumColor, statPostsSocialColor, statGamesColor]);
+
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
       setEditing(true);
@@ -95,7 +125,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile) {
-      setDisplayName(profile.display_name);
+      setDisplayName(profile.display_name || "");
       setBio(profile.bio || "");
       setInstagram(profile.instagram_url || "");
       setYoutube(profile.youtube_url || "");
@@ -122,197 +152,170 @@ export default function ProfilePage() {
     }
   }, [profile, editing]);
 
-  // 🔥 FUNCIONES DE EXTRACCIÓN (SEPARADAS PARA LLAMARLAS AL CAMBIAR DE PESTAÑA) 🔥
   const fetchNotifs = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    if (data) setNotifications(data);
+    try {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (data) setNotifications(data);
+    } catch(e) {}
   };
 
   const fetchPendingRequests = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("friend_requests")
-      .select("sender_id, created_at, status")
-      .eq("receiver_id", user.id)
-      .neq("status", "accepted");
+    try {
+      const { data } = await supabase
+        .from("friend_requests")
+        .select("id, sender_id, created_at, status")
+        .eq("receiver_id", user.id)
+        .neq("status", "accepted");
 
-    if (error) {
-      console.error("Error al obtener solicitudes", error);
-      return;
-    }
+      if (data && data.length > 0) {
+        const ids = data.map((r: any) => r.sender_id).filter(Boolean);
+        if (ids.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+            .in("user_id", ids);
 
-    if (data && data.length > 0) {
-      const ids = data.map((r: any) => r.sender_id);
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-        .in("user_id", ids);
-
-      setPendingRequests(data.map((r: any) => ({
-        ...r,
-        profile: profs?.find((p: any) => p.user_id === r.sender_id)
-      })));
-    } else {
-      setPendingRequests([]);
-    }
+          setPendingRequests(data.map((r: any) => ({
+            ...r,
+            profile: (profs || []).find((p: any) => p.user_id === r.sender_id) || {}
+          })));
+        } else {
+          setPendingRequests([]);
+        }
+      } else {
+        setPendingRequests([]);
+      }
+    } catch(e) { console.error(e); }
   };
 
-  // 🔥 REFRESCO AUTOMÁTICO AL ENTRAR EN AVISOS 🔥
-  useEffect(() => {
-    if (activeTab === "avisos" && user) {
-      fetchNotifs();
-      fetchPendingRequests();
-      
-      const markAsRead = async () => {
-        await supabase
-          .from("notifications")
-          .update({ is_read: true } as any)
-          .eq("user_id", user.id)
-          .eq("is_read", false);
-          
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
-      };
-      markAsRead();
-    }
-  }, [activeTab, user]);
-
-  // CARGA DE DATOS PRINCIPALES DEL PERFIL
+  // 🔥 Escucha de eventos en tiempo real para el Perfil 🔥
   useEffect(() => {
     if (!user) return;
 
-    supabase
-      .from("posts")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { 
-        if (data) setUserPosts(data); 
-      });
+    // Ejecuta la primera carga
+    fetchNotifs();
+    fetchPendingRequests();
 
-    Promise.all([
-      supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
-    ]).then(([socialRes, photosRes]) => {
-      setSocialContentCount((socialRes.count || 0) + (photosRes.count || 0));
-    });
-    
-    supabase
-      .from("leaderboard_scores")
-      .select("game_name, console_type, score")
-      .eq("user_id", user.id)
-      .order("score", { ascending: false })
-      .then(({ data }) => { 
-        if (data) setGameScores(data as any); 
-      });
-    
-    supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("following_id", user.id)
-      .then(({ count }) => setFollowerCount(count || 0));
+    const markAsRead = async () => {
+      try {
+        await supabase.from("notifications").update({ is_read: true } as any).eq("user_id", user.id).eq("is_read", false);
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))); 
+      } catch(e) {}
+    };
+
+    if (activeTab === "avisos") {
+      markAsRead();
+    }
+
+    const channel1 = supabase
+      .channel("profile-notifs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifs())
+      .subscribe();
       
-    supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("follower_id", user.id)
-      .then(({ count }) => setFollowingCount(count || 0));
-    
+    const channel2 = supabase
+      .channel("profile-reqs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchPendingRequests())
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(channel1); 
+      supabase.removeChannel(channel2); 
+    };
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const loadCoreData = async () => {
+      try {
+        const { data: posts } = await supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
+        if (posts) setUserPosts(posts);
+
+        const [socialRes, photosRes] = await Promise.all([
+          supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+        ]);
+        setSocialContentCount((socialRes?.count || 0) + (photosRes?.count || 0));
+        
+        const { data: scores } = await supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false });
+        if (scores) setGameScores(scores as any);
+        
+        const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);
+        setFollowerCount(followers || 0);
+          
+        const { count: following } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id);
+        setFollowingCount(following || 0);
+      } catch (e) {}
+    };
+
     const loadStorage = async () => {
-      const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
-      
-      const { data: scores } = await supabase
-        .from("leaderboard_scores")
-        .select("id, game_name, console_type, created_at")
-        .eq("user_id", user.id);
+      try {
+        const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-      scores?.forEach(s => items.push({ 
-        type: "Partida guardada", 
-        name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, 
-        size: 2, 
-        id: s.id, 
-        created_at: s.created_at 
-      }));
-      
-      const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
-      avatarFiles?.forEach(f => items.push({ 
-        type: "Avatar", 
-        name: f.name, 
-        size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, 
-        created_at: f.created_at 
-      }));
-      
-      const { data: social } = await supabase
-        .from("social_content")
-        .select("id, title, content_url, created_at")
-        .eq("user_id", user.id);
+        const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
+        (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${(s as any).console_type?.toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
         
-      social?.forEach(s => items.push({ 
-        type: "Contenido social", 
-        name: s.title || s.content_url, 
-        size: 0.1, 
-        id: s.id, 
-        created_at: s.created_at 
-      }));
-      
-      const { data: photos } = await supabase
-        .from("photos")
-        .select("id, caption, image_url, created_at")
-        .eq("user_id", user.id);
+        const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
+        (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
         
-      photos?.forEach(p => items.push({ 
-        type: "Foto", 
-        name: p.caption || "Foto", 
-        size: 1, 
-        id: p.id, 
-        created_at: p.created_at 
-      }));
-      
-      items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-      
-      setStorageItems(items);
-      setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
+        const { data: social } = await supabase.from("social_content").select("id, title, content_url, created_at").eq("user_id", user.id);
+        (social || []).forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id, created_at: s.created_at }));
+        
+        const { data: photos } = await supabase.from("photos").select("id, caption, image_url, created_at").eq("user_id", user.id);
+        (photos || []).forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id, created_at: p.created_at }));
+        
+        items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        setStorageItems(items);
+        setStorageUsed(items.reduce((sum, i) => sum + i.size, 0));
+      } catch(e) {}
     };
     
+    loadCoreData();
     loadStorage();
   }, [user]);
 
-  // 🔥 BOTONES BLINDADOS PARA ACEPTAR Y RECHAZAR AMISTAD 🔥
-  const handleAcceptRequest = async (senderId: string) => {
+  // 🔥 LÓGICA DE ACEPTACIÓN CON AVISO AL REMITENTE 🔥
+  const handleAcceptRequest = async (reqId: string, senderId?: string) => {
     if (!user) return;
-    const { error } = await supabase.from("friend_requests")
-      .update({ status: "accepted" } as any)
-      .eq("sender_id", senderId)
-      .eq("receiver_id", user.id);
-      
-    if (!error) {
-      toast({ title: "¡Solicitud aceptada!" });
-      setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
-      if (activeTab === "friends") window.location.reload();
-    } else {
-      toast({ title: "Error al aceptar", variant: "destructive" });
-    }
+    try {
+      const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId);
+      if (!error) {
+        toast({ title: "¡Solicitud aceptada!" });
+        setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+        
+        if (senderId) {
+          await supabase.from("notifications").insert({
+            user_id: senderId,
+            type: "friend_accepted",
+            title: "Solicitud aceptada",
+            body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`,
+            related_id: user.id
+          });
+        }
+      } else {
+        toast({ title: "Error al aceptar", variant: "destructive" });
+      }
+    } catch(e) {}
   };
 
-  const handleRejectRequest = async (senderId: string) => {
+  const handleRejectRequest = async (reqId: string) => {
     if (!user) return;
-    const { error } = await supabase.from("friend_requests")
-      .delete()
-      .eq("sender_id", senderId)
-      .eq("receiver_id", user.id);
-      
-    if (!error) {
-      toast({ title: "Solicitud rechazada" });
-      setPendingRequests(prev => prev.filter(r => r.sender_id !== senderId));
-    } else {
-      toast({ title: "Error al rechazar", variant: "destructive" });
-    }
+    try {
+      const { error } = await supabase.from("friend_requests").delete().eq("id", reqId);
+      if (!error) {
+        toast({ title: "Solicitud rechazada" });
+        setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+      } else {
+        toast({ title: "Error al rechazar", variant: "destructive" });
+      }
+    } catch(e) {}
   };
 
   const updateSig = (patch: Record<string, any>) => {
@@ -424,26 +427,12 @@ export default function ProfilePage() {
     await refreshProfile();
   };
 
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 animate-fade-in">
-        <User className="w-12 h-12 text-muted-foreground" />
-        <p className="text-sm font-body text-muted-foreground">Inicia sesión para ver tu perfil</p>
-        <Button asChild>
-          <Link to="/login">Iniciar Sesión</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const memberSince = user.created_at 
-    ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) 
-    : "Desconocido";
-    
-  // 🔥 SEGURO ANTI-CRASH AL RECARGAR PÁGINA (F5) 🔥
+  // 🔥 TODOS LOS CÁLCULOS ESTÁN AHORA DESPUÉS DE LOS HOOKS 🔥
+  const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Desconocido";
   const isMod = (roles || []).includes("moderator");
   const isStaff = isAdmin || isMasterWeb || isMod;
-  const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const userTierStr = profile?.membership_tier ? String(profile.membership_tier).toLowerCase() : 'novato';
+  const userTier = userTierStr as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : (MEMBERSHIP_LIMITS[userTier] || MEMBERSHIP_LIMITS.novato);
 
   const maxFriends = limits.maxFriends;
@@ -462,33 +451,6 @@ export default function ProfilePage() {
     }, {})
   );
 
-  const getValidHex = (val: string | null | undefined) => {
-    if (!val) return "#ffffff";
-    const hex = String(val).trim();
-    if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
-    if (/^#[0-9A-Fa-f]{3}$/i.test(hex)) return '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3];
-    return "#ffffff"; 
-  };
-
-  const [localColorCache, setLocalColorCache] = useState("#ffffff");
-
-  useEffect(() => {
-    if (!showColorPicker) return;
-    const activeColor = 
-      colorTarget === "border" ? avatarBorderColor :
-      colorTarget === "name" ? nameColor :
-      colorTarget === "role" ? roleColor :
-      colorTarget === "staff" ? staffRoleColor :
-      colorTarget === "stat_points" ? statPointsColor :
-      colorTarget === "stat_followers" ? statFollowersColor :
-      colorTarget === "stat_following" ? statFollowingColor :
-      colorTarget === "stat_posts_forum" ? statPostsForumColor :
-      colorTarget === "stat_posts_social" ? statPostsSocialColor :
-      statGamesColor;
-    
-    setLocalColorCache(getValidHex(activeColor));
-  }, [colorTarget, showColorPicker, avatarBorderColor, nameColor, roleColor, staffRoleColor, statPointsColor, statFollowersColor, statFollowingColor, statPostsForumColor, statPostsSocialColor, statGamesColor]);
-
   const tabs = [
     { id: "avisos" as const, label: "Avisos", icon: Bell },
     { id: "posts" as const, label: "Posts", icon: MessageSquare },
@@ -498,6 +460,19 @@ export default function ProfilePage() {
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
   ];
+
+  // 🔥 RETURN DE SEGURIDAD. NINGÚN HOOK ESTÁ DEBAJO DE ESTA LÍNEA 🔥
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 animate-fade-in">
+        <User className="w-12 h-12 text-muted-foreground" />
+        <p className="text-sm font-body text-muted-foreground">Inicia sesión para ver tu perfil</p>
+        <Button asChild>
+          <Link to="/login">Iniciar Sesión</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -940,12 +915,12 @@ export default function ProfilePage() {
             MIS AVISOS ({notifications.length + pendingRequests.length})
           </h3>
 
-          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD (CON BOTONES) 🔥 */}
+          {/* 🔥 SECCIÓN DE SOLICITUDES DE AMISTAD 🔥 */}
           {pendingRequests.length > 0 && (
             <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
               <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
               {pendingRequests.map(req => (
-                <div key={req.sender_id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
+                <div key={req.id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-muted overflow-hidden border border-border/50 shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                       {req.profile?.avatar_url ? (
@@ -962,8 +937,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button size="sm" onClick={() => handleAcceptRequest(req.sender_id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.sender_id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
+                    <Button size="sm" onClick={() => handleAcceptRequest(req.id, req.sender_id)} className="h-6 text-[9px] px-2 bg-neon-green text-black hover:bg-neon-green/80 font-pixel">Aceptar</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(req.id)} className="h-6 text-[9px] px-2 font-pixel">Rechazar</Button>
                   </div>
                 </div>
               ))}
