@@ -84,6 +84,7 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
+  // 🔥 AQUÍ ESTÁ EL HOOK QUE CAUSABA EL CRASH. AHORA ESTÁ ARRIBA 🔥
   const [localColorCache, setLocalColorCache] = useState("#ffffff");
 
   const getValidHex = (val: string | null | undefined) => {
@@ -151,9 +152,8 @@ export default function ProfilePage() {
     }
   }, [profile, editing]);
 
-  // 🔥 NUEVOS FETCHERS INDEPENDIENTES PARA LAS ALERTAS 🔥
   const fetchNotifs = async () => {
-    if (!user?.id) return;
+    if (!user) return;
     try {
       const { data } = await supabase
         .from("notifications")
@@ -165,39 +165,44 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
+  // 🔥 EXTRAE LAS PETICIONES SIN IMPORTAR LA COLUMNA STATUS EN SQL 🔥
   const fetchPendingRequests = async () => {
-    if (!user?.id) return;
+    if (!user) return;
     try {
       const { data } = await supabase
         .from("friend_requests")
-        .select("id, sender_id, created_at, status")
-        .eq("receiver_id", user.id)
-        .neq("status", "accepted");
+        .select("*")
+        .eq("receiver_id", user.id);
 
       if (data && data.length > 0) {
-        const ids = data.map((r: any) => r.sender_id).filter(Boolean);
-        if (ids.length > 0) {
-          const { data: profs } = await supabase
-            .from("profiles")
-            .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-            .in("user_id", ids);
+        const pending = data.filter((r: any) => r.status !== "accepted");
+        if (pending.length > 0) {
+          const ids = pending.map((r: any) => r.sender_id).filter(Boolean);
+          if (ids.length > 0) {
+            const { data: profs } = await supabase
+              .from("profiles")
+              .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
+              .in("user_id", ids);
 
-          setPendingRequests(data.map((r: any) => ({
-            ...r,
-            profile: (profs || []).find((p: any) => p.user_id === r.sender_id) || {}
-          })));
+            setPendingRequests(pending.map((r: any) => ({
+              ...r,
+              profile: (profs || []).find((p: any) => p.user_id === r.sender_id) || {}
+            })));
+          } else {
+            setPendingRequests([]);
+          }
         } else {
           setPendingRequests([]);
         }
       } else {
         setPendingRequests([]);
       }
-    } catch(e) {}
+    } catch(e) { console.error(e); }
   };
 
-  // 🔥 CONEXIÓN EN TIEMPO REAL PARA AVISOS 🔥
+  // 🔥 Escucha de eventos en tiempo real para el Perfil 🔥
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user) return;
 
     fetchNotifs();
     fetchPendingRequests();
@@ -216,7 +221,7 @@ export default function ProfilePage() {
       supabase.removeChannel(channel1); 
       supabase.removeChannel(channel2); 
     };
-  }, [user?.id]);
+  }, [activeTab, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -267,9 +272,9 @@ export default function ProfilePage() {
     
     loadCoreData();
     loadStorage();
-  }, [user?.id]);
+  }, [user]);
 
-  // 🔥 MARCAR ALERTA COMO LEÍDA AL HACER CLICK 🔥
+  // 🔥 MARCAR COMO LEÍDA MANUALMENTE 🔥
   const handleMarkAsRead = async (notifId: string) => {
     if (!user) return;
     try {
@@ -278,10 +283,10 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 LIMPIAR TODO EL HISTORIAL DE AVISOS 🔥
+  // 🔥 LIMPIAR EL HISTORIAL DE NOTIFICACIONES 🔥
   const handleClearNotifications = async () => {
     if (!user) return;
-    if (!confirm("¿Deseas limpiar todo tu historial de notificaciones?")) return;
+    if (!confirm("¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
     try {
       await supabase.from("notifications").delete().eq("user_id", user.id);
       fetchNotifs();
@@ -289,7 +294,7 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 ACEPTAR AMIGO Y DEJAR HISTORIAL 🔥
+  // 🔥 ACEPTAR SOLICITUD Y DEJAR REGISTRO 🔥
   const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -308,7 +313,6 @@ export default function ProfilePage() {
           });
         }
 
-        // Registro para ti
         await supabase.from("notifications").insert({
           user_id: user.id,
           type: "general",
@@ -325,7 +329,7 @@ export default function ProfilePage() {
     } catch(e) {}
   };
 
-  // 🔥 RECHAZAR AMIGO Y DEJAR HISTORIAL 🔥
+  // 🔥 RECHAZAR SOLICITUD Y DEJAR REGISTRO 🔥
   const handleRejectRequest = async (reqId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -333,8 +337,7 @@ export default function ProfilePage() {
       if (!error) {
         toast({ title: "Solicitud rechazada" });
         setPendingRequests(prev => prev.filter(r => r.id !== reqId));
-        
-        // Registro para ti
+
         await supabase.from("notifications").insert({
           user_id: user.id,
           type: "general",
@@ -460,7 +463,8 @@ export default function ProfilePage() {
   };
 
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Desconocido";
-  const isMod = (roles || []).includes("moderator");
+  const safeRoles = roles || [];
+  const isMod = safeRoles.includes("moderator");
   const isStaff = isAdmin || isMasterWeb || isMod;
   const userTierStr = profile?.membership_tier ? String(profile.membership_tier).toLowerCase() : 'novato';
   const userTier = userTierStr as MembershipTier;
@@ -996,7 +1000,7 @@ export default function ProfilePage() {
                           {new Date(notif.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                         {notif.type === "friend_request" && notif.related_id && (
-                          <Link to={`/usuario/${notif.related_id}`} className="text-[9px] text-primary hover:underline font-body">
+                          <Link to={`/usuario/${notif.related_id}`} onClick={() => handleMarkAsRead(notif.id)} className="text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 hover:bg-neon-cyan/20 px-1.5 py-0.5 rounded transition-colors">
                             Ver perfil
                           </Link>
                         )}
@@ -1200,22 +1204,17 @@ function FriendsTab({ userId, limits, isStaff }: any) {
   const [res, setRes] = useState<any[]>([]);
 
   const fetchFriends = async () => {
-     const { data } = await supabase
-       .from("friend_requests")
-       .select("*")
-       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-       .eq("status", "accepted");
+     try {
+       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+       if (error || !data) { setFriends([]); return; }
        
-     if (!data) return;
-     
-     const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
-     
-     const { data: profs } = await supabase
-       .from("profiles")
-       .select("user_id, display_name, avatar_url, color_avatar_border, color_name")
-       .in("user_id", ids);
-       
-     setFriends(profs || []);
+       const accepted = data.filter((r: any) => r.status === "accepted");
+       const ids = accepted.map((r: any) => r.sender_id === userId ? r.receiver_id : r.sender_id).filter(Boolean);
+       if (ids.length === 0) { setFriends([]); return; }
+
+       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", ids);
+       setFriends(profs || []);
+     } catch(e) { console.error(e); }
   };
 
   useEffect(() => { 
@@ -1270,12 +1269,25 @@ function FriendsTab({ userId, limits, isStaff }: any) {
              </span>
              <Button 
                onClick={async () => { 
-                  await supabase
-                    .from("friend_requests")
-                    .insert({ sender_id: userId, receiver_id: r.user_id }); 
-                  toast({ title: "Solicitud enviada" }); 
-                  setRes([]);
-                  setSearch("");
+                  try {
+                    const { error } = await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: r.user_id, status: 'pending' } as any); 
+                    if (error) {
+                       await supabase.from("friend_requests").insert({ sender_id: userId, receiver_id: r.user_id } as any);
+                    }
+                    
+                    // 🔥 FORZAMOS LA CREACIÓN DE UNA NOTIFICACIÓN REAL PARA EL OTRO USUARIO 🔥
+                    await supabase.from("notifications").insert({
+                       user_id: r.user_id,
+                       type: "friend_request",
+                       title: "Nueva solicitud de amistad",
+                       body: `Alguien te ha enviado una solicitud de amistad.`,
+                       related_id: userId
+                    });
+                    
+                    toast({ title: "Solicitud enviada" }); 
+                    setRes([]);
+                    setSearch("");
+                  } catch(e) {}
                }} 
                className="h-6 text-[9px] uppercase font-pixel tracking-tighter"
              >
@@ -1469,7 +1481,6 @@ function SocialContentTab({ profile, user, onEditNetworks, limits, isStaff }: an
   );
 }
 
-// 🔥 NUEVO COMPONENTE: CONTENIDO BANEADO 🔥
 function BannedContentPanel() {
   const { toast } = useToast();
   const [bannedItems, setBannedItems] = useState<any[]>([]);
@@ -1834,24 +1845,16 @@ function ModeratorList({ isMasterWeb }: { isMasterWeb: boolean }) {
   const [expanded, setExpanded] = useState(false);
   
   useEffect(() => {
-    supabase
-      .from("user_roles")
-      .select("id, user_id")
-      .eq("role", "moderator")
-      .then(async ({ data }) => {
-        if (!data) return;
-        
-        const ids = data.map(r => r.user_id);
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name")
-          .in("user_id", ids);
-          
-        setModerators(data.map(r => ({ 
-          ...r, 
-          display_name: profs?.find(p => p.user_id === r.user_id)?.display_name 
-        })));
-      });
+    const loadMods = async () => {
+      try {
+        const { data } = await supabase.from("user_roles").select("id, user_id").eq("role", "moderator");
+        if (!data || data.length === 0) return;
+        const ids = data.map(r => r.user_id).filter(Boolean);
+        const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+        setModerators(data.map(r => ({ ...r, display_name: (profs || []).find((p: any) => p.user_id === r.user_id)?.display_name })));
+      } catch(e){}
+    };
+    loadMods();
   }, []);
 
   return (
