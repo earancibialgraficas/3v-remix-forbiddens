@@ -141,7 +141,6 @@ export default function ProfilePage() {
       setTiktok(profile.tiktok_url || "");
       
       if (!editing) {
-        // 🔥 ASIGNACIÓN EXACTA CON LOS NOMBRES DE TU DB 🔥
         setSignature((profile as any).signature || "");
         setLocalSigFontFamily((profile as any).signature_font_family || "Inter");
         setLocalSigFontSize((profile as any).signature_font_size || 13);
@@ -873,7 +872,7 @@ export default function ProfilePage() {
                                     setLocalSigStrokePosition(align);
                                     updateSig({ signature_stroke_position: align });
                                   }}
-                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'middle') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
+                                  className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigStrokePosition === align || (!localSigStrokePosition && align === 'outside') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
                                   {align === 'outside' ? 'Fuera' : align === 'middle' ? 'Medio' : 'Dentro'}
                                 </button>
@@ -893,7 +892,7 @@ export default function ProfilePage() {
                                   type="button"
                                   onClick={() => {
                                     setLocalSigTextAlign(align);
-                                    updateSig({ signature_text_align: align }); // 🔥 VUELVE A SER signature_text_align 🔥
+                                    updateSig({ signature_text_align: align }); 
                                   }}
                                   className={cn("flex-1 h-7 rounded border text-[9px] uppercase transition-colors", localSigTextAlign === align || (!localSigTextAlign && align === 'center') ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground hover:bg-muted/80")}
                                 >
@@ -977,7 +976,7 @@ export default function ProfilePage() {
                               signature_stroke_color: localSigStrokeColor,
                               signature_stroke_width: localSigStrokeWidth,
                               signature_stroke_position: localSigStrokePosition,
-                              signature_text_align: localSigTextAlign, // 🔥 REPARADO: VUELVE A SER TEXT_ALIGN 🔥
+                              signature_text_align: localSigTextAlign, 
                               signature_text_over_image: localSigTextOverImage,
                               signature_image_url: localSigImageUrl,
                               signature_image_width: localSigImageWidth,
