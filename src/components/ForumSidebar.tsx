@@ -19,12 +19,18 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 
+interface NavChild {
+  label?: string;
+  to?: string;
+  isSeparator?: boolean;
+}
+
 interface NavItem {
   label: string;
   icon: React.ElementType;
   to?: string;
   color: string;
-  children?: { label: string; to: string }[];
+  children?: NavChild[];
   isDropdownOnly?: boolean;
 }
 
@@ -39,10 +45,10 @@ const navItems: NavItem[] = [
     ],
   },
   
-  // 🔥 TRENDING MOVIDO JUSTO ARRIBA DE LA ZONA DE FOROS 🔥
+  // 🔥 TRENDING MOVIDO ARRIBA 🔥
   { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
   
-  // 🔥 EL NUEVO MEGA-DESPLEGABLE UNIFICADO 🔥
+  // 🔥 MEGA-DESPLEGABLE CON SEPARADOR 🔥
   {
     label: "Zona de Debate", icon: MessageSquare, color: "text-neon-cyan", isDropdownOnly: true,
     children: [
@@ -51,6 +57,7 @@ const navItems: NavItem[] = [
       { label: "🕹️ Gaming", to: "/gaming-anime/gaming" },
       { label: "💡 Consejos Gaming", to: "/arcade/consejos" },
       { label: "🎨 Rincón del Creador", to: "/gaming-anime/creador" },
+      { isSeparator: true }, // <-- SEPARADOR VISUAL AÑADIDO
       { label: "🏍️ Foro de Riders", to: "/motociclismo/riders" },
       { label: "🔧 Taller & Mecánica", to: "/motociclismo/taller" },
       { label: "🛣️ Rutas & Quedadas", to: "/motociclismo/rutas" },
@@ -81,7 +88,7 @@ const navItems: NavItem[] = [
 
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego", "Zona de Debate"]); // Expansiones por defecto
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego", "Zona de Debate"]);
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const isMobile = useIsMobile();
@@ -202,7 +209,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        {/* PROFILE & MESSAGES SECTION */}
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
@@ -284,14 +290,18 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                         </p>
                         {hasChildren && (
                           <div className="flex flex-col gap-0.5">
-                            {item.children!.map((child) => (
-                              <Link 
-                                key={child.to} 
-                                to={child.to} 
-                                className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body"
-                              >
-                                {child.label}
-                              </Link>
+                            {item.children!.map((child, idx) => (
+                              child.isSeparator ? (
+                                <div key={`sep-${idx}`} className="my-1 border-b border-border/40 mx-1" />
+                              ) : (
+                                <Link 
+                                  key={child.to} 
+                                  to={child.to!} 
+                                  className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body"
+                                >
+                                  {child.label}
+                                </Link>
+                              )
                             ))}
                           </div>
                         )}
@@ -322,10 +332,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                   </button>
                   {hasChildren && isExpanded && (
                     <div className="ml-7 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
-                      {item.children!.map((child) => (
-                        <Link key={child.to} to={child.to} className={cn("block py-1 text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground")}>
-                          {child.label}
-                        </Link>
+                      {item.children!.map((child, idx) => (
+                        child.isSeparator ? (
+                           <div key={`sep-${idx}`} className="my-1.5 border-b border-border/40 mx-2" />
+                        ) : (
+                           <Link key={child.to} to={child.to!} className={cn("block py-1 text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground")}>
+                             {child.label}
+                           </Link>
+                        )
                       ))}
                     </div>
                   )}
