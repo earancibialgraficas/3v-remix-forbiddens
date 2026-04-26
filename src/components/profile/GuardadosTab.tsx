@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, Image as ImageIcon, User as UserIcon } from "lucide-react";
+import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Image as ImageIcon, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +56,9 @@ export default function GuardadosTab() {
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  
+  // Estado para desplegar el texto en la versión de PC
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
 
   const fetchSavedItems = async () => {
     if (!user) return;
@@ -113,9 +116,14 @@ export default function GuardadosTab() {
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
+  // Bloquear el scroll del fondo cuando el carrusel está abierto
   useEffect(() => {
-    if (selectedIndex !== null) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = 'auto';
+    if (selectedIndex !== null) {
+      document.body.style.overflow = 'hidden';
+      setIsTextExpanded(false); // Resetear texto expandido al cambiar de slide
+    } else {
+      document.body.style.overflow = 'auto';
+    }
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
@@ -156,7 +164,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR DE MEDIA (SOLO IMAGEN/VIDEO/IFRAME, SIN TEXTO) 🔥
+  // 🔥 RENDERIZADOR SOLO MEDIA (Para el lado izquierdo de PC) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -181,7 +189,7 @@ export default function GuardadosTab() {
                const isShorts = url.includes('shorts/');
                return (
                  <div className="w-full h-full flex items-center justify-center bg-black">
-                   <div className={cn("h-full w-full", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video max-w-[800px]")}>
+                   <div className={cn("h-full max-h-full w-full mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video max-w-[800px]")}>
                      <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0" allowFullScreen allow="autoplay" />
                    </div>
                  </div>
@@ -193,7 +201,7 @@ export default function GuardadosTab() {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
+               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
                  <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto">
                    <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full border-0 rounded-xl bg-black" allowFullScreen />
                  </div>
@@ -210,7 +218,7 @@ export default function GuardadosTab() {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
+               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
                  <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto">
                    <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full border-0 rounded-xl bg-white" allowFullScreen />
                  </div>
@@ -223,9 +231,29 @@ export default function GuardadosTab() {
     }
 
     if (item.item_type === 'post') {
-       // PARA POSTS SOLO RENDERIZAMOS LA IMAGEN EN EL 70% IZQUIERDO. EL TEXTO VA AL 30% DERECHO.
        return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain shadow-2xl rounded" alt="Post Cover" />;
     }
+  };
+
+  // 🔥 RENDERIZADOR COMPLETO (Para Celular - Carrusel Antiguo) 🔥
+  const renderCarouselContentMobile = (item: any) => {
+    if (!item.originalData) return renderMediaOnly(item);
+
+    if (item.item_type === 'post') {
+       return (
+          <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col min-h-0">
+             <div className="w-full h-32 shrink-0 bg-black border-b border-border">
+                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-60" alt="Post Cover" />
+             </div>
+             <div className="p-4 overflow-y-auto flex-1 custom-scrollbar min-h-0 w-full">
+               <h2 className="text-neon-cyan font-pixel mb-3 text-xs leading-snug break-words w-full">{item.originalData.title}</h2>
+               <div className="text-slate-300 font-sans font-light text-[12px] leading-relaxed whitespace-pre-wrap break-words w-full">{item.originalData.content}</div>
+             </div>
+          </div>
+       );
+    }
+
+    return renderMediaOnly(item);
   };
 
   const handleRemove = async (e: React.MouseEvent, id: string) => {
@@ -244,8 +272,8 @@ export default function GuardadosTab() {
     setSelectedIndex(null);
   };
 
-  const nextSlide = () => setSelectedIndex(prev => prev !== null ? (prev === items.length - 1 ? 0 : prev + 1) : null);
-  const prevSlide = () => setSelectedIndex(prev => prev !== null ? (prev === 0 ? items.length - 1 : prev - 1) : null);
+  const nextSlide = () => { setSelectedIndex(prev => prev !== null ? (prev === items.length - 1 ? 0 : prev + 1) : null); setIsTextExpanded(false); };
+  const prevSlide = () => { setSelectedIndex(prev => prev !== null ? (prev === 0 ? items.length - 1 : prev - 1) : null); setIsTextExpanded(false); };
 
   const onTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -299,36 +327,64 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL SPLIT 70/30 CON ABSOLUTE CENTER 🔥 */}
+      {/* 🔥 MEGA CARRUSEL PORTAL 🔥 */}
       {selectedIndex !== null && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md" 
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md" 
           onClick={() => setSelectedIndex(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          {/* Contenedor central (Ancho máximo expandido, Alto 85vh para celular / 80vh para PC, Centrado Absoluto) */}
-          <div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[98%] md:w-[95%] max-w-7xl h-[85vh] md:h-[80vh] flex flex-col md:flex-row bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" 
-            onClick={e => e.stopPropagation()}
-          >
+
+          {/* 📱 VERSIÓN CELULAR (Exactamente como antes, 1 sola columna) 📱 */}
+          <div className="md:hidden flex flex-col absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md h-[80vh] bg-card border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+             {/* Header */}
+             <div className="p-3 border-b border-white/10 flex justify-between items-center bg-black/80 shrink-0">
+                <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                   <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0 border border-white/20 flex items-center justify-center">
+                      {items[selectedIndex]?.originalData?.profile?.avatar_url ? <img src={items[selectedIndex].originalData.profile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-4 h-4 text-muted-foreground"/>}
+                   </div>
+                   <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-pixel text-white truncate">{items[selectedIndex]?.originalData?.profile?.display_name || "Anónimo"}</span>
+                      <span className="text-[10px] font-body text-muted-foreground truncate">{items[selectedIndex]?.title || "Guardado"}</span>
+                   </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[9px] font-pixel h-7 px-2"><ExternalLink className="w-3 h-3" /></Button>
+                  <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1 rounded transition-all border border-white/10"><X className="w-4 h-4"/></button>
+                </div>
+             </div>
+             {/* Contenido Visual */}
+             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full p-2">
+                {renderCarouselContentMobile(items[selectedIndex])}
+             </div>
+             {/* Tira inferior clásica */}
+             <div className="h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center px-3 overflow-x-auto custom-scrollbar gap-2 py-2">
+                {items.map((item, idx) => (
+                  <button key={item.id} onClick={() => setSelectedIndex(idx)} className={cn("relative h-14 w-14 shrink-0 rounded-md overflow-hidden transition-all", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_10px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}>
+                    <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
+                    {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white/80" />}
+                  </button>
+                ))}
+             </div>
+          </div>
+
+          {/* 💻 VERSIÓN PC (Split 70/30) 💻 */}
+          <div className="hidden md:flex flex-row absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-6xl h-[85vh] bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
             {/* LADO IZQUIERDO: 70% MEDIA */}
-            <div className="relative w-full md:w-[70%] h-[45%] md:h-full bg-black flex items-center justify-center overflow-hidden shrink-0">
-              {/* Flechas flotantes (solo en PC) */}
-              <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="hidden md:flex absolute left-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all"><ChevronLeft className="w-8 h-8" /></button>
-              
-              <div className="w-full h-full p-0 md:p-4 flex items-center justify-center relative">
+            <div className="relative w-[70%] h-full bg-black flex items-center justify-center overflow-hidden shrink-0 group">
+              <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronLeft className="w-8 h-8" /></button>
+              <div className="w-full h-full p-4 flex items-center justify-center relative">
                 {renderMediaOnly(items[selectedIndex])}
               </div>
-
-              <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="hidden md:flex absolute right-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all"><ChevronRight className="w-8 h-8" /></button>
+              <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronRight className="w-8 h-8" /></button>
             </div>
             
             {/* LADO DERECHO: 30% DETALLES Y MINIATURAS */}
-            <div className="w-full md:w-[30%] h-[55%] md:h-full flex flex-col bg-card/95 border-t md:border-t-0 md:border-l border-white/10">
+            <div className="w-[30%] h-full flex flex-col bg-card/95 border-l border-white/10">
               
-              {/* Header del panel derecho */}
+              {/* Header derecho */}
               {(() => {
                  const item = items[selectedIndex];
                  const author = item?.originalData?.profile || {};
@@ -352,26 +408,37 @@ export default function GuardadosTab() {
                    </div>
                  );
               })()}
-              
-              {/* Contenido (Texto) - Con la tipografía elegante y sin scroll horizontal */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 custom-scrollbar w-full">
-                {items[selectedIndex]?.item_type === 'post' ? (
-                  <>
-                    <h2 className="text-neon-cyan font-pixel mb-4 text-sm leading-relaxed break-words w-full">{items[selectedIndex]?.originalData?.title}</h2>
+
+              {/* Botón Toggle para Posts */}
+              {items[selectedIndex]?.item_type === 'post' && (
+                 <div className="shrink-0 border-b border-white/10 bg-black/20">
+                    <button onClick={() => setIsTextExpanded(!isTextExpanded)} className="w-full p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors">
+                       <span className="font-pixel text-[10px] uppercase tracking-widest">{isTextExpanded ? "Ocultar Texto" : "Ver Texto Original"}</span>
+                       {isTextExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    {isTextExpanded && (
+                       <div className="p-4 max-h-[40vh] overflow-y-auto overflow-x-hidden custom-scrollbar w-full border-t border-white/5 bg-black/40">
+                         <h2 className="text-neon-cyan font-pixel mb-4 text-sm leading-relaxed break-words w-full">{items[selectedIndex]?.originalData?.title}</h2>
+                         <div className="text-slate-300 font-sans font-light text-[13px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
+                           {items[selectedIndex]?.originalData?.content}
+                         </div>
+                       </div>
+                    )}
+                 </div>
+              )}
+
+              {/* Texto plano para no-posts (opcional, si hay descripcion) */}
+              {items[selectedIndex]?.item_type !== 'post' && (items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title) && (
+                 <div className="p-4 shrink-0 border-b border-white/10 bg-black/20 max-h-[25vh] overflow-y-auto custom-scrollbar">
                     <div className="text-slate-300 font-sans font-light text-[13px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
-                      {items[selectedIndex]?.originalData?.content}
+                      {items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title}
                     </div>
-                  </>
-                ) : (
-                  <div className="text-slate-300 font-sans font-light text-[13px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
-                    {items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title || "Sin descripción."}
-                  </div>
-                )}
-              </div>
+                 </div>
+              )}
               
-              {/* Tira de Miniaturas (Grid Inferior) */}
-              <div className="h-32 md:h-40 bg-black/60 border-t border-white/10 p-3 overflow-y-auto custom-scrollbar shrink-0">
-                <div className="grid grid-cols-4 md:grid-cols-3 gap-2">
+              {/* Tira de Miniaturas (Grid Inferior, ocupa todo el espacio restante) */}
+              <div className="flex-1 bg-black/60 p-4 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-3 xl:grid-cols-4 gap-2">
                   {items.map((item, idx) => (
                     <button 
                       key={item.id} 
@@ -379,7 +446,7 @@ export default function GuardadosTab() {
                       className={cn("relative aspect-square rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_10px_rgba(0,255,255,0.5)] z-10" : "opacity-50 hover:opacity-100 border border-white/10")}
                     >
                       <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
-                      {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 text-white/80" />}
+                      {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white/80" />}
                     </button>
                   ))}
                 </div>
