@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2 } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/mercado/motor": { title: "MERCADO BIKERS", description: "Repuestos, cascos, chaquetas y motos", color: "text-neon-yellow" },
   "/social": { title: "SOCIAL HUB", description: "Feed, reels, galería y contenido social", color: "text-neon-orange" },
   "/social/feed": { title: "FEED PRINCIPAL", description: "Muro al estilo red social", color: "text-neon-orange" },
-  "/trending": { title: "TRENDING", description: "Lo más popular del momento", color: "text-destructive" },
+  "/trending": { title: "TRENDING", description: "Lo más popular del momento en el sitio", color: "text-destructive" },
   "/reglas": { title: "REGLAS", description: "Normas de convivencia del foro", color: "text-muted-foreground" },
   "/contacto": { title: "CONTACTO", description: "Reporta bugs o comportamiento inapropiado", color: "text-muted-foreground" },
   "/privacidad": { title: "PRIVACIDAD", description: "Política de privacidad", color: "text-muted-foreground" },
@@ -39,14 +39,19 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/mensajes": { title: "MENSAJES", description: "Bandeja de mensajes privados", color: "text-neon-cyan" },
 };
 
-const mockPostsByCategory: Record<string, Array<{ id: string; title: string; content: string; upvotes: number; downvotes: number; is_pinned: boolean; user_id: string; created_at: string; category: string }>> = {
-  "gaming-anime": [
-    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
-  ],
-  "trending": [
-    { id: "t1", title: "🔥 Los posts más votados de la semana", content: "Resumen semanal de lo más popular en Forbiddens.", upvotes: 500, downvotes: 5, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 3600000).toISOString(), category: "trending" },
-  ],
-};
+const forumCategories = [
+  { id: "all", label: "Todas las categorías" },
+  { id: "gaming-anime-foro", label: "Foro General" },
+  { id: "gaming-anime-anime", label: "Anime & Manga" },
+  { id: "gaming-anime-gaming", label: "Gaming" },
+  { id: "arcade-consejos", label: "Consejos Gaming" },
+  { id: "gaming-anime-creador", label: "Rincón del Creador" },
+  { id: "motociclismo-riders", label: "Foro de Riders" },
+  { id: "motociclismo-taller", label: "Taller & Mecánica" },
+  { id: "motociclismo-rutas", label: "Rutas & Quedadas" },
+  { id: "mercado-gaming", label: "Mercado Gaming" },
+  { id: "mercado-motor", label: "Mercado Motor" },
+];
 
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
@@ -207,6 +212,10 @@ export default function ForumPage() {
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
+  // 🔥 NUEVOS ESTADOS DE BÚSQUEDA Y FILTRADO 🔥
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
   
   const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
@@ -225,10 +234,35 @@ export default function ForumPage() {
   const canUseSignature = isStaff || userTier !== 'novato';
 
   const fetchPosts = async () => {
-    // 🔥 OCULTAMOS BANEADOS 🔥
-    const query = supabase.from("posts").select("*").eq("category", category).neq("is_banned", true).order("is_pinned", { ascending: false });
-    if (sortBy === "popular") query.order("upvotes", { ascending: false });
-    else query.order("created_at", { ascending: false });
+    let query = supabase.from("posts").select("*").neq("is_banned", true);
+
+    // 🔥 LÓGICA DE FILTRADO Y TRENDING CORREGIDA 🔥
+    if (category !== "trending") {
+      // Si no estoy en trending, filtro por la categoría donde estoy o por el dropdown si eligieron uno específico
+      if (filterCategory !== "all") {
+        query = query.eq("category", filterCategory);
+      } else {
+        query = query.eq("category", category);
+      }
+    } else {
+      // Si estoy en trending, busco en TODAS las categorías permitidas, a menos que elijan un filtro
+      if (filterCategory !== "all") {
+        query = query.eq("category", filterCategory);
+      }
+    }
+
+    // Buscador
+    if (searchQuery.trim()) {
+      query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
+    }
+
+    // Ordenamiento
+    if (category === "trending" || sortBy === "popular") {
+      query = query.order("upvotes", { ascending: false });
+    } else {
+      query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+    }
+
     const { data } = await query.limit(20);
     
     if (data) {
@@ -270,7 +304,7 @@ export default function ForumPage() {
 
   useEffect(() => {
     fetchPosts();
-  }, [category, sortBy]);
+  }, [category, sortBy, filterCategory]); // Se dispara cuando cambian estos
 
   useEffect(() => {
     if (directPostId && posts.length > 0) {
@@ -308,7 +342,7 @@ export default function ForumPage() {
       : null;
 
     const { error } = await supabase.from("posts").insert({
-      user_id: user.id, title: title.trim(), content: content.trim(), category, signature,
+      user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature,
     } as any);
     setPosting(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -420,7 +454,7 @@ export default function ForumPage() {
         original_id: post.id,
         title: post.title || 'Post del Foro',
         thumbnail_url: thumb,
-        redirect_url: `${location.pathname}?post=${post.id}`
+        redirect_url: `/${post.category}?post=${post.id}`
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -455,9 +489,11 @@ export default function ForumPage() {
     else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
   };
 
-  const mockThreads = posts.length > 0 ? [] : (mockPostsByCategory[category] || [
-    { id: "default1", title: "¡Bienvenido a esta sección!", content: "Sé el primero en publicar algo aquí.", upvotes: 10, downvotes: 0, is_pinned: true, user_id: "", created_at: new Date().toISOString(), category },
-  ]);
+  const mockThreads = posts.length > 0 ? [] : (
+    category === "trending" ? [] : (mockPostsByCategory[category] || [
+      { id: "default1", title: "¡Bienvenido a esta sección!", content: "Sé el primero en publicar algo aquí.", upvotes: 10, downvotes: 0, is_pinned: true, user_id: "", created_at: new Date().toISOString(), category },
+    ])
+  );
 
   const allPosts = [...posts, ...mockThreads];
 
@@ -468,20 +504,36 @@ export default function ForumPage() {
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" className={cn("text-xs font-body h-7", sortBy === "popular" ? "text-neon-green" : "text-muted-foreground")} onClick={() => setSortBy("popular")}>
-            <Flame className="w-3 h-3 mr-1" /> Populares
-          </Button>
-          <Button variant="ghost" size="sm" className={cn("text-xs font-body h-7", sortBy === "new" ? "text-neon-green" : "text-muted-foreground")} onClick={() => setSortBy("new")}>
-            Nuevos
-          </Button>
-        </div>
-        {user && (
-          <Button size="sm" className="h-7 text-xs font-body bg-primary text-primary-foreground" onClick={handleNewPostClick}>
-            <Plus className="w-3 h-3 mr-1" /> Nuevo Post
-          </Button>
-        )}
+      {/* 🔥 FILTROS Y BÚSQUEDA 🔥 */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-card p-3 rounded border border-border shadow-sm">
+         <div className="flex gap-2 w-full md:w-auto">
+           <div className="relative flex-1 md:w-64">
+             <Search className="absolute left-2.5 top-2 w-4 h-4 text-muted-foreground" />
+             <Input 
+               placeholder="Buscar posts..." 
+               value={searchQuery} 
+               onChange={e => setSearchQuery(e.target.value)} 
+               onKeyDown={e => e.key === 'Enter' && fetchPosts()} 
+               className="pl-8 h-8 text-xs bg-muted border-border font-body" 
+             />
+           </div>
+           <select 
+             value={filterCategory} 
+             onChange={e => setFilterCategory(e.target.value)} 
+             className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none"
+           >
+              {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+           </select>
+           <Button size="sm" onClick={fetchPosts} className="h-8 px-2.5 bg-muted/80 text-foreground hover:bg-muted border border-border"><Search className="w-3 h-3" /></Button>
+         </div>
+         
+         <div className="flex items-center justify-between w-full md:w-auto gap-2">
+           <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
+              <Button variant="ghost" size="sm" className={cn("text-[10px] font-body h-7 px-2", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
+              <Button variant="ghost" size="sm" className={cn("text-[10px] font-body h-7 px-2", sortBy === "new" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("new")}>Nuevos</Button>
+           </div>
+           {user && <Button size="sm" className="h-8 text-[10px] font-body bg-primary text-primary-foreground shrink-0" onClick={handleNewPostClick}><Plus className="w-3 h-3 mr-1" /> Nuevo Post</Button>}
+         </div>
       </div>
 
       {showNewPost && (
@@ -541,228 +593,238 @@ export default function ForumPage() {
         </div>
       )}
 
-      <div className="space-y-2">
-        {allPosts.map((post) => {
-          const authorProfile = postProfiles[post.user_id];
-          const authorRoles = postRoles[post.user_id] || [];
-          const myVote = userVotes[post.id] || null;
+      {allPosts.length === 0 ? (
+        <div className="py-20 text-center opacity-50">
+           <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+           <p className="font-pixel text-[10px] uppercase">No se encontraron resultados</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {allPosts.map((post) => {
+            const authorProfile = postProfiles[post.user_id];
+            const authorRoles = postRoles[post.user_id] || [];
+            const myVote = userVotes[post.id] || null;
 
-          return (
-            <div key={post.id}>
-              <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <button
-                      onClick={() => handleVote(post.id, "up")}
-                      className={cn("transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground hover:text-primary")}
-                    >
-                      <ArrowUp className="w-4 h-4" />
-                    </button>
-                    <span className="text-xs font-body font-semibold text-foreground">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
-                    <button
-                      onClick={() => handleVote(post.id, "down")}
-                      className={cn("transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}
-                    >
-                      <ArrowDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {post.user_id && authorProfile && (
-                      <div className="mb-1 flex items-center gap-2">
-                        <UserPopup
-                          userId={post.user_id}
-                          displayName={authorProfile.display_name}
-                          avatarUrl={authorProfile.avatar_url}
-                          roles={authorRoles}
-                          roleIcon={authorProfile.role_icon}
-                          showRoleIcon={authorProfile.show_role_icon}
-                          membershipTier={authorProfile.membership_tier}
-                          colorAvatarBorder={authorProfile.color_avatar_border}
-                          colorName={authorProfile.color_name}
-                          colorRole={authorProfile.color_role}
-                          colorStaffRole={authorProfile.color_staff_role}
-                        />
+            return (
+              <div key={post.id}>
+                <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => handleVote(post.id, "up")}
+                        className={cn("transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground hover:text-primary")}
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <span className="text-xs font-body font-semibold text-foreground">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
+                      <button
+                        onClick={() => handleVote(post.id, "down")}
+                        className={cn("transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {post.user_id && authorProfile && (
+                        <div className="mb-1 flex items-center gap-2">
+                          <UserPopup
+                            userId={post.user_id}
+                            displayName={authorProfile.display_name}
+                            avatarUrl={authorProfile.avatar_url}
+                            roles={authorRoles}
+                            roleIcon={authorProfile.role_icon}
+                            showRoleIcon={authorProfile.show_role_icon}
+                            membershipTier={authorProfile.membership_tier}
+                            colorAvatarBorder={authorProfile.color_avatar_border}
+                            colorName={authorProfile.color_name}
+                            colorRole={authorProfile.color_role}
+                            colorStaffRole={authorProfile.color_staff_role}
+                          />
+                          {/* Pequeño tag de la categoría si estamos en Trending */}
+                          {category === "trending" && post.category && (
+                             <span className="text-[8px] bg-muted/50 px-1.5 py-0.5 rounded uppercase font-body text-muted-foreground ml-auto">{post.category.replace(/-/g, ' ')}</span>
+                          )}
+                        </div>
+                      )}
+                      {editingPost === post.id ? (
+                        <div className="space-y-2 animate-fade-in">
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
+                          <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-6"><Check className="w-3 h-3" /> Guardar</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-6">Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
+                            {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
+                            {post.title}
+                          </p>
+                          {post.content && (
+                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                          )}
+                        </>
+                      )}
+                      
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
+                        <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                        
+                        {user && user.id === post.user_id && !editingPost && (
+                          <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
+                            <Edit2 className="w-3 h-3" /> Editar
+                          </button>
+                        )}
+                        
+                        <div className="ml-auto flex items-center gap-2">
+                          {user && (
+                            <button onClick={() => handleSaveToProfile(post)} className="hover:text-neon-cyan transition-colors" title="Guardar Post">
+                              <Bookmark className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {post.user_id && (
+                            <button onClick={() => handleReport(post.id, post.user_id)} className="hover:text-destructive transition-colors" title="Reportar">
+                              <Flag className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          
+                          {isStaff && post.user_id && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="text-muted-foreground hover:text-neon-magenta transition-colors">
+                                  <Shield className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                                <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                                  <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                                  <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer">
+                                  <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                                  <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {editingPost === post.id ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
-                        <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-6"><Check className="w-3 h-3" /> Guardar</Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-6">Cancelar</Button>
+
+                      {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
+                        <div className="mt-1.5 w-full">
+                          <SignatureDisplay
+                            text={postProfiles[post.user_id]?.signature || (post as any).signature}
+                            profile={postProfiles[post.user_id]}
+                            fontSize={11}
+                          />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => toggleComments(post.id)}
+                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all text-[11px] font-body font-medium"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" /> Comentar {(comments[post.id]?.length || 0) > 0 ? `(${comments[post.id].length})` : ""}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {expandedPost === post.id && (
+                  <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
+                    {(comments[post.id] || []).map((comment) => (
+                      <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <UserPopup
+                                userId={comment.user_id}
+                                displayName={comment.profile?.display_name || "Anónimo"}
+                                avatarUrl={comment.profile?.avatar_url}
+                                roles={comment.roles || []}
+                                roleIcon={comment.profile?.role_icon}
+                                showRoleIcon={comment.profile?.show_role_icon !== false}
+                                membershipTier={comment.profile?.membership_tier || comment.membership_tier}
+                                colorAvatarBorder={comment.profile?.color_avatar_border}
+                                colorName={comment.profile?.color_name}
+                                colorRole={comment.profile?.color_role}
+                                colorStaffRole={comment.profile?.color_staff_role}
+                              />
+                              <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                            </div>
+                            <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {user && (
+                                <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
+                                  <Reply className="w-3 h-3 inline mr-0.5" /> Responder
+                                </button>
+                              )}
+                              {user && comment.user_id !== user.id && (
+                                <button onClick={() => setReportTarget({
+                                  userId: comment.user_id,
+                                  userName: comment.profile?.display_name || "Anónimo",
+                                  postId: comment.post_id,
+                                })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
+                                  <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {user ? (
+                      <div className="space-y-2 bg-card border border-border rounded p-3">
+                        {replyTo && (
+                          <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body">
+                            <Reply className="w-3 h-3" /> Respondiendo
+                            <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
+                          </div>
+                        )}
+                        
+                        <Textarea
+                          placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          maxLength={limits.maxForumChars}
+                          className="bg-muted text-xs font-body min-h-[80px] resize-y"
+                        />
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
+                          {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                          {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
+                          {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
+                          {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
+                          
+                          <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                          <div className="flex-1" />
+                          <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>
+                            {commentText.length}/{limits.maxForumChars}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[9px] text-muted-foreground font-body italic">
+                            {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma (Requiere plan superior)"}
+                          </p>
+                          <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
+                            <Send className="w-3 h-3" /> Comentar
+                          </Button>
                         </div>
                       </div>
                     ) : (
-                      <>
-                        <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
-                          {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                          {post.title}
-                        </p>
-                        {post.content && (
-                          <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
-                        )}
-                      </>
+                      <p className="text-[10px] text-muted-foreground font-body">Inicia sesión para comentar</p>
                     )}
-                    
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
-                      <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                      
-                      {user && user.id === post.user_id && !editingPost && (
-                        <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
-                          <Edit2 className="w-3 h-3" /> Editar
-                        </button>
-                      )}
-                      
-                      <div className="ml-auto flex items-center gap-2">
-                        {user && (
-                          <button onClick={() => handleSaveToProfile(post)} className="hover:text-neon-cyan transition-colors" title="Guardar Post">
-                            <Bookmark className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {post.user_id && (
-                          <button onClick={() => handleReport(post.id, post.user_id)} className="hover:text-destructive transition-colors" title="Reportar">
-                            <Flag className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        
-                        {/* 🔥 MENÚ STAFF PARA POSTS 🔥 */}
-                        {isStaff && post.user_id && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="text-muted-foreground hover:text-neon-magenta transition-colors">
-                                <Shield className="w-3.5 h-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
-                              <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
-                                <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
-                                <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer">
-                                <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
-                                <Copy className="w-3 h-3 mr-2" /> Copiar ID
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </div>
-
-                    {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
-                      <div className="mt-1.5 w-full">
-                        <SignatureDisplay
-                          text={postProfiles[post.user_id]?.signature || (post as any).signature}
-                          profile={postProfiles[post.user_id]}
-                          fontSize={11}
-                        />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => toggleComments(post.id)}
-                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all text-[11px] font-body font-medium"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" /> Comentar {(comments[post.id]?.length || 0) > 0 ? `(${comments[post.id].length})` : ""}
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
-
-              {expandedPost === post.id && (
-                <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
-                  {(comments[post.id] || []).map((comment) => (
-                    <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                            <UserPopup
-                              userId={comment.user_id}
-                              displayName={comment.profile?.display_name || "Anónimo"}
-                              avatarUrl={comment.profile?.avatar_url}
-                              roles={comment.roles || []}
-                              roleIcon={comment.profile?.role_icon}
-                              showRoleIcon={comment.profile?.show_role_icon !== false}
-                              membershipTier={comment.profile?.membership_tier || comment.membership_tier}
-                              colorAvatarBorder={comment.profile?.color_avatar_border}
-                              colorName={comment.profile?.color_name}
-                              colorRole={comment.profile?.color_role}
-                              colorStaffRole={comment.profile?.color_staff_role}
-                            />
-                            <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                          </div>
-                          <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
-                          <div className="flex items-center gap-2 mt-1">
-                            {user && (
-                              <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
-                                <Reply className="w-3 h-3 inline mr-0.5" /> Responder
-                              </button>
-                            )}
-                            {user && comment.user_id !== user.id && (
-                              <button onClick={() => setReportTarget({
-                                userId: comment.user_id,
-                                userName: comment.profile?.display_name || "Anónimo",
-                                postId: comment.post_id,
-                              })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
-                                <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {user ? (
-                    <div className="space-y-2 bg-card border border-border rounded p-3">
-                      {replyTo && (
-                        <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body">
-                          <Reply className="w-3 h-3" /> Respondiendo
-                          <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
-                        </div>
-                      )}
-                      
-                      <Textarea
-                        placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        maxLength={limits.maxForumChars}
-                        className="bg-muted text-xs font-body min-h-[80px] resize-y"
-                      />
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
-                        {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
-                        {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
-                        {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
-                        {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
-                        
-                        <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
-                        <div className="flex-1" />
-                        <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>
-                          {commentText.length}/{limits.maxForumChars}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[9px] text-muted-foreground font-body italic">
-                          {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma (Requiere plan superior)"}
-                        </p>
-                        <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
-                          <Send className="w-3 h-3" /> Comentar
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground font-body">Inicia sesión para comentar</p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {showRulesPopup && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
