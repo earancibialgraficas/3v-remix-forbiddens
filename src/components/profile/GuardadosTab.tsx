@@ -24,7 +24,7 @@ const cleanUrl = (url: string, itemType: string) => {
   return url;
 };
 
-// 🔥 Proxy que respeta los GIFs para que no pierdan la animación 🔥
+// Proxy que respeta los GIFs para que no pierdan la animación
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.toLowerCase().includes('.gif')) return url;
@@ -97,7 +97,7 @@ export default function GuardadosTab() {
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
-  // Bloquear scroll
+  // Bloquear el scroll del fondo cuando el carrusel está abierto
   useEffect(() => {
     if (selectedIndex !== null) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
@@ -106,10 +106,10 @@ export default function GuardadosTab() {
 
   const isVideoItem = (item: any) => {
     const url = item.originalData?.content_url || item.redirect_url || '';
-    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com");
+    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com");
   };
 
-  // 🔥 EL MOTOR EXTRACTOR CON TUS TRUCOS DE IG/TIKTOK 🔥
+  // 🔥 MOTOR DE EXTRACCIÓN DE MINIATURAS (Para la galería externa y la tira de abajo) 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
@@ -119,23 +119,26 @@ export default function GuardadosTab() {
     const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
     if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
 
-    // 2. TikTok (Tu truco)
+    // 2. TikTok (Usando la API recomendada)
     if (origContentUrl.includes('tiktok.com')) {
        const tkMatch = origContentUrl.match(/video\/(\d+)/);
-       if (tkMatch) return getProxyUrl(`https://www.tiktok.com/api/img/?itemId=${tkMatch[1]}`);
+       if (tkMatch) return `https://www.tiktok.com/api/img/?itemId=${tkMatch[1]}`;
     }
 
-    // 3. Instagram (Tu truco)
+    // 3. Instagram
     if (origContentUrl.includes('instagram.com')) {
        const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
-       if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=m`);
+       if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
     }
 
-    // 4. Imagen de la DB
-    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url || item.thumbnail_url;
-    if (origImg && !isVideoExt(origImg) && !origImg.includes('undefined')) return getProxyUrl(origImg);
+    // 4. Imagen guardada en la Base de Datos
+    let savedThumb = item.thumbnail_url;
+    if (savedThumb && !isVideoExt(savedThumb) && !savedThumb.includes('undefined')) return getProxyUrl(savedThumb);
 
-    // 5. Foro
+    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
+    if (origImg && !isVideoExt(origImg)) return getProxyUrl(origImg);
+
+    // 5. Posts del Foro (Extraer imagen del markdown)
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
@@ -148,12 +151,12 @@ export default function GuardadosTab() {
        return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    // Fallback IA
+    // 6. Fallback final (IA)
     const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR DEL CARRUSEL (EVITA IFRAMES SI ES POSIBLE) 🔥
+  // 🔥 RENDERIZADOR DEL CARRUSEL (CARGA EL CONTENIDO REAL AQUÍ DENTRO) 🔥
   const renderCarouselContent = (item: any) => {
     if (!item.originalData) {
       return (
@@ -173,11 +176,11 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       // YOUTUBE
+       // YOUTUBE: Mostrar Iframe Reproductor
        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
        if (ytMatch && ytMatch[1]) return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full max-w-[800px] aspect-video rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen allow="autoplay" />;
        
-       // TIKTOK
+       // TIKTOK: Mostrar Iframe Reproductor
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) return <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full max-w-[350px] h-full rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen />;
@@ -188,10 +191,10 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
-       // 🔥 INSTAGRAM: Renderizado como IMAGEN en el carrusel 🔥
+       // INSTAGRAM: Mostrar Iframe Reproductor
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
-           if (igMatch) return <img src={getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`)} className="w-full h-full object-contain rounded-xl shadow-2xl mx-auto" />;
+           if (igMatch) return <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full max-w-[400px] h-full bg-white rounded-xl shadow-2xl mx-auto" allowFullScreen />;
        }
        
        return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
@@ -274,14 +277,14 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL CENTRADO PERFECTO CON M-AUTO 🔥 */}
+      {/* 🔥 MEGA CARRUSEL 100% CENTRADO (Fijado con flex, anclado al centro) 🔥 */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex" onClick={() => setSelectedIndex(null)}>
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-8" onClick={() => setSelectedIndex(null)}>
           
-          {/* Contenedor central (Ancho exacto de columna y altura 60% centrado con m-auto) */}
-          <div className="relative w-[95%] max-w-4xl h-[60vh] m-auto flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
+          {/* Contenedor central (75% Altura y Máximo Ancho de Pantalla) */}
+          <div className="relative w-full max-w-4xl h-[75vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
-            {/* Header del Carrusel */}
+            {/* Header del Carrusel (Avatar, Título y Botón Cerrar) */}
             {(() => {
                const item = items[selectedIndex];
                const author = item?.originalData?.profile || {};
@@ -309,7 +312,7 @@ export default function GuardadosTab() {
                );
             })()}
             
-            {/* Contenido Visual Interactivo */}
+            {/* Contenido Visual Interactivo (AQUÍ SE VEN LOS IFRAMES O IMÁGENES) */}
             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
               
