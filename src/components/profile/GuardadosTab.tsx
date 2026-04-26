@@ -139,7 +139,7 @@ export default function GuardadosTab() {
            url.includes("instagram.com");
   };
 
-  // 🔥 MOTOR DE EXTRACCIÓN INTELIGENTE + IA FIJA 🔥
+  // 🔥 MOTOR DE EXTRACCIÓN INTELIGENTE + IA FIJA (CORREGIDO PARA IG Y TIKTOK) 🔥
   const getThumbnailUrl = (item: any) => {
     let savedThumb = item.thumbnail_url;
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
@@ -158,7 +158,7 @@ export default function GuardadosTab() {
        return getProxyUrl(savedThumb);
     }
 
-    // 3. Imagen de la DB
+    // 3. Imagen de la DB original
     let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
     if (origImg && !isVideoExt(origImg)) {
        return getProxyUrl(origImg);
@@ -174,22 +174,29 @@ export default function GuardadosTab() {
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
 
        // Fallback a IA con Seed fijo (Para que la imagen NUNCA cambie)
-       const title = item.title || item.originalData?.title || 'Foro Post';
-       const safePrompt = encodeURIComponent(title.substring(0, 80) + " digital art glowing");
+       // Se limpia el texto para no romper la URL de pollinations
+       const title = (item.title || item.originalData?.title || 'Foro Post').replace(/[^a-zA-Z0-9 ]/g, '');
+       const safePrompt = encodeURIComponent(title.substring(0, 50) + " digital art neon");
        return `https://image.pollinations.ai/prompt/${safePrompt}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    // 5. Fallback a IA para TikToks / IG sin imagen
-    const title = item.title || item.originalData?.title || item.originalData?.caption || 'Video Content';
-    const safePrompt = encodeURIComponent(title.substring(0, 80) + " neon cyberpunk");
-    return `https://image.pollinations.ai/prompt/${safePrompt}?width=600&height=400&nologo=true&seed=${idSeed}`;
+    // 5. Fallback a IA Específico y seguro para TikTok e Instagram
+    if (origContentUrl.includes('tiktok.com')) {
+       return `https://image.pollinations.ai/prompt/tiktok%20neon%20video%20screen%20abstract?width=400&height=400&nologo=true&seed=${idSeed}`;
+    }
+    if (origContentUrl.includes('instagram.com')) {
+       return `https://image.pollinations.ai/prompt/instagram%20neon%20video%20screen%20abstract?width=400&height=400&nologo=true&seed=${idSeed}`;
+    }
+
+    // 6. Fallback final para cualquier otro contenido
+    return `https://image.pollinations.ai/prompt/neon%20cyberpunk%20abstract%20grid?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
   // 🔥 RENDERIZADOR PRINCIPAL DEL CARRUSEL 🔥
   const renderCarouselContent = (item: any) => {
     if (!item.originalData) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 bg-card border border-border rounded-xl max-w-md w-full mx-auto h-full">
+        <div className="flex flex-col items-center justify-center text-center p-8 bg-card border border-border rounded-xl w-full h-full">
           <Trash2 className="w-12 h-12 text-destructive mb-4" />
           <p className="text-white font-pixel text-xs">Publicación Original Eliminada</p>
           <p className="text-muted-foreground font-body text-[10px] mt-2">El dueño borró esta publicación de la plataforma.</p>
@@ -230,8 +237,8 @@ export default function GuardadosTab() {
 
     if (item.item_type === 'post') {
        return (
-          <div className="bg-card border border-border rounded-xl max-w-3xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
-             {/* Portada generada por IA o extraída del post */}
+          <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
+             {/* 🔥 IMAGEN DE PORTADA DEL POST (Real o por IA) 🔥 */}
              <div className="w-full h-32 md:h-56 shrink-0 relative bg-black">
                 <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-40" alt="Post Cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
@@ -330,14 +337,14 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL COMPLETAMENTE CENTRADO Y FLOTANTE 🔥 */}
+      {/* 🔥 MEGA CARRUSEL CENTRADO ABSOLUTO (50% X / 50% Y) 🔥 */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8 animate-in fade-in duration-200" onClick={() => setSelectedIndex(null)}>
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md">
           
-          {/* Contenedor central principal */}
-          <div className="relative w-full max-w-4xl h-[85vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]" onClick={e => e.stopPropagation()}>
+          {/* Contenedor central (Ancho exacto de columna y altura 75%) */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl h-[75vh] max-h-[850px] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
-            {/* 🔥 NUEVA BARRA SUPERIOR: Perfil, Título, Ir y Cerrar 🔥 */}
+            {/* Header del Carrusel */}
             {(() => {
                const item = items[selectedIndex];
                const author = item?.originalData?.profile || {};
@@ -359,7 +366,9 @@ export default function GuardadosTab() {
                       <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
                          <span className="hidden sm:inline">Ir a publicación</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
                       </Button>
-                      <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1.5 rounded transition-all"><X className="w-5 h-5"/></button>
+                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white p-1.5 bg-destructive/80 hover:bg-destructive rounded transition-all border border-white/10" title="Cerrar">
+                         <X className="w-4 h-4 md:w-5 md:h-5"/>
+                      </button>
                     </div>
                  </div>
                );
@@ -377,17 +386,19 @@ export default function GuardadosTab() {
             </div>
             
             {/* Tira inferior de miniaturas */}
-            <div className="h-20 md:h-24 bg-black/80 border-t border-white/10 shrink-0 flex items-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2">
-              {items.map((item, idx) => (
-                <button 
-                  key={item.id} 
-                  onClick={() => setSelectedIndex(idx)}
-                  className={cn("relative h-full aspect-square md:aspect-video shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
-                >
-                  <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
-                  {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-6 md:h-6 text-white/80" />}
-                </button>
-              ))}
+            <div className="h-20 md:h-24 bg-black/80 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2">
+              <div className="flex items-center gap-2">
+                {items.map((item, idx) => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => setSelectedIndex(idx)}
+                    className={cn("relative h-14 w-14 md:h-16 md:w-16 shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
+                  >
+                    <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
+                    {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-6 md:h-6 text-white/80" />}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
