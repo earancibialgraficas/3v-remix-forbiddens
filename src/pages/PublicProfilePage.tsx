@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+
+// 🔥 Importamos el Dropdown Menu de STAFF 🔥
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface PublicProfile {
   user_id: string;
@@ -30,7 +33,7 @@ interface PublicProfile {
 
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
-  const { user } = useAuth();
+  const { user, isMasterWeb, isAdmin } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
@@ -42,9 +45,10 @@ export default function PublicProfilePage() {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
   
-  // 🔥 Nuevos estados para las estadísticas adicionales
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
+
+  const isStaff = isMasterWeb || isAdmin || roles.includes("moderator");
 
   useEffect(() => {
     if (!userId) return;
@@ -60,11 +64,10 @@ export default function PublicProfilePage() {
       setFollowerCount(followers || 0);
       setFollowingCount(following || 0);
 
-      // Check if current user follows this profile
       if (user && user.id !== userId) {
         const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
         setIsFollowing(!!f);
-        // Check friend request status
+        
         const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
         const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
         if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
@@ -72,7 +75,7 @@ export default function PublicProfilePage() {
         else setFriendStatus("none");
       }
 
-      // 🔥 Fetch de TODOS los contadores y puntajes en paralelo para la tabla de Stats
+      // Solo traemos posts que no estén baneados
       const [
         { data: scores }, 
         { data: posts }, 
@@ -81,10 +84,10 @@ export default function PublicProfilePage() {
         { count: forumPostsCount }
       ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
-        supabase.from("posts").select("id, title, category, upvotes, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+        supabase.from("posts").select("id, title, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(10),
         supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
-        supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId)
+        supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("is_banned", true)
       ]);
       
       if (scores) setGameScores(scores as any);
@@ -99,24 +102,20 @@ export default function PublicProfilePage() {
 
   const handleFollow = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
-    
     const wasFollowing = isFollowing;
-    
     setIsFollowing(!wasFollowing);
     setFollowerCount(p => wasFollowing ? p - 1 : p + 1);
 
     if (wasFollowing) {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) {
-        setIsFollowing(wasFollowing);
-        setFollowerCount(p => p + 1);
+        setIsFollowing(wasFollowing); setFollowerCount(p => p + 1);
         toast({ title: "Error al dejar de seguir", description: error.message, variant: "destructive" });
       }
     } else {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
       if (error) {
-        setIsFollowing(wasFollowing);
-        setFollowerCount(p => p - 1);
+        setIsFollowing(wasFollowing); setFollowerCount(p => p - 1);
         toast({ title: "Error al seguir", description: error.message, variant: "destructive" });
       }
     }
@@ -127,36 +126,55 @@ export default function PublicProfilePage() {
     
     if (friendStatus === "none") {
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
-      if (error) {
-        toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
-      } else { 
-        setFriendStatus("pending_sent"); 
-        toast({ title: "Solicitud enviada" }); 
-      }
+      if (error) toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
+      else { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
     } else if (friendStatus === "pending_received") {
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
-      if (error) {
-        toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
-      } else {
-        setFriendStatus("accepted");
-        toast({ title: "Amistad aceptada" });
-      }
+      if (error) toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
+      else { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
     } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
       const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
-      if (error) {
-        toast({ title: "Error al cancelar/eliminar", description: error.message, variant: "destructive" });
-      } else {
-        setFriendStatus("none");
-        toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" });
-      }
+      if (error) toast({ title: "Error al cancelar/eliminar", description: error.message, variant: "destructive" });
+      else { setFriendStatus("none"); toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" }); }
     }
+  };
+
+  // 🔥 LÓGICA DE GUARDADO Y MODERACIÓN DE POSTS EN EL PERFIL 🔥
+  const handleSavePost = async (post: any) => {
+    if (!user) return;
+    try { 
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, item_type: 'post', original_id: post.id,
+        title: post.title || 'Post del Foro', redirect_url: `/${post.category}?post=${post.id}`
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
+      else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
+    } catch (e) { }
+  };
+
+  const handleHidePost = async (postId: string) => {
+    const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
+    if (!error) { 
+      toast({ title: "Post ocultado." }); 
+      setUserPosts(prev => prev.filter(p => p.id !== postId)); 
+    }
+    else { toast({ title: "Error", variant: "destructive" }); }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (!error) { 
+      toast({ title: "Post eliminado" }); 
+      setUserPosts(prev => prev.filter(p => p.id !== postId)); 
+    }
+    else { toast({ title: "Error", variant: "destructive" }); }
   };
 
   if (loading) return <div className="p-8 text-center text-xs text-muted-foreground font-body animate-fade-in">Cargando perfil...</div>;
   if (!profile) return <div className="p-8 text-center text-xs text-muted-foreground font-body">Perfil no encontrado</div>;
 
-  const isStaff = roles.includes("master_web") || roles.includes("admin");
-  const isMod = roles.includes("moderator");
+  const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
   const memberSince = new Date(profile.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" });
 
   const bestScores = Object.values(
@@ -167,7 +185,7 @@ export default function PublicProfilePage() {
     }, {})
   );
   const totalScore = bestScores.reduce((sum, gs) => sum + gs.score, 0);
-  const displayTier = (isStaff || isMod) ? "STAFF" : profile.membership_tier.toUpperCase();
+  const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -187,9 +205,9 @@ export default function PublicProfilePage() {
             </div>
             <p className="text-xs text-muted-foreground font-body mt-1">{profile.bio || "Sin descripción"}</p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
-              {(isStaff || isMod) ? (
+              {isStaffVisual ? (
                 <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile.color_staff_role)}>
-                  {isStaff ? "DIOS TODOPODEROSO" : "MÍTICO"}
+                  {roles.includes("master_web") ? "DIOS TODOPODEROSO" : "MÍTICO"}
                 </span>
               ) : (
                 <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile.color_role)}>
@@ -228,27 +246,12 @@ export default function PublicProfilePage() {
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
                   <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Enviar Mensaje</Link>
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!user || !userId) return;
-                    await supabase.from("reports").insert({
-                      reporter_id: user.id, reported_user_id: userId, reason: "Usuario bloqueado",
-                    } as any);
-                    toast({ title: "Usuario bloqueado", description: "El staff revisará esta acción" });
-                  }}
-                  className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                >
-                  <Ban className="w-3 h-3" /> Bloquear
-                </Button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* 🔥 Nueva Tabla de Stats Expandida y Colorida 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -262,9 +265,7 @@ export default function PublicProfilePage() {
             { 
               val: displayTier, 
               label: "Membresía", 
-              color: (isStaff || isMod) 
-                ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" 
-                : "text-muted-foreground" 
+              color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
             },
           ].map((s, i) => (
             <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
@@ -275,7 +276,6 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* Game scores */}
       {bestScores.length > 0 && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
@@ -295,17 +295,51 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* Recent posts */}
+      {/* 🔥 POSTS RECIENTES AHORA TIENEN OPCIONES DE MODERACIÓN Y GUARDADO 🔥 */}
       {userPosts.length > 0 && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
           <div className="space-y-2">
             {userPosts.map((post) => (
-              <div key={post.id} className="p-2 border border-border/50 rounded text-xs font-body hover:bg-muted/30 transition-colors">
-                <p className="text-foreground">{post.title}</p>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                  <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className="text-neon-green">▲{post.upvotes}</span>
+              <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
+                <div className="flex-1 min-w-0 pr-2">
+                  <Link to={`/${post.category}?post=${post.id}`} className="text-xs text-foreground hover:text-neon-cyan hover:underline line-clamp-2">
+                    {post.title}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
+                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                    <span className="text-neon-green">▲{post.upvotes || 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {user && (
+                    <button onClick={() => handleSavePost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
+                      <Bookmark className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  
+                  {isStaff && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
+                          <Shield className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                        <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                          <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                          <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                          <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
             ))}
