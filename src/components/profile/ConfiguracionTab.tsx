@@ -23,7 +23,7 @@ export default function ConfiguracionTab({ user, profile, refreshProfile, displa
   const [localSigColor, setLocalSigColor] = useState("#facc15");
   const [localSigStrokeColor, setLocalSigStrokeColor] = useState<string | null>("#000000");
   const [localSigStrokeWidth, setLocalSigStrokeWidth] = useState(1);
-  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("middle");
+  const [localSigStrokePosition, setLocalSigStrokePosition] = useState("outside");
   const [localSigTextAlign, setLocalSigTextAlign] = useState("center");
   const [localSigTextOverImage, setLocalSigTextOverImage] = useState(true);
   const [localSigImageUrl, setLocalSigImageUrl] = useState("");
@@ -46,8 +46,9 @@ export default function ConfiguracionTab({ user, profile, refreshProfile, displa
       setLocalSigStrokeColor(profile.signature_stroke_color || "#000000");
       setLocalSigStrokeWidth(profile.signature_stroke_width ?? 1);
       
+      // Aseguramos que solo cargue los dos trazos legales (outside o middle)
       const stPos = profile.signature_stroke_position;
-      setLocalSigStrokePosition(stPos === "inside" ? "middle" : (stPos || "middle"));
+      setLocalSigStrokePosition(stPos === "inside" ? "middle" : (stPos || "outside"));
       
       setLocalSigTextAlign(profile.signature_text_align || "center");
       setLocalSigTextOverImage(profile.signature_text_over_image ?? true);

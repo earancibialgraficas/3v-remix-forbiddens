@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +13,16 @@ import RoleIconSelector from "@/components/RoleIconSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 IMPORTAMOS TODOS NUESTROS NUEVOS MÓDULOS 🔥
+// 🔥 IMPORTAMOS CADA PESTAÑA DESDE SU PROPIO ARCHIVO 🔥
 import ConfiguracionTab from "@/components/profile/ConfiguracionTab";
-import { AvisosTab, PostsTab, StatsTab, FriendsTab, SocialContentTab, AlmacenamientoTab, GuardadosTab, ModerationPanel } from "@/components/profile/ProfileTabs";
+import AvisosTab from "@/components/profile/AvisosTab";
+import PostsTab from "@/components/profile/PostsTab";
+import StatsTab from "@/components/profile/StatsTab";
+import FriendsTab from "@/components/profile/FriendsTab";
+import SocialContentTab from "@/components/profile/SocialContentTab";
+import AlmacenamientoTab from "@/components/profile/AlmacenamientoTab";
+import GuardadosTab from "@/components/profile/GuardadosTab";
+import ModerationPanel from "@/components/profile/ModerationPanel";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -273,7 +280,7 @@ export default function ProfilePage() {
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     { id: "guardados" as const, label: "Guardados", icon: Bookmark },
     ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
-    { id: "configuracion" as const, label: "Configuración", icon: Settings },
+    { id: "configuracion" as const, label: "Config", icon: Settings },
   ];
 
   if (!user) {
