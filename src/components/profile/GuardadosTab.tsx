@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Image as ImageIcon, User as UserIcon } from "lucide-react";
@@ -47,6 +47,48 @@ const getSeedFromId = (str: string) => {
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return Math.abs(hash);
 };
+
+// 🔥 COMPONENTE: Embed de TikTok Escalonado Dinámicamente 🔥
+function TikTokEmbed({ videoId }: { videoId: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        // Calculamos el factor de escala (700px es el alto base del embed)
+        // Agregamos validación de ancho (350px base) para evitar cortes en celulares angostos
+        const scaleH = height / 700;
+        const scaleW = width / 350;
+        setScale(Math.min(scaleH, scaleW)); 
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden">
+      <div 
+        style={{ 
+          transform: `scale(${scale})`, 
+          transformOrigin: 'center',
+          width: '350px',
+          height: '700px'
+        }} 
+        className="shrink-0 flex items-center justify-center"
+      >
+        <iframe 
+          src={`https://www.tiktok.com/embed/v2/${videoId}`} 
+          className="w-full h-full border-0 rounded-xl" 
+          allowFullScreen 
+        />
+      </div>
+    </div>
+  );
+}
 
 // 🔥 COMPONENTE: Post con Botón Colapsable e Imagen Responsiva 🔥
 function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
@@ -242,24 +284,18 @@ export default function GuardadosTab() {
                return (
                  <div className="w-full h-full flex items-center justify-center bg-black">
                    <div className={cn("h-full max-h-full w-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
-                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0" allowFullScreen allow="autoplay" />
+                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl" allowFullScreen allow="autoplay" />
                    </div>
                  </div>
                );
            }
        }
        
-       // 🔥 TIKTOK SOLUCIÓN DEFINITIVA: CONTENEDOR DE ANCHO FIJO + OVERFLOW HIDDEN 🔥
+       // 🔥 TIKTOK CON NUEVO COMPONENTE DE ESCALADO DINÁMICO 🔥
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
-             return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
-                 <div className="h-full max-h-full w-[350px] sm:w-[380px] md:w-[400px]">
-                   <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full border-0 rounded-xl" allowFullScreen />
-                 </div>
-               </div>
-             );
+             return <TikTokEmbed videoId={tkMatch[1]} />;
            }
        }
 
@@ -271,9 +307,9 @@ export default function GuardadosTab() {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
+               <div className="w-full h-full flex items-center justify-center bg-black">
                  <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto">
-                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full border-0 rounded-xl bg-white" allowFullScreen />
+                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full rounded-xl bg-white" allowFullScreen />
                  </div>
                </div>
              );
