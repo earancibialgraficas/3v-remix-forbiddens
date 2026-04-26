@@ -82,7 +82,7 @@ function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUr
          )}
       </div>
 
-      {/* SECCIÓN TEXTO (35%) CON TIPOGRAFÍA ELEGANTE Y CORRECCIÓN DE SCROLL HORIZONTAL 🔥 */}
+      {/* SECCIÓN TEXTO (35%) CON TIPOGRAFÍA ELEGANTE Y CORRECCIÓN DE SCROLL HORIZONTAL */}
       <div className={cn(
         "flex flex-col bg-card/95 border-t md:border-t-0 md:border-l border-white/10 transition-all duration-500 ease-in-out",
         expanded ? "h-[35%] md:h-full md:w-[35%] opacity-100" : "h-0 md:h-full md:w-0 opacity-0 overflow-hidden"
@@ -96,7 +96,6 @@ function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUr
           <ChevronRight className="w-4 h-4 hidden md:block" />
         </button>
 
-        {/* 🔥 Aquí está la corrección: overflow-x-hidden, break-words y w-full 🔥 */}
         <div className="p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar w-full">
           <h2 className="text-neon-cyan font-pixel mb-4 text-xs md:text-sm leading-relaxed break-words w-full">
             {item.originalData?.title}
@@ -117,7 +116,7 @@ export default function GuardadosTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [touchStart, setTouchStart] = useState<number | null>(null); // Swipe Handling
+  const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const fetchSavedItems = async () => {
     if (!user) return;
@@ -243,20 +242,21 @@ export default function GuardadosTab() {
                return (
                  <div className="w-full h-full flex items-center justify-center bg-black">
                    <div className={cn("h-full max-h-full w-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
-                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl" allowFullScreen allow="autoplay" />
+                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0" allowFullScreen allow="autoplay" />
                    </div>
                  </div>
                );
            }
        }
        
+       // 🔥 TIKTOK SOLUCIÓN DEFINITIVA: CONTENEDOR DE ANCHO FIJO + OVERFLOW HIDDEN 🔥
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto">
-                   <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full rounded-xl" allowFullScreen />
+               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
+                 <div className="h-full max-h-full w-[350px] sm:w-[380px] md:w-[400px]">
+                   <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full border-0 rounded-xl" allowFullScreen />
                  </div>
                </div>
              );
@@ -271,9 +271,9 @@ export default function GuardadosTab() {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black">
+               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden" style={{ overflow: 'hidden' }}>
                  <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto">
-                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full rounded-xl bg-white" allowFullScreen />
+                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full border-0 rounded-xl bg-white" allowFullScreen />
                  </div>
                </div>
              );
@@ -359,7 +359,7 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL GEOMÉTRICO 🔥 */}
+      {/* 🔥 MEGA CARRUSEL GEOMÉTRICAMENTE CENTRADO 🔥 */}
       {selectedIndex !== null && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md" 
