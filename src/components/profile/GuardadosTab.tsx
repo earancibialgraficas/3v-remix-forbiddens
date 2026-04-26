@@ -25,6 +25,7 @@ const cleanUrl = (url: string, itemType: string) => {
   return url;
 };
 
+// Proxy que respeta los GIFs para que no pierdan la animación
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.toLowerCase().includes('.gif')) return url;
@@ -47,7 +48,7 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: TikTok Dinámico Escalonado 🔥
+// 🔥 COMPONENTE: TikTok Dinámico con Ajuste Matemático de Transform 🔥
 function TikTokEmbed({ videoId }: { videoId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -57,7 +58,6 @@ function TikTokEmbed({ videoId }: { videoId: string }) {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        // Escalar basado en alto (700 base) y ancho (350 base) para evitar cortes
         const scaleH = height / 700;
         const scaleW = width / 350;
         setScale(Math.min(scaleH, scaleW));
@@ -71,7 +71,7 @@ function TikTokEmbed({ videoId }: { videoId: string }) {
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden bg-black">
       <div 
         style={{ 
-          transform: `scale(${scale}) translateY(-15px)`, // Elevamos un poco para ocultar UI inútil de TikTok
+          transform: `scale(${scale}) translateY(-${(700 * 0.05) / scale}px)`, 
           transformOrigin: 'center',
           width: '350px',
           height: '700px'
@@ -258,7 +258,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR RESPONSIVO (APLICANDO LAS TÉCNICAS CORRECTAS) 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA (CON OVERFLOW HIDDEN + TRANSLATE PARA IG) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -277,20 +277,20 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       // YOUTUBE
-       const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-       if (ytMatch && ytMatch[1]) {
-           const isShorts = url.includes('shorts/');
-           return (
-             <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-               <div className={cn("h-full max-h-full w-auto mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
-                 <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0 bg-black" allowFullScreen allow="autoplay" />
-               </div>
-             </div>
-           );
+       if (url.includes('youtube') || url.includes('youtu.be')) {
+           const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+           if (ytMatch && ytMatch[1]) {
+               const isShorts = url.includes('shorts/');
+               return (
+                 <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
+                   <div className={cn("h-full max-h-full w-auto mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
+                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0 bg-black" allowFullScreen allow="autoplay" />
+                   </div>
+                 </div>
+               );
+           }
        }
        
-       // TIKTOK (Componente de Escalado Matemático)
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
@@ -302,14 +302,18 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
-       // INSTAGRAM (Contenedor Responsivo aspect-[9/16])
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
                <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto mx-auto">
-                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full border-0 rounded-xl bg-white" allowFullScreen />
+                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto overflow-hidden rounded-xl bg-white">
+                   <iframe 
+                     src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} 
+                     className="w-full h-[calc(100%+20px)] border-0" 
+                     style={{ transform: 'translateY(-10px)' }} 
+                     allowFullScreen 
+                   />
                  </div>
                </div>
              );
