@@ -31,7 +31,7 @@ const cleanUrl = (url: string, itemType: string) => {
 // Proxy para evitar errores CORS
 const getProxyUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai')) return url;
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
@@ -117,58 +117,46 @@ export default function GuardadosTab() {
            url.includes("instagram.com/reel");
   };
 
-  // 🔥 MOTOR DE EXTRACCIÓN DE MINIATURAS CORREGIDO 🔥
-  // NUNCA devuelve un archivo .mp4 para evitar errores en las etiquetas <img>
+  // 🔥 MOTOR DE EXTRACCIÓN SÚPER INTELIGENTE 🔥
   const getThumbnailUrl = (item: any) => {
-    let url = item.thumbnail_url;
-    let isMp4 = url && url.match(/\.(mp4|webm|ogg)/i);
+    let savedThumb = item.thumbnail_url;
+    let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     
-    // 1. Si tenemos una URL válida y NO es un video mp4, la usamos.
-    if (!isMp4 && url && !url.includes('undefined')) {
-       return getProxyUrl(url);
+    // Función de apoyo para no renderizar mp4 como imagen
+    const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
+
+    // 1. Detección profunda para YOUTUBE (Shorts y Videos)
+    const ytMatch = (savedThumb + " " + origContentUrl).match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+    if (ytMatch && ytMatch[1]) {
+      return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
     }
 
-    // 2. Si es una publicación de tipo social / foro, revisamos sus datos originales.
-    if (item.originalData) {
-       let origImg = item.originalData.image_url || item.originalData.thumbnail_url;
-       if (origImg && !origImg.match(/\.(mp4|webm|ogg)/i)) {
-          return getProxyUrl(origImg);
-       }
-       
-       let cUrl = item.originalData.content_url || item.redirect_url || '';
-       
-       // Extracción para YouTube
-       if (cUrl.includes('youtube.com') || cUrl.includes('youtu.be')) {
-          let videoId = "";
-          if (cUrl.includes("youtu.be/")) videoId = cUrl.split("youtu.be/")[1]?.split("?")[0];
-          else if (cUrl.includes("v=")) videoId = cUrl.split("v=")[1]?.split("&")[0];
-          else if (cUrl.includes("shorts/")) videoId = cUrl.split("shorts/")[1]?.split("?")[0];
-          if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-       }
+    // 2. Si hay un thumbnail guardado que es imagen, se usa
+    if (savedThumb && !isVideoExt(savedThumb) && !savedThumb.includes('undefined')) {
+       return getProxyUrl(savedThumb);
     }
 
-    // 3. Fallbacks de IA (Generan una imagen leyendo el título)
-    if (item.item_type === 'social_content') {
-       const title = item.title || item.originalData?.title || 'Video Content';
-       const safePrompt = encodeURIComponent(title.substring(0, 80) + " neon cyberpunk");
-       return `https://image.pollinations.ai/prompt/${safePrompt}?width=400&height=400&nologo=true`;
+    // 3. Revisar la imagen original desde la base de datos (Instagram u otras galerías)
+    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
+    if (origImg && !isVideoExt(origImg)) {
+       return getProxyUrl(origImg);
     }
 
+    // 4. Analizar texto de posts de foro buscando enlaces a imágenes
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
-       if (imgMatch && !imgMatch[1].match(/\.(mp4|webm|ogg)/i)) return getProxyUrl(imgMatch[1]);
+       if (imgMatch && !isVideoExt(imgMatch[1])) return getProxyUrl(imgMatch[1]);
        
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
-       if (rawImgMatch && !rawImgMatch[0].match(/\.(mp4|webm|ogg)/i)) return getProxyUrl(rawImgMatch[0]);
-
-       const title = item.title || item.originalData?.title || 'Foro Post';
-       const safePrompt = encodeURIComponent(title.substring(0, 80) + " digital art glowing");
-       return `https://image.pollinations.ai/prompt/${safePrompt}?width=400&height=400&nologo=true`;
+       if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
     }
 
-    // Imagen por defecto si todo falla
-    return `https://image.pollinations.ai/prompt/cyberpunk%20neon%20abstract?width=400&height=400&nologo=true`;
+    // 5. ¡LA MAGIA DE LA IA! Si es un TikTok, Post o Video sin portada, le generamos una con IA.
+    const title = item.title || item.originalData?.title || item.originalData?.caption || 'Comunidad Forbiddens';
+    const promptAdicional = item.item_type === 'post' ? 'digital art landscape' : 'neon cyberpunk grid';
+    const safePrompt = encodeURIComponent(title.substring(0, 80) + " " + promptAdicional);
+    return `https://image.pollinations.ai/prompt/${safePrompt}?width=600&height=400&nologo=true`;
   };
 
   // 🔥 RENDERIZADOR PRINCIPAL DEL CARRUSEL 🔥
@@ -190,32 +178,45 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
+       // REELS DE YOUTUBE O VIDEOS
        if (url.includes('youtube') || url.includes('youtu.be')) {
-           let videoId = "";
-           if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-           else if (url.includes("v=")) videoId = url.split("v=")[1]?.split("&")[0];
-           else if (url.includes("shorts/")) videoId = url.split("shorts/")[1]?.split("?")[0];
-           return <iframe src={`https://www.youtube.com/embed/${videoId}?autoplay=1`} className="w-full h-full aspect-video rounded-xl shadow-2xl bg-black" allowFullScreen allow="autoplay" />;
+           const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+           if (ytMatch && ytMatch[1]) {
+             return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full aspect-video rounded-xl shadow-2xl bg-black" allowFullScreen allow="autoplay" />;
+           }
        }
+       // REELS DE TIKTOK
        if (url.includes('tiktok.com')) {
            const match = url.match(/video\/(\d+)/);
            if (match) return <iframe src={`https://www.tiktok.com/embed/v2/${match[1]}`} className="w-[340px] h-full max-w-full rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen />;
        }
+       // VIDEOS SUBIDOS DIRECTO
        if (url.match(/\.(mp4|webm|ogg)/i)) {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
+       // REELS DE INSTAGRAM
        if (url.includes('instagram.com')) {
-           const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-           if (igMatch) return <iframe src={`https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`} className="w-[400px] h-full max-w-full bg-white rounded-xl shadow-2xl mx-auto" allowFullScreen />;
+           const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+           if (igMatch) return <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-[400px] h-full max-w-full bg-white rounded-xl shadow-2xl mx-auto" allowFullScreen />;
        }
+       
+       // FALLBACK IMAGEN
        return <img src={getThumbnailUrl(item)} alt="Preview" className="w-full h-full object-contain rounded shadow-2xl" />;
     }
 
     if (item.item_type === 'post') {
        return (
-          <div className="bg-card border border-border p-6 rounded-xl max-w-3xl w-full mx-auto overflow-y-auto h-full custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
-             <h2 className="text-neon-cyan font-pixel mb-4 text-sm md:text-xl leading-snug shrink-0">{item.originalData.title}</h2>
-             <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm flex-1">{item.originalData.content}</div>
+          <div className="bg-card border border-border rounded-xl max-w-3xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
+             {/* 🔥 IMAGEN DE PORTADA DEL POST (Real o por IA) 🔥 */}
+             <div className="w-full h-32 md:h-56 shrink-0 relative bg-black">
+                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-40" alt="Post Cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+                <h2 className="absolute bottom-4 left-4 md:left-8 text-neon-cyan font-pixel text-sm md:text-xl drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] z-10 pr-4">{item.originalData.title}</h2>
+             </div>
+             {/* TEXTO DEL POST */}
+             <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
+               <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
+             </div>
           </div>
        );
     }
@@ -305,25 +306,30 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL REPOSICIONADO A MEDIDA EXACTA 🔥 */}
+      {/* 🔥 MEGA CARRUSEL CENTRADO CON ALTURA DEL 70% 🔥 */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200" onClick={() => setSelectedIndex(null)}>
           
-          {/* Contenedor central (Ancho de la columna central y 60% de altura) */}
-          <div className="relative w-full max-w-5xl h-[60vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+          {/* Botón X Flotante Arriba a la Derecha */}
+          <button 
+            onClick={() => setSelectedIndex(null)} 
+            className="absolute top-4 right-4 md:top-6 md:right-6 z-[10000] p-2 bg-white/10 hover:bg-destructive text-white rounded-full transition-all border border-white/20"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Contenedor central (Ancho exacto de columna y altura manejable) */}
+          <div className="relative w-full max-w-5xl h-[70vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]" onClick={e => e.stopPropagation()}>
             
-            {/* Header del Carrusel con Botón X */}
+            {/* Header del Carrusel */}
             <div className="p-3 md:p-4 border-b border-white/10 flex justify-between items-center bg-black/60 shrink-0">
               <div className="flex-1 min-w-0 pr-4">
                 <h2 className="font-pixel text-[10px] md:text-xs text-neon-cyan truncate">{items[selectedIndex]?.title || 'Contenido Guardado'}</h2>
               </div>
-              <div className="flex items-center gap-2 md:gap-4 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 pr-10 md:pr-0">
                 <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
                    <span className="hidden sm:inline">Ir al Origen</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
                 </Button>
-                <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white p-1.5 bg-destructive/80 hover:bg-destructive rounded transition-all border border-white/10" title="Cerrar">
-                   <X className="w-4 h-4 md:w-5 md:h-5"/>
-                </button>
               </div>
             </div>
             
@@ -331,7 +337,7 @@ export default function GuardadosTab() {
             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
               
-              <div className="w-full h-full flex items-center justify-center p-4">
+              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                 {renderCarouselContent(items[selectedIndex])}
               </div>
 
@@ -346,7 +352,7 @@ export default function GuardadosTab() {
                   onClick={() => setSelectedIndex(idx)}
                   className={cn("relative h-full aspect-square md:aspect-video shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
                 >
-                  <img src={getThumbnailUrl(item)} alt="" className="w-full h-full object-cover" />
+                  <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
                   {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-6 md:h-6 text-white/80" />}
                 </button>
               ))}
