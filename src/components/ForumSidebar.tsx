@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Settings
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Settings, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
@@ -38,24 +38,25 @@ const navItems: NavItem[] = [
       { label: "Leaderboards", to: "/arcade/leaderboards" },
     ],
   },
-  { label: "Consejos Gaming", icon: BookOpen, to: "/arcade/consejos", color: "text-neon-green" },
+  
+  // 🔥 TRENDING MOVIDO JUSTO ARRIBA DE LA ZONA DE FOROS 🔥
+  { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
+  
+  // 🔥 EL NUEVO MEGA-DESPLEGABLE UNIFICADO 🔥
   {
-    label: "Gaming & Anime", icon: Tv, color: "text-neon-cyan", isDropdownOnly: true,
+    label: "Zona de Debate", icon: MessageSquare, color: "text-neon-cyan", isDropdownOnly: true,
     children: [
-      { label: "Foro General", to: "/gaming-anime/foro" },
-      { label: "Anime & Manga", to: "/gaming-anime/anime" },
-      { label: "Gaming", to: "/gaming-anime/gaming" },
-      { label: "Rincón del Creador", to: "/gaming-anime/creador" },
+      { label: "🎮 Foro General", to: "/gaming-anime/foro" },
+      { label: "📺 Anime & Manga", to: "/gaming-anime/anime" },
+      { label: "🕹️ Gaming", to: "/gaming-anime/gaming" },
+      { label: "💡 Consejos Gaming", to: "/arcade/consejos" },
+      { label: "🎨 Rincón del Creador", to: "/gaming-anime/creador" },
+      { label: "🏍️ Foro de Riders", to: "/motociclismo/riders" },
+      { label: "🔧 Taller & Mecánica", to: "/motociclismo/taller" },
+      { label: "🛣️ Rutas & Quedadas", to: "/motociclismo/rutas" },
     ],
   },
-  {
-    label: "Motociclismo", icon: Bike, color: "text-neon-magenta", isDropdownOnly: true,
-    children: [
-      { label: "Foro de Riders", to: "/motociclismo/riders" },
-      { label: "Taller & Mecánica", to: "/motociclismo/taller" },
-      { label: "Rutas & Quedadas", to: "/motociclismo/rutas" },
-    ],
-  },
+
   {
     label: "Mercado & Trueque", icon: ShoppingBag, color: "text-neon-yellow", isDropdownOnly: true,
     children: [
@@ -71,7 +72,6 @@ const navItems: NavItem[] = [
       { label: "Muro Fotográfico", to: "/social/fotos" },
     ],
   },
-  { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
   { label: "Eventos", icon: Calendar, to: "/eventos", color: "text-muted-foreground" },
   { label: "Membresías", icon: Star, to: "/membresias", color: "text-neon-yellow" },
   { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
@@ -81,7 +81,7 @@ const navItems: NavItem[] = [
 
 export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego"]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Salas de Juego", "Zona de Debate"]); // Expansiones por defecto
   const { user, profile, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const isMobile = useIsMobile();
@@ -206,7 +206,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
             
-            {/* Perfil */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil">
@@ -220,7 +219,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               )}
             </div>
 
-            {/* Bandeja Pública */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
                 <Link to="/bandeja-publica">
@@ -234,7 +232,6 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               )}
             </div>
 
-            {/* 🔥 FIX: Botón de Configuraciones movido aquí arriba */}
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Configuraciones">
                 <Link to="/perfil?edit=true">

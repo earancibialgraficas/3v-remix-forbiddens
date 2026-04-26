@@ -30,11 +30,23 @@ export default function TrendingPosts() {
 
   useEffect(() => {
     const fetchTrending = async () => {
-      // Obtenemos los 5 posts más votados que NO estén baneados
+      // 🔥 FILTRAMOS EXCLUSIVAMENTE LAS CATEGORÍAS DE "ZONA DE DEBATE" 🔥
+      const allowedCategories = [
+        "gaming-anime-foro", 
+        "gaming-anime-anime", 
+        "gaming-anime-gaming", 
+        "gaming-anime-creador", 
+        "arcade-consejos", 
+        "motociclismo-riders", 
+        "motociclismo-taller", 
+        "motociclismo-rutas"
+      ];
+
       const { data, error } = await supabase
         .from("posts")
         .select("*, profiles:user_id(display_name)")
         .neq("is_banned", true)
+        .in("category", allowedCategories)
         .order("upvotes", { ascending: false })
         .limit(5);
         
@@ -90,7 +102,7 @@ export default function TrendingPosts() {
       {trending.length === 0 ? (
          <div className="bg-card border border-border rounded p-4 text-center opacity-50">
             <Ghost className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-[10px] font-pixel uppercase tracking-widest text-muted-foreground">Sin tendencias</p>
+            <p className="text-[10px] font-pixel uppercase tracking-widest text-muted-foreground">Sin tendencias aún</p>
          </div>
       ) : (
         <div className="space-y-2">
