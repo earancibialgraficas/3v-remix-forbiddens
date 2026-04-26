@@ -24,10 +24,11 @@ const cleanUrl = (url: string, itemType: string) => {
   return url;
 };
 
+// Proxy que respeta los GIFs para que no pierdan la animación
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.toLowerCase().includes('.gif')) return url;
-  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com')) return url;
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com') || url.includes('tiktokcdn.com')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
@@ -53,9 +54,6 @@ export default function GuardadosTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // 🔥 NUEVO: cache de miniaturas TikTok
-  const [tiktokThumbs, setTiktokThumbs] = useState<Record<string,string>>({});
 
   const fetchSavedItems = async () => {
     if (!user) return;
@@ -93,108 +91,276 @@ export default function GuardadosTab() {
         return { ...item, originalData };
     });
 
-    setItems(enrichedData);
+    // 🔥 TIKTOK OEMBED FETCH 🔥
+    const finalData = await Promise.all(enrichedData.map(async (item: any) => {
+       if (item.item_type === 'social_content') {
+          const url = item.originalData?.content_url || item.redirect_url || '';
+          if (url.includes('tiktok.com')) {
+             try {
+                const res = await fetch(`https://www.tiktok.com/oembed?url=${url}`);
+                const json = await res.json();
+                if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url;
+             } catch(e) { console.error("Error TikTok oEmbed", e); }
+          }
+       }
+       return item;
+    }));
+
+    setItems(finalData);
     setLoading(false);
   };
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
+  // Bloquear el scroll del fondo cuando el carrusel está abierto
   useEffect(() => {
     if (selectedIndex !== null) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
-  // 🔥 NUEVO: obtener thumbnails TikTok vía oEmbed
-  useEffect(() => {
-    const fetchTikTokThumbs = async () => {
-      const newThumbs: Record<string,string> = {};
-      for (const item of items) {
-        const url = item.originalData?.content_url || item.redirect_url || '';
-        if (url.includes("tiktok.com") && !tiktokThumbs[url]) {
-          try {
-            const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
-            const data = await res.json();
-            if (data.thumbnail_url) newThumbs[url] = data.thumbnail_url;
-          } catch {}
-        }
-      }
-      if (Object.keys(newThumbs).length > 0) {
-        setTiktokThumbs(prev => ({ ...prev, ...newThumbs }));
-      }
-    };
-    fetchTikTokThumbs();
-  }, [items]);
-
   const isVideoItem = (item: any) => {
     const url = item.originalData?.content_url || item.redirect_url || '';
     return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com");
   };
 
+  // 🔥 MOTOR DE EXTRACCIÓN DE MINIATURAS 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
+    const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
     const idSeed = getSeedFromId(item.original_id || item.id);
 
+    // 1. YouTube
     const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
     if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
 
-    // 🔥 FIX TikTok
-    if (origContentUrl.includes('tiktok.com')) {
-       if (tiktokThumbs[origContentUrl]) return tiktokThumbs[origContentUrl];
-    }
+    // 2. TikTok (Usando el oEmbed JSON)
+    if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
 
+    // 3. Instagram
     if (origContentUrl.includes('instagram.com')) {
        const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
        if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
     }
 
-    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
-    if (origImg) return getProxyUrl(origImg);
+    // 4. Imagen de la DB
+    let savedThumb = item.thumbnail_url;
+    if (savedThumb && !isVideoExt(savedThumb) && !savedThumb.includes('undefined')) return getProxyUrl(savedThumb);
 
-    const title = (item.title || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(title)}?seed=${idSeed}`;
+    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
+    if (origImg && !isVideoExt(origImg)) return getProxyUrl(origImg);
+
+    // 5. Foro
+    if (item.item_type === 'post') {
+       const content = item.originalData?.content || '';
+       const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
+       if (imgMatch && !isVideoExt(imgMatch[1])) return getProxyUrl(imgMatch[1]);
+       
+       const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
+       if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
+
+       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
+       return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+    }
+
+    // Fallback IA
+    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+  };
+
+  // 🔥 RENDERIZADOR DEL CARRUSEL 🔥
+  const renderCarouselContent = (item: any) => {
+    if (!item.originalData) {
+      return (
+        <div className="flex flex-col items-center justify-center text-center p-8 bg-card border border-border rounded-xl w-full h-full">
+          <Trash2 className="w-12 h-12 text-destructive mb-4" />
+          <p className="text-white font-pixel text-xs">Publicación Eliminada</p>
+          <p className="text-muted-foreground font-body text-[10px] mt-2">El dueño borró esta publicación.</p>
+        </div>
+      );
+    }
+
+    if (item.item_type === 'photo' || item.originalData?.is_apify) {
+       const img = item.originalData?.image_url || item.thumbnail_url;
+       return <img src={getProxyUrl(img)} className="w-full h-full object-contain shadow-2xl rounded" />;
+    }
+
+    if (item.item_type === 'social_content') {
+       const url = item.originalData.content_url || '';
+       
+       // YOUTUBE
+       const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+       if (ytMatch && ytMatch[1]) return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full max-w-[800px] aspect-video rounded-xl shadow-2xl bg-black mx-auto block" allowFullScreen allow="autoplay" />;
+       
+       // TIKTOK (Adaptado a H-FULL)
+       if (url.includes('tiktok.com')) {
+           const tkMatch = url.match(/video\/(\d+)/);
+           if (tkMatch) return <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full max-w-[400px] h-full rounded-xl shadow-2xl bg-black mx-auto block" allowFullScreen />;
+       }
+
+       // MP4 DIRECTO
+       if (url.match(/\.(mp4|webm|ogg)/i)) {
+           return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
+       }
+
+       // INSTAGRAM (Adaptado a H-FULL)
+       if (url.includes('instagram.com')) {
+           const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+           if (igMatch) return <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full max-w-[400px] h-full bg-white rounded-xl shadow-2xl mx-auto block" allowFullScreen />;
+       }
+       
+       return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
+    }
+
+    if (item.item_type === 'post') {
+       return (
+          <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
+             {/* 🔥 SIN TEXTO ENCIMA DE LA IMAGEN 🔥 */}
+             <div className="w-full h-32 md:h-56 shrink-0 bg-black border-b border-border">
+                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-80" alt="Post Cover" />
+             </div>
+             {/* TEXTO DEL POST */}
+             <div className="p-5 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
+               <h2 className="text-neon-cyan font-pixel mb-5 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
+               <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
+             </div>
+          </div>
+       );
+    }
+  };
+
+  const handleRemove = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault(); e.stopPropagation();
+    const { error } = await supabase.from("saved_items" as any).delete().eq("id", id);
+    if (!error) {
+      setItems(prev => prev.filter(item => item.id !== id));
+      toast({ title: "Eliminado de guardados" });
+      if (items.length <= 1) setSelectedIndex(null);
+    }
+  };
+
+  const handleGoToOrigin = () => {
+    if (selectedIndex === null) return;
+    navigate(cleanUrl(items[selectedIndex].redirect_url, items[selectedIndex].item_type));
+    setSelectedIndex(null);
   };
 
   const nextSlide = () => setSelectedIndex(prev => prev !== null ? (prev === items.length - 1 ? 0 : prev + 1) : null);
   const prevSlide = () => setSelectedIndex(prev => prev !== null ? (prev === 0 ? items.length - 1 : prev - 1) : null);
 
-  if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin"/></div>;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedIndex === null) return;
+      if (e.key === 'ArrowRight') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+      if (e.key === 'Escape') setSelectedIndex(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIndex, items.length]);
+
+  if (loading) return <div className="bg-card border border-border rounded p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-neon-cyan" /></div>;
 
   return (
-    <div className="p-4">
-      {items.map((item, idx) => (
-        <div key={item.id} onClick={() => setSelectedIndex(idx)} className="cursor-pointer">
-          <img src={getThumbnailUrl(item)} />
+    <div className="bg-card border border-border rounded p-4 relative">
+      <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-4 text-center md:text-left">Mis Guardados ({items.length})</h3>
+      
+      {items.length === 0 ? (
+        <div className="py-12 text-center opacity-50 flex flex-col items-center">
+          <Bookmark className="w-12 h-12 mb-3 text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest">Aún no has guardado nada</p>
         </div>
-      ))}
+      ) : (
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-2 space-y-2">
+          {items.map((item, idx) => (
+            <div key={item.id} onClick={() => setSelectedIndex(idx)} className="relative group block break-inside-avoid overflow-hidden rounded-lg bg-black cursor-pointer border border-border/30 hover:border-white/20 transition-all" style={getNeonStyle(item)}>
+              <div className="relative w-full h-full flex items-center justify-center bg-black min-h-[120px]">
+                <img src={getThumbnailUrl(item)} className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" />
+                {isVideoItem(item) && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md" /></div>}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                <div className="flex justify-end"><button onClick={(e) => handleRemove(e, item.id)} className="p-1.5 bg-black/60 hover:bg-destructive/90 text-white rounded"><Trash2 className="w-3 h-3" /></button></div>
+                <div>
+                  <p className="text-[9px] font-body text-white line-clamp-2 leading-tight mb-1.5 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-bold">{item.title || "Sin título"}</p>
+                  <div className="flex items-center gap-1 text-[8px] text-neon-cyan font-pixel uppercase bg-black/60 w-fit px-1.5 py-0.5 rounded backdrop-blur-sm border border-neon-cyan/30"><Maximize2 className="w-2.5 h-2.5" /> Ampliar</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
+      {/* 🔥 MEGA CARRUSEL CENTRADO CON MÁRGENES (12.5vh) Y BLOCK 🔥 */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md block overflow-y-auto" onClick={() => setSelectedIndex(null)}>
           
-          {/* 🔥 CENTRADO PERFECTO */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[75vh] p-4">
+          {/* Contenedor central: Ancho max-w-4xl, Alto 75vh, Centrado Vertical Absoluto */}
+          <div 
+            className="relative w-[95%] max-w-4xl flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in mx-auto" 
+            style={{ height: '75vh', marginTop: '12.5vh', marginBottom: '0' }}
+            onClick={e => e.stopPropagation()}
+          >
             
-            <div className="w-full h-full bg-black rounded flex flex-col">
-
-              <div className="flex justify-between p-3 border-b border-white/10">
-                <Button onClick={()=>navigate("/")}>
-                  <ExternalLink className="w-4 h-4"/>
-                </Button>
-                <button onClick={()=>setSelectedIndex(null)}>
-                  <X className="w-5 h-5"/>
-                </button>
+            {/* Header del Carrusel */}
+            {(() => {
+               const item = items[selectedIndex];
+               const author = item?.originalData?.profile || {};
+               const isPost = item?.item_type === 'post';
+               const titleOrDesc = isPost ? item?.originalData?.title : (item?.originalData?.caption || item?.title);
+               
+               return (
+                 <div className="p-3 md:p-4 border-b border-white/10 flex justify-between items-center bg-black/80 shrink-0 z-10">
+                    <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
+                       <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted overflow-hidden shrink-0 border border-white/20 flex items-center justify-center">
+                          {author.avatar_url ? <img src={author.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-5 h-5 text-muted-foreground"/>}
+                       </div>
+                       <div className="flex flex-col min-w-0">
+                          <span className="text-[10px] md:text-xs font-pixel text-white truncate">{author.display_name || "Usuario Anónimo"}</span>
+                          <span className="text-[10px] md:text-xs font-body text-muted-foreground truncate">{titleOrDesc || "Contenido guardado"}</span>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                      <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
+                         <span className="hidden sm:inline">Ir a publicación</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
+                      </Button>
+                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white p-1.5 bg-destructive/80 hover:bg-destructive rounded transition-all border border-white/10" title="Cerrar">
+                         <X className="w-4 h-4 md:w-5 md:h-5"/>
+                      </button>
+                    </div>
+                 </div>
+               );
+            })()}
+            
+            {/* Contenido Visual Interactivo */}
+            <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
+              <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
+              
+              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 relative">
+                {renderCarouselContent(items[selectedIndex])}
               </div>
 
-              <div className="flex-1 flex items-center justify-center relative">
-                <button onClick={prevSlide} className="absolute left-2"><ChevronLeft/></button>
-                <img src={getThumbnailUrl(items[selectedIndex])} className="max-h-full object-contain"/>
-                <button onClick={nextSlide} className="absolute right-2"><ChevronRight/></button>
+              <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-2 md:right-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronRight className="w-6 h-6 md:w-8 md:h-8" /></button>
+            </div>
+            
+            {/* Tira inferior de miniaturas */}
+            <div className="h-16 md:h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2 z-10">
+              <div className="flex items-center gap-2">
+                {items.map((item, idx) => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => setSelectedIndex(idx)}
+                    className={cn("relative h-12 w-12 md:h-14 md:w-14 shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-110 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
+                  >
+                    <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
+                    {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white/80" />}
+                  </button>
+                ))}
               </div>
-
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }
