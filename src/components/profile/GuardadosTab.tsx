@@ -10,29 +10,25 @@ import { cn } from "@/lib/utils";
 
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
 
-// 🔥 Reparador de enlaces rotos 🔥
 const cleanUrl = (url: string, itemType: string) => {
   if (!url) return "/";
   if (url === "/feed") return "/social/feed";
   if (url === "/reels") return "/social/reels";
   if (url === "/muro" || url === "/fotos") return "/social/fotos";
-  
   if (itemType === "post" && url.startsWith("/") && !url.includes("/social/")) {
      const parts = url.split("?post=");
      const categoryRaw = parts[0]?.replace("/", "");
      const postId = parts[1];
-     if (postId && categoryRaw) {
-         return getCategoryRoute(categoryRaw, postId);
-     }
+     if (postId && categoryRaw) return getCategoryRoute(categoryRaw, postId);
   }
   return url;
 };
 
-// 🔥 Proxy que respeta los GIFs animados 🔥
+// 🔥 Proxy que respeta los GIFs para que no pierdan la animación 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com')) return url;
-  if (url.toLowerCase().includes('.gif')) return url; // NO congelar los GIFs
+  if (url.toLowerCase().includes('.gif')) return url;
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com') || url.includes('tiktok.com/api')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
@@ -42,14 +38,9 @@ const getNeonStyle = (item: any) => {
   const idToUse = item.original_id || item.id || "";
   const sum = String(idToUse).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const color = NEON_COLORS[sum % NEON_COLORS.length];
-  return {
-    borderColor: color,
-    boxShadow: `0 0 15px ${color}50, inset 0 0 10px ${color}20`,
-    borderWidth: '2px'
-  };
+  return { borderColor: color, boxShadow: `0 0 15px ${color}50, inset 0 0 10px ${color}20`, borderWidth: '2px' };
 };
 
-// Generador de un "Seed" numérico fijo basado en el ID del post para que la IA no cambie de imagen
 const getSeedFromId = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -66,17 +57,8 @@ export default function GuardadosTab() {
 
   const fetchSavedItems = async () => {
     if (!user) return;
-    
-    const { data: savedData, error } = await supabase
-      .from("saved_items" as any)
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error || !savedData) {
-      setLoading(false);
-      return;
-    }
+    const { data: savedData, error } = await supabase.from("saved_items" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (error || !savedData) { setLoading(false); return; }
 
     const photoIds = savedData.filter((d: any) => d.item_type === 'photo').map((d: any) => d.original_id);
     const socialIds = savedData.filter((d: any) => d.item_type === 'social_content').map((d: any) => d.original_id);
@@ -92,7 +74,6 @@ export default function GuardadosTab() {
     const socialMap = new Map((socialRes.data || []).map(s => [s.id, s]));
     const postsMap = new Map((postsRes.data || []).map(p => [p.id, p]));
 
-    // Obtenemos los perfiles de los dueños originales
     const authorIds = new Set<string>();
     photosRes.data?.forEach(p => authorIds.add(p.user_id));
     socialRes.data?.forEach(s => authorIds.add(s.user_id));
@@ -106,11 +87,7 @@ export default function GuardadosTab() {
         if (item.item_type === 'photo') originalData = photosMap.get(item.original_id);
         else if (item.item_type === 'social_content') originalData = socialMap.get(item.original_id);
         else if (item.item_type === 'post') originalData = postsMap.get(item.original_id);
-        
-        if (originalData && originalData.user_id) {
-           originalData.profile = profilesMap.get(originalData.user_id);
-        }
-        
+        if (originalData && originalData.user_id) originalData.profile = profilesMap.get(originalData.user_id);
         return { ...item, originalData };
     });
 
@@ -120,51 +97,45 @@ export default function GuardadosTab() {
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
-  // Bloquear el scroll del fondo cuando el carrusel está abierto
+  // Bloquear scroll
   useEffect(() => {
-    if (selectedIndex !== null) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
+    if (selectedIndex !== null) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
   const isVideoItem = (item: any) => {
     const url = item.originalData?.content_url || item.redirect_url || '';
-    return url.match(/\.(mp4|webm|ogg)/i) || 
-           url.includes("youtube.com") || 
-           url.includes("youtu.be") ||
-           url.includes("tiktok.com") ||
-           url.includes("instagram.com");
+    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com");
   };
 
-  // 🔥 MOTOR DE EXTRACCIÓN INTELIGENTE + IA FIJA (CORREGIDO PARA IG Y TIKTOK) 🔥
+  // 🔥 EL MOTOR EXTRACTOR CON TUS TRUCOS DE IG/TIKTOK 🔥
   const getThumbnailUrl = (item: any) => {
-    let savedThumb = item.thumbnail_url;
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
-    
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
     const idSeed = getSeedFromId(item.original_id || item.id);
 
     // 1. YouTube
-    const ytMatch = (savedThumb + " " + origContentUrl).match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-    if (ytMatch && ytMatch[1]) {
-      return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+    if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+
+    // 2. TikTok (Tu truco)
+    if (origContentUrl.includes('tiktok.com')) {
+       const tkMatch = origContentUrl.match(/video\/(\d+)/);
+       if (tkMatch) return getProxyUrl(`https://www.tiktok.com/api/img/?itemId=${tkMatch[1]}`);
     }
 
-    // 2. Imagen guardada válida
-    if (savedThumb && !isVideoExt(savedThumb) && !savedThumb.includes('undefined')) {
-       return getProxyUrl(savedThumb);
+    // 3. Instagram (Tu truco)
+    if (origContentUrl.includes('instagram.com')) {
+       const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+       if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=m`);
     }
 
-    // 3. Imagen de la DB original
-    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
-    if (origImg && !isVideoExt(origImg)) {
-       return getProxyUrl(origImg);
-    }
+    // 4. Imagen de la DB
+    let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url || item.thumbnail_url;
+    if (origImg && !isVideoExt(origImg) && !origImg.includes('undefined')) return getProxyUrl(origImg);
 
-    // 4. Extracción de imágenes en markdown del Foro
+    // 5. Foro
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
@@ -173,39 +144,30 @@ export default function GuardadosTab() {
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
 
-       // Fallback a IA con Seed fijo (Para que la imagen NUNCA cambie)
-       // Se limpia el texto para no romper la URL de pollinations
-       const title = (item.title || item.originalData?.title || 'Foro Post').replace(/[^a-zA-Z0-9 ]/g, '');
-       const safePrompt = encodeURIComponent(title.substring(0, 50) + " digital art neon");
-       return `https://image.pollinations.ai/prompt/${safePrompt}?width=400&height=400&nologo=true&seed=${idSeed}`;
+       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
+       return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    // 5. Fallback a IA Específico y seguro para TikTok e Instagram
-    if (origContentUrl.includes('tiktok.com')) {
-       return `https://image.pollinations.ai/prompt/tiktok%20neon%20video%20screen%20abstract?width=400&height=400&nologo=true&seed=${idSeed}`;
-    }
-    if (origContentUrl.includes('instagram.com')) {
-       return `https://image.pollinations.ai/prompt/instagram%20neon%20video%20screen%20abstract?width=400&height=400&nologo=true&seed=${idSeed}`;
-    }
-
-    // 6. Fallback final para cualquier otro contenido
-    return `https://image.pollinations.ai/prompt/neon%20cyberpunk%20abstract%20grid?width=400&height=400&nologo=true&seed=${idSeed}`;
+    // Fallback IA
+    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR PRINCIPAL DEL CARRUSEL 🔥
+  // 🔥 RENDERIZADOR DEL CARRUSEL (EVITA IFRAMES SI ES POSIBLE) 🔥
   const renderCarouselContent = (item: any) => {
     if (!item.originalData) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-8 bg-card border border-border rounded-xl w-full h-full">
           <Trash2 className="w-12 h-12 text-destructive mb-4" />
-          <p className="text-white font-pixel text-xs">Publicación Original Eliminada</p>
-          <p className="text-muted-foreground font-body text-[10px] mt-2">El dueño borró esta publicación de la plataforma.</p>
+          <p className="text-white font-pixel text-xs">Publicación Eliminada</p>
+          <p className="text-muted-foreground font-body text-[10px] mt-2">El dueño borró esta publicación.</p>
         </div>
       );
     }
 
-    if (item.item_type === 'photo') {
-       return <img src={getProxyUrl(item.originalData.image_url)} alt="Foto guardada" className="w-full h-full object-contain shadow-2xl rounded" />;
+    if (item.item_type === 'photo' || item.originalData?.is_apify) {
+       const img = item.originalData?.image_url || item.thumbnail_url;
+       return <img src={getProxyUrl(img)} className="w-full h-full object-contain shadow-2xl rounded" />;
     }
 
     if (item.item_type === 'social_content') {
@@ -213,39 +175,37 @@ export default function GuardadosTab() {
        
        // YOUTUBE
        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-       if (ytMatch && ytMatch[1]) {
-         return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full max-w-[800px] aspect-video rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen allow="autoplay" />;
-       }
-       // TIKTOK (Adaptado sin cortes)
+       if (ytMatch && ytMatch[1]) return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full max-w-[800px] aspect-video rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen allow="autoplay" />;
+       
+       // TIKTOK
        if (url.includes('tiktok.com')) {
-           const match = url.match(/video\/(\d+)/);
-           if (match) return <iframe src={`https://www.tiktok.com/embed/v2/${match[1]}`} className="w-full max-w-[350px] h-full rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen />;
+           const tkMatch = url.match(/video\/(\d+)/);
+           if (tkMatch) return <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full max-w-[350px] h-full rounded-xl shadow-2xl bg-black mx-auto" allowFullScreen />;
        }
-       // VIDEOS MP4 (Adaptados sin cortes)
+
+       // MP4 DIRECTO
        if (url.match(/\.(mp4|webm|ogg)/i)) {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
-       // INSTAGRAM (Adaptado sin cortes)
+
+       // 🔥 INSTAGRAM: Renderizado como IMAGEN en el carrusel 🔥
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
-           if (igMatch) return <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full max-w-[400px] h-full bg-white rounded-xl shadow-2xl mx-auto" allowFullScreen />;
+           if (igMatch) return <img src={getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`)} className="w-full h-full object-contain rounded-xl shadow-2xl mx-auto" />;
        }
        
-       // Imagen Fallback
-       return <img src={getThumbnailUrl(item)} alt="Preview" className="w-full h-full object-contain rounded shadow-2xl" />;
+       return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
     }
 
     if (item.item_type === 'post') {
        return (
           <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
-             {/* 🔥 IMAGEN DE PORTADA DEL POST (Real o por IA) 🔥 */}
-             <div className="w-full h-32 md:h-56 shrink-0 relative bg-black">
-                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-40" alt="Post Cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+             <div className="w-full h-32 md:h-56 shrink-0 relative bg-black border-b border-border">
+                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-30" alt="Cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
              </div>
-             {/* TEXTO DEL POST */}
-             <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
-               <h2 className="text-neon-cyan font-pixel mb-4 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
+             <div className="p-5 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
+               <h2 className="text-neon-cyan font-pixel mb-5 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
                <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
              </div>
           </div>
@@ -265,9 +225,7 @@ export default function GuardadosTab() {
 
   const handleGoToOrigin = () => {
     if (selectedIndex === null) return;
-    const item = items[selectedIndex];
-    const targetUrl = cleanUrl(item.redirect_url, item.item_type);
-    navigate(targetUrl);
+    navigate(cleanUrl(items[selectedIndex].redirect_url, items[selectedIndex].item_type));
     setSelectedIndex(null);
   };
 
@@ -285,9 +243,7 @@ export default function GuardadosTab() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex, items.length]);
 
-  if (loading) {
-    return <div className="bg-card border border-border rounded p-8 flex justify-center items-center"><Loader2 className="w-8 h-8 animate-spin text-neon-cyan" /></div>;
-  }
+  if (loading) return <div className="bg-card border border-border rounded p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-neon-cyan" /></div>;
 
   return (
     <div className="bg-card border border-border rounded p-4 relative">
@@ -301,35 +257,16 @@ export default function GuardadosTab() {
       ) : (
         <div className="columns-2 md:columns-3 lg:columns-4 gap-2 space-y-2">
           {items.map((item, idx) => (
-            <div
-              key={item.id}
-              onClick={() => setSelectedIndex(idx)}
-              className="relative group block break-inside-avoid overflow-hidden rounded-lg bg-black cursor-pointer border border-border/30 hover:border-white/20 transition-all"
-              style={getNeonStyle(item)}
-            >
+            <div key={item.id} onClick={() => setSelectedIndex(idx)} className="relative group block break-inside-avoid overflow-hidden rounded-lg bg-black cursor-pointer border border-border/30 hover:border-white/20 transition-all" style={getNeonStyle(item)}>
               <div className="relative w-full h-full flex items-center justify-center bg-black min-h-[120px]">
-                <img 
-                  src={getThumbnailUrl(item)} 
-                  alt={item.title} 
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100" 
-                  loading="lazy"
-                />
-                {isVideoItem(item) && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                     <PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md" />
-                  </div>
-                )}
+                <img src={getThumbnailUrl(item)} className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" />
+                {isVideoItem(item) && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md" /></div>}
               </div>
-              
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                <div className="flex justify-end">
-                  <button onClick={(e) => handleRemove(e, item.id)} className="p-1.5 bg-black/60 hover:bg-destructive/90 text-white rounded transition-colors backdrop-blur-sm" title="Eliminar"><Trash2 className="w-3 h-3" /></button>
-                </div>
+                <div className="flex justify-end"><button onClick={(e) => handleRemove(e, item.id)} className="p-1.5 bg-black/60 hover:bg-destructive/90 text-white rounded"><Trash2 className="w-3 h-3" /></button></div>
                 <div>
                   <p className="text-[9px] font-body text-white line-clamp-2 leading-tight mb-1.5 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-bold">{item.title || "Sin título"}</p>
-                  <div className="flex items-center gap-1 text-[8px] text-neon-cyan font-pixel uppercase bg-black/60 w-fit px-1.5 py-0.5 rounded backdrop-blur-sm border border-neon-cyan/30">
-                    <Maximize2 className="w-2.5 h-2.5" /> Ampliar
-                  </div>
+                  <div className="flex items-center gap-1 text-[8px] text-neon-cyan font-pixel uppercase bg-black/60 w-fit px-1.5 py-0.5 rounded backdrop-blur-sm border border-neon-cyan/30"><Maximize2 className="w-2.5 h-2.5" /> Ampliar</div>
                 </div>
               </div>
             </div>
@@ -337,12 +274,12 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL CENTRADO ABSOLUTO (50% X / 50% Y) 🔥 */}
+      {/* 🔥 MEGA CARRUSEL CENTRADO PERFECTO CON M-AUTO 🔥 */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex" onClick={() => setSelectedIndex(null)}>
           
-          {/* Contenedor central (Ancho exacto de columna y altura 75%) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl h-[75vh] max-h-[850px] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-scale-in" onClick={e => e.stopPropagation()}>
+          {/* Contenedor central (Ancho exacto de columna y altura 60% centrado con m-auto) */}
+          <div className="relative w-[95%] max-w-4xl h-[60vh] m-auto flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
             {/* Header del Carrusel */}
             {(() => {
@@ -352,7 +289,7 @@ export default function GuardadosTab() {
                const titleOrDesc = isPost ? item?.originalData?.title : (item?.originalData?.caption || item?.title);
                
                return (
-                 <div className="p-3 md:p-4 border-b border-white/10 flex justify-between items-center bg-black/60 shrink-0">
+                 <div className="p-3 md:p-4 border-b border-white/10 flex justify-between items-center bg-black/80 shrink-0 z-10">
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted overflow-hidden shrink-0 border border-white/20 flex items-center justify-center">
                           {author.avatar_url ? <img src={author.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-5 h-5 text-muted-foreground"/>}
@@ -366,9 +303,7 @@ export default function GuardadosTab() {
                       <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
                          <span className="hidden sm:inline">Ir a publicación</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
                       </Button>
-                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white p-1.5 bg-destructive/80 hover:bg-destructive rounded transition-all border border-white/10" title="Cerrar">
-                         <X className="w-4 h-4 md:w-5 md:h-5"/>
-                      </button>
+                      <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1.5 rounded transition-all"><X className="w-5 h-5"/></button>
                     </div>
                  </div>
                );
@@ -378,7 +313,7 @@ export default function GuardadosTab() {
             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
               
-              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
+              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 relative">
                 {renderCarouselContent(items[selectedIndex])}
               </div>
 
@@ -386,16 +321,16 @@ export default function GuardadosTab() {
             </div>
             
             {/* Tira inferior de miniaturas */}
-            <div className="h-20 md:h-24 bg-black/80 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2">
+            <div className="h-16 md:h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2 z-10">
               <div className="flex items-center gap-2">
                 {items.map((item, idx) => (
                   <button 
                     key={item.id} 
                     onClick={() => setSelectedIndex(idx)}
-                    className={cn("relative h-14 w-14 md:h-16 md:w-16 shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
+                    className={cn("relative h-12 w-12 md:h-14 md:w-14 shrink-0 rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-110 shadow-[0_0_15px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}
                   >
                     <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
-                    {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-6 md:h-6 text-white/80" />}
+                    {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white/80" />}
                   </button>
                 ))}
               </div>
