@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,9 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+
+// Importamos el Dropdown Menu de Shadcn UI
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const jellyStyles = `
   @keyframes jelly-pop-safe {
@@ -77,8 +80,10 @@ const getPhotoNeonStyle = (photo: any) => {
 };
 
 /* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
-function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userReaction, isStaff }: any) {
+// 🔥 CORRECCIÓN: Agregamos onExpand a los parámetros 🔥
+function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff }: any) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const targetUrl = photo.thumbnail_url || photo.image_url;
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
@@ -109,13 +114,35 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
         
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl">
           <div className="flex justify-between items-start">
+            
+            {/* 🔥 MENÚ DE MODERACIÓN STAFF 🔥 */}
             {isStaff && (
-              <button onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20" title="Banear publicación">
-                <Ban className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button onClick={e => e.stopPropagation()} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
+                    <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="z-[200] bg-card border-border">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onHide(photo.id, photo.target_type); }} className="text-neon-orange focus:bg-neon-orange/10 cursor-pointer">
+                    <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="text-destructive focus:bg-destructive/10 cursor-pointer">
+                    <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.location.href = `/usuario/${photo.user_id}`; }} className="cursor-pointer">
+                    <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(photo.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                    <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
+
             {user && (
-              <button onClick={(e) => { e.stopPropagation(); onSave(photo.id); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto" title="Guardar">
+              <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20 ml-auto" title="Guardar">
                 <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
@@ -136,7 +163,7 @@ function PhotoCardMiniature({ photo, onReaction, onHide, onExpand, onSave, userR
 }
 
 /* 🔥 COMPONENTE: TARJETA EXPANDIDA 🔥 */
-function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userReaction, isStaff, limits }: any) {
+function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onDelete, onSave, userReaction, isStaff, limits }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -282,8 +309,33 @@ function ExpandedPhotoCard({ photo, onClose, onReaction, onHide, onSave, userRea
             </div>
             <div className="flex gap-2">
               {user && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive"><Flag className="w-3.5 h-3.5" /></button>}
-              <button onClick={() => onSave(photo.id)} className="text-muted-foreground hover:text-neon-cyan" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>
-              {isStaff && <button onClick={() => onHide(photo.id, photo.target_type)} className="text-muted-foreground hover:text-destructive" title="Banear publicación"><Ban className="w-3.5 h-3.5" /></button>}
+              <button onClick={() => onSave(photo)} className="text-muted-foreground hover:text-neon-cyan" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>
+              
+              {/* 🔥 MENÚ DE MODERACIÓN STAFF 🔥 */}
+              {isStaff && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="text-muted-foreground hover:text-neon-magenta transition-colors">
+                      <Shield className="w-3.5 h-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                    <DropdownMenuItem onClick={() => onHide(photo.id, photo.target_type)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                      <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(photo.id, photo.target_type)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                      <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = `/usuario/${photo.user_id}`} className="cursor-pointer">
+                      <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(photo.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                      <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
 
@@ -336,7 +388,6 @@ export default function PhotoWallPage() {
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
-    // 🔥 CÁLCULO DE HUSO HORARIO DINÁMICO (SANTIAGO DE CHILE) 🔥
     const getChileMidnightISO = () => {
       const now = new Date();
       const santiagoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
@@ -453,7 +504,6 @@ export default function PhotoWallPage() {
     setUploading(false);
   };
 
-  // 🔥 INTERFAZ OPTIMISTA (Sin Delays) 🔥
   const handleReaction = async (itemId: string, type: string, targetType: string) => {
     if (!user) return;
     const table = targetType === "photo" ? "photos" : "social_content";
@@ -484,7 +534,6 @@ export default function PhotoWallPage() {
     newLikes = Math.max(0, newLikes);
     newDislikes = Math.max(0, newDislikes);
 
-    // Actualización INMEDIATA de la UI (Caché local)
     setUserReactions(prev => {
       const next = { ...prev };
       if (newReaction) next[itemId] = newReaction;
@@ -497,7 +546,6 @@ export default function PhotoWallPage() {
       return p;
     }));
     
-    // Petición al servidor (Silenciosa)
     try {
       if (prevReaction === type) {
         await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
@@ -506,7 +554,6 @@ export default function PhotoWallPage() {
       }
       await supabase.from(table).update({ likes: newLikes, dislikes: newDislikes }).eq("id", itemId);
     } catch (err) {
-      // Revertir si el servidor falla
       setUserReactions(prev => {
         const next = { ...prev };
         if (prevReaction) next[itemId] = prevReaction;
@@ -521,19 +568,38 @@ export default function PhotoWallPage() {
   };
 
   const handleHide = async (id: string, targetType: string) => {
-    if (confirm("¿Banear y ocultar esta imagen del muro público?")) {
-      const table = targetType === "photo" ? "photos" : "social_content";
-      const { error } = await supabase.from(table).update({ is_banned: true }).eq("id", id);
-      if (!error) { toast({ title: "Publicación baneada." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
+    const table = targetType === "photo" ? "photos" : "social_content";
+    const { error } = await supabase.from(table).update({ is_banned: true }).eq("id", id);
+    if (!error) { toast({ title: "Publicación baneada." }); fetchPhotosAndDaily(); setExpandedPhotoId(null); }
+  };
+
+  const handleDeletePost = async (id: string, targetType: string) => {
+    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    const table = targetType === "photo" ? "photos" : "social_content";
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (!error) {
+      setPhotos(prev => prev.filter(i => i.id !== id));
+      toast({ title: "Publicación eliminada por el Staff" });
+      setExpandedPhotoId(null);
+    } else {
+      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
   };
 
-  const handleSaveToProfile = async (photoId: string) => {
+  // 🔥 SOLUCIÓN TEMPORAL AL TYPING CON 'as any' PARA EVITAR EL ERROR DE TYPESCRIPT 🔥
+  const handleSaveToProfile = async (photo: any) => {
     if (!user) return;
     try { 
-      const { error } = await supabase.from("saved_photos" as any).insert({ user_id: user.id, photo_id: photoId }); 
-      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta foto guardada." });
-      else if (!error) toast({ title: "¡Guardada!" }); 
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, 
+        item_type: photo.target_type || 'photo',
+        original_id: photo.id,
+        title: photo.caption || 'Foto de la comunidad',
+        thumbnail_url: photo.image_url || photo.thumbnail_url,
+        redirect_url: '/muro'
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta foto guardada en tu perfil." });
+      else if (!error) toast({ title: "¡Guardada en tu Perfil!" }); 
     } catch (e) { }
   };
 
@@ -618,6 +684,7 @@ export default function PhotoWallPage() {
                     onClose={() => setExpandedPhotoId(null)}
                     onReaction={handleReaction}
                     onHide={handleHide}
+                    onDelete={handleDeletePost}
                     onSave={handleSaveToProfile}
                     userReaction={userReactions[photo.id]}
                     isStaff={isStaff}
@@ -627,7 +694,7 @@ export default function PhotoWallPage() {
               ) : (
                 <PhotoCardMiniature
                   photo={photo}
-                  onExpand={(e: React.MouseEvent) => {
+                  onExpand={() => {
                     setExpandedPhotoId(photo.id);
                     setTimeout(() => {
                       const el = document.getElementById(`expanded-card-${photo.id}`);
@@ -641,6 +708,7 @@ export default function PhotoWallPage() {
                   }}
                   onReaction={handleReaction}
                   onHide={handleHide}
+                  onDelete={handleDeletePost}
                   onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}

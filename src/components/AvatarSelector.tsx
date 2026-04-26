@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, Upload, Loader2, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,8 +11,9 @@ interface AvatarSelectorProps {
   onSelect: (url: string) => void;
 }
 
-// Lista extendida de avatares predefinidos (Pixel Art, Adventurer, Bottts)
+// 🔥 ARREGLO EXPANDIDO A MÁS DE 60 AVATARES PARA EL STAFF 🔥
 const PREDEFINED_AVATARS = [
+  // Pixel Art (Novato)
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Aneka",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Milo",
@@ -39,27 +39,58 @@ const PREDEFINED_AVATARS = [
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Bear",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Sam",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Zoe",
-  // 25 Iniciales (Novato)
+  
+  // Adventurer (Entusiastas en adelante)
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Alexander",
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Sofia",
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Leo",
   "https://api.dicebear.com/7.x/adventurer/svg?seed=Maya",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Arthur",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Diana",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Finn",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Isla",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Noah",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Ava",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Ethan",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Mia",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Liam",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Emma",
+  
+  // Bottts (Coleccionistas en adelante)
   "https://api.dicebear.com/7.x/bottts/svg?seed=Robo1",
   "https://api.dicebear.com/7.x/bottts/svg?seed=Robo2",
-  // ... (puedes seguir agregando hasta los 60 o más)
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo3",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo4",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo5",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo6",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo7",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo8",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo9",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Robo10",
+
+  // Avatares Míticos / Leyenda
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Zeus",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Hades",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Poseidon",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ares",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Athena",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Apollo",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Artemis",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Hermes",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Hera",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Demeter",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Dionysus",
 ];
 
 export default function AvatarSelector({ currentAvatarUrl, onSelect }: AvatarSelectorProps) {
-  const { user, profile, isMasterWeb, isAdmin } = useAuth();
+  const { user, profile, isMasterWeb, isAdmin, roles } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
 
-  // Obtener rango y límites correspondientes
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const isStaff = isMasterWeb || isAdmin;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
-  // Filtrar avatares según el límite del plan
   const visibleAvatars = PREDEFINED_AVATARS.slice(0, limits.maxAvatars);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

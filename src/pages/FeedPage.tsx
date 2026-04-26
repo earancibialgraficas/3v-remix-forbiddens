@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 HACK DE PROXY PARA IMÁGENES (PARA POSTS DE IG) 🔥
+// 🔥 IMPORTAMOS EL MENÚ DESPLEGABLE PARA EL STAFF 🔥
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 const getSafeUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('supabase.co')) return url;
@@ -95,6 +97,8 @@ function SnapCard({
   onPauseMusic, 
   isStaff,
   onDeletePost,
+  onHidePost,
+  onSavePost,
   onScrollUp,
   onScrollDown
 }: { 
@@ -103,13 +107,14 @@ function SnapCard({
   onPauseMusic: () => void;
   isStaff: boolean;
   onDeletePost: (id: string, targetType: string) => void;
+  onHidePost: (id: string, targetType: string) => void;
+  onSavePost: (item: FeedItem) => void;
   onScrollUp: () => void;
   onScrollDown: () => void;
 }) {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   
-  // 🔥 LÍMITES DE MEMBRESÍA PARA LOS COMENTARIOS 🔥
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
@@ -117,10 +122,8 @@ function SnapCard({
   const isVideo = isVideoItem(item);
   const isDirectMp4 = item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
   
-  // 🔥 REVERTIDO: Distinguimos Reels de Posts para Instagram 🔥
   const isInstagram = item.platform === 'instagram';
   const isInstagramReel = isInstagram && item.content_type === 'reel';
-  // Solo tratamos como foto los posts de Instagram, no los Reels (que irán al iframe)
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
   const targetType = item.target_type || "social_content";
@@ -243,7 +246,6 @@ function SnapCard({
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
     
-    // 🔥 LÍMITE DE CARACTERES EN COMENTARIOS SEGÚN MEMBRESÍA 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Límite excedido", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" });
       return;
@@ -364,14 +366,38 @@ function SnapCard({
             </div>
             <div className="ml-auto flex items-center gap-1 shrink-0">
               {user && (
+                <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
+                  <Bookmark className="w-3 h-3" />
+                </button>
+              )}
+              {user && (
                 <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
                   <Flag className="w-3 h-3" />
                 </button>
               )}
               {isStaff && (
-                <button onClick={() => onDeletePost(item.id, targetType)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
+                      <Shield className="w-3 h-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                    <DropdownMenuItem onClick={() => onHidePost(item.id, targetType)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                      <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDeletePost(item.id, targetType)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                      <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = `/usuario/${item.user_id}`} className="cursor-pointer">
+                      <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(item.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                      <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -466,14 +492,14 @@ export default function FeedPage() {
   const fetchContent = async () => {
     let combined: FeedItem[] = [];
 
-    const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).order("created_at", { ascending: false }).limit(50);
+    const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order("created_at", { ascending: false }).limit(50);
     if (content) {
        combined = [...combined, ...content.map(c => ({
          ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
        }))];
     }
 
-    const { data: photos } = await supabase.from("photos").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data: photos } = await supabase.from("photos").select("*").neq("is_banned", true).order("created_at", { ascending: false }).limit(50);
     if (photos) {
       const photoItems = photos.map(p => ({
         id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
@@ -523,6 +549,34 @@ export default function FeedPage() {
     } else {
       toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
+  };
+
+  const handleHidePost = async (id: string, targetType: string) => {
+    const table = targetType === "photo" ? "photos" : "social_content";
+    const { error } = await supabase.from(table).update({ is_banned: true } as any).eq("id", id);
+    if (!error) {
+      toast({ title: "Publicación ocultada/baneada." });
+      setItems(prev => prev.filter(i => i.id !== id));
+    } else {
+      toast({ title: "Error", description: "No se pudo ocultar", variant: "destructive" });
+    }
+  };
+
+  // 🔥 SOLUCIÓN DEL ERROR DE TYPESCRIPT CON 'as any' 🔥
+  const handleSaveToProfile = async (item: FeedItem) => {
+    if (!user) return;
+    try { 
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, 
+        item_type: item.target_type || 'social_content',
+        original_id: item.id,
+        title: item.caption || item.title || 'Publicación del Feed',
+        thumbnail_url: item.image_url || item.thumbnail_url || item.content_url,
+        redirect_url: '/feed'
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada en tu perfil." });
+      else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
+    } catch (e) { }
   };
 
   const scrollContainer = (direction: 'up' | 'down') => {
@@ -588,7 +642,17 @@ export default function FeedPage() {
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             {filtered.map((item, i) => (
               <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
-                <SnapCard item={item} isVisible={i === visibleIndex} onPauseMusic={pauseMusic} isStaff={isStaff} onDeletePost={handleDeletePost} onScrollUp={() => scrollContainer('up')} onScrollDown={() => scrollContainer('down')} />
+                <SnapCard 
+                  item={item} 
+                  isVisible={i === visibleIndex} 
+                  onPauseMusic={pauseMusic} 
+                  isStaff={isStaff} 
+                  onDeletePost={handleDeletePost} 
+                  onHidePost={handleHidePost}
+                  onSavePost={handleSaveToProfile}
+                  onScrollUp={() => scrollContainer('up')} 
+                  onScrollDown={() => scrollContainer('down')} 
+                />
               </div>
             ))}
           </div>

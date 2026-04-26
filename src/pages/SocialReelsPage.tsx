@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, Bookmark, Shield, Ban, Copy, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +10,10 @@ import { Link, useLocation } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 IMPORTAMOS EL CEREBRO DE LÍMITES 🔥
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; 
+
+// 🔥 IMPORTAMOS EL MENÚ DESPLEGABLE PARA EL STAFF 🔥
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface SocialItem {
   id: string;
@@ -29,6 +32,8 @@ interface SocialItem {
   color_name?: string | null;
   color_avatar_border?: string | null;
   target_type?: string; 
+  image_url?: string;
+  caption?: string;
 }
 
 interface SocialComment {
@@ -79,18 +84,22 @@ function SnapCard({
   onPauseMusic, 
   isStaff,
   onDeletePost,
+  onHidePost,
+  onSavePost,
   onScrollUp,
   onScrollDown,
-  limits // 🔥 RECIBIMOS LOS LÍMITES 🔥
+  limits
 }: { 
   item: SocialItem; 
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
   onDeletePost: (id: string, targetType: string) => void;
+  onHidePost: (id: string, targetType: string) => void;
+  onSavePost: (item: SocialItem) => void;
   onScrollUp: () => void;
   onScrollDown: () => void;
-  limits: any; // Tipado de los límites
+  limits: any; 
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -106,7 +115,7 @@ function SnapCard({
   const [userReaction, setUserReaction] = useState<string | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   
   const [showMobilePanel, setShowMobilePanel] = useState(false);
@@ -166,37 +175,38 @@ function SnapCard({
       });
   }, [user, item.id, targetType]);
 
+  const fetchComments = async () => {
+    const { data } = await supabase
+      .from("social_comments")
+      .select("*")
+      .eq("content_id", item.id)
+      .order("created_at", { ascending: true })
+      .limit(50);
+      
+    if (!data || data.length === 0) { 
+      setComments([]); 
+      return; 
+    }
+    
+    const uids = [...new Set(data.map(c => c.user_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url")
+      .in("user_id", uids);
+      
+    const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+    
+    setComments(data.map(c => {
+      const p = pMap.get(c.user_id);
+      return { 
+        ...c, 
+        display_name: p?.display_name || "Anónimo", 
+        avatar_url: p?.avatar_url 
+      };
+    }));
+  };
+
   useEffect(() => {
-    const fetchComments = async () => {
-      const { data } = await supabase
-        .from("social_comments")
-        .select("*")
-        .eq("content_id", item.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
-        
-      if (!data || data.length === 0) { 
-        setComments([]); 
-        return; 
-      }
-      
-      const uids = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url")
-        .in("user_id", uids);
-        
-      const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-      
-      setComments(data.map(c => {
-        const p = pMap.get(c.user_id);
-        return { 
-          ...c, 
-          display_name: p?.display_name || "Anónimo", 
-          avatar_url: p?.avatar_url 
-        };
-      }));
-    };
     fetchComments();
   }, [item.id]);
 
@@ -223,7 +233,7 @@ function SnapCard({
 
     setLikes(Math.max(0, newLikes));
     setDislikes(Math.max(0, newDislikes));
-    
+
     try {
       const { data: existingReaction, error: fetchErr } = await supabase
         .from("social_reactions")
@@ -263,11 +273,10 @@ function SnapCard({
   const handleComment = async () => {
     if (!user || !commentText.trim()) return;
 
-    // 🔥 BLOQUEO DE LÍMITE DE CARACTERES SEGÚN LA MEMBRESÍA 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ 
         title: "Límite excedido", 
-        description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres por comentario.`, 
+        description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, 
         variant: "destructive" 
       });
       return;
@@ -275,23 +284,13 @@ function SnapCard({
 
     try {
       const { error } = await supabase.from("social_comments").insert({ 
-        user_id: user.id, content_id: item.id, content: commentText.trim(), parent_id: replyTo 
+        user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
       });
       if (error) throw error;
       
       setCommentText("");
       setReplyTo(null);
-      
-      const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true });
-      if (data) {
-        const uids = [...new Set(data.map(c => c.user_id))];
-        const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", uids);
-        const pMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-        setComments(data.map(c => {
-          const p = pMap.get(c.user_id);
-          return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url };
-        }));
-      }
+      fetchComments();
     } catch (e: any) {
       toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
@@ -321,7 +320,6 @@ function SnapCard({
   return (
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       
-      {/* LADO IZQUIERDO: CAJA DE MEDIA */}
       <div 
         ref={videoContainerRef} 
         className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0"
@@ -380,7 +378,6 @@ function SnapCard({
         )}
       </div>
 
-      {/* BOTONES FLOTANTES MÓVIL */}
       <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
         <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
@@ -409,7 +406,6 @@ function SnapCard({
         onClick={() => setShowMobilePanel(false)}
       />
       
-      {/* LADO DERECHO: PANEL */}
       <div className={cn(
         "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] flex flex-col gap-2 shrink-0 z-40 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none p-3 md:p-0 border-l border-border md:border-none transition-transform duration-300 ease-out shadow-2xl md:shadow-none",
         showMobilePanel ? "translate-x-0" : "translate-x-full md:translate-x-0"
@@ -431,16 +427,42 @@ function SnapCard({
               <Link to={`/usuario/${item.user_id}`} className="text-[11px] font-body font-bold text-foreground hover:text-primary truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
               <span className="text-[8px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
             </div>
+            
+            {/* 🔥 NUEVO MENÚ DE ACCIONES (GUARDAR Y STAFF) 🔥 */}
             <div className="ml-auto flex items-center gap-1 shrink-0">
+              {user && (
+                <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
+                  <Bookmark className="w-3 h-3" />
+                </button>
+              )}
               {user && (
                 <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
                   <Flag className="w-3 h-3" />
                 </button>
               )}
               {isStaff && (
-                <button onClick={() => onDeletePost(item.id, targetType)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar (Staff)">
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
+                      <Shield className="w-3 h-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                    <DropdownMenuItem onClick={() => onHidePost(item.id, targetType)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                      <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDeletePost(item.id, targetType)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                      <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = `/usuario/${item.user_id}`} className="cursor-pointer">
+                      <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(item.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                      <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -469,7 +491,7 @@ function SnapCard({
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
                     {user && (
-                      <button onClick={() => setReplyTo(c.id)} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
+                      <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
                         <Reply className="w-2.5 h-2.5" /> Responder
                       </button>
                     )}
@@ -492,17 +514,16 @@ function SnapCard({
               <div className="shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
-                     <Reply className="w-3 h-3" /> Respondiendo
+                     <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
                      <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
                    </div>
                 )}
                 <div className="flex gap-1">
-                  {/* 🔥 INPUT BLOQUEADO POR LÍMITE DE MEMBRESÍA 🔥 */}
                   <input 
                     value={commentText} 
                     onChange={e => setCommentText(e.target.value)} 
                     onKeyDown={e => { if (e.key === "Enter") handleComment(); }}
-                    placeholder={`Comentar... (Máx ${limits.maxForumChars} carac.)`} 
+                    placeholder={`Comentar... (Máx ${limits.maxForumChars})`} 
                     maxLength={limits.maxForumChars}
                     className="flex-1 h-7 bg-muted rounded px-2 text-[10px] font-body text-foreground outline-none border border-transparent focus:border-neon-cyan/50 transition-colors min-w-0" 
                   />
@@ -560,7 +581,6 @@ export default function SocialReelsPage() {
 
   const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
   
-  // 🔥 LÓGICA DE MEMBRESÍAS 🔥
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
@@ -568,10 +588,12 @@ export default function SocialReelsPage() {
   const fetchContent = async () => {
     let combined: SocialItem[] = [];
 
+    // 🔥 FILTRAMOS LOS BANEADOS CON .neq("is_banned", true) 🔥
     const { data: content } = await supabase
       .from("social_content")
       .select("*")
       .eq("is_public", true)
+      .neq("is_banned", true)
       .order("likes", { ascending: false }) 
       .limit(50);
       
@@ -588,6 +610,7 @@ export default function SocialReelsPage() {
       const { data: photos } = await supabase
         .from("photos")
         .select("*")
+        .neq("is_banned", true)
         .order("likes", { ascending: false })
         .limit(50);
 
@@ -655,9 +678,9 @@ export default function SocialReelsPage() {
     return () => observer.disconnect();
   }, [items, filter]);
 
-  const handleDeletePost = async (id: string, tType: string) => {
+  const handleDeletePost = async (id: string, targetType: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
-    const table = tType === "photo" ? "photos" : "social_content";
+    const table = targetType === "photo" ? "photos" : "social_content";
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (!error) {
       setItems(prev => prev.filter(i => i.id !== id));
@@ -665,6 +688,34 @@ export default function SocialReelsPage() {
     } else {
       toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
+  };
+
+  const handleHidePost = async (id: string, targetType: string) => {
+    const table = targetType === "photo" ? "photos" : "social_content";
+    const { error } = await supabase.from(table).update({ is_banned: true }).eq("id", id);
+    if (!error) {
+      toast({ title: "Publicación ocultada/baneada." });
+      setItems(prev => prev.filter(i => i.id !== id));
+    } else {
+      toast({ title: "Error", description: "No se pudo ocultar", variant: "destructive" });
+    }
+  };
+
+  // 🔥 SOLUCIÓN TEMPORAL AL TYPING CON 'as any' PARA EVITAR EL ERROR DE TYPESCRIPT 🔥
+  const handleSaveToProfile = async (item: SocialItem) => {
+    if (!user) return;
+    try { 
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, 
+        item_type: item.target_type || 'social_content',
+        original_id: item.id,
+        title: item.caption || item.title || 'Contenido de la comunidad',
+        thumbnail_url: item.image_url || item.thumbnail_url || item.content_url,
+        redirect_url: '/reels'
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada en tu perfil." });
+      else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
+    } catch (e) { }
   };
 
   const scrollContainer = (direction: 'up' | 'down') => {
@@ -759,9 +810,11 @@ export default function SocialReelsPage() {
                   onPauseMusic={pauseMusic} 
                   isStaff={isStaff}
                   onDeletePost={handleDeletePost}
+                  onHidePost={handleHidePost}
+                  onSavePost={handleSaveToProfile}
                   onScrollUp={() => scrollContainer('up')}
                   onScrollDown={() => scrollContainer('down')}
-                  limits={limits} // 🔥 PASAMOS LOS LÍMITES A LA TARJETA 🔥
+                  limits={limits}
                 />
               </div>
             ))}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Type, User, Edit2, Check, Maximize2, Download } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2 } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SignatureDisplay from "@/components/SignatureDisplay";
 import ReportModal from "@/components/ReportModal";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; // 🔥 AGREGADO: CEREBRO DE LÍMITES 🔥
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -23,7 +24,7 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/gaming-anime/creador": { title: "RINCÓN DEL CREADOR", description: "Comparte tu Fanart, Cosplays y proyectos creativos", color: "text-neon-cyan" },
   "/motociclismo": { title: "MOTOCICLISMO", description: "Riders, mecánica, rutas y quedadas", color: "text-neon-magenta" },
   "/motociclismo/riders": { title: "FORO DE RIDERS", description: "Discusiones sobre marcas, estilos y noticias motor", color: "text-neon-magenta" },
-  "/motociclismo/taller": { title: "TALLER & MECÁNICA", description: "Tutoriales, manuales y consejos que ofrezcan", color: "text-neon-magenta" },
+  "/motociclismo/taller": { title: "TALLER & MECÁNICA", description: "Tutoriales, manuales y consejos", color: "text-neon-magenta" },
   "/motociclismo/rutas": { title: "RUTAS & QUEDADAS", description: "Organiza viajes grupales y comparte rutas", color: "text-neon-magenta" },
   "/mercado": { title: "MERCADO & TRUEQUE", description: "Compra, vende e intercambia", color: "text-neon-yellow" },
   "/mercado/gaming": { title: "MERCADO GAMING", description: "Consolas retro, cartuchos y accesorios", color: "text-neon-yellow" },
@@ -40,7 +41,7 @@ const pageTitles: Record<string, { title: string; description: string; color: st
 
 const mockPostsByCategory: Record<string, Array<{ id: string; title: string; content: string; upvotes: number; downvotes: number; is_pinned: boolean; user_id: string; created_at: string; category: string }>> = {
   "gaming-anime": [
-    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia según la comunidad", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
+    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
   ],
   "trending": [
     { id: "t1", title: "🔥 Los posts más votados de la semana", content: "Resumen semanal de lo más popular en Forbiddens.", upvotes: 500, downvotes: 5, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 3600000).toISOString(), category: "trending" },
@@ -75,6 +76,20 @@ function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | 
 }
 
 let _setForumModal: ((v: { src: string; type: "image" | "video" } | null) => void) | null = null;
+
+function extractThumbnail(content: string): string | null {
+  if (!content) return null;
+  const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
+  if (imgMatch) return imgMatch[1];
+  
+  const ytMatch = content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  
+  const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
+  if (rawImgMatch) return rawImgMatch[0];
+
+  return null;
+}
 
 function renderContent(content: string) {
   if (!content) return null;
@@ -169,7 +184,7 @@ interface PostProfile {
 export default function ForumPage() {
   const location = useLocation();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
-  const { user, profile, isAdmin, isMasterWeb } = useAuth();
+  const { user, profile, isAdmin, isMasterWeb, roles } = useAuth();
   const { toast } = useToast();
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
@@ -193,26 +208,29 @@ export default function ForumPage() {
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
 
   const category = location.pathname.replace(/^\//, "").replace(/\//g, "-") || "general";
+  
+  const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
   const hasUnlimited = isAdmin || isMasterWeb;
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
-  // 🔥 AGREGADO: IDENTIFICACIÓN DE LÍMITES POR MEMBRESÍA 🔥
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const limits = hasUnlimited ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
-  const canUseImages = hasUnlimited || userTier !== 'novato';
-  const canUseBoldItalic = hasUnlimited || userTier !== 'novato';
-  const canUseVideo = hasUnlimited || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
+  const canUseImages = isStaff || userTier !== 'novato';
+  const canUseBoldItalic = isStaff || userTier !== 'novato';
+  const canUseVideo = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
   const canUseLinks = canUseVideo; 
-  const canUseSignature = hasUnlimited || userTier !== 'novato';
+  const canUseSignature = isStaff || userTier !== 'novato';
 
   const fetchPosts = async () => {
-    const query = supabase.from("posts").select("*").eq("category", category).order("is_pinned", { ascending: false });
+    // 🔥 OCULTAMOS BANEADOS 🔥
+    const query = supabase.from("posts").select("*").eq("category", category).neq("is_banned", true).order("is_pinned", { ascending: false });
     if (sortBy === "popular") query.order("upvotes", { ascending: false });
     else query.order("created_at", { ascending: false });
     const { data } = await query.limit(20);
+    
     if (data) {
       setPosts(data);
       const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
@@ -284,10 +302,9 @@ export default function ForumPage() {
     if (!title.trim()) return;
     setPosting(true);
     
-    // 🔥 AGREGADO: BLOQUEO DE FIRMA POR MEMBRESÍA 🔥
     const customSig = (profile as any)?.signature;
     const signature = canUseSignature 
-      ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited ? `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]` : null))
+      ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff ? `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : null))
       : null;
 
     const { error } = await supabase.from("posts").insert({
@@ -331,33 +348,19 @@ export default function ForumPage() {
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      const { data: existingVote } = await supabase
-        .from("post_votes")
-        .select("id, vote_type")
-        .eq("post_id", postId)
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: existingVote } = await supabase.from("post_votes").select("id, vote_type").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
 
       if (!existingVote) {
-        await supabase.from("post_votes").insert({
-          id: crypto.randomUUID(), 
-          post_id: postId,
-          user_id: user.id,
-          vote_type: voteType
-        });
+        await supabase.from("post_votes").insert({ id: crypto.randomUUID(), post_id: postId, user_id: user.id, vote_type: voteType });
       } else if (existingVote.vote_type === voteType) {
         await supabase.from("post_votes").delete().eq("id", existingVote.id);
       } else {
         await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id);
       }
 
-      await supabase.from("posts").update({
-        upvotes: Math.max(0, newUp),
-        downvotes: Math.max(0, newDown)
-      }).eq("id", postId);
+      await supabase.from("posts").update({ upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) }).eq("id", postId);
 
     } catch (error) {
-      console.error("Error al votar:", error);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
       toast({ title: "Error", description: "No se pudo guardar tu voto.", variant: "destructive" });
@@ -373,16 +376,17 @@ export default function ForumPage() {
     }
     if (!commentText.trim()) return;
 
-    // 🔥 AGREGADO: BLOQUEO LÍMITE DE CARACTERES 🔥
     if (commentText.length > limits.maxForumChars) {
       toast({ title: "Comentario muy largo", description: `Tu membresía permite un máximo de ${limits.maxForumChars} caracteres.`, variant: "destructive" });
       return;
     }
 
-    const tier = profile?.membership_tier || "novato";
+    const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
+    
     const { error } = await supabase.from("comments").insert({
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any);
+    
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
   };
@@ -394,8 +398,33 @@ export default function ForumPage() {
   };
 
   const handleDeletePost = async (postId: string) => {
+    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (!error) { toast({ title: "Post eliminado" }); fetchPosts(); }
+    else { toast({ title: "Error", variant: "destructive" }); }
+  };
+
+  const handleHidePost = async (postId: string) => {
+    const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
+    if (!error) { toast({ title: "Post ocultado." }); fetchPosts(); }
+    else { toast({ title: "Error", variant: "destructive" }); }
+  };
+
+  const handleSaveToProfile = async (post: any) => {
+    if (!user) return;
+    try { 
+      const thumb = extractThumbnail(post.content);
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, 
+        item_type: 'post',
+        original_id: post.id,
+        title: post.title || 'Post del Foro',
+        thumbnail_url: thumb,
+        redirect_url: `${location.pathname}?post=${post.id}`
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
+      else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
+    } catch (e) { }
   };
 
   const startEditPost = (post: any) => {
@@ -464,7 +493,6 @@ export default function ForumPage() {
           <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
           <Textarea id="post-content-area" placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
           
-          {/* 🔥 AGREGADO: BOTONES BLOQUEADOS SEGÚN PERMISOS 🔥 */}
           <div className="flex items-center gap-1 flex-wrap">
             {canUseImages && (
               <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
@@ -496,9 +524,9 @@ export default function ForumPage() {
           )}
           
           {canUseSignature ? (
-            ((profile?.membership_tier && profile.membership_tier !== "novato") || hasUnlimited) ? (
+            ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff) ? (
               <p className="text-[9px] text-muted-foreground font-body italic">
-                Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${hasUnlimited ? (isMasterWeb ? "MASTER WEB" : "ADMIN") : profile?.membership_tier?.toUpperCase()}]`}
+                Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]`}
               </p>
             ) : null
           ) : (
@@ -576,24 +604,56 @@ export default function ForumPage() {
                         )}
                       </>
                     )}
+                    
                     <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
                       <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                      
                       {user && user.id === post.user_id && !editingPost && (
                         <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
                           <Edit2 className="w-3 h-3" /> Editar
                         </button>
                       )}
-                      {post.user_id && (
-                        <button onClick={() => handleReport(post.id, post.user_id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors ml-auto">
-                          <Flag className="w-3 h-3" />
-                        </button>
-                      )}
-                      {isAdmin && post.user_id && (
-                        <button onClick={() => handleDeletePost(post.id)} className="text-destructive hover:text-destructive/80 transition-colors">
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
+                      
+                      <div className="ml-auto flex items-center gap-2">
+                        {user && (
+                          <button onClick={() => handleSaveToProfile(post)} className="hover:text-neon-cyan transition-colors" title="Guardar Post">
+                            <Bookmark className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {post.user_id && (
+                          <button onClick={() => handleReport(post.id, post.user_id)} className="hover:text-destructive transition-colors" title="Reportar">
+                            <Flag className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        
+                        {/* 🔥 MENÚ STAFF PARA POSTS 🔥 */}
+                        {isStaff && post.user_id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="text-muted-foreground hover:text-neon-magenta transition-colors">
+                                <Shield className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                              <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
+                                <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
+                                <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer">
+                                <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
+                                <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
+
                     {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
                       <div className="mt-1.5 w-full">
                         <SignatureDisplay
@@ -665,7 +725,6 @@ export default function ForumPage() {
                         </div>
                       )}
                       
-                      {/* 🔥 AGREGADO: TEXTAREA CON LÍMITE FÍSICO 🔥 */}
                       <Textarea
                         placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
                         value={commentText}
@@ -688,7 +747,7 @@ export default function ForumPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-[9px] text-muted-foreground font-body italic">
-                          {canUseSignature ? (hasUnlimited ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : "ADMIN"}]` : "") : "Sin firma (Requiere plan superior)"}
+                          {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma (Requiere plan superior)"}
                         </p>
                         <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
                           <Send className="w-3 h-3" /> Comentar
