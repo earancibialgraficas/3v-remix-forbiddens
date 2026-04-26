@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,9 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/mensajes": { title: "MENSAJES", description: "Bandeja de mensajes privados", color: "text-neon-cyan" },
 };
 
+// 🔥 Cambiamos "Todas las categorías" a "Categorías" para que no se corte 🔥
 const forumCategories = [
-  { id: "all", label: "Todas las categorías" },
+  { id: "all", label: "Categorías" },
   { id: "gaming-anime-foro", label: "Foro General" },
   { id: "gaming-anime-anime", label: "Anime & Manga" },
   { id: "gaming-anime-gaming", label: "Gaming" },
@@ -54,7 +55,6 @@ const forumCategories = [
   { id: "mercado-motor", label: "Mercado Motor" },
 ];
 
-// 🔥 RESTAURAMOS LOS POSTS FALSOS POR SI LAS DUDAS 🔥
 const mockPostsByCategory: Record<string, Array<any>> = {
   "gaming-anime": [
     { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
@@ -208,7 +208,7 @@ export default function ForumPage() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"popular" | "new">("new"); // Ahora arranca en "Nuevos" por defecto
+  const [sortBy, setSortBy] = useState<"popular" | "new">("new"); 
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -227,7 +227,6 @@ export default function ForumPage() {
   const isTrending = category === "trending";
   
   const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
-  const hasUnlimited = isAdmin || isMasterWeb;
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
@@ -255,7 +254,6 @@ export default function ForumPage() {
       query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
     }
 
-    // 🔥 ORDENAMIENTO REPARADO Y OPTIMIZADO 🔥
     if (sortBy === "popular") {
       query = query.order("upvotes", { ascending: false });
     } else {
@@ -503,38 +501,51 @@ export default function ForumPage() {
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
-      {/* 🔥 FILTROS Y BÚSQUEDA CORREGIDOS (FLEX LAYOUT REPARADO) 🔥 */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-card p-3 rounded border border-border shadow-sm">
-         
-         <div className="flex gap-2 w-full md:w-auto flex-1 md:flex-initial">
-           <div className="relative flex-1 md:w-64">
-             <Search className="absolute left-2.5 top-2 w-4 h-4 text-muted-foreground" />
-             <Input 
-               placeholder="Buscar posts..." 
-               value={searchQuery} 
-               onChange={e => setSearchQuery(e.target.value)} 
-               onKeyDown={e => e.key === 'Enter' && fetchPosts()} 
-               className="pl-8 h-8 text-xs bg-muted border-border font-body w-full" 
-             />
+      {/* 🔥 CONTROLES DE LA PÁGINA REPARADOS (Búsqueda, Filtros, Nuevo Post) 🔥 */}
+      <div className="space-y-3">
+        {/* Fila 1: Botón Nuevo Post (Alineado a la izquierda, oculto en Trending) */}
+        {user && !isTrending && (
+          <div className="flex justify-start">
+            <Button size="sm" className="h-8 text-[10px] font-body bg-primary text-primary-foreground shadow-md" onClick={handleNewPostClick}>
+              <Plus className="w-3 h-3 mr-1" /> Nuevo Post
+            </Button>
+          </div>
+        )}
+
+        {/* Fila 2: Filtros y Búsqueda */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded border border-border shadow-sm">
+           
+           {/* Buscador y Dropdown */}
+           <div className="flex gap-2 w-full lg:w-auto flex-1">
+             <div className="relative flex-1">
+               <Search className="absolute left-2.5 top-2 w-4 h-4 text-muted-foreground" />
+               <Input 
+                 placeholder="Buscar posts..." 
+                 value={searchQuery} 
+                 onChange={e => setSearchQuery(e.target.value)} 
+                 onKeyDown={e => e.key === 'Enter' && fetchPosts()} 
+                 className="pl-8 h-8 text-xs bg-muted border-border font-body w-full" 
+               />
+             </div>
+             
+             {/* Dropdown responsivo (Trunca texto si no cabe) */}
+             <select 
+               value={filterCategory} 
+               onChange={e => setFilterCategory(e.target.value)} 
+               className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 w-28 sm:w-40 text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
+             >
+                {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+             </select>
            </div>
-           <select 
-             value={filterCategory} 
-             onChange={e => setFilterCategory(e.target.value)} 
-             className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 max-w-[140px]"
-           >
-              {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-           </select>
-           <Button size="sm" onClick={fetchPosts} className="h-8 px-2.5 bg-muted/80 text-foreground hover:bg-muted border border-border shrink-0"><Search className="w-3 h-3" /></Button>
-         </div>
-         
-         <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-2 shrink-0">
-           <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-              <Button variant="ghost" size="sm" className={cn("text-[10px] font-body h-7 px-2", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
-              <Button variant="ghost" size="sm" className={cn("text-[10px] font-body h-7 px-2", sortBy === "new" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("new")}>Nuevos</Button>
+           
+           {/* Ordenamiento (Populares / Nuevos) */}
+           <div className="flex items-center justify-between w-full lg:w-auto gap-2 shrink-0 mt-1 lg:mt-0">
+             <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 w-full sm:w-auto">
+                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
+                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("new")}>Nuevos</Button>
+             </div>
            </div>
-           {/* 🔥 ESCONDEMOS EL BOTÓN "NUEVO POST" SI ESTAMOS EN TRENDING 🔥 */}
-           {user && !isTrending && <Button size="sm" className="h-8 text-[10px] font-body bg-primary text-primary-foreground shrink-0" onClick={handleNewPostClick}><Plus className="w-3 h-3 mr-1" /> Nuevo Post</Button>}
-         </div>
+        </div>
       </div>
 
       {showNewPost && (
