@@ -48,33 +48,60 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE PARA EL POST COLAPSABLE EN EL CARRUSEL 🔥
+// 🔥 COMPONENTE: Post con Botón Colapsable e Imagen Responsiva 🔥
 function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-card border border-white/10 rounded-xl w-full max-w-3xl mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col min-h-0 relative">
-      {/* Imagen limpia, ocupando espacio dinámico */}
-      <div className={cn("w-full transition-all duration-300 bg-black relative flex items-center justify-center", expanded ? "h-32 md:h-48 shrink-0" : "flex-1 min-h-0")}>
+    <div className="bg-card w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+      {/* SECCIÓN IMAGEN */}
+      <div className={cn(
+        "relative flex items-center justify-center bg-black transition-all duration-500 ease-in-out",
+        expanded ? "h-[65%] md:h-full md:w-[65%]" : "h-full w-full"
+      )}>
          <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-90" alt="Post Cover" />
+         
+         {/* Botón Desktop (Derecha) */}
+         {!expanded && (
+            <div className="absolute right-0 top-0 h-full hidden md:flex items-center z-10">
+              <button onClick={() => setExpanded(true)} className="bg-black/70 hover:bg-neon-cyan/20 h-full px-3 transition-colors border-l border-white/10 flex flex-col items-center justify-center text-neon-cyan group backdrop-blur-sm">
+                <ChevronLeft className="w-6 h-6 mb-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="font-pixel text-[10px] [writing-mode:vertical-rl] rotate-180 uppercase tracking-widest">Ver Texto Original</span>
+              </button>
+            </div>
+         )}
+
+         {/* Botón Móvil (Abajo) */}
+         {!expanded && (
+            <div className="absolute bottom-0 w-full md:hidden flex justify-center z-10">
+              <button onClick={() => setExpanded(true)} className="w-full bg-black/80 hover:bg-neon-cyan/20 text-neon-cyan py-3.5 flex items-center justify-center gap-2 border-t border-white/10 backdrop-blur-md transition-colors group">
+                 <span className="font-pixel text-[10px] uppercase tracking-widest">Ver Texto Original</span>
+                 <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
+              </button>
+            </div>
+         )}
       </div>
 
-      {/* Contenedor del contenido colapsable */}
-      <div className={cn("flex flex-col bg-card/95 backdrop-blur-md border-t border-white/10 transition-all duration-300", expanded ? "flex-1 min-h-0" : "shrink-0")}>
+      {/* SECCIÓN TEXTO (35%) CON TIPOGRAFÍA ELEGANTE */}
+      <div className={cn(
+        "flex flex-col bg-card/95 border-t md:border-t-0 md:border-l border-white/10 transition-all duration-500 ease-in-out",
+        expanded ? "h-[35%] md:h-full md:w-[35%] opacity-100" : "h-0 md:h-full md:w-0 opacity-0 overflow-hidden"
+      )}>
         <button
-          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-          className="w-full p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors z-10"
+          onClick={() => setExpanded(false)}
+          className="w-full p-3 md:p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors z-10 border-b border-white/5 shrink-0"
         >
-          <span className="font-pixel text-[10px] md:text-xs tracking-widest uppercase">{expanded ? "Ocultar Contenido" : "Ver Texto Original"}</span>
-          {expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          <span className="font-pixel text-[9px] uppercase tracking-widest">Cerrar Texto</span>
+          <ChevronDown className="w-4 h-4 md:hidden" />
+          <ChevronRight className="w-4 h-4 hidden md:block" />
         </button>
 
-        {expanded && (
-          <div className="p-5 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
-            <h2 className="text-neon-cyan font-pixel mb-5 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
-            <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
+        <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+          <h2 className="text-neon-cyan font-pixel mb-4 text-xs md:text-sm leading-relaxed">{item.originalData?.title}</h2>
+          <div className="text-slate-300 font-sans font-light text-[12px] md:text-[14px] leading-relaxed tracking-wide whitespace-pre-wrap">
+            {item.originalData?.content}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -87,6 +114,7 @@ export default function GuardadosTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null); // Swipe Handling
 
   const fetchSavedItems = async () => {
     if (!user) return;
@@ -124,7 +152,6 @@ export default function GuardadosTab() {
         return { ...item, originalData };
     });
 
-    // 🔥 TIKTOK OEMBED FETCH 🔥
     const finalData = await Promise.all(enrichedData.map(async (item: any) => {
        if (item.item_type === 'social_content') {
           const url = item.originalData?.content_url || item.redirect_url || '';
@@ -145,7 +172,6 @@ export default function GuardadosTab() {
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
-  // Bloquear el scroll del fondo cuando el carrusel está abierto
   useEffect(() => {
     if (selectedIndex !== null) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
@@ -157,58 +183,45 @@ export default function GuardadosTab() {
     return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com");
   };
 
-  // 🔥 MOTOR DE EXTRACCIÓN DE MINIATURAS 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
     const idSeed = getSeedFromId(item.original_id || item.id);
 
-    // 1. YouTube
     const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
     if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
-
-    // 2. TikTok (Usando el oEmbed JSON)
     if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
-
-    // 3. Instagram
     if (origContentUrl.includes('instagram.com')) {
        const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
        if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
     }
 
-    // 4. Imagen de la DB
     let savedThumb = item.thumbnail_url;
     if (savedThumb && !isVideoExt(savedThumb) && !savedThumb.includes('undefined')) return getProxyUrl(savedThumb);
-
     let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
     if (origImg && !isVideoExt(origImg)) return getProxyUrl(origImg);
 
-    // 5. Foro
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
        if (imgMatch && !isVideoExt(imgMatch[1])) return getProxyUrl(imgMatch[1]);
-       
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
-
        const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
        return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    // Fallback IA
     const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR DEL CARRUSEL (CON ASPECT RATIOS MATEMÁTICOS) 🔥
+  // 🔥 EL RENDERIZADOR RESPONSIVO DEFINITIVO 🔥
   const renderCarouselContent = (item: any) => {
     if (!item.originalData) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 bg-card border border-border rounded-xl w-full h-full">
+        <div className="flex flex-col items-center justify-center text-center p-8 bg-card w-full h-full">
           <Trash2 className="w-12 h-12 text-destructive mb-4" />
           <p className="text-white font-pixel text-xs">Publicación Eliminada</p>
-          <p className="text-muted-foreground font-body text-[10px] mt-2">El dueño borró esta publicación.</p>
         </div>
       );
     }
@@ -221,25 +234,30 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       // YOUTUBE (Horizontal)
+       // YOUTUBE
        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
        if (ytMatch && ytMatch[1]) {
+           const isShorts = url.includes('shorts/');
            return (
-             <div className="w-full max-w-[800px] aspect-video mx-auto flex items-center justify-center">
-                <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl shadow-2xl bg-black" allowFullScreen allow="autoplay" />
+             <div className="w-full h-full flex items-center justify-center bg-black">
+               <div className={cn("h-full max-h-full w-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
+                 <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl" allowFullScreen allow="autoplay" />
+               </div>
              </div>
            );
        }
        
-       // TIKTOK (Vertical)
+       // TIKTOK
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
-               return (
-                 <div className="w-full max-w-[380px] aspect-[9/16] mx-auto flex items-center justify-center">
-                    <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full rounded-xl shadow-2xl bg-black" allowFullScreen />
+             return (
+               <div className="w-full h-full flex items-center justify-center bg-black">
+                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto">
+                   <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full rounded-xl" allowFullScreen />
                  </div>
-               );
+               </div>
+             );
            }
        }
 
@@ -248,19 +266,20 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
-       // INSTAGRAM (Vertical)
+       // INSTAGRAM
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
-               return (
-                 <div className="w-full max-w-[400px] aspect-[9/16] mx-auto flex items-center justify-center">
-                    <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full bg-white rounded-xl shadow-2xl" allowFullScreen />
+             return (
+               <div className="w-full h-full flex items-center justify-center bg-black">
+                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto">
+                   <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full rounded-xl bg-white" allowFullScreen />
                  </div>
-               );
+               </div>
+             );
            }
        }
        
-       // FALLBACK IMAGEN
        return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
     }
 
@@ -287,6 +306,17 @@ export default function GuardadosTab() {
 
   const nextSlide = () => setSelectedIndex(prev => prev !== null ? (prev === items.length - 1 ? 0 : prev + 1) : null);
   const prevSlide = () => setSelectedIndex(prev => prev !== null ? (prev === 0 ? items.length - 1 : prev - 1) : null);
+
+  // Manejo de eventos Swipe y Keyboard
+  const onTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+    if (diff > 50) nextSlide();
+    if (diff < -50) prevSlide();
+    setTouchStart(null);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -330,17 +360,25 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL CENTRADO PERFECTAMENTE (absolute + transform) 🔥 */}
+      {/* 🔥 MEGA CARRUSEL: ABSOLUTO GEOMÉTRICO (top-1/2 left-1/2) 🔥 */}
       {selectedIndex !== null && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md" onClick={() => setSelectedIndex(null)}>
-          
-          {/* Contenedor central (75vh, max-w-4xl, transform centrado matemático) */}
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md" 
+          onClick={() => setSelectedIndex(null)}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* FLECHAS POR FUERA DEL CARRUSEL (Ocultas en celular) */}
+          <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 p-3 bg-white/5 hover:bg-neon-cyan/20 text-white hover:text-neon-cyan rounded-full transition-all z-50 border border-white/10"><ChevronLeft className="w-8 h-8" /></button>
+          <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 p-3 bg-white/5 hover:bg-neon-cyan/20 text-white hover:text-neon-cyan rounded-full transition-all z-50 border border-white/10"><ChevronRight className="w-8 h-8" /></button>
+
+          {/* CONTENEDOR CENTRAL: Matemáticamente anclado al centro con h-[75vh] */}
           <div 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl h-[75vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" 
             onClick={e => e.stopPropagation()}
           >
             
-            {/* Header del Carrusel (Avatar, Nombre, Botones) */}
+            {/* Header del Carrusel */}
             {(() => {
                const item = items[selectedIndex];
                const author = item?.originalData?.profile || {};
@@ -370,15 +408,9 @@ export default function GuardadosTab() {
                );
             })()}
             
-            {/* Contenido Visual Interactivo (AQUÍ SE VEN LOS IFRAMES O IMÁGENES) */}
+            {/* Contenido Visual Interactivo con min-h-0 */}
             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
-              <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
-              
-              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 relative min-h-0">
-                {renderCarouselContent(items[selectedIndex])}
-              </div>
-
-              <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-2 md:right-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronRight className="w-6 h-6 md:w-8 md:h-8" /></button>
+              {renderCarouselContent(items[selectedIndex])}
             </div>
             
             {/* Tira inferior de miniaturas */}
