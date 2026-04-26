@@ -13,7 +13,6 @@ import RoleIconSelector from "@/components/RoleIconSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-// 🔥 IMPORTAMOS CADA PESTAÑA DESDE SU PROPIO ARCHIVO 🔥
 import ConfiguracionTab from "@/components/profile/ConfiguracionTab";
 import AvisosTab from "@/components/profile/AvisosTab";
 import PostsTab from "@/components/profile/PostsTab";
@@ -42,12 +41,10 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
-  // Modales superiores (No son pestañas)
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   
-  // Colores temporales (para el modal del header)
   const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff" | "stat_points" | "stat_followers" | "stat_following" | "stat_posts_forum" | "stat_posts_social" | "stat_games">("border");
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
   const [nameColor, setNameColor] = useState("");
@@ -378,10 +375,19 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* MENÚ DE PESTAÑAS (TABS) */}
+      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO (NUEVO FLEX WRAP) 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] sm:text-xs font-body transition-all min-w-[65px] md:min-w-[70px]", activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}><tab.icon className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{tab.label}</span></button>
+          <button 
+            key={tab.id} 
+            onClick={() => handleTabChange(tab.id)}
+            className={cn(
+              "grow sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded text-[10px] sm:text-xs font-body transition-all min-w-[30%] sm:min-w-[80px]", 
+              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <tab.icon className="w-3.5 h-3.5" /> <span>{tab.label}</span>
+          </button>
         ))}
       </div>
 
