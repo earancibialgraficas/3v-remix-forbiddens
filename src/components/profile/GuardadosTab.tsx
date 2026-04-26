@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Image as ImageIcon, User as UserIcon } from "lucide-react";
@@ -25,7 +25,6 @@ const cleanUrl = (url: string, itemType: string) => {
   return url;
 };
 
-// Proxy que respeta los GIFs para que no pierdan la animación
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.toLowerCase().includes('.gif')) return url;
@@ -48,6 +47,104 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
+// 🔥 COMPONENTE: TikTok Dinámico Escalonado 🔥
+function TikTokEmbed({ videoId }: { videoId: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        // Escalar basado en alto (700 base) y ancho (350 base) para evitar cortes
+        const scaleH = height / 700;
+        const scaleW = width / 350;
+        setScale(Math.min(scaleH, scaleW));
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden bg-black">
+      <div 
+        style={{ 
+          transform: `scale(${scale}) translateY(-15px)`, // Elevamos un poco para ocultar UI inútil de TikTok
+          transformOrigin: 'center',
+          width: '350px',
+          height: '700px'
+        }} 
+        className="shrink-0 flex items-center justify-center"
+      >
+        <iframe 
+          src={`https://www.tiktok.com/embed/v2/${videoId}`} 
+          className="w-full h-full border-0 rounded-xl" 
+          allowFullScreen 
+        />
+      </div>
+    </div>
+  );
+}
+
+// 🔥 COMPONENTE: Post con Botón Colapsable e Imagen Responsiva 🔥
+function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-card w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+      <div className={cn(
+        "relative flex items-center justify-center bg-black transition-all duration-500 ease-in-out",
+        expanded ? "h-[65%] md:h-full md:w-[65%]" : "h-full w-full"
+      )}>
+         <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-90" alt="Post Cover" />
+         
+         {!expanded && (
+            <div className="absolute right-0 top-0 h-full hidden md:flex items-center z-10">
+              <button onClick={() => setExpanded(true)} className="bg-black/70 hover:bg-neon-cyan/20 h-full px-3 transition-colors border-l border-white/10 flex flex-col items-center justify-center text-neon-cyan group backdrop-blur-sm">
+                <ChevronLeft className="w-6 h-6 mb-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="font-pixel text-[10px] [writing-mode:vertical-rl] rotate-180 uppercase tracking-widest">Ver Texto Original</span>
+              </button>
+            </div>
+         )}
+
+         {!expanded && (
+            <div className="absolute bottom-0 w-full md:hidden flex justify-center z-10">
+              <button onClick={() => setExpanded(true)} className="w-full bg-black/80 hover:bg-neon-cyan/20 text-neon-cyan py-3.5 flex items-center justify-center gap-2 border-t border-white/10 backdrop-blur-md transition-colors group">
+                 <span className="font-pixel text-[10px] uppercase tracking-widest">Ver Texto Original</span>
+                 <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
+              </button>
+            </div>
+         )}
+      </div>
+
+      <div className={cn(
+        "flex flex-col bg-card/95 border-t md:border-t-0 md:border-l border-white/10 transition-all duration-500 ease-in-out",
+        expanded ? "h-[35%] md:h-full md:w-[35%] opacity-100" : "h-0 md:h-full md:w-0 opacity-0 overflow-hidden"
+      )}>
+        <button
+          onClick={() => setExpanded(false)}
+          className="w-full p-3 md:p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors z-10 border-b border-white/5 shrink-0"
+        >
+          <span className="font-pixel text-[9px] uppercase tracking-widest">Cerrar Texto</span>
+          <ChevronDown className="w-4 h-4 md:hidden" />
+          <ChevronRight className="w-4 h-4 hidden md:block" />
+        </button>
+
+        <div className="p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar w-full">
+          <h2 className="text-neon-cyan font-pixel mb-4 text-xs md:text-sm leading-relaxed break-words w-full">
+            {item.originalData?.title}
+          </h2>
+          <div className="text-slate-300 font-sans font-light text-[12px] md:text-[14px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
+            {item.originalData?.content}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GuardadosTab() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -56,8 +153,6 @@ export default function GuardadosTab() {
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  
-  // Estado para desplegar el texto en la versión de PC
   const [isTextExpanded, setIsTextExpanded] = useState(false);
 
   const fetchSavedItems = async () => {
@@ -116,11 +211,10 @@ export default function GuardadosTab() {
 
   useEffect(() => { fetchSavedItems(); }, [user]);
 
-  // Bloquear el scroll del fondo cuando el carrusel está abierto
   useEffect(() => {
     if (selectedIndex !== null) {
       document.body.style.overflow = 'hidden';
-      setIsTextExpanded(false); // Resetear texto expandido al cambiar de slide
+      setIsTextExpanded(false);
     } else {
       document.body.style.overflow = 'auto';
     }
@@ -164,7 +258,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR SOLO MEDIA (Para el lado izquierdo de PC) 🔥
+  // 🔥 RENDERIZADOR RESPONSIVO (APLICANDO LAS TÉCNICAS CORRECTAS) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -183,30 +277,24 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       if (url.includes('youtube') || url.includes('youtu.be')) {
-           const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-           if (ytMatch && ytMatch[1]) {
-               const isShorts = url.includes('shorts/');
-               return (
-                 <div className="w-full h-full flex items-center justify-center bg-black">
-                   <div className={cn("h-full max-h-full w-full mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video max-w-[800px]")}>
-                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0" allowFullScreen allow="autoplay" />
-                   </div>
-                 </div>
-               );
-           }
+       // YOUTUBE
+       const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+       if (ytMatch && ytMatch[1]) {
+           const isShorts = url.includes('shorts/');
+           return (
+             <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
+               <div className={cn("h-full max-h-full w-auto mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
+                 <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0 bg-black" allowFullScreen allow="autoplay" />
+               </div>
+             </div>
+           );
        }
        
+       // TIKTOK (Componente de Escalado Matemático)
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
-             return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto">
-                   <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full border-0 rounded-xl bg-black" allowFullScreen />
-                 </div>
-               </div>
-             );
+             return <TikTokEmbed videoId={tkMatch[1]} />;
            }
        }
 
@@ -214,12 +302,13 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
+       // INSTAGRAM (Contenedor Responsivo aspect-[9/16])
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
                <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto">
+                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-auto mx-auto">
                    <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full border-0 rounded-xl bg-white" allowFullScreen />
                  </div>
                </div>
@@ -235,22 +324,11 @@ export default function GuardadosTab() {
     }
   };
 
-  // 🔥 RENDERIZADOR COMPLETO (Para Celular - Carrusel Antiguo) 🔥
   const renderCarouselContentMobile = (item: any) => {
     if (!item.originalData) return renderMediaOnly(item);
 
     if (item.item_type === 'post') {
-       return (
-          <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col min-h-0">
-             <div className="w-full h-32 shrink-0 bg-black border-b border-border">
-                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-60" alt="Post Cover" />
-             </div>
-             <div className="p-4 overflow-y-auto flex-1 custom-scrollbar min-h-0 w-full">
-               <h2 className="text-neon-cyan font-pixel mb-3 text-xs leading-snug break-words w-full">{item.originalData.title}</h2>
-               <div className="text-slate-300 font-sans font-light text-[12px] leading-relaxed whitespace-pre-wrap break-words w-full">{item.originalData.content}</div>
-             </div>
-          </div>
-       );
+       return <PostCarouselItem item={item} getThumbnailUrl={getThumbnailUrl} />;
     }
 
     return renderMediaOnly(item);
@@ -336,9 +414,8 @@ export default function GuardadosTab() {
           onTouchEnd={onTouchEnd}
         >
 
-          {/* 📱 VERSIÓN CELULAR (Exactamente como antes, 1 sola columna) 📱 */}
+          {/* 📱 VERSIÓN CELULAR 📱 */}
           <div className="md:hidden flex flex-col absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md h-[80vh] bg-card border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
-             {/* Header */}
              <div className="p-3 border-b border-white/10 flex justify-between items-center bg-black/80 shrink-0">
                 <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                    <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0 border border-white/20 flex items-center justify-center">
@@ -354,11 +431,9 @@ export default function GuardadosTab() {
                   <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1 rounded transition-all border border-white/10"><X className="w-4 h-4"/></button>
                 </div>
              </div>
-             {/* Contenido Visual */}
-             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full p-2">
+             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
                 {renderCarouselContentMobile(items[selectedIndex])}
              </div>
-             {/* Tira inferior clásica */}
              <div className="h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center px-3 overflow-x-auto custom-scrollbar gap-2 py-2">
                 {items.map((item, idx) => (
                   <button key={item.id} onClick={() => setSelectedIndex(idx)} className={cn("relative h-14 w-14 shrink-0 rounded-md overflow-hidden transition-all", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_10px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}>
@@ -372,7 +447,6 @@ export default function GuardadosTab() {
           {/* 💻 VERSIÓN PC (Split 70/30) 💻 */}
           <div className="hidden md:flex flex-row absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-6xl h-[85vh] bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
-            {/* LADO IZQUIERDO: 70% MEDIA */}
             <div className="relative w-[70%] h-full bg-black flex items-center justify-center overflow-hidden shrink-0 group">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronLeft className="w-8 h-8" /></button>
               <div className="w-full h-full p-4 flex items-center justify-center relative">
@@ -381,10 +455,7 @@ export default function GuardadosTab() {
               <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronRight className="w-8 h-8" /></button>
             </div>
             
-            {/* LADO DERECHO: 30% DETALLES Y MINIATURAS */}
             <div className="w-[30%] h-full flex flex-col bg-card/95 border-l border-white/10">
-              
-              {/* Header derecho */}
               {(() => {
                  const item = items[selectedIndex];
                  const author = item?.originalData?.profile || {};
@@ -409,7 +480,6 @@ export default function GuardadosTab() {
                  );
               })()}
 
-              {/* Botón Toggle para Posts */}
               {items[selectedIndex]?.item_type === 'post' && (
                  <div className="shrink-0 border-b border-white/10 bg-black/20">
                     <button onClick={() => setIsTextExpanded(!isTextExpanded)} className="w-full p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors">
@@ -427,7 +497,6 @@ export default function GuardadosTab() {
                  </div>
               )}
 
-              {/* Texto plano para no-posts (opcional, si hay descripcion) */}
               {items[selectedIndex]?.item_type !== 'post' && (items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title) && (
                  <div className="p-4 shrink-0 border-b border-white/10 bg-black/20 max-h-[25vh] overflow-y-auto custom-scrollbar">
                     <div className="text-slate-300 font-sans font-light text-[13px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
@@ -436,7 +505,6 @@ export default function GuardadosTab() {
                  </div>
               )}
               
-              {/* Tira de Miniaturas (Grid Inferior, ocupa todo el espacio restante) */}
               <div className="flex-1 bg-black/60 p-4 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-3 xl:grid-cols-4 gap-2">
                   {items.map((item, idx) => (
