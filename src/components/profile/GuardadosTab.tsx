@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, Image as ImageIcon, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -290,16 +291,12 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MEGA CARRUSEL CENTRADO CON MÁRGENES (12.5vh) Y BLOCK 🔥 */}
-      {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md block overflow-y-auto" onClick={() => setSelectedIndex(null)}>
+      {/* 🔥 MAGIA REACT PORTAL: TELETRANSPORTAMOS EL CARRUSEL PARA EVITAR ERRORES DE CSS 🔥 */}
+      {selectedIndex !== null && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-8" onClick={() => setSelectedIndex(null)}>
           
-          {/* Contenedor central: Ancho max-w-4xl, Alto 75vh, Centrado Vertical Absoluto */}
-          <div 
-            className="relative w-[95%] max-w-4xl flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in mx-auto" 
-            style={{ height: '75vh', marginTop: '12.5vh', marginBottom: '0' }}
-            onClick={e => e.stopPropagation()}
-          >
+          {/* Contenedor central (Ancho exacto de columna y altura 75%) */}
+          <div className="relative w-full max-w-4xl h-[75vh] max-h-[850px] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
             
             {/* Header del Carrusel */}
             {(() => {
@@ -323,7 +320,7 @@ export default function GuardadosTab() {
                       <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
                          <span className="hidden sm:inline">Ir a publicación</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
                       </Button>
-                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white p-1.5 bg-destructive/80 hover:bg-destructive rounded transition-all border border-white/10" title="Cerrar">
+                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white hover:bg-destructive p-1.5 rounded transition-all border border-white/10" title="Cerrar">
                          <X className="w-4 h-4 md:w-5 md:h-5"/>
                       </button>
                     </div>
@@ -343,7 +340,7 @@ export default function GuardadosTab() {
             </div>
             
             {/* Tira inferior de miniaturas */}
-            <div className="h-16 md:h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2 z-10">
+            <div className="h-20 md:h-24 bg-black/90 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2 z-10">
               <div className="flex items-center gap-2">
                 {items.map((item, idx) => (
                   <button 
@@ -358,7 +355,8 @@ export default function GuardadosTab() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
