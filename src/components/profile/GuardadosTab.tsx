@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, Image as ImageIcon, User as UserIcon } from "lucide-react";
+import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Image as ImageIcon, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +47,38 @@ const getSeedFromId = (str: string) => {
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return Math.abs(hash);
 };
+
+// 🔥 COMPONENTE PARA EL POST COLAPSABLE EN EL CARRUSEL 🔥
+function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-card border border-white/10 rounded-xl w-full max-w-3xl mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col min-h-0 relative">
+      {/* Imagen limpia, ocupando espacio dinámico */}
+      <div className={cn("w-full transition-all duration-300 bg-black relative flex items-center justify-center", expanded ? "h-32 md:h-48 shrink-0" : "flex-1 min-h-0")}>
+         <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-90" alt="Post Cover" />
+      </div>
+
+      {/* Contenedor del contenido colapsable */}
+      <div className={cn("flex flex-col bg-card/95 backdrop-blur-md border-t border-white/10 transition-all duration-300", expanded ? "flex-1 min-h-0" : "shrink-0")}>
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          className="w-full p-4 flex items-center justify-between text-neon-cyan hover:bg-white/5 transition-colors z-10"
+        >
+          <span className="font-pixel text-[10px] md:text-xs tracking-widest uppercase">{expanded ? "Ocultar Contenido" : "Ver Texto Original"}</span>
+          {expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+        </button>
+
+        {expanded && (
+          <div className="p-5 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
+            <h2 className="text-neon-cyan font-pixel mb-5 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
+            <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function GuardadosTab() {
   const { user } = useAuth();
@@ -169,7 +201,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR DEL CARRUSEL 🔥
+  // 🔥 RENDERIZADOR DEL CARRUSEL (CON ASPECT RATIOS MATEMÁTICOS) 🔥
   const renderCarouselContent = (item: any) => {
     if (!item.originalData) {
       return (
@@ -189,14 +221,26 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       // YOUTUBE
+       // YOUTUBE (Horizontal)
        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-       if (ytMatch && ytMatch[1]) return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full max-w-[800px] aspect-video rounded-xl shadow-2xl bg-black mx-auto block" allowFullScreen allow="autoplay" />;
+       if (ytMatch && ytMatch[1]) {
+           return (
+             <div className="w-full max-w-[800px] aspect-video mx-auto flex items-center justify-center">
+                <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl shadow-2xl bg-black" allowFullScreen allow="autoplay" />
+             </div>
+           );
+       }
        
-       // TIKTOK (Adaptado a H-FULL)
+       // TIKTOK (Vertical)
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
-           if (tkMatch) return <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full max-w-[400px] h-full rounded-xl shadow-2xl bg-black mx-auto block" allowFullScreen />;
+           if (tkMatch) {
+               return (
+                 <div className="w-full max-w-[380px] aspect-[9/16] mx-auto flex items-center justify-center">
+                    <iframe src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} className="w-full h-full rounded-xl shadow-2xl bg-black" allowFullScreen />
+                 </div>
+               );
+           }
        }
 
        // MP4 DIRECTO
@@ -204,29 +248,24 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
-       // INSTAGRAM (Adaptado a H-FULL)
+       // INSTAGRAM (Vertical)
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
-           if (igMatch) return <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full max-w-[400px] h-full bg-white rounded-xl shadow-2xl mx-auto block" allowFullScreen />;
+           if (igMatch) {
+               return (
+                 <div className="w-full max-w-[400px] aspect-[9/16] mx-auto flex items-center justify-center">
+                    <iframe src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} className="w-full h-full bg-white rounded-xl shadow-2xl" allowFullScreen />
+                 </div>
+               );
+           }
        }
        
+       // FALLBACK IMAGEN
        return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
     }
 
     if (item.item_type === 'post') {
-       return (
-          <div className="bg-card border border-border rounded-xl w-full mx-auto overflow-hidden h-full shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col">
-             {/* 🔥 SIN TEXTO ENCIMA DE LA IMAGEN 🔥 */}
-             <div className="w-full h-32 md:h-56 shrink-0 bg-black border-b border-border">
-                <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-80" alt="Post Cover" />
-             </div>
-             {/* TEXTO DEL POST */}
-             <div className="p-5 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
-               <h2 className="text-neon-cyan font-pixel mb-5 text-sm md:text-xl leading-snug">{item.originalData.title}</h2>
-               <div className="text-white font-body whitespace-pre-wrap opacity-90 text-xs md:text-sm">{item.originalData.content}</div>
-             </div>
-          </div>
-       );
+       return <PostCarouselItem item={item} getThumbnailUrl={getThumbnailUrl} />;
     }
   };
 
@@ -291,14 +330,17 @@ export default function GuardadosTab() {
         </div>
       )}
 
-      {/* 🔥 MAGIA REACT PORTAL: TELETRANSPORTAMOS EL CARRUSEL PARA EVITAR ERRORES DE CSS 🔥 */}
+      {/* 🔥 MEGA CARRUSEL CENTRADO PERFECTAMENTE (absolute + transform) 🔥 */}
       {selectedIndex !== null && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-8" onClick={() => setSelectedIndex(null)}>
+        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md" onClick={() => setSelectedIndex(null)}>
           
-          {/* Contenedor central (Ancho exacto de columna y altura 75%) */}
-          <div className="relative w-full max-w-4xl h-[75vh] max-h-[850px] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" onClick={e => e.stopPropagation()}>
+          {/* Contenedor central (75vh, max-w-4xl, transform centrado matemático) */}
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl h-[75vh] flex flex-col bg-card border border-white/10 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] animate-scale-in" 
+            onClick={e => e.stopPropagation()}
+          >
             
-            {/* Header del Carrusel */}
+            {/* Header del Carrusel (Avatar, Nombre, Botones) */}
             {(() => {
                const item = items[selectedIndex];
                const author = item?.originalData?.profile || {};
@@ -320,7 +362,7 @@ export default function GuardadosTab() {
                       <Button size="sm" onClick={handleGoToOrigin} className="bg-neon-cyan text-black hover:bg-neon-cyan/80 text-[10px] md:text-xs font-pixel h-7 md:h-8 shadow-[0_0_15px_rgba(0,255,255,0.4)]">
                          <span className="hidden sm:inline">Ir a publicación</span> <ExternalLink className="w-3 h-3 sm:ml-2" />
                       </Button>
-                      <button onClick={() => setSelectedIndex(null)} className="text-white hover:text-white hover:bg-destructive p-1.5 rounded transition-all border border-white/10" title="Cerrar">
+                      <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1.5 rounded transition-all border border-white/10" title="Cerrar">
                          <X className="w-4 h-4 md:w-5 md:h-5"/>
                       </button>
                     </div>
@@ -328,11 +370,11 @@ export default function GuardadosTab() {
                );
             })()}
             
-            {/* Contenido Visual Interactivo */}
+            {/* Contenido Visual Interactivo (AQUÍ SE VEN LOS IFRAMES O IMÁGENES) */}
             <div className="flex-1 relative flex items-center justify-center bg-black/40 min-h-0 overflow-hidden w-full">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 md:left-4 p-2 md:p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md z-50 transition-all"><ChevronLeft className="w-6 h-6 md:w-8 md:h-8" /></button>
               
-              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 relative">
+              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 relative min-h-0">
                 {renderCarouselContent(items[selectedIndex])}
               </div>
 
@@ -341,7 +383,7 @@ export default function GuardadosTab() {
             
             {/* Tira inferior de miniaturas */}
             <div className="h-20 md:h-24 bg-black/90 border-t border-white/10 shrink-0 flex items-center justify-center px-4 overflow-x-auto custom-scrollbar gap-2 py-2 z-10">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 h-full">
                 {items.map((item, idx) => (
                   <button 
                     key={item.id} 
