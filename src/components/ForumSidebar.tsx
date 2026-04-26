@@ -14,12 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// 🔥 Añadimos "isTitle" para poner textos separadores 🔥
+// 🔥 Añadimos "color" a NavChild para pintar los títulos 🔥
 interface NavChild {
   label?: string;
   to?: string;
   isSeparator?: boolean;
   isTitle?: boolean;
+  color?: string;
 }
 
 interface NavItem {
@@ -41,23 +42,28 @@ const navItems: NavItem[] = [
       { label: "Leaderboards", to: "/arcade/leaderboards" },
     ],
   },
+  
   { label: "Trending", icon: Flame, to: "/trending", color: "text-destructive" },
+  
   {
     label: "Zona de Debate", icon: MessageSquare, color: "text-neon-cyan", isDropdownOnly: true,
     children: [
-      { isTitle: true, label: "GAMING & ANIME" }, // Título separador
+      // 🔥 Título con color Verde Neón 🔥
+      { isTitle: true, label: "GAMING & ANIME", color: "text-neon-green" }, 
       { label: "🎮 Foro General", to: "/gaming-anime/foro" },
       { label: "📺 Anime & Manga", to: "/gaming-anime/anime" },
       { label: "🕹️ Gaming", to: "/gaming-anime/gaming" },
       { label: "💡 Consejos Gaming", to: "/arcade/consejos" },
       { label: "🎨 Rincón del Creador", to: "/gaming-anime/creador" },
       { isSeparator: true },
-      { isTitle: true, label: "MOTOCICLISMO" }, // Título separador
+      // 🔥 Título con color Rojo Fuego 🔥
+      { isTitle: true, label: "MOTOCICLISMO", color: "text-[#ff3b00]" }, 
       { label: "🏍️ Foro de Riders", to: "/motociclismo/riders" },
       { label: "🔧 Taller & Mecánica", to: "/motociclismo/taller" },
       { label: "🛣️ Rutas & Quedadas", to: "/motociclismo/rutas" },
     ],
   },
+
   {
     label: "Mercado & Trueque", icon: ShoppingBag, color: "text-neon-yellow", isDropdownOnly: true,
     children: [
@@ -213,7 +219,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                               child.isSeparator ? (
                                 <div key={`sep-${idx}`} className="my-1 border-b border-border/40 mx-1" />
                               ) : child.isTitle ? (
-                                <span key={`title-${idx}`} className="block px-1 pt-1.5 pb-0.5 text-[8px] font-pixel text-muted-foreground opacity-70 uppercase tracking-widest">{child.label}</span>
+                                <span key={`title-${idx}`} className={cn("block px-1 pt-1.5 pb-0.5 text-[8px] font-pixel opacity-90 uppercase tracking-widest", child.color || "text-muted-foreground")}>{child.label}</span>
                               ) : (
                                 <Link key={child.to} to={child.to!} className="text-[10px] py-1 px-2 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-body">{child.label}</Link>
                               )
@@ -248,7 +254,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                         child.isSeparator ? (
                            <div key={`sep-${idx}`} className="my-1.5 border-b border-border/40 mx-2" />
                         ) : child.isTitle ? (
-                           <span key={`title-${idx}`} className="block px-2 pt-2 pb-1 text-[9px] font-pixel text-muted-foreground opacity-60 uppercase tracking-widest">{child.label}</span>
+                           <span key={`title-${idx}`} className={cn("block px-2 pt-2 pb-1 text-[9px] font-pixel opacity-90 uppercase tracking-widest", child.color || "text-muted-foreground")}>{child.label}</span>
                         ) : (
                            <Link key={child.to} to={child.to!} className={cn("block py-1 px-2 rounded-sm text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold bg-muted/30" : "text-muted-foreground hover:text-foreground hover:bg-muted/10")}>{child.label}</Link>
                         )
