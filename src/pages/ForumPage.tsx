@@ -303,10 +303,18 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
+  // 🔥 LÓGICA DE AUTO-SCROLL AL ABRIR UN POST DIRECTO DESDE GUARDADOS 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
+      
+      setTimeout(() => {
+        const element = document.getElementById(`post-${directPostId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
     }
   }, [directPostId, posts]);
 
@@ -428,7 +436,6 @@ export default function ForumPage() {
     setReportTarget({ userId: postUserId, userName: targetName, postId });
   };
 
-  // 🔥 EL DUEÑO AHORA TAMBIÉN PUEDE BORRAR EL POST (Y EL STAFF TAMBIÉN) 🔥
   const handleDeletePost = async (postId: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
@@ -512,7 +519,6 @@ export default function ForumPage() {
         )}
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded border border-border shadow-sm">
-           
            <div className="flex gap-2 w-full lg:w-auto flex-1">
              <div className="relative flex-1">
                <Search className="absolute left-2.5 top-2 w-4 h-4 text-muted-foreground" />
@@ -524,7 +530,6 @@ export default function ForumPage() {
                  className="pl-8 h-8 text-xs bg-muted border-border font-body w-full" 
                />
              </div>
-             
              <select 
                value={filterCategory} 
                onChange={e => setFilterCategory(e.target.value)} 
@@ -613,7 +618,7 @@ export default function ForumPage() {
             const myVote = userVotes[post.id] || null;
 
             return (
-              <div key={post.id}>
+              <div key={post.id} id={`post-${post.id}`}>
                 <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
                   <div className="flex items-start gap-3">
                     <div className="flex flex-col items-center gap-0.5 shrink-0">
@@ -647,7 +652,7 @@ export default function ForumPage() {
                             colorRole={authorProfile.color_role}
                             colorStaffRole={authorProfile.color_staff_role}
                           />
-                          {category === "trending" && post.category && (
+                          {isTrending && post.category && (
                              <span className="text-[8px] bg-muted/50 px-1.5 py-0.5 rounded uppercase font-body text-muted-foreground ml-auto">{post.category.replace(/-/g, ' ')}</span>
                           )}
                         </div>
@@ -676,7 +681,6 @@ export default function ForumPage() {
                       <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
                         <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                         
-                        {/* 🔥 EL DUEÑO AHORA PUEDE EDITAR Y ELIMINAR DIRECTAMENTE 🔥 */}
                         {user && user.id === post.user_id && !editingPost && (
                           <div className="flex items-center gap-3 ml-2">
                             <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
