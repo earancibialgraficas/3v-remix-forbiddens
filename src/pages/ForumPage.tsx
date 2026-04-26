@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ const pageTitles: Record<string, { title: string; description: string; color: st
   "/mensajes": { title: "MENSAJES", description: "Bandeja de mensajes privados", color: "text-neon-cyan" },
 };
 
-// 🔥 Cambiamos "Todas las categorías" a "Categorías" para que no se corte 🔥
 const forumCategories = [
   { id: "all", label: "Categorías" },
   { id: "gaming-anime-foro", label: "Foro General" },
@@ -227,6 +226,7 @@ export default function ForumPage() {
   const isTrending = category === "trending";
   
   const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
+  const hasUnlimited = isAdmin || isMasterWeb;
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
@@ -428,6 +428,7 @@ export default function ForumPage() {
     setReportTarget({ userId: postUserId, userName: targetName, postId });
   };
 
+  // 🔥 EL DUEÑO AHORA TAMBIÉN PUEDE BORRAR EL POST (Y EL STAFF TAMBIÉN) 🔥
   const handleDeletePost = async (postId: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
@@ -501,9 +502,7 @@ export default function ForumPage() {
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
-      {/* 🔥 CONTROLES DE LA PÁGINA REPARADOS (Búsqueda, Filtros, Nuevo Post) 🔥 */}
       <div className="space-y-3">
-        {/* Fila 1: Botón Nuevo Post (Alineado a la izquierda, oculto en Trending) */}
         {user && !isTrending && (
           <div className="flex justify-start">
             <Button size="sm" className="h-8 text-[10px] font-body bg-primary text-primary-foreground shadow-md" onClick={handleNewPostClick}>
@@ -512,10 +511,8 @@ export default function ForumPage() {
           </div>
         )}
 
-        {/* Fila 2: Filtros y Búsqueda */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded border border-border shadow-sm">
            
-           {/* Buscador y Dropdown */}
            <div className="flex gap-2 w-full lg:w-auto flex-1">
              <div className="relative flex-1">
                <Search className="absolute left-2.5 top-2 w-4 h-4 text-muted-foreground" />
@@ -528,7 +525,6 @@ export default function ForumPage() {
                />
              </div>
              
-             {/* Dropdown responsivo (Trunca texto si no cabe) */}
              <select 
                value={filterCategory} 
                onChange={e => setFilterCategory(e.target.value)} 
@@ -538,7 +534,6 @@ export default function ForumPage() {
              </select>
            </div>
            
-           {/* Ordenamiento (Populares / Nuevos) */}
            <div className="flex items-center justify-between w-full lg:w-auto gap-2 shrink-0 mt-1 lg:mt-0">
              <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 w-full sm:w-auto">
                 <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
@@ -652,7 +647,7 @@ export default function ForumPage() {
                             colorRole={authorProfile.color_role}
                             colorStaffRole={authorProfile.color_staff_role}
                           />
-                          {isTrending && post.category && (
+                          {category === "trending" && post.category && (
                              <span className="text-[8px] bg-muted/50 px-1.5 py-0.5 rounded uppercase font-body text-muted-foreground ml-auto">{post.category.replace(/-/g, ' ')}</span>
                           )}
                         </div>
@@ -681,10 +676,16 @@ export default function ForumPage() {
                       <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
                         <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                         
+                        {/* 🔥 EL DUEÑO AHORA PUEDE EDITAR Y ELIMINAR DIRECTAMENTE 🔥 */}
                         {user && user.id === post.user_id && !editingPost && (
-                          <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
-                            <Edit2 className="w-3 h-3" /> Editar
-                          </button>
+                          <div className="flex items-center gap-3 ml-2">
+                            <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
+                              <Edit2 className="w-3 h-3" /> Editar
+                            </button>
+                            <button onClick={() => handleDeletePost(post.id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors">
+                              <Trash2 className="w-3 h-3" /> Eliminar
+                            </button>
+                          </div>
                         )}
                         
                         <div className="ml-auto flex items-center gap-2">
