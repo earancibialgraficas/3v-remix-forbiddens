@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -530,6 +530,7 @@ export default function FeedPage() {
 
   const fetchContent = async () => {
     let combined: FeedItem[] = [];
+    // Pedimos a Supabase los top 50 dependiendo del orden seleccionado
     const orderCol = sortBy === "popular" ? "likes" : "created_at";
 
     const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
@@ -550,13 +551,6 @@ export default function FeedPage() {
     }
 
     if (combined.length === 0) { setItems([]); return; }
-    
-    // JS Orden final de seguridad base
-    if (sortBy === "popular") {
-      combined.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else {
-      combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
 
     const userIds = [...new Set(combined.map(c => c.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
@@ -628,29 +622,33 @@ export default function FeedPage() {
     }
   };
 
-  const handleSortChange = (newSort: "new" | "popular") => {
-    if (sortBy === newSort) return;
-    setSortBy(newSort);
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: "instant" });
-    }
+  // 🔥 ORDENAMIENTO ABSOLUTO Y REINICIO DE SCROLL 🔥
+  // El key en el scroll container hace que cada vez que cambias un filtro, se remonte y empiece desde top: 0
+  const sortedFiltered = useMemo(() => {
+    const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
+
+    const filt = (() => {
+        if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
+        if (filter === "reels") return sourceFiltered.filter(isReelItem);
+        if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
+        return sourceFiltered;
+    })();
+
+    return [...filt].sort((a, b) => {
+      if (sortBy === "popular") {
+        const likesDiff = (b.likes || 0) - (a.likes || 0);
+        if (likesDiff !== 0) return likesDiff;
+        // Si tienen los mismos likes, el más nuevo gana
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items, filter, sourceTab, sortBy, friendIds]);
+
+  // Al cambiar filtros visuales se reinicia el índice
+  useEffect(() => {
     setVisibleIndex(0);
-  };
-
-  const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
-
-  const filtered = (() => {
-      if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
-      if (filter === "reels") return sourceFiltered.filter(isReelItem);
-      if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
-      return sourceFiltered;
-  })();
-
-  // 🔥 ORDENAMIENTO VISUAL EN TIEMPO REAL (El paso clave que faltaba) 🔥
-  const sortedFiltered = [...filtered].sort((a, b) => {
-    if (sortBy === "popular") return (b.likes || 0) - (a.likes || 0);
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  }, [filter, sortBy, sourceTab]);
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
@@ -722,14 +720,13 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          <Button variant="ghost" size="sm" onClick={() => handleSortChange("popular")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+          <Button variant="ghost" size="sm" onClick={() => setSortBy("popular")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
              <Flame className="w-3 h-3 mr-1" /> Top
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSortChange("new")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+          <Button variant="ghost" size="sm" onClick={() => setSortBy("new")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
              <Sparkles className="w-3 h-3 mr-1" /> Nuevos
           </Button>
         </div>
-
       </div>
 
       {sortedFiltered.length === 0 ? (
@@ -742,9 +739,9 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* 🔥 EL KEY DINÁMICO RESUELVE EL BUG DEL SCROLL ATRAPADO EN SNAP-Y 🔥 */}
+          <div key={`${filter}-${sortBy}-${sourceTab}`} ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            {/* 🔥 MAPEAMOS USANDO sortedFiltered 🔥 */}
             {sortedFiltered.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
