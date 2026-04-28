@@ -388,30 +388,16 @@ export default function PhotoWallPage() {
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
   const fetchPhotosAndDaily = async () => {
-    const getChileMidnightISO = () => {
-      const now = new Date();
-      const santiagoTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
-      const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-      
-      const offsetHours = Math.round((santiagoTime.getTime() - utcTime.getTime()) / 3600000);
-      const offsetSign = offsetHours >= 0 ? '+' : '-';
-      const offsetStr = `${offsetSign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`;
-      
-      const year = santiagoTime.getFullYear();
-      const month = String(santiagoTime.getMonth() + 1).padStart(2, '0');
-      const day = String(santiagoTime.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}T00:00:00${offsetStr}`;
-    };
+    // 🇨🇱 Obtener contador automático desde la tabla apify_daily_counter
+    // Este contador se incrementa automáticamente en triggers y se resetea a medianoche Santiago
+    const { data: counterData, error: counterError } = await supabase
+      .from('apify_daily_counter')
+      .select('count')
+      .eq('count_date', new Date().toISOString().split('T')[0]) // Hoy en UTC (BD lo convierte a Chile)
+      .single();
     
-    const midnightChile = getChileMidnightISO();
-    
-    const { count } = await supabase.from('photos')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_apify', true)
-      .gte('created_at', midnightChile);
-    
-    setDailyApifyCount((count || 0) + 4);
+    const dailyCount = counterData?.count || 0;
+    setDailyApifyCount(dailyCount);
 
     const { data: photosRes, error: pErr } = await supabase.from("photos")
       .select("*")
@@ -489,14 +475,29 @@ export default function PhotoWallPage() {
     if (finalUrl.includes("instagram.com")) {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
-        if (!error && data?.imageUrl) { finalUrl = data.imageUrl; usedApify = true; }
+        if (!error && data?.imageUrl) { 
+          finalUrl = data.imageUrl; 
+          usedApify = true;
+        }
       } catch (err) { console.error("Error IG:", err); }
     }
 
-    const { error } = await supabase.from("photos").insert({ id: crypto.randomUUID(), user_id: user.id, image_url: finalUrl, caption: caption.trim(), is_apify: usedApify } as any);
+    // 🇨🇱 La tabla photos tiene trigger que automáticamente:
+    // 1. Establece created_at en zona horaria chilena
+    // 2. Incrementa el contador en apify_daily_counter si is_apify = true
+    const { error } = await supabase.from("photos").insert({ 
+      id: crypto.randomUUID(), 
+      user_id: user.id, 
+      image_url: finalUrl, 
+      caption: caption.trim(), 
+      is_apify: usedApify 
+    } as any);
 
     if (!error) {
-      setCaption(""); setImageUrl(""); setShowUpload(false); fetchPhotosAndDaily();
+      setCaption(""); 
+      setImageUrl(""); 
+      setShowUpload(false); 
+      fetchPhotosAndDaily(); // Refrescar contador y fotos
       toast({ title: usedApify ? "¡Extracción Exitosa!" : "Foto subida con éxito" });
     } else {
       toast({ title: "Error al publicar", description: error.message, variant: "destructive" });
