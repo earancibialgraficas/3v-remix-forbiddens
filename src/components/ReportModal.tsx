@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { X, Send, Flag, ShieldAlert } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X, Send, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +19,6 @@ const REPORT_REASONS = [
   "Otro",
 ];
 
-// 🔥 ID OFICIAL DE TU BOT DE SISTEMA
 const BOT_SYSTEM_ID = "b20cd3e4-ea5e-49ab-9418-fb9c60998105";
 
 interface ReportModalProps {
@@ -35,11 +35,16 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
   const [details, setDetails] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Congelar el scroll del fondo mientras el modal de reporte está abierto
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, []);
+
   const handleSend = async () => {
     if (!user) return;
     setSending(true);
     try {
-      // 1. Conseguimos el nombre de quien hace el clic (el usuario real)
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name')
@@ -48,7 +53,6 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
         
       const reporterName = profile?.display_name || 'Usuario';
 
-      // 2. Preparamos el ticket de sistema limpio
       const systemTicket = `🚨 REPORTE DE SISTEMA 🚨
       
 EMISOR: ${reporterName}
@@ -62,9 +66,8 @@ ${details.trim() || 'El usuario no proporcionó detalles.'}
 ---------------------------
 Requiere revisión inmediata.`;
 
-      // 3. ENVIAMOS EL MENSAJE COMO SI FUERA EL BOT
       const { error } = await supabase.rpc("send_staff_report", {
-        p_reporter_id: BOT_SYSTEM_ID, // 🔥 MAGIA: Supabase registrará al Bot como el remitente
+        p_reporter_id: BOT_SYSTEM_ID, 
         p_reported_user_id: reportedUserId,
         p_reason: reason,
         p_details: systemTicket,
@@ -81,11 +84,12 @@ Requiere revisión inmediata.`;
     }
   };
 
-  return (
-    /* fixed inset-0 hace que siga a la pantalla, ignorando el scroll de fondo */
+  if (typeof document === "undefined") return null;
+
+  // 🔥 Magia: createPortal teletransporta el modal al Body 🔥
+  return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose}>
       
-      {/* Centrado Absoluto Geométrico */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-destructive/40 rounded-xl p-5 shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-scale-in flex flex-col max-h-[90vh]" 
         onClick={e => e.stopPropagation()}
@@ -136,6 +140,7 @@ Requiere revisión inmediata.`;
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
