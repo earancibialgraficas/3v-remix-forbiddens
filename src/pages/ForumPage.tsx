@@ -530,13 +530,18 @@ export default function ForumPage() {
                  className="pl-8 h-8 text-xs bg-muted border-border font-body w-full" 
                />
              </div>
-             <select 
-               value={filterCategory} 
-               onChange={e => setFilterCategory(e.target.value)} 
-               className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 w-28 sm:w-40 text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
-             >
-                {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-             </select>
+             
+             {/* 🔥 AQUÍ ESTÁ EL CAMBIO: Solo mostramos este SELECT en Trending 🔥 */}
+             {isTrending && (
+               <select 
+                 value={filterCategory} 
+                 onChange={e => setFilterCategory(e.target.value)} 
+                 className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 w-28 sm:w-40 text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
+               >
+                  {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+               </select>
+             )}
+             
            </div>
            
            <div className="flex items-center justify-between w-full lg:w-auto gap-2 shrink-0 mt-1 lg:mt-0">
