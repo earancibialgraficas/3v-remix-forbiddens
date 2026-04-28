@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -381,6 +381,7 @@ function SnapCard({
                   <Flag className="w-3 h-3" />
                 </button>
               )}
+              {/* 🔥 BOTONES DE CREADOR 🔥 */}
               {isOwner && (
                 <>
                   <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow hover:bg-neon-yellow/10 rounded transition-colors" title="Editar">
@@ -520,7 +521,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADO DE ORDENAMIENTO Y FETCH 🔥
+  // 🔥 ESTADO DE ORDENAMIENTO (MAESTRO) 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [isFetching, setIsFetching] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
@@ -535,7 +536,7 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 EL FETCH QUE REACCIONA DIRECTO A SORT (Sin borrar el estado items) 🔥
+  // 🔥 FETCH REACTIVO A `sort` (Pide a la BD el orden correcto para no romper paginación) 🔥
   const fetchContent = async (pageNum: number, currentSort: string) => {
     setIsFetching(true);
     try {
@@ -547,7 +548,9 @@ export default function FeedPage() {
 
       const { data: content, error: err1 } = await supabase.from("social_content")
         .select("*").eq("is_public", true).neq("is_banned", true)
-        .order(orderCol, { ascending: false }).range(from, to);
+        .order(orderCol, { ascending: false })
+        .order('created_at', { ascending: false }) // 🔥 DESEMPATE OBLIGATORIO PARA EVITAR DUPLICADOS 🔥
+        .range(from, to);
       if (err1) throw err1;
       
       if (content) {
@@ -558,7 +561,9 @@ export default function FeedPage() {
 
       const { data: photos, error: err2 } = await supabase.from("photos")
         .select("*").neq("is_banned", true)
-        .order(orderCol, { ascending: false }).range(from, to);
+        .order(orderCol, { ascending: false })
+        .order('created_at', { ascending: false }) // 🔥 DESEMPATE OBLIGATORIO 🔥
+        .range(from, to);
       if (err2) throw err2;
       
       if (photos) {
@@ -571,7 +576,6 @@ export default function FeedPage() {
       }
 
       if (combined.length === 0 && pageNum === 0) { 
-        setItems([]); 
         setHasMore(false);
         return; 
       }
@@ -671,35 +675,31 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 HANDLER MAGISTRAL SIN VACIAR ARRAY 🔥
+  // 🔥 HANDLER: SOLO ACTUALIZA EL ESTADO 'sort' SIN VACIAR ARRAYS 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort || isFetching) return;
+    if (sort === newSort) return;
     
-    // Matamos el snap
+    // Matamos el snap temporalmente
     setIsSnapping(false);
     
-    // Scroll estándar auto para evitar conflictos
+    // Forzamos ir al inicio de la lista visual existente con behavior 'auto' para compatibilidad total
     if (containerRef.current) {
-      containerRef.current.style.overflowY = 'hidden';
       containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
     
-    // Reiniciamos paginación y actualizamos estado (no borramos `items`)
+    // Cambiamos el estado (Esto dispara el render y el useEffect)
+    setSort(newSort);
     setPage(0);
     setHasMore(true);
     setVisibleIndex(0);
-    setSort(newSort);
 
-    // Reactivamos el snap una vez que React asimila el cambio local
+    // Reactivamos el snap una vez que React asimila todo (100ms es suficiente)
     setTimeout(() => {
       setIsSnapping(true);
-      if (containerRef.current) {
-        containerRef.current.style.overflowY = 'auto';
-      }
     }, 100);
   };
 
-  // 🔥 USEMEMO CON PUNTUACIÓN REALISTA (Likes - Dislikes) 🔥
+  // 🔥 USEMEMO CON PUNTUACIÓN REALISTA (Likes - Dislikes) Y DESEMPATE POR FECHA 🔥
   const sortedItems = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -710,6 +710,7 @@ export default function FeedPage() {
         return sourceFiltered;
     })();
 
+    // IMPORTANTE: Si todos los posts tienen 0 likes, el desempate (created_at) hará que 'popular' se vea idéntico a 'new'.
     return [...filt].sort((a, b) => {
       if (sort === "popular") {
         const scoreA = (a.likes || 0) - (a.dislikes || 0);
@@ -786,7 +787,13 @@ export default function FeedPage() {
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
-      <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2">
+      <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
+        
+        {/* 🔥 BARRA DE CARGA SUPERIOR (Indica visualmente que la BD está procesando) 🔥 */}
+        {isFetching && page === 0 && (
+           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
+        )}
+
         <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2">
           <Globe className="w-4 h-4" /> FEED GLOBAL
         </h1>
@@ -811,11 +818,11 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
+          {/* 🔥 BOTONES MAESTROS DE ORDENAMIENTO VISUALMENTE REACTIVOS 🔥 */}
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => handleSetSort('popular')} 
-            disabled={isFetching}
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
           >
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
@@ -824,7 +831,6 @@ export default function FeedPage() {
             variant="ghost" 
             size="sm" 
             onClick={() => handleSetSort('new')} 
-            disabled={isFetching}
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
           >
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
@@ -832,19 +838,13 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {sortedItems.length === 0 ? (
+      {sortedItems.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
-          {isFetching ? (
-             <div className="flex flex-col items-center justify-center p-8"><span className="animate-spin text-neon-cyan text-4xl">⏳</span></div>
-          ) : (
-             <>
-                <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
-                <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
-                <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
-                  <Link to="/perfil?tab=social">Agregar Contenido</Link>
-                </Button>
-             </>
-          )}
+          <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+          <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
+          <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
+            <Link to="/perfil?tab=social">Agregar Contenido</Link>
+          </Button>
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
@@ -874,7 +874,7 @@ export default function FeedPage() {
 
             {hasMore && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
-                <span className="animate-spin text-neon-cyan text-4xl">⏳</span>
+                <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
               </div>
             )}
           </div>
