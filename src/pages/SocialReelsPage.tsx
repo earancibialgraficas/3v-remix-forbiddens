@@ -52,6 +52,7 @@ interface SocialComment {
   avatar_url?: string | null;
 }
 
+// 🔥 LÓGICA DE EMBED MEJORADA INCLUYENDO FACEBOOK 🔥
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "youtube") {
     const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
@@ -69,6 +70,10 @@ const getEmbedUrl = (url: string, platform: string) => {
     const tkMatch2 = url.match(/tiktok\.com\/.*?video\/(\d+)/);
     if (tkMatch2) return `https://www.tiktok.com/embed/v2/${tkMatch2[1]}`;
   }
+  if (platform === "facebook") {
+    const encodedUrl = encodeURIComponent(url);
+    return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
+  }
   return null;
 };
 
@@ -84,7 +89,6 @@ const isHorizontalVideo = (item: SocialItem) => {
   return item.content_type === 'video';
 };
 
-// 🔥 MODAL CENTRADO MAGISTRALMENTE CON CREATE PORTAL 🔥
 function MediaModalFeed({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
   
@@ -166,6 +170,7 @@ function SnapCard({
   
   const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const rawVideoRef = useRef<HTMLVideoElement>(null);
   
   const [likes, setLikes] = useState(item.likes || 0);
   const [dislikes, setDislikes] = useState(item.dislikes || 0);
@@ -188,13 +193,27 @@ function SnapCard({
       if (cType === 'reel' || url?.includes('/reel')) return { w: 340, h: 605 };
       return { w: 400, h: 500 }; 
     }
+    if (platform === 'facebook') {
+      if (cType === 'reel' || url?.includes('/reel/')) return { w: 324, h: 576 };
+      return { w: 560, h: 315 };
+    }
     if (cType === 'reel' || url?.includes('shorts')) return { w: 324, h: 576 };
     return { w: 640, h: 360 };
   };
 
+  // 🔥 FORZAR AUTOPLAY MEDIANTE JAVASCRIPT CUANDO ENTRA EN PANTALLA 🔥
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
-  }, [isVisible, isVideo]);
+    
+    // Si es un video raw (MP4), forzar el play/pause dinámico
+    if (rawVideoRef.current && isDirectMp4) {
+      if (isVisible) {
+        rawVideoRef.current.play().catch(e => console.log("Autoplay bloqueado por el navegador:", e));
+      } else {
+        rawVideoRef.current.pause();
+      }
+    }
+  }, [isVisible, isVideo, isDirectMp4, onPauseMusic]);
 
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
@@ -318,10 +337,13 @@ function SnapCard({
     }
   };
 
-  const finalEmbedUrl = isVisible && embedUrl
-    ? item.platform === 'youtube' ? `${embedUrl}?autoplay=1&mute=0`
-      : item.platform === 'tiktok' ? `${embedUrl}?autoplay=1` : embedUrl
-    : embedUrl;
+  // 🔥 IFRAMES AUTOPLAY DINÁMICO 🔥 (Muted obligatorio para que el navegador lo permita)
+  let finalEmbedUrl = embedUrl;
+  if (isVisible && embedUrl) {
+    if (item.platform === 'youtube') finalEmbedUrl = `${embedUrl}?autoplay=1&mute=1`;
+    else if (item.platform === 'tiktok') finalEmbedUrl = `${embedUrl}?autoplay=1`;
+    else if (item.platform === 'facebook') finalEmbedUrl = `${embedUrl}&autoplay=true&mute=1`;
+  }
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
@@ -354,11 +376,12 @@ function SnapCard({
             </div>
           </div>
         ) : isDirectMp4 ? (
-          <video src={item.content_url} controls autoPlay={isVisible} muted className="w-full h-full object-contain" />
+          <video ref={rawVideoRef} src={item.content_url} controls muted loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            {/* 🔥 ATRIBUTO allow="autoplay" AÑADIDO 🔥 */}
+            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
@@ -413,7 +436,6 @@ function SnapCard({
             </div>
             
             <div className="ml-auto flex items-center gap-1 shrink-0">
-              {/* 🔥 ICONOS PEQUEÑOS DE DUEÑO AL LADO DE GUARDAR 🔥 */}
               {isOwner && (
                 <>
                   <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow transition-colors" title="Editar">
@@ -551,7 +573,6 @@ function SnapCard({
         </div>
       </div>
       
-      {/* MODAL PORTAL DE MEDIOS */}
       {showMediaModal && (
          <MediaModalFeed 
             src={getSafeUrl(targetImgUrl)} 
@@ -571,7 +592,6 @@ export default function SocialReelsPage() {
   const { toast } = useToast();
   const location = useLocation();
 
-  // 🔥 1. ESTADOS MAESTROS EXACTOS 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [items, setItems] = useState<SocialItem[]>([]);
   const [page, setPage] = useState(0);
@@ -579,7 +599,6 @@ export default function SocialReelsPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [visibleIndex, setVisibleIndex] = useState(0);
 
-  // Estados visuales extra (Filtros)
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -589,7 +608,6 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
   const fetchContent = async (resetPage: boolean, sortMode: 'new' | 'popular') => {
     if (isFetching) return;
     setIsFetching(true);
@@ -601,13 +619,12 @@ export default function SocialReelsPage() {
 
       const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
-      // SOCIAL CONTENT (REELS & VIDEOS)
       const { data: content, error: err1 } = await supabase
         .from("social_content")
         .select("*")
         .eq("is_public", true)
         .neq("is_banned", true)
-        .in('content_type', ['video', 'reel']) // SOLO REELS Y VIDEOS
+        .in('content_type', ['video', 'reel']) 
         .order(orderCol, { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -627,7 +644,7 @@ export default function SocialReelsPage() {
             dislikes: c.dislikes || 0,
             created_at: c.created_at || new Date().toISOString(),
             target_type: "social_content"
-          })).filter(c => c.created_at) // Filtra items sin fecha válida
+          })).filter(c => c.created_at) 
         ];
       }
 
@@ -640,14 +657,12 @@ export default function SocialReelsPage() {
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       });
 
-      // 🔥 3. ORDEN FINAL ABSOLUTO DEL BLOQUE OBTENIDO 🔥
       processed.sort((a, b) => {
         if (sortMode === "popular") {
           const scoreA = (a.likes || 0) - (a.dislikes || 0);
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
         }
-        // Fallback por fecha, con manejo de NULL
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return dateB - dateA;
@@ -668,14 +683,12 @@ export default function SocialReelsPage() {
           const unique = processed.filter((x) => !ids.has(x.id));
           const merged = [...prev, ...unique];
 
-          // 🔁 IMPORTANTE: ordenar TODO el array acumulado de nuevo
           return merged.sort((a, b) => {
             if (sortMode === "popular") {
               const scoreA = (a.likes || 0) - (a.dislikes || 0);
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
             }
-            // Fallback por fecha, con manejo de NULL
             const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
             const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
             return dateB - dateA;
@@ -697,7 +710,6 @@ export default function SocialReelsPage() {
     }
   };
 
-  // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
     fetchContent(true, sort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -709,7 +721,6 @@ export default function SocialReelsPage() {
     }
   };
 
-  // Acciones de los posts 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
@@ -754,7 +765,6 @@ export default function SocialReelsPage() {
         original_id: item.id,
         title: item.caption || item.title || 'Publicación de Reels',
         thumbnail_url: item.image_url || item.thumbnail_url || item.content_url,
-        // 🔥 CORRECCIÓN DEL 404: AHORA GUARDA LA RUTA EXACTA DEL REEL 🔥
         redirect_url: '/social/reels?post=' + item.id 
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada en tu perfil." });
@@ -769,13 +779,11 @@ export default function SocialReelsPage() {
     }
   };
 
-  // 🔥 HANDLER DE CAMBIO DE FILTRO MEJORADO 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
     if (sort === newSort || isFetching) return;
     
     setIsSnapping(false);
     
-    // Reiniciamos variables
     setPage(0);
     setHasMore(true);
     setVisibleIndex(0);
@@ -788,7 +796,6 @@ export default function SocialReelsPage() {
     setTimeout(() => setIsSnapping(true), 150);
   };
 
-  // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS", ETC 🔥
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -801,7 +808,6 @@ export default function SocialReelsPage() {
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
-  // 🔥 6. TRUCO DE SCROLL MÁGICO (Desde Guardados hasta el Post exacto) 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -814,7 +820,6 @@ export default function SocialReelsPage() {
             setVisibleIndex(index);
             setHasScrolled(true);
             
-            // Limpia la URL en el navegador
             window.history.replaceState({}, '', location.pathname);
             
             setTimeout(() => setIsSnapping(true), 800);
@@ -828,7 +833,6 @@ export default function SocialReelsPage() {
     }
   }, [directPostId, filteredItems, hasScrolled, location.pathname]);
 
-  // 🔥 7. OBSERVER QUE DISPARA EL PAGINADO "INFINITO" 🔥
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
 
@@ -844,7 +848,6 @@ export default function SocialReelsPage() {
 
             setVisibleIndex(index);
 
-            // Si llegamos casi al final de la lista visual, cargamos más
             if (index >= filteredItems.length - 2 && hasMore && !isFetching) {
               loadMore();
             }
