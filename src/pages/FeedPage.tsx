@@ -510,6 +510,7 @@ function SnapCard({
   );
 }
 
+// 🔥 COMPONENTE PRINCIPAL CON SOLUCIÓN DE ESTADO EXACTA 🔥
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -520,9 +521,11 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADOS EXACTOS COMO ORDENASTE 🔥
+  // 1. EL ESTADO EXACTO QUE PEDISTE
   const [sort, setSort] = useState<'new' | 'popular'>('new');
+  
   const [isFetching, setIsFetching] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(true); // Controla el imán de scroll
   
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -534,7 +537,7 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 FETCH DEPENDIENDO DIRECTAMENTE DE LA BASE DE DATOS Y DEL ESTADO 'SORT' 🔥
+  // 2. EL FETCH QUE DEPENDE DE SORT (Tu sugerencia implementada)
   const fetchContent = async (pageNum: number, currentSort: string) => {
     setIsFetching(true);
     try {
@@ -612,6 +615,23 @@ export default function FeedPage() {
     fetchContent(page, sort); 
   }, [page, sort]);
 
+  // 🔥 3. DESACTIVAR SCROLL Y REORDENAR AL CAMBIAR FILTROS 🔥
+  useEffect(() => {
+    // Apagamos el imán de scroll temporalmente
+    setIsSnapping(false);
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: "instant" });
+    }
+    setVisibleIndex(0);
+
+    // Lo reactivamos poco después, cuando React ya asimiló los datos
+    const timer = setTimeout(() => {
+      setIsSnapping(true);
+    }, 200);
+    
+    return () => clearTimeout(timer);
+  }, [sort, filter, sourceTab]);
+
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
@@ -670,32 +690,7 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 HANDLER CON BLOQUEO TEMPORAL DE SCROLL (Para vencer el imán snap-y) 🔥
-  const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort || isFetching) return;
-    
-    // 1. Congelar el scroll y saltar al inicio
-    if (containerRef.current) {
-      containerRef.current.style.overflowY = 'hidden';
-      containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
-    }
-    
-    // 2. Cambiar estado y limpiar
-    setSort(newSort);
-    setPage(0);
-    setHasMore(true);
-    setItems([]); 
-    setVisibleIndex(0);
-
-    // 3. Descongelar el scroll una vez que la pantalla asimiló el cambio (500ms)
-    setTimeout(() => {
-      if (containerRef.current) {
-        containerRef.current.style.overflowY = 'auto';
-      }
-    }, 500);
-  };
-
-  // 🔥 EL USEMEMO EXACTO QUE PEDISTE PARA ORDENAMIENTO EN VIVO 🔥
+  // 4. EL USEMEMO EXACTO QUE ME PEDISTE
   const sortedItems = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -706,20 +701,13 @@ export default function FeedPage() {
         return sourceFiltered;
     })();
 
+    // La magia visual instantánea
     return [...filt].sort((a, b) => 
       sort === 'new' 
         ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime() 
         : (b.likes || 0) - (a.likes || 0)
     );
   }, [items, filter, sourceTab, sort, friendIds]);
-
-  // Al cambiar filtros visuales (no de orden), también reiniciamos el scroll
-  useEffect(() => {
-    if (containerRef.current && items.length > 0) {
-      containerRef.current.scrollTo({ top: 0, behavior: "instant" });
-    }
-    setVisibleIndex(0);
-  }, [filter, sourceTab]);
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
@@ -803,10 +791,20 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => { setSort('popular'); setPage(0); }} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
+          >
              <Flame className="w-3 h-3 mr-1" /> Top
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => { setSort('new'); setPage(0); }} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
+          >
              <Sparkles className="w-3 h-3 mr-1" /> Nuevos
           </Button>
         </div>
@@ -828,8 +826,12 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          {/* El overflow se controla dinámicamente mediante el ref para no perder los estilos de scroll infinito */}
-          <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* 🔥 EL MANEJO DE OVERFLOW ACÁ EVITA QUE EL NAVEGADOR SE TRABE CON EL IMÁN 🔥 */}
+          <div 
+            ref={containerRef} 
+            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {sortedItems.map((item, i) => (
