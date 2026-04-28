@@ -413,21 +413,34 @@ function SnapCard({
             </div>
             
             <div className="ml-auto flex items-center gap-1 shrink-0">
+              {/* 🔥 ICONOS PEQUEÑOS DE DUEÑO AL LADO DE GUARDAR 🔥 */}
+              {isOwner && (
+                <>
+                  <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow transition-colors" title="Editar">
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => onDeletePost(item.id, targetType)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
+
               {user && (
-                <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
-                  <Bookmark className="w-3 h-3" />
+                <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan transition-colors" title="Guardar">
+                  <Bookmark className="w-3.5 h-3.5" />
                 </button>
               )}
               {user && !isOwner && (
-                <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
-                  <Flag className="w-3 h-3" />
+                <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Reportar">
+                  <Flag className="w-3.5 h-3.5" />
                 </button>
               )}
+
               {isStaff && !isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-1 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
-                      <Shield className="w-3 h-3" />
+                    <button className="p-1 text-muted-foreground hover:text-neon-magenta transition-colors">
+                      <Shield className="w-3.5 h-3.5" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
@@ -449,19 +462,6 @@ function SnapCard({
               )}
             </div>
           </div>
-
-          {/* 🔥 BOTONES DE EDICIÓN PARA EL DUEÑO ESTILO FORO 🔥 */}
-          {isOwner && !isEditing && (
-             <div className="flex items-center gap-3 mb-2 bg-muted/30 p-1.5 rounded border border-border/50">
-               <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-1 text-[10px] font-body text-muted-foreground hover:text-neon-yellow transition-colors flex-1 justify-center">
-                 <Edit2 className="w-3 h-3" /> Editar
-               </button>
-               <div className="w-px h-3 bg-border" />
-               <button onClick={() => onDeletePost(item.id, targetType)} className="flex items-center gap-1 text-[10px] font-body text-muted-foreground hover:text-destructive transition-colors flex-1 justify-center">
-                 <Trash2 className="w-3 h-3" /> Eliminar
-               </button>
-             </div>
-          )}
           
           {isEditing ? (
             <div className="mb-2 mt-1 space-y-2 animate-fade-in">
@@ -565,7 +565,6 @@ function SnapCard({
   );
 }
 
-// 🔥 COMPONENTE PRINCIPAL CON LOS ESTADOS EXACTOS 🔥
 export default function SocialReelsPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -770,6 +769,25 @@ export default function SocialReelsPage() {
     }
   };
 
+  // 🔥 HANDLER DE CAMBIO DE FILTRO MEJORADO 🔥
+  const handleSetSort = (newSort: 'new' | 'popular') => {
+    if (sort === newSort || isFetching) return;
+    
+    setIsSnapping(false);
+    
+    // Reiniciamos variables
+    setPage(0);
+    setHasMore(true);
+    setVisibleIndex(0);
+    setSort(newSort);
+
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    setTimeout(() => setIsSnapping(true), 150);
+  };
+
   // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS", ETC 🔥
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
@@ -803,7 +821,7 @@ export default function SocialReelsPage() {
           } else {
              setHasScrolled(true);
           }
-        }, 500);
+        }, 500); 
       } else {
         setHasScrolled(true);
       }
@@ -852,7 +870,7 @@ export default function SocialReelsPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
         
-        {isFetching && items.length === 0 && (
+        {isFetching && page === 0 && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />
         )}
 
@@ -883,7 +901,7 @@ export default function SocialReelsPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setSort('popular')} 
+            onClick={() => handleSetSort('popular')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
           >
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
@@ -891,7 +909,7 @@ export default function SocialReelsPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setSort('new')} 
+            onClick={() => handleSetSort('new')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
           >
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
