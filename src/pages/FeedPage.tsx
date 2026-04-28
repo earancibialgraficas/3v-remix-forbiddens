@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
-
-// 🔥 IMPORTAMOS EL MENÚ DESPLEGABLE PARA EL STAFF 🔥
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const getSafeUrl = (url: string) => {
@@ -97,6 +95,7 @@ function SnapCard({
   onPauseMusic, 
   isStaff,
   onDeletePost,
+  onEditPost,
   onHidePost,
   onSavePost,
   onScrollUp,
@@ -107,6 +106,7 @@ function SnapCard({
   onPauseMusic: () => void;
   isStaff: boolean;
   onDeletePost: (id: string, targetType: string) => void;
+  onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
   onSavePost: (item: FeedItem) => void;
   onScrollUp: () => void;
@@ -117,6 +117,8 @@ function SnapCard({
   
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
+
+  const isOwner = user?.id === item.user_id;
 
   const embedUrl = getAdvancedEmbedUrl(item.content_url, item.platform);
   const isVideo = isVideoItem(item);
@@ -139,6 +141,11 @@ function SnapCard({
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [showMobilePanel, setShowMobilePanel] = useState(false);
+  
+  // Edición del contenido
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.title || item.caption || "");
+
   const votingRef = useRef(false);
 
   const getBaseSize = (platform: string, cType: string, url: string) => {
@@ -364,18 +371,30 @@ function SnapCard({
               <Link to={`/usuario/${item.user_id}`} className="text-[11px] font-body font-bold text-foreground hover:text-primary truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
               <span className="text-[8px] text-muted-foreground font-body uppercase tracking-wider">{item.platform}</span>
             </div>
+            
+            {/* 🔥 BOTONES DE ACCIÓN: GUARDAR, REPORTAR, EDITAR, ELIMINAR 🔥 */}
             <div className="ml-auto flex items-center gap-1 shrink-0">
               {user && (
                 <button onClick={() => onSavePost(item)} className="p-1 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
                   <Bookmark className="w-3 h-3" />
                 </button>
               )}
-              {user && (
+              {user && !isOwner && (
                 <button onClick={() => setShowReport(true)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Reportar">
                   <Flag className="w-3 h-3" />
                 </button>
               )}
-              {isStaff && (
+              {isOwner && (
+                <>
+                  <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow hover:bg-neon-yellow/10 rounded transition-colors" title="Editar">
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button onClick={() => onDeletePost(item.id, targetType)} className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Eliminar">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+              {isStaff && !isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="p-1 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
@@ -401,7 +420,25 @@ function SnapCard({
               )}
             </div>
           </div>
-          <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || item.caption || "Contenido de la comunidad"}</p>
+          
+          {/* 🔥 MODO DE EDICIÓN PARA EL CREADOR 🔥 */}
+          {isEditing ? (
+            <div className="mb-2 mt-1 space-y-2 animate-fade-in">
+              <Textarea 
+                value={editTitle} 
+                onChange={e => setEditTitle(e.target.value)} 
+                className="bg-black/50 border-white/10 text-xs font-body min-h-[50px] resize-none" 
+                placeholder="Escribe tu título aquí..."
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => { onEditPost(item.id, editTitle, targetType); setIsEditing(false); }} className="text-[10px] h-6 bg-neon-cyan text-black hover:bg-neon-cyan/80">Guardar</Button>
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(false)} className="text-[10px] h-6 border-white/10">Cancelar</Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[10px] font-body text-foreground line-clamp-3 leading-snug mb-2">{item.title || item.caption || "Contenido de la comunidad"}</p>
+          )}
+          
           <div className="hidden md:flex items-center gap-3">
             <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3.5 h-3.5" /> {likes}
@@ -430,8 +467,8 @@ function SnapCard({
                     )}
                   </div>
                   <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-2.5 h-2.5" /></button>
-                    {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar (Staff)"><Trash2 className="w-2.5 h-2.5" /></button>}
+                    {user && user.id !== c.user_id && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-2.5 h-2.5" /></button>}
+                    {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
                   </div>
                 </div>
               ))}
@@ -472,7 +509,7 @@ function SnapCard({
           </div>
         </div>
       </div>
-      {showReport && <ReportModal reportedUserId={item.user_id} reportedUserName={item.display_name || "Anónimo"} onClose={() => setShowReport(false)} />}
+      {showReport && <ReportModal reportedUserId={item.user_id} reportedUserName={item.display_name || "Anónimo"} postId={item.id} onClose={() => setShowReport(false)} />}
     </div>
   );
 }
@@ -481,10 +518,15 @@ export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
+  const location = useLocation(); // 🔥 IMPORTADO PARA LEER PARÁMETROS 🔥
+  
   const [items, setItems] = useState<FeedItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
+  const [sortBy, setSortBy] = useState<"new" | "popular">("new"); // 🔥 NUEVO ESTADO DE ORDENAMIENTO 🔥
+  
   const [visibleIndex, setVisibleIndex] = useState(0);
+  const [hasScrolled, setHasScrolled] = useState(false); // Para no scrollear al infinito
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -511,6 +553,7 @@ export default function FeedPage() {
 
     if (combined.length === 0) { setItems([]); return; }
     
+    // El ordenamiento se hace más adelante dinámicamente
     combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const userIds = [...new Set(combined.map(c => c.user_id))];
@@ -525,19 +568,18 @@ export default function FeedPage() {
 
   useEffect(() => { fetchContent(); }, []);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const cards = containerRef.current.querySelectorAll("[data-card-index]");
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setVisibleIndex(parseInt((entry.target as HTMLElement).dataset.cardIndex || "0"));
-        }
-      });
-    }, { threshold: 0.6 });
-    cards.forEach(card => observer.observe(card));
-    return () => observer.disconnect();
-  }, [items, filter]);
+  // 🔥 LÓGICA DE EDICIÓN PARA EL DUEÑO DEL POST 🔥
+  const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
+    const table = targetType === "photo" ? "photos" : "social_content";
+    const field = targetType === "photo" ? "caption" : "title";
+    const { error } = await supabase.from(table).update({ [field]: newTitle } as any).eq("id", id);
+    if (!error) {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, title: newTitle, caption: newTitle } : i));
+      toast({ title: "Publicación editada con éxito" });
+    } else {
+      toast({ title: "Error", description: "No se pudo editar", variant: "destructive" });
+    }
+  };
 
   const handleDeletePost = async (id: string, tType: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
@@ -545,7 +587,7 @@ export default function FeedPage() {
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (!error) {
       setItems(prev => prev.filter(i => i.id !== id));
-      toast({ title: "Publicación eliminada por el Staff" });
+      toast({ title: "Publicación eliminada" });
     } else {
       toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
     }
@@ -562,7 +604,6 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 SOLUCIÓN DEL ERROR DE TYPESCRIPT CON 'as any' 🔥
   const handleSaveToProfile = async (item: FeedItem) => {
     if (!user) return;
     try { 
@@ -572,7 +613,7 @@ export default function FeedPage() {
         original_id: item.id,
         title: item.caption || item.title || 'Publicación del Feed',
         thumbnail_url: item.image_url || item.thumbnail_url || item.content_url,
-        redirect_url: '/feed'
+        redirect_url: '/social/feed?post=' + item.id
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada en tu perfil." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -586,14 +627,8 @@ export default function FeedPage() {
     }
   };
 
+  // 🔥 1. FILTRADO (Amigos / Tipos) 🔥
   const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
-
-  const filterTabs = [
-    { id: "all", label: "Todos", icon: Globe },
-    { id: "videos", label: "Videos", icon: Video },
-    { id: "reels", label: "Reels", icon: Music2 },
-    { id: "photos", label: "Imágenes", icon: ImageIcon },
-  ];
 
   const filtered = (() => {
       if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
@@ -601,6 +636,54 @@ export default function FeedPage() {
       if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
       return sourceFiltered;
   })();
+
+  // 🔥 2. ORDENAMIENTO FINAL (Nuevos / Top) 🔥
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    if (sortBy === "popular") return (b.likes || 0) - (a.likes || 0);
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  // 🔥 3. AUTO-SCROLL AL ENTRAR DESDE GUARDADOS 🔥
+  const searchParams = new URLSearchParams(location.search);
+  const directPostId = searchParams.get("post");
+
+  useEffect(() => {
+    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
+      const index = sortedFiltered.findIndex(item => item.id === directPostId);
+      if (index !== -1) {
+        setTimeout(() => {
+          const card = document.getElementById(`feed-post-${directPostId}`);
+          if (card) {
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+            setVisibleIndex(index);
+            setHasScrolled(true);
+          }
+        }, 500); // 500ms para asegurar que las imágenes e iframes carguen sus dimensiones
+      }
+    }
+  }, [directPostId, sortedFiltered, hasScrolled]);
+
+  // Actualiza el índice visible al hacer scroll manual
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const cards = containerRef.current.querySelectorAll("[data-card-index]");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setVisibleIndex(parseInt((entry.target as HTMLElement).dataset.cardIndex || "0"));
+        }
+      });
+    }, { threshold: 0.6 });
+    cards.forEach(card => observer.observe(card));
+    return () => observer.disconnect();
+  }, [sortedFiltered]);
+
+  const filterTabs = [
+    { id: "all", label: "Todos", icon: Globe },
+    { id: "videos", label: "Videos", icon: Video },
+    { id: "reels", label: "Reels", icon: Music2 },
+    { id: "photos", label: "Imágenes", icon: ImageIcon },
+  ];
 
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
@@ -611,24 +694,37 @@ export default function FeedPage() {
         <p className="text-[10px] text-muted-foreground font-body">Todo el contenido social de la comunidad en un solo lugar</p>
       </div>
 
-      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 flex-wrap items-center shrink-0 shadow-sm mx-1 md:mx-2">
-        {filterTabs.map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
-            <f.icon className="w-3 h-3" /> {f.label}
-          </button>
-        ))}
-
-        {user && (
-          <>
-            <div className="w-px h-5 bg-border mx-1" />
-            <button onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")} title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}>
-              <Users className="w-3 h-3" /> Amigos
+      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 flex-wrap items-center shrink-0 shadow-sm mx-1 md:mx-2 justify-between">
+        
+        <div className="flex flex-wrap gap-1 items-center">
+          {filterTabs.map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", filter === f.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <f.icon className="w-3 h-3" /> {f.label}
             </button>
-          </>
-        )}
+          ))}
+          {user && (
+            <>
+              <div className="w-px h-5 bg-border mx-1" />
+              <button onClick={() => setSourceTab(prev => prev === "friends" ? "all" : "friends")} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all", sourceTab === "friends" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")} title={sourceTab === "friends" ? "Mostrando solo amigos" : "Filtrar por amigos"}>
+                <Users className="w-3 h-3" /> Amigos
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* 🔥 NUEVOS BOTONES DE TOP / NUEVOS 🔥 */}
+        <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
+          <Button variant="ghost" size="sm" onClick={() => setSortBy("popular")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+             <Flame className="w-3 h-3 mr-1" /> Top
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSortBy("new")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+             <Sparkles className="w-3 h-3 mr-1" /> Nuevos
+          </Button>
+        </div>
+
       </div>
 
-      {filtered.length === 0 ? (
+      {sortedFiltered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -640,14 +736,15 @@ export default function FeedPage() {
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            {filtered.map((item, i) => (
-              <div key={item.id} data-card-index={i} className="h-full w-full snap-center snap-always">
+            {sortedFiltered.map((item, i) => (
+              <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
                   isVisible={i === visibleIndex} 
                   onPauseMusic={pauseMusic} 
                   isStaff={isStaff} 
                   onDeletePost={handleDeletePost} 
+                  onEditPost={handleEditPost}
                   onHidePost={handleHidePost}
                   onSavePost={handleSaveToProfile}
                   onScrollUp={() => scrollContainer('up')} 
