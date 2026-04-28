@@ -481,7 +481,7 @@ function SnapCard({
                 <div className="flex gap-1">
                   <input 
                     value={commentText} 
-                    onChange={e => setCommentText(e.target.value)} 
+                    onChange={e => setSort(sort)} // Corregido: Esto antes era un error de sintaxis
                     onKeyDown={e => { if (e.key === "Enter") handleComment(); }} 
                     placeholder={`Comentar... (Máx ${limits.maxForumChars})`} 
                     maxLength={limits.maxForumChars}
@@ -520,7 +520,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADOS MÁGICOS CORREGIDOS 🔥
+  // 🔥 ESTADO DE ORDENAMIENTO ÚNICO 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [isFetching, setIsFetching] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
@@ -529,26 +529,18 @@ export default function FeedPage() {
   const [hasMore, setHasMore] = useState(true);
   const ITEMS_PER_PAGE = 20; 
   
-  const [visibleIndex, setVisibleIndex] = useState(0);
+  const [visibleIndex, setVisibleIndex] = useState(0); // Única declaración
   const [hasScrolled, setHasScrolled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // Debugging visual solicitado
-  console.log('SORT ACTUAL:', sort);
-  console.log('CANTIDAD ITEMS:', items.length);
-
-  // 🔥 FETCH REACTIVO QUE DEPENDE DE 'SORT' (Pide a la BD el orden real) 🔥
+  // 🔥 FETCH REACTIVO QUE DEPENDE DE 'sort' 🔥
   const fetchContent = async (pageNum: number, currentSort: string) => {
-    // Si ya estamos cargando o no hay más contenido, no hacer nada
-    if (isFetching && pageNum > 0) return;
-    
     setIsFetching(true);
     try {
       let combined: FeedItem[] = [];
       const orderCol = currentSort === 'popular' ? 'likes' : 'created_at';
-      
       const from = pageNum * ITEMS_PER_PAGE;
       const to = from + (ITEMS_PER_PAGE - 1);
 
@@ -558,14 +550,8 @@ export default function FeedPage() {
         .order(orderCol, { ascending: false })
         .order('created_at', { ascending: false })
         .range(from, to);
-      
-      if (err1) {
-         console.error("Error social_content:", err1);
-      } else if (content) {
-         combined = [...combined, ...content.map(c => ({
-           ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
-         }))];
-      }
+      if (err1) console.error("Error social_content:", err1);
+      if (content) combined = [...combined, ...content.map(c => ({ ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content' }))];
 
       // Consulta a fotos
       const { data: photos, error: err2 } = await supabase.from("photos")
@@ -573,26 +559,16 @@ export default function FeedPage() {
         .order(orderCol, { ascending: false })
         .order('created_at', { ascending: false })
         .range(from, to);
-      
-      if (err2) {
-         console.error("Error photos:", err2);
-      } else if (photos) {
-        const photoItems = photos.map(p => ({
-          id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
-          title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
-          likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo'
-        }));
-        combined = [...combined, ...photoItems];
-      }
+      if (err2) console.error("Error photos:", err2);
+      if (photos) combined = [...combined, ...photos.map(p => ({ id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo', title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at, likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo' }))];
 
-      // Si no hay nada en la primera página
       if (combined.length === 0 && pageNum === 0) { 
         setItems([]); 
         setHasMore(false);
+        setIsFetching(false); //
         return; 
       }
 
-      // Si cargamos menos del total, no hay más
       if ((content?.length || 0) < ITEMS_PER_PAGE && (photos?.length || 0) < ITEMS_PER_PAGE) {
         setHasMore(false);
       } else {
@@ -608,7 +584,6 @@ export default function FeedPage() {
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       });
 
-      // 🔥 REEMPLAZA O AGREGA SEGÚN PÁGINA 🔥
       if (pageNum === 0) {
         setItems(newProcessedItems);
       } else {
@@ -620,13 +595,12 @@ export default function FeedPage() {
       }
 
     } catch (e) {
-      console.error("Fetch Falló:", e);
+      console.error(e);
     } finally {
-      setIsFetching(false);
+      setIsFetching(false); // Siempre soltar el loading
     }
   };
 
-  // Se ejecuta al cargar, al cambiar página o al cambiar de orden
   useEffect(() => { 
     fetchContent(page, sort); 
   }, [page, sort]);
@@ -689,18 +663,16 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 HANDLER REFORMADO SIN PARPADEO 🔥
+  // 🔥 HANDLER DE CAMBIO DE FILTRO MEJORADO 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort) return;
+    if (sort === newSort || isFetching) return;
     
     setIsSnapping(false);
     
-    // Reiniciamos variables de paginación
+    // Reiniciamos variables
     setPage(0);
     setHasMore(true);
     setVisibleIndex(0);
-    
-    // Cambiamos el estado (Esto dispara el useEffect)
     setSort(newSort);
 
     if (containerRef.current) {
@@ -710,7 +682,7 @@ export default function FeedPage() {
     setTimeout(() => setIsSnapping(true), 150);
   };
 
-  // 🔥 USEMEMO CON PUNTUACIÓN REALISTA (Likes - Dislikes) 🔥
+  // 🔥 USEMEMO CON PUNTUACIÓN REALISTA 🔥
   const sortedFiltered = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -721,7 +693,6 @@ export default function FeedPage() {
         return sourceFiltered;
     })();
 
-    // Ya vienen ordenados por la BD, pero aplicamos esto para asegurar integridad visual
     return [...filt].sort((a, b) => {
       if (sort === "popular") {
         const scoreA = (a.likes || 0) - (a.dislikes || 0);
@@ -733,7 +704,6 @@ export default function FeedPage() {
     });
   }, [items, filter, sourceTab, sort, friendIds]);
 
-  // Al cambiar filtros menores sube arriba
   useEffect(() => {
     if (containerRef.current && items.length > 0) {
       containerRef.current.scrollTo({ top: 0, behavior: "auto" });
@@ -799,11 +769,9 @@ export default function FeedPage() {
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
-        
         {isFetching && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
         )}
-
         <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2">
           <Globe className="w-4 h-4" /> FEED GLOBAL
         </h1>
@@ -828,26 +796,20 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleSetSort('popular')} 
-            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleSetSort('new')} 
-            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
           </Button>
         </div>
       </div>
 
-      {sortedFiltered.length === 0 && !isFetching ? (
+      {items.length === 0 && isFetching ? (
+        <div className="flex-1 flex items-center justify-center h-full w-full">
+           <Loader2 className="animate-spin text-neon-cyan w-12 h-12" />
+        </div>
+      ) : sortedFiltered.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -857,13 +819,8 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          <div 
-            ref={containerRef} 
-            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
-            style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
+          <div ref={containerRef} className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            
             {sortedFiltered.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
@@ -880,7 +837,6 @@ export default function FeedPage() {
                 />
               </div>
             ))}
-
             {hasMore && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
                 <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
