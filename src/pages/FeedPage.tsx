@@ -517,7 +517,7 @@ export default function FeedPage() {
   const { toast } = useToast();
   const location = useLocation();
 
-  // ESTADOS MAESTROS EXACTOS
+  // 🔥 1. ESTADOS MAESTROS EXACTOS 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [page, setPage] = useState(0);
@@ -525,40 +525,52 @@ export default function FeedPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [visibleIndex, setVisibleIndex] = useState(0);
 
-  // Estados visuales extra (Filtros, Navbar)
+  // Estados visuales extra (Filtros)
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(true);
 
-  const ITEMS_PER_PAGE = 20; 
+  const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 FETCH REAL (Independiente del sort visual para evitar recargas completas destructivas de la BD) 🔥
-  const fetchContent = async (pageNum: number) => {
+  // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
+  const fetchContent = async (reset = false) => {
     if (isFetching) return;
     setIsFetching(true);
 
     try {
-      let combined: FeedItem[] = [];
-      const from = pageNum * ITEMS_PER_PAGE;
-      const to = from + (ITEMS_PER_PAGE - 1);
+      const currentPage = reset ? 0 : page;
+      const from = currentPage * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
 
-      // SIEMPRE descarga los más recientes de la base de datos para llenar la piscina de items
-      const { data: content } = await supabase
+      const orderCol = sort === "popular" ? "likes" : "created_at";
+
+      // SOCIAL CONTENT
+      const { data: content, error: err1 } = await supabase
         .from("social_content")
         .select("*")
         .eq("is_public", true)
         .neq("is_banned", true)
+        .order(orderCol, { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      const { data: photos } = await supabase
+      if (err1) console.error("Error social_content:", err1);
+
+      // PHOTOS
+      const { data: photos, error: err2 } = await supabase
         .from("photos")
         .select("*")
         .neq("is_banned", true)
+        .order(orderCol, { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
+
+      if (err2) console.error("Error photos:", err2);
+
+      let combined: FeedItem[] = [];
 
       if (content) {
         combined = [
@@ -598,74 +610,75 @@ export default function FeedPage() {
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
       
-      const enrichedItems = combined.map(c => {
+      let processed = combined.map(c => {
         const p = profileMap.get(c.user_id);
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       });
 
-      if (pageNum === 0) {
-        setItems(enrichedItems);
+      // 🔥 3. ORDEN FINAL ABSOLUTO DEL BLOQUE OBTENIDO 🔥
+      processed.sort((a, b) => {
+        if (sort === "popular") {
+          const scoreA = (a.likes || 0) - (a.dislikes || 0);
+          const scoreB = (b.likes || 0) - (b.dislikes || 0);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      if (reset) {
+        setItems(processed);
+        setPage(1);
+        setVisibleIndex(0);
+        if (containerRef.current) {
+          setIsSnapping(false);
+          containerRef.current.scrollTo({ top: 0, behavior: "auto" });
+          setTimeout(() => setIsSnapping(true), 150);
+        }
       } else {
         setItems((prev) => {
           const ids = new Set(prev.map((x) => x.id));
-          const unique = enrichedItems.filter((x) => !ids.has(x.id));
-          return [...prev, ...unique];
+          const unique = processed.filter((x) => !ids.has(x.id));
+          const merged = [...prev, ...unique];
+
+          // 🔁 IMPORTANTE: ordenar TODO el array acumulado de nuevo
+          return merged.sort((a, b) => {
+            if (sort === "popular") {
+              const scoreA = (a.likes || 0) - (a.dislikes || 0);
+              const scoreB = (b.likes || 0) - (b.dislikes || 0);
+              if (scoreB !== scoreA) return scoreB - scoreA;
+            }
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          });
         });
+        setPage((prev) => prev + 1);
       }
 
-      if (combined.length < ITEMS_PER_PAGE) {
+      if ((content?.length || 0) < ITEMS_PER_PAGE && (photos?.length || 0) < ITEMS_PER_PAGE) {
         setHasMore(false);
       } else {
         setHasMore(true);
       }
+
     } catch (err) {
-      console.error(err);
+      console.error("UNEXPECTED ERROR:", err);
     } finally {
       setIsFetching(false);
     }
   };
 
-  // 🔥 EFECTO QUE SOLO DEPENDE DE 'PAGE' 🔥
-  // "Dejas el fetch tranquilo" - Solo descarga items, el orden lo da el useMemo.
+  // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
-    fetchContent(page);
-  }, [page]);
+    fetchContent(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
-  // 🔥 BOTÓN TOP / NUEVOS FUNCIONAL REAL 🔥
-  const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (newSort === sort) return;
-
-    setSort(newSort);
-    setVisibleIndex(0);
-
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
+  const loadMore = () => {
+    if (!isFetching && hasMore) {
+      fetchContent(false);
     }
   };
 
-  // 🔥 ORDENADO SOLO EN EL RENDER CON USEMEMO 🔥
-  const sortedFiltered = useMemo(() => {
-    let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : [...items];
-
-    if (filter === "videos") filt = filt.filter(isHorizontalVideo);
-    if (filter === "reels") filt = filt.filter(isReelItem);
-    if (filter === "photos") filt = filt.filter(i => i.content_type === 'photo');
-
-    return filt.sort((a, b) => {
-      if (sort === "popular") {
-        const scoreA = (a.likes || 0) - (a.dislikes || 0);
-        const scoreB = (b.likes || 0) - (b.dislikes || 0);
-        if (scoreB !== scoreA) return scoreB - scoreA;
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-  }, [items, filter, sourceTab, sort, friendIds]);
-
-
-  // Acciones de los posts (mantienen el código intacto)
+  // Acciones de los posts 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
@@ -724,13 +737,24 @@ export default function FeedPage() {
     }
   };
 
-  // Scroll a Post Específico
+  // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS", ETC 🔥
+  const filteredItems = useMemo(() => {
+    let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
+
+    if (filter === "videos") filt = filt.filter(isHorizontalVideo);
+    if (filter === "reels") filt = filt.filter(isReelItem);
+    if (filter === "photos") filt = filt.filter(i => i.content_type === 'photo');
+    
+    return filt;
+  }, [items, filter, sourceTab, friendIds]);
+
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
+  // Scroll a Post Específico desde la URL
   useEffect(() => {
-    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
-      const index = sortedFiltered.findIndex(item => item.id === directPostId);
+    if (directPostId && !hasScrolled && filteredItems.length > 0) {
+      const index = filteredItems.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         let attempts = 0;
         const attemptScroll = () => {
@@ -752,11 +776,11 @@ export default function FeedPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, sortedFiltered, hasScrolled]);
+  }, [directPostId, filteredItems, hasScrolled]);
 
-  // 🔥 OBSERVER CORREGIDO 🔥
+  // 🔥 6. OBSERVER QUE DISPARA EL PAGINADO "INFINITO" 🔥
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !isSnapping) return;
 
     const cards = containerRef.current.querySelectorAll("[data-card-index]");
 
@@ -770,13 +794,9 @@ export default function FeedPage() {
 
             setVisibleIndex(index);
 
-            // Trigger pagination correctly based on the visible sorted list
-            if (
-              index >= sortedFiltered.length - 2 &&
-              hasMore &&
-              !isFetching
-            ) {
-              setPage((p) => p + 1);
+            // Si llegamos casi al final de la lista visual, cargamos más
+            if (index >= filteredItems.length - 2 && hasMore && !isFetching) {
+              loadMore();
             }
           }
         });
@@ -787,7 +807,8 @@ export default function FeedPage() {
     cards.forEach((card) => observer.observe(card));
 
     return () => observer.disconnect();
-  }, [sortedFiltered, hasMore, isFetching]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -800,7 +821,7 @@ export default function FeedPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
         
-        {isFetching && page === 0 && (
+        {isFetching && items.length === 0 && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
         )}
 
@@ -831,7 +852,7 @@ export default function FeedPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSetSort('popular')} 
+            onClick={() => setSort('popular')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
           >
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
@@ -839,7 +860,7 @@ export default function FeedPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSetSort('new')} 
+            onClick={() => setSort('new')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
           >
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
@@ -847,7 +868,7 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {sortedFiltered.length === 0 && !isFetching ? (
+      {filteredItems.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -859,12 +880,12 @@ export default function FeedPage() {
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           <div 
             ref={containerRef} 
-            className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" 
+            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
             style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {sortedFiltered.map((item, i) => (
+            {filteredItems.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
@@ -881,7 +902,7 @@ export default function FeedPage() {
               </div>
             ))}
 
-            {hasMore && items.length > 0 && (
+            {hasMore && filteredItems.length > 0 && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
                 <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
               </div>
