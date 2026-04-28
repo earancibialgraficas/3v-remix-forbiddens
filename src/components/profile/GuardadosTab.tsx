@@ -51,7 +51,7 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: Video Embed IDÉNTICO a SocialReelsPage.tsx 🔥
+// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA FACEBOOK 🔥
 function HubStyleVideoEmbed({ item }: { item: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -64,16 +64,21 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
      if (url.includes('tiktok.com')) platform = 'tiktok';
      else if (url.includes('instagram.com')) platform = 'instagram';
      else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'youtube';
+     else if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) platform = 'facebook';
   }
 
   const cType = item.originalData?.content_type || 'video';
 
-  // Misma lógica de medidas base del SocialReelsPage
+  // Lógica de medidas base incluyendo FACEBOOK
   const getBaseSize = (plat: string, type: string, contentUrl: string) => {
     if (plat === 'tiktok') return { w: 340, h: 605 };
     if (plat === 'instagram') {
       if (type === 'reel' || contentUrl?.includes('/reel')) return { w: 340, h: 605 };
       return { w: 400, h: 500 }; 
+    }
+    if (plat === 'facebook') {
+      if (type === 'reel' || contentUrl?.includes('/reel/')) return { w: 324, h: 576 };
+      return { w: 560, h: 315 };
     }
     if (type === 'reel' || contentUrl?.includes('shorts')) return { w: 324, h: 576 };
     return { w: 640, h: 360 };
@@ -91,7 +96,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
         const scaleX = safeWidth / baseSize.w;
         const scaleY = safeHeight / baseSize.h;
         let newScale = Math.min(scaleX, scaleY);
-        newScale = Math.min(newScale, 1.2); // Límite máximo idéntico
+        newScale = Math.min(newScale, 1.2); 
         setScale(newScale);
       }
     });
@@ -99,7 +104,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     return () => observer.disconnect();
   }, [baseSize.w, baseSize.h]);
 
-  // Misma lógica de parseo de URLs de SocialReelsPage
+  // Parseo de URLs incluyendo FACEBOOK
   const getEmbedUrl = () => {
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
@@ -116,6 +121,10 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
       if (tkMatch) return `https://www.tiktok.com/embed/v2/${tkMatch[1]}?autoplay=1`;
       const tkMatch2 = url.match(/tiktok\.com\/.*?video\/(\d+)/);
       if (tkMatch2) return `https://www.tiktok.com/embed/v2/${tkMatch2[1]}?autoplay=1`;
+    }
+    if (platform === "facebook") {
+      const encodedUrl = encodeURIComponent(url);
+      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
     }
     return url;
   };
@@ -136,7 +145,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
           <iframe 
             src={finalEmbedUrl} 
             className={cn("w-full h-full bg-transparent outline-none rounded-xl shadow-2xl", 
-              platform === 'instagram' ? "bg-white" : ""
+              platform === 'instagram' || platform === 'facebook' ? "bg-white" : ""
             )}
             style={{ border: "none" }}
             scrolling="no"
@@ -283,7 +292,7 @@ export default function GuardadosTab() {
 
   const isVideoItem = (item: any) => {
     const url = item.originalData?.content_url || item.redirect_url || '';
-    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com");
+    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com") || url.includes("facebook.com") || url.includes("fb.watch");
   };
 
   const getThumbnailUrl = (item: any) => {
@@ -341,8 +350,8 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       // Si es de plataformas sociales, usa exactamente el mismo wrapper que SocialReelsPage
-       if (url.includes('youtube') || url.includes('youtu.be') || url.includes('tiktok.com') || url.includes('instagram.com')) {
+       // Si es de plataformas sociales, usa el wrapper interactivo
+       if (url.includes('youtube') || url.includes('youtu.be') || url.includes('tiktok.com') || url.includes('instagram.com') || url.includes('facebook.com') || url.includes('fb.watch')) {
            return <HubStyleVideoEmbed item={item} />;
        }
 
