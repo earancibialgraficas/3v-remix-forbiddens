@@ -481,7 +481,7 @@ function SnapCard({
                 <div className="flex gap-1">
                   <input 
                     value={commentText} 
-                    onChange={e => setSort(sort)} // Corregido: Esto antes era un error de sintaxis
+                    onChange={e => setCommentText(e.target.value)} 
                     onKeyDown={e => { if (e.key === "Enter") handleComment(); }} 
                     placeholder={`Comentar... (Máx ${limits.maxForumChars})`} 
                     maxLength={limits.maxForumChars}
@@ -520,7 +520,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADO DE ORDENAMIENTO ÚNICO 🔥
+  // 🔥 ESTADOS DE ORDENAMIENTO ÚNICO 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [isFetching, setIsFetching] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
@@ -565,7 +565,6 @@ export default function FeedPage() {
       if (combined.length === 0 && pageNum === 0) { 
         setItems([]); 
         setHasMore(false);
-        setIsFetching(false); //
         return; 
       }
 
@@ -597,7 +596,7 @@ export default function FeedPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setIsFetching(false); // Siempre soltar el loading
+      setIsFetching(false);
     }
   };
 
@@ -683,7 +682,7 @@ export default function FeedPage() {
   };
 
   // 🔥 USEMEMO CON PUNTUACIÓN REALISTA 🔥
-  const sortedFiltered = useMemo(() => {
+  const sortedItems = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
     const filt = (() => {
@@ -715,8 +714,8 @@ export default function FeedPage() {
   const directPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
-      const index = sortedFiltered.findIndex(item => item.id === directPostId);
+    if (directPostId && !hasScrolled && sortedItems.length > 0) {
+      const index = sortedItems.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         let attempts = 0;
         const attemptScroll = () => {
@@ -738,7 +737,7 @@ export default function FeedPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, sortedFiltered, hasScrolled]);
+  }, [directPostId, sortedItems, hasScrolled]); // Unificado a sortedItems
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
@@ -749,7 +748,7 @@ export default function FeedPage() {
           const index = parseInt((entry.target as HTMLElement).dataset.cardIndex || "0");
           setVisibleIndex(index);
           
-          if (index >= sortedFiltered.length - 2 && hasMore && !isFetching) {
+          if (index >= sortedItems.length - 2 && hasMore && !isFetching) {
             setPage(p => p + 1);
           }
         }
@@ -757,7 +756,7 @@ export default function FeedPage() {
     }, { threshold: 0.6 });
     cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
-  }, [sortedFiltered, hasMore, isFetching, isSnapping]);
+  }, [sortedItems, hasMore, isFetching, isSnapping]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -769,9 +768,11 @@ export default function FeedPage() {
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
+        
         {isFetching && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
         )}
+
         <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2">
           <Globe className="w-4 h-4" /> FEED GLOBAL
         </h1>
@@ -796,20 +797,26 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => handleSetSort('popular')} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
+          >
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => handleSetSort('new')} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
+          >
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
           </Button>
         </div>
       </div>
 
-      {items.length === 0 && isFetching ? (
-        <div className="flex-1 flex items-center justify-center h-full w-full">
-           <Loader2 className="animate-spin text-neon-cyan w-12 h-12" />
-        </div>
-      ) : sortedFiltered.length === 0 && !isFetching ? (
+      {sortedItems.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -819,9 +826,14 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          <div ref={containerRef} className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div 
+            ref={containerRef} 
+            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
+            style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            {sortedFiltered.map((item, i) => (
+            
+            {sortedItems.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
@@ -837,6 +849,7 @@ export default function FeedPage() {
                 />
               </div>
             ))}
+
             {hasMore && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
                 <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
