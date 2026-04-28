@@ -258,7 +258,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR MEDIA SOLA (CON OVERFLOW HIDDEN + TRANSLATE PARA IG) 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA (CON OVERFLOW HIDDEN + TRANSLATE PARA IG APLICADO) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -302,18 +302,22 @@ export default function GuardadosTab() {
            return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
        }
 
+       // 🔥 INSTAGRAM: EL TRUCAZO MAGISTRAL DE CSS 🔥
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
                <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto overflow-hidden rounded-xl bg-white">
-                   <iframe 
-                     src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} 
-                     className="w-full h-[calc(100%+20px)] border-0" 
-                     style={{ transform: 'translateY(-10px)' }} 
-                     allowFullScreen 
-                   />
+                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto overflow-hidden rounded-xl bg-black">
+                   <div className="w-full h-[calc(100%+120px)]" style={{ transform: 'translateY(-60px)' }}>
+                     <iframe 
+                       src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} 
+                       className="w-full h-full border-0"
+                       scrolling="no"
+                       style={{ overflow: 'hidden' }}
+                       allowFullScreen 
+                     />
+                   </div>
                  </div>
                </div>
              );
