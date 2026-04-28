@@ -60,26 +60,30 @@ const mockPostsByCategory: Record<string, Array<any>> = {
   ],
 };
 
+// 🔥 MODAL PARA AMPLIAR MULTIMEDIA (Centrado Absoluto Matemático) 🔥
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
   return (
-    <div className="fixed inset-0 z-[500] bg-background/90 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-end mb-2 gap-2 w-full">
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-end mb-2 gap-2 w-full z-10">
           {isImage && (
-            <a href={src} download target="_blank" rel="noopener" className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title="Descargar">
-              <Download className="w-4 h-4 text-foreground" />
+            <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar">
+              <Download className="w-5 h-5 text-white" />
             </a>
           )}
-          <button onClick={onClose} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors">
-            <X className="w-4 h-4 text-foreground" />
+          <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white">
+            <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="bg-card border border-border rounded overflow-hidden w-full">
+        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative">
           {type === "video" ? (
-            <div className="aspect-video"><iframe src={src} className="w-full h-full" allowFullScreen /></div>
+            <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div>
           ) : (
-            <img src={src} alt="" className="w-full max-h-[80vh] object-contain" />
+            <img src={src} alt="" className="w-full max-h-[80vh] object-contain rounded-xl" />
           )}
         </div>
       </div>
@@ -109,11 +113,11 @@ function renderContent(content: string) {
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch) return (
-      <div key={i} className="relative group mt-2 mb-1">
-        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border" loading="lazy" />
-        <button onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
-          <Maximize2 className="w-3 h-3 text-foreground" />
-        </button>
+      <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })}>
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div>
+        </div>
       </div>
     );
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
@@ -122,8 +126,8 @@ function renderContent(content: string) {
       return (
         <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
           <iframe src={embedSrc} className="w-full h-full" allowFullScreen title="Video" />
-          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
-            <Maximize2 className="w-3 h-3 text-foreground" />
+          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar">
+            <Maximize2 className="w-4 h-4 text-white" />
           </button>
         </div>
       );
@@ -134,19 +138,19 @@ function renderContent(content: string) {
         return (
           <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
-            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
-              <Maximize2 className="w-3 h-3 text-foreground" />
+            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar">
+              <Maximize2 className="w-4 h-4 text-white" />
             </button>
           </div>
         );
       }
       if (isMedia) {
         return (
-          <div key={i} className="relative group mt-2 mb-1">
-            <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border" loading="lazy" />
-            <button onClick={() => _setForumModal?.({ src: part, type: "image" })} className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity" title="Maximizar">
-              <Maximize2 className="w-3 h-3 text-foreground" />
-            </button>
+          <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: part, type: "image" })}>
+            <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div>
+            </div>
           </div>
         );
       }
@@ -303,16 +307,17 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 LÓGICA DE AUTO-SCROLL AL ABRIR UN POST DIRECTO DESDE GUARDADOS 🔥
+  // 🔥 LÓGICA DE AUTO-SCROLL AL ABRIR UN POST DESDE GUARDADOS (Centrando solo el bloque base) 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        const element = document.getElementById(`post-${directPostId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        // En lugar del contenedor completo, apuntamos a "post-core" que es el alto exacto del usuario hasta los botones.
+        const coreElement = document.getElementById(`post-core-${directPostId}`);
+        if (coreElement) {
+          coreElement.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, 500);
     }
@@ -531,7 +536,6 @@ export default function ForumPage() {
                />
              </div>
              
-             {/* 🔥 AQUÍ ESTÁ EL CAMBIO: Solo mostramos este SELECT en Trending 🔥 */}
              {isTrending && (
                <select 
                  value={filterCategory} 
@@ -641,7 +645,9 @@ export default function ForumPage() {
                         <ArrowDown className="w-4 h-4" />
                       </button>
                     </div>
-                    <div className="min-w-0 flex-1">
+                    
+                    {/* 🔥 AQUÍ ESTÁ EL ID DE MEDICIÓN PARA EL SCROLL: post-core-${post.id} 🔥 */}
+                    <div className="min-w-0 flex-1" id={`post-core-${post.id}`}>
                       {post.user_id && authorProfile && (
                         <div className="mb-1 flex items-center gap-2">
                           <UserPopup
@@ -847,12 +853,15 @@ export default function ForumPage() {
         </div>
       )}
 
+      {/* 🔥 MODAL DE REGLAS (Centrado Absoluto) 🔥 */}
       {showRulesPopup && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowRulesPopup(false)} />
-          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 max-w-md w-full animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto retro-scrollbar m-auto">
-            <button onClick={() => setShowRulesPopup(false)} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-[4000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setShowRulesPopup(false)}>
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-neon-green/30 rounded-lg p-5 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setShowRulesPopup(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+              <X className="w-5 h-5" />
             </button>
             <h3 className="font-pixel text-[11px] text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
             <div className="text-xs font-body text-muted-foreground space-y-2">
@@ -868,7 +877,7 @@ export default function ForumPage() {
               </ul>
               <p className="text-[10px] italic">El incumplimiento puede resultar en suspensión temporal o permanente.</p>
             </div>
-            <Button size="sm" onClick={acceptRules} className="w-full text-xs">
+            <Button size="sm" onClick={acceptRules} className="w-full text-xs shadow-[0_0_15px_rgba(57,255,20,0.4)]">
               Acepto las reglas — Continuar
             </Button>
           </div>
