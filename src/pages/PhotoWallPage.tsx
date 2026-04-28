@@ -56,8 +56,8 @@ const getPhotoNeonStyle = (photo: any) => {
   };
 };
 
-/* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
-function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff }: any) {
+/* 🔥 COMPONENTE: TARJETA MINIATURA (ACTUALIZADA CON BOTONES DE IMAGEN ADJUNTA) 🔥 */
+function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
   const targetUrl = photo.thumbnail_url || photo.image_url;
@@ -134,10 +134,27 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
           <div className="flex flex-col items-center gap-2 sm:gap-4">
              <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white/50 mb-1 sm:mb-2 pointer-events-none" />
              <div className="flex items-center gap-2 sm:gap-4 text-white font-body text-[10px] sm:text-xs">
+                
+                {/* 1. VOTO POSITIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
                    <ThumbsUp className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "like" && "fill-current")} /> <span className="hidden sm:inline">{photo.likes}</span>
                 </button>
+
+                {/* 2. VOTO NEGATIVO (AGREGADO) */}
+                <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "dislike", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
+                   <ThumbsDown className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "dislike" && "fill-current")} /> <span className="hidden sm:inline">{photo.dislikes}</span>
+                </button>
+
+                {/* 3. ICONO DE COMENTARIOS (MENSAJE) */}
                 <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
+
+                {/* 4. BOTÓN REPORTAR (AGREGADO JUNTO A COMENTAR) */}
+                {user && !isOwner && (
+                  <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="text-muted-foreground hover:text-destructive transition-colors z-20" title="Reportar">
+                    <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </button>
+                )}
+
              </div>
           </div>
         </div>
@@ -284,7 +301,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                        {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                        {isStaff && <button onClick={() => handleDeleteComment(commentId)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
                     </div>
                   </div>
@@ -387,6 +404,7 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null); // State for reporting from mini card
   
   const observerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -423,7 +441,9 @@ export default function PhotoWallPage() {
         };
         const midnightChile = getChileMidnightISO();
         const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', midnightChile);
-        setDailyApifyCount((count || 0) + 4);
+        
+        // 🔥 RESTAURADO: YA NO SUMA +4, MUESTRA EL CONTADOR REAL DESDE 0 🔥
+        setDailyApifyCount(count || 0);
       }
 
       // 2. Traer Fotos
@@ -820,6 +840,7 @@ export default function PhotoWallPage() {
                   onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
+                  onReport={() => setReportingPhotoIdMini(photo.id)} // Pass callback for reporting from mini card
                 />
               </div>
             ))}
@@ -851,6 +872,20 @@ export default function PhotoWallPage() {
             limits={limits}
           />
         );
+      })()}
+
+      {/* Report Modal from Mini Card */}
+      {reportingPhotoIdMini && (() => {
+          const photo = photos.find(p => p.id === reportingPhotoIdMini);
+          if (!photo) return null;
+          return (
+              <ReportModal
+                  reportedUserId={photo.user_id}
+                  reportedUserName={photo.profiles?.display_name || "Anónimo"}
+                  postId={photo.id}
+                  onClose={() => setReportingPhotoIdMini(null)}
+              />
+          );
       })()}
 
     </div>
