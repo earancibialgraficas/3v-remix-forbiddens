@@ -51,7 +51,7 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA FACEBOOK 🔥
+// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA FACEBOOK Y AUTOPLAY 🔥
 function HubStyleVideoEmbed({ item }: { item: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -104,13 +104,13 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     return () => observer.disconnect();
   }, [baseSize.w, baseSize.h]);
 
-  // Parseo de URLs incluyendo FACEBOOK
+  // 🔥 Parseo de URLs con AUTOPLAY FORZADO Y MUTED (requisito del navegador) 🔥
   const getEmbedUrl = () => {
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
-      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&mute=0`;
+      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&mute=1`;
       const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=0`;
+      if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1`;
     }
     if (platform === "instagram") {
       const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
@@ -124,7 +124,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     }
     if (platform === "facebook") {
       const encodedUrl = encodeURIComponent(url);
-      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
+      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560&autoplay=true&mute=1`;
     }
     return url;
   };
@@ -327,7 +327,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR MEDIA SOLA 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA CON AUTOPLAY SEGURO PARA MP4 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -355,11 +355,11 @@ export default function GuardadosTab() {
            return <HubStyleVideoEmbed item={item} />;
        }
 
-       // Para videos en crudo .mp4
+       // 🔥 AUTOPLAY GARANTIZADO PARA VIDEOS RAW 🔥
        if (url.match(/\.(mp4|webm|ogg)/i)) {
            return (
              <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-               <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
+               <video src={url} controls autoPlay muted playsInline loop className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
              </div>
            );
        }
