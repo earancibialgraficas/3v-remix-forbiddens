@@ -529,39 +529,53 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
+  // 🔥 FETCH CONTENT BLINDADO CON TRY/CATCH/FINALLY 🔥
   const fetchContent = async () => {
     setIsFetching(true);
-    let combined: FeedItem[] = [];
-    const orderCol = sortBy === "popular" ? "likes" : "created_at";
+    try {
+      let combined: FeedItem[] = [];
+      const orderCol = sortBy === "popular" ? "likes" : "created_at";
 
-    const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
-    if (content) {
-       combined = [...combined, ...content.map(c => ({
-         ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
-       }))];
-    }
+      const { data: content, error: err1 } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
+      if (err1) throw err1;
+      
+      if (content) {
+         combined = [...combined, ...content.map(c => ({
+           ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
+         }))];
+      }
 
-    const { data: photos } = await supabase.from("photos").select("*").neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
-    if (photos) {
-      const photoItems = photos.map(p => ({
-        id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
-        title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
-        likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo'
+      const { data: photos, error: err2 } = await supabase.from("photos").select("*").neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
+      if (err2) throw err2;
+      
+      if (photos) {
+        const photoItems = photos.map(p => ({
+          id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
+          title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
+          likes: p.likes || 0, dislikes: p.dislikes || 0, target_type: 'photo'
+        }));
+        combined = [...combined, ...photoItems];
+      }
+
+      if (combined.length === 0) { 
+        setItems([]); 
+        return; 
+      }
+
+      const userIds = [...new Set(combined.map(c => c.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
+      const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
+      
+      setItems(combined.slice(0, 50).map(c => {
+        const p = profileMap.get(c.user_id);
+        return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       }));
-      combined = [...combined, ...photoItems];
+    } catch (err) {
+      console.error("Error fetching content:", err);
+      toast({ title: "Error", description: "No se pudieron cargar los posts.", variant: "destructive" });
+    } finally {
+      setIsFetching(false);
     }
-
-    if (combined.length === 0) { setItems([]); setIsFetching(false); return; }
-
-    const userIds = [...new Set(combined.map(c => c.user_id))];
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
-    const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
-    
-    setItems(combined.slice(0, 50).map(c => {
-      const p = profileMap.get(c.user_id);
-      return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
-    }));
-    setIsFetching(false);
   };
 
   useEffect(() => { fetchContent(); }, [sortBy]);
@@ -624,8 +638,8 @@ export default function FeedPage() {
     }
   };
 
+  // 🔥 HANDLER DE ORDENAMIENTO LIBRE (Sin bloqueos) 🔥
   const handleSortChange = (newSort: "new" | "popular") => {
-    if (sortBy === newSort || isFetching) return;
     setSortBy(newSort);
   };
 
@@ -649,10 +663,10 @@ export default function FeedPage() {
     });
   }, [items, filter, sourceTab, sortBy, friendIds]);
 
-  // RESETEAR SCROLL Y VISIBLE INDEX AL CAMBIAR FILTROS (SIN USAR KEY DESTRUCTIVO)
+  // 🔥 SCROLL INSTANTÁNEO AL INICIO AL CAMBIAR FILTROS (Evita pelear con snap-y) 🔥
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      containerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
     setVisibleIndex(0);
   }, [filter, sortBy, sourceTab]);
@@ -672,8 +686,6 @@ export default function FeedPage() {
             containerRef.current.scrollTo({ top: card.offsetTop, behavior: "instant" });
             setVisibleIndex(index);
             setHasScrolled(true);
-            
-            // 🔥 LIMPIA LA URL PARA NO ENTRAR EN BUCLES SI SE CAMBIA EL ORDEN 🔥
             window.history.replaceState({}, '', '/social/feed');
           } else if (attempts < 50) {
             requestAnimationFrame(attemptScroll);
@@ -736,11 +748,12 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          <Button variant="ghost" size="sm" onClick={() => handleSortChange("popular")} disabled={isFetching} className={cn("text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
-             <Flame className="w-3 h-3 mr-1" /> Top
+          {/* 🔥 Botones libres de bloqueo visual 🔥 */}
+          <Button variant="ghost" size="sm" onClick={() => handleSortChange("popular")} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+             <Flame className={cn("w-3 h-3 mr-1", sortBy === "popular" && isFetching && "animate-pulse")} /> Top
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSortChange("new")} disabled={isFetching} className={cn("text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
-             <Sparkles className="w-3 h-3 mr-1" /> Nuevos
+          <Button variant="ghost" size="sm" onClick={() => handleSortChange("new")} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+             <Sparkles className={cn("w-3 h-3 mr-1", sortBy === "new" && isFetching && "animate-pulse")} /> Nuevos
           </Button>
         </div>
       </div>
