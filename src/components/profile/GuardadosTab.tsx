@@ -9,12 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { cn } from "@/lib/utils";
 
-const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
-
 const cleanUrl = (url: string, itemType: string) => {
   if (!url) return "/";
   
-  // 🔥 REPARACIÓN DEL ERROR 404: Redirige automáticamente las rutas legadas a las nuevas rutas sociales 🔥
   if (url.startsWith("/feed")) return url.replace(/^\/feed/, "/social/feed");
   if (url.startsWith("/reels")) return url.replace(/^\/reels/, "/social/reels");
   if (url.startsWith("/muro") || url.startsWith("/fotos")) return url.replace(/^\/(muro|fotos)/, "/social/fotos");
@@ -28,7 +25,6 @@ const cleanUrl = (url: string, itemType: string) => {
   return url;
 };
 
-// Proxy que respeta los GIFs para que no pierdan la animación
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.toLowerCase().includes('.gif')) return url;
@@ -36,13 +32,26 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-const getNeonStyle = (item: any) => {
-  const isNeon = item.item_type === 'social_content' || item.item_type === 'photo';
-  if (!isNeon) return {}; 
-  const idToUse = item.original_id || item.id || "";
-  const sum = String(idToUse).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const color = NEON_COLORS[sum % NEON_COLORS.length];
-  return { borderColor: color, boxShadow: `0 0 15px ${color}50, inset 0 0 10px ${color}20`, borderWidth: '2px' };
+// 🔥 FUNCIÓN MOVIDA ARRIBA PARA COMPARTIRLA 🔥
+const isVideoItem = (item: any) => {
+  const url = item.originalData?.content_url || item.redirect_url || '';
+  return Boolean(url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com") || url.includes("facebook.com") || url.includes("fb.watch"));
+};
+
+// 🔥 NUEVO ESTILO DE BORDES ORDENADOS Y LIMPIOS 🔥
+const getCardBorderStyle = (item: any) => {
+  const isVideo = isVideoItem(item);
+  const isPost = item.item_type === 'post';
+  
+  let borderColor = '#00f0ff'; // Cyan (Por defecto para Fotos/Imágenes)
+  if (isVideo) borderColor = '#ff6b00'; // Naranja (Videos y Reels)
+  else if (isPost) borderColor = '#ff00ff'; // Magenta (Posts del Foro)
+
+  return { 
+    borderColor, 
+    borderWidth: '1px',
+    borderStyle: 'solid'
+  };
 };
 
 const getSeedFromId = (str: string) => {
@@ -58,7 +67,6 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
 
   const url = item.originalData?.content_url || '';
   
-  // Determinar plataforma si no viene definida
   let platform = item.originalData?.platform || 'web';
   if (!item.originalData?.platform) {
      if (url.includes('tiktok.com')) platform = 'tiktok';
@@ -69,7 +77,6 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
 
   const cType = item.originalData?.content_type || 'video';
 
-  // Lógica de medidas base incluyendo FACEBOOK
   const getBaseSize = (plat: string, type: string, contentUrl: string) => {
     if (plat === 'tiktok') return { w: 340, h: 605 };
     if (plat === 'instagram') {
@@ -104,7 +111,6 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     return () => observer.disconnect();
   }, [baseSize.w, baseSize.h]);
 
-  // 🔥 Parseo de URLs con AUTOPLAY FORZADO Y MUTED (requisito del navegador) 🔥
   const getEmbedUrl = () => {
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
@@ -157,7 +163,6 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
   );
 }
 
-// 🔥 COMPONENTE: Post con Botón Colapsable e Imagen Responsiva 🔥
 function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -271,10 +276,8 @@ export default function GuardadosTab() {
                 if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url;
              } catch(e) { console.error("Error TikTok oEmbed", e); }
           } 
-          // 🔥 MAGIA DE FACEBOOK APLICADA CON FALLBACK A MICROLINK 🔥
           else if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
              let fbThumbFound = false;
-             // 1. Intento principal con oEmbed de FB
              try {
                 const res = await fetch(`https://www.facebook.com/plugins/video/oembed.json/?url=${encodeURIComponent(url)}`);
                 if (res.ok) {
@@ -286,7 +289,6 @@ export default function GuardadosTab() {
                 }
              } catch(e) { console.error("Error Facebook oEmbed", e); }
              
-             // 2. Si falló el oEmbed, extraer el og:image usando la API libre de Microlink (Sin CORS issues)
              if (!fbThumbFound) {
                  try {
                      const fallbackRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
@@ -319,12 +321,6 @@ export default function GuardadosTab() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
-  const isVideoItem = (item: any) => {
-    const url = item.originalData?.content_url || item.redirect_url || '';
-    return url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com") || url.includes("facebook.com") || url.includes("fb.watch");
-  };
-
-  // 🔥 ACTUALIZADO PARA USAR EL THUMBNAIL DE FACEBOOK 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
@@ -334,7 +330,7 @@ export default function GuardadosTab() {
     if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
     
     if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
-    if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb); // Nuevo Facebook Thumb con Fallback
+    if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb);
 
     if (origContentUrl.includes('instagram.com')) {
        const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
@@ -470,7 +466,12 @@ export default function GuardadosTab() {
       ) : (
         <div className="columns-2 md:columns-3 lg:columns-4 gap-2 space-y-2">
           {items.map((item, idx) => (
-            <div key={item.id} onClick={() => setSelectedIndex(idx)} className="relative group block break-inside-avoid overflow-hidden rounded-lg bg-black cursor-pointer border border-border/30 hover:border-white/20 transition-all" style={getNeonStyle(item)}>
+            <div 
+              key={item.id} 
+              onClick={() => setSelectedIndex(idx)} 
+              className="relative group block break-inside-avoid overflow-hidden rounded-lg bg-black cursor-pointer transition-all hover:scale-[1.02] shadow-sm hover:shadow-md" 
+              style={getCardBorderStyle(item)}
+            >
               <div className="relative w-full h-full flex items-center justify-center bg-black min-h-[120px]">
                 <img src={getThumbnailUrl(item)} className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" />
                 {isVideoItem(item) && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md" /></div>}
@@ -518,7 +519,7 @@ export default function GuardadosTab() {
              </div>
              <div className="h-20 bg-black/90 border-t border-white/10 shrink-0 flex items-center px-3 overflow-x-auto custom-scrollbar gap-2 py-2">
                 {items.map((item, idx) => (
-                  <button key={item.id} onClick={() => setSelectedIndex(idx)} className={cn("relative h-14 w-14 shrink-0 rounded-md overflow-hidden transition-all", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_10px_rgba(0,255,255,0.5)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}>
+                  <button key={item.id} onClick={() => setSelectedIndex(idx)} className={cn("relative h-14 w-14 shrink-0 rounded-md overflow-hidden transition-all", idx === selectedIndex ? "border-2 border-white scale-105 shadow-[0_0_10px_rgba(255,255,255,0.3)] z-10" : "opacity-40 hover:opacity-100 border border-white/10")}>
                     <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
                     {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white/80" />}
                   </button>
@@ -595,7 +596,7 @@ export default function GuardadosTab() {
                     <button 
                       key={item.id} 
                       onClick={() => setSelectedIndex(idx)}
-                      className={cn("relative aspect-square rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-neon-cyan scale-105 shadow-[0_0_10px_rgba(0,255,255,0.5)] z-10" : "opacity-50 hover:opacity-100 border border-white/10")}
+                      className={cn("relative aspect-square rounded-md overflow-hidden transition-all duration-300", idx === selectedIndex ? "border-2 border-white scale-105 shadow-[0_0_10px_rgba(255,255,255,0.3)] z-10" : "opacity-50 hover:opacity-100 border border-white/10")}
                     >
                       <img src={getThumbnailUrl(item)} className="w-full h-full object-cover" alt="" />
                       {isVideoItem(item) && <PlayCircle className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white/80" />}
