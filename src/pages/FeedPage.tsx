@@ -510,14 +510,14 @@ function SnapCard({
   );
 }
 
-// 🔥 EL COMPONENTE PRINCIPAL CON LOS ESTADOS EXACTOS QUE PEDISTE 🔥
+// 🔥 COMPONENTE PRINCIPAL (SIN VARIABLES DUPLICADAS) 🔥
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const location = useLocation();
   
-  // 🔥 ESTADOS EXACTOS DEL BLOQUE 🔥
+  // 🔥 ESTADOS EXACTOS (SOLO SE DECLARAN AQUÍ UNA VEZ) 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [page, setPage] = useState(0);
@@ -525,7 +525,7 @@ export default function FeedPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [visibleIndex, setVisibleIndex] = useState(0);
 
-  // Filtros visuales adicionales que ya tenías
+  // Filtros visuales adicionales
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -740,7 +740,7 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 Filtro Visual (no modifica el array original) 🔥
+  // 🔥 Filtro Visual (no modifica el array original ni recarga la BD) 🔥
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -797,7 +797,6 @@ export default function FeedPage() {
 
             setVisibleIndex(index);
 
-            // Usa filteredItems en vez de items para ser consistente con lo que se renderiza
             if (
               index >= filteredItems.length - 2 &&
               hasMore &&
@@ -884,9 +883,10 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
+          {/* El contenedor principal ya no usa "isSnapping" para evitar bugs. El reset con setItems([]) es suficiente */}
           <div 
             ref={containerRef} 
-            className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" 
+            className="h-full w-full relative z-0 snap-y snap-mandatory overflow-y-auto" 
             style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
@@ -908,7 +908,7 @@ export default function FeedPage() {
               </div>
             ))}
 
-            {hasMore && (
+            {hasMore && items.length > 0 && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
                 <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
               </div>
