@@ -46,9 +46,16 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     } else if (url.includes("tiktok.com")) {
       platform = "tiktok";
       contentType = "reel"; 
-    } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
+    } else if (url.includes("facebook.com") || url.includes("fb.watch") || url.includes("fb.com")) {
+      // 🔥 LÓGICA DE FACEBOOK MEJORADA 🔥
       platform = "facebook";
-      contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post";
+      if (url.includes("/reel/")) {
+        contentType = "reel";
+      } else if (url.includes("/video") || url.includes("watch") || url.includes("fb.watch")) {
+        contentType = "video";
+      } else {
+        contentType = "post";
+      }
     }
     
     const { error } = await supabase.from("social_content").insert({
