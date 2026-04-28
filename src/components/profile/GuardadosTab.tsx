@@ -13,9 +13,12 @@ const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00
 
 const cleanUrl = (url: string, itemType: string) => {
   if (!url) return "/";
-  if (url === "/feed") return "/social/feed";
-  if (url === "/reels") return "/social/reels";
-  if (url === "/muro" || url === "/fotos") return "/social/fotos";
+  
+  // 🔥 REPARACIÓN DEL ERROR 404: Redirige automáticamente las rutas legadas a las nuevas rutas sociales 🔥
+  if (url.startsWith("/feed")) return url.replace(/^\/feed/, "/social/feed");
+  if (url.startsWith("/reels")) return url.replace(/^\/reels/, "/social/reels");
+  if (url.startsWith("/muro") || url.startsWith("/fotos")) return url.replace(/^\/(muro|fotos)/, "/social/fotos");
+  
   if (itemType === "post" && url.startsWith("/") && !url.includes("/social/")) {
      const parts = url.split("?post=");
      const categoryRaw = parts[0]?.replace("/", "");
