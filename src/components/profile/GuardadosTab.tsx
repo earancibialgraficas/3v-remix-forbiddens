@@ -48,39 +48,60 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: TikTok Dinámico con Ajuste Matemático de Transform 🔥
-function TikTokEmbed({ videoId }: { videoId: string }) {
+// 🔥 COMPONENTE: Viewport Fijo Matemático (Sirve para IG y TikTok) 🔥
+function SmartVideoEmbed({ src }: { src: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [containerDims, setContainerDims] = useState({ w: 350, h: 700 });
 
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        const scaleH = height / 700;
-        const scaleW = width / 350;
-        setScale(Math.min(scaleH, scaleW));
+        setContainerDims({
+          w: entry.contentRect.width,
+          h: entry.contentRect.height
+        });
       }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
 
+  // CONSTANTES DEL SISTEMA DE CORTE (Tu idea)
+  const EMBED_W = 350;
+  const EMBED_H = 700;
+  const VIDEO_TOP = 80;
+  const VIDEO_HEIGHT = 540;
+
+  const containerHeight = containerDims.h || 700;
+  const containerWidth = containerDims.w || 350;
+
+  // Calculamos la escala base
+  let scale = containerHeight / VIDEO_HEIGHT;
+
+  // Medida de seguridad: Si la pantalla es muy angosta, limitamos el scale para no desbordar a los lados
+  const maxScaleW = containerWidth / EMBED_W;
+  if (scale > maxScaleW) scale = maxScaleW;
+
+  // Ajuste fino matemático de centrado
+  const translateY = -(VIDEO_TOP + (VIDEO_HEIGHT / 2 - containerHeight / (2 * scale)));
+
   return (
     <div ref={containerRef} className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
       <div 
         style={{ 
-          transform: `scale(${scale}) translateY(-${(700 * 0.05) / scale}px)`, 
-          transformOrigin: 'center',
-          width: '350px',
-          height: '700px'
+          width: EMBED_W, 
+          height: EMBED_H, 
+          transformOrigin: 'top center', // 'top center' mantiene el eje X en su lugar
+          transform: `scale(${scale}) translateY(${translateY}px)` 
         }} 
         className="shrink-0 flex items-center justify-center"
       >
         <iframe 
-          src={`https://www.tiktok.com/embed/v2/${videoId}`} 
-          className="w-full h-full border-0 rounded-xl" 
+          src={src} 
+          className="w-full h-full border-0" 
+          scrolling="no" 
+          style={{ overflow: 'hidden' }}
           allowFullScreen 
         />
       </div>
@@ -258,7 +279,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR MEDIA SOLA (MAGIA CSS: PROPORCIONES, OVERFLOW-HIDDEN Y TRANSLATE PORCENTUAL) 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA (MANTENIENDO EL CÓDIGO MAESTRO COMPARTIDO) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -295,10 +316,11 @@ export default function GuardadosTab() {
            }
        }
        
+       // 🔥 MAGIA MATEMÁTICA PARA TIKTOK 🔥
        if (url.includes('tiktok.com')) {
            const tkMatch = url.match(/video\/(\d+)/);
            if (tkMatch) {
-             return <TikTokEmbed videoId={tkMatch[1]} />;
+             return <SmartVideoEmbed src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} />;
            }
        }
 
@@ -310,25 +332,11 @@ export default function GuardadosTab() {
            );
        }
 
-       // 🔥 INSTAGRAM: EL CÓDIGO MAESTRO DE RECORTE CON PORCENTAJES 🔥
+       // 🔥 MAGIA MATEMÁTICA PARA INSTAGRAM (Usando el mismo componente de Viewport fijo) 🔥
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
-             return (
-               <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] w-auto max-w-[400px] mx-auto overflow-hidden rounded-xl bg-black">
-                   <div className="w-full h-[114%]" style={{ transform: 'translateY(-7%)' }}>
-                     <iframe 
-                       src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} 
-                       className="w-full h-full border-0"
-                       scrolling="no"
-                       style={{ overflow: 'hidden' }}
-                       allowFullScreen 
-                     />
-                   </div>
-                 </div>
-               </div>
-             );
+             return <SmartVideoEmbed src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} />;
            }
        }
        
