@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -533,11 +533,13 @@ export default function FeedPage() {
 
   const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
+  const isFetchingRef = useRef(false);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
-  const fetchContent = useCallback(async (reset = false) => {
-    if (isFetching) return;
+  const fetchContent = async (reset = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setIsFetching(true);
 
     try {
@@ -663,13 +665,15 @@ export default function FeedPage() {
       console.error("UNEXPECTED ERROR:", err);
     } finally {
       setIsFetching(false);
+      isFetchingRef.current = false;
     }
-  }, [sort]);
+  };
 
   // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
     fetchContent(true);
-  }, [sort, fetchContent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   const loadMore = () => {
     if (!isFetching && hasMore) {
