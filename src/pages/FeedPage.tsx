@@ -536,7 +536,7 @@ export default function FeedPage() {
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
-  const fetchContent = async (reset = false) => {
+  const fetchContent = useCallback(async (reset = false) => {
     if (isFetching) return;
     setIsFetching(true);
 
@@ -664,13 +664,12 @@ export default function FeedPage() {
     } finally {
       setIsFetching(false);
     }
-  };
+  }, [sort]);
 
   // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
     fetchContent(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
+  }, [sort, fetchContent]);
 
   const loadMore = () => {
     if (!isFetching && hasMore) {
