@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
@@ -60,10 +61,18 @@ const mockPostsByCategory: Record<string, Array<any>> = {
   ],
 };
 
-// 🔥 MODAL PARA AMPLIAR MULTIMEDIA (Centrado Absoluto Matemático) 🔥
+// 🔥 MODAL PARA AMPLIAR MULTIMEDIA (Centrado con PORTAL) 🔥
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
-  return (
+  
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
@@ -87,7 +96,8 @@ function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -244,6 +254,16 @@ export default function ForumPage() {
   const canUseLinks = canUseVideo; 
   const canUseSignature = isStaff || userTier !== 'novato';
 
+  // Manejador del scroll para el popup de reglas
+  useEffect(() => {
+    if (showRulesPopup) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [showRulesPopup]);
+
   const fetchPosts = async () => {
     let query = supabase.from("posts").select("*").neq("is_banned", true);
 
@@ -307,14 +327,12 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 LÓGICA DE AUTO-SCROLL AL ABRIR UN POST DESDE GUARDADOS (Centrando solo el bloque base) 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        // En lugar del contenedor completo, apuntamos a "post-core" que es el alto exacto del usuario hasta los botones.
         const coreElement = document.getElementById(`post-core-${directPostId}`);
         if (coreElement) {
           coreElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -646,7 +664,6 @@ export default function ForumPage() {
                       </button>
                     </div>
                     
-                    {/* 🔥 AQUÍ ESTÁ EL ID DE MEDICIÓN PARA EL SCROLL: post-core-${post.id} 🔥 */}
                     <div className="min-w-0 flex-1" id={`post-core-${post.id}`}>
                       {post.user_id && authorProfile && (
                         <div className="mb-1 flex items-center gap-2">
@@ -853,8 +870,7 @@ export default function ForumPage() {
         </div>
       )}
 
-      {/* 🔥 MODAL DE REGLAS (Centrado Absoluto) 🔥 */}
-      {showRulesPopup && (
+      {showRulesPopup && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[4000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setShowRulesPopup(false)}>
           <div 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-neon-green/30 rounded-lg p-5 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
@@ -881,7 +897,8 @@ export default function ForumPage() {
               Acepto las reglas — Continuar
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
