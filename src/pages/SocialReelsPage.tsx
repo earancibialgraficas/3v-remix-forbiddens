@@ -481,10 +481,10 @@ function SnapCard({
           )}
           
           <div className="hidden md:flex items-center gap-3">
-            <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green" : "text-muted-foreground hover:text-neon-green")}>
+            <button onClick={() => handleReaction("like")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "like" ? "text-neon-green font-bold" : "text-muted-foreground hover:text-neon-green")}>
               <ThumbsUp className="w-3.5 h-3.5" /> {likes}
             </button>
-            <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}>
+            <button onClick={() => handleReaction("dislike")} className={cn("flex items-center gap-1 text-[11px] font-body font-medium transition-all hover:scale-105", userReaction === "dislike" ? "text-destructive font-bold" : "text-muted-foreground hover:text-destructive")}>
               <ThumbsDown className="w-3.5 h-3.5" /> {dislikes}
             </button>
           </div>
@@ -565,7 +565,7 @@ function SnapCard({
   );
 }
 
-// 🔥 COMPONENTE PRINCIPAL (SIN VARIABLES DUPLICADAS Y TRUCO DE SCROLL INCLUIDO) 🔥
+// 🔥 COMPONENTE PRINCIPAL CON LOS ESTADOS EXACTOS 🔥
 export default function SocialReelsPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -590,8 +590,6 @@ export default function SocialReelsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  const isReelsPage = location.pathname.includes("/reels") || location.pathname.includes("/video");
-
   // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
   const fetchContent = async (resetPage: boolean, sortMode: 'new' | 'popular') => {
     if (isFetching) return;
@@ -610,15 +608,13 @@ export default function SocialReelsPage() {
         .select("*")
         .eq("is_public", true)
         .neq("is_banned", true)
-        // Para que sea eficiente en SocialReelsPage filtramos de una vez
-        .in('content_type', ['video', 'reel'])
+        .in('content_type', ['video', 'reel']) // SOLO REELS Y VIDEOS
         .order(orderCol, { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
 
       if (err1) console.error("Error social_content:", err1);
 
-      // NO DESCARGAMOS FOTOS en la sección de Reels/Videos.
       let combined: SocialItem[] = [];
 
       if (content) {
@@ -632,7 +628,7 @@ export default function SocialReelsPage() {
             dislikes: c.dislikes || 0,
             created_at: c.created_at || new Date().toISOString(),
             target_type: "social_content"
-          })).filter(c => c.created_at)
+          })).filter(c => c.created_at) // Filtra items sin fecha válida
         ];
       }
 
@@ -652,6 +648,7 @@ export default function SocialReelsPage() {
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
         }
+        // Fallback por fecha, con manejo de NULL
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return dateB - dateA;
@@ -672,12 +669,14 @@ export default function SocialReelsPage() {
           const unique = processed.filter((x) => !ids.has(x.id));
           const merged = [...prev, ...unique];
 
+          // 🔁 IMPORTANTE: ordenar TODO el array acumulado de nuevo
           return merged.sort((a, b) => {
             if (sortMode === "popular") {
               const scoreA = (a.likes || 0) - (a.dislikes || 0);
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
             }
+            // Fallback por fecha, con manejo de NULL
             const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
             const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
             return dateB - dateA;
@@ -711,6 +710,7 @@ export default function SocialReelsPage() {
     }
   };
 
+  // Acciones de los posts 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
@@ -755,7 +755,8 @@ export default function SocialReelsPage() {
         original_id: item.id,
         title: item.caption || item.title || 'Publicación de Reels',
         thumbnail_url: item.image_url || item.thumbnail_url || item.content_url,
-        redirect_url: '/reels?post=' + item.id
+        // 🔥 CORRECCIÓN DEL 404: AHORA GUARDA LA RUTA EXACTA DEL REEL 🔥
+        redirect_url: '/social/reels?post=' + item.id 
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada en tu perfil." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -769,25 +770,7 @@ export default function SocialReelsPage() {
     }
   };
 
-  // 🔥 HANDLER DE CAMBIO DE FILTRO MEJORADO 🔥
-  const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort || isFetching) return;
-    
-    setIsSnapping(false);
-    
-    setPage(0);
-    setHasMore(true);
-    setVisibleIndex(0);
-    setSort(newSort);
-
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
-    }
-
-    setTimeout(() => setIsSnapping(true), 150);
-  };
-
-  // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS" 🔥
+  // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS", ETC 🔥
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -800,7 +783,7 @@ export default function SocialReelsPage() {
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
-  // 🔥 TRUCO MAGISTRAL DEL SCROLL (Guardados -> Reels) 🔥
+  // 🔥 6. TRUCO DE SCROLL MÁGICO (Desde Guardados hasta el Post exacto) 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -813,21 +796,21 @@ export default function SocialReelsPage() {
             setVisibleIndex(index);
             setHasScrolled(true);
             
-            // Limpia la URL respetando si el usuario está en /reels o /video
+            // Limpia la URL en el navegador
             window.history.replaceState({}, '', location.pathname);
             
             setTimeout(() => setIsSnapping(true), 800);
           } else {
              setHasScrolled(true);
           }
-        }, 500); 
+        }, 500);
       } else {
         setHasScrolled(true);
       }
     }
   }, [directPostId, filteredItems, hasScrolled, location.pathname]);
 
-  // 🔥 6. OBSERVER QUE DISPARA EL PAGINADO "INFINITO" 🔥
+  // 🔥 7. OBSERVER QUE DISPARA EL PAGINADO "INFINITO" 🔥
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
 
@@ -843,6 +826,7 @@ export default function SocialReelsPage() {
 
             setVisibleIndex(index);
 
+            // Si llegamos casi al final de la lista visual, cargamos más
             if (index >= filteredItems.length - 2 && hasMore && !isFetching) {
               loadMore();
             }
@@ -868,7 +852,7 @@ export default function SocialReelsPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-orange/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
         
-        {isFetching && page === 0 && (
+        {isFetching && items.length === 0 && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />
         )}
 
@@ -899,7 +883,7 @@ export default function SocialReelsPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSetSort('popular')} 
+            onClick={() => setSort('popular')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
           >
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
@@ -907,7 +891,7 @@ export default function SocialReelsPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSetSort('new')} 
+            onClick={() => setSort('new')} 
             className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
           >
              <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
