@@ -381,7 +381,6 @@ function SnapCard({
                   <Flag className="w-3 h-3" />
                 </button>
               )}
-              {/* 🔥 BOTONES DE CREADOR (EDITAR Y ELIMINAR) 🔥 */}
               {isOwner && (
                 <>
                   <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow hover:bg-neon-yellow/10 rounded transition-colors" title="Editar">
@@ -517,13 +516,14 @@ export default function FeedPage() {
   const { toast } = useToast();
   const location = useLocation();
   
+  // 🔥 ESTADOS MAESTROS 🔥
   const [items, setItems] = useState<FeedItem[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
+  const [sort, setSort] = useState<'new' | 'popular'>('new');
   
-  // 🔥 1. EL ESTADO MAESTRO 🔥
-  const [sortBy, setSortBy] = useState<"new" | "popular">("new");
   const [isFetching, setIsFetching] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(true);
   
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -535,7 +535,11 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 2. EL FETCH QUE DEPENDE DE 'sortBy' Y ORDENA EN SUPABASE 🔥
+  // Debugging como pediste
+  console.log('SORT:', sort);
+  console.log('ITEMS:', items.length);
+
+  // 🔥 FETCH REACTIVO QUE DEPENDE DE 'SORT' (Pide a la BD el orden real) 🔥
   const fetchContent = async (pageNum: number, currentSort: string) => {
     setIsFetching(true);
     try {
@@ -545,27 +549,27 @@ export default function FeedPage() {
       const from = pageNum * ITEMS_PER_PAGE;
       const to = from + (ITEMS_PER_PAGE - 1);
 
+      // Consulta a videos
       const { data: content, error: err1 } = await supabase.from("social_content")
         .select("*").eq("is_public", true).neq("is_banned", true)
         .order(orderCol, { ascending: false })
-        .order('created_at', { ascending: false })
         .range(from, to);
+      if (err1) throw err1;
       
-      if (err1) console.error("Error cargando videos:", err1);
-      else if (content) {
+      if (content) {
          combined = [...combined, ...content.map(c => ({
            ...c, content_type: c.content_type || 'post', platform: c.platform || 'web', target_type: 'social_content'
          }))];
       }
 
+      // Consulta a fotos
       const { data: photos, error: err2 } = await supabase.from("photos")
         .select("*").neq("is_banned", true)
         .order(orderCol, { ascending: false })
-        .order('created_at', { ascending: false })
         .range(from, to);
+      if (err2) throw err2;
       
-      if (err2) console.error("Error cargando fotos:", err2);
-      else if (photos) {
+      if (photos) {
         const photoItems = photos.map(p => ({
           id: p.id, user_id: p.user_id, platform: 'upload', content_url: p.image_url, image_url: p.image_url, content_type: 'photo',
           title: p.caption, caption: p.caption, thumbnail_url: p.image_url, is_public: true, created_at: p.created_at,
@@ -575,6 +579,7 @@ export default function FeedPage() {
       }
 
       if (combined.length === 0 && pageNum === 0) { 
+        setItems([]); 
         setHasMore(false);
         return; 
       }
@@ -585,28 +590,17 @@ export default function FeedPage() {
         setHasMore(true);
       }
 
-      // 🔥 3. ORDEN ABSOLUTO FINAL (Matemática: Likes - Dislikes) 🔥
-      const sortedCombined = [...combined].sort((a, b) => {
-        if (currentSort === "popular") {
-           const scoreA = (a.likes || 0) - (a.dislikes || 0);
-           const scoreB = (b.likes || 0) - (b.dislikes || 0);
-           if (scoreA !== scoreB) return scoreB - scoreA;
-           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        }
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-
-      const userIds = [...new Set(sortedCombined.map(c => c.user_id))];
+      const userIds = [...new Set(combined.map(c => c.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
       
-      const newProcessedItems = sortedCombined.map(c => {
+      const newProcessedItems = combined.map(c => {
         const p = profileMap.get(c.user_id);
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       });
 
       if (pageNum === 0) {
-        // PISA el estado entero sin pasar por un estado vacío []
+        // 🔥 REEMPLAZA EL ESTADO COMPLETO (Sin borrar primero) 🔥
         setItems(newProcessedItems);
       } else {
         setItems(prev => {
@@ -625,8 +619,8 @@ export default function FeedPage() {
   };
 
   useEffect(() => { 
-    fetchContent(page, sortBy); 
-  }, [page, sortBy]);
+    fetchContent(page, sort); 
+  }, [page, sort]);
 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
@@ -686,30 +680,52 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 4. HANDLER DE ORDEN LIMPIO (Sin borrar items, scroll con "auto") 🔥
-  const handleSortChange = (newSort: "new" | "popular") => {
-    if (sortBy === newSort) return;
-    setSortBy(newSort);
+  // 🔥 HANDLER REFORMADO 🔥
+  const handleSetSort = (newSort: 'new' | 'popular') => {
+    if (sort === newSort || isFetching) return;
+    
+    // Matamos imán y scroll arriba con behavior 'auto'
+    setIsSnapping(false);
+    if (containerRef.current) {
+      containerRef.current.style.overflowY = 'hidden';
+      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    
+    setSort(newSort);
     setPage(0);
     setHasMore(true);
     setVisibleIndex(0);
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
-    }
+
+    setTimeout(() => {
+      setIsSnapping(true);
+      if (containerRef.current) {
+        containerRef.current.style.overflowY = 'auto';
+      }
+    }, 100);
   };
 
-  // 🔥 5. USEMEMO EXCLUSIVO PARA FILTROS VISUALES (Sin alterar el orden de la BD) 🔥
-  const filteredItems = useMemo(() => {
+  // 🔥 USEMEMO SOLO COMO FILTRO VISUAL Y PUNTUACIÓN NETA 🔥
+  const sortedFiltered = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-    if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
-    if (filter === "reels") return sourceFiltered.filter(isReelItem);
-    if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
-    
-    return sourceFiltered;
-  }, [items, filter, sourceTab, friendIds]);
+    const filt = (() => {
+        if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
+        if (filter === "reels") return sourceFiltered.filter(isReelItem);
+        if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
+        return sourceFiltered;
+    })();
 
-  // Al cambiar filtros menores, sube la barra de scroll suavemente
+    return [...filt].sort((a, b) => {
+      if (sort === "popular") {
+        const scoreA = (a.likes || 0) - (a.dislikes || 0);
+        const scoreB = (b.likes || 0) - (b.dislikes || 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items, filter, sourceTab, sort, friendIds]);
+
   useEffect(() => {
     if (containerRef.current && items.length > 0) {
       containerRef.current.scrollTo({ top: 0, behavior: "auto" });
@@ -721,8 +737,8 @@ export default function FeedPage() {
   const directPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (directPostId && !hasScrolled && filteredItems.length > 0) {
-      const index = filteredItems.findIndex(item => item.id === directPostId);
+    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
+      const index = sortedFiltered.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         let attempts = 0;
         const attemptScroll = () => {
@@ -744,10 +760,10 @@ export default function FeedPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled]);
+  }, [directPostId, sortedFiltered, hasScrolled]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !isSnapping) return;
     const cards = containerRef.current.querySelectorAll("[data-card-index]");
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -755,7 +771,7 @@ export default function FeedPage() {
           const index = parseInt((entry.target as HTMLElement).dataset.cardIndex || "0");
           setVisibleIndex(index);
           
-          if (index >= filteredItems.length - 2 && hasMore && !isFetching) {
+          if (index >= sortedFiltered.length - 2 && hasMore && !isFetching) {
             setPage(p => p + 1);
           }
         }
@@ -763,7 +779,7 @@ export default function FeedPage() {
     }, { threshold: 0.6 });
     cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
-  }, [filteredItems, hasMore, isFetching]);
+  }, [sortedFiltered, hasMore, isFetching, isSnapping]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -776,7 +792,6 @@ export default function FeedPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
         
-        {/* Barra de progreso de fetch */}
         {isFetching && (
           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
         )}
@@ -805,27 +820,27 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          {/* 🔥 6. ESTILOS CONDICIONALES APLICADOS CORRECTAMENTE 🔥 */}
+          {/* 🔥 BOTONES CON CLASES VISUALES SEGÚN EL ESTADO 🔥 */}
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSortChange("popular")} 
-            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
+            onClick={() => handleSetSort('popular')} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}
           >
-             <Flame className="w-3 h-3 mr-1" /> Top
+             <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => handleSortChange("new")} 
-            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sortBy === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
+            onClick={() => handleSetSort('new')} 
+            className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}
           >
-             <Sparkles className="w-3 h-3 mr-1" /> Nuevos
+             <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
           </Button>
         </div>
       </div>
 
-      {filteredItems.length === 0 && !isFetching ? (
+      {sortedFiltered.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -837,12 +852,12 @@ export default function FeedPage() {
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           <div 
             ref={containerRef} 
-            className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" 
+            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
             style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {filteredItems.map((item, i) => (
+            {sortedFiltered.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
