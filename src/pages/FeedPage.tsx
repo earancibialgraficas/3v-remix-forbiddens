@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -381,7 +381,6 @@ function SnapCard({
                   <Flag className="w-3 h-3" />
                 </button>
               )}
-              {/* 🔥 BOTONES DE CREADOR 🔥 */}
               {isOwner && (
                 <>
                   <button onClick={() => setIsEditing(!isEditing)} className="p-1 text-muted-foreground hover:text-neon-yellow hover:bg-neon-yellow/10 rounded transition-colors" title="Editar">
@@ -521,14 +520,10 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADO DE ORDENAMIENTO (MAESTRO) 🔥
+  // 🔥 ESTADO DE ORDENAMIENTO Y FETCH 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [isFetching, setIsFetching] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
-  
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const ITEMS_PER_PAGE = 20; 
   
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -536,21 +531,17 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 FETCH REACTIVO A `sort` (Pide a la BD el orden correcto para no romper paginación) 🔥
-  const fetchContent = async (pageNum: number, currentSort: string) => {
+  // 🔥 FETCH REACTIVO QUE OBTIENE LA LISTA DIRECTO DE SUPABASE 🔥
+  const fetchContent = async () => {
     setIsFetching(true);
     try {
       let combined: FeedItem[] = [];
-      const orderCol = currentSort === 'popular' ? 'likes' : 'created_at';
-      
-      const from = pageNum * ITEMS_PER_PAGE;
-      const to = from + (ITEMS_PER_PAGE - 1);
+      const orderCol = sort === 'popular' ? 'likes' : 'created_at';
 
       const { data: content, error: err1 } = await supabase.from("social_content")
         .select("*").eq("is_public", true).neq("is_banned", true)
         .order(orderCol, { ascending: false })
-        .order('created_at', { ascending: false }) // 🔥 DESEMPATE OBLIGATORIO PARA EVITAR DUPLICADOS 🔥
-        .range(from, to);
+        .limit(50);
       if (err1) throw err1;
       
       if (content) {
@@ -562,8 +553,7 @@ export default function FeedPage() {
       const { data: photos, error: err2 } = await supabase.from("photos")
         .select("*").neq("is_banned", true)
         .order(orderCol, { ascending: false })
-        .order('created_at', { ascending: false }) // 🔥 DESEMPATE OBLIGATORIO 🔥
-        .range(from, to);
+        .limit(50);
       if (err2) throw err2;
       
       if (photos) {
@@ -575,36 +565,32 @@ export default function FeedPage() {
         combined = [...combined, ...photoItems];
       }
 
-      if (combined.length === 0 && pageNum === 0) { 
-        setHasMore(false);
+      if (combined.length === 0) { 
+        // Solo vaciamos si la base de datos REALMENTE está vacía
+        setItems([]); 
         return; 
       }
 
-      if ((content?.length || 0) < ITEMS_PER_PAGE && (photos?.length || 0) < ITEMS_PER_PAGE) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
+      // 🔥 EL ORDEN FINAL SEGURO (Calcula la puntuación real: Likes menos Dislikes) 🔥
+      const sortedCombined = [...combined].sort((a, b) => {
+        if (sort === "popular") {
+           const scoreA = (a.likes || 0) - (a.dislikes || 0);
+           const scoreB = (b.likes || 0) - (b.dislikes || 0);
+           if (scoreB !== scoreA) return scoreB - scoreA;
+           // Desempate por fecha si tienen los mismos likes
+           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
 
-      const userIds = [...new Set(combined.map(c => c.user_id))];
+      const userIds = [...new Set(sortedCombined.map(c => c.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap = new Map<string, any>(profiles?.map(p => [p.user_id, p]) || []);
       
-      const newProcessedItems = combined.map(c => {
+      setItems(sortedCombined.slice(0, 50).map(c => {
         const p = profileMap.get(c.user_id);
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
-      });
-
-      if (pageNum === 0) {
-        setItems(newProcessedItems);
-      } else {
-        setItems(prev => {
-          const existingIds = new Set(prev.map(i => i.id));
-          const uniqueNew = newProcessedItems.filter(i => !existingIds.has(i.id));
-          return [...prev, ...uniqueNew];
-        });
-      }
-
+      }));
     } catch (e) {
       console.error(e);
       toast({ title: "Error", description: "Ocurrió un error cargando el contenido.", variant: "destructive" });
@@ -613,9 +599,10 @@ export default function FeedPage() {
     }
   };
 
+  // El useEffect depende ESTRICTAMENTE de "sort" para re-llamar a la BD
   useEffect(() => { 
-    fetchContent(page, sort); 
-  }, [page, sort]);
+    fetchContent(); 
+  }, [sort]);
 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
@@ -675,54 +662,44 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 HANDLER: SOLO ACTUALIZA EL ESTADO 'sort' SIN VACIAR ARRAYS 🔥
+  // 🔥 HANDLER CONGELADOR DE SCROLL QUE CAMBIA EL ESTADO Y PIDE DATOS 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort) return;
+    if (sort === newSort) return; // Evita clics repetidos
     
-    // Matamos el snap temporalmente
+    // Desactiva el imán
     setIsSnapping(false);
     
-    // Forzamos ir al inicio de la lista visual existente con behavior 'auto' para compatibilidad total
+    // Scroll instantáneo arriba con "auto" para todos los navegadores
     if (containerRef.current) {
+      containerRef.current.style.overflowY = 'hidden';
       containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
     
-    // Cambiamos el estado (Esto dispara el render y el useEffect)
-    setSort(newSort);
-    setPage(0);
-    setHasMore(true);
+    // Reactiva re-render
     setVisibleIndex(0);
+    setSort(newSort);
 
-    // Reactivamos el snap una vez que React asimila todo (100ms es suficiente)
+    // Enciende de nuevo el scroll suavemente
     setTimeout(() => {
       setIsSnapping(true);
-    }, 100);
+      if (containerRef.current) {
+        containerRef.current.style.overflowY = 'auto';
+      }
+    }, 500); 
   };
 
-  // 🔥 USEMEMO CON PUNTUACIÓN REALISTA (Likes - Dislikes) Y DESEMPATE POR FECHA 🔥
-  const sortedItems = useMemo(() => {
+  // 🔥 USEMEMO SOLO PARA FILTROS (SIN INTERFERIR CON EL ORDEN DE SUPABASE) 🔥
+  const filteredItems = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
-    const filt = (() => {
-        if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
-        if (filter === "reels") return sourceFiltered.filter(isReelItem);
-        if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
-        return sourceFiltered;
-    })();
+    if (filter === "videos") return sourceFiltered.filter(isHorizontalVideo);
+    if (filter === "reels") return sourceFiltered.filter(isReelItem);
+    if (filter === "photos") return sourceFiltered.filter(i => !isVideoItem(i));
+    
+    return sourceFiltered;
+  }, [items, filter, sourceTab, friendIds]);
 
-    // IMPORTANTE: Si todos los posts tienen 0 likes, el desempate (created_at) hará que 'popular' se vea idéntico a 'new'.
-    return [...filt].sort((a, b) => {
-      if (sort === "popular") {
-        const scoreA = (a.likes || 0) - (a.dislikes || 0);
-        const scoreB = (b.likes || 0) - (b.dislikes || 0);
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-  }, [items, filter, sourceTab, sort, friendIds]);
-
-  // Al cambiar filtros visuales menores, solo reiniciamos la posición local
+  // Reset del Scroll al tocar los filtros secundarios
   useEffect(() => {
     if (containerRef.current && items.length > 0) {
       containerRef.current.scrollTo({ top: 0, behavior: "auto" });
@@ -734,8 +711,8 @@ export default function FeedPage() {
   const directPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (directPostId && !hasScrolled && sortedItems.length > 0) {
-      const index = sortedItems.findIndex(item => item.id === directPostId);
+    if (directPostId && !hasScrolled && filteredItems.length > 0) {
+      const index = filteredItems.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         let attempts = 0;
         const attemptScroll = () => {
@@ -757,7 +734,7 @@ export default function FeedPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, sortedItems, hasScrolled]);
+  }, [directPostId, filteredItems, hasScrolled]);
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
@@ -767,16 +744,12 @@ export default function FeedPage() {
         if (entry.isIntersecting) {
           const index = parseInt((entry.target as HTMLElement).dataset.cardIndex || "0");
           setVisibleIndex(index);
-          
-          if (index >= sortedItems.length - 2 && hasMore && !isFetching) {
-            setPage(p => p + 1);
-          }
         }
       });
     }, { threshold: 0.6 });
     cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
-  }, [sortedItems, hasMore, isFetching, isSnapping]);
+  }, [filteredItems, isSnapping]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -789,9 +762,9 @@ export default function FeedPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
       <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shrink-0 shadow-sm mt-1 mx-1 md:mx-2 relative overflow-hidden">
         
-        {/* 🔥 BARRA DE CARGA SUPERIOR (Indica visualmente que la BD está procesando) 🔥 */}
-        {isFetching && page === 0 && (
-           <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
+        {/* 🔥 BARRA ANIMADA QUE INDICA CARGA 🔥 */}
+        {isFetching && (
+          <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />
         )}
 
         <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2">
@@ -818,7 +791,6 @@ export default function FeedPage() {
         </div>
 
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
-          {/* 🔥 BOTONES MAESTROS DE ORDENAMIENTO VISUALMENTE REACTIVOS 🔥 */}
           <Button 
             variant="ghost" 
             size="sm" 
@@ -838,7 +810,7 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {sortedItems.length === 0 && !isFetching ? (
+      {filteredItems.length === 0 && !isFetching ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -855,7 +827,7 @@ export default function FeedPage() {
           >
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {sortedItems.map((item, i) => (
+            {filteredItems.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
@@ -871,12 +843,6 @@ export default function FeedPage() {
                 />
               </div>
             ))}
-
-            {hasMore && (
-              <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
-                <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
-              </div>
-            )}
           </div>
         </div>
       )}
