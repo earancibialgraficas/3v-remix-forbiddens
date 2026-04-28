@@ -48,63 +48,99 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: Viewport Fijo Matemático (Sirve para IG y TikTok) 🔥
-function SmartVideoEmbed({ src }: { src: string }) {
+// 🔥 COMPONENTE: Video Embed IDÉNTICO a SocialReelsPage.tsx 🔥
+function HubStyleVideoEmbed({ item }: { item: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerDims, setContainerDims] = useState({ w: 350, h: 700 });
+  const [scale, setScale] = useState(1);
+
+  const url = item.originalData?.content_url || '';
+  
+  // Determinar plataforma si no viene definida
+  let platform = item.originalData?.platform || 'web';
+  if (!item.originalData?.platform) {
+     if (url.includes('tiktok.com')) platform = 'tiktok';
+     else if (url.includes('instagram.com')) platform = 'instagram';
+     else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'youtube';
+  }
+
+  const cType = item.originalData?.content_type || 'video';
+
+  // Misma lógica de medidas base del SocialReelsPage
+  const getBaseSize = (plat: string, type: string, contentUrl: string) => {
+    if (plat === 'tiktok') return { w: 340, h: 605 };
+    if (plat === 'instagram') {
+      if (type === 'reel' || contentUrl?.includes('/reel')) return { w: 340, h: 605 };
+      return { w: 400, h: 500 }; 
+    }
+    if (type === 'reel' || contentUrl?.includes('shorts')) return { w: 324, h: 576 };
+    return { w: 640, h: 360 };
+  };
+
+  const baseSize = getBaseSize(platform, cType, url);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerDims({
-          w: entry.contentRect.width,
-          h: entry.contentRect.height
-        });
+        const { width, height } = entry.contentRect;
+        const safeWidth = width - 16;
+        const safeHeight = height - 16;
+        const scaleX = safeWidth / baseSize.w;
+        const scaleY = safeHeight / baseSize.h;
+        let newScale = Math.min(scaleX, scaleY);
+        newScale = Math.min(newScale, 1.2); // Límite máximo idéntico
+        setScale(newScale);
       }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [baseSize.w, baseSize.h]);
 
-  // CONSTANTES DEL SISTEMA DE CORTE (Tu idea)
-  const EMBED_W = 350;
-  const EMBED_H = 700;
-  const VIDEO_TOP = 80;
-  const VIDEO_HEIGHT = 540;
+  // Misma lógica de parseo de URLs de SocialReelsPage
+  const getEmbedUrl = () => {
+    if (platform === "youtube") {
+      const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
+      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&mute=0`;
+      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=0`;
+    }
+    if (platform === "instagram") {
+      const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
+      if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
+    }
+    if (platform === "tiktok") {
+      const tkMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+      if (tkMatch) return `https://www.tiktok.com/embed/v2/${tkMatch[1]}?autoplay=1`;
+      const tkMatch2 = url.match(/tiktok\.com\/.*?video\/(\d+)/);
+      if (tkMatch2) return `https://www.tiktok.com/embed/v2/${tkMatch2[1]}?autoplay=1`;
+    }
+    return url;
+  };
 
-  const containerHeight = containerDims.h || 700;
-  const containerWidth = containerDims.w || 350;
-
-  // Calculamos la escala base
-  let scale = containerHeight / VIDEO_HEIGHT;
-
-  // Medida de seguridad: Si la pantalla es muy angosta, limitamos el scale para no desbordar a los lados
-  const maxScaleW = containerWidth / EMBED_W;
-  if (scale > maxScaleW) scale = maxScaleW;
-
-  // Ajuste fino matemático de centrado
-  const translateY = -(VIDEO_TOP + (VIDEO_HEIGHT / 2 - containerHeight / (2 * scale)));
+  const finalEmbedUrl = getEmbedUrl();
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-      <div 
-        style={{ 
-          width: EMBED_W, 
-          height: EMBED_H, 
-          transformOrigin: 'top center', // 'top center' mantiene el eje X en su lugar
-          transform: `scale(${scale}) translateY(${translateY}px)` 
-        }} 
-        className="shrink-0 flex items-center justify-center"
-      >
-        <iframe 
-          src={src} 
-          className="w-full h-full border-0" 
-          scrolling="no" 
-          style={{ overflow: 'hidden' }}
-          allowFullScreen 
-        />
-      </div>
+    <div ref={containerRef} className="flex-1 min-h-0 w-full h-full relative overflow-hidden bg-[#09090b]">
+       <div 
+          className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
+          style={{ 
+            width: `${baseSize.w}px`,
+            height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`,
+            aspectRatio: baseSize.w === 640 ? '16/9' : 'auto',
+            transform: `translate(-50%, -50%) scale(${scale})`
+          }}
+        >
+          <iframe 
+            src={finalEmbedUrl} 
+            className={cn("w-full h-full bg-transparent outline-none rounded-xl shadow-2xl", 
+              platform === 'instagram' ? "bg-white" : ""
+            )}
+            style={{ border: "none" }}
+            scrolling="no"
+            allowFullScreen 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          />
+        </div>
     </div>
   );
 }
@@ -279,7 +315,7 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR MEDIA SOLA (MANTENIENDO EL CÓDIGO MAESTRO COMPARTIDO) 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
@@ -302,42 +338,18 @@ export default function GuardadosTab() {
     if (item.item_type === 'social_content') {
        const url = item.originalData.content_url || '';
        
-       if (url.includes('youtube') || url.includes('youtu.be')) {
-           const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
-           if (ytMatch && ytMatch[1]) {
-               const isShorts = url.includes('shorts/');
-               return (
-                 <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                   <div className={cn("h-full max-h-full w-auto mx-auto overflow-hidden rounded-xl bg-black", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video max-w-[800px]")}>
-                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full border-0" allowFullScreen allow="autoplay" />
-                   </div>
-                 </div>
-               );
-           }
-       }
-       
-       // 🔥 MAGIA MATEMÁTICA PARA TIKTOK 🔥
-       if (url.includes('tiktok.com')) {
-           const tkMatch = url.match(/video\/(\d+)/);
-           if (tkMatch) {
-             return <SmartVideoEmbed src={`https://www.tiktok.com/embed/v2/${tkMatch[1]}`} />;
-           }
+       // Si es de plataformas sociales, usa exactamente el mismo wrapper que SocialReelsPage
+       if (url.includes('youtube') || url.includes('youtu.be') || url.includes('tiktok.com') || url.includes('instagram.com')) {
+           return <HubStyleVideoEmbed item={item} />;
        }
 
+       // Para videos en crudo .mp4
        if (url.match(/\.(mp4|webm|ogg)/i)) {
            return (
              <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
                <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
              </div>
            );
-       }
-
-       // 🔥 MAGIA MATEMÁTICA PARA INSTAGRAM (Usando el mismo componente de Viewport fijo) 🔥
-       if (url.includes('instagram.com')) {
-           const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
-           if (igMatch) {
-             return <SmartVideoEmbed src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} />;
-           }
        }
        
        return (
