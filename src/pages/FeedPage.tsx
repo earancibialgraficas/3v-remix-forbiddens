@@ -533,21 +533,19 @@ export default function FeedPage() {
 
   const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
-  const isFetchingRef = useRef(false);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
   // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
-  const fetchContent = async (reset = false) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+  const fetchContent = async (resetPage: boolean, sortMode: 'new' | 'popular') => {
+    if (isFetching) return;
     setIsFetching(true);
 
     try {
-      const currentPage = reset ? 0 : page;
-      const from = currentPage * ITEMS_PER_PAGE;
+      const pageNum = resetPage ? 0 : page;
+      const from = pageNum * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const orderCol = sort === "popular" ? "likes" : "created_at";
+      const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
       // SOCIAL CONTENT
       const { data: content, error: err1 } = await supabase
@@ -619,7 +617,7 @@ export default function FeedPage() {
 
       // 🔥 3. ORDEN FINAL ABSOLUTO DEL BLOQUE OBTENIDO 🔥
       processed.sort((a, b) => {
-        if (sort === "popular") {
+        if (sortMode === "popular") {
           const scoreA = (a.likes || 0) - (a.dislikes || 0);
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
@@ -627,7 +625,7 @@ export default function FeedPage() {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
 
-      if (reset) {
+      if (resetPage) {
         setItems(processed);
         setPage(1);
         setVisibleIndex(0);
@@ -644,7 +642,7 @@ export default function FeedPage() {
 
           // 🔁 IMPORTANTE: ordenar TODO el array acumulado de nuevo
           return merged.sort((a, b) => {
-            if (sort === "popular") {
+            if (sortMode === "popular") {
               const scoreA = (a.likes || 0) - (a.dislikes || 0);
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
@@ -665,19 +663,18 @@ export default function FeedPage() {
       console.error("UNEXPECTED ERROR:", err);
     } finally {
       setIsFetching(false);
-      isFetchingRef.current = false;
     }
   };
 
   // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
-    fetchContent(true);
+    fetchContent(true, sort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort]);
 
   const loadMore = () => {
     if (!isFetching && hasMore) {
-      fetchContent(false);
+      fetchContent(false, sort);
     }
   };
 
