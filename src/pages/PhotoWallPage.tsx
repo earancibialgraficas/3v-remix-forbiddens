@@ -56,7 +56,7 @@ const getPhotoNeonStyle = (photo: any) => {
   };
 };
 
-/* 🔥 COMPONENTE: TARJETA MINIATURA (ACTUALIZADA CON BOTONES DE IMAGEN ADJUNTA) 🔥 */
+/* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -115,7 +115,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
             <div className="ml-auto flex items-center gap-1 sm:gap-1.5 z-20">
                {isOwner && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); onExpand(); /* Expandir sirve para editar */ }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Editar">
+                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Editar">
                       <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Eliminar">
@@ -140,15 +140,15 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
                    <ThumbsUp className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "like" && "fill-current")} /> <span className="hidden sm:inline">{photo.likes}</span>
                 </button>
 
-                {/* 2. VOTO NEGATIVO (AGREGADO) */}
+                {/* 2. VOTO NEGATIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "dislike", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
                    <ThumbsDown className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "dislike" && "fill-current")} /> <span className="hidden sm:inline">{photo.dislikes}</span>
                 </button>
 
-                {/* 3. ICONO DE COMENTARIOS (MENSAJE) */}
+                {/* 3. ICONO DE COMENTARIOS */}
                 <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
 
-                {/* 4. BOTÓN REPORTAR (AGREGADO JUNTO A COMENTAR) */}
+                {/* 4. BOTÓN REPORTAR */}
                 {user && !isOwner && (
                   <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="text-muted-foreground hover:text-destructive transition-colors z-20" title="Reportar">
                     <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -301,7 +301,8 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                        {isStaff && <button onClick={() => handleDeleteComment(commentId)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                        {/* 🔥 AQUÍ ESTÁ LA CORRECCIÓN: c.id en lugar de commentId 🔥 */}
+                        {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
                     </div>
                   </div>
