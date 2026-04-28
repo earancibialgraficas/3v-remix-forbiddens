@@ -14,6 +14,7 @@ const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00
 const cleanUrl = (url: string, itemType: string) => {
   if (!url) return "/";
   
+  // 🔥 REPARACIÓN DEL ERROR 404: Redirige automáticamente las rutas legadas a las nuevas rutas sociales 🔥
   if (url.startsWith("/feed")) return url.replace(/^\/feed/, "/social/feed");
   if (url.startsWith("/reels")) return url.replace(/^\/reels/, "/social/reels");
   if (url.startsWith("/muro") || url.startsWith("/fotos")) return url.replace(/^\/(muro|fotos)/, "/social/fotos");
@@ -57,6 +58,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
 
   const url = item.originalData?.content_url || '';
   
+  // Determinar plataforma si no viene definida
   let platform = item.originalData?.platform || 'web';
   if (!item.originalData?.platform) {
      if (url.includes('tiktok.com')) platform = 'tiktok';
@@ -67,6 +69,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
 
   const cType = item.originalData?.content_type || 'video';
 
+  // Lógica de medidas base incluyendo FACEBOOK
   const getBaseSize = (plat: string, type: string, contentUrl: string) => {
     if (plat === 'tiktok') return { w: 340, h: 605 };
     if (plat === 'instagram') {
@@ -101,6 +104,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     return () => observer.disconnect();
   }, [baseSize.w, baseSize.h]);
 
+  // 🔥 Parseo de URLs con AUTOPLAY FORZADO Y MUTED (requisito del navegador) 🔥
   const getEmbedUrl = () => {
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
@@ -153,6 +157,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
   );
 }
 
+// 🔥 COMPONENTE: Post con Botón Colapsable e Imagen Responsiva 🔥
 function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUrl: (item: any) => string }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -266,15 +271,33 @@ export default function GuardadosTab() {
                 if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url;
              } catch(e) { console.error("Error TikTok oEmbed", e); }
           } 
-          // 🔥 MAGIA DE FACEBOOK APLICADA 🔥
+          // 🔥 MAGIA DE FACEBOOK APLICADA CON FALLBACK A MICROLINK 🔥
           else if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
+             let fbThumbFound = false;
+             // 1. Intento principal con oEmbed de FB
              try {
                 const res = await fetch(`https://www.facebook.com/plugins/video/oembed.json/?url=${encodeURIComponent(url)}`);
                 if (res.ok) {
                    const json = await res.json();
-                   if (json.thumbnail_url) item.facebook_thumb = json.thumbnail_url;
+                   if (json.thumbnail_url) {
+                       item.facebook_thumb = json.thumbnail_url;
+                       fbThumbFound = true;
+                   }
                 }
              } catch(e) { console.error("Error Facebook oEmbed", e); }
+             
+             // 2. Si falló el oEmbed, extraer el og:image usando la API libre de Microlink (Sin CORS issues)
+             if (!fbThumbFound) {
+                 try {
+                     const fallbackRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+                     if (fallbackRes.ok) {
+                         const fallbackJson = await fallbackRes.json();
+                         if (fallbackJson.data?.image?.url) {
+                             item.facebook_thumb = fallbackJson.data.image.url;
+                         }
+                     }
+                 } catch(e) { console.error("Error Microlink Fallback", e); }
+             }
           }
        }
        return item;
@@ -311,7 +334,7 @@ export default function GuardadosTab() {
     if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
     
     if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
-    if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb); // Nuevo Facebook Thumb
+    if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb); // Nuevo Facebook Thumb con Fallback
 
     if (origContentUrl.includes('instagram.com')) {
        const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
