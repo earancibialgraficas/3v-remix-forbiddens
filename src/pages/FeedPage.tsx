@@ -579,8 +579,11 @@ export default function FeedPage() {
             ...c,
             content_type: c.content_type || 'post', 
             platform: c.platform || 'web',
+            likes: c.likes || 0,
+            dislikes: c.dislikes || 0,
+            created_at: c.created_at || new Date().toISOString(),
             target_type: "social_content"
-          }))
+          })).filter(c => c.created_at) // Filtra items sin fecha válida
         ];
       }
 
@@ -598,11 +601,11 @@ export default function FeedPage() {
             caption: p.caption,
             thumbnail_url: p.image_url,
             is_public: true,
-            created_at: p.created_at,
+            created_at: p.created_at || new Date().toISOString(),
             likes: p.likes || 0,
             dislikes: p.dislikes || 0,
             target_type: "photo"
-          }))
+          })).filter(p => p.created_at) // Filtra items sin fecha válida
         ];
       }
 
@@ -622,7 +625,10 @@ export default function FeedPage() {
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
         }
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        // Fallback por fecha, con manejo de NULL
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
       });
 
       if (resetPage) {
@@ -647,7 +653,10 @@ export default function FeedPage() {
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
             }
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            // Fallback por fecha, con manejo de NULL
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
           });
         });
         setPage((prev) => prev + 1);
