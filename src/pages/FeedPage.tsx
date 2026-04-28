@@ -510,7 +510,6 @@ function SnapCard({
   );
 }
 
-// 🔥 MOTOR DE SCROLL INFINITO Y ORDENAMIENTO (Basado en ForumPage) 🔥
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -524,10 +523,12 @@ export default function FeedPage() {
   const [sortBy, setSortBy] = useState<"new" | "popular">("new");
   const [isFetching, setIsFetching] = useState(false);
   
-  // 🔥 ESTADOS PARA EL SCROLL INFINITO 🔥
+  // 🔥 ESTADO DE BLOQUEO DE SCROLL (El "Secreto" Anti-Bugs) 🔥
+  const [isReordering, setIsReordering] = useState(true);
+  
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const ITEMS_PER_PAGE = 20; // Cargaremos 20 de videos y 20 de fotos por cada página (40 total)
+  const ITEMS_PER_PAGE = 20; 
   
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -541,7 +542,6 @@ export default function FeedPage() {
       let combined: FeedItem[] = [];
       const orderCol = currentSort === "popular" ? "likes" : "created_at";
       
-      // Cálculo del rango para el scroll infinito
       const from = pageNum * ITEMS_PER_PAGE;
       const to = from + (ITEMS_PER_PAGE - 1);
 
@@ -570,14 +570,12 @@ export default function FeedPage() {
         combined = [...combined, ...photoItems];
       }
 
-      // Si es la primera página y no hay nada
       if (combined.length === 0 && pageNum === 0) { 
         setItems([]); 
         setHasMore(false);
         return; 
       }
 
-      // Si cargamos menos del límite esperado, ya no hay más páginas
       if ((content?.length || 0) < ITEMS_PER_PAGE && (photos?.length || 0) < ITEMS_PER_PAGE) {
         setHasMore(false);
       } else {
@@ -597,7 +595,6 @@ export default function FeedPage() {
         setItems(newProcessedItems);
       } else {
         setItems(prev => {
-          // Filtramos duplicados por si acaso
           const existingIds = new Set(prev.map(i => i.id));
           const uniqueNew = newProcessedItems.filter(i => !existingIds.has(i.id));
           return [...prev, ...uniqueNew];
@@ -609,10 +606,10 @@ export default function FeedPage() {
       toast({ title: "Error", description: "Ocurrió un error cargando el contenido.", variant: "destructive" });
     } finally {
       setIsFetching(false);
+      setIsReordering(false); // 🔥 AL TERMINAR DE CARGAR, SE REACTIVA EL SCROLL 🔥
     }
   };
 
-  // Se dispara al cargar o al cambiar de página o de orden
   useEffect(() => { 
     fetchContent(page, sortBy); 
   }, [page, sortBy]);
@@ -675,19 +672,22 @@ export default function FeedPage() {
     }
   };
 
+  // 🔥 HANDLER MÁGICO: BLOQUEA EL SCROLL Y LIMPIA INSTANTÁNEAMENTE 🔥
   const handleSortChange = (newSort: "new" | "popular") => {
     if (sortBy === newSort || isFetching) return;
+    
+    setIsReordering(true); // Congela el scroll
     setSortBy(newSort);
-    setPage(0); // Reiniciamos la página
+    setPage(0); 
     setHasMore(true);
-    setItems([]); // Limpiamos visualmente de inmediato
+    setItems([]); // Destruye la lista visual para evitar glitches del imán
+    setVisibleIndex(0);
+    
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
-    setVisibleIndex(0);
   };
 
-  // 🔥 EL USEMEMO AHORA SOLO FILTRA Y ORDENA LOCALMENTE LA PÁGINA ACTUAL 🔥
   const sortedFiltered = useMemo(() => {
     const sourceFiltered = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -708,9 +708,8 @@ export default function FeedPage() {
     });
   }, [items, filter, sourceTab, sortBy, friendIds]);
 
-  // Al cambiar filtros menores reiniciamos posición
   useEffect(() => {
-    if (containerRef.current && items.length > 0) {
+    if (containerRef.current && items.length > 0 && !isReordering) {
       containerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
     setVisibleIndex(0);
@@ -720,7 +719,7 @@ export default function FeedPage() {
   const directPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
+    if (directPostId && !hasScrolled && sortedFiltered.length > 0 && !isReordering) {
       const index = sortedFiltered.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         let attempts = 0;
@@ -740,15 +739,13 @@ export default function FeedPage() {
         };
         requestAnimationFrame(attemptScroll);
       } else {
-        // Si no lo encuentra en la primera página, cancela
         setHasScrolled(true);
       }
     }
-  }, [directPostId, sortedFiltered, hasScrolled]);
+  }, [directPostId, sortedFiltered, hasScrolled, isReordering]);
 
-  // 🔥 INTERSECTION OBSERVER CON TRIGGER PARA SCROLL INFINITO 🔥
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || isReordering) return;
     const cards = containerRef.current.querySelectorAll("[data-card-index]");
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -756,7 +753,6 @@ export default function FeedPage() {
           const index = parseInt((entry.target as HTMLElement).dataset.cardIndex || "0");
           setVisibleIndex(index);
           
-          // Si estamos a 2 posts del final, cargamos más
           if (index >= sortedFiltered.length - 2 && hasMore && !isFetching) {
             setPage(p => p + 1);
           }
@@ -765,7 +761,7 @@ export default function FeedPage() {
     }, { threshold: 0.6 });
     cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
-  }, [sortedFiltered, hasMore, isFetching]);
+  }, [sortedFiltered, hasMore, isFetching, isReordering]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -826,7 +822,8 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* 🔥 MAGIA ANTI-BUGS: overflow-hidden desactiva el snap temporalmente mientras se reordena 🔥 */}
+          <div ref={containerRef} className={cn("snap-y snap-mandatory h-full w-full relative z-0", isReordering ? "overflow-hidden" : "overflow-y-auto")} style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {sortedFiltered.map((item, i) => (
@@ -846,7 +843,6 @@ export default function FeedPage() {
               </div>
             ))}
 
-            {/* Spinner final de carga del Scroll Infinito */}
             {hasMore && (
               <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
                 <span className="animate-spin text-neon-cyan text-4xl">⏳</span>
