@@ -68,7 +68,7 @@ function TikTokEmbed({ videoId }: { videoId: string }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden bg-black">
+    <div ref={containerRef} className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
       <div 
         style={{ 
           transform: `scale(${scale}) translateY(-${(700 * 0.05) / scale}px)`, 
@@ -96,7 +96,7 @@ function PostCarouselItem({ item, getThumbnailUrl }: { item: any, getThumbnailUr
     <div className="bg-card w-full h-full flex flex-col md:flex-row overflow-hidden relative">
       <div className={cn(
         "relative flex items-center justify-center bg-black transition-all duration-500 ease-in-out",
-        expanded ? "h-[65%] md:h-full md:w-[65%]" : "h-full w-full"
+        expanded ? "h-[65%] md:h-full md:w-[65%]" : "flex-1 min-h-0 w-full h-full"
       )}>
          <img src={getThumbnailUrl(item)} className="w-full h-full object-cover opacity-90" alt="Post Cover" />
          
@@ -258,11 +258,11 @@ export default function GuardadosTab() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
-  // 🔥 RENDERIZADOR MEDIA SOLA (CON OVERFLOW HIDDEN + TRANSLATE PARA IG APLICADO) 🔥
+  // 🔥 RENDERIZADOR MEDIA SOLA (MAGIA CSS: PROPORCIONES, OVERFLOW-HIDDEN Y TRANSLATE PORCENTUAL) 🔥
   const renderMediaOnly = (item: any) => {
     if (!item.originalData) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 bg-card w-full h-full">
+        <div className="flex-1 min-h-0 w-full h-full flex flex-col items-center justify-center text-center p-8 bg-card overflow-hidden">
           <Trash2 className="w-12 h-12 text-destructive mb-4" />
           <p className="text-white font-pixel text-xs">Publicación Eliminada</p>
         </div>
@@ -271,7 +271,11 @@ export default function GuardadosTab() {
 
     if (item.item_type === 'photo' || item.originalData?.is_apify) {
        const img = item.originalData?.image_url || item.thumbnail_url;
-       return <img src={getProxyUrl(img)} className="w-full h-full object-contain shadow-2xl rounded" />;
+       return (
+         <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden">
+           <img src={getProxyUrl(img)} className="w-full h-full object-contain shadow-2xl rounded" />
+         </div>
+       );
     }
 
     if (item.item_type === 'social_content') {
@@ -282,9 +286,9 @@ export default function GuardadosTab() {
            if (ytMatch && ytMatch[1]) {
                const isShorts = url.includes('shorts/');
                return (
-                 <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                   <div className={cn("h-full max-h-full w-auto mx-auto", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video w-full max-w-[800px]")}>
-                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full rounded-xl border-0 bg-black" allowFullScreen allow="autoplay" />
+                 <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center bg-black overflow-hidden">
+                   <div className={cn("h-full max-h-full w-auto mx-auto overflow-hidden rounded-xl bg-black", isShorts ? "aspect-[9/16] max-w-[400px]" : "aspect-video max-w-[800px]")}>
+                     <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`} className="w-full h-full border-0" allowFullScreen allow="autoplay" />
                    </div>
                  </div>
                );
@@ -299,17 +303,21 @@ export default function GuardadosTab() {
        }
 
        if (url.match(/\.(mp4|webm|ogg)/i)) {
-           return <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />;
+           return (
+             <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+               <video src={url} controls autoPlay className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
+             </div>
+           );
        }
 
-       // 🔥 INSTAGRAM: EL TRUCAZO MAGISTRAL DE CSS 🔥
+       // 🔥 INSTAGRAM: EL CÓDIGO MAESTRO DE RECORTE CON PORCENTAJES 🔥
        if (url.includes('instagram.com')) {
            const igMatch = url.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
            if (igMatch) {
              return (
-               <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden">
-                 <div className="h-full max-h-full aspect-[9/16] max-w-[400px] w-full mx-auto overflow-hidden rounded-xl bg-black">
-                   <div className="w-full h-[calc(100%+120px)]" style={{ transform: 'translateY(-60px)' }}>
+               <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center bg-black overflow-hidden">
+                 <div className="h-full max-h-full aspect-[9/16] w-auto max-w-[400px] mx-auto overflow-hidden rounded-xl bg-black">
+                   <div className="w-full h-[114%]" style={{ transform: 'translateY(-7%)' }}>
                      <iframe 
                        src={`https://www.instagram.com/p/${igMatch[1]}/embed/?hidecaption=true`} 
                        className="w-full h-full border-0"
@@ -324,11 +332,19 @@ export default function GuardadosTab() {
            }
        }
        
-       return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />;
+       return (
+         <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden">
+           <img src={getThumbnailUrl(item)} className="w-full h-full object-contain rounded shadow-2xl" />
+         </div>
+       );
     }
 
     if (item.item_type === 'post') {
-       return <img src={getThumbnailUrl(item)} className="w-full h-full object-contain shadow-2xl rounded" alt="Post Cover" />;
+       return (
+         <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden">
+           <img src={getThumbnailUrl(item)} className="w-full h-full object-contain shadow-2xl rounded" alt="Post Cover" />
+         </div>
+       );
     }
   };
 
@@ -457,9 +473,11 @@ export default function GuardadosTab() {
             
             <div className="relative w-[70%] h-full bg-black flex items-center justify-center overflow-hidden shrink-0 group">
               <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronLeft className="w-8 h-8" /></button>
-              <div className="w-full h-full p-4 flex items-center justify-center relative">
+              
+              <div className="flex-1 min-h-0 overflow-hidden w-full h-full flex items-center justify-center relative p-0 md:p-4">
                 {renderMediaOnly(items[selectedIndex])}
               </div>
+              
               <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-4 z-50 p-3 bg-black/50 hover:bg-white/10 text-white rounded-full border border-white/10 backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"><ChevronRight className="w-8 h-8" /></button>
             </div>
             
