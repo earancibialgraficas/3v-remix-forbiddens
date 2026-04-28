@@ -520,7 +520,6 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   
-  // 🔥 ESTADO DE ORDENAMIENTO (Nuevos por defecto) 🔥
   const [sortBy, setSortBy] = useState<"new" | "popular">("new");
   
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -529,10 +528,9 @@ export default function FeedPage() {
 
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 FETCH CONTENT REESCRITO PARA RESPONDER AL ESTADO sortBy 🔥
   const fetchContent = async () => {
     let combined: FeedItem[] = [];
-    const orderCol = sortBy === "popular" ? "likes" : "created_at"; // Le pide los Top 50 reales a la BD
+    const orderCol = sortBy === "popular" ? "likes" : "created_at";
 
     const { data: content } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order(orderCol, { ascending: false }).limit(50);
     if (content) {
@@ -553,7 +551,7 @@ export default function FeedPage() {
 
     if (combined.length === 0) { setItems([]); return; }
     
-    // JS Orden final de seguridad
+    // JS Orden final de seguridad base
     if (sortBy === "popular") {
       combined.sort((a, b) => (b.likes || 0) - (a.likes || 0));
     } else {
@@ -570,7 +568,6 @@ export default function FeedPage() {
     }));
   };
 
-  // Vuelve a buscar a la BD cada vez que cambias el filtro de orden
   useEffect(() => { fetchContent(); }, [sortBy]);
 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
@@ -631,7 +628,6 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 HANDLER PARA CAMBIAR ORDEN Y VOLVER ARRIBA INMEDIATAMENTE 🔥
   const handleSortChange = (newSort: "new" | "popular") => {
     if (sortBy === newSort) return;
     setSortBy(newSort);
@@ -650,32 +646,34 @@ export default function FeedPage() {
       return sourceFiltered;
   })();
 
-  // 🔥 BUCLE DE ANIMACIÓN: AUTO-SCROLL GARANTIZADO AL ENTRAR 🔥
+  // 🔥 ORDENAMIENTO VISUAL EN TIEMPO REAL (El paso clave que faltaba) 🔥
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    if (sortBy === "popular") return (b.likes || 0) - (a.likes || 0);
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post");
 
   useEffect(() => {
-    if (directPostId && !hasScrolled && filtered.length > 0) {
-      const index = filtered.findIndex(item => item.id === directPostId);
+    if (directPostId && !hasScrolled && sortedFiltered.length > 0) {
+      const index = sortedFiltered.findIndex(item => item.id === directPostId);
       if (index !== -1) {
         const attemptScroll = () => {
           const card = document.getElementById(`feed-post-${directPostId}`);
           if (card && containerRef.current) {
-            // Scroll a la medida exacta de la publicación en lugar de dejarlo en smooth para evitar errores del snap
             containerRef.current.scrollTo({ top: card.offsetTop, behavior: "instant" });
             setVisibleIndex(index);
             setHasScrolled(true);
           } else {
-            // Si el DOM aún no pinta el elemento, lo intenta en el siguiente frame (hasta que funcione)
             requestAnimationFrame(attemptScroll);
           }
         };
         requestAnimationFrame(attemptScroll);
       }
     }
-  }, [directPostId, filtered, hasScrolled]);
+  }, [directPostId, sortedFiltered, hasScrolled]);
 
-  // Actualiza el índice visible al hacer scroll manual
   useEffect(() => {
     if (!containerRef.current) return;
     const cards = containerRef.current.querySelectorAll("[data-card-index]");
@@ -688,7 +686,7 @@ export default function FeedPage() {
     }, { threshold: 0.6 });
     cards.forEach(card => observer.observe(card));
     return () => observer.disconnect();
-  }, [filtered]);
+  }, [sortedFiltered]);
 
   const filterTabs = [
     { id: "all", label: "Todos", icon: Globe },
@@ -723,7 +721,6 @@ export default function FeedPage() {
           )}
         </div>
 
-        {/* 🔥 BOTONES DE ORDENAMIENTO (Usando el handler optimizado) 🔥 */}
         <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50">
           <Button variant="ghost" size="sm" onClick={() => handleSortChange("popular")} className={cn("text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
              <Flame className="w-3 h-3 mr-1" /> Top
@@ -735,7 +732,7 @@ export default function FeedPage() {
 
       </div>
 
-      {filtered.length === 0 ? (
+      {sortedFiltered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2">
           <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
           <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
@@ -747,7 +744,8 @@ export default function FeedPage() {
         <div className="relative flex-1 min-h-0 w-full overflow-hidden">
           <div ref={containerRef} className="snap-y snap-mandatory overflow-y-auto h-full w-full relative z-0" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            {filtered.map((item, i) => (
+            {/* 🔥 MAPEAMOS USANDO sortedFiltered 🔥 */}
+            {sortedFiltered.map((item, i) => (
               <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                 <SnapCard 
                   item={item} 
