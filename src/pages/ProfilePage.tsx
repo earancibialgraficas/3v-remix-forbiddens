@@ -167,6 +167,7 @@ export default function ProfilePage() {
     const loadStorage = async () => {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
+        
         const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id).not("game_state", "is", null);
         (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
         
