@@ -168,22 +168,26 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 SOLUCIÓN: Buscamos todos los puntajes y filtramos con JS para evitar errores de Supabase 🔥
-        const { data: scores } = await supabase.from("leaderboard_scores")
+        // 🔥 SOLUCIÓN DEFINITIVA: Traemos todo y no filtramos nada que tenga que ver con "game_state"
+        const { data: scores, error: scoresError } = await supabase.from("leaderboard_scores")
           .select("id, game_name, console_type, created_at, game_state")
           .eq("user_id", user.id);
 
+        console.log("🎮 Partidas detectadas desde la BD:", scores);
+        
+        if (scoresError) {
+          console.error("❌ Error de BD al buscar partidas:", scoresError);
+        }
+
         (scores || []).forEach(s => {
-          // Nos aseguramos que game_state realmente exista y no esté vacío
-          if (s.game_state !== null && s.game_state !== undefined && s.game_state !== '' && s.game_state !== '{}' && s.game_state !== 'null') {
-            items.push({ 
-              type: "Partida guardada", 
-              name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
-              size: 2, 
-              id: s.id, 
-              created_at: s.created_at 
-            });
-          }
+          // Ya no bloqueamos si el estado es nulo. Toda partida registrada se considera guardada
+          items.push({ 
+            type: "Partida guardada", 
+            name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
+            size: 2, 
+            id: s.id, 
+            created_at: s.created_at 
+          });
         });
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
@@ -198,7 +202,9 @@ export default function ProfilePage() {
         items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setStorageItems(items);
         setStorageUsed(items.reduce((sum, i) => sum + (i.size || 0), 0));
-      } catch(e) {}
+      } catch(e) {
+        console.error("❌ Error cargando Storage:", e);
+      }
     };
     
     loadCoreData();
