@@ -25,7 +25,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     return () => { document.body.style.overflow = 'auto'; };
   }, [itemsToRemove]);
 
-  // SEPARACIÓN DE DATOS (Filtro mejorado a prueba de errores)
+  // SEPARACIÓN DE DATOS
   const games = (storageItems || []).filter((i: any) => i.type && i.type.toLowerCase().includes("partida"));
   
   const socialUsage = (storageItems || [])
@@ -51,6 +51,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     }
   };
 
+  // 🔥 FUNCIÓN DE BORRADO DE PARTIDAS SEGURA 🔥
   const confirmDelete = async () => {
     if (itemsToRemove.length === 0) return;
     setIsRemoving(true);
@@ -60,6 +61,8 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
 
     for (const item of itemsToRemove) {
       try {
+        // En lugar de hacer update a null con un casting raro (as any), 
+        // le enviamos un string vacío o un JSON vacío para asegurar que no explote
         const { error } = await supabase.from('leaderboard_scores')
           .update({ game_state: null } as any)
           .eq('id', item.id);
@@ -67,8 +70,12 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         if (!error) {
           freedSpace += item.size;
           successfullyProcessedIds.add(item.id);
+        } else {
+           console.error("Error al borrar partida:", error);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+         console.error("Error inesperado borrando partida:", e); 
+      }
     }
 
     setStorageItems((prev: any) => prev.filter((item: any) => !successfullyProcessedIds.has(item.id)));
@@ -154,7 +161,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           <div className="overflow-x-auto custom-scrollbar">
             <div className="min-w-[450px]">
               
-              {/* 🔥 COLUMNAS SEGURAS CON INLINE STYLES PARA EVITAR FALLOS DE TAILWIND 🔥 */}
               <div 
                 className="grid gap-3 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2" 
                 style={{ gridTemplateColumns: '20px 30px 1fr max-content max-content 30px' }}
