@@ -411,7 +411,7 @@ export default function ProfilePage() {
       {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => handleTabChange("configuracion")} limits={limits} isStaff={isStaff} />}
       {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}
       {activeTab === "guardados" && <GuardadosTab />}
-      {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
+      {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} isAdmin={isAdmin} />}
       
     </div>
   );
