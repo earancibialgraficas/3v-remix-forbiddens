@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle } from "lucide-react";
+import { createPortal } from "react-dom";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -118,6 +119,16 @@ export default function PublicProfilePage() {
   const [totalForumPosts, setTotalForumPosts] = useState(0);
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
+  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR AMIGO 🔥
+  const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  useEffect(() => {
+    if (friendToRemove) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [friendToRemove]);
+
   const [, setTick] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setTick(t => t + 1), 60000);
@@ -218,9 +229,30 @@ export default function PublicProfilePage() {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       if (!error) { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
-    } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
+    } else if (friendStatus === "accepted") {
+      // 🔥 ABRIR EL MODAL DE CONFIRMACIÓN EN LUGAR DE ELIMINAR DIRECTO 🔥
+      setFriendToRemove({ id: userId, name: profile?.display_name || "este usuario" });
+    } else if (friendStatus === "pending_sent") {
+      // Cancelar solicitud enviada no requiere modal, se cancela directo
       const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
-      if (!error) { setFriendStatus("none"); toast({ title: "Acción completada" }); }
+      if (!error) { setFriendStatus("none"); toast({ title: "Solicitud cancelada" }); }
+    }
+  };
+
+  // 🔥 LÓGICA FINAL PARA ELIMINAR AMIGO (DESDE EL MODAL) 🔥
+  const confirmRemoveFriend = async () => {
+    if (!friendToRemove || !user) return;
+    setIsRemoving(true);
+    try {
+      const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendToRemove.id}),and(sender_id.eq.${friendToRemove.id},receiver_id.eq.${user.id})`);
+      if (error) throw error;
+      setFriendStatus("none");
+      toast({ title: "Amistad eliminada", description: `Has eliminado a ${friendToRemove.name}.` });
+    } catch(e) {
+      toast({ title: "Error", description: "No se pudo eliminar al amigo.", variant: "destructive" });
+    } finally {
+      setIsRemoving(false);
+      setFriendToRemove(null);
     }
   };
 
@@ -268,9 +300,8 @@ export default function PublicProfilePage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-[1200px] mx-auto px-4 pb-20">
+    <div className="space-y-4 animate-fade-in max-w-[1200px] mx-auto px-4 pb-20 relative">
       
-      {/* HEADER PERFIL */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm" style={getAvatarBorderStyle(profile.color_avatar_border)}>
@@ -292,7 +323,7 @@ export default function PublicProfilePage() {
                 <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="h-8 text-[10px] font-pixel uppercase">{isFollowing ? "Dejar de seguir" : "Seguir"}</Button>
                 <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} disabled={friendStatus === "none" && reachedFriendLimit} className="h-8 text-[10px] font-pixel uppercase">
                   {friendStatus === "none" && (reachedFriendLimit ? "Límite Lleno" : "Añadir amigo")}
-                  {friendStatus === "pending_sent" && "Pendiente"}
+                  {friendStatus === "pending_sent" && "Cancelar Solicitud"}
                   {friendStatus === "pending_received" && "Aceptar Amigo"}
                   {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
@@ -303,7 +334,6 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* ESTADÍSTICAS (GRID AUTO-FIT MEJORADO) */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
@@ -328,10 +358,8 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 LAS 2 COLUMNAS AHORA SE TRANSFORMAN EN 1 MUCHO ANTES (XL breakpoint) 🔥 */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         
-        {/* PUNTAJES POR JUEGO */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
           <div className="space-y-1 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
@@ -347,7 +375,6 @@ export default function PublicProfilePage() {
           </div>
         </div>
 
-        {/* POSTS RECIENTES */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
           <div className="space-y-2 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
@@ -387,7 +414,6 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* CARRUSEL HORIZONTAL SOCIAL HUB */}
       {userSocialMedia.length > 0 && (
         <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
            <div className="flex justify-between items-end mb-4">
@@ -410,6 +436,56 @@ export default function PublicProfilePage() {
            </div>
         </div>
       )}
+
+      {/* 🔥 MODAL DE CONFIRMACIÓN AL ELIMINAR AMIGO DESDE EL PERFIL PÚBLICO 🔥 */}
+      {friendToRemove && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-sm bg-card border border-destructive/40 rounded-xl p-5 shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-scale-in flex flex-col" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10 shrink-0">
+              <h3 className="font-pixel text-[11px] text-destructive flex items-center gap-2">
+                <UserMinus className="w-4 h-4" /> ELIMINAR AMIGO
+              </h3>
+              <button onClick={() => setFriendToRemove(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-6 text-center">
+              <p className="text-sm font-body text-muted-foreground">
+                ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
+              </p>
+              {/* 🔥 AVISO DE IRREVERSIBLE 🔥 */}
+              <p className="text-[10px] font-body text-destructive/80 mt-2 uppercase tracking-wide">
+                Esta acción es irreversible.
+              </p>
+            </div>
+
+            {/* BOTONES IGUALES, CENTRADOS Y A TODO ANCHO */}
+            <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setFriendToRemove(null)} 
+                className="w-full text-xs font-body border-white/10 hover:bg-white/5 h-10"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmRemoveFriend} 
+                disabled={isRemoving} 
+                className="w-full text-xs font-pixel shadow-[0_0_15px_rgba(220,38,38,0.3)] h-10"
+              >
+                {isRemoving ? "Cargando..." : "Sí, Eliminar"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }
