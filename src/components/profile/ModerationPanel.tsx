@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Ban, Unlock, Shield, Search, UserCheck, Image as ImageIcon, Users, X, AlertTriangle, UserMinus } from "lucide-react";
+import { Ban, Unlock, Shield, Search, UserCheck, Image as ImageIcon, Users, AlertTriangle, UserMinus } from "lucide-react";
 
 export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) {
   const { toast } = useToast();
@@ -29,7 +29,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     title: string;
     message: string;
     btnText: string;
-    variant: "destructive" | "default";
+    variant: "destructive" | "default" | "outline";
     action: () => void;
   } | null>(null);
 
@@ -42,28 +42,40 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   const canManageMods = isMasterWeb || isAdmin;
   const canManageAdmins = isMasterWeb;
 
-  // 🔥 BUSCADOR A PRUEBA DE FALLOS 🔥
+  // 🔥 BUSCADOR INTELIGENTE Y SEGURO 🔥
   const handleSearchUser = async () => {
     if (!searchTerm.trim()) return;
     setIsSearching(true);
     setFoundUser(null);
+    
     try {
       let u = null;
-      
-      // 1. Buscamos primero por la función SQL (Por si usan correo)
-      const { data: rpcData, error: rpcError } = await supabase.rpc("get_user_by_identifier", { search_text: searchTerm.trim() });
-      
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        u = rpcData[0];
+      const isEmail = searchTerm.includes("@");
+
+      if (isEmail) {
+        // Buscar por correo usando el nuevo RPC
+        const { data, error } = await supabase.rpc("search_user_by_email", { email_query: searchTerm.trim().toLowerCase() });
+        
+        if (error) {
+          console.error("Error SQL:", error);
+          toast({ 
+            title: "Falta Código SQL", 
+            description: "Para buscar por correo debes ejecutar el nuevo código SQL en Supabase.", 
+            variant: "destructive" 
+          });
+          setIsSearching(false);
+          return;
+        }
+        if (data && data.length > 0) u = data[0];
       } else {
-        // 2. Si la función falla o no está instalada, busca por Nombre (A prueba de fallos)
-        const { data: nameData } = await supabase
+        // Buscar por nombre de usuario directamente en la tabla (siempre funciona)
+        const { data } = await supabase
           .from("profiles")
           .select("user_id, display_name, membership_tier")
           .ilike("display_name", searchTerm.trim())
           .maybeSingle();
 
-        if (nameData) u = nameData;
+        if (data) u = data;
       }
 
       if (u) {
@@ -78,11 +90,13 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
         });
         setSelectedTier(u.membership_tier || "novato");
       } else {
-        toast({ title: "No encontrado", description: "No se halló al usuario por nombre ni por correo.", variant: "destructive" });
+        toast({ title: "No encontrado", description: isEmail ? "Ningún usuario registrado con ese correo." : "No existe ese nombre de usuario.", variant: "destructive" });
       }
-    } catch (e) {
-      toast({ title: "Error en búsqueda", variant: "destructive" });
-    } finally { setIsSearching(false); }
+    } catch (e: any) {
+      toast({ title: "Error en búsqueda", description: e.message || "Error desconocido", variant: "destructive" });
+    } finally { 
+      setIsSearching(false); 
+    }
   };
 
   // --- CARGA DE DATOS PARA PESTAÑAS ---
@@ -126,7 +140,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   return (
     <div className="space-y-4 animate-in fade-in relative">
       
-      {/* --- MENÚ DE PESTAÑAS (Renombradas) --- */}
+      {/* --- MENÚ DE PESTAÑAS --- */}
       <div className="flex gap-1 bg-muted/20 p-1 rounded border border-white/5 overflow-x-auto custom-scrollbar">
         <button onClick={() => setActiveSubTab("gestion")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "gestion" ? "bg-neon-cyan text-black" : "text-muted-foreground hover:text-white")}><Search className="w-3 h-3" /> GESTIÓN</button>
         <button onClick={() => setActiveSubTab("baneados")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "baneados" ? "bg-neon-orange text-black" : "text-muted-foreground hover:text-white")}><UserMinus className="w-3 h-3" /> BANEADOS</button>
@@ -182,7 +196,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
               {/* Roles */}
               <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
                 {canManageMods && !foundUser.isTargetMod && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
                 )}
                 {canManageAdmins && !foundUser.isTargetAdmin && (
                   <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "admin" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
@@ -276,7 +290,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
             </div>
             <p className="text-xs font-body text-foreground mb-6 leading-relaxed">{confirmAction.message}</p>
             <div className="grid grid-cols-2 gap-3">
-               <Button variant="outline" onClick={() => setConfirmAction(null)} className="h-10 text-[10px] font-body hover:bg-white/10 hover:text-white">CANCELAR</Button>
+               <Button variant="outline" onClick={() => setConfirmAction(null)} className="h-10 text-[10px] font-body hover:bg-white/10 hover:text-white transition-colors">CANCELAR</Button>
                <Button variant={confirmAction.variant} onClick={confirmAction.action} className="h-10 text-[10px] font-pixel uppercase tracking-tighter">{confirmAction.btnText}</Button>
             </div>
           </div>
