@@ -205,8 +205,9 @@ function SnapCard({
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
     
-    // Si es un video raw (MP4), forzar el play/pause dinámico
+    // Si es un video raw (MP4), forzar el play/pause dinámico y bajar el volumen
     if (rawVideoRef.current && isDirectMp4) {
+      rawVideoRef.current.volume = 0.5; // 🔥 Volumen al 50%
       if (isVisible) {
         rawVideoRef.current.play().catch(e => console.log("Autoplay bloqueado por el navegador:", e));
       } else {
@@ -337,12 +338,12 @@ function SnapCard({
     }
   };
 
-  // 🔥 IFRAMES AUTOPLAY DINÁMICO 🔥 (Muted obligatorio para que el navegador lo permita)
+  // 🔥 IFRAMES AUTOPLAY DINÁMICO 🔥 (Sin el mute=1, para que suene con el scroll/clic)
   let finalEmbedUrl = embedUrl;
   if (isVisible && embedUrl) {
-    if (item.platform === 'youtube') finalEmbedUrl = `${embedUrl}?autoplay=1&mute=1`;
+    if (item.platform === 'youtube') finalEmbedUrl = `${embedUrl}?autoplay=1`;
     else if (item.platform === 'tiktok') finalEmbedUrl = `${embedUrl}?autoplay=1`;
-    else if (item.platform === 'facebook') finalEmbedUrl = `${embedUrl}&autoplay=true&mute=1`;
+    else if (item.platform === 'facebook') finalEmbedUrl = `${embedUrl}&autoplay=true`;
   }
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
@@ -376,11 +377,11 @@ function SnapCard({
             </div>
           </div>
         ) : isDirectMp4 ? (
-          <video ref={rawVideoRef} src={item.content_url} controls muted loop playsInline className="w-full h-full object-contain" />
+          // El autoplay con JavaScript se encarga de esto arriba, aquí solo le ponemos controls
+          <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            {/* 🔥 ATRIBUTO allow="autoplay" AÑADIDO 🔥 */}
             <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
