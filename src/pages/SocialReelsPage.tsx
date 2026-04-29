@@ -229,6 +229,12 @@ function SnapCard({
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
 
+    // Para Instagram, no usamos scaling, usamos aspect-ratio responsive
+    if (item.platform === 'instagram') {
+      setScale(1);
+      return;
+    }
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -399,10 +405,48 @@ function SnapCard({
         ) : isDirectMp4 ? (
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
-          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
-            style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
-          </div>
+          item.platform === 'instagram' ? (
+            // 🔥 CONTENEDOR RESPONSIVE PARA INSTAGRAM CON MEDIDAS EXACTAS 🔥
+            <div className="flex items-center justify-center w-full h-full" style={{ padding: '35px 0 85px 0' }}>
+              <div 
+                style={{
+                  width: '100%',
+                  maxWidth: '230px',
+                  aspectRatio: '230 / 409',
+                  margin: '0 auto',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                <iframe 
+                  src={finalEmbedUrl} 
+                  className="w-full h-full bg-white" 
+                  style={{ 
+                    border: "none",
+                    display: 'block',
+                    margin: 0,
+                    padding: 0,
+                    flexShrink: 0,
+                    width: '100%',
+                    height: '100%'
+                  }} 
+                  scrolling="no" 
+                  allowFullScreen 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                />
+              </div>
+            </div>
+          ) : (
+            // 🔥 CONTENEDOR ESCALABLE PARA OTROS VIDEOS 🔥
+            <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
+              style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
+              <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            </div>
+          )
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
             <img src={getSafeUrl(targetImgUrl)} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" alt="" />
