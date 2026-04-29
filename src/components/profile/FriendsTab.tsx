@@ -16,7 +16,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
   const [search, setSearch] = useState("");
   const [res, setRes] = useState<any[]>([]);
 
-  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR AMIGO 🔥
+  // ESTADOS PARA EL MODAL DE ELIMINAR AMIGO
   const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -61,7 +61,6 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
 
   const reachedLimit = !isStaff && friends.length >= limits.maxFriends;
 
-  // 🔥 LÓGICA DE CONFIRMACIÓN DE ELIMINACIÓN 🔥
   const confirmRemoveFriend = async () => {
     if (!friendToRemove) return;
     setIsRemoving(true);
@@ -99,7 +98,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
             value={search} 
             onChange={e => setSearch(e.target.value)} 
             className="h-8 bg-muted flex-1 text-xs font-body" 
-            placeholder={reachedLimit ? "Límite de amigos alcanzado..." : "Buscar por nombre..."} 
+            placeholder={reachedLimit ? "Límite alcanzado..." : "Buscar por nombre..."} 
             disabled={reachedLimit} 
             onKeyDown={(e) => {
               if (e.key === "Enter" && !reachedLimit && search.trim()) {
@@ -137,13 +136,10 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
           </Button>
         </div>
         
-        {reachedLimit && <p className="text-[10px] text-destructive/80 mt-2 font-body italic">Has alcanzado el límite de amigos de tu membresía.</p>}
-        
         {res.length > 0 && !reachedLimit && (
           <div className="mt-4 space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {res.map(r => {
               const isResStaff = r.roles.includes('master_web') || r.roles.includes('admin') || r.roles.includes('moderator');
-              
               return (
                 <div key={r.user_id} className="flex items-center justify-between p-2 border border-border/50 rounded bg-muted/10 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
@@ -162,20 +158,17 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                       </div>
                     </div>
                   </div>
-                  
                   <Button onClick={async () => { 
                       try {
                         const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
-                        if (existing && existing.length > 0) { toast({ title: "Aviso", description: "Ya existe una solicitud o amistad con este usuario.", variant: "destructive" }); return; }
+                        if (existing && existing.length > 0) { toast({ title: "Aviso", description: "Ya existe una solicitud.", variant: "destructive" }); return; }
                         const reqId = crypto.randomUUID();
                         const { error } = await supabase.from("friend_requests").insert({ id: reqId, sender_id: userId, receiver_id: r.user_id, status: 'pending' } as any); 
-                        if (error) { toast({ title: "Error al enviar", description: error.message, variant: "destructive" }); return; }
-                        await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud de amistad", body: `Alguien te ha enviado una solicitud de amistad.`, related_id: userId } as any);
+                        if (error) throw error;
+                        await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud", body: `Alguien quiere ser tu amigo.`, related_id: userId } as any);
                         toast({ title: "Solicitud enviada" }); setRes([]); setSearch("");
-                      } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
-                   }} className="h-6 text-[9px] uppercase font-pixel tracking-tighter">
-                     Añadir
-                  </Button>
+                      } catch(e: any) { toast({ title: "Error", variant: "destructive" }); }
+                   }} className="h-6 text-[9px] uppercase font-pixel tracking-tighter">Añadir</Button>
                 </div>
               );
             })}
@@ -183,68 +176,31 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         )}
       </div>
       
-      {/* CUADRÍCULA DE AMIGOS RESPONSIVA */}
+      {/* 🔥 SECCIÓN DE AMIGOS CON AUTO-FIT (RESPONSIVO MEJORADO) 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-neon-green opacity-80 mb-4 uppercase text-center md:text-left">Mis Amigos ({friends.length})</h3>
         
         {friends.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8 font-body opacity-60 uppercase italic">Sin amigos en tu lista.</p> 
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4">
              {friends.map(f => {
                const isFStaff = f.roles.includes('master_web') || f.roles.includes('admin') || f.roles.includes('moderator');
-               
                return (
                  <div key={f.user_id} className="flex flex-col bg-muted/10 border border-border/50 rounded-lg overflow-hidden hover:bg-muted/30 hover:border-neon-cyan/50 transition-all group">
-                   
-                   <div 
-                     className="p-3 flex flex-col items-center justify-center text-center cursor-pointer relative"
-                     onClick={() => navigate(`/usuario/${f.user_id}`)}
-                   >
+                   <div className="p-3 flex flex-col items-center justify-center text-center cursor-pointer relative" onClick={() => navigate(`/usuario/${f.user_id}`)}>
                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border/50 mb-3 overflow-hidden shadow-sm group-hover:shadow-neon-cyan/20 transition-all group-hover:scale-105" style={getAvatarBorderStyle(f.color_avatar_border)}>
                        {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-8 h-8 text-muted-foreground" />}
                      </div>
-                     
-                     <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1 group-hover:text-neon-cyan transition-colors" style={getNameStyle(f.color_name)}>
-                       {f.display_name}
-                     </h4>
-                     
+                     <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1 group-hover:text-neon-cyan transition-colors" style={getNameStyle(f.color_name)}>{f.display_name}</h4>
                      <div className="flex justify-center items-center h-4">
-                       {isFStaff ? (
-                          <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span>
-                       ) : (
-                          <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(f.color_role)}><Star className="w-2.5 h-2.5" /> {f.membership_tier?.toUpperCase() || 'NOVATO'}</span>
-                       )}
+                       {isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(f.color_role)}><Star className="w-2.5 h-2.5" /> {f.membership_tier?.toUpperCase() || 'NOVATO'}</span>}
                      </div>
                    </div>
-
                    <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); navigate(`/mensajes?to=${f.user_id}`); }}
-                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors border-r border-border/50"
-                        title="Enviar Mensaje"
-                      >
-                         <MessageSquare className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); navigate(`/usuario/${f.user_id}`); }}
-                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-green hover:bg-neon-green/10 transition-colors border-r border-border/50"
-                        title="Ver Perfil"
-                      >
-                         <ExternalLink className="w-4 h-4" />
-                      </button>
-                      
-                      {/* 🔥 BOTÓN QUE ABRE EL MODAL DE CONFIRMACIÓN 🔥 */}
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setFriendToRemove({ id: f.user_id, name: f.display_name });
-                        }}
-                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        title="Eliminar Amigo"
-                      >
-                         <UserMinus className="w-4 h-4" />
-                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/mensajes?to=${f.user_id}`); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors border-r border-border/50" title="Mensaje"><MessageSquare className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/usuario/${f.user_id}`); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-green hover:bg-neon-green/10 transition-colors border-r border-border/50" title="Perfil"><ExternalLink className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setFriendToRemove({ id: f.user_id, name: f.display_name }); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Eliminar"><UserMinus className="w-4 h-4" /></button>
                    </div>
                  </div>
                );
@@ -253,7 +209,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         )}
       </div>
 
-      {/* 🔥 MODAL DE CONFIRMACIÓN TELETRANSPORTADO AL BODY 🔥 */}
+      {/* 🔥 MODAL DE CONFIRMACIÓN CON BOTONES ANCHOS Y CENTRADOS 🔥 */}
       {friendToRemove && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
           <div 
@@ -269,28 +225,34 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
               </button>
             </div>
 
-            <div className="py-4 text-center">
+            <div className="py-6 text-center">
               <p className="text-sm font-body text-muted-foreground">
-                ¿Estás seguro de que deseas eliminar a <strong className="text-foreground">{friendToRemove.name}</strong> de tu lista de amigos?
-              </p>
-              <p className="text-[10px] font-body text-muted-foreground/60 mt-2">
-                Esta acción no se puede deshacer.
+                ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
               </p>
             </div>
 
-            <div className="pt-4 flex gap-2 justify-end shrink-0 mt-2 border-t border-white/10">
-              <Button size="sm" variant="outline" onClick={() => setFriendToRemove(null)} className="text-xs font-body border-white/10 hover:bg-white/5">
+            {/* BOTONES IGUALES, CENTRADOS Y A TODO ANCHO */}
+            <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setFriendToRemove(null)} 
+                className="w-full text-xs font-body border-white/10 hover:bg-white/5 h-10"
+              >
                 Cancelar
               </Button>
-              <Button size="sm" variant="destructive" onClick={confirmRemoveFriend} disabled={isRemoving} className="text-xs gap-1 font-pixel shadow-[0_0_15px_rgba(220,38,38,0.4)]">
-                {isRemoving ? "Eliminando..." : "Sí, Eliminar"}
+              <Button 
+                variant="destructive" 
+                onClick={confirmRemoveFriend} 
+                disabled={isRemoving} 
+                className="w-full text-xs font-pixel shadow-[0_0_15px_rgba(220,38,38,0.3)] h-10"
+              >
+                {isRemoving ? "Cargando..." : "Sí, Eliminar"}
               </Button>
             </div>
           </div>
         </div>,
         document.body
       )}
-
     </div>
   );
 }
