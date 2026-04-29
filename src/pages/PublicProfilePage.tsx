@@ -32,6 +32,35 @@ interface PublicProfile {
   color_staff_role: string | null;
 }
 
+// 🔥 UTILIDADES PARA MINIATURAS SINCRONIZADAS 🔥
+const getSeedFromId = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return Math.abs(hash);
+};
+
+const getProxyUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
+const getPostThumbnail = (post: any) => {
+  const content = post.content || '';
+  // Buscar primera imagen en markdown ![alt](url)
+  const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
+  if (imgMatch && imgMatch[1]) return imgMatch[1];
+  
+  // Buscar primer link de imagen directo
+  const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
+  if (rawImgMatch && rawImgMatch[0]) return rawImgMatch[0];
+
+  // Fallback IA Pollinations (Misma lógica que en Guardados)
+  const idSeed = getSeedFromId(post.id);
+  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+};
+
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
@@ -51,7 +80,6 @@ export default function PublicProfilePage() {
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
 
-  // Lógica de límites de amigos
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
@@ -90,7 +118,8 @@ export default function PublicProfilePage() {
         { count: forumPostsCount }
       ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
-        supabase.from("posts").select("id, title, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(10),
+        // 🔥 AHORA PEDIMOS EL CONTENT PARA BUSCAR IMÁGENES 🔥
+        supabase.from("posts").select("id, title, content, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(20),
         supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("is_banned", true)
@@ -114,51 +143,39 @@ export default function PublicProfilePage() {
 
     if (wasFollowing) {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
-      if (error) {
-        setIsFollowing(wasFollowing); setFollowerCount(p => p + 1);
-        toast({ title: "Error al dejar de seguir", description: error.message, variant: "destructive" });
-      }
+      if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
     } else {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
-      if (error) {
-        setIsFollowing(wasFollowing); setFollowerCount(p => p - 1);
-        toast({ title: "Error al seguir", description: error.message, variant: "destructive" });
-      }
+      if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p - 1); toast({ title: "Error" }); }
     }
   };
 
   const handleFriendRequest = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    
     if (friendStatus === "none") {
-      if (reachedFriendLimit) {
-        toast({ title: "Límite de Membresía", description: `Tu plan permite un máximo de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
-        return;
-      }
+      if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
-      if (error) toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
-      else { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
+      if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
     } else if (friendStatus === "pending_received") {
-      if (reachedFriendLimit) {
-        toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
-        return;
-      }
+      if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
-      if (error) toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
-      else { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
+      if (!error) { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
     } else if (friendStatus === "accepted" || friendStatus === "pending_sent") {
       const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
-      if (error) toast({ title: "Error al cancelar/eliminar", description: error.message, variant: "destructive" });
-      else { setFriendStatus("none"); toast({ title: friendStatus === "accepted" ? "Amistad eliminada" : "Solicitud cancelada" }); }
+      if (!error) { setFriendStatus("none"); toast({ title: "Acción completada" }); }
     }
   };
 
+  // 🔥 GUARDADO SINCRONIZADO CON LA MISMA MINIATURA 🔥
   const handleSavePost = async (post: any) => {
     if (!user) return;
+    const thumb = getPostThumbnail(post);
     try { 
       const { error } = await supabase.from("saved_items" as any).insert({ 
         user_id: user.id, item_type: 'post', original_id: post.id,
-        title: post.title || 'Post del Foro', redirect_url: getCategoryRoute(post.category, post.id)
+        title: post.title || 'Post del Foro', 
+        thumbnail_url: thumb, // <--- Sincronizado
+        redirect_url: getCategoryRoute(post.category, post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -168,14 +185,12 @@ export default function PublicProfilePage() {
   const handleHidePost = async (postId: string) => {
     const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
     if (!error) { toast({ title: "Post ocultado." }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
-    else { toast({ title: "Error", variant: "destructive" }); }
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    if (!confirm("¿Eliminar permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (!error) { toast({ title: "Post eliminado" }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
-    else { toast({ title: "Error", variant: "destructive" }); }
   };
 
   if (loading) return <div className="p-8 text-center text-xs text-muted-foreground font-body animate-fade-in">Cargando perfil...</div>;
@@ -183,214 +198,145 @@ export default function PublicProfilePage() {
 
   const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
   
-  // 🔥 FORMATO PARA LA FECHA DEL MIEMBRO 🔥
   const getSafeMemberDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
-    const safeDateStr = dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
-    const date = new Date(safeDateStr);
+    const date = new Date(dateStr);
     if (date.getFullYear() <= 1970) return "Recientemente";
     return date.toLocaleDateString("es-ES", { year: "numeric", month: "long" });
   };
 
-  // 🔥 FORMATO EXACTO ABSOLUTO PARA LOS POSTS RECIENTES (Ej: 28 abr 2026, 14:30) 🔥
   const getSafePostDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
-    const safeDateStr = dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
-    const date = new Date(safeDateStr);
+    const date = new Date(dateStr);
     if (date.getFullYear() <= 1970) return "Recientemente";
-    
-    // Formato de fecha exacto y absoluto
-    return date.toLocaleString("es-ES", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+    return date.toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
   const memberSince = getSafeMemberDate(profile.created_at);
-
-  const bestScores = Object.values(
-    gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
-      const key = `${gs.game_name}-${gs.console_type}`;
-      if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
-      return acc;
-    }, {})
-  );
-  const totalScore = bestScores.reduce((sum, gs) => sum + gs.score, 0);
+  const bestScores = Object.values(gameScores.reduce<Record<string, any>>((acc, gs) => {
+    const key = `${gs.game_name}-${gs.console_type}`;
+    if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
+    return acc;
+  }, {}));
+  const totalScoreValue = bestScores.reduce((sum, gs) => sum + gs.score, 0);
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="bg-card border border-neon-cyan/30 rounded p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0" style={getAvatarBorderStyle(profile.color_avatar_border)}>
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              <User className="w-10 h-10 text-muted-foreground" />
-            )}
+    <div className="space-y-4 animate-fade-in max-w-[1200px] mx-auto px-4 pb-20">
+      {/* HEADER PERFIL */}
+      <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm" style={getAvatarBorderStyle(profile.color_avatar_border)}>
+            {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground" />}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-pixel text-base text-neon-cyan" style={getNameStyle(profile.color_name)}>{profile.display_name}</h2>
+          <div className="flex-1 min-w-0 text-center md:text-left">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
+              <h2 className="font-pixel text-xl text-neon-cyan" style={getNameStyle(profile.color_name)}>{profile.display_name}</h2>
               <RoleBadge roles={roles} roleIcon={profile.role_icon} showIcon={profile.show_role_icon !== false} colorStaffRole={profile.color_staff_role} />
             </div>
-            <p className="text-xs text-muted-foreground font-body mt-1">{profile.bio || "Sin descripción"}</p>
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              {isStaffVisual ? (
-                <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile.color_staff_role)}>
-                  {roles.includes("master_web") ? "DIOS TODOPODEROSO" : "MÍTICO"}
-                </span>
-              ) : (
-                <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile.color_role)}>
-                  <Star className="w-3 h-3" /> {profile.membership_tier.toUpperCase()}
-                </span>
-              )}
-              <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
-                <Trophy className="w-3 h-3" /> {Math.max(profile.total_score, totalScore).toLocaleString()} pts
-              </span>
-              <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Desde {memberSince}
-              </span>
-              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1">
-                <UserPlus className="w-3 h-3" /> {followerCount} seguidores · {followingCount} siguiendo
-              </span>
+            <p className="text-sm text-muted-foreground font-body italic mb-3">"{profile.bio || "Este usuario prefiere mantener el misterio..."}"</p>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+               <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile.color_role)}><Star className="w-3.5 h-3.5" /> {displayTier}</span>
+               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> {Math.max(profile.total_score, totalScoreValue).toLocaleString()} pts</span>
+               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Miembro desde {memberSince}</span>
             </div>
-            {(profile.instagram_url || profile.youtube_url || profile.tiktok_url) && (
-              <div className="flex gap-3 mt-2">
-                {profile.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener" className="text-neon-magenta hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Instagram className="w-3.5 h-3.5" /> Instagram</a>}
-                {profile.youtube_url && <a href={profile.youtube_url} target="_blank" rel="noopener" className="text-destructive hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Youtube className="w-3.5 h-3.5" /> YouTube</a>}
-                {profile.tiktok_url && <a href={profile.tiktok_url} target="_blank" rel="noopener" className="text-neon-cyan hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Globe className="w-3.5 h-3.5" /> TikTok</a>}
-              </div>
-            )}
             {user && user.id !== userId && (
-              <div className="flex gap-2 mt-3 flex-wrap">
-                <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="text-xs gap-1">
-                  {isFollowing ? <><UserMinus className="w-3 h-3" /> Dejar de seguir</> : <><UserPlus className="w-3 h-3" /> Seguir</>}
-                </Button>
-                
-                <Button 
-                  size="sm" 
-                  variant={friendStatus === "none" ? "default" : "outline"} 
-                  onClick={handleFriendRequest} 
-                  disabled={friendStatus === "none" && reachedFriendLimit}
-                  className="text-xs gap-1"
-                >
-                  <Users className="w-3 h-3" />
-                  {friendStatus === "none" && (reachedFriendLimit ? "Límite Amigos" : "Añadir amigo")}
-                  {friendStatus === "pending_sent" && "Solicitud enviada"}
-                  {friendStatus === "pending_received" && "Aceptar amistad"}
+              <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
+                <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="h-8 text-[10px] font-pixel uppercase">{isFollowing ? "Dejar de seguir" : "Seguir"}</Button>
+                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} disabled={friendStatus === "none" && reachedFriendLimit} className="h-8 text-[10px] font-pixel uppercase">
+                  {friendStatus === "none" && (reachedFriendLimit ? "Límite Lleno" : "Añadir amigo")}
+                  {friendStatus === "pending_sent" && "Pendiente"}
+                  {friendStatus === "pending_received" && "Aceptar Amigo"}
                   {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
-
-                <Button size="sm" variant="outline" asChild className="text-xs gap-1">
-                  <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Enviar Mensaje</Link>
-                </Button>
+                <Button size="sm" variant="outline" asChild className="h-8 text-[10px] font-pixel uppercase"><Link to={`/mensajes?to=${userId}`}>Mensaje</Link></Button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded p-4">
-        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">ESTADÍSTICAS</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {[
-            { val: Math.max(profile.total_score, totalScore).toLocaleString(), label: "Puntos", color: "text-neon-green" },
-            { val: followerCount, label: "Seguidores", color: "text-foreground" },
-            { val: followingCount, label: "Siguiendo", color: "text-foreground" },
-            { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
-            { val: socialContentCount, label: "Posts Social", color: "text-neon-yellow" },
-            { val: bestScores.length, label: "Juegos", color: "text-neon-orange" },
-            { 
-              val: displayTier, 
-              label: "Membresía", 
-              color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
-            },
-          ].map((s, i) => (
-            <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
-              <p className={cn("text-lg font-bold font-body", s.color)}>{s.val}</p>
-              <p className="text-[10px] text-muted-foreground font-body uppercase mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
+      {/* ESTADÍSTICAS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { val: followerCount, label: "Seguidores", color: "text-foreground" },
+          { val: followingCount, label: "Siguiendo", color: "text-foreground" },
+          { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
+          { val: socialContentCount, label: "Social Media", color: "text-neon-magenta" },
+        ].map((s, i) => (
+          <div key={i} className="bg-card border border-border rounded p-3 text-center">
+            <p className={cn("text-xl font-bold font-body", s.color)}>{s.val}</p>
+            <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1">{s.label}</p>
+          </div>
+        ))}
       </div>
 
-      {bestScores.length > 0 && (
-        <div className="bg-card border border-border rounded p-4">
-          <h3 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
-            <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
-          </h3>
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* PUNTAJES POR JUEGO */}
+        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
+          <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
           <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
-            {bestScores.map((gs, i) => (
-              <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
-                <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
-                  {gs.console_type.toUpperCase()}
-                </span>
-                <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
-                <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
-              </div>
-            ))}
+            {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
+              bestScores.map((gs, i) => (
+                <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
+                  <span className={cn("font-pixel text-[8px] px-1.5 py-0.5 rounded", gs.console_type === "nes" ? "bg-neon-green/10 text-neon-green" : gs.console_type === "snes" ? "bg-neon-cyan/10 text-neon-cyan" : "bg-neon-magenta/10 text-neon-magenta")}>{gs.console_type.toUpperCase()}</span>
+                  <span className="flex-1 text-foreground truncate font-medium">{gs.game_name}</span>
+                  <span className="text-neon-green font-bold drop-shadow-sm">{gs.score.toLocaleString()}</span>
+                </div>
+              ))
+            }
           </div>
         </div>
-      )}
 
-      {userPosts.length > 0 && (
-        <div className="bg-card border border-border rounded p-4">
-          <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
+        {/* POSTS RECIENTES CON MINIATURA SINCRONIZADA */}
+        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
+          <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
           <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
-            {userPosts.map((post) => (
-              <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
-                <div className="flex-1 min-w-0 pr-2">
-                  <Link to={getCategoryRoute(post.category, post.id)} className="text-xs text-foreground hover:text-neon-cyan hover:underline line-clamp-2">
-                    {post.title}
-                  </Link>
-                  <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
-                    {/* 🔥 FECHA EXACTA EN FORMATO DE FORO 🔥 */}
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-2.5 h-2.5" />
-                      {getSafePostDate(post.created_at)}
-                    </span>
-                    <span className="text-neon-green">▲{post.upvotes || 0}</span>
-                  </div>
-                </div>
+            {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
+              userPosts.map((post) => {
+                const thumb = getPostThumbnail(post);
+                return (
+                  <div key={post.id} className="p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
+                    {/* 🔥 MINIATURA A LA IZQUIERDA 🔥 */}
+                    <div className="w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
+                       <img 
+                          src={getProxyUrl(thumb)} 
+                          alt="" 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          loading="lazy"
+                       />
+                    </div>
 
-                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {user && (
-                    <button onClick={() => handleSavePost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar">
-                      <Bookmark className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  
-                  {isStaffVisual && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1.5 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">
-                          <Shield className="w-3.5 h-3.5" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
-                        <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
-                          <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
-                          <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
-                          <Copy className="w-3 h-3 mr-2" /> Copiar ID
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-            ))}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      <Link to={getCategoryRoute(post.category, post.id)} className="text-[11px] font-bold text-foreground hover:text-neon-cyan hover:underline line-clamp-2 leading-snug">
+                        {post.title}
+                      </Link>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[9px] text-muted-foreground">
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {getSafePostDate(post.created_at)}</span>
+                        <span className="text-neon-green font-bold">▲ {post.upvotes || 0}</span>
+                        <span className="uppercase text-[8px] bg-muted/50 px-1 rounded border border-white/5">{post.category}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 items-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      {user && <button onClick={() => handleSavePost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>}
+                      {isCurrentUserStaff && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><button className="p-1.5 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors"><Shield className="w-3.5 h-3.5" /></button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-border">
+                            <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer"><Ban className="w-3 h-3 mr-2" /> Ocultar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer"><Trash2 className="w-3 h-3 mr-2" /> Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            }
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
