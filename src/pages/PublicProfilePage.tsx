@@ -11,7 +11,7 @@ import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileA
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
-import { getCategoryRoute } from "@/lib/categoryRoutes"; // 🔥 IMPORTAMOS TU FUNCIÓN PARA RUTAS CORRECTAS 🔥
+import { getCategoryRoute } from "@/lib/categoryRoutes";
 
 interface PublicProfile {
   user_id: string;
@@ -76,7 +76,7 @@ export default function PublicProfilePage() {
         setIsFollowing(!!f);
         
         const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
-        const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
+        const { data: recvReq = null } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
         if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
         else if (recvReq) setFriendStatus((recvReq as any).status === "accepted" ? "accepted" : "pending_received");
         else setFriendStatus("none");
@@ -153,7 +153,6 @@ export default function PublicProfilePage() {
     }
   };
 
-  // 🔥 ACTUALIZAMOS EL REDIRECT_URL USANDO TU FUNCIÓN GETCATEGORYROUTE 🔥
   const handleSavePost = async (post: any) => {
     if (!user) return;
     try { 
@@ -184,7 +183,6 @@ export default function PublicProfilePage() {
 
   const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
   
-  // FUNCIONES PARA PREVENIR EL ERROR "1969"
   const getSafeMemberDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
     const date = new Date(dateStr);
@@ -313,7 +311,8 @@ export default function PublicProfilePage() {
           <h3 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
             <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
           </h3>
-          <div className="space-y-1">
+          {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
+          <div className="space-y-1 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.map((gs, i) => (
               <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
                 <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
@@ -330,16 +329,15 @@ export default function PublicProfilePage() {
       {userPosts.length > 0 && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
-          <div className="space-y-2">
+          {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.map((post) => (
               <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
                 <div className="flex-1 min-w-0 pr-2">
-                  {/* 🔥 CORREGIDO EL 404: AHORA USAMOS GETCATEGORYROUTE 🔥 */}
                   <Link to={getCategoryRoute(post.category, post.id)} className="text-xs text-foreground hover:text-neon-cyan hover:underline line-clamp-2">
                     {post.title}
                   </Link>
                   <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
-                    {/* 🔥 CORREGIDA LA FECHA 1969 PARA POSTS 🔥 */}
                     <span>{getSafePostDate(post.created_at)}</span>
                     <span className="text-neon-green">▲{post.upvotes || 0}</span>
                   </div>
