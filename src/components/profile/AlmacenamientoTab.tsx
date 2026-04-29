@@ -21,8 +21,8 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     return () => { document.body.style.overflow = 'auto'; };
   }, [itemsToRemove]);
 
-  // 🔥 SOLUCIÓN: Filtramos solo los juegos que tienen datos guardados (size > 0) 🔥
-  const games = storageItems.filter((i: any) => i.type === "Partida guardada" && i.size > 0);
+  // SEPARACIÓN DE DATOS
+  const games = storageItems.filter((i: any) => i.type === "Partida guardada");
   
   const socialUsage = storageItems
     .filter((i: any) => i.type === "Foto" || i.type === "Contenido social")
@@ -67,6 +67,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
       } catch (e) { console.error(e); }
     }
 
+    // Actualización instantánea del estado local (Caché visual)
     setStorageItems((prev: any) => prev.filter((item: any) => !successfullyProcessedIds.has(item.id)));
     setStorageUsed((prev: any) => Math.max(0, prev - freedSpace));
     setSelectedIds(new Set());
@@ -121,12 +122,13 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
       
       {/* TABLA DE JUEGOS */}
       <div className="bg-card border border-border rounded p-4">
-        <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+        <div className="flex flex-wrap items-center justify-between mb-4 border-b border-white/5 pb-2 gap-2">
           <h4 className="font-pixel text-[10px] text-neon-green uppercase flex items-center gap-2">
             <Gamepad2 className="w-4 h-4" /> Partidas en la Nube
           </h4>
           
           <div className="flex items-center gap-4">
+            {/* BOTÓN DE ELIMINAR AL LADO DE MARCAR TODO */}
             {selectedIds.size > 0 && (
               <button 
                 onClick={() => setItemsToRemove(games.filter((g: any) => selectedIds.has(g.id)))}
@@ -145,25 +147,25 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         </div>
 
         {games.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No hay partidas guardadas.</p>
+          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No hay partidas guardadas que ocupen espacio.</p>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <div className="min-w-[450px]">
               
-              {/* 🔥 COLUMNAS: Juego se corta (1fr), las demás siempre visibles (auto) 🔥 */}
-              <div className="grid grid-cols-[30px_30px_1fr_auto_auto_30px] gap-3 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2">
+              {/* 🔥 COLUMNAS: Juego se corta (1fr), las demás siempre visibles (max-content) 🔥 */}
+              <div className="grid grid-cols-[20px_30px_1fr_max-content_max-content_30px] gap-3 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2">
                 <span className="text-center">Sel</span>
                 <span></span>
                 <span>Juego</span>
-                <span className="whitespace-nowrap text-right">Último Guardado</span>
-                <span className="whitespace-nowrap text-right">Espacio</span>
+                <span className="text-right">Último Guardado</span>
+                <span className="text-right">Espacio</span>
                 <span></span>
               </div>
               
               {games.map((item: any) => {
                 const isSelected = selectedIds.has(item.id);
                 return (
-                  <div key={item.id} className={cn("grid grid-cols-[30px_30px_1fr_auto_auto_30px] gap-3 text-xs font-body py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors items-center group", isSelected && "bg-neon-cyan/5")}>
+                  <div key={item.id} className={cn("grid grid-cols-[20px_30px_1fr_max-content_max-content_30px] gap-3 text-xs font-body py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors items-center group", isSelected && "bg-neon-cyan/5")}>
                     
                     <div className="flex justify-center">
                       <Checkbox 
@@ -177,15 +179,16 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                       <Gamepad2 className="w-3.5 h-3.5 text-neon-green opacity-70" />
                     </div>
 
-                    {/* 🔥 SOLO ESTA COLUMNA SE CORTA 🔥 */}
-                    <span className="text-foreground font-medium truncate">{item.name}</span>
+                    {/* ESTA COLUMNA SE CORTA */}
+                    <span className="text-foreground font-medium truncate" title={item.name}>{item.name}</span>
                     
-                    {/* 🔥 FECHA Y ESPACIO SIEMPRE VISIBLES 🔥 */}
+                    {/* ESTA COLUMNA NUNCA SE CORTA */}
                     <span className="text-muted-foreground text-[10px] flex items-center justify-end gap-1 whitespace-nowrap shrink-0">
                       <Clock className="w-3 h-3 opacity-50" />
                       {item.created_at ? new Date(item.created_at).toLocaleDateString() : "---"}
                     </span>
                     
+                    {/* ESTA COLUMNA NUNCA SE CORTA */}
                     <span className="text-right text-muted-foreground text-[10px] font-mono whitespace-nowrap shrink-0 min-w-[50px]">
                       {item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size.toFixed(2)} MB`}
                     </span>
@@ -193,7 +196,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                     <div className="flex justify-center">
                       <button
                         onClick={() => setItemsToRemove([item])}
-                        className="text-muted-foreground hover:text-destructive transition-all p-1 opacity-0 group-hover:opacity-100"
+                        className="text-muted-foreground hover:text-destructive transition-all p-1 opacity-0 group-hover:opacity-100 shrink-0"
                         title="Borrar partida"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -207,7 +210,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         )}
       </div>
 
-      {/* MODAL DE CONFIRMACIÓN ESTILO WINDOWS */}
+      {/* MODAL DE CONFIRMACIÓN */}
       {itemsToRemove.length > 0 && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setItemsToRemove([])}>
           <div 
