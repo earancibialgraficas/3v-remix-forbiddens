@@ -312,7 +312,7 @@ export default function PublicProfilePage() {
             <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
           </h3>
           {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
-          <div className="space-y-1 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.map((gs, i) => (
               <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
                 <span className={cn("font-pixel text-[9px]", gs.console_type === "nes" ? "text-neon-green" : gs.console_type === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>
@@ -330,7 +330,7 @@ export default function PublicProfilePage() {
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
           {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
-          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.map((post) => (
               <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
                 <div className="flex-1 min-w-0 pr-2">
