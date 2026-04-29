@@ -8,9 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { useFriendIds } from "@/hooks/useFriendIds";
 
-// 🔥 Importamos el Dropdown Menu de STAFF 🔥
+// 🔥 Importamos el Dropdown Menu de STAFF y los límites 🔥
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
 interface PublicProfile {
   user_id: string;
@@ -33,8 +35,11 @@ interface PublicProfile {
 
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
-  const { user, isMasterWeb, isAdmin } = useAuth();
+  // 🔥 Extraemos el perfil y roles del usuario actual para calcular sus límites 🔥
+  const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
+  
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,12 @@ export default function PublicProfilePage() {
   const [totalForumPosts, setTotalForumPosts] = useState(0);
 
   const isStaff = isMasterWeb || isAdmin || roles.includes("moderator");
+
+  // 🔥 LÓGICA DE LÍMITES DE AMIGOS PARA EL USUARIO ACTUAL 🔥
+  const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
+  const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
+  const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
 
   useEffect(() => {
     if (!userId) return;
@@ -125,10 +136,22 @@ export default function PublicProfilePage() {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     
     if (friendStatus === "none") {
+      // 🔥 VERIFICACIÓN DEL LÍMITE AL INTENTAR AGREGAR 🔥
+      if (reachedFriendLimit) {
+        toast({ title: "Límite de Membresía", description: `Tu plan permite un máximo de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
+        return;
+      }
+
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
       if (error) toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
       else { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
     } else if (friendStatus === "pending_received") {
+      // 🔥 VERIFICACIÓN DEL LÍMITE AL INTENTAR ACEPTAR 🔥
+      if (reachedFriendLimit) {
+        toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
+        return;
+      }
+
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       if (error) toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
       else { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
@@ -236,13 +259,22 @@ export default function PublicProfilePage() {
                 <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="text-xs gap-1">
                   {isFollowing ? <><UserMinus className="w-3 h-3" /> Dejar de seguir</> : <><UserPlus className="w-3 h-3" /> Seguir</>}
                 </Button>
-                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} className="text-xs gap-1">
+                
+                {/* 🔥 BOTÓN AÑADIR AMIGO CON BLOQUEO POR LÍMITE 🔥 */}
+                <Button 
+                  size="sm" 
+                  variant={friendStatus === "none" ? "default" : "outline"} 
+                  onClick={handleFriendRequest} 
+                  disabled={friendStatus === "none" && reachedFriendLimit}
+                  className="text-xs gap-1"
+                >
                   <Users className="w-3 h-3" />
-                  {friendStatus === "none" && "Añadir amigo"}
+                  {friendStatus === "none" && (reachedFriendLimit ? "Límite Amigos" : "Añadir amigo")}
                   {friendStatus === "pending_sent" && "Solicitud enviada"}
                   {friendStatus === "pending_received" && "Aceptar amistad"}
                   {friendStatus === "accepted" && "Amigos ✓"}
                 </Button>
+
                 <Button size="sm" variant="outline" asChild className="text-xs gap-1">
                   <Link to={`/mensajes?to=${userId}`}><MessageSquare className="w-3 h-3" /> Enviar Mensaje</Link>
                 </Button>
@@ -295,7 +327,6 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* 🔥 POSTS RECIENTES AHORA TIENEN OPCIONES DE MODERACIÓN Y GUARDADO 🔥 */}
       {userPosts.length > 0 && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
@@ -319,7 +350,7 @@ export default function PublicProfilePage() {
                     </button>
                   )}
                   
-                  {isStaff && (
+                  {isStaffVisual && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="p-1.5 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors">

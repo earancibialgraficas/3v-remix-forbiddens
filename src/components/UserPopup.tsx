@@ -6,6 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import RoleBadge from "@/components/RoleBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { useFriendIds } from "@/hooks/useFriendIds";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserPopupProps {
   userId: string;
@@ -42,11 +46,20 @@ export default function UserPopup({
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { user, isAdmin, isMasterWeb } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // 🔥 Extraemos los datos del usuario actual para el límite de amigos 🔥
+  const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
 
   const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
-  const roleLabel = roles.includes("master_web") ? "WEBMASTER" : roles.includes("admin") ? "ADMINISTRADOR" : roles.includes("moderator") ? "MODERADOR" : null;
+
+  // 🔥 Lógica de límites 🔥
+  const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
+  const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
+  const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
 
   const handleToggle = () => {
     if (!triggerRef.current) return;
@@ -137,12 +150,27 @@ export default function UserPopup({
                 >
                   <MessageSquare className="w-3 h-3" /> Enviar mensaje
                 </button>
+                
+                {/* 🔥 BOTÓN FUNCIONAL AÑADIR AMIGO CON BLOQUEO POR LÍMITE 🔥 */}
                 <button
-                  onClick={() => { setOpen(false); /* TODO: friend request */ }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                  onClick={async () => { 
+                    if (reachedFriendLimit) {
+                       toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
+                       return;
+                    }
+                    setOpen(false); 
+                    if (user && userId) {
+                       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+                       if (!error) toast({ title: "Solicitud enviada" });
+                       else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
+                    }
+                  }}
+                  disabled={reachedFriendLimit}
+                  className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body transition-colors", reachedFriendLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
                 >
-                  <UserPlus className="w-3 h-3" /> Agregar amigo
+                  <UserPlus className="w-3 h-3" /> {reachedFriendLimit ? "Límite de amigos" : "Agregar amigo"}
                 </button>
+
                 <button
                   onClick={() => { setOpen(false); /* TODO: report */ }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors"
