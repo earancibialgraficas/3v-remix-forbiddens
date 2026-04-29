@@ -45,33 +45,43 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
+// 🔥 GENERADOR DE IMÁGENES REPARADO (POLLINATIONS MODERNO) 🔥
 const getPostThumbnail = (post: any) => {
   const content = post.content || '';
   const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
   if (imgMatch && imgMatch[1]) return imgMatch[1];
+  
   const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
   if (rawImgMatch && rawImgMatch[0]) return rawImgMatch[0];
+  
   const idSeed = getSeedFromId(post.id);
-  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+  // Aseguramos que siempre haya un string válido para la IA
+  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+  return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
 const getSocialThumbnail = (item: any) => {
-  if (item.target_type === 'photo' || item.image_url) return getProxyUrl(item.image_url);
+  if (item.target_type === 'photo' || item.image_url) return getProxyUrl(item.image_url || item.thumbnail_url);
+  
   let origContentUrl = item.content_url || '';
   const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
   const idSeed = getSeedFromId(item.id);
+  
   const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  
   if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
   if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb);
   if (origContentUrl.includes('instagram.com')) {
      const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
      if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
   }
+  
   if (item.thumbnail_url && !isVideoExt(item.thumbnail_url)) return getProxyUrl(item.thumbnail_url);
-  const title = (item.title || item.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+  
+  // Aseguramos que siempre haya un string válido para la IA
+  const title = (item.title || item.caption || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
+  return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
 const isVideoItem = (item: any) => {
@@ -230,16 +240,13 @@ export default function PublicProfilePage() {
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       if (!error) { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
     } else if (friendStatus === "accepted") {
-      // 🔥 ABRIR EL MODAL DE CONFIRMACIÓN EN LUGAR DE ELIMINAR DIRECTO 🔥
       setFriendToRemove({ id: userId, name: profile?.display_name || "este usuario" });
     } else if (friendStatus === "pending_sent") {
-      // Cancelar solicitud enviada no requiere modal, se cancela directo
       const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
       if (!error) { setFriendStatus("none"); toast({ title: "Solicitud cancelada" }); }
     }
   };
 
-  // 🔥 LÓGICA FINAL PARA ELIMINAR AMIGO (DESDE EL MODAL) 🔥
   const confirmRemoveFriend = async () => {
     if (!friendToRemove || !user) return;
     setIsRemoving(true);
@@ -463,7 +470,6 @@ export default function PublicProfilePage() {
               </p>
             </div>
 
-            {/* BOTONES IGUALES, CENTRADOS Y A TODO ANCHO */}
             <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
               <Button 
                 variant="outline" 
