@@ -419,8 +419,16 @@ function SnapCard({
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           item.platform === 'instagram' ? (
-            // 🔥 CONTENEDOR EXPANDIDO PARA INSTAGRAM - SIN BORDES 🔥
-            <div className="w-full h-full flex items-center justify-center" style={{ padding: '30px 0 85px 0' }}>
+            // 🔥 CONTENEDOR EXPANDIDO PARA INSTAGRAM CON VH - RESPONSIVE 🔥
+            <div style={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '30px 0 85px 0',
+              minHeight: '100vh',
+              boxSizing: 'border-box',
+              width: '100%'
+            }}>
               <iframe 
                 key={`instagram-${item.id}-${iframeKey}`}
                 src={finalEmbedUrl} 
@@ -429,10 +437,10 @@ function SnapCard({
                   border: "none",
                   display: 'block',
                   width: '100%',
-                  height: '100%',
+                  height: 'calc(100vh - 115px)',
                   aspectRatio: '9 / 16',
                   maxWidth: '100%',
-                  maxHeight: '100%',
+                  maxHeight: 'calc(100vh - 115px)',
                   objectFit: 'contain'
                 }} 
                 scrolling="no" 
