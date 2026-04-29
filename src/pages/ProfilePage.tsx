@@ -168,7 +168,12 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id).not("game_state", "is", null);
+        // 🔥 AQUÍ ESTÁ LA MAGIA: .not("game_state", "is", null) para evitar fantasmas 🔥
+        const { data: scores } = await supabase.from("leaderboard_scores")
+          .select("id, game_name, console_type, created_at")
+          .eq("user_id", user.id)
+          .not("game_state", "is", null);
+
         (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
@@ -406,7 +411,7 @@ export default function ProfilePage() {
       {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => handleTabChange("configuracion")} limits={limits} isStaff={isStaff} />}
       {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}
       {activeTab === "guardados" && <GuardadosTab />}
-      {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} isAdmin={isAdmin} />}
+      {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
       
     </div>
   );
