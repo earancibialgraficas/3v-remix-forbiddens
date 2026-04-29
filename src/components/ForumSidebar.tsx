@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Settings, MessageSquare
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Settings, MessageSquare, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
@@ -48,7 +48,6 @@ const navItems: NavItem[] = [
   {
     label: "Zona de Debate", icon: MessageSquare, color: "text-neon-cyan", isDropdownOnly: true,
     children: [
-      // 🔥 Título con color Verde Neón 🔥
       { isTitle: true, label: "GAMING & ANIME", color: "text-neon-green" }, 
       { label: "🎮 Foro General", to: "/gaming-anime/foro" },
       { label: "📺 Anime & Manga", to: "/gaming-anime/anime" },
@@ -56,7 +55,6 @@ const navItems: NavItem[] = [
       { label: "💡 Consejos Gaming", to: "/arcade/consejos" },
       { label: "🎨 Rincón del Creador", to: "/gaming-anime/creador" },
       { isSeparator: true },
-      // 🔥 Título con color Rojo Fuego 🔥
       { isTitle: true, label: "MOTOCICLISMO", color: "text-[#ff3b00]" }, 
       { label: "🏍️ Foro de Riders", to: "/motociclismo/riders" },
       { label: "🔧 Taller & Mecánica", to: "/motociclismo/taller" },
@@ -115,13 +113,16 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     const fetchNotifsCount = async () => {
       try {
         const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-        setUnreadNotifications(count || 0);
+        // Sumamos solicitudes de amistad para ser exactos con el panel
+        const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
+        setUnreadNotifications((count || 0) + (reqCount || 0));
       } catch (e) {}
     };
     fetchNotifsCount();
     window.addEventListener("updateBadges", fetchNotifsCount);
-    const channel = supabase.channel(`sidebar-notifs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
-    return () => { window.removeEventListener("updateBadges", fetchNotifsCount); supabase.removeChannel(channel); };
+    const channel1 = supabase.channel(`sidebar-notifs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
+    const channel2 = supabase.channel(`sidebar-reqs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
+    return () => { window.removeEventListener("updateBadges", fetchNotifsCount); supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
   }, [user?.id]);
 
   const toggleExpand = (label: string) => {
@@ -167,7 +168,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil"><User className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
               </Button>
-              {unreadNotifications > 0 && <span className="absolute -top-1 -right-1 bg-neon-cyan text-black text-[7px] font-bold h-3.5 w-3.5 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">{unreadNotifications > 9 ? "9+" : unreadNotifications}</span>}
+              {/* 🔥 AQUÍ ESTÁ LA CAMPANA ROJA SOBRE EL PERFIL 🔥 */}
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-white h-4 w-4 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">
+                  <Bell className="w-2.5 h-2.5" />
+                </span>
+              )}
             </div>
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">

@@ -168,7 +168,6 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 AQUÍ ESTÁ LA MAGIA: .not("game_state", "is", null) para evitar fantasmas 🔥
         const { data: scores } = await supabase.from("leaderboard_scores")
           .select("id, game_name, console_type, created_at")
           .eq("user_id", user.id)
@@ -301,6 +300,9 @@ export default function ProfilePage() {
     );
   }
 
+  // 🔥 Calculamos si hay notificaciones sin leer para pintar el botón de rojo
+  const unreadCount = notifications.filter(n => !n.is_read).length + pendingRequests.length;
+
   return (
     <div className="space-y-4 animate-fade-in">
       
@@ -386,18 +388,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* MENÚ DE PESTAÑAS RESPONSIVO */}
+      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
             key={tab.id} 
             onClick={() => handleTabChange(tab.id)}
             className={cn(
-              "grow sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded text-[10px] sm:text-xs font-body transition-all min-w-[30%] sm:min-w-[80px]", 
-              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+              "relative grow sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded text-[10px] sm:text-xs font-body transition-all min-w-[30%] sm:min-w-[80px]", 
+              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+              tab.id === "avisos" && unreadCount > 0 ? "text-destructive font-bold bg-destructive/10 border border-destructive/30" : ""
             )}
           >
-            <tab.icon className="w-3.5 h-3.5" /> <span>{tab.label}</span>
+            <tab.icon className={cn("w-3.5 h-3.5", tab.id === "avisos" && unreadCount > 0 && "animate-pulse text-destructive")} /> 
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
