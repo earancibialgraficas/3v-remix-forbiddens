@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Ban, Unlock, Shield, Search, UserCheck, Image as ImageIcon, Users, AlertTriangle, UserMinus } from "lucide-react";
+import { Ban, Unlock, Shield, Search, UserCheck, Image as ImageIcon, Users, AlertTriangle, UserMinus, Loader2 } from "lucide-react";
 
 export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) {
   const { toast } = useToast();
@@ -17,6 +17,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   const [isSearching, setIsSearching] = useState(false);
 
   // --- Estados de Datos ---
+  const [isLoadingData, setIsLoadingData] = useState(false); // 🔥 Nuevo estado para mostrar carga
   const [banReason, setBanReason] = useState("");
   const [selectedTier, setSelectedTier] = useState("novato");
   const [bannedContent, setBannedContent] = useState<any[]>([]);
@@ -52,7 +53,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       const isEmail = searchTerm.includes("@");
 
       if (isEmail) {
-        // 🔥 Aquí está la magia: (supabase.rpc as any) engaña a TypeScript para que no bloquee Vercel
         const { data, error } = await (supabase.rpc as any)("search_user_by_email", { email_query: searchTerm.trim().toLowerCase() });
         
         if (error) {
@@ -96,34 +96,53 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     }
   };
 
+  // 🔥 SISTEMA DE CARGA PARALELA OPTIMIZADO 🔥
   const loadModerationData = async () => {
-    if (activeSubTab === "baneados") {
-      const { data } = await supabase.from("banned_users").select("id, user_id, reason, ban_type, created_at");
-      if (data && data.length > 0) {
-        const ids = data.map(b => b.user_id);
-        const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
-        setBannedUsers(data.map(b => ({ ...b, display_name: profs?.find(p => p.user_id === b.user_id)?.display_name || "Desconocido" })));
-      } else { setBannedUsers([]); }
-    }
+    if (activeSubTab === "gestion") return; // En gestión no cargamos listas al inicio
+    
+    setIsLoadingData(true); // Encendemos el icono de carga
+    try {
+      if (activeSubTab === "baneados") {
+        const { data } = await supabase.from("banned_users").select("id, user_id, reason, ban_type, created_at");
+        if (data && data.length > 0) {
+          const ids = data.map(b => b.user_id);
+          const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+          setBannedUsers(data.map(b => ({ ...b, display_name: profs?.find(p => p.user_id === b.user_id)?.display_name || "Desconocido" })));
+        } else { 
+          setBannedUsers([]); 
+        }
+      }
 
-    if (activeSubTab === "ocultos") {
-      const { data: ph } = await supabase.from("photos").select("*").eq("is_banned", true);
-      const { data: sc } = await supabase.from("social_content").select("*").eq("is_banned", true);
-      setBannedContent([
-        ...(ph || []).map(x => ({ ...x, type: 'Foto' })), 
-        ...(sc || []).map(x => ({ ...x, type: 'Redes' }))
-      ]);
-    }
+      if (activeSubTab === "ocultos") {
+        // Ejecutamos ambas llamadas al MISMOS TIEMPO (Turbo Mode)
+        const [phRes, scRes] = await Promise.all([
+          supabase.from("photos").select("*").eq("is_banned", true),
+          supabase.from("social_content").select("*").eq("is_banned", true)
+        ]);
+        
+        setBannedContent([
+          ...(phRes.data || []).map(x => ({ ...x, type: 'Foto' })), 
+          ...(scRes.data || []).map(x => ({ ...x, type: 'Redes' }))
+        ]);
+      }
 
-    if (activeSubTab === "mods" || activeSubTab === "admins") {
-      const { data: r } = await supabase.from("user_roles").select("id, user_id, role");
-      if (!r) return;
-      const ids = r.map(x => x.user_id);
-      const { data: p } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
-      setStaffList({
-        mods: r.filter(x => x.role === 'moderator').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name })),
-        admins: r.filter(x => x.role === 'admin').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name }))
-      });
+      if (activeSubTab === "mods" || activeSubTab === "admins") {
+        const { data: r } = await supabase.from("user_roles").select("id, user_id, role");
+        if (r && r.length > 0) {
+          const ids = r.map(x => x.user_id);
+          const { data: p } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+          setStaffList({
+            mods: r.filter(x => x.role === 'moderator').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name })),
+            admins: r.filter(x => x.role === 'admin').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name }))
+          });
+        } else {
+          setStaffList({ mods: [], admins: [] });
+        }
+      }
+    } catch (error) {
+      console.error("Error al cargar datos de moderación:", error);
+    } finally {
+      setIsLoadingData(false); // Apagamos el icono de carga
     }
   };
 
@@ -205,74 +224,106 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
 
       {/* --- PESTAÑA 2: USUARIOS BANEADOS --- */}
       {activeSubTab === "baneados" && (
-        <div className="bg-card border border-neon-orange/30 rounded-lg p-4 space-y-3">
+        <div className="bg-card border border-neon-orange/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-neon-orange uppercase">Usuarios Baneados ({bannedUsers.length})</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-            {bannedUsers.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4">No hay usuarios baneados.</p> : bannedUsers.map(b => (
-              <div key={b.id} className="flex flex-col bg-muted/20 p-2.5 rounded border border-neon-orange/20 gap-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold font-body text-foreground">{b.display_name}</span>
-                  <span className="text-[9px] font-pixel px-1.5 py-0.5 rounded bg-destructive/20 text-destructive">{b.ban_type === 'kick' ? 'KICK' : 'BAN'}</span>
+          
+          {isLoadingData ? (
+            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+               <Loader2 className="w-6 h-6 animate-spin text-neon-orange mb-2" />
+               <p className="text-[10px] font-pixel uppercase">Cargando lista...</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+              {bannedUsers.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4">No hay usuarios baneados.</p> : bannedUsers.map(b => (
+                <div key={b.id} className="flex flex-col bg-muted/20 p-2.5 rounded border border-neon-orange/20 gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold font-body text-foreground">{b.display_name}</span>
+                    <span className="text-[9px] font-pixel px-1.5 py-0.5 rounded bg-destructive/20 text-destructive">{b.ban_type === 'kick' ? 'KICK' : 'BAN'}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-body leading-tight">Razón: {b.reason || "Sin especificar"}</p>
+                  <div className="flex justify-between items-end mt-1">
+                    <span className="text-[8px] text-muted-foreground/60">{new Date(b.created_at).toLocaleDateString()}</span>
+                    <button onClick={() => openConfirm("REVOCAR SANCIÓN", `¿Desbanear a ${b.display_name}?`, "DESBANEAR", async () => { await supabase.from("banned_users").delete().eq("id", b.id); loadModerationData(); setConfirmAction(null); toast({title:"Sanción revocada"}); })} className="text-neon-green text-[9px] font-body flex items-center gap-1 border border-neon-green/30 px-1.5 py-0.5 rounded hover:bg-neon-green/10 transition-colors">
+                      <Unlock className="w-2.5 h-2.5" /> Revocar
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-body leading-tight">Razón: {b.reason || "Sin especificar"}</p>
-                <div className="flex justify-between items-end mt-1">
-                  <span className="text-[8px] text-muted-foreground/60">{new Date(b.created_at).toLocaleDateString()}</span>
-                  <button onClick={() => openConfirm("REVOCAR SANCIÓN", `¿Desbanear a ${b.display_name}?`, "DESBANEAR", async () => { await supabase.from("banned_users").delete().eq("id", b.id); loadModerationData(); setConfirmAction(null); toast({title:"Sanción revocada"}); })} className="text-neon-green text-[9px] font-body flex items-center gap-1 border border-neon-green/30 px-1.5 py-0.5 rounded hover:bg-neon-green/10 transition-colors">
-                    <Unlock className="w-2.5 h-2.5" /> Revocar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* --- PESTAÑA 3: CONTENIDO OCULTO --- */}
       {activeSubTab === "ocultos" && (
-        <div className="bg-card border border-destructive/30 rounded-lg p-4 space-y-3">
+        <div className="bg-card border border-destructive/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-destructive uppercase">Contenido Oculto ({bannedContent.length})</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
-            {bannedContent.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4">No hay contenido oculto.</p> : bannedContent.map(item => (
-              <div key={item.id} className="flex items-center gap-3 bg-muted/20 p-2 rounded border border-white/5">
-                <div className="w-12 h-12 bg-black shrink-0 overflow-hidden"><img src={item.image_url || item.thumbnail_url || item.content_url} className="w-full h-full object-cover opacity-50" /></div>
-                <div className="flex-1 min-w-0"><p className="text-[10px] font-bold truncate">{item.caption || item.title || "Sin título"}</p><p className="text-[8px] text-muted-foreground uppercase">{item.type}</p></div>
-                <div className="flex flex-col gap-1">
-                  <button onClick={() => openConfirm("RESTAURAR", "¿Hacer público este contenido de nuevo?", "RESTAURAR", async () => { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').update({ is_banned: false }).eq("id", item.id); loadModerationData(); setConfirmAction(null); toast({title:"Restaurado"}); })} className="text-[8px] font-pixel text-neon-green hover:underline">RESTAURAR</button>
-                  <button onClick={() => openConfirm("BORRAR", "¿Eliminar para siempre de la base de datos?", "BORRAR", async () => { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').delete().eq("id", item.id); loadModerationData(); setConfirmAction(null); toast({title:"Eliminado"}); }, "destructive")} className="text-[8px] font-pixel text-destructive hover:underline">BORRAR</button>
+          
+          {isLoadingData ? (
+            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+               <Loader2 className="w-6 h-6 animate-spin text-destructive mb-2" />
+               <p className="text-[10px] font-pixel uppercase">Buscando contenido...</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+              {bannedContent.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4">No hay contenido oculto.</p> : bannedContent.map(item => (
+                <div key={item.id} className="flex items-center gap-3 bg-muted/20 p-2 rounded border border-white/5">
+                  <div className="w-12 h-12 bg-black shrink-0 overflow-hidden"><img src={item.image_url || item.thumbnail_url || item.content_url} className="w-full h-full object-cover opacity-50" /></div>
+                  <div className="flex-1 min-w-0"><p className="text-[10px] font-bold truncate">{item.caption || item.title || "Sin título"}</p><p className="text-[8px] text-muted-foreground uppercase">{item.type}</p></div>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => openConfirm("RESTAURAR", "¿Hacer público este contenido de nuevo?", "RESTAURAR", async () => { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').update({ is_banned: false }).eq("id", item.id); loadModerationData(); setConfirmAction(null); toast({title:"Restaurado"}); })} className="text-[8px] font-pixel text-neon-green hover:underline">RESTAURAR</button>
+                    <button onClick={() => openConfirm("BORRAR", "¿Eliminar para siempre de la base de datos?", "BORRAR", async () => { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').delete().eq("id", item.id); loadModerationData(); setConfirmAction(null); toast({title:"Eliminado"}); }, "destructive")} className="text-[8px] font-pixel text-destructive hover:underline">BORRAR</button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* --- PESTAÑA 4: MODERADORES --- */}
       {activeSubTab === "mods" && (
-        <div className="bg-card border border-neon-magenta/30 rounded-lg p-4 space-y-3">
+        <div className="bg-card border border-neon-magenta/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-neon-magenta uppercase">Moderadores Activos</h3>
-          <div className="space-y-2">
-            {staffList.mods.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay moderadores.</p> : staffList.mods.map(m => (
-              <div key={m.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
-                <span className="text-xs text-white font-body">{m.name || "..."}</span>
-                {canManageMods && <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>}
-              </div>
-            ))}
-          </div>
+          
+          {isLoadingData ? (
+            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+               <Loader2 className="w-6 h-6 animate-spin text-neon-magenta mb-2" />
+               <p className="text-[10px] font-pixel uppercase">Cargando rol...</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {staffList.mods.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay moderadores.</p> : staffList.mods.map(m => (
+                <div key={m.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
+                  <span className="text-xs text-white font-body">{m.name || "..."}</span>
+                  {canManageMods && <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* --- PESTAÑA 5: ADMINS --- */}
       {activeSubTab === "admins" && isMasterWeb && (
-        <div className="bg-card border border-white/30 rounded-lg p-4 space-y-3">
+        <div className="bg-card border border-white/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-white uppercase">Administradores Activos</h3>
-          <div className="space-y-2">
-            {staffList.admins.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay admins.</p> : staffList.admins.map(a => (
-              <div key={a.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
-                <span className="text-xs text-white font-body">{a.name || "..."}</span>
-                <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
-              </div>
-            ))}
-          </div>
+          
+          {isLoadingData ? (
+            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+               <Loader2 className="w-6 h-6 animate-spin text-white mb-2" />
+               <p className="text-[10px] font-pixel uppercase">Cargando rol...</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {staffList.admins.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay admins.</p> : staffList.admins.map(a => (
+                <div key={a.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
+                  <span className="text-xs text-white font-body">{a.name || "..."}</span>
+                  <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
