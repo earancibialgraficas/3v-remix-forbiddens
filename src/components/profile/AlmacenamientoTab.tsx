@@ -21,7 +21,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     return () => { document.body.style.overflow = 'auto'; };
   }, [itemsToRemove]);
 
-  // 🔥 SEPARACIÓN DE DATOS: Juegos vs Resumen de otros 🔥
+  // SEPARACIÓN DE DATOS
   const games = storageItems.filter((i: any) => i.type === "Partida guardada");
   
   const socialUsage = storageItems
@@ -56,6 +56,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
 
     for (const item of itemsToRemove) {
       try {
+        // Mantenemos la fila y el puntaje, solo borramos los datos de la partida
         const { error } = await supabase.from('leaderboard_scores')
           .update({ game_state: null } as any)
           .eq('id', item.id);
@@ -67,12 +68,13 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
       } catch (e) { console.error(e); }
     }
 
+    // Actualización instantánea del estado local (Caché visual)
     setStorageItems((prev: any) => prev.filter((item: any) => !successfullyProcessedIds.has(item.id)));
     setStorageUsed((prev: any) => Math.max(0, prev - freedSpace));
     setSelectedIds(new Set());
     setIsRemoving(false);
     setItemsToRemove([]);
-    toast({ title: "Datos limpiados", description: `Se liberaron ${freedSpace.toFixed(2)} MB.` });
+    toast({ title: "Datos limpiados", description: `Se liberaron ${freedSpace.toFixed(2)} MB. Los puntajes permanecen guardados.` });
   };
 
   return (
@@ -94,20 +96,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
               style={{ width: `${storagePercent}%` }} 
             />
           </div>
-        </div>
-
-        {/* BOTÓN PEQUEÑO Y REPOSICIONADO */}
-        <div className="flex justify-start">
-           <Button 
-             variant="destructive" 
-             size="sm"
-             disabled={selectedIds.size === 0}
-             onClick={() => setItemsToRemove(games.filter((g: any) => selectedIds.has(g.id)))}
-             className="h-7 text-[9px] font-pixel px-3 gap-2"
-           >
-             <Trash2 className="w-3 h-3" /> 
-             Eliminar Selección ({selectedIds.size})
-           </Button>
         </div>
       </div>
 
@@ -133,17 +121,30 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
          </div>
       </div>
       
-      {/* TABLA DE JUEGOS UNIFORME */}
+      {/* TABLA DE JUEGOS */}
       <div className="bg-card border border-border rounded p-4">
         <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
           <h4 className="font-pixel text-[10px] text-neon-green uppercase flex items-center gap-2">
             <Gamepad2 className="w-4 h-4" /> Partidas en la Nube
           </h4>
-          {games.length > 0 && (
-            <button onClick={toggleSelectAll} className="text-[9px] font-body opacity-60 hover:opacity-100 uppercase tracking-tighter">
-              {selectedIds.size === games.length ? "Desmarcar todo" : "Marcar todo"}
-            </button>
-          )}
+          
+          <div className="flex items-center gap-4">
+            {/* 🔥 BOTÓN DE ELIMINAR SELECCIÓN POSICIONADO AQUÍ 🔥 */}
+            {selectedIds.size > 0 && (
+              <button 
+                onClick={() => setItemsToRemove(games.filter((g: any) => selectedIds.has(g.id)))}
+                className="text-[9px] font-pixel text-destructive hover:text-destructive/80 uppercase flex items-center gap-1.5 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" /> Borrar ({selectedIds.size})
+              </button>
+            )}
+
+            {games.length > 0 && (
+              <button onClick={toggleSelectAll} className="text-[9px] font-body opacity-60 hover:opacity-100 uppercase tracking-tighter transition-opacity">
+                {selectedIds.size === games.length ? "Desmarcar todo" : "Marcar todo"}
+              </button>
+            )}
+          </div>
         </div>
 
         {games.length === 0 ? (
@@ -151,7 +152,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[500px]">
-              {/* Cabecera de columnas uniformes */}
               <div className="grid grid-cols-[40px_40px_1fr_120px_80px_40px] gap-2 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2">
                 <span className="text-center">Sel</span>
                 <span></span>
@@ -193,6 +193,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                       <button
                         onClick={() => setItemsToRemove([item])}
                         className="text-muted-foreground hover:text-destructive transition-all p-1 opacity-0 group-hover:opacity-100"
+                        title="Borrar partida"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
