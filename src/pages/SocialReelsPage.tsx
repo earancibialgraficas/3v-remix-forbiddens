@@ -72,6 +72,7 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "facebook") {
     const encodedUrl = encodeURIComponent(url);
+    // Para Facebook ya incluimos parámetros iniciales
     return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
   }
   return null;
@@ -355,8 +356,11 @@ function SnapCard({
     let url = embedUrl;
     if (item.platform === 'youtube') url += '?autoplay=1';
     else if (item.platform === 'tiktok') url += '?autoplay=1';
-    else if (item.platform === 'facebook') url += '&autoplay=true';
-    else if (item.platform === 'instagram') url += '&autoplay=1';
+    // Facebook es quisquilloso, usamos &autoplay=1 (la forma más agresiva)
+    else if (item.platform === 'facebook') url += '&autoplay=1';
+    // Para Instagram el API no soporta Autoplay programático en Iframe. Lo dejamos sin parámetros extra.
+    else if (item.platform === 'instagram') url += '';
+    
     return url;
   };
   
@@ -393,7 +397,6 @@ function SnapCard({
             </div>
           </div>
         ) : isDirectMp4 ? (
-          // Quitamos el 'muted' duro del video para permitir sonido. Lo controlamos por JS.
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
