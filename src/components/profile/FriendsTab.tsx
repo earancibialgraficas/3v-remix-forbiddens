@@ -15,17 +15,33 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
   const [search, setSearch] = useState("");
   const [res, setRes] = useState<any[]>([]);
 
-  // 🔥 TU FUNCIÓN ORIGINAL INTACTA (Solo agregué roles y membresía al select para visualizarlos en las tarjetas) 🔥
+  // 🔥 CONSULTA SEGURA: Perfiles y Roles separados para evitar que Supabase falle 🔥
   const fetchFriends = async () => {
+     if (!userId) return;
      try {
        const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted");
        if (error || !data || data.length === 0) { setFriends([]); return; }
+       
        const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
+       
+       // 1. Buscamos los perfiles
        const { data: profs } = await supabase.from("profiles")
-          .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role, user_roles(role)")
+          .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
           .in("user_id", ids);
-       setFriends(profs || []);
-     } catch(e) {}
+          
+       // 2. Buscamos los roles separados (sin forzar Join)
+       const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+       
+       // 3. Unimos los datos manualmente
+       const finalFriends = (profs || []).map(p => {
+          const pRoles = rolesData?.filter(r => r.user_id === p.user_id).map(r => r.role) || [];
+          return { ...p, roles: pRoles };
+       });
+
+       setFriends(finalFriends);
+     } catch(e) {
+       console.error("Error al cargar amigos:", e);
+     }
   };
 
   useEffect(() => { 
@@ -37,7 +53,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
   return (
     <div className="space-y-6 animate-in fade-in">
       
-      {/* 🔥 SECCIÓN DE BÚSQUEDA 🔥 */}
+      {/* SECCIÓN DE BÚSQUEDA */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-3 flex items-center justify-between">
           <span>Buscar Amigos</span>
@@ -68,12 +84,23 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
             id="btn-buscar-amigos"
             onClick={async () => { 
               try { 
-                const { data } = await supabase.from("profiles")
-                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role, user_roles(role)")
+                const { data: profs } = await supabase.from("profiles")
+                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
                    .ilike("display_name", `%${search}%`)
                    .neq("user_id", userId)
                    .limit(5); 
-                setRes(data || []); 
+                   
+                if (!profs || profs.length === 0) { setRes([]); return; }
+                
+                const searchIds = profs.map(p => p.user_id);
+                const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", searchIds);
+                
+                const finalRes = profs.map(p => {
+                   const pRoles = rolesData?.filter(r => r.user_id === p.user_id).map(r => r.role) || [];
+                   return { ...p, roles: pRoles };
+                });
+                
+                setRes(finalRes); 
               } catch(e) {} 
             }} 
             className="h-8" 
@@ -88,8 +115,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         {res.length > 0 && !reachedLimit && (
           <div className="mt-4 space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {res.map(r => {
-              const resRoles = r.user_roles?.map((roleObj: any) => roleObj.role) || [];
-              const isResStaff = resRoles.includes('master_web') || resRoles.includes('admin') || resRoles.includes('moderator');
+              const isResStaff = r.roles.includes('master_web') || r.roles.includes('admin') || r.roles.includes('moderator');
               
               return (
                 <div key={r.user_id} className="flex items-center justify-between p-2 border border-border/50 rounded bg-muted/10 hover:bg-muted/30 transition-colors">
@@ -110,7 +136,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                     </div>
                   </div>
                   
-                  {/* 🔥 TU LÓGICA DE AÑADIR (CON NOTIFICACIONES) INTACTA 🔥 */}
+                  {/* TU LÓGICA DE AÑADIR CON NOTIFICACIÓN */}
                   <Button onClick={async () => { 
                       try {
                         const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
@@ -131,7 +157,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         )}
       </div>
       
-      {/* 🔥 SECCIÓN DE AMIGOS (CUADRÍCULA RESPONSIVA Y TARJETAS PREMIUM) 🔥 */}
+      {/* CUADRÍCULA DE AMIGOS RESPONSIVA */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-neon-green opacity-80 mb-4 uppercase text-center md:text-left">Mis Amigos ({friends.length})</h3>
         
@@ -140,13 +166,11 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
              {friends.map(f => {
-               const fRoles = f.user_roles?.map((roleObj: any) => roleObj.role) || [];
-               const isFStaff = fRoles.includes('master_web') || fRoles.includes('admin') || fRoles.includes('moderator');
+               const isFStaff = f.roles.includes('master_web') || f.roles.includes('admin') || f.roles.includes('moderator');
                
                return (
                  <div key={f.user_id} className="flex flex-col bg-muted/10 border border-border/50 rounded-lg overflow-hidden hover:bg-muted/30 hover:border-neon-cyan/50 transition-all group">
                    
-                   {/* Avatar y Nombre */}
                    <div 
                      className="p-3 flex flex-col items-center justify-center text-center cursor-pointer relative"
                      onClick={() => navigate(`/usuario/${f.user_id}`)}
@@ -168,7 +192,6 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                      </div>
                    </div>
 
-                   {/* Botones de Acción Rápida */}
                    <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">
                       <button 
                         onClick={(e) => { e.stopPropagation(); navigate(`/mensajes?to=${f.user_id}`); }}
@@ -185,7 +208,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                          <ExternalLink className="w-4 h-4" />
                       </button>
                       
-                      {/* 🔥 TU LÓGICA DE ELIMINAR AMIGO INTACTA 🔥 */}
+                      {/* TU LÓGICA DE ELIMINAR AMIGO (Cargando lista al terminar) */}
                       <button 
                         onClick={async (e) => { 
                           e.stopPropagation(); 
