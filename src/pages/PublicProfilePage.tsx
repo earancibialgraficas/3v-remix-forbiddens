@@ -135,7 +135,6 @@ export default function PublicProfilePage() {
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
   
-  // 🔥 NUEVO ESTADO PARA EL CARRUSEL DEL SOCIAL HUB 🔥
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
   const [, setTick] = useState(0);
@@ -174,7 +173,6 @@ export default function PublicProfilePage() {
         else setFriendStatus("none");
       }
 
-      // 🔥 OBTENEMOS TAMBIÉN EL CONTENIDO SOCIAL Y FOTOS PARA EL CARRUSEL 🔥
       const [
         { data: scores }, 
         { data: posts }, 
@@ -198,7 +196,6 @@ export default function PublicProfilePage() {
       setSocialContentCount((socialCount || 0) + (photosCount || 0));
       setTotalForumPosts(forumPostsCount || 0);
       
-      // Armamos el array combinado para el carrusel y pedimos oEmbed si es necesario (TikTok/FB)
       let combinedSocial = [];
       if (rawSocialContent) combinedSocial.push(...rawSocialContent.map(s => ({...s, target_type: 'social_content'})));
       if (rawPhotos) combinedSocial.push(...rawPhotos.map(p => ({...p, target_type: 'photo'})));
@@ -364,10 +361,10 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* ESTADÍSTICAS (Ahora con auto-fit para que no se desborden las letras) */}
+      {/* 🔥 ESTADÍSTICAS RESPONSIVAS (GRID AUTO-FIT) 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
           {[
             { val: Math.max(profile.total_score, totalScoreValue).toLocaleString(), label: "Puntos", color: "text-neon-green" },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
@@ -381,7 +378,7 @@ export default function PublicProfilePage() {
               color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
             },
           ].map((s, i) => (
-            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full break-words min-w-0">
+            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full break-words">
               <p className={cn("text-lg sm:text-xl font-bold font-body break-words", s.color)}>{s.val}</p>
               <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5 break-words leading-tight">{s.label}</p>
             </div>
@@ -389,11 +386,13 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* 🔥 DIVISION RESPONSIVA (1 COLUMNA EN MOBILE, 2 EN ESCRITORIO) 🔥 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
         {/* PUNTAJES POR JUEGO */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
-          <div className="space-y-1 max-h-[250px] md:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-1 max-h-[250px] lg:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
               bestScores.map((gs, i) => (
                 <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
@@ -409,7 +408,7 @@ export default function PublicProfilePage() {
         {/* POSTS RECIENTES */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
-          <div className="space-y-2 max-h-[250px] md:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 max-h-[250px] lg:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
               userPosts.map((post) => {
                 const thumb = getPostThumbnail(post);
@@ -446,7 +445,7 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 NUEVO: CARRUSEL HORIZONTAL DEL SOCIAL HUB 🔥 */}
+      {/* CARRUSEL HORIZONTAL DEL SOCIAL HUB */}
       {userSocialMedia.length > 0 && (
         <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
            <div className="flex justify-between items-end mb-4">
@@ -456,7 +455,6 @@ export default function PublicProfilePage() {
               <span className="text-[10px] font-body text-muted-foreground">Últimos {userSocialMedia.length} posts</span>
            </div>
            
-           {/* Contenedor con Scroll Horizontal Responsivo */}
            <div className="flex overflow-x-auto gap-3 pb-4 pt-1 px-1 custom-scrollbar snap-x snap-mandatory">
               {userSocialMedia.map((item) => {
                  const isVideo = isVideoItem(item);
