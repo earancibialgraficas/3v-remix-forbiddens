@@ -275,7 +275,7 @@ export default function PublicProfilePage() {
         {/* PUNTAJES POR JUEGO */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
-          <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-1 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
               bestScores.map((gs, i) => (
                 <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
@@ -291,7 +291,7 @@ export default function PublicProfilePage() {
         {/* POSTS RECIENTES CON MINIATURA SINCRONIZADA */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
-          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
               userPosts.map((post) => {
                 const thumb = getPostThumbnail(post);
