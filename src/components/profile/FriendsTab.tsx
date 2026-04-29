@@ -1,130 +1,209 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { User, Search, UserMinus, MessageSquare, ExternalLink, Shield, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, UserMinus, MessageSquare, ExternalLink, Shield, Star, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { getNameStyle, getAvatarBorderStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { cn } from "@/lib/utils";
-import RoleBadge from "@/components/RoleBadge";
-import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
-import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
-export default function FriendsTab({
-  friends,
-  setFriends,
-}: {
-  friends: any[];
-  setFriends: React.Dispatch<React.SetStateAction<any[]>>;
-}) {
-  const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
+export default function FriendsTab({ userId, limits, isStaff }: any) {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [res, setRes] = useState<any[]>([]);
 
-  const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
-  const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
-  const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
-  const safeFriends = friends || [];
-  const reachedFriendLimit = !isCurrentUserStaff && safeFriends.length >= currentUserLimits.maxFriends;
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) { setSearchResults([]); return; }
-    if (reachedFriendLimit) { toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" }); return; }
-    setIsSearching(true);
-    try {
-      const { data, error } = await supabase.from("profiles").select(`user_id, display_name, avatar_url, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, user_roles (role)`).ilike("display_name", `%${searchQuery}%`).neq("user_id", user?.id).limit(10);
-      if (error) throw error;
-      setSearchResults(data || []);
-    } catch (error) { toast({ title: "Error", variant: "destructive" }); } finally { setIsSearching(false); }
+  // 🔥 TU FUNCIÓN ORIGINAL INTACTA (Solo agregué roles y membresía al select para visualizarlos en las tarjetas) 🔥
+  const fetchFriends = async () => {
+     try {
+       const { data, error } = await supabase.from("friend_requests").select("*").or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted");
+       if (error || !data || data.length === 0) { setFriends([]); return; }
+       const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
+       const { data: profs } = await supabase.from("profiles")
+          .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role, user_roles(role)")
+          .in("user_id", ids);
+       setFriends(profs || []);
+     } catch(e) {}
   };
 
-  const sendFriendRequest = async (receiverId: string) => {
-    if (!user || reachedFriendLimit) return;
-    try {
-      const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: receiverId });
-      if (error) { if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." }); else throw error; }
-      else { toast({ title: "Éxito", description: "Solicitud enviada" }); setSearchResults(prev => prev.filter(p => p.user_id !== receiverId)); }
-    } catch (error) { toast({ title: "Error", variant: "destructive" }); }
-  };
+  useEffect(() => { 
+    fetchFriends(); 
+  }, [userId]);
 
-  const removeFriend = async (friendId: string) => {
-    if (!user || !confirm("¿Seguro que quieres eliminar a este amigo?")) return;
-    try {
-      const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`);
-      if (error) throw error;
-      setFriends((prev) => prev.filter((f) => (f.friend?.user_id || f.user_id) !== friendId));
-      toast({ title: "Éxito", description: "Amigo eliminado" });
-    } catch (error) { toast({ title: "Error", variant: "destructive" }); }
-  };
+  const reachedLimit = !isStaff && friends.length >= limits.maxFriends;
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      
+      {/* 🔥 SECCIÓN DE BÚSQUEDA 🔥 */}
       <div className="bg-card border border-border rounded p-4">
-        <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 uppercase flex items-center justify-between">
-          <span>Buscar Usuarios</span>
-          {!isCurrentUserStaff && <span className={cn("text-[9px] px-2 py-0.5 rounded", reachedFriendLimit ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground")}>Amigos: {safeFriends.length} / {currentUserLimits.maxFriends}</span>}
+        <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-3 flex items-center justify-between">
+          <span>Buscar Amigos</span>
+          {!isStaff && (
+             <span className={cn(
+               "text-[9px] px-2 py-0.5 rounded",
+               reachedLimit ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
+             )}>
+               Amigos: {friends.length} / {limits.maxFriends >= 999 ? "∞" : limits.maxFriends}
+             </span>
+          )}
         </h3>
+        
         <div className="flex gap-2">
-          <Input placeholder={reachedFriendLimit ? "Límite alcanzado..." : "Buscar por nombre..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="h-8 text-xs font-body" disabled={reachedFriendLimit} />
-          <Button size="sm" onClick={handleSearch} disabled={isSearching || reachedFriendLimit} className="h-8"><Search className="w-4 h-4" /></Button>
+          <Input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            className="h-8 bg-muted flex-1 text-xs font-body" 
+            placeholder={reachedLimit ? "Límite de amigos alcanzado..." : "Buscar por nombre..."} 
+            disabled={reachedLimit} 
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !reachedLimit && search.trim()) {
+                 document.getElementById("btn-buscar-amigos")?.click();
+              }
+            }}
+          />
+          <Button 
+            id="btn-buscar-amigos"
+            onClick={async () => { 
+              try { 
+                const { data } = await supabase.from("profiles")
+                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role, user_roles(role)")
+                   .ilike("display_name", `%${search}%`)
+                   .neq("user_id", userId)
+                   .limit(5); 
+                setRes(data || []); 
+              } catch(e) {} 
+            }} 
+            className="h-8" 
+            disabled={reachedLimit || !search.trim()}
+          >
+            <Search className="w-4 h-4" />
+          </Button>
         </div>
-        {searchResults.length > 0 && !reachedFriendLimit && (
-          <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-            {searchResults.map((result) => {
-              const resRoles = result.user_roles?.map((r: any) => r.role) || [];
+        
+        {reachedLimit && <p className="text-[10px] text-destructive/80 mt-2 font-body italic">Has alcanzado el límite de amigos de tu membresía.</p>}
+        
+        {res.length > 0 && !reachedLimit && (
+          <div className="mt-4 space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+            {res.map(r => {
+              const resRoles = r.user_roles?.map((roleObj: any) => roleObj.role) || [];
               const isResStaff = resRoles.includes('master_web') || resRoles.includes('admin') || resRoles.includes('moderator');
+              
               return (
-                <div key={result.user_id} className="flex items-center justify-between p-2 border border-border/50 rounded bg-muted/10 hover:bg-muted/30 transition-colors">
+                <div key={r.user_id} className="flex items-center justify-between p-2 border border-border/50 rounded bg-muted/10 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted border border-border/50 overflow-hidden shrink-0" style={getAvatarBorderStyle(result.color_avatar_border)}>
-                      {result.avatar_url ? <img src={result.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 text-muted-foreground" />}
+                    <div className="w-8 h-8 rounded-full bg-muted border border-border/50 overflow-hidden shrink-0" style={getAvatarBorderStyle(r.color_avatar_border)}>
+                      {r.avatar_url ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
                     </div>
                     <div>
-                      <Link to={`/usuario/${result.user_id}`} className="text-xs font-bold font-body hover:underline transition-colors" style={getNameStyle(result.color_name)}>{result.display_name}</Link>
-                      <div className="flex items-center gap-1 mt-0.5">{isResStaff ? <span className="text-[8px] font-pixel text-neon-magenta" style={getRoleStyle(result.color_staff_role)}>STAFF</span> : <span className="text-[8px] font-pixel text-neon-yellow" style={getRoleStyle(result.color_role)}>{result.membership_tier?.toUpperCase() || 'NOVATO'}</span>}</div>
+                      <Link to={`/usuario/${r.user_id}`} className="text-xs font-bold font-body hover:underline transition-colors line-clamp-1" style={getNameStyle(r.color_name)}>
+                         {r.display_name}
+                      </Link>
+                      <div className="flex items-center gap-1 mt-0.5">
+                         {isResStaff ? 
+                           <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(r.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : 
+                           <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(r.color_role)}><Star className="w-2.5 h-2.5" /> {r.membership_tier?.toUpperCase() || 'NOVATO'}</span>
+                         }
+                      </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => sendFriendRequest(result.user_id)} className="h-6 text-[9px] px-2 font-pixel">Añadir</Button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-card border border-border rounded p-4">
-        <h3 className="font-pixel text-[10px] text-neon-green mb-4 uppercase">Mis Amigos ({safeFriends.length})</h3>
-        {safeFriends.length === 0 ? <p className="text-xs text-muted-foreground font-body text-center py-8 italic">Aún no tienes amigos.</p> : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {safeFriends.map((friendObj) => {
-              // 🔥 SOLUCIÓN AL PANTALLAZO NEGRO: Verificamos dónde están los datos 🔥
-              const friend = friendObj?.friend || friendObj;
-              if (!friend?.user_id) return null;
-
-              const fRoles = friend.user_roles?.map((r: any) => r.role) || [];
-              const isFStaff = fRoles.includes('master_web') || fRoles.includes('admin') || fRoles.includes('moderator');
-              return (
-                <div key={friend.user_id} className="flex flex-col bg-muted/10 border border-border/50 rounded-lg overflow-hidden hover:bg-muted/30 hover:border-neon-cyan/50 transition-all group">
-                  <div className="p-3 flex flex-col items-center justify-center text-center cursor-pointer" onClick={() => navigate(`/usuario/${friend.user_id}`)}>
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border/50 mb-3 overflow-hidden transition-all group-hover:scale-105" style={getAvatarBorderStyle(friend.color_avatar_border)}>
-                      {friend.avatar_url ? <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon className="w-8 h-8 text-muted-foreground" />}
-                    </div>
-                    <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1" style={getNameStyle(friend.color_name)}>{friend.display_name}</h4>
-                    <div className="h-4 flex items-center justify-center">{isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta" style={getRoleStyle(friend.color_staff_role)}>STAFF</span> : <span className="text-[8px] font-pixel text-neon-yellow" style={getRoleStyle(friend.color_role)}>{friend.membership_tier?.toUpperCase() || 'NOVATO'}</span>}</div>
-                  </div>
-                  <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">
-                     <button onClick={(e) => { e.stopPropagation(); navigate(`/mensajes?to=${friend.user_id}`); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors border-r border-border/50" title="Mensaje"><MessageSquare className="w-4 h-4" /></button>
-                     <button onClick={(e) => { e.stopPropagation(); navigate(`/usuario/${friend.user_id}`); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-green hover:bg-neon-green/10 transition-colors border-r border-border/50" title="Perfil"><ExternalLink className="w-4 h-4" /></button>
-                     <button onClick={(e) => { e.stopPropagation(); removeFriend(friend.user_id); }} className="p-2 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Eliminar"><UserMinus className="w-4 h-4" /></button>
-                  </div>
+                  
+                  {/* 🔥 TU LÓGICA DE AÑADIR (CON NOTIFICACIONES) INTACTA 🔥 */}
+                  <Button onClick={async () => { 
+                      try {
+                        const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
+                        if (existing && existing.length > 0) { toast({ title: "Aviso", description: "Ya existe una solicitud o amistad con este usuario.", variant: "destructive" }); return; }
+                        const reqId = crypto.randomUUID();
+                        const { error } = await supabase.from("friend_requests").insert({ id: reqId, sender_id: userId, receiver_id: r.user_id, status: 'pending' } as any); 
+                        if (error) { toast({ title: "Error al enviar", description: error.message, variant: "destructive" }); return; }
+                        await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud de amistad", body: `Alguien te ha enviado una solicitud de amistad.`, related_id: userId } as any);
+                        toast({ title: "Solicitud enviada" }); setRes([]); setSearch("");
+                      } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
+                   }} className="h-6 text-[9px] uppercase font-pixel tracking-tighter">
+                     Añadir
+                  </Button>
                 </div>
               );
             })}
           </div>
+        )}
+      </div>
+      
+      {/* 🔥 SECCIÓN DE AMIGOS (CUADRÍCULA RESPONSIVA Y TARJETAS PREMIUM) 🔥 */}
+      <div className="bg-card border border-border rounded p-4">
+        <h3 className="font-pixel text-[10px] text-neon-green opacity-80 mb-4 uppercase text-center md:text-left">Mis Amigos ({friends.length})</h3>
+        
+        {friends.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8 font-body opacity-60 uppercase italic">Sin amigos en tu lista.</p> 
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+             {friends.map(f => {
+               const fRoles = f.user_roles?.map((roleObj: any) => roleObj.role) || [];
+               const isFStaff = fRoles.includes('master_web') || fRoles.includes('admin') || fRoles.includes('moderator');
+               
+               return (
+                 <div key={f.user_id} className="flex flex-col bg-muted/10 border border-border/50 rounded-lg overflow-hidden hover:bg-muted/30 hover:border-neon-cyan/50 transition-all group">
+                   
+                   {/* Avatar y Nombre */}
+                   <div 
+                     className="p-3 flex flex-col items-center justify-center text-center cursor-pointer relative"
+                     onClick={() => navigate(`/usuario/${f.user_id}`)}
+                   >
+                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border/50 mb-3 overflow-hidden shadow-sm group-hover:shadow-neon-cyan/20 transition-all group-hover:scale-105" style={getAvatarBorderStyle(f.color_avatar_border)}>
+                       {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-8 h-8 text-muted-foreground" />}
+                     </div>
+                     
+                     <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1 group-hover:text-neon-cyan transition-colors" style={getNameStyle(f.color_name)}>
+                       {f.display_name}
+                     </h4>
+                     
+                     <div className="flex justify-center items-center h-4">
+                       {isFStaff ? (
+                          <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span>
+                       ) : (
+                          <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(f.color_role)}><Star className="w-2.5 h-2.5" /> {f.membership_tier?.toUpperCase() || 'NOVATO'}</span>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* Botones de Acción Rápida */}
+                   <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/mensajes?to=${f.user_id}`); }}
+                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors border-r border-border/50"
+                        title="Enviar Mensaje"
+                      >
+                         <MessageSquare className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/usuario/${f.user_id}`); }}
+                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-neon-green hover:bg-neon-green/10 transition-colors border-r border-border/50"
+                        title="Ver Perfil"
+                      >
+                         <ExternalLink className="w-4 h-4" />
+                      </button>
+                      
+                      {/* 🔥 TU LÓGICA DE ELIMINAR AMIGO INTACTA 🔥 */}
+                      <button 
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          if(confirm(`¿Seguro que deseas eliminar a ${f.display_name}?`)) {
+                             await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${f.user_id}),and(sender_id.eq.${f.user_id},receiver_id.eq.${userId})`); 
+                             fetchFriends();
+                          }
+                        }}
+                        className="p-2 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Eliminar Amigo"
+                      >
+                         <UserMinus className="w-4 h-4" />
+                      </button>
+                   </div>
+                 </div>
+               );
+             })}
+           </div>
         )}
       </div>
     </div>
