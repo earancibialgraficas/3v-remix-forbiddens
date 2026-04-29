@@ -360,17 +360,26 @@ function SnapCard({
     if (!isVisible) return null; // Si no está visible, lo desmontamos para que se calle
     
     let url = embedUrl;
-    if (item.platform === 'youtube') url += '?autoplay=1';
+    if (item.platform === 'youtube') url += '?autoplay=1&mute=0';
     else if (item.platform === 'tiktok') url += '?autoplay=1';
-    // Facebook es quisquilloso, usamos &autoplay=1 (la forma más agresiva)
     else if (item.platform === 'facebook') url += '&autoplay=1';
-    // Para Instagram el API no soporta Autoplay programático en Iframe. Lo dejamos sin parámetros extra.
+    // Instagram: intentamos agregar parámetro pero tiene limitaciones
     else if (item.platform === 'instagram') url += '';
     
     return url;
   };
   
   const finalEmbedUrl = getDynamicEmbedUrl();
+  
+  // 🔥 EFECTO PARA REMONTADOR DE IFRAMES AL CAMBIAR VISIBILIDAD 🔥
+  const [iframeKey, setIframeKey] = useState(0);
+  
+  useEffect(() => {
+    if (isVisible && (item.platform === 'facebook' || item.platform === 'instagram')) {
+      // Remontamos el iframe cuando entra en pantalla para forzar recarga
+      setIframeKey(prev => prev + 1);
+    }
+  }, [isVisible, item.platform]);
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
@@ -423,6 +432,7 @@ function SnapCard({
                 }}
               >
                 <iframe 
+                  key={`instagram-${item.id}-${iframeKey}`}
                   src={finalEmbedUrl} 
                   className="w-full h-full bg-white" 
                   style={{ 
@@ -444,7 +454,15 @@ function SnapCard({
             // 🔥 CONTENEDOR ESCALABLE PARA OTROS VIDEOS 🔥
             <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
               style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-              <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+              <iframe 
+                key={`other-${item.id}-${iframeKey}`}
+                src={finalEmbedUrl} 
+                className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} 
+                style={{ border: "none" }} 
+                scrolling="no" 
+                allowFullScreen 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              />
             </div>
           )
         ) : (
