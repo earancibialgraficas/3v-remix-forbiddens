@@ -205,11 +205,21 @@ function SnapCard({
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
     
-    // Si es un video raw (MP4), forzar el play/pause dinámico
+    // Si es un video raw (MP4), forzar el play/pause dinámico y desmutear
     if (rawVideoRef.current && isDirectMp4) {
+      rawVideoRef.current.volume = 0.5; // Volumen al 50%
+      
       if (isVisible) {
-        rawVideoRef.current.play().catch(e => console.log("Autoplay bloqueado por el navegador:", e));
+        rawVideoRef.current.muted = false; // Forzamos que tenga sonido
+        rawVideoRef.current.play().catch(e => {
+          console.warn("Autoplay bloqueado con sonido, intentando en silencio:", e);
+          if (rawVideoRef.current) {
+            rawVideoRef.current.muted = true; // Fallback a muteado si el navegador lo bloquea por no haber clic previo
+            rawVideoRef.current.play().catch(console.error);
+          }
+        });
       } else {
+        // Pausar inmediatamente si hacemos scroll y ya no está visible
         rawVideoRef.current.pause();
       }
     }
@@ -337,13 +347,20 @@ function SnapCard({
     }
   };
 
-  // 🔥 IFRAMES AUTOPLAY DINÁMICO 🔥 (Muted obligatorio para que el navegador lo permita)
-  let finalEmbedUrl = embedUrl;
-  if (isVisible && embedUrl) {
-    if (item.platform === 'youtube') finalEmbedUrl = `${embedUrl}?autoplay=1&mute=1`;
-    else if (item.platform === 'tiktok') finalEmbedUrl = `${embedUrl}?autoplay=1`;
-    else if (item.platform === 'facebook') finalEmbedUrl = `${embedUrl}&autoplay=true&mute=1`;
-  }
+  // 🔥 IFRAMES AUTOPLAY DINÁMICO Y PAUSA AL HACER SCROLL 🔥
+  const getDynamicEmbedUrl = () => {
+    if (!embedUrl) return null;
+    if (!isVisible) return null; // Si no está visible, lo desmontamos para que se calle
+    
+    let url = embedUrl;
+    if (item.platform === 'youtube') url += '?autoplay=1';
+    else if (item.platform === 'tiktok') url += '?autoplay=1';
+    else if (item.platform === 'facebook') url += '&autoplay=true';
+    else if (item.platform === 'instagram') url += '&autoplay=1';
+    return url;
+  };
+  
+  const finalEmbedUrl = getDynamicEmbedUrl();
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
@@ -376,19 +393,17 @@ function SnapCard({
             </div>
           </div>
         ) : isDirectMp4 ? (
-          <video ref={rawVideoRef} src={item.content_url} controls muted loop playsInline className="w-full h-full object-contain" />
+          // Quitamos el 'muted' duro del video para permitir sonido. Lo controlamos por JS.
+          <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            {/* 🔥 ATRIBUTO allow="autoplay" AÑADIDO 🔥 */}
             <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
-            <PlayCircle className="w-16 h-16 text-neon-cyan animate-pulse" />
-            <a href={item.content_url} target="_blank" rel="noopener" className="px-4 py-2 bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 border border-neon-cyan/50 rounded-lg text-[10px] uppercase font-pixel tracking-widest transition-colors">
-              VER ENLACE EXTERNO
-            </a>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+            <img src={getSafeUrl(targetImgUrl)} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" alt="" />
+            <PlayCircle className="w-16 h-16 text-neon-cyan/50 animate-pulse relative z-10" />
           </div>
         )}
 
