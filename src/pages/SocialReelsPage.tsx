@@ -206,21 +206,23 @@ function SnapCard({
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
     
-    // Si es un video raw (MP4), forzar el play/pause dinámico y desmutear
+    // Si es un video raw (MP4), controlar play/pause/mute dinámico
     if (rawVideoRef.current && isDirectMp4) {
       rawVideoRef.current.volume = 0.5; // Volumen al 50%
       
       if (isVisible) {
-        rawVideoRef.current.muted = false; // Forzamos que tenga sonido
+        // Video visible: REPRODUCIR CON SONIDO
+        rawVideoRef.current.muted = false;
         rawVideoRef.current.play().catch(e => {
           console.warn("Autoplay bloqueado con sonido, intentando en silencio:", e);
           if (rawVideoRef.current) {
-            rawVideoRef.current.muted = true; // Fallback a muteado si el navegador lo bloquea por no haber clic previo
+            rawVideoRef.current.muted = true;
             rawVideoRef.current.play().catch(console.error);
           }
         });
       } else {
-        // Pausar inmediatamente si hacemos scroll y ya no está visible
+        // Video NO visible: PAUSAR Y MUTEAR
+        rawVideoRef.current.muted = true;
         rawVideoRef.current.pause();
       }
     }
@@ -357,13 +359,13 @@ function SnapCard({
   // 🔥 IFRAMES AUTOPLAY DINÁMICO Y PAUSA AL HACER SCROLL 🔥
   const getDynamicEmbedUrl = () => {
     if (!embedUrl) return null;
-    if (!isVisible) return null; // Si no está visible, lo desmontamos para que se calle
+    // ⭐ Solo renderizar si está visible (pausa automática al hacer scroll)
+    if (!isVisible) return null;
     
     let url = embedUrl;
     if (item.platform === 'youtube') url += '?autoplay=1&mute=0';
     else if (item.platform === 'tiktok') url += '?autoplay=1';
-    else if (item.platform === 'facebook') url += '&autoplay=1';
-    // Instagram: intentamos agregar parámetro pero tiene limitaciones
+    else if (item.platform === 'facebook') url += '&autoplay=1&allow_autoplay=1';
     else if (item.platform === 'instagram') url += '';
     
     return url;
@@ -375,10 +377,12 @@ function SnapCard({
   const [iframeKey, setIframeKey] = useState(0);
   
   useEffect(() => {
-    if (isVisible && (item.platform === 'facebook' || item.platform === 'instagram')) {
-      // Remontamos el iframe cuando entra en pantalla para forzar recarga
+    // Remontamos el iframe cuando entra en pantalla para forzar recarga y reproducción con sonido
+    if (isVisible && (item.platform === 'facebook' || item.platform === 'instagram' || item.platform === 'tiktok')) {
       setIframeKey(prev => prev + 1);
     }
+    // Al salir de pantalla, incrementamos para forzar desmontaje (pausa automática)
+    // Esto hace que se cree un nuevo iframe con key diferente cuando vuelva a ser visible
   }, [isVisible, item.platform]);
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
@@ -420,7 +424,7 @@ function SnapCard({
               <div 
                 style={{
                   width: '100%',
-                  maxWidth: '230px',
+                  height: '100%',
                   aspectRatio: '230 / 409',
                   margin: '0 auto',
                   padding: 0,
@@ -446,7 +450,7 @@ function SnapCard({
                   }} 
                   scrolling="no" 
                   allowFullScreen 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; microphone" 
                 />
               </div>
             </div>
@@ -461,7 +465,7 @@ function SnapCard({
                 style={{ border: "none" }} 
                 scrolling="no" 
                 allowFullScreen 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; microphone" 
               />
             </div>
           )
