@@ -424,7 +424,7 @@ function SnapCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '15vh 0 13vh 0',
+              padding: '20vh 0 17vh 0',
               height: '100vh',
               boxSizing: 'border-box',
               width: '100%'
