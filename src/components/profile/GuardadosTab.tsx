@@ -32,13 +32,11 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-// 🔥 FUNCIÓN MOVIDA ARRIBA PARA COMPARTIRLA 🔥
 const isVideoItem = (item: any) => {
   const url = item.originalData?.content_url || item.redirect_url || '';
   return Boolean(url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com") || url.includes("facebook.com") || url.includes("fb.watch"));
 };
 
-// 🔥 NUEVO ESTILO DE BORDES ORDENADOS Y LIMPIOS 🔥
 const getCardBorderStyle = (item: any) => {
   const isVideo = isVideoItem(item);
   const isPost = item.item_type === 'post';
@@ -60,7 +58,25 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA FACEBOOK Y AUTOPLAY 🔥
+// 🔥 REPRODUCTOR NATIVO MP4 (Autoplay + 50% Volumen) 🔥
+function NativeVideoPlayer({ url }: { url: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = 0.5; // Volumen al 50%
+      videoRef.current.play().catch(e => console.log("Autoplay nativo bloqueado:", e));
+    }
+  }, []);
+
+  return (
+    <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+      <video ref={videoRef} src={url} controls playsInline loop className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
+    </div>
+  );
+}
+
+// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA REDES SOCIALES Y AUTOPLAY 🔥
 function HubStyleVideoEmbed({ item }: { item: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -112,15 +128,16 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
   }, [baseSize.w, baseSize.h]);
 
   const getEmbedUrl = () => {
+    // 🔥 AUTOPLAY DESMUTEADO PARA IFRAMES 🔥
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
-      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&mute=1`;
+      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1`;
       const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1`;
+      if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1`;
     }
     if (platform === "instagram") {
       const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-      if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
+      if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true&autoplay=1`;
     }
     if (platform === "tiktok") {
       const tkMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
@@ -130,7 +147,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     }
     if (platform === "facebook") {
       const encodedUrl = encodeURIComponent(url);
-      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560&autoplay=true&mute=1`;
+      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560&autoplay=true`;
     }
     return url;
   };
@@ -383,11 +400,7 @@ export default function GuardadosTab() {
        }
 
        if (url.match(/\.(mp4|webm|ogg)/i)) {
-           return (
-             <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-               <video src={url} controls autoPlay muted playsInline loop className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
-             </div>
-           );
+           return <NativeVideoPlayer url={url} />; // 🔥 Llamada al nuevo reproductor nativo
        }
        
        return (
