@@ -424,7 +424,7 @@ function SnapCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '10vh 0 20vh 0',
+              padding: '5vh 0 10vh 0',
               height: '100vh',
               boxSizing: 'border-box',
               width: '100%'
@@ -436,7 +436,7 @@ function SnapCard({
                 style={{ 
                   border: "none",
                   display: 'block',
-                  height: 'calc(100vh - 40vh)',
+                  height: 'calc(100vh - 30vh)',
                   aspectRatio: '9 / 16',
                   maxWidth: '100%',
                   objectFit: 'contain'
