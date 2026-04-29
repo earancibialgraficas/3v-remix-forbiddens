@@ -168,12 +168,23 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
+        // 🔥 SOLUCIÓN: Buscamos todos los puntajes y filtramos con JS para evitar errores de Supabase 🔥
         const { data: scores } = await supabase.from("leaderboard_scores")
-          .select("id, game_name, console_type, created_at")
-          .eq("user_id", user.id)
-          .not("game_state", "is", null);
+          .select("id, game_name, console_type, created_at, game_state")
+          .eq("user_id", user.id);
 
-        (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
+        (scores || []).forEach(s => {
+          // Nos aseguramos que game_state realmente exista y no esté vacío
+          if (s.game_state !== null && s.game_state !== undefined && s.game_state !== '' && s.game_state !== '{}' && s.game_state !== 'null') {
+            items.push({ 
+              type: "Partida guardada", 
+              name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
+              size: 2, 
+              id: s.id, 
+              created_at: s.created_at 
+            });
+          }
+        });
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
         (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
@@ -300,7 +311,6 @@ export default function ProfilePage() {
     );
   }
 
-  // 🔥 Calculamos si hay notificaciones sin leer para pintar el botón de rojo
   const unreadCount = notifications.filter(n => !n.is_read).length + pendingRequests.length;
 
   return (
@@ -344,7 +354,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* CABECERA PRINCIPAL DEL PERFIL SIEMPRE VISIBLE */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
@@ -388,7 +397,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -406,7 +414,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
