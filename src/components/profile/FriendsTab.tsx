@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, UserMinus, MessageSquare, ExternalLink, Shield, Star, User } from "lucide-react";
+import { Search, UserMinus, MessageSquare, ExternalLink, Shield, Star, User, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getNameStyle, getAvatarBorderStyle, getRoleStyle } from "@/lib/profileAppearance";
@@ -15,7 +16,20 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
   const [search, setSearch] = useState("");
   const [res, setRes] = useState<any[]>([]);
 
-  // 🔥 CONSULTA SEGURA: Perfiles y Roles separados para evitar que Supabase falle 🔥
+  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR AMIGO 🔥
+  const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  // Congelar el scroll del fondo mientras el modal está abierto
+  useEffect(() => {
+    if (friendToRemove) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [friendToRemove]);
+
   const fetchFriends = async () => {
      if (!userId) return;
      try {
@@ -24,15 +38,12 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
        
        const ids = data.map(r => r.sender_id === userId ? r.receiver_id : r.sender_id);
        
-       // 1. Buscamos los perfiles
        const { data: profs } = await supabase.from("profiles")
           .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
           .in("user_id", ids);
           
-       // 2. Buscamos los roles separados (sin forzar Join)
        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
        
-       // 3. Unimos los datos manualmente
        const finalFriends = (profs || []).map(p => {
           const pRoles = rolesData?.filter(r => r.user_id === p.user_id).map(r => r.role) || [];
           return { ...p, roles: pRoles };
@@ -50,8 +61,24 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
 
   const reachedLimit = !isStaff && friends.length >= limits.maxFriends;
 
+  // 🔥 LÓGICA DE CONFIRMACIÓN DE ELIMINACIÓN 🔥
+  const confirmRemoveFriend = async () => {
+    if (!friendToRemove) return;
+    setIsRemoving(true);
+    try {
+      await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${friendToRemove.id}),and(sender_id.eq.${friendToRemove.id},receiver_id.eq.${userId})`); 
+      await fetchFriends();
+      toast({ title: "Amistad eliminada", description: `Has eliminado a ${friendToRemove.name}.` });
+    } catch(e) {
+      toast({ title: "Error", description: "No se pudo eliminar al amigo.", variant: "destructive" });
+    } finally {
+      setIsRemoving(false);
+      setFriendToRemove(null);
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-6 animate-in fade-in relative">
       
       {/* SECCIÓN DE BÚSQUEDA */}
       <div className="bg-card border border-border rounded p-4">
@@ -136,7 +163,6 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                     </div>
                   </div>
                   
-                  {/* TU LÓGICA DE AÑADIR CON NOTIFICACIÓN */}
                   <Button onClick={async () => { 
                       try {
                         const { data: existing } = await supabase.from("friend_requests").select("id").or(`and(sender_id.eq.${userId},receiver_id.eq.${r.user_id}),and(sender_id.eq.${r.user_id},receiver_id.eq.${userId})`);
@@ -208,14 +234,11 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                          <ExternalLink className="w-4 h-4" />
                       </button>
                       
-                      {/* TU LÓGICA DE ELIMINAR AMIGO (Cargando lista al terminar) */}
+                      {/* 🔥 BOTÓN QUE ABRE EL MODAL DE CONFIRMACIÓN 🔥 */}
                       <button 
-                        onClick={async (e) => { 
+                        onClick={(e) => { 
                           e.stopPropagation(); 
-                          if(confirm(`¿Seguro que deseas eliminar a ${f.display_name}?`)) {
-                             await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${userId},receiver_id.eq.${f.user_id}),and(sender_id.eq.${f.user_id},receiver_id.eq.${userId})`); 
-                             fetchFriends();
-                          }
+                          setFriendToRemove({ id: f.user_id, name: f.display_name });
                         }}
                         className="p-2 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Eliminar Amigo"
@@ -229,6 +252,45 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
            </div>
         )}
       </div>
+
+      {/* 🔥 MODAL DE CONFIRMACIÓN TELETRANSPORTADO AL BODY 🔥 */}
+      {friendToRemove && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-sm bg-card border border-destructive/40 rounded-xl p-5 shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-scale-in flex flex-col" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10 shrink-0">
+              <h3 className="font-pixel text-[11px] text-destructive flex items-center gap-2">
+                <UserMinus className="w-4 h-4" /> ELIMINAR AMIGO
+              </h3>
+              <button onClick={() => setFriendToRemove(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 text-center">
+              <p className="text-sm font-body text-muted-foreground">
+                ¿Estás seguro de que deseas eliminar a <strong className="text-foreground">{friendToRemove.name}</strong> de tu lista de amigos?
+              </p>
+              <p className="text-[10px] font-body text-muted-foreground/60 mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            <div className="pt-4 flex gap-2 justify-end shrink-0 mt-2 border-t border-white/10">
+              <Button size="sm" variant="outline" onClick={() => setFriendToRemove(null)} className="text-xs font-body border-white/10 hover:bg-white/5">
+                Cancelar
+              </Button>
+              <Button size="sm" variant="destructive" onClick={confirmRemoveFriend} disabled={isRemoving} className="text-xs gap-1 font-pixel shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+                {isRemoving ? "Eliminando..." : "Sí, Eliminar"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }
