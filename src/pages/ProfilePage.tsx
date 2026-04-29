@@ -168,19 +168,16 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 SOLUCIÓN DEFINITIVA: Traemos todo y no filtramos nada que tenga que ver con "game_state"
-        const { data: scores, error: scoresError } = await supabase.from("leaderboard_scores")
-          .select("id, game_name, console_type, created_at, game_state")
+        // 🔥 SOLUCIÓN: Solo pedimos los datos ligeros, omitimos 'game_state' para evitar que explote la base de datos 🔥
+        const { data: scores, error } = await supabase.from("leaderboard_scores")
+          .select("id, game_name, console_type, created_at")
           .eq("user_id", user.id);
 
-        console.log("🎮 Partidas detectadas desde la BD:", scores);
-        
-        if (scoresError) {
-          console.error("❌ Error de BD al buscar partidas:", scoresError);
+        if (error) {
+          console.error("Error al cargar partidas:", error);
         }
 
         (scores || []).forEach(s => {
-          // Ya no bloqueamos si el estado es nulo. Toda partida registrada se considera guardada
           items.push({ 
             type: "Partida guardada", 
             name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
@@ -203,7 +200,7 @@ export default function ProfilePage() {
         setStorageItems(items);
         setStorageUsed(items.reduce((sum, i) => sum + (i.size || 0), 0));
       } catch(e) {
-        console.error("❌ Error cargando Storage:", e);
+        console.error("Error general en storage:", e);
       }
     };
     
