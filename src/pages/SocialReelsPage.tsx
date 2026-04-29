@@ -419,13 +419,13 @@ function SnapCard({
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           item.platform === 'instagram' ? (
-            // 🔥 CONTENEDOR EXPANDIDO PARA INSTAGRAM CON VH - RESPONSIVE 🔥
+            // 🔥 CONTENEDOR FIJO PARA INSTAGRAM - MEDIDAS UNIVERSALES 🔥
             <div style={{ 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: '30px 0 85px 0',
-              minHeight: '100vh',
+              height: '100vh',
               boxSizing: 'border-box',
               width: '100%'
             }}>
@@ -436,11 +436,9 @@ function SnapCard({
                 style={{ 
                   border: "none",
                   display: 'block',
-                  width: '100%',
-                  height: 'calc(100vh - 115px)',
-                  aspectRatio: '9 / 16',
+                  width: '367px',
+                  height: '653px',
                   maxWidth: '100%',
-                  maxHeight: 'calc(100vh - 115px)',
                   objectFit: 'contain'
                 }} 
                 scrolling="no" 
