@@ -419,40 +419,26 @@ function SnapCard({
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           item.platform === 'instagram' ? (
-            // 🔥 CONTENEDOR RESPONSIVE PARA INSTAGRAM CON MEDIDAS EXACTAS 🔥
-            <div className="flex items-center justify-center w-full h-full" style={{ padding: '35px 0 85px 0' }}>
-              <div 
-                style={{
+            // 🔥 CONTENEDOR EXPANDIDO PARA INSTAGRAM - SIN BORDES 🔥
+            <div className="w-full h-full flex items-center justify-center" style={{ padding: '30px 0 85px 0' }}>
+              <iframe 
+                key={`instagram-${item.id}-${iframeKey}`}
+                src={finalEmbedUrl} 
+                className="bg-white" 
+                style={{ 
+                  border: "none",
+                  display: 'block',
                   width: '100%',
                   height: '100%',
-                  aspectRatio: '230 / 409',
-                  margin: '0 auto',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                <iframe 
-                  key={`instagram-${item.id}-${iframeKey}`}
-                  src={finalEmbedUrl} 
-                  className="w-full h-full bg-white" 
-                  style={{ 
-                    border: "none",
-                    display: 'block',
-                    margin: 0,
-                    padding: 0,
-                    flexShrink: 0,
-                    width: '100%',
-                    height: '100%'
-                  }} 
-                  scrolling="no" 
-                  allowFullScreen 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; microphone" 
-                />
-              </div>
+                  aspectRatio: '9 / 16',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain'
+                }} 
+                scrolling="no" 
+                allowFullScreen 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; microphone" 
+              />
             </div>
           ) : (
             // 🔥 CONTENEDOR ESCALABLE PARA OTROS VIDEOS 🔥
