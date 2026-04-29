@@ -11,6 +11,7 @@ import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileA
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { getCategoryRoute } from "@/lib/categoryRoutes"; // 🔥 IMPORTAMOS TU FUNCIÓN PARA RUTAS CORRECTAS 🔥
 
 interface PublicProfile {
   user_id: string;
@@ -152,12 +153,13 @@ export default function PublicProfilePage() {
     }
   };
 
+  // 🔥 ACTUALIZAMOS EL REDIRECT_URL USANDO TU FUNCIÓN GETCATEGORYROUTE 🔥
   const handleSavePost = async (post: any) => {
     if (!user) return;
     try { 
       const { error } = await supabase.from("saved_items" as any).insert({ 
         user_id: user.id, item_type: 'post', original_id: post.id,
-        title: post.title || 'Post del Foro', redirect_url: `/${post.category}?post=${post.id}`
+        title: post.title || 'Post del Foro', redirect_url: getCategoryRoute(post.category, post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -182,12 +184,19 @@ export default function PublicProfilePage() {
 
   const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
   
-  // 🔥 PROTECCIÓN DE FECHA: Si es null o del año 1969/1970, mostramos "Recientemente" 🔥
+  // FUNCIONES PARA PREVENIR EL ERROR "1969"
   const getSafeMemberDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
     const date = new Date(dateStr);
     if (date.getFullYear() <= 1970) return "Recientemente";
     return date.toLocaleDateString("es-ES", { year: "numeric", month: "long" });
+  };
+
+  const getSafePostDate = (dateStr: string) => {
+    if (!dateStr) return "Recientemente";
+    const date = new Date(dateStr);
+    if (date.getFullYear() <= 1970) return "Recientemente";
+    return date.toLocaleDateString(); 
   };
 
   const memberSince = getSafeMemberDate(profile.created_at);
@@ -325,11 +334,13 @@ export default function PublicProfilePage() {
             {userPosts.map((post) => (
               <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
                 <div className="flex-1 min-w-0 pr-2">
-                  <Link to={`/${post.category}?post=${post.id}`} className="text-xs text-foreground hover:text-neon-cyan hover:underline line-clamp-2">
+                  {/* 🔥 CORREGIDO EL 404: AHORA USAMOS GETCATEGORYROUTE 🔥 */}
+                  <Link to={getCategoryRoute(post.category, post.id)} className="text-xs text-foreground hover:text-neon-cyan hover:underline line-clamp-2">
                     {post.title}
                   </Link>
                   <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
-                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                    {/* 🔥 CORREGIDA LA FECHA 1969 PARA POSTS 🔥 */}
+                    <span>{getSafePostDate(post.created_at)}</span>
                     <span className="text-neon-green">▲{post.upvotes || 0}</span>
                   </div>
                 </div>
