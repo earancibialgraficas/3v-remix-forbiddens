@@ -4,193 +4,200 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Ban, Unlock, Shield, Search, Star, UserCheck } from "lucide-react";
+import { Ban, Unlock, Shield, Search, UserCheck, Image as ImageIcon, Users, Settings, Trash2 } from "lucide-react";
 
 export default function ModerationPanel({ isStaff, isMasterWeb }: { isStaff: boolean; isMasterWeb: boolean }) {
   const { toast } = useToast();
-  
-  // Estados para Búsqueda y Resultados
+  const [activeSubTab, setActiveSubTab] = useState<"gestion" | "banned_content" | "mods" | "admins">("gestion");
+
+  // Estados de Búsqueda
   const [searchTerm, setSearchTerm] = useState("");
   const [foundUser, setFoundUser] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Estados para Acciones
+  // Estados de Datos
   const [banReason, setBanReason] = useState("");
   const [selectedTier, setSelectedTier] = useState("novato");
-  const [bannedUsers, setBannedUsers] = useState<any[]>([]);
-  const [expandedBanned, setExpandedBanned] = useState(false);
+  const [bannedContent, setBannedContent] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<{ mods: any[], admins: any[] }>({ mods: [], admins: [] });
 
-  // 🔥 FUNCIÓN DE BÚSQUEDA MAESTRA (Nombre o Email) 🔥
+  // 🔥 BUSCADOR MAESTRO (Nombre o Email)
   const handleSearchUser = async () => {
     if (!searchTerm.trim()) return;
     setIsSearching(true);
     setFoundUser(null);
-
     try {
-      // Usamos la función segura que creamos en el Paso 1
-      const { data, error } = await supabase.rpc("get_user_by_identifier", { 
-        search_text: searchTerm.trim() 
-      });
-
+      const { data, error } = await supabase.rpc("get_user_by_identifier", { search_text: searchTerm.trim() });
       if (error) throw error;
-
       if (data && data.length > 0) {
         const u = data[0];
-        // Verificamos si es STAFF
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user_id);
         const isUserStaff = roles?.some(r => ['master_web', 'admin', 'moderator'].includes(r.role));
-        
         setFoundUser({ ...u, isStaff: isUserStaff });
         setSelectedTier(u.membership_tier || "novato");
       } else {
-        toast({ title: "No encontrado", description: "No se halló al usuario por nombre ni por correo.", variant: "destructive" });
+        toast({ title: "No encontrado", description: "Usuario o correo no hallado.", variant: "destructive" });
       }
     } catch (e) {
-      toast({ title: "Error en búsqueda", variant: "destructive" });
-    } finally {
-      setIsSearching(false);
+      toast({ title: "Error", description: "Asegúrate de haber ejecutado el SQL en Supabase.", variant: "destructive" });
+    } finally { setIsSearching(false); }
+  };
+
+  // 🔥 CARGA DE CONTENIDO BANEADO Y STAFF
+  const loadModerationData = async () => {
+    if (activeSubTab === "banned_content") {
+      const { data: ph } = await supabase.from("photos").select("*").eq("is_banned", true);
+      const { data: sc } = await supabase.from("social_content").select("*").eq("is_banned", true);
+      setBannedContent([
+        ...(ph || []).map(x => ({ ...x, type: 'Foto' })),
+        ...(sc || []).map(x => ({ ...x, type: 'Redes' }))
+      ]);
+    }
+    if (activeSubTab === "mods" || activeSubTab === "admins") {
+      const { data: r } = await supabase.from("user_roles").select("user_id, role");
+      if (!r) return;
+      const ids = r.map(x => x.user_id);
+      const { data: p } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+      setStaffList({
+        mods: r.filter(x => x.role === 'moderator').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name })),
+        admins: r.filter(x => x.role === 'admin').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name }))
+      });
     }
   };
 
-  // --- LÓGICA DE ACCIONES ---
-  const handleBan = async () => {
-    if (!foundUser || !banReason.trim()) return;
-    const { error } = await supabase.from("banned_users").insert({ 
-      id: crypto.randomUUID(), user_id: foundUser.user_id, reason: banReason, ban_type: 'ban' 
-    } as any);
-    if (!error) { toast({ title: "Usuario baneado" }); setBanReason(""); setFoundUser(null); }
-  };
+  useEffect(() => { loadModerationData(); }, [activeSubTab]);
 
-  const handleUpdateMembership = async () => {
+  const updateMembership = async () => {
     if (!foundUser || foundUser.isStaff) return;
     const { error } = await supabase.from("profiles").update({ membership_tier: selectedTier } as any).eq("user_id", foundUser.user_id);
     if (!error) { toast({ title: "Membresía actualizada" }); handleSearchUser(); }
   };
 
-  const handleAssignRole = async (role: "moderator" | "admin") => {
-    if (!foundUser) return;
-    const { error } = await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role } as any);
-    if (!error) { toast({ title: `Rol de ${role} asignado` }); handleSearchUser(); }
-    else { toast({ title: "Error", description: "Ya posee este rol o hubo un fallo.", variant: "destructive" }); }
-  };
-
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-4 animate-in fade-in">
       
-      {/* 🔍 BUSCADOR PRINCIPAL */}
-      <div className="bg-card border border-neon-cyan/50 rounded-lg p-5 shadow-[0_0_20px_rgba(0,240,255,0.1)]">
-        <h3 className="font-pixel text-[11px] text-neon-cyan uppercase mb-4 flex items-center gap-2">
-          <Search className="w-4 h-4" /> Buscador de Usuarios
-        </h3>
-        <div className="flex gap-2">
-          <Input 
-            placeholder="Nombre de usuario o Correo registrado..." 
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearchUser()}
-            className="h-10 bg-muted/50 font-body text-sm"
-          />
-          <Button 
-            onClick={handleSearchUser} 
-            disabled={isSearching} 
-            className="bg-neon-cyan text-black hover:bg-neon-cyan/80 font-pixel text-[10px] px-6"
-          >
-            {isSearching ? "..." : "BUSCAR"}
-          </Button>
-        </div>
+      {/* MENÚ DE SUB-PESTAÑAS */}
+      <div className="flex gap-1 bg-muted/20 p-1 rounded border border-white/5 overflow-x-auto custom-scrollbar">
+        <button onClick={() => setActiveSubTab("gestion")} className={cn("px-3 py-1.5 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "gestion" ? "bg-neon-cyan text-black" : "text-muted-foreground hover:text-white")}><Search className="w-3 h-3" /> GESTIÓN</button>
+        <button onClick={() => setActiveSubTab("banned_content")} className={cn("px-3 py-1.5 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "banned_content" ? "bg-destructive text-white" : "text-muted-foreground hover:text-white")}><ImageIcon className="w-3 h-3" /> BANEADOS</button>
+        <button onClick={() => setActiveSubTab("mods")} className={cn("px-3 py-1.5 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "mods" ? "bg-neon-magenta text-white" : "text-muted-foreground hover:text-white")}><Users className="w-3 h-3" /> MODS</button>
+        {isMasterWeb && (
+          <button onClick={() => setActiveSubTab("admins")} className={cn("px-3 py-1.5 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "admins" ? "bg-white text-black" : "text-muted-foreground hover:text-white")}><Shield className="w-3 h-3" /> ADMINS</button>
+        )}
+      </div>
 
-        {/* 👤 FICHA DEL USUARIO ENCONTRADO */}
-        {foundUser && (
-          <div className="mt-5 bg-black/40 border border-white/10 rounded-xl p-4 animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-start mb-4 border-b border-white/5 pb-3">
-              <div>
-                <p className="text-lg font-bold font-body text-foreground flex items-center gap-2">
-                  {foundUser.display_name} 
-                  {foundUser.isStaff && <Shield className="w-4 h-4 text-neon-magenta animate-pulse" />}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={cn(
-                    "text-[10px] font-pixel px-2 py-0.5 rounded",
-                    foundUser.isStaff ? "bg-neon-magenta/20 text-neon-magenta" : "bg-neon-yellow/20 text-neon-yellow"
-                  )}>
-                    {foundUser.isStaff ? "RANGO: STAFF" : `PLAN: ${foundUser.membership_tier.toUpperCase()}`}
-                  </span>
+      {/* --- PESTAÑA: GESTIÓN (BUSCADOR) --- */}
+      {activeSubTab === "gestion" && (
+        <div className="space-y-4">
+          <div className="bg-card border border-neon-cyan/30 rounded-lg p-4">
+            <h3 className="font-pixel text-[10px] text-neon-cyan uppercase mb-3">Buscar para acciones</h3>
+            <div className="flex gap-2">
+              <Input placeholder="Nombre o Correo..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearchUser()} className="h-8 bg-muted text-xs" />
+              <Button onClick={handleSearchUser} disabled={isSearching} className="h-8 bg-neon-cyan text-black text-[9px] font-pixel px-4">{isSearching ? "..." : "BUSCAR"}</Button>
+            </div>
+
+            {foundUser && (
+              <div className="mt-4 bg-black/40 border border-white/5 rounded-lg p-4 animate-in zoom-in-95">
+                <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                   <div>
+                     <p className="text-sm font-bold text-foreground">{foundUser.display_name}</p>
+                     <p className="text-[10px] font-pixel text-neon-yellow uppercase mt-1">
+                       Actual: <span className={foundUser.isStaff ? "text-neon-magenta" : ""}>{foundUser.isStaff ? "STAFF (INMUNE)" : foundUser.membership_tier}</span>
+                     </p>
+                   </div>
+                   <UserCheck className="w-5 h-5 text-neon-green" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <p className="text-[8px] font-pixel text-destructive uppercase">Zona de Baneo</p>
+                      <Input placeholder="Razón..." value={banReason} onChange={e => setBanReason(e.target.value)} className="h-7 text-[10px] bg-muted" />
+                      <Button variant="destructive" className="w-full h-7 text-[9px] font-pixel" onClick={async () => {
+                         const { error } = await supabase.from("banned_users").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, reason: banReason, ban_type: 'ban' } as any);
+                         if (!error) { toast({ title: "Usuario baneado" }); setFoundUser(null); }
+                      }}>EJECUTAR BANEO</Button>
+                   </div>
+
+                   <div className="space-y-2">
+                      <p className="text-[8px] font-pixel text-neon-yellow uppercase">Membresía</p>
+                      {foundUser.isStaff ? (
+                        <p className="text-[9px] text-muted-foreground italic text-center py-2">No se puede degradar al Staff.</p>
+                      ) : (
+                        <>
+                          <select value={selectedTier} onChange={e => setSelectedTier(e.target.value)} className="w-full h-7 bg-muted border rounded text-[9px] uppercase">
+                            {["novato", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          <Button onClick={updateMembership} className="w-full h-7 bg-neon-yellow text-black text-[9px] font-pixel">GUARDAR PLAN</Button>
+                        </>
+                      )}
+                   </div>
+                </div>
+                
+                {isMasterWeb && (
+                  <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
+                    <Button variant="outline" className="flex-1 h-7 text-[8px] font-pixel" onClick={async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); }}>HACER MODERADOR</Button>
+                    <Button variant="outline" className="flex-1 h-7 text-[8px] font-pixel" onClick={async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "admin" } as any); handleSearchUser(); }}>HACER ADMIN</Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- PESTAÑA: CONTENIDO BANEADO --- */}
+      {activeSubTab === "banned_content" && (
+        <div className="bg-card border border-destructive/30 rounded-lg p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-destructive uppercase">Contenido Bloqueado ({bannedContent.length})</h3>
+          <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            {bannedContent.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4">Limpio. No hay contenido baneado.</p> : bannedContent.map(item => (
+              <div key={item.id} className="flex items-center gap-3 bg-muted/20 p-2 rounded border border-white/5">
+                <div className="w-12 h-12 bg-black rounded overflow-hidden border border-white/10 shrink-0">
+                  <img src={item.image_url || item.thumbnail_url || item.content_url} className="w-full h-full object-cover opacity-50 grayscale" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold truncate">{item.caption || item.title || "Sin título"}</p>
+                  <p className="text-[8px] text-muted-foreground uppercase">{item.type} • {new Date(item.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button onClick={async () => { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').update({ is_banned: false }).eq("id", item.id); loadModerationData(); }} className="text-[8px] font-pixel text-neon-green hover:underline">RESTAURAR</button>
+                  <button onClick={async () => { if(confirm("¿Eliminar para siempre?")) { await supabase.from(item.type === 'Foto' ? 'photos' : 'social_content').delete().eq("id", item.id); loadModerationData(); } }} className="text-[8px] font-pixel text-destructive hover:underline">BORRAR</button>
                 </div>
               </div>
-              <UserCheck className="w-6 h-6 text-neon-green opacity-50" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
-              {/* ACCIÓN: BANEO */}
-              <div className="space-y-2 border-r border-white/5 pr-4">
-                <p className="text-[9px] font-pixel text-destructive uppercase">Sancionar</p>
-                <Input 
-                  placeholder="Razón del baneo..." 
-                  value={banReason} 
-                  onChange={e => setBanReason(e.target.value)}
-                  className="h-7 text-[11px] bg-muted"
-                />
-                <Button variant="destructive" onClick={handleBan} size="sm" className="w-full h-8 text-[10px] font-pixel">
-                  EJECUTAR BANEO
-                </Button>
-              </div>
-
-              {/* ACCIÓN: MEMBRESÍA */}
-              <div className="space-y-2 border-r border-white/5 px-4">
-                <p className="text-[9px] font-pixel text-neon-yellow uppercase">Gestionar Plan</p>
-                {foundUser.isStaff ? (
-                  <div className="h-16 flex items-center justify-center bg-muted/20 rounded border border-white/5">
-                    <p className="text-[9px] font-body text-muted-foreground italic text-center px-2">
-                      Inmune: No puedes cambiar el plan de un STAFF.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <select 
-                      value={selectedTier} 
-                      onChange={e => setSelectedTier(e.target.value)}
-                      className="w-full h-8 bg-muted border border-border rounded text-[10px] uppercase font-body"
-                    >
-                      {["novato", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => (
-                        <option key={t} value={t}>{t.toUpperCase()}</option>
-                      ))}
-                    </select>
-                    <Button onClick={handleUpdateMembership} size="sm" className="w-full h-8 text-[10px] font-pixel bg-neon-yellow text-black hover:bg-neon-yellow/80">
-                      ACTUALIZAR PLAN
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* ACCIÓN: ROLES (Solo MasterWeb) */}
-              <div className="space-y-2 pl-4">
-                <p className="text-[9px] font-pixel text-neon-magenta uppercase">Jerarquía</p>
-                {isMasterWeb ? (
-                  <div className="flex flex-col gap-1.5">
-                    <Button variant="outline" onClick={() => handleAssignRole("moderator")} className="h-7 text-[9px] font-pixel border-neon-magenta/40 text-neon-magenta hover:bg-neon-magenta/10">PROMOCIONAR A MOD</Button>
-                    <Button variant="outline" onClick={() => handleAssignRole("admin")} className="h-7 text-[9px] font-pixel border-neon-magenta text-neon-magenta hover:bg-neon-magenta/20">PROMOCIONAR A ADMIN</Button>
-                  </div>
-                ) : (
-                  <p className="text-[9px] text-muted-foreground italic py-4">Requiere nivel Maestro Web.</p>
-                )}
-              </div>
-
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* --- EL RESTO DEL PANEL SE MANTIENE IGUAL (Sancionados y Contenido Baneado) --- */}
-      <div className="bg-card border border-destructive/30 rounded p-4">
-        <button onClick={() => setExpandedBanned(!expandedBanned)} className="w-full flex justify-between font-pixel text-[10px] text-destructive uppercase items-center">
-          <span>Historial de Sanciones ({expandedBanned ? bannedUsers.length : "?"})</span>
-          <span className="text-xs">{expandedBanned ? "▲" : "▼"}</span>
-        </button>
-        {expandedBanned && (
-           <p className="text-center py-4 text-[10px] text-muted-foreground italic uppercase">Usa el buscador arriba para gestionar usuarios específicos</p>
-        )}
-      </div>
+      {/* --- PESTAÑA: MODERADORES --- */}
+      {activeSubTab === "mods" && (
+        <div className="bg-card border border-neon-magenta/30 rounded-lg p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-neon-magenta uppercase">Moderadores Activos</h3>
+          <div className="space-y-2">
+            {staffList.mods.map(m => (
+              <div key={m.id} className="flex justify-between items-center bg-muted/20 p-2 rounded text-xs">
+                <span className="font-body text-white">{m.name || "Cargando..."}</span>
+                {isMasterWeb && <button onClick={async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); }} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- PESTAÑA: ADMINISTRADORES --- */}
+      {activeSubTab === "admins" && isMasterWeb && (
+        <div className="bg-card border border-white/30 rounded-lg p-4 space-y-3">
+          <h3 className="font-pixel text-[10px] text-white uppercase">Administradores Activos</h3>
+          <div className="space-y-2">
+            {staffList.admins.map(a => (
+              <div key={a.id} className="flex justify-between items-center bg-muted/20 p-2 rounded text-xs">
+                <span className="font-body text-white">{a.name || "Cargando..."}</span>
+                <button onClick={async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); }} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
