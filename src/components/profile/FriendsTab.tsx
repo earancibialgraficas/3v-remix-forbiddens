@@ -136,6 +136,8 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
           </Button>
         </div>
         
+        {reachedLimit && <p className="text-[10px] text-destructive/80 mt-2 font-body italic">Has alcanzado el límite de amigos de tu membresía.</p>}
+        
         {res.length > 0 && !reachedLimit && (
           <div className="mt-4 space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {res.map(r => {
@@ -176,7 +178,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         )}
       </div>
       
-      {/* 🔥 SECCIÓN DE AMIGOS CON AUTO-FIT (RESPONSIVO MEJORADO) 🔥 */}
+      {/* SECCIÓN DE AMIGOS CON AUTO-FIT */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-neon-green opacity-80 mb-4 uppercase text-center md:text-left">Mis Amigos ({friends.length})</h3>
         
@@ -209,7 +211,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
         )}
       </div>
 
-      {/* 🔥 MODAL DE CONFIRMACIÓN CON BOTONES ANCHOS Y CENTRADOS 🔥 */}
+      {/* 🔥 MODAL DE CONFIRMACIÓN CON AVISO DE ACCIÓN IRREVERSIBLE 🔥 */}
       {friendToRemove && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
           <div 
@@ -229,9 +231,12 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
               <p className="text-sm font-body text-muted-foreground">
                 ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
               </p>
+              {/* 🔥 AVISO DE IRREVERSIBLE 🔥 */}
+              <p className="text-[10px] font-body text-destructive/80 mt-2 uppercase tracking-wide">
+                Esta acción es irreversible.
+              </p>
             </div>
 
-            {/* BOTONES IGUALES, CENTRADOS Y A TODO ANCHO */}
             <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
               <Button 
                 variant="outline" 
