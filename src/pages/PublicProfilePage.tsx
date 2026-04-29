@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,6 +61,38 @@ const getPostThumbnail = (post: any) => {
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
+// 🔥 FUNCIÓN PARA TIEMPO RELATIVO 🔥
+const getTimeAgo = (dateString: string) => {
+  if (!dateString) return "Recientemente";
+  const safeDateStr = dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') ? dateString + 'Z' : dateString;
+  const date = new Date(safeDateStr);
+  
+  if (date.getFullYear() <= 1970) return "Recientemente";
+
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "hace un momento";
+  
+  let interval = seconds / 31536000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "año" : "años"}`;
+  
+  interval = seconds / 2592000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "mes" : "meses"}`;
+  
+  interval = seconds / 86400;
+  if (interval >= 1) {
+      if (Math.floor(interval) === 1) return "ayer";
+      return `hace ${Math.floor(interval)} días`;
+  }
+  
+  interval = seconds / 3600;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "hr" : "hrs"}`;
+  
+  interval = seconds / 60;
+  if (interval >= 1) return `hace ${Math.floor(interval)} min`;
+  
+  return "hace un momento";
+};
+
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
@@ -79,6 +111,13 @@ export default function PublicProfilePage() {
   
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
+
+  // Motor de tiempo real
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
@@ -118,7 +157,6 @@ export default function PublicProfilePage() {
         { count: forumPostsCount }
       ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
-        // 🔥 AHORA PEDIMOS EL CONTENT PARA BUSCAR IMÁGENES 🔥
         supabase.from("posts").select("id, title, content, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(20),
         supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -166,7 +204,6 @@ export default function PublicProfilePage() {
     }
   };
 
-  // 🔥 GUARDADO SINCRONIZADO CON LA MISMA MINIATURA 🔥
   const handleSavePost = async (post: any) => {
     if (!user) return;
     const thumb = getPostThumbnail(post);
@@ -174,7 +211,7 @@ export default function PublicProfilePage() {
       const { error } = await supabase.from("saved_items" as any).insert({ 
         user_id: user.id, item_type: 'post', original_id: post.id,
         title: post.title || 'Post del Foro', 
-        thumbnail_url: thumb, // <--- Sincronizado
+        thumbnail_url: thumb,
         redirect_url: getCategoryRoute(post.category, post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
@@ -256,26 +293,37 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* ESTADÍSTICAS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { val: followerCount, label: "Seguidores", color: "text-foreground" },
-          { val: followingCount, label: "Siguiendo", color: "text-foreground" },
-          { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
-          { val: socialContentCount, label: "Social Media", color: "text-neon-magenta" },
-        ].map((s, i) => (
-          <div key={i} className="bg-card border border-border rounded p-3 text-center">
-            <p className={cn("text-xl font-bold font-body", s.color)}>{s.val}</p>
-            <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1">{s.label}</p>
-          </div>
-        ))}
+      {/* ESTADÍSTICAS RESTAURADAS AL COMPLETO */}
+      <div className="bg-card border border-border rounded p-4">
+        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {[
+            { val: Math.max(profile.total_score, totalScoreValue).toLocaleString(), label: "Puntos", color: "text-neon-green" },
+            { val: followerCount, label: "Seguidores", color: "text-foreground" },
+            { val: followingCount, label: "Siguiendo", color: "text-foreground" },
+            { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
+            { val: socialContentCount, label: "Posts Social", color: "text-neon-yellow" },
+            { val: bestScores.length, label: "Juegos", color: "text-neon-orange" },
+            { 
+              val: displayTier, 
+              label: "Membresía", 
+              color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
+            },
+          ].map((s, i) => (
+            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors">
+              <p className={cn("text-lg font-bold font-body", s.color)}>{s.val}</p>
+              <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* PUNTAJES POR JUEGO */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
-          <div className="space-y-1 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          {/* 🔥 ALTURA DINÁMICA RESPONSIVA 🔥 */}
+          <div className="space-y-1 max-h-[250px] md:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
               bestScores.map((gs, i) => (
                 <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
@@ -291,13 +339,13 @@ export default function PublicProfilePage() {
         {/* POSTS RECIENTES CON MINIATURA SINCRONIZADA */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
-          <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          {/* 🔥 ALTURA DINÁMICA RESPONSIVA 🔥 */}
+          <div className="space-y-2 max-h-[250px] md:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
               userPosts.map((post) => {
                 const thumb = getPostThumbnail(post);
                 return (
                   <div key={post.id} className="p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
-                    {/* 🔥 MINIATURA A LA IZQUIERDA 🔥 */}
                     <div className="w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
                        <img 
                           src={getProxyUrl(thumb)} 
