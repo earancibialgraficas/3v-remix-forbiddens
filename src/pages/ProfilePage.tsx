@@ -167,19 +167,30 @@ export default function ProfilePage() {
     const loadStorage = async () => {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
-        const { data: scores } = await supabase.from("leaderboard_scores").select("id, game_name, console_type, created_at").eq("user_id", user.id);
+        
+        // 🔥 AQUÍ ESTÁ LA MAGIA: .not("game_state", "is", null) para evitar fantasmas 🔥
+        const { data: scores } = await supabase.from("leaderboard_scores")
+          .select("id, game_name, console_type, created_at")
+          .eq("user_id", user.id)
+          .not("game_state", "is", null);
+
         (scores || []).forEach(s => items.push({ type: "Partida guardada", name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, size: 2, id: s.id, created_at: s.created_at }));
+        
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
         (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
+        
         const { data: social } = await supabase.from("social_content").select("id, title, content_url, created_at").eq("user_id", user.id);
         (social || []).forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id, created_at: s.created_at }));
+        
         const { data: photos } = await supabase.from("photos").select("id, caption, image_url, created_at").eq("user_id", user.id);
         (photos || []).forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id, created_at: p.created_at }));
+        
         items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setStorageItems(items);
         setStorageUsed(items.reduce((sum, i) => sum + (i.size || 0), 0));
       } catch(e) {}
     };
+    
     loadCoreData();
     loadStorage();
   }, [user?.id]);
@@ -375,7 +386,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO (NUEVO FLEX WRAP) 🔥 */}
+      {/* MENÚ DE PESTAÑAS RESPONSIVO */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -391,7 +402,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS (MÓDULOS SEPARADOS) */}
+      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
