@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { useFriendIds } from "@/hooks/useFriendIds";
-
-// 🔥 Importamos el Dropdown Menu de STAFF y los límites 🔥
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
@@ -35,7 +33,6 @@ interface PublicProfile {
 
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
-  // 🔥 Extraemos el perfil y roles del usuario actual para calcular sus límites 🔥
   const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
@@ -53,9 +50,7 @@ export default function PublicProfilePage() {
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
 
-  const isStaff = isMasterWeb || isAdmin || roles.includes("moderator");
-
-  // 🔥 LÓGICA DE LÍMITES DE AMIGOS PARA EL USUARIO ACTUAL 🔥
+  // Lógica de límites de amigos
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
@@ -86,7 +81,6 @@ export default function PublicProfilePage() {
         else setFriendStatus("none");
       }
 
-      // Solo traemos posts que no estén baneados
       const [
         { data: scores }, 
         { data: posts }, 
@@ -136,22 +130,18 @@ export default function PublicProfilePage() {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     
     if (friendStatus === "none") {
-      // 🔥 VERIFICACIÓN DEL LÍMITE AL INTENTAR AGREGAR 🔥
       if (reachedFriendLimit) {
         toast({ title: "Límite de Membresía", description: `Tu plan permite un máximo de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
         return;
       }
-
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
       if (error) toast({ title: "Error al enviar solicitud", description: error.message, variant: "destructive" });
       else { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
     } else if (friendStatus === "pending_received") {
-      // 🔥 VERIFICACIÓN DEL LÍMITE AL INTENTAR ACEPTAR 🔥
       if (reachedFriendLimit) {
         toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
         return;
       }
-
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       if (error) toast({ title: "Error al aceptar solicitud", description: error.message, variant: "destructive" });
       else { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
@@ -162,7 +152,6 @@ export default function PublicProfilePage() {
     }
   };
 
-  // 🔥 LÓGICA DE GUARDADO Y MODERACIÓN DE POSTS EN EL PERFIL 🔥
   const handleSavePost = async (post: any) => {
     if (!user) return;
     try { 
@@ -177,20 +166,14 @@ export default function PublicProfilePage() {
 
   const handleHidePost = async (postId: string) => {
     const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
-    if (!error) { 
-      toast({ title: "Post ocultado." }); 
-      setUserPosts(prev => prev.filter(p => p.id !== postId)); 
-    }
+    if (!error) { toast({ title: "Post ocultado." }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
     else { toast({ title: "Error", variant: "destructive" }); }
   };
 
   const handleDeletePost = async (postId: string) => {
     if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
-    if (!error) { 
-      toast({ title: "Post eliminado" }); 
-      setUserPosts(prev => prev.filter(p => p.id !== postId)); 
-    }
+    if (!error) { toast({ title: "Post eliminado" }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
     else { toast({ title: "Error", variant: "destructive" }); }
   };
 
@@ -198,7 +181,16 @@ export default function PublicProfilePage() {
   if (!profile) return <div className="p-8 text-center text-xs text-muted-foreground font-body">Perfil no encontrado</div>;
 
   const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
-  const memberSince = new Date(profile.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" });
+  
+  // 🔥 PROTECCIÓN DE FECHA: Si es null o del año 1969/1970, mostramos "Recientemente" 🔥
+  const getSafeMemberDate = (dateStr: string) => {
+    if (!dateStr) return "Recientemente";
+    const date = new Date(dateStr);
+    if (date.getFullYear() <= 1970) return "Recientemente";
+    return date.toLocaleDateString("es-ES", { year: "numeric", month: "long" });
+  };
+
+  const memberSince = getSafeMemberDate(profile.created_at);
 
   const bestScores = Object.values(
     gameScores.reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
@@ -260,7 +252,6 @@ export default function PublicProfilePage() {
                   {isFollowing ? <><UserMinus className="w-3 h-3" /> Dejar de seguir</> : <><UserPlus className="w-3 h-3" /> Seguir</>}
                 </Button>
                 
-                {/* 🔥 BOTÓN AÑADIR AMIGO CON BLOQUEO POR LÍMITE 🔥 */}
                 <Button 
                   size="sm" 
                   variant={friendStatus === "none" ? "default" : "outline"} 
