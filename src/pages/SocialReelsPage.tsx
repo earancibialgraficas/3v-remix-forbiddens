@@ -52,7 +52,6 @@ interface SocialComment {
   avatar_url?: string | null;
 }
 
-// 🔥 LÓGICA DE EMBED MEJORADA INCLUYENDO FACEBOOK 🔥
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "youtube") {
     const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
@@ -72,7 +71,6 @@ const getEmbedUrl = (url: string, platform: string) => {
   }
   if (platform === "facebook") {
     const encodedUrl = encodeURIComponent(url);
-    // Para Facebook ya incluimos parámetros iniciales
     return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
   }
   return null;
@@ -154,7 +152,7 @@ function SnapCard({
   onScrollDown: () => void;
   limits: any; 
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   
   const isOwner = user?.id === item.user_id;
@@ -202,17 +200,14 @@ function SnapCard({
     return { w: 640, h: 360 };
   };
 
-  // 🔥 FORZAR AUTOPLAY MEDIANTE JAVASCRIPT CUANDO ENTRA EN PANTALLA 🔥
   useEffect(() => {
     if (isVisible && isVideo) onPauseMusic();
     
-    // Si es un video raw (MP4), controlar play/pause/mute dinámico
     if (rawVideoRef.current && isDirectMp4) {
-      rawVideoRef.current.volume = 0.5; // Volumen al 50%
+      rawVideoRef.current.volume = 0.5;
       
       if (isVisible) {
-        // Video visible: REPRODUCIR CON SONIDO
-        rawVideoRef.current.muted = false;
+        rawVideoRef.current.muted = false; 
         rawVideoRef.current.play().catch(e => {
           console.warn("Autoplay bloqueado con sonido, intentando en silencio:", e);
           if (rawVideoRef.current) {
@@ -221,7 +216,6 @@ function SnapCard({
           }
         });
       } else {
-        // Video NO visible: PAUSAR Y MUTEAR
         rawVideoRef.current.muted = true;
         rawVideoRef.current.pause();
       }
@@ -231,7 +225,6 @@ function SnapCard({
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
 
-    // Para Instagram, no usamos scaling, usamos aspect-ratio responsive
     if (item.platform === 'instagram') {
       setScale(1);
       return;
@@ -338,6 +331,25 @@ function SnapCard({
         user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
       });
       if (error) throw error;
+      
+      // 🔥 LÓGICA DE NOTIFICACIÓN DE COMENTARIOS Y RESPUESTAS 🔥
+      let targetUserId = item.user_id;
+      if (replyTo) {
+        const parentComment = comments.find(c => c.id === replyTo.id);
+        if (parentComment) targetUserId = parentComment.user_id;
+      }
+
+      if (targetUserId && targetUserId !== user.id) {
+         await supabase.from("notifications").insert({
+           id: crypto.randomUUID(),
+           user_id: targetUserId,
+           type: "comment_reel",
+           title: replyTo ? "Nueva respuesta" : "Nuevo comentario",
+           body: `${profile?.display_name || 'Un usuario'} ${replyTo ? 'respondió a tu comentario' : 'comentó en tu publicación'}.`,
+           related_id: item.id // Mandamos el ID del reel
+         } as any);
+      }
+
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
@@ -356,33 +368,27 @@ function SnapCard({
     }
   };
 
-  // 🔥 IFRAMES AUTOPLAY DINÁMICO Y PAUSA AL HACER SCROLL 🔥
+  // 🔥 SOLUCIÓN IFRAMES: SIN AUTOPLAY EN FB Y TIKTOK PARA PERMITIR SONIDO AL HACER CLIC 🔥
   const getDynamicEmbedUrl = () => {
     if (!embedUrl) return null;
-    // ⭐ Solo renderizar si está visible (pausa automática al hacer scroll)
-    if (!isVisible) return null;
+    if (!isVisible) return null; 
     
     let url = embedUrl;
     if (item.platform === 'youtube') url += '?autoplay=1&mute=0';
-    else if (item.platform === 'tiktok') url += '?autoplay=1';
-    else if (item.platform === 'facebook') url += '&autoplay=1&allow_autoplay=1';
+    else if (item.platform === 'tiktok') url += ''; // Sin autoplay forzado
+    else if (item.platform === 'facebook') url += ''; // Sin autoplay forzado
     else if (item.platform === 'instagram') url += '';
     
     return url;
   };
   
   const finalEmbedUrl = getDynamicEmbedUrl();
-  
-  // 🔥 EFECTO PARA REMONTADOR DE IFRAMES AL CAMBIAR VISIBILIDAD 🔥
   const [iframeKey, setIframeKey] = useState(0);
   
   useEffect(() => {
-    // Remontamos el iframe cuando entra en pantalla para forzar recarga y reproducción con sonido
     if (isVisible && (item.platform === 'facebook' || item.platform === 'instagram' || item.platform === 'tiktok')) {
       setIframeKey(prev => prev + 1);
     }
-    // Al salir de pantalla, incrementamos para forzar desmontaje (pausa automática)
-    // Esto hace que se cree un nuevo iframe con key diferente cuando vuelva a ser visible
   }, [isVisible, item.platform]);
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
@@ -419,7 +425,6 @@ function SnapCard({
           <video ref={rawVideoRef} src={item.content_url} controls loop playsInline className="w-full h-full object-contain" />
         ) : finalEmbedUrl ? (
           item.platform === 'instagram' ? (
-            // 🔥 CONTENEDOR RESPONSIVO PROPORCIONAL PARA INSTAGRAM 🔥
             <div style={{ 
               display: 'flex',
               alignItems: 'center',
@@ -447,13 +452,12 @@ function SnapCard({
               />
             </div>
           ) : (
-            // 🔥 CONTENEDOR ESCALABLE PARA OTROS VIDEOS 🔥
             <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
               style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
               <iframe 
                 key={`other-${item.id}-${iframeKey}`}
                 src={finalEmbedUrl} 
-                className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' || item.platform === 'facebook' ? "bg-white" : "")} 
+                className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'facebook' ? "bg-white" : "")} 
                 style={{ border: "none" }} 
                 scrolling="no" 
                 allowFullScreen 
@@ -554,6 +558,9 @@ function SnapCard({
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(item.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
                       <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(item.content_url, '_blank')} className="cursor-pointer">
+                      <ExternalLink className="w-3 h-3 mr-2" /> Abrir enlace original
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -663,7 +670,7 @@ function SnapCard({
 }
 
 export default function SocialReelsPage() {
-  const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
+  const { user, profile, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const location = useLocation();
