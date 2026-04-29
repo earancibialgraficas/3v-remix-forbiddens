@@ -32,7 +32,6 @@ interface PublicProfile {
   color_staff_role: string | null;
 }
 
-// 🔥 UTILIDADES PARA MINIATURAS SINCRONIZADAS Y CARRUSEL 🔥
 const getSeedFromId = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -58,24 +57,18 @@ const getPostThumbnail = (post: any) => {
 
 const getSocialThumbnail = (item: any) => {
   if (item.target_type === 'photo' || item.image_url) return getProxyUrl(item.image_url);
-  
   let origContentUrl = item.content_url || '';
   const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
   const idSeed = getSeedFromId(item.id);
-
   const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
-  
   if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
   if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb);
-
   if (origContentUrl.includes('instagram.com')) {
      const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
      if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
   }
-
   if (item.thumbnail_url && !isVideoExt(item.thumbnail_url)) return getProxyUrl(item.thumbnail_url);
-  
   const title = (item.title || item.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
@@ -90,28 +83,18 @@ const getTimeAgo = (dateString: string) => {
   const safeDateStr = dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') ? dateString + 'Z' : dateString;
   const date = new Date(safeDateStr);
   if (date.getFullYear() <= 1970) return "Recientemente";
-
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
   if (seconds < 60) return "hace un momento";
-  
   let interval = seconds / 31536000;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "año" : "años"}`;
-  
   interval = seconds / 2592000;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "mes" : "meses"}`;
-  
   interval = seconds / 86400;
-  if (interval >= 1) {
-      if (Math.floor(interval) === 1) return "ayer";
-      return `hace ${Math.floor(interval)} días`;
-  }
-  
+  if (interval >= 1) { if (Math.floor(interval) === 1) return "ayer"; return `hace ${Math.floor(interval)} días`; }
   interval = seconds / 3600;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "hr" : "hrs"}`;
-  
   interval = seconds / 60;
   if (interval >= 1) return `hace ${Math.floor(interval)} min`;
-  
   return "hace un momento";
 };
 
@@ -131,10 +114,8 @@ export default function PublicProfilePage() {
   const [gameScores, setGameScores] = useState<{ game_name: string; console_type: string; score: number }[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
-  
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
-  
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
   const [, setTick] = useState(0);
@@ -165,7 +146,6 @@ export default function PublicProfilePage() {
       if (user && user.id !== userId) {
         const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
         setIsFollowing(!!f);
-        
         const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
         const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
         if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
@@ -174,13 +154,7 @@ export default function PublicProfilePage() {
       }
 
       const [
-        { data: scores }, 
-        { data: posts }, 
-        { count: socialCount }, 
-        { count: photosCount }, 
-        { count: forumPostsCount },
-        { data: rawSocialContent },
-        { data: rawPhotos }
+        { data: scores }, { data: posts }, { count: socialCount }, { count: photosCount }, { count: forumPostsCount }, { data: rawSocialContent }, { data: rawPhotos }
       ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
         supabase.from("posts").select("id, title, content, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(20),
@@ -199,41 +173,21 @@ export default function PublicProfilePage() {
       let combinedSocial = [];
       if (rawSocialContent) combinedSocial.push(...rawSocialContent.map(s => ({...s, target_type: 'social_content'})));
       if (rawPhotos) combinedSocial.push(...rawPhotos.map(p => ({...p, target_type: 'photo'})));
-      
       combinedSocial.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       const finalSocialData = await Promise.all(combinedSocial.map(async (item: any) => {
          if (item.target_type === 'social_content') {
             const url = item.content_url || '';
             if (url.includes('tiktok.com')) {
-               try {
-                  const res = await fetch(`https://www.tiktok.com/oembed?url=${url}`);
-                  const json = await res.json();
-                  if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url;
-               } catch(e) {}
+               try { const res = await fetch(`https://www.tiktok.com/oembed?url=${url}`); const json = await res.json(); if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url; } catch(e) {}
             } else if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
                let fbThumbFound = false;
-               try {
-                  const res = await fetch(`https://www.facebook.com/plugins/video/oembed.json/?url=${encodeURIComponent(url)}`);
-                  if (res.ok) {
-                     const json = await res.json();
-                     if (json.thumbnail_url) { item.facebook_thumb = json.thumbnail_url; fbThumbFound = true; }
-                  }
-               } catch(e) {}
-               if (!fbThumbFound) {
-                   try {
-                       const fallbackRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-                       if (fallbackRes.ok) {
-                           const fallbackJson = await fallbackRes.json();
-                           if (fallbackJson.data?.image?.url) item.facebook_thumb = fallbackJson.data.image.url;
-                       }
-                   } catch(e) {}
-               }
+               try { const res = await fetch(`https://www.facebook.com/plugins/video/oembed.json/?url=${encodeURIComponent(url)}`); if (res.ok) { const json = await res.json(); if (json.thumbnail_url) { item.facebook_thumb = json.thumbnail_url; fbThumbFound = true; } } } catch(e) {}
+               if (!fbThumbFound) { try { const fallbackRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`); if (fallbackRes.ok) { const fallbackJson = await fallbackRes.json(); if (fallbackJson.data?.image?.url) item.facebook_thumb = fallbackJson.data.image.url; } } catch(e) {} }
             }
          }
          return item;
       }));
-      
       setUserSocialMedia(finalSocialData);
       setLoading(false);
     };
@@ -245,7 +199,6 @@ export default function PublicProfilePage() {
     const wasFollowing = isFollowing;
     setIsFollowing(!wasFollowing);
     setFollowerCount(p => wasFollowing ? p - 1 : p + 1);
-
     if (wasFollowing) {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
@@ -276,10 +229,7 @@ export default function PublicProfilePage() {
     const thumb = getPostThumbnail(post);
     try { 
       const { error } = await supabase.from("saved_items" as any).insert({ 
-        user_id: user.id, item_type: 'post', original_id: post.id,
-        title: post.title || 'Post del Foro', 
-        thumbnail_url: thumb,
-        redirect_url: getCategoryRoute(post.category, post.id)
+        user_id: user.id, item_type: 'post', original_id: post.id, title: post.title || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category, post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -301,22 +251,7 @@ export default function PublicProfilePage() {
   if (!profile) return <div className="p-8 text-center text-xs text-muted-foreground font-body">Perfil no encontrado</div>;
 
   const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
-  
-  const getSafeMemberDate = (dateStr: string) => {
-    if (!dateStr) return "Recientemente";
-    const date = new Date(dateStr);
-    if (date.getFullYear() <= 1970) return "Recientemente";
-    return date.toLocaleDateString("es-ES", { year: "numeric", month: "long" });
-  };
-
-  const getSafePostDate = (dateStr: string) => {
-    if (!dateStr) return "Recientemente";
-    const date = new Date(dateStr);
-    if (date.getFullYear() <= 1970) return "Recientemente";
-    return date.toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  };
-
-  const memberSince = getSafeMemberDate(profile.created_at);
+  const memberSince = profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Recientemente";
   const bestScores = Object.values(gameScores.reduce<Record<string, any>>((acc, gs) => {
     const key = `${gs.game_name}-${gs.console_type}`;
     if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
@@ -324,6 +259,13 @@ export default function PublicProfilePage() {
   }, {}));
   const totalScoreValue = bestScores.reduce((sum, gs) => sum + gs.score, 0);
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
+
+  const getSafePostDate = (dateStr: string) => {
+    if (!dateStr) return "Recientemente";
+    const date = new Date(dateStr);
+    if (date.getFullYear() <= 1970) return "Recientemente";
+    return date.toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
 
   return (
     <div className="space-y-4 animate-fade-in max-w-[1200px] mx-auto px-4 pb-20">
@@ -361,10 +303,10 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 ESTADÍSTICAS RESPONSIVAS (GRID AUTO-FIT) 🔥 */}
+      {/* ESTADÍSTICAS (GRID AUTO-FIT MEJORADO) */}
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {[
             { val: Math.max(profile.total_score, totalScoreValue).toLocaleString(), label: "Puntos", color: "text-neon-green" },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
@@ -378,21 +320,21 @@ export default function PublicProfilePage() {
               color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
             },
           ].map((s, i) => (
-            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full break-words">
-              <p className={cn("text-lg sm:text-xl font-bold font-body break-words", s.color)}>{s.val}</p>
-              <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5 break-words leading-tight">{s.label}</p>
+            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full min-w-0 overflow-hidden">
+              <p className={cn("text-lg font-bold font-body truncate", s.color)}>{s.val}</p>
+              <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5 truncate leading-tight">{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 🔥 DIVISION RESPONSIVA (1 COLUMNA EN MOBILE, 2 EN ESCRITORIO) 🔥 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* 🔥 LAS 2 COLUMNAS AHORA SE TRANSFORMAN EN 1 MUCHO ANTES (XL breakpoint) 🔥 */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         
         {/* PUNTAJES POR JUEGO */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
-          <div className="space-y-1 max-h-[250px] lg:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-1 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
               bestScores.map((gs, i) => (
                 <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
@@ -408,7 +350,7 @@ export default function PublicProfilePage() {
         {/* POSTS RECIENTES */}
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
-          <div className="space-y-2 max-h-[250px] lg:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
               userPosts.map((post) => {
                 const thumb = getPostThumbnail(post);
@@ -445,55 +387,29 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* CARRUSEL HORIZONTAL DEL SOCIAL HUB */}
+      {/* CARRUSEL HORIZONTAL SOCIAL HUB */}
       {userSocialMedia.length > 0 && (
         <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
            <div className="flex justify-between items-end mb-4">
-              <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-2 uppercase">
-                <Globe className="w-4 h-4" /> Actividad Social Hub
-              </h3>
+              <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-2 uppercase"><Globe className="w-4 h-4" /> Actividad Social Hub</h3>
               <span className="text-[10px] font-body text-muted-foreground">Últimos {userSocialMedia.length} posts</span>
            </div>
-           
            <div className="flex overflow-x-auto gap-3 pb-4 pt-1 px-1 custom-scrollbar snap-x snap-mandatory">
               {userSocialMedia.map((item) => {
                  const isVideo = isVideoItem(item);
                  const borderStyle = isVideo ? "border-[#ff6b00]" : "border-[#00f0ff]";
                  const destRoute = item.target_type === 'photo' ? `/social/fotos?post=${item.id}` : `/social/reels?post=${item.id}`;
-                 
                  return (
-                   <div 
-                     key={item.id} 
-                     onClick={() => navigate(destRoute)}
-                     className={cn(
-                       "relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02]",
-                       "w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px]",
-                       "border", borderStyle
-                     )}
-                   >
-                     <img 
-                       src={getSocialThumbnail(item)} 
-                       alt="Thumbnail" 
-                       className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-                       loading="lazy" 
-                     />
-                     {isVideo && (
-                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                         <PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" />
-                       </div>
-                     )}
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20">
-                       <p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">
-                         {item.title || item.caption || "Ver post"}
-                       </p>
-                     </div>
+                   <div key={item.id} onClick={() => navigate(destRoute)} className={cn("relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02] w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] border", borderStyle)}>
+                     <img src={getSocialThumbnail(item)} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
+                     {isVideo && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" /></div>}
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20"><p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">{item.title || item.caption || "Ver post"}</p></div>
                    </div>
                  );
               })}
            </div>
         </div>
       )}
-
     </div>
   );
 }
