@@ -21,8 +21,8 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     return () => { document.body.style.overflow = 'auto'; };
   }, [itemsToRemove]);
 
-  // SEPARACIÓN DE DATOS
-  const games = storageItems.filter((i: any) => i.type === "Partida guardada");
+  // 🔥 SOLUCIÓN: Filtramos solo los juegos que tienen datos guardados (size > 0) 🔥
+  const games = storageItems.filter((i: any) => i.type === "Partida guardada" && i.size > 0);
   
   const socialUsage = storageItems
     .filter((i: any) => i.type === "Foto" || i.type === "Contenido social")
@@ -56,7 +56,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
 
     for (const item of itemsToRemove) {
       try {
-        // Mantenemos la fila y el puntaje, solo borramos los datos de la partida
         const { error } = await supabase.from('leaderboard_scores')
           .update({ game_state: null } as any)
           .eq('id', item.id);
@@ -68,7 +67,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
       } catch (e) { console.error(e); }
     }
 
-    // Actualización instantánea del estado local (Caché visual)
     setStorageItems((prev: any) => prev.filter((item: any) => !successfullyProcessedIds.has(item.id)));
     setStorageUsed((prev: any) => Math.max(0, prev - freedSpace));
     setSelectedIds(new Set());
@@ -129,7 +127,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           </h4>
           
           <div className="flex items-center gap-4">
-            {/* 🔥 BOTÓN DE ELIMINAR SELECCIÓN POSICIONADO AQUÍ 🔥 */}
             {selectedIds.size > 0 && (
               <button 
                 onClick={() => setItemsToRemove(games.filter((g: any) => selectedIds.has(g.id)))}
@@ -150,21 +147,23 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         {games.length === 0 ? (
           <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No hay partidas guardadas.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[500px]">
-              <div className="grid grid-cols-[40px_40px_1fr_120px_80px_40px] gap-2 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2">
+          <div className="overflow-x-auto custom-scrollbar">
+            <div className="min-w-[450px]">
+              
+              {/* 🔥 COLUMNAS: Juego se corta (1fr), las demás siempre visibles (auto) 🔥 */}
+              <div className="grid grid-cols-[30px_30px_1fr_auto_auto_30px] gap-3 text-[9px] font-pixel text-muted-foreground opacity-40 pb-2 border-b border-white/5 uppercase items-center mb-2">
                 <span className="text-center">Sel</span>
                 <span></span>
                 <span>Juego</span>
-                <span>Último Guardado</span>
-                <span className="text-right">Espacio</span>
+                <span className="whitespace-nowrap text-right">Último Guardado</span>
+                <span className="whitespace-nowrap text-right">Espacio</span>
                 <span></span>
               </div>
               
               {games.map((item: any) => {
                 const isSelected = selectedIds.has(item.id);
                 return (
-                  <div key={item.id} className={cn("grid grid-cols-[40px_40px_1fr_120px_80px_40px] gap-2 text-xs font-body py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors items-center group", isSelected && "bg-neon-cyan/5")}>
+                  <div key={item.id} className={cn("grid grid-cols-[30px_30px_1fr_auto_auto_30px] gap-3 text-xs font-body py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors items-center group", isSelected && "bg-neon-cyan/5")}>
                     
                     <div className="flex justify-center">
                       <Checkbox 
@@ -178,14 +177,16 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                       <Gamepad2 className="w-3.5 h-3.5 text-neon-green opacity-70" />
                     </div>
 
+                    {/* 🔥 SOLO ESTA COLUMNA SE CORTA 🔥 */}
                     <span className="text-foreground font-medium truncate">{item.name}</span>
                     
-                    <span className="text-muted-foreground text-[10px] flex items-center gap-1">
+                    {/* 🔥 FECHA Y ESPACIO SIEMPRE VISIBLES 🔥 */}
+                    <span className="text-muted-foreground text-[10px] flex items-center justify-end gap-1 whitespace-nowrap shrink-0">
                       <Clock className="w-3 h-3 opacity-50" />
                       {item.created_at ? new Date(item.created_at).toLocaleDateString() : "---"}
                     </span>
                     
-                    <span className="text-right text-muted-foreground text-[10px] font-mono">
+                    <span className="text-right text-muted-foreground text-[10px] font-mono whitespace-nowrap shrink-0 min-w-[50px]">
                       {item.size < 1 ? `${Math.round(item.size * 1024)} KB` : `${item.size.toFixed(2)} MB`}
                     </span>
                     
