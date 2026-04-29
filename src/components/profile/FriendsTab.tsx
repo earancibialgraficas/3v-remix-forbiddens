@@ -98,7 +98,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
             value={search} 
             onChange={e => setSearch(e.target.value)} 
             className="h-8 bg-muted flex-1 text-xs font-body" 
-            placeholder={reachedLimit ? "Límite alcanzado..." : "Buscar por nombre..."} 
+            placeholder={reachedLimit ? "Límite alcanzado..." : "Buscar por nombre o correo..."} 
             disabled={reachedLimit} 
             onKeyDown={(e) => {
               if (e.key === "Enter" && !reachedLimit && search.trim()) {
@@ -110,13 +110,38 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
             id="btn-buscar-amigos"
             onClick={async () => { 
               try { 
-                const { data: profs } = await supabase.from("profiles")
-                   .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
-                   .ilike("display_name", `%${search}%`)
-                   .neq("user_id", userId)
-                   .limit(5); 
+                let profs: any[] = [];
+                const isEmail = search.includes("@");
+
+                // 🔥 BUSCADOR INTELIGENTE: Correo o Nombre 🔥
+                if (isEmail) {
+                  // Pase VIP para buscar por correo usando el SQL
+                  const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("search_user_by_email", { email_query: search.trim().toLowerCase() });
+                  
+                  if (!rpcError && rpcData && rpcData.length > 0) {
+                    const userIds = rpcData.map((u: any) => u.user_id);
+                    // Obtenemos los detalles estéticos del perfil
+                    const { data: emailProfs } = await supabase.from("profiles")
+                      .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
+                      .in("user_id", userIds)
+                      .neq("user_id", userId);
+                    if (emailProfs) profs = emailProfs;
+                  }
+                } else {
+                  // Búsqueda normal por nombre de usuario (con límite de 5)
+                  const { data: nameProfs } = await supabase.from("profiles")
+                     .select("user_id, display_name, avatar_url, color_avatar_border, color_name, membership_tier, color_role, color_staff_role")
+                     .ilike("display_name", `%${search}%`)
+                     .neq("user_id", userId)
+                     .limit(5); 
+                  if (nameProfs) profs = nameProfs;
+                }
                    
-                if (!profs || profs.length === 0) { setRes([]); return; }
+                if (!profs || profs.length === 0) { 
+                  setRes([]); 
+                  toast({ title: "No encontrado", description: isEmail ? "Ningún usuario registrado con este correo." : "No se encontró a nadie con ese nombre.", variant: "destructive" });
+                  return; 
+                }
                 
                 const searchIds = profs.map(p => p.user_id);
                 const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", searchIds);
@@ -127,7 +152,9 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                 });
                 
                 setRes(finalRes); 
-              } catch(e) {} 
+              } catch(e) {
+                toast({ title: "Error en búsqueda", variant: "destructive" });
+              } 
             }} 
             className="h-8" 
             disabled={reachedLimit || !search.trim()}
