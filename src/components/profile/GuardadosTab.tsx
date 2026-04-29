@@ -41,9 +41,9 @@ const getCardBorderStyle = (item: any) => {
   const isVideo = isVideoItem(item);
   const isPost = item.item_type === 'post';
   
-  let borderColor = '#00f0ff'; // Cyan (Por defecto para Fotos/Imágenes)
-  if (isVideo) borderColor = '#ff6b00'; // Naranja (Videos y Reels)
-  else if (isPost) borderColor = '#ff00ff'; // Magenta (Posts del Foro)
+  let borderColor = '#00f0ff'; 
+  if (isVideo) borderColor = '#ff6b00'; 
+  else if (isPost) borderColor = '#ff00ff'; 
 
   return { 
     borderColor, 
@@ -58,25 +58,7 @@ const getSeedFromId = (str: string) => {
   return Math.abs(hash);
 };
 
-// 🔥 REPRODUCTOR NATIVO MP4 (Autoplay + 50% Volumen) 🔥
-function NativeVideoPlayer({ url }: { url: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = 0.5; // Volumen al 50%
-      videoRef.current.play().catch(e => console.log("Autoplay nativo bloqueado:", e));
-    }
-  }, []);
-
-  return (
-    <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
-      <video ref={videoRef} src={url} controls playsInline loop className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
-    </div>
-  );
-}
-
-// 🔥 COMPONENTE: Video Embed CON SOPORTE PARA REDES SOCIALES Y AUTOPLAY 🔥
+// 🔥 COMPONENTE DE VIDEO: Mute removido, Autoplay activo con sonido 🔥
 function HubStyleVideoEmbed({ item }: { item: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -128,7 +110,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
   }, [baseSize.w, baseSize.h]);
 
   const getEmbedUrl = () => {
-    // 🔥 AUTOPLAY DESMUTEADO PARA IFRAMES 🔥
+    // 🔥 Ya no hay "&mute=1", ahora sonarán 🔥
     if (platform === "youtube") {
       const shortMatch = url.match(/youtube\.com\/shorts\/([\w-]+)/);
       if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1`;
@@ -137,7 +119,7 @@ function HubStyleVideoEmbed({ item }: { item: any }) {
     }
     if (platform === "instagram") {
       const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-      if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true&autoplay=1`;
+      if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
     }
     if (platform === "tiktok") {
       const tkMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
@@ -338,6 +320,7 @@ export default function GuardadosTab() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
+  // 🔥 SOLUCIÓN A LA IA DE MINIATURAS (API ACTUALIZADA) 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
@@ -359,18 +342,21 @@ export default function GuardadosTab() {
     let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
     if (origImg && !isVideoExt(origImg)) return getProxyUrl(origImg);
 
+    // API de Pollinations Actualizada y blindada contra fallos
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
        if (imgMatch && !isVideoExt(imgMatch[1])) return getProxyUrl(imgMatch[1]);
+       
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
-       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '');
-       return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+       
+       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming';
+       return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '');
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 50) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk';
+    return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
   const renderMediaOnly = (item: any) => {
@@ -400,7 +386,12 @@ export default function GuardadosTab() {
        }
 
        if (url.match(/\.(mp4|webm|ogg)/i)) {
-           return <NativeVideoPlayer url={url} />; // 🔥 Llamada al nuevo reproductor nativo
+           return (
+             <div className="flex-1 min-h-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+               {/* Se removió el muted para que el MP4 directo también tenga volumen al hacerle clic */}
+               <video src={url} controls autoPlay playsInline loop className="w-full h-full object-contain rounded-xl shadow-2xl bg-black" />
+             </div>
+           );
        }
        
        return (
