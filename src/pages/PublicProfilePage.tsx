@@ -32,6 +32,38 @@ interface PublicProfile {
   color_staff_role: string | null;
 }
 
+// 🔥 FUNCIÓN PARA TIEMPO RELATIVO 🔥
+const getTimeAgo = (dateString: string) => {
+  if (!dateString) return "Recientemente";
+  const safeDateStr = dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') ? dateString + 'Z' : dateString;
+  const date = new Date(safeDateStr);
+  
+  if (date.getFullYear() <= 1970) return "Recientemente"; // Fallback para fechas nulas antiguas
+
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "hace un momento";
+  
+  let interval = seconds / 31536000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "año" : "años"}`;
+  
+  interval = seconds / 2592000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "mes" : "meses"}`;
+  
+  interval = seconds / 86400;
+  if (interval >= 1) {
+      if (Math.floor(interval) === 1) return "ayer";
+      return `hace ${Math.floor(interval)} días`;
+  }
+  
+  interval = seconds / 3600;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "hr" : "hrs"}`;
+  
+  interval = seconds / 60;
+  if (interval >= 1) return `hace ${Math.floor(interval)} min`;
+  
+  return "hace un momento";
+};
+
 export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
@@ -50,6 +82,13 @@ export default function PublicProfilePage() {
   
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
+
+  // 🔥 MOTOR DE TIEMPO REAL (Fuerza renderizado cada 1 minuto) 🔥
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Lógica de límites de amigos
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
@@ -76,7 +115,7 @@ export default function PublicProfilePage() {
         setIsFollowing(!!f);
         
         const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
-        const { data: recvReq = null } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
+        const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
         if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
         else if (recvReq) setFriendStatus((recvReq as any).status === "accepted" ? "accepted" : "pending_received");
         else setFriendStatus("none");
@@ -188,13 +227,6 @@ export default function PublicProfilePage() {
     const date = new Date(dateStr);
     if (date.getFullYear() <= 1970) return "Recientemente";
     return date.toLocaleDateString("es-ES", { year: "numeric", month: "long" });
-  };
-
-  const getSafePostDate = (dateStr: string) => {
-    if (!dateStr) return "Recientemente";
-    const date = new Date(dateStr);
-    if (date.getFullYear() <= 1970) return "Recientemente";
-    return date.toLocaleDateString(); 
   };
 
   const memberSince = getSafeMemberDate(profile.created_at);
@@ -311,7 +343,7 @@ export default function PublicProfilePage() {
           <h3 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center gap-1">
             <Gamepad2 className="w-3 h-3" /> PUNTAJES POR JUEGO
           </h3>
-          {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
+          {/* 🔥 250px DE ALTURA MÁXIMA 🔥 */}
           <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {bestScores.map((gs, i) => (
               <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
@@ -329,7 +361,7 @@ export default function PublicProfilePage() {
       {userPosts.length > 0 && (
         <div className="bg-card border border-border rounded p-4">
           <h3 className="font-pixel text-[10px] text-muted-foreground mb-3">POSTS RECIENTES</h3>
-          {/* 🔥 SECCIÓN CON LÍMITE DE ALTURA Y SCROLL 🔥 */}
+          {/* 🔥 250px DE ALTURA MÁXIMA 🔥 */}
           <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.map((post) => (
               <div key={post.id} className="p-3 border border-border/50 rounded flex justify-between items-start font-body hover:bg-muted/30 transition-colors group">
@@ -338,7 +370,11 @@ export default function PublicProfilePage() {
                     {post.title}
                   </Link>
                   <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
-                    <span>{getSafePostDate(post.created_at)}</span>
+                    {/* 🔥 RELOJ EN TIEMPO REAL 🔥 */}
+                    <span className="flex items-center gap-0.5" title={new Date(post.created_at).toLocaleString()}>
+                      <Clock className="w-2.5 h-2.5" />
+                      {getTimeAgo(post.created_at)}
+                    </span>
                     <span className="text-neon-green">▲{post.upvotes || 0}</span>
                   </div>
                 </div>
