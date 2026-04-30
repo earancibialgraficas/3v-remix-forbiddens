@@ -43,19 +43,18 @@ export default function MainLayout() {
 
   return (
     <div className="flex bg-background text-foreground w-full min-h-screen relative">
-      {/* Sidebar Izquierdo (PC y Tablets Grandes) */}
-      <div className="hidden md:block sticky top-0 h-screen">
+      {/* 🔥 FIX: Cambiado a 'lg:block'. Así la barra lateral solo sale en PC y no en Tablet 🔥 */}
+      <div className="hidden lg:block sticky top-0 h-screen">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* Botón de Menú (Solo Celulares) */}
-      <div className="md:hidden fixed top-2 left-2 z-50 flex gap-2">
+      {/* 🔥 FIX: Cambiado a 'lg:hidden'. El botón hamburguesa sale en celulares Y en tablets 🔥 */}
+      <div className="lg:hidden fixed top-2 left-2 z-50 flex gap-2">
         <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
           <Menu className="w-6 h-6" />
         </Button>
       </div>
 
-      {/* Menú Desplegable (Solo Celulares) */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
@@ -66,19 +65,19 @@ export default function MainLayout() {
       )}
 
       <main className="flex-1 flex flex-col min-w-0">
-        {/* 🔥 FIX 2: Agregamos pb-[120px] aquí. Esto crea un espacio invisible al fondo para que el footer no tape nada. En PC (lg:pb-6) vuelve a la normalidad 🔥 */}
-        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 pb-[120px] lg:pb-6 max-w-[1800px] mx-auto w-full">
-          <div className="flex-1 min-w-0">
+        {/* 🔥 FIX: Eliminado el 'pb-[120px]' de aquí para evitar el scroll fantasma 🔥 */}
+        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
+          <div className="flex-1 min-w-0 flex flex-col">
             <Outlet />
+            {/* 🔥 FIX: Este espaciador invisible empuja el contenido hacia arriba solo en móvil/tablet, sin crear un scrollbar innecesario 🔥 */}
+            <div className="h-[120px] shrink-0 w-full lg:hidden" />
           </div>
           
-          {/* Panel Derecho (SOLO visible en PC grandes / lg) */}
           <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)]">
             <RightPanel />
           </div>
         </div>
 
-        {/* 🔥 FIX 1: Cambiamos isMobile por 'lg:hidden'. Ahora este footer aparecerá SIEMPRE que la pantalla sea menor a una PC, incluyendo tablets 🔥 */}
         <div className={cn(
           "lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
           mobileRightOpen ? "h-[80vh]" : "h-[110px]"
