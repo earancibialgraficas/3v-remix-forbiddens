@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { cn } from "@/lib/utils";
 
-// 🔥 SISTEMAS CON NOMBRES COMPLETOS APUNTANDO A TU CARPETA LOCAL 🔥
+// 🔥 NOMBRES EXACTOS PARA TU CARPETA /consolasimg/ 🔥
 const systems = [
   {
     id: "nes", name: "Nintendo Entertainment System", short: "NES", core: "fceumm", extensions: ".nes,.zip",
@@ -104,6 +104,7 @@ export default function EmulatorPage() {
   };
 
   return (
+    // 🔥 IMPORTANTE: El ID 'batocera-screen' se usa para que GameBubble sepa dónde inyectarse en Modo Teatro 🔥
     <div id="batocera-screen" className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
       
       <div className="absolute inset-0 transition-opacity duration-1000">
