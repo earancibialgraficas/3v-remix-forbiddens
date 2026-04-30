@@ -49,7 +49,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     }
   };
 
-  // 🔥 FUNCIÓN DE BORRADO SUPER BLINDADA CONTRA ERRORES DE JAVASCRIPT 🔥
+  // 🔥 SINCRONIZADOR DE BORRADO DE LA NUBE Y LOCAL 🔥
   const confirmDelete = async () => {
     if (itemsToRemove.length === 0) return;
     setIsRemoving(true);
@@ -62,33 +62,45 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         if (item.id && item.id.startsWith('local|')) {
           const parts = item.id.split('|');
           const key = parts[1]; 
-          const timestampStr = String(parts[2]); // Lo forzamos a ser un texto siempre
+          const timestampStr = String(parts[2]); 
+          const gameName = key.replace('save_slots_', ''); // Obtenemos el nombre del juego
 
           const existingData = localStorage.getItem(key);
           if (existingData) {
             const slots = JSON.parse(existingData);
             
-            // Filtramos forzando a que ambos lados de la comparación sean un string
+            // 1. Borramos el slot a nivel local
             const filteredSlots = slots.filter((slot: any) => String(slot.timestamp) !== timestampStr);
             
-            // Si el filtro funcionó (es decir, el tamaño del array disminuyó)
             if (filteredSlots.length < slots.length) {
                if (filteredSlots.length > 0) {
                  localStorage.setItem(key, JSON.stringify(filteredSlots));
+                 // 2. Avisamos a Supabase que este slot ya no existe
+                 await supabase.from("leaderboard_scores")
+                   .update({ game_state: JSON.stringify(filteredSlots) } as any)
+                   .eq("user_id", userId)
+                   .eq("game_name", gameName);
                } else {
                  localStorage.removeItem(key);
+                 // 2. Avisamos a Supabase que vacíe los saves pero no toque los puntos
+                 await supabase.from("leaderboard_scores")
+                   .update({ game_state: null } as any)
+                   .eq("user_id", userId)
+                   .eq("game_name", gameName);
                }
             } else {
-               // MODO DE EMERGENCIA: Si no encontró el timestamp exacto, borramos toda la llave de ese juego
-               console.warn("No se encontró el slot exacto, limpiando ranura completa por seguridad.");
                localStorage.removeItem(key);
+               await supabase.from("leaderboard_scores")
+                   .update({ game_state: null } as any)
+                   .eq("user_id", userId)
+                   .eq("game_name", gameName);
             }
             
             freedSpace += item.size;
             successfullyProcessedIds.add(item.id);
           }
         } else {
-          // Si es una partida de la Nube, la limpiamos en Supabase
+          // Si por alguna razón es una de las partidas "fantasma" de la nube, la limpiamos igual
           const { error } = await supabase.from('leaderboard_scores')
             .update({ game_state: null } as any)
             .eq('id', item.id);
@@ -96,8 +108,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           if (!error) {
             freedSpace += item.size;
             successfullyProcessedIds.add(item.id);
-          } else {
-             console.error("Error al limpiar partida en la nube:", error);
           }
         }
       } catch (e) { 
@@ -110,7 +120,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     setSelectedIds(new Set());
     setIsRemoving(false);
     setItemsToRemove([]);
-    toast({ title: "Datos limpiados", description: `Se liberó espacio correctamente. Tus récords globales permanecen intactos.` });
+    toast({ title: "Datos sincronizados", description: `Se liberó espacio y se actualizó la nube. ¡Récords a salvo!` });
   };
 
   return (
@@ -135,7 +145,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         </div>
       </div>
 
-      {/* SECCIÓN DE RESUMEN (FOTOS Y AVATARES) */}
+      {/* SECCIÓN DE RESUMEN */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
          <div className="bg-muted/10 border border-border/50 rounded p-3 flex items-center gap-3">
             <div className="p-2 bg-neon-magenta/10 rounded">
@@ -271,7 +281,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                 </strong>
               </p>
               <p className="text-[9px] font-pixel text-destructive/70 uppercase leading-snug">
-                ¡Atención! Tu progreso de este dispositivo se borrará, pero tus puntajes globales se mantendrán a salvo.
+                ¡Atención! Tu progreso se borrará y la nube se sincronizará. Tus récords globales están a salvo.
               </p>
             </div>
 
