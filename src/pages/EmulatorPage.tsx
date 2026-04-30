@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Gamepad2, Upload, Settings, Battery, Clock, Monitor } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { cn } from "@/lib/utils";
 
-// 🔥 SISTEMAS SOPORTADOS POR NOSTALGIST.JS 🔥
+// 🔥 SISTEMAS SOPORTADOS CON IMÁGENES REALES DE LAS CONSOLAS 🔥
 const systems = [
   {
     id: "nes",
@@ -14,7 +14,8 @@ const systems = [
     core: "fceumm",
     extensions: ".nes,.zip",
     bg: "https://image.pollinations.ai/prompt/nes%20console%20retro%208bit%20pixel%20art%20dark%20background?width=1280&height=720&nologo=true",
-    color: "text-red-500",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/NES-Console-Set.png/1024px-NES-Console-Set.png",
+    glow: "rgba(239,68,68,0.7)", // Rojo
     year: "1985"
   },
   {
@@ -24,7 +25,8 @@ const systems = [
     core: "snes9x",
     extensions: ".smc,.sfc,.zip",
     bg: "https://image.pollinations.ai/prompt/super%20nintendo%20console%20retro%2016bit%20synthwave?width=1280&height=720&nologo=true",
-    color: "text-purple-500",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/SNES-Mod1-Console-Set.png/1024px-SNES-Mod1-Console-Set.png",
+    glow: "rgba(168,85,247,0.7)", // Morado
     year: "1990"
   },
   {
@@ -34,7 +36,8 @@ const systems = [
     core: "mupen64plus_next",
     extensions: ".n64,.z64,.v64,.zip",
     bg: "https://image.pollinations.ai/prompt/nintendo%2064%20console%20retro%20gaming%20dark%20neon?width=1280&height=720&nologo=true",
-    color: "text-yellow-400",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/N64-Console-Set.png/1024px-N64-Console-Set.png",
+    glow: "rgba(250,204,21,0.7)", // Amarillo
     year: "1996"
   },
   {
@@ -44,7 +47,8 @@ const systems = [
     core: "mgba",
     extensions: ".gba,.zip",
     bg: "https://image.pollinations.ai/prompt/gameboy%20advance%20console%20synthwave%20retro?width=1280&height=720&nologo=true",
-    color: "text-fuchsia-500",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Nintendo-Game-Boy-Advance-Purple-FL.png/1024px-Nintendo-Game-Boy-Advance-Purple-FL.png",
+    glow: "rgba(217,70,239,0.7)", // Magenta
     year: "2001"
   },
   {
@@ -54,7 +58,8 @@ const systems = [
     core: "gambatte",
     extensions: ".gbc,.gb,.zip",
     bg: "https://image.pollinations.ai/prompt/gameboy%20color%20console%20neon%20dark%20aesthetic?width=1280&height=720&nologo=true",
-    color: "text-yellow-300",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Nintendo-Game-Boy-Color-Console-Purple.png/800px-Nintendo-Game-Boy-Color-Console-Purple.png",
+    glow: "rgba(253,224,71,0.7)", // Amarillo claro
     year: "1998"
   },
   {
@@ -64,7 +69,8 @@ const systems = [
     core: "genesis_plus_gx",
     extensions: ".md,.smd,.gen,.bin,.zip",
     bg: "https://image.pollinations.ai/prompt/sega%20genesis%20console%20retro%2016bit%20dark%20blue?width=1280&height=720&nologo=true",
-    color: "text-blue-500",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Sega-Mega-Drive-JP-Mk1-Console-Set.png/1024px-Sega-Mega-Drive-JP-Mk1-Console-Set.png",
+    glow: "rgba(59,130,246,0.7)", // Azul
     year: "1988"
   },
   {
@@ -74,7 +80,8 @@ const systems = [
     core: "pcsx_rearmed",
     extensions: ".iso,.bin,.cue,.chd,.zip",
     bg: "https://image.pollinations.ai/prompt/playstation%201%20classic%20console%20grey%20neon%20blue?width=1280&height=720&nologo=true",
-    color: "text-blue-300",
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/PSX-Console-wController.png/1024px-PSX-Console-wController.png",
+    glow: "rgba(147,197,253,0.7)", // Azul claro
     year: "1994"
   },
   {
@@ -84,8 +91,9 @@ const systems = [
     core: "fbneo",
     extensions: ".zip",
     bg: "https://image.pollinations.ai/prompt/arcade%20cabinet%20machine%20neon%20cyberpunk%20dark%20room?width=1280&height=720&nologo=true",
-    color: "text-orange-500",
-    year: "1970"
+    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Neo-Geo-AES-Console-Set.png/1024px-Neo-Geo-AES-Console-Set.png",
+    glow: "rgba(249,115,22,0.7)", // Naranja
+    year: "1990"
   }
 ];
 
@@ -123,6 +131,7 @@ export default function EmulatorPage() {
 
   const currentSystem = systems[currentIndex];
 
+  // 🔥 SOLUCIÓN AL BUG: Cargar correctamente el juego 🔥
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus propios juegos.", variant: "destructive" });
@@ -131,49 +140,49 @@ export default function EmulatorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Lanzar Nostalgist a través de GameBubble
+    // Pasamos currentSystem.id ("snes") en vez de currentSystem.short ("SNES")
     launchGame({
       romUrl: URL.createObjectURL(file),
-      consoleName: currentSystem.short as any,
-      gameName: file.name.replace(/\.[^/.]+$/, ""), // Quitar extensión
+      consoleName: currentSystem.id as any, 
+      gameName: file.name.replace(/\.[^/.]+$/, ""), // Quitar la extensión del nombre
       consoleCore: currentSystem.core,
       score: 0,
       playTime: 0,
     });
     
-    // Limpiar input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-8rem)] min-h-[600px] bg-black rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
+    // 🔥 SOLUCIÓN DE ALTURA: h-[calc(100vh-5rem)] para que abarque casi toda la pantalla sin scroll 🔥
+    <div className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
       
       {/* 🌌 FONDO DINÁMICO 🌌 */}
       <div className="absolute inset-0 transition-opacity duration-1000">
         <img 
           src={currentSystem.bg} 
           alt={currentSystem.name} 
-          className="w-full h-full object-cover opacity-40 blur-[2px] scale-105"
+          className="w-full h-full object-cover opacity-40 blur-[3px] scale-105"
         />
         {/* Filtro Scanlines tipo TV de tubo */}
-        <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
       </div>
 
       {/* 🔋 HEADER BATOCERA 🔋 */}
-      <div className="absolute top-0 w-full p-6 flex justify-between items-center z-20 pointer-events-none">
+      <div className="absolute top-0 w-full p-5 md:p-6 flex justify-between items-center z-20 pointer-events-none">
         <div className="flex items-center gap-3 text-white/80">
           <Monitor className="w-5 h-5" />
-          <span className="font-pixel text-[10px] tracking-widest uppercase">Batocera.linux / Web Edition</span>
+          <span className="font-pixel text-[10px] tracking-widest uppercase hidden sm:inline-block">Batocera.linux / Web Edition</span>
         </div>
-        <div className="flex items-center gap-5 text-white/80">
-          <Settings className="w-5 h-5" />
+        <div className="flex items-center gap-4 md:gap-5 text-white/80">
+          <Settings className="w-4 h-4 md:w-5 md:h-5" />
           <div className="flex items-center gap-2">
-            <Battery className="w-5 h-5 text-green-400" />
+            <Battery className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
             <span className="font-pixel text-[10px]">100%</span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+            <Clock className="w-4 h-4 md:w-5 md:h-5" />
             <span className="font-pixel text-[10px]">{time}</span>
           </div>
         </div>
@@ -183,54 +192,57 @@ export default function EmulatorPage() {
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
         
         {/* Info del Sistema Arriba del Carrusel */}
-        <div className="mb-12 text-center animate-in slide-in-from-bottom-4 duration-500 h-24">
-          <h2 className="font-pixel text-4xl md:text-5xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase">
+        <div className="mb-8 md:mb-12 text-center animate-in slide-in-from-bottom-4 duration-500 h-24">
+          <h2 className="font-pixel text-3xl md:text-5xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase px-4">
             {currentSystem.name}
           </h2>
-          <div className="flex items-center justify-center gap-4 mt-4 text-muted-foreground font-pixel text-[10px] uppercase tracking-widest">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-4 text-muted-foreground font-pixel text-[9px] md:text-[10px] uppercase tracking-widest">
              <span className="bg-white/10 px-3 py-1 rounded backdrop-blur-md border border-white/10">AÑO {currentSystem.year}</span>
              <span className="bg-white/10 px-3 py-1 rounded backdrop-blur-md border border-white/10">CORE: {currentSystem.core}</span>
           </div>
         </div>
 
-        {/* Cintas del Carrusel */}
-        <div className="relative w-full h-40 flex items-center justify-center overflow-hidden">
+        {/* Cintas del Carrusel con IMÁGENES REALES */}
+        <div className="relative w-full h-48 md:h-64 flex items-center justify-center overflow-visible">
           {systems.map((sys, index) => {
             const offset = index - currentIndex;
             const isActive = offset === 0;
             const isPrev = offset === -1 || (currentIndex === 0 && index === systems.length - 1);
             const isNext = offset === 1 || (currentIndex === systems.length - 1 && index === 0);
 
-            let transform = "translateX(1000px) scale(0)"; // Ocultos por defecto
+            let transform = "translateX(1000px) scale(0)";
             let opacity = 0;
             let zIndex = 0;
+            let filter = "grayscale(100%) brightness(0.5)";
 
             if (isActive) {
-              transform = "translateX(0) scale(1)";
+              transform = "translateX(0) scale(1.1)";
               opacity = 1;
               zIndex = 30;
+              filter = `drop-shadow(0 0 35px ${sys.glow})`;
             } else if (isPrev) {
-              transform = "translateX(-180%) scale(0.6)";
-              opacity = 0.4;
+              transform = "translateX(-160%) scale(0.65)";
+              opacity = 0.5;
               zIndex = 20;
             } else if (isNext) {
-              transform = "translateX(180%) scale(0.6)";
-              opacity = 0.4;
+              transform = "translateX(160%) scale(0.65)";
+              opacity = 0.5;
               zIndex = 20;
             }
 
             return (
               <div 
                 key={sys.id} 
-                className="absolute transition-all duration-500 ease-out flex flex-col items-center cursor-pointer"
-                style={{ transform, opacity, zIndex }}
+                className="absolute transition-all duration-700 ease-out flex flex-col items-center cursor-pointer"
+                style={{ transform, opacity, zIndex, filter }}
                 onClick={() => setCurrentIndex(index)}
               >
-                <div className={cn(
-                  "w-32 h-32 md:w-40 md:h-40 flex items-center justify-center rounded-2xl border-4 backdrop-blur-md shadow-2xl transition-all duration-300",
-                  isActive ? `bg-black/60 border-current ${sys.color} shadow-[0_0_40px_currentColor]` : "bg-black/40 border-white/10 text-white/50"
-                )}>
-                   <Gamepad2 className="w-16 h-16 md:w-20 md:h-20" />
+                <div className="w-40 h-40 md:w-64 md:h-64 flex items-center justify-center pointer-events-none">
+                   <img 
+                     src={sys.consoleImg} 
+                     alt={sys.name} 
+                     className="w-full h-full object-contain"
+                   />
                 </div>
               </div>
             );
@@ -238,7 +250,7 @@ export default function EmulatorPage() {
         </div>
 
         {/* Botón de Carga de ROM Central */}
-        <div className="mt-16 h-16">
+        <div className="mt-12 md:mt-16 h-16">
            <input 
              type="file" 
              ref={fileInputRef} 
@@ -248,13 +260,13 @@ export default function EmulatorPage() {
            />
            <button 
              onClick={() => fileInputRef.current?.click()}
-             className="group relative px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
+             className="group relative px-6 md:px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
            >
              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
-             <Upload className="w-5 h-5 text-white" />
-             <span className="font-pixel text-[11px] text-white uppercase tracking-widest">Cargar ROM Local</span>
+             <Upload className="w-4 h-4 md:w-5 md:h-5 text-white" />
+             <span className="font-pixel text-[9px] md:text-[11px] text-white uppercase tracking-widest">Cargar ROM Local</span>
            </button>
-           <p className="text-center text-[9px] font-body text-white/50 mt-3">Formatos: {currentSystem.extensions}</p>
+           <p className="text-center text-[8px] md:text-[9px] font-body text-white/50 mt-3">Formatos: {currentSystem.extensions}</p>
         </div>
 
       </div>
@@ -277,7 +289,7 @@ export default function EmulatorPage() {
            <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors">
              <ChevronLeft className="w-6 h-6 text-white" />
            </button>
-           <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[10px] uppercase text-white active:bg-white/40 transition-colors">
+           <button onClick={() => fileInputRef.current?.click()} className="px-5 py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[9px] uppercase text-white active:bg-white/40 transition-colors">
              SUBIR JUEGO
            </button>
            <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors">
