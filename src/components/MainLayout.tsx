@@ -85,7 +85,7 @@ export default function MainLayout() {
           <div className={cn(
             "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
             /* 🔥 FIX MAESTRO: Cuando está cerrado, lo bajamos 5px con bottom-[-5px] 🔥 */
-            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-5px]"
+            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]"
           )}>
             <button 
               onClick={toggleMobileRight}
