@@ -17,7 +17,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   const [isSearching, setIsSearching] = useState(false);
 
   // --- Estados de Datos ---
-  const [isLoadingData, setIsLoadingData] = useState(false); // 🔥 Nuevo estado para mostrar carga
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [selectedTier, setSelectedTier] = useState("novato");
   const [bannedContent, setBannedContent] = useState<any[]>([]);
@@ -39,10 +39,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     return () => { document.body.style.overflow = 'auto'; };
   }, [confirmAction]);
 
-  const canManageMods = isMasterWeb || isAdmin;
-  const canManageAdmins = isMasterWeb;
+  // 🔥 JERARQUÍA DE PERMISOS 🔥
+  const canManageMods = isMasterWeb || isAdmin; // Master y Admins pueden manejar mods
+  const canManageAdmins = isMasterWeb;          // SOLO Master puede manejar admins
 
-  // 🔥 BUSCADOR INTELIGENTE Y SEGURO (CON BYPASS DE TYPESCRIPT) 🔥
   const handleSearchUser = async () => {
     if (!searchTerm.trim()) return;
     setIsSearching(true);
@@ -96,11 +96,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     }
   };
 
-  // 🔥 SISTEMA DE CARGA PARALELA OPTIMIZADO 🔥
   const loadModerationData = async () => {
-    if (activeSubTab === "gestion") return; // En gestión no cargamos listas al inicio
+    if (activeSubTab === "gestion") return; 
     
-    setIsLoadingData(true); // Encendemos el icono de carga
+    setIsLoadingData(true); 
     try {
       if (activeSubTab === "baneados") {
         const { data } = await supabase.from("banned_users").select("id, user_id, reason, ban_type, created_at");
@@ -114,7 +113,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       }
 
       if (activeSubTab === "ocultos") {
-        // Ejecutamos ambas llamadas al MISMOS TIEMPO (Turbo Mode)
         const [phRes, scRes] = await Promise.all([
           supabase.from("photos").select("*").eq("is_banned", true),
           supabase.from("social_content").select("*").eq("is_banned", true)
@@ -142,7 +140,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     } catch (error) {
       console.error("Error al cargar datos de moderación:", error);
     } finally {
-      setIsLoadingData(false); // Apagamos el icono de carga
+      setIsLoadingData(false); 
     }
   };
 
@@ -160,10 +158,11 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
         <button onClick={() => setActiveSubTab("gestion")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "gestion" ? "bg-neon-cyan text-black" : "text-muted-foreground hover:text-white")}><Search className="w-3 h-3" /> GESTIÓN</button>
         <button onClick={() => setActiveSubTab("baneados")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "baneados" ? "bg-neon-orange text-black" : "text-muted-foreground hover:text-white")}><UserMinus className="w-3 h-3" /> BANEADOS</button>
         <button onClick={() => setActiveSubTab("ocultos")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "ocultos" ? "bg-destructive text-white" : "text-muted-foreground hover:text-white")}><ImageIcon className="w-3 h-3" /> OCULTOS</button>
-        {(isMasterWeb || isAdmin) && (
+        {/* 🔥 VISIBLE PARA TODO EL STAFF 🔥 */}
+        {isStaff && (
           <button onClick={() => setActiveSubTab("mods")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "mods" ? "bg-neon-magenta text-white" : "text-muted-foreground hover:text-white")}><Users className="w-3 h-3" /> MODS</button>
         )}
-        {isMasterWeb && (
+        {isStaff && (
           <button onClick={() => setActiveSubTab("admins")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "admins" ? "bg-white text-black" : "text-muted-foreground hover:text-white")}><Shield className="w-3 h-3" /> ADMINS</button>
         )}
       </div>
@@ -189,14 +188,12 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Sancionar */}
                  <div className="space-y-2">
                     <p className="text-[8px] font-pixel text-destructive uppercase">Sancionar</p>
                     <Input placeholder="Razón del baneo..." value={banReason} onChange={e => setBanReason(e.target.value)} className="h-8 text-xs bg-muted" />
                     <Button variant="destructive" className="w-full h-8 text-[9px] font-pixel" onClick={() => openConfirm("BANEAR USUARIO", `¿Banear a ${foundUser.display_name} por: ${banReason || 'Sin razón'}?`, "BANEAR", async () => { await supabase.from("banned_users").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, reason: banReason, ban_type: 'ban' } as any); setFoundUser(null); setConfirmAction(null); toast({title:"Usuario baneado"}); }, "destructive")}>BANEAR</Button>
                  </div>
 
-                 {/* Membresía */}
                  <div className="space-y-2">
                     <p className="text-[8px] font-pixel text-neon-yellow uppercase">Membresía</p>
                     {foundUser.isStaff ? <p className="text-[9px] text-muted-foreground italic py-2 text-center">Un miembro del STAFF no requiere membresía.</p> : (
@@ -208,7 +205,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                  </div>
               </div>
 
-              {/* Roles */}
               <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
                 {canManageMods && !foundUser.isTargetMod && !foundUser.isTargetAdmin && (
                   <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
@@ -296,7 +292,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
               {staffList.mods.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay moderadores.</p> : staffList.mods.map(m => (
                 <div key={m.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
                   <span className="text-xs text-white font-body">{m.name || "..."}</span>
-                  {canManageMods && <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>}
+                  {/* 🔥 SÓLO ADMINS O MASTER WEB PUEDEN REVOCAR MODERADORES 🔥 */}
+                  {canManageMods && (
+                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -305,7 +304,8 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       )}
 
       {/* --- PESTAÑA 5: ADMINS --- */}
-      {activeSubTab === "admins" && isMasterWeb && (
+      {/* 🔥 AHORA VISIBLE PARA TODOS LOS QUE ABRAN LA PESTAÑA 🔥 */}
+      {activeSubTab === "admins" && (
         <div className="bg-card border border-white/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-white uppercase">Administradores Activos</h3>
           
@@ -319,7 +319,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
               {staffList.admins.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay admins.</p> : staffList.admins.map(a => (
                 <div key={a.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
                   <span className="text-xs text-white font-body">{a.name || "..."}</span>
-                  <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                  {/* 🔥 SÓLO MASTER WEB PUEDE REVOCAR ADMINISTRADORES 🔥 */}
+                  {canManageAdmins && (
+                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -327,7 +330,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
         </div>
       )}
 
-      {/* 🔥 VENTANA EMERGENTE DE CONFIRMACIÓN (CENTRADA) 🔥 */}
+      {/* --- MODAL DE CONFIRMACIÓN --- */}
       {confirmAction && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setConfirmAction(null)}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-card border border-white/10 rounded-xl p-6 shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
