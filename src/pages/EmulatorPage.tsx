@@ -1,239 +1,295 @@
-import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom"; // Importar useNavigate y useLocation
-import { Gamepad2, Upload, Monitor, Trophy, Play, User, Lightbulb, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { getNameStyle } from "@/lib/profileAppearance";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Gamepad2, Upload, Settings, Battery, Clock, Monitor } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { nesGames, snesGames, gbaGames, allGames } from "@/lib/gameLibrary";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
-type ConsoleType = "nes" | "snes" | "gba";
-
-const consoles: { id: ConsoleType; label: string; nostalgistCore: string; color: string }[] = [
-  { id: "nes", label: "NES", nostalgistCore: "fceumm", color: "text-neon-green" },
-  { id: "snes", label: "SNES", nostalgistCore: "snes9x", color: "text-neon-cyan" },
-  { id: "gba", label: "Game Boy Advance", nostalgistCore: "mgba", color: "text-neon-magenta" },
+// 🔥 SISTEMAS SOPORTADOS POR NOSTALGIST.JS 🔥
+const systems = [
+  {
+    id: "nes",
+    name: "Nintendo Entertainment System",
+    short: "NES",
+    core: "fceumm",
+    extensions: ".nes,.zip",
+    bg: "https://image.pollinations.ai/prompt/nes%20console%20retro%208bit%20pixel%20art%20dark%20background?width=1280&height=720&nologo=true",
+    color: "text-red-500",
+    year: "1985"
+  },
+  {
+    id: "snes",
+    name: "Super Nintendo",
+    short: "SNES",
+    core: "snes9x",
+    extensions: ".smc,.sfc,.zip",
+    bg: "https://image.pollinations.ai/prompt/super%20nintendo%20console%20retro%2016bit%20synthwave?width=1280&height=720&nologo=true",
+    color: "text-purple-500",
+    year: "1990"
+  },
+  {
+    id: "n64",
+    name: "Nintendo 64",
+    short: "N64",
+    core: "mupen64plus_next",
+    extensions: ".n64,.z64,.v64,.zip",
+    bg: "https://image.pollinations.ai/prompt/nintendo%2064%20console%20retro%20gaming%20dark%20neon?width=1280&height=720&nologo=true",
+    color: "text-yellow-400",
+    year: "1996"
+  },
+  {
+    id: "gba",
+    name: "Game Boy Advance",
+    short: "GBA",
+    core: "mgba",
+    extensions: ".gba,.zip",
+    bg: "https://image.pollinations.ai/prompt/gameboy%20advance%20console%20synthwave%20retro?width=1280&height=720&nologo=true",
+    color: "text-fuchsia-500",
+    year: "2001"
+  },
+  {
+    id: "gbc",
+    name: "Game Boy Color",
+    short: "GBC",
+    core: "gambatte",
+    extensions: ".gbc,.gb,.zip",
+    bg: "https://image.pollinations.ai/prompt/gameboy%20color%20console%20neon%20dark%20aesthetic?width=1280&height=720&nologo=true",
+    color: "text-yellow-300",
+    year: "1998"
+  },
+  {
+    id: "sega",
+    name: "Sega Genesis / Mega Drive",
+    short: "MEGA DRIVE",
+    core: "genesis_plus_gx",
+    extensions: ".md,.smd,.gen,.bin,.zip",
+    bg: "https://image.pollinations.ai/prompt/sega%20genesis%20console%20retro%2016bit%20dark%20blue?width=1280&height=720&nologo=true",
+    color: "text-blue-500",
+    year: "1988"
+  },
+  {
+    id: "ps1",
+    name: "PlayStation 1",
+    short: "PSX",
+    core: "pcsx_rearmed",
+    extensions: ".iso,.bin,.cue,.chd,.zip",
+    bg: "https://image.pollinations.ai/prompt/playstation%201%20classic%20console%20grey%20neon%20blue?width=1280&height=720&nologo=true",
+    color: "text-blue-300",
+    year: "1994"
+  },
+  {
+    id: "arcade",
+    name: "Arcade (FBNeo)",
+    short: "ARCADE",
+    core: "fbneo",
+    extensions: ".zip",
+    bg: "https://image.pollinations.ai/prompt/arcade%20cabinet%20machine%20neon%20cyberpunk%20dark%20room?width=1280&height=720&nologo=true",
+    color: "text-orange-500",
+    year: "1970"
+  }
 ];
-
-const getGamesForConsole = (c: ConsoleType) =>
-  c === "nes" ? nesGames : c === "snes" ? snesGames : gbaGames;
-
-interface LeaderboardScore {
-  id: string;
-  display_name: string;
-  game_name: string;
-  score: number;
-  user_id: string;
-}
 
 export default function EmulatorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const gameId = searchParams.get("game");
-  const consoleParam = searchParams.get("console") as ConsoleType | null;
-
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>(consoleParam || "nes");
-  const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
-  const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
   const { launchGame } = useGameBubble();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [currentIndex, setCurrentIndex] = useState(1);
+  const [time, setTime] = useState("");
+
+  // Reloj estilo Batocera
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data } = await supabase
-        .from("leaderboard_scores")
-        .select("id, display_name, game_name, score, user_id")
-        .eq("console_type", selectedConsole)
-        .order("score", { ascending: false })
-        .limit(50);
-      if (data) {
-        // Deduplicate: keep only highest score per user
-        const best: Record<string, LeaderboardScore> = {};
-        (data as LeaderboardScore[]).forEach(s => {
-          const key = s.user_id;
-          if (!best[key] || s.score > best[key].score) best[key] = s;
-        });
-        const deduped = Object.values(best).sort((a, b) => b.score - a.score).slice(0, 10);
-        setLeaderboard(deduped);
-        const uids = [...new Set(deduped.map(s => s.user_id).filter(Boolean))];
-        if (uids.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
-          const cm: Record<string, string | null> = {};
-          profiles?.forEach((p: any) => { cm[p.user_id] = p.color_name || null; });
-          setLeaderboardColors(cm);
-        }
+    const interval = setInterval(() => {
+      setTime(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Navegación con teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        setCurrentIndex((prev) => (prev + 1) % systems.length);
+      } else if (e.key === "ArrowLeft") {
+        setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
+      } else if (e.key === "Enter") {
+        fileInputRef.current?.click();
       }
     };
-    fetchLeaderboard();
-  }, [selectedConsole]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-  const handleLaunch = (romUrl: string, consoleName: ConsoleType, gameName: string) => {
-    if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes registrarte para jugar", variant: "destructive" });
-      return;
-    }
-    const consoleInfo = consoles.find(c => c.id === consoleName)!;
-    launchGame({
-      romUrl,
-      consoleName,
-      gameName,
-      consoleCore: consoleInfo.nostalgistCore,
-      score: 0,
-      playTime: 0,
-    });
-  };
-
-  useEffect(() => {
-    if (gameId && user) {
-      const game = allGames.find((g) => g.id === gameId);
-      if (game) {
-        handleLaunch(game.romUrl, game.console, game.name);
-        
-        // 🔥 LA SOLUCIÓN ESTÁ AQUÍ 🔥
-        // Limpiamos el parámetro de la URL para que no se auto-lance al recargar
-        const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.delete('game');
-        // Usamos replace: true para que el usuario no tenga que darle atrás dos veces
-        navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
-      }
-    }
-  }, [gameId, user, location.pathname, navigate, searchParams]);
+  const currentSystem = systems[currentIndex];
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes registrarte para cargar ROMs", variant: "destructive" });
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus propios juegos.", variant: "destructive" });
       return;
     }
     const file = e.target.files?.[0];
     if (!file) return;
-    handleLaunch(URL.createObjectURL(file), selectedConsole, file.name);
-  };
 
-  const currentGames = getGamesForConsole(selectedConsole);
-  const consoleInfo = consoles.find((c) => c.id === selectedConsole)!;
-
-  return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="bg-card border border-neon-green/30 rounded-lg p-4">
-        <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
-        </h1>
-        <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {consoles.map((c) => (
-          <Button
-            key={c.id}
-            variant={selectedConsole === c.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedConsole(c.id)}
-            className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
-          >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="bg-card border border-dashed border-border rounded-lg p-3 flex items-center gap-3">
-        <input type="file" id="rom-upload" accept=".nes,.smc,.sfc,.gba,.zip,.7z" onChange={handleRomUpload} className="hidden" />
-        <Button size="sm" variant="outline" onClick={() => document.getElementById("rom-upload")?.click()} className="text-xs font-body gap-1 border-border">
-          <Upload className="w-3 h-3" /> Cargar ROM
-        </Button>
-        <span className="text-[10px] text-muted-foreground font-body">.nes, .smc, .sfc, .gba, .zip, .7z</span>
-      </div>
-
-      <div>
-        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5", consoleInfo.color)}>
-          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-          {currentGames.map((game) => (
-            <button
-              key={game.id}
-              onClick={() => handleLaunch(game.romUrl, game.console, game.name)}
-              className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left"
-            >
-              <div className="aspect-square overflow-hidden bg-muted">
-                <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
-              </div>
-              <div className="p-1.5 flex items-center gap-1">
-                <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Leaderboard with usernames */}
-      <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden">
-        <div className="px-3 py-2 border-b border-border flex items-center gap-2">
-          <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
-          <h2 className="font-pixel text-[10px] text-neon-yellow">LEADERBOARD — {consoleInfo.label.toUpperCase()}</h2>
-        </div>
-        {leaderboard.length === 0 ? (
-          <div className="p-4 text-center text-[10px] text-muted-foreground font-body">Sin puntuaciones aún. ¡Sé el primero!</div>
-        ) : (
-          leaderboard.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 text-[10px] font-body hover:bg-muted/30 transition-colors">
-              <span className={cn("w-5 font-bold text-center", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
-                {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
-              </span>
-              <User className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="flex-1 text-foreground truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
-              <span className="text-muted-foreground truncate max-w-[80px]">{s.game_name}</span>
-              <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
-            </div>
-          ))
-        )}
-      </div>
-
-      <GameSuggestionBox consoleName={selectedConsole} />
-
-      <p className="text-[9px] text-muted-foreground font-body">
-        ⚠️ Solo carga ROMs de las que poseas una copia física. Los controles se configuran automáticamente.
-      </p>
-    </div>
-  );
-}
-
-function GameSuggestionBox({ consoleName }: { consoleName: string }) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [gameName, setGameName] = useState("");
-  const [description, setDescription] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    if (!gameName.trim()) return;
-    setSending(true);
-    const { error } = await supabase.from("game_suggestions").insert({
-      user_id: user.id, console_type: consoleName, game_name: gameName.trim(), description: description.trim(),
-    } as any);
-    setSending(false);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); setGameName(""); setDescription(""); }
+    // Lanzar Nostalgist a través de GameBubble
+    launchGame({
+      romUrl: URL.createObjectURL(file),
+      consoleName: currentSystem.short as any,
+      gameName: file.name.replace(/\.[^/.]+$/, ""), // Quitar extensión
+      consoleCore: currentSystem.core,
+      score: 0,
+      playTime: 0,
+    });
+    
+    // Limpiar input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
-    <div className="bg-card border border-neon-cyan/20 rounded-lg p-3 space-y-2">
-      <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1">
-        <Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO
-      </h3>
-      <Input placeholder="Nombre del juego" value={gameName} onChange={e => setGameName(e.target.value)} className="h-7 bg-muted text-xs font-body" />
-      <Textarea placeholder="¿Por qué lo recomiendas? (opcional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-muted text-xs font-body min-h-[40px]" />
-      <Button size="sm" onClick={handleSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-7">
-        <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}
-      </Button>
+    <div className="relative w-full h-[calc(100vh-8rem)] min-h-[600px] bg-black rounded-xl overflow-hidden border-2 border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
+      
+      {/* 🌌 FONDO DINÁMICO 🌌 */}
+      <div className="absolute inset-0 transition-opacity duration-1000">
+        <img 
+          src={currentSystem.bg} 
+          alt={currentSystem.name} 
+          className="w-full h-full object-cover opacity-40 blur-[2px] scale-105"
+        />
+        {/* Filtro Scanlines tipo TV de tubo */}
+        <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
+      </div>
+
+      {/* 🔋 HEADER BATOCERA 🔋 */}
+      <div className="absolute top-0 w-full p-6 flex justify-between items-center z-20 pointer-events-none">
+        <div className="flex items-center gap-3 text-white/80">
+          <Monitor className="w-5 h-5" />
+          <span className="font-pixel text-[10px] tracking-widest uppercase">Batocera.linux / Web Edition</span>
+        </div>
+        <div className="flex items-center gap-5 text-white/80">
+          <Settings className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <Battery className="w-5 h-5 text-green-400" />
+            <span className="font-pixel text-[10px]">100%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            <span className="font-pixel text-[10px]">{time}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 🎠 CARRUSEL DE CONSOLAS 🎠 */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+        
+        {/* Info del Sistema Arriba del Carrusel */}
+        <div className="mb-12 text-center animate-in slide-in-from-bottom-4 duration-500 h-24">
+          <h2 className="font-pixel text-4xl md:text-5xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase">
+            {currentSystem.name}
+          </h2>
+          <div className="flex items-center justify-center gap-4 mt-4 text-muted-foreground font-pixel text-[10px] uppercase tracking-widest">
+             <span className="bg-white/10 px-3 py-1 rounded backdrop-blur-md border border-white/10">AÑO {currentSystem.year}</span>
+             <span className="bg-white/10 px-3 py-1 rounded backdrop-blur-md border border-white/10">CORE: {currentSystem.core}</span>
+          </div>
+        </div>
+
+        {/* Cintas del Carrusel */}
+        <div className="relative w-full h-40 flex items-center justify-center overflow-hidden">
+          {systems.map((sys, index) => {
+            const offset = index - currentIndex;
+            const isActive = offset === 0;
+            const isPrev = offset === -1 || (currentIndex === 0 && index === systems.length - 1);
+            const isNext = offset === 1 || (currentIndex === systems.length - 1 && index === 0);
+
+            let transform = "translateX(1000px) scale(0)"; // Ocultos por defecto
+            let opacity = 0;
+            let zIndex = 0;
+
+            if (isActive) {
+              transform = "translateX(0) scale(1)";
+              opacity = 1;
+              zIndex = 30;
+            } else if (isPrev) {
+              transform = "translateX(-180%) scale(0.6)";
+              opacity = 0.4;
+              zIndex = 20;
+            } else if (isNext) {
+              transform = "translateX(180%) scale(0.6)";
+              opacity = 0.4;
+              zIndex = 20;
+            }
+
+            return (
+              <div 
+                key={sys.id} 
+                className="absolute transition-all duration-500 ease-out flex flex-col items-center cursor-pointer"
+                style={{ transform, opacity, zIndex }}
+                onClick={() => setCurrentIndex(index)}
+              >
+                <div className={cn(
+                  "w-32 h-32 md:w-40 md:h-40 flex items-center justify-center rounded-2xl border-4 backdrop-blur-md shadow-2xl transition-all duration-300",
+                  isActive ? `bg-black/60 border-current ${sys.color} shadow-[0_0_40px_currentColor]` : "bg-black/40 border-white/10 text-white/50"
+                )}>
+                   <Gamepad2 className="w-16 h-16 md:w-20 md:h-20" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Botón de Carga de ROM Central */}
+        <div className="mt-16 h-16">
+           <input 
+             type="file" 
+             ref={fileInputRef} 
+             accept={currentSystem.extensions} 
+             onChange={handleRomUpload} 
+             className="hidden" 
+           />
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             className="group relative px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
+           >
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+             <Upload className="w-5 h-5 text-white" />
+             <span className="font-pixel text-[11px] text-white uppercase tracking-widest">Cargar ROM Local</span>
+           </button>
+           <p className="text-center text-[9px] font-body text-white/50 mt-3">Formatos: {currentSystem.extensions}</p>
+        </div>
+
+      </div>
+
+      {/* 🎮 FOOTER DE CONTROLES (ESTILO EMULATIONSTATION) 🎮 */}
+      <div className="absolute bottom-0 w-full p-4 bg-black/60 backdrop-blur-xl border-t border-white/10 flex justify-center md:justify-between items-center z-20">
+        <div className="hidden md:flex items-center gap-6">
+           <div className="flex items-center gap-2">
+             <span className="bg-white/20 px-2 py-0.5 rounded text-white font-bold text-[10px] font-body shadow-sm">⬅ / ➡</span>
+             <span className="font-pixel text-[9px] text-white/70 uppercase tracking-widest">Navegar</span>
+           </div>
+           <div className="flex items-center gap-2">
+             <span className="bg-white/20 px-2 py-0.5 rounded text-white font-bold text-[10px] font-body shadow-sm">ENTER</span>
+             <span className="font-pixel text-[9px] text-white/70 uppercase tracking-widest">Seleccionar ROM</span>
+           </div>
+        </div>
+
+        {/* Botones móviles para navegar si no hay teclado */}
+        <div className="flex md:hidden items-center gap-4">
+           <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors">
+             <ChevronLeft className="w-6 h-6 text-white" />
+           </button>
+           <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[10px] uppercase text-white active:bg-white/40 transition-colors">
+             SUBIR JUEGO
+           </button>
+           <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors">
+             <ChevronRight className="w-6 h-6 text-white" />
+           </button>
+        </div>
+
+        <div className="hidden md:flex font-pixel text-[8px] text-white/30 uppercase tracking-widest">
+           Emuladores locales · Nostalgist
+        </div>
+      </div>
+
     </div>
   );
 }
