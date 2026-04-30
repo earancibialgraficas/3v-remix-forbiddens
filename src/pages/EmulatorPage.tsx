@@ -5,54 +5,54 @@ import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { cn } from "@/lib/utils";
 
-// 🔥 SISTEMAS SOPORTADOS CON IMÁGENES REALES DE LAS CONSOLAS 🔥
+// 🔥 SISTEMAS CON NOMBRES COMPLETOS APUNTANDO A TU CARPETA LOCAL 🔥
 const systems = [
   {
     id: "nes", name: "Nintendo Entertainment System", short: "NES", core: "fceumm", extensions: ".nes,.zip",
     bg: "https://image.pollinations.ai/prompt/nes%20console%20retro%208bit%20pixel%20art%20dark%20background?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/NES-Console-Set.png/1024px-NES-Console-Set.png",
+    consoleImg: "/consolasimg/Nintendo Entertainment System.png",
     glow: "rgba(239,68,68,0.7)", year: "1985"
   },
   {
     id: "snes", name: "Super Nintendo", short: "SNES", core: "snes9x", extensions: ".smc,.sfc,.zip",
     bg: "https://image.pollinations.ai/prompt/super%20nintendo%20console%20retro%2016bit%20synthwave?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/SNES-Mod1-Console-Set.png/1024px-SNES-Mod1-Console-Set.png",
+    consoleImg: "/consolasimg/Super Nintendo.png",
     glow: "rgba(168,85,247,0.7)", year: "1990"
   },
   {
     id: "n64", name: "Nintendo 64", short: "N64", core: "mupen64plus_next", extensions: ".n64,.z64,.v64,.zip",
     bg: "https://image.pollinations.ai/prompt/nintendo%2064%20console%20retro%20gaming%20dark%20neon?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/N64-Console-Set.png/1024px-N64-Console-Set.png",
+    consoleImg: "/consolasimg/Nintendo 64.png",
     glow: "rgba(250,204,21,0.7)", year: "1996"
   },
   {
     id: "gba", name: "Game Boy Advance", short: "GBA", core: "mgba", extensions: ".gba,.zip",
     bg: "https://image.pollinations.ai/prompt/gameboy%20advance%20console%20synthwave%20retro?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Nintendo-Game-Boy-Advance-Purple-FL.png/1024px-Nintendo-Game-Boy-Advance-Purple-FL.png",
+    consoleImg: "/consolasimg/Game Boy Advance.png",
     glow: "rgba(217,70,239,0.7)", year: "2001"
   },
   {
     id: "gbc", name: "Game Boy Color", short: "GBC", core: "gambatte", extensions: ".gbc,.gb,.zip",
     bg: "https://image.pollinations.ai/prompt/gameboy%20color%20console%20neon%20dark%20aesthetic?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Nintendo-Game-Boy-Color-Console-Purple.png/800px-Nintendo-Game-Boy-Color-Console-Purple.png",
+    consoleImg: "/consolasimg/Game Boy Color.png",
     glow: "rgba(253,224,71,0.7)", year: "1998"
   },
   {
     id: "sega", name: "Sega Genesis / Mega Drive", short: "MEGA DRIVE", core: "genesis_plus_gx", extensions: ".md,.smd,.gen,.bin,.zip",
     bg: "https://image.pollinations.ai/prompt/sega%20genesis%20console%20retro%2016bit%20dark%20blue?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Sega-Mega-Drive-JP-Mk1-Console-Set.png/1024px-Sega-Mega-Drive-JP-Mk1-Console-Set.png",
+    consoleImg: "/consolasimg/Sega Genesis.png",
     glow: "rgba(59,130,246,0.7)", year: "1988"
   },
   {
     id: "ps1", name: "PlayStation 1", short: "PSX", core: "pcsx_rearmed", extensions: ".iso,.bin,.cue,.chd,.zip",
     bg: "https://image.pollinations.ai/prompt/playstation%201%20classic%20console%20grey%20neon%20blue?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/PSX-Console-wController.png/1024px-PSX-Console-wController.png",
+    consoleImg: "/consolasimg/PlayStation 1.png",
     glow: "rgba(147,197,253,0.7)", year: "1994"
   },
   {
     id: "arcade", name: "Arcade (FBNeo)", short: "ARCADE", core: "fbneo", extensions: ".zip",
     bg: "https://image.pollinations.ai/prompt/arcade%20cabinet%20machine%20neon%20cyberpunk%20dark%20room?width=1280&height=720&nologo=true",
-    consoleImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Neo-Geo-AES-Console-Set.png/1024px-Neo-Geo-AES-Console-Set.png",
+    consoleImg: "/consolasimg/Arcade.png",
     glow: "rgba(249,115,22,0.7)", year: "1990"
   }
 ];
@@ -60,7 +60,7 @@ const systems = [
 export default function EmulatorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { launchGame } = useGameBubble(); // 🔥 VOLVEMOS A USAR EL CONTEXTO ORIGINAL 🔥
+  const { launchGame } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -91,7 +91,6 @@ export default function EmulatorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 🔥 LANZAMOS HACIA GAMEBUBBLE 🔥
     launchGame({
       romUrl: URL.createObjectURL(file),
       consoleName: currentSystem.id as any,
@@ -105,7 +104,7 @@ export default function EmulatorPage() {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
+    <div id="batocera-screen" className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
       
       <div className="absolute inset-0 transition-opacity duration-1000">
         <img src={currentSystem.bg} alt={currentSystem.name} className="w-full h-full object-cover opacity-40 blur-[3px] scale-105" />
