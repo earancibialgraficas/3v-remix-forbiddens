@@ -8,6 +8,7 @@ import FloatingChat from "@/components/FloatingChat";
 import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -15,6 +16,7 @@ export default function MainLayout() {
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   
   const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const location = useLocation();
 
   useEffect(() => {
@@ -43,18 +45,19 @@ export default function MainLayout() {
 
   return (
     <div className="flex bg-background text-foreground w-full min-h-screen relative">
-      {/* 🔥 FIX: Cambiado a 'lg:block'. Así la barra lateral solo sale en PC y no en Tablet 🔥 */}
+      {/* Sidebar de PC (Oculto en Tablet y Celular) */}
       <div className="hidden lg:block sticky top-0 h-screen">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* 🔥 FIX: Cambiado a 'lg:hidden'. El botón hamburguesa sale en celulares Y en tablets 🔥 */}
+      {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) */}
       <div className="lg:hidden fixed top-2 left-2 z-50 flex gap-2">
         <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
           <Menu className="w-6 h-6" />
         </Button>
       </div>
 
+      {/* Fondo oscuro al abrir menú lateral en móviles */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
@@ -64,44 +67,46 @@ export default function MainLayout() {
         </div>
       )}
 
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* 🔥 FIX: Eliminado el 'pb-[120px]' de aquí para evitar el scroll fantasma 🔥 */}
+      {/* 🔥 FIX DEL SCROLL: Agregamos pb-[110px] aquí. Esto genera un colchón natural al fondo de la página solo en celulares y tablets, evitando el scroll fantasma 🔥 */}
+      <main className="flex-1 flex flex-col min-w-0 pb-[110px] lg:pb-0">
         <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 min-w-0">
             <Outlet />
-            {/* 🔥 FIX: Este espaciador invisible empuja el contenido hacia arriba solo en móvil/tablet, sin crear un scrollbar innecesario 🔥 */}
-            <div className="h-[120px] shrink-0 w-full lg:hidden" />
           </div>
           
+          {/* Panel Derecho (Solo en PC) */}
           <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)]">
             <RightPanel />
           </div>
         </div>
 
-        <div className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-          mobileRightOpen ? "h-[80vh]" : "h-[110px]"
-        )}>
-          <button 
-            onClick={toggleMobileRight}
-            className="w-full h-10 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground border-b border-border/30 shrink-0"
-          >
-            {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-            INFO & COMUNIDAD
-          </button>
-          
-          <div 
-            ref={mobileScrollRef}
-            className={cn(
-              "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
-              mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
-            )}
-          >
-            <div className="pointer-events-auto">
-               <RightPanel />
+        {/* Footer (Visible en Tablet y Celular gracias a isMobile) */}
+        {isMobile && (
+          <div className={cn(
+            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
+            mobileRightOpen ? "h-[80vh]" : "h-[110px]"
+          )}>
+            <button 
+              onClick={toggleMobileRight}
+              className="w-full h-10 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground border-b border-border/30 shrink-0"
+            >
+              {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              INFO & COMUNIDAD
+            </button>
+            
+            <div 
+              ref={mobileScrollRef}
+              className={cn(
+                "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5",
+                mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
+              )}
+            >
+              <div className="pointer-events-auto">
+                 <RightPanel />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <NavigationButtons />
