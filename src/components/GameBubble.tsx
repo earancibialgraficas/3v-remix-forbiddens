@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX, Minus, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,36 +94,52 @@ export default function GameBubble() {
   const activeGame = activeGames[currentGameIndex] || null;
 
   // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
-  const [theaterContainer, setTheaterContainer] = useState<HTMLElement | null>(null);
+  const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Escuchar cambios de Fullscreen del navegador
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // Radar que busca el contenedor físico (Ignora la URL, así nunca falla)
+  // Radar que busca el contenedor físico de Batocera en la página en vivo
   useEffect(() => {
     const checkBatoceraContainer = () => {
       const el = document.getElementById("batocera-screen");
-      if (el !== theaterContainer) setTheaterContainer(el);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setTheaterRect(prev => {
+          if (!prev || prev.top !== rect.top || prev.left !== rect.left || prev.width !== rect.width || prev.height !== rect.height) {
+            return rect;
+          }
+          return prev;
+        });
+      } else {
+        setTheaterRect(null);
+      }
     };
     
     checkBatoceraContainer();
-    const observer = new MutationObserver(checkBatoceraContainer);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const interval = setInterval(checkBatoceraContainer, 200);
+    window.addEventListener('resize', checkBatoceraContainer);
+    window.addEventListener('scroll', checkBatoceraContainer, true);
     
-    return () => observer.disconnect();
-  }, [theaterContainer]);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', checkBatoceraContainer);
+      window.removeEventListener('scroll', checkBatoceraContainer, true);
+    };
+  }, [activeGame, minimized, location.pathname]);
 
   // Si abrimos un juego nuevo, reiniciamos el forzado a flotante
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
 
-  const isTheaterActive = theaterContainer && !minimized && !forceFloating;
+  const isTheaterActive = theaterRect && !minimized && !forceFloating;
   const isExpanded = isTheaterActive || isFullscreen;
 
   const syncCanvasSurface = useCallback(() => {
@@ -296,13 +311,16 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // Carga de archivo físico para extensiones locales (Ayuda a Arcade, N64 y PS1)
-        if ((window as any).__tempNostalgistFile) {
-           romSrc = (window as any).__tempNostalgistFile;
-           delete (window as any).__tempNostalgistFile; // Limpiamos memoria
-        } 
-        else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
-           romSrc = window.location.origin + romSrc;
+        // 🔥 HACK VITAL PARA N64, ARCADE Y PS1 🔥
+        // Al subir un juego local, EmulatorPage guarda el "File" físico original en __localRoms.
+        // Aquí lo recuperamos para que Nostalgist lo lea con TODO y extensión.
+        if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
+            const localMap = (window as any).__localRoms;
+            if (localMap && localMap.has(romSrc)) {
+                romSrc = localMap.get(romSrc);
+            }
+        } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
+            romSrc = window.location.origin + romSrc;
         }
 
         const instance = await Nostalgist.launch({
@@ -324,7 +342,6 @@ export default function GameBubble() {
 
       } catch (err: any) {
         console.error("Emulator error:", err);
-        // 🔥 ERROR REAL (Ya no dice que está corrupto si fue por otra cosa) 🔥
         toast({ title: "No se pudo iniciar", description: err.message || "Verifica que el ROM sea válido para esta consola.", variant: "destructive" });
       }
     };
@@ -491,7 +508,7 @@ export default function GameBubble() {
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
     } catch (e) {
-      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave 🔥
+      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre bien. 🔥
       console.warn("Este core no soporta AutoSave.");
     }
   };
@@ -519,7 +536,7 @@ export default function GameBubble() {
       }
     } catch (err) {
       // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
-      toast({ title: "Guardado no compatible", description: "Este emulador/juego no soporta guardado de estado.", variant: "destructive" });
+      toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado.", variant: "destructive" });
     }
   };
 
@@ -608,24 +625,43 @@ export default function GameBubble() {
     .map((game, idx) => ({ game, idx }))
     .filter(({ idx }) => idx !== currentGameIndex);
 
-  const popupStyle = minimized || isExpanded ? undefined : {
-    transform: `translate(${position.x}px, ${position.y}px)`,
-    width: `${popupSize.w}px`,
-    height: `${popupSize.h}px`,
-    maxWidth: "95vw",
-    maxHeight: "90vh",
-    willChange: dragging || resizing ? "transform, width, height" : "auto",
-  };
+  // 🔥 CSS DOCKING INTELIGENTE PARA NO ROMPER EL WEBGL DE EMSCRIPTEN 🔥
+  let popupStyle: React.CSSProperties = {};
+  if (!minimized) {
+    if (isFullscreen) {
+      popupStyle = { width: '100vw', height: '100vh', borderRadius: 0 };
+    } else if (isTheaterActive && theaterRect) {
+      popupStyle = {
+        position: 'fixed',
+        top: theaterRect.top,
+        left: theaterRect.left,
+        width: theaterRect.width,
+        height: theaterRect.height,
+        zIndex: 40,
+        borderRadius: '0.75rem',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      };
+    } else {
+      popupStyle = {
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        width: `${popupSize.w}px`,
+        height: `${popupSize.h}px`,
+        maxWidth: "95vw",
+        maxHeight: "90vh",
+        willChange: dragging || resizing ? "transform, width, height" : "auto",
+      };
+    }
+  }
 
   const bubbleContent = (
     <div
       ref={popupRef}
       onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
       className={cn(
-        "relative bg-card overflow-hidden select-none",
-        minimized ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group border border-border" :
-        isExpanded ? "flex flex-col w-full h-full rounded-none border-none shadow-none bg-black animate-in fade-in" :
-        "flex rounded-xl shadow-2xl shadow-black/50 border border-border animate-scale-in"
+        "relative overflow-hidden select-none",
+        minimized ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group border border-border" :
+        isTheaterActive || isFullscreen ? "flex flex-col bg-black shadow-2xl" :
+        "flex bg-card rounded-xl shadow-2xl shadow-black/50 border border-border animate-scale-in"
       )}
       style={popupStyle}
     >
@@ -668,7 +704,7 @@ export default function GameBubble() {
                      else setForceFloating(true);
                    }} 
                    className="h-7 w-7 text-white hover:bg-white/20" 
-                   title="Restaurar a Ventana Flotante"
+                   title="Restaurar Tamaño"
                  >
                    <Copy className="w-3.5 h-3.5" />
                  </Button>
@@ -845,47 +881,46 @@ export default function GameBubble() {
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md animate-fade-in" onClick={minimizeGame} />
       )}
 
-      {/* Renderizado Condicional: Teatro vs Flotante */}
-      {isTheaterActive ? (
-        createPortal(
-          <div className="absolute inset-0 z-[100] flex bg-black animate-in fade-in">
-            {bubbleContent}
-          </div>,
-          theaterContainer
-        )
-      ) : (
-        <div className={cn("fixed z-[300]", minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 flex items-center justify-center")}>
-          {bubbleContent}
+      {/* Renderizado Universal con Docking Visual */}
+      <div className={cn("fixed z-[300]", minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 pointer-events-none")}>
+        {!minimized ? (
+           <div className="pointer-events-auto w-full h-full flex justify-center items-center">
+             {bubbleContent}
+           </div>
+        ) : (
+           <div className="pointer-events-auto">
+             {bubbleContent}
+           </div>
+        )}
 
-          {/* Burbujas Inactivas Minimizadas */}
-          {minimized && inactiveGames.length > 0 && (
-            <div className="flex flex-col items-end gap-2">
-              {inactiveGames.map(({ game, idx }) => (
-                <button key={game.romUrl} onClick={() => maximizeGame(idx)}
-                  className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]">
-                  <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
-                  <div className="relative flex h-full flex-col justify-between">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
-                      <span className="font-pixel text-[8px] text-neon-cyan">{game.consoleName.toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-body font-medium text-foreground truncate">{game.gameName}</p>
-                      <p className="text-[8px] font-body text-muted-foreground">⚡ {game.score}</p>
-                    </div>
+        {/* Burbujas Inactivas Minimizadas */}
+        {minimized && inactiveGames.length > 0 && (
+          <div className="flex flex-col items-end gap-2 pointer-events-auto">
+            {inactiveGames.map(({ game, idx }) => (
+              <button key={game.romUrl} onClick={() => maximizeGame(idx)}
+                className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
+                <div className="relative flex h-full flex-col justify-between">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
+                    <span className="font-pixel text-[8px] text-neon-cyan">{game.consoleName.toUpperCase()}</span>
                   </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                  <div>
+                    <p className="text-[9px] font-body font-medium text-foreground truncate">{game.gameName}</p>
+                    <p className="text-[8px] font-body text-muted-foreground">⚡ {game.score}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Save Dialog */}
       {showSaveDialog && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center" onClick={() => setShowSaveDialog(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
+          <div className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in pointer-events-auto" onClick={e => e.stopPropagation()}>
             <h3 className="font-pixel text-[10px] text-neon-green mb-3">GUARDAR PARTIDA</h3>
             <Input value={slotName} onChange={e => setSlotName(e.target.value)} placeholder={`Slot ${saveSlots.length + 1}`} className="h-8 bg-muted text-xs font-body mb-3" />
             <div className="flex gap-2">
@@ -910,8 +945,8 @@ export default function GameBubble() {
       {/* Load Dialog */}
       {showLoadDialog && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center" onClick={() => setShowLoadDialog(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 w-80 max-h-[60vh] flex flex-col animate-scale-in" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
+          <div className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 w-80 max-h-[60vh] flex flex-col animate-scale-in pointer-events-auto" onClick={e => e.stopPropagation()}>
             <h3 className="font-pixel text-[10px] text-neon-cyan mb-3">CARGAR PARTIDA</h3>
             <div className="flex-1 overflow-y-auto space-y-1">
               {saveSlots.map((s, i) => (
