@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Youtube, Instagram, Globe, Facebook, Link as LinkIcon, X, PlayCircle, Clock, Camera } from "lucide-react";
+import { Trash2, Youtube, Instagram, Globe, Facebook, Link as LinkIcon, X, PlayCircle, Clock, Camera, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,10 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
   const [newUrl, setNewUrl] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
+
+  // 🔥 ESTADO DE LAS PESTAÑAS (FILTROS) 🔥
+  const [activeFilter, setActiveFilter] = useState("Todos");
+  const filters = ["Todos", "YouTube", "Instagram", "TikTok", "Facebook", "Imágenes"];
 
   // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR 🔥
   const [contentToRemove, setContentToRemove] = useState<{ id: string; title: string; targetType: string } | null>(null);
@@ -226,7 +230,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     }
   };
 
-  // 🔥 FUNCIÓN DEL MODAL DE ELIMINAR (Inteligente para fotos o videos) 🔥
   const confirmRemoveContent = async () => {
     if (!contentToRemove) return;
     setIsRemoving(true);
@@ -243,6 +246,17 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
       setContentToRemove(null);
     }
   };
+
+  // 🔥 LÓGICA DE FILTRADO 🔥
+  const filteredContents = contents.filter((c) => {
+    if (activeFilter === "Todos") return true;
+    if (activeFilter === "Imágenes") return c.target_type === 'photo';
+    if (activeFilter === "YouTube") return c.platform === 'youtube';
+    if (activeFilter === "Instagram") return c.platform === 'instagram';
+    if (activeFilter === "TikTok") return c.platform === 'tiktok';
+    if (activeFilter === "Facebook") return c.platform === 'facebook';
+    return false;
+  });
 
   return (
     <div className="space-y-4 animate-in fade-in relative">
@@ -296,19 +310,42 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         </Button>
       </div>
       
-      {/* 🔥 CUADRÍCULA DE CONTENIDO SOCIAL (RESPONSIVA AUTO-FIT) 🔥 */}
+      {/* 🔥 SECCIÓN DE CONTENIDO CON PESTAÑAS 🔥 */}
       <div className="bg-card border border-border rounded p-4">
-        <h3 className="font-pixel text-[10px] opacity-80 mb-4 uppercase text-center md:text-left">
-          Tu Contenido Publicado
-        </h3>
         
-        {contents.length === 0 ? (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <h3 className="font-pixel text-[10px] opacity-80 uppercase text-center md:text-left flex items-center gap-2 shrink-0">
+            <Filter className="w-3.5 h-3.5" /> Tu Contenido Publicado
+          </h3>
+          
+          {/* 🔥 LOS BOTONES DE PESTAÑAS 🔥 */}
+          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 -mx-2 px-2 md:mx-0 md:px-0">
+            {filters.map((f) => (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[9px] uppercase font-pixel tracking-wider whitespace-nowrap transition-colors border",
+                  activeFilter === f
+                    ? "bg-neon-cyan text-black border-neon-cyan"
+                    : "bg-muted/30 text-muted-foreground border-white/5 hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {filteredContents.length === 0 ? (
            <p className="text-xs text-muted-foreground text-center py-6 font-body opacity-60 italic">
-             Aún no has publicado nada.
+             {activeFilter === "Todos" 
+               ? "Aún no has publicado nada." 
+               : `No tienes contenido de tipo ${activeFilter}.`}
            </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
-            {contents.map(c => {
+            {filteredContents.map(c => {
               const borderStyle = isVideoItem(c) ? "border-[#ff6b00]/50 hover:border-[#ff6b00]" : "border-[#00f0ff]/50 hover:border-[#00f0ff]";
               const destRoute = c.target_type === 'photo' ? `/social/fotos?post=${c.id}` : `/social/reels?post=${c.id}`;
 
@@ -318,7 +355,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
                   className={cn("flex flex-col bg-muted/10 border rounded-lg overflow-hidden transition-all group cursor-pointer shadow-sm hover:shadow-md", borderStyle)}
                   onClick={() => navigate(destRoute)}
                 >
-                   {/* IMAGEN Y OVERLAYS */}
                    <div className="relative aspect-square bg-black overflow-hidden shrink-0">
                        <img 
                          src={getSocialThumbnail(c)} 
@@ -327,19 +363,16 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
                          alt=""
                        />
                        
-                       {/* Icono de Reproducción si es Video/Reel */}
                        {isVideoItem(c) && (
                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                            <PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" />
                          </div>
                        )}
                        
-                       {/* Icono de la Red Social o Cámara en la esquina inferior derecha */}
                        <div className="absolute bottom-2 right-2 bg-black/70 p-1.5 rounded-full backdrop-blur-md border border-white/10 z-20">
                            {getPlatformIcon(c.platform, c.target_type)}
                        </div>
 
-                       {/* Botón de Eliminar en la esquina superior derecha */}
                        <button 
                          onClick={(e) => { 
                            e.stopPropagation(); 
@@ -352,7 +385,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
                        </button>
                    </div>
                    
-                   {/* TEXTO INFERIOR CON FECHA */}
                    <div className="p-3 bg-black/20 flex flex-col justify-center h-full">
                        <p className="text-[11px] font-bold font-body line-clamp-2 text-foreground group-hover:text-neon-cyan transition-colors leading-snug">
                           {c.title || c.caption ? (c.title || c.caption) : (c.target_type === 'photo' ? "Imagen Publicada" : c.content_type === "reel" ? "Reel Publicado" : "Video Publicado")}
@@ -394,7 +426,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
               </p>
             </div>
 
-            {/* BOTONES IGUALES, CENTRADOS Y A TODO ANCHO */}
             <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
               <Button 
                 variant="outline" 
