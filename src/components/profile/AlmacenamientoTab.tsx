@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { HardDrive, Trash2, Gamepad2, X, Clock, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     }
   };
 
-  // 🔥 FUNCIÓN DE BORRADO: AHORA ELIMINA DEL LOCALSTORAGE 🔥
+  // 🔥 FUNCIÓN DE BORRADO: AHORA ELIMINA DEL LOCALSTORAGE Y DE LA NUBE DE FORMA SEGURA 🔥
   const confirmDelete = async () => {
     if (itemsToRemove.length === 0) return;
     setIsRemoving(true);
@@ -60,7 +61,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
 
     for (const item of itemsToRemove) {
       try {
-        if (item.id.startsWith('local|')) {
+        if (item.id && item.id.startsWith('local|')) {
           // Es una partida local guardada en el navegador
           const parts = item.id.split('|');
           const key = parts[1]; // ej: save_slots_mario3
@@ -69,7 +70,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           const existingData = localStorage.getItem(key);
           if (existingData) {
             const slots = JSON.parse(existingData);
-            // Filtramos la partida exacta que el usuario quiere borrar (usando el timestamp único)
+            // Filtramos la partida exacta que el usuario quiere borrar
             const filteredSlots = slots.filter((slot: any) => slot.timestamp !== timestamp);
             
             // Si aún quedan partidas en ese juego, guardamos el resto. Si no, borramos la llave completa
@@ -83,9 +84,18 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
             successfullyProcessedIds.add(item.id);
           }
         } else {
-          // Si por alguna razón es un registro de la nube (0.01 MB), solo lo quitamos visualmente
-          freedSpace += item.size;
-          successfullyProcessedIds.add(item.id);
+          // Si es un registro de la nube, le borramos el 'game_state' para que no ocupe memoria real
+          // pero conservando sus puntos
+          const { error } = await supabase.from('leaderboard_scores')
+            .update({ game_state: null } as any)
+            .eq('id', item.id);
+
+          if (!error) {
+            freedSpace += item.size;
+            successfullyProcessedIds.add(item.id);
+          } else {
+             console.error("Error al limpiar partida en la nube:", error);
+          }
         }
       } catch (e) { 
          console.error("Error inesperado borrando partida:", e); 
@@ -97,7 +107,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     setSelectedIds(new Set());
     setIsRemoving(false);
     setItemsToRemove([]);
-    toast({ title: "Datos limpiados", description: `Se liberó espacio en tu navegador. Los puntajes permanecen guardados en la nube.` });
+    toast({ title: "Datos limpiados", description: `Se liberó espacio en tu navegador. Tus puntajes permanecen guardados en la nube.` });
   };
 
   return (
@@ -170,7 +180,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         </div>
 
         {games.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No tienes partidas guardadas en este dispositivo.</p>
+          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No tienes partidas guardadas en tu cuenta o dispositivo.</p>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <div className="min-w-[450px]">
@@ -258,7 +268,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                 </strong>
               </p>
               <p className="text-[9px] font-pixel text-destructive/70 uppercase leading-snug">
-                ¡Atención! Tu progreso se borrará de este navegador, pero tus puntajes globales se mantendrán.
+                ¡Atención! Tu progreso se borrará de este navegador, pero tus puntajes globales se mantendrán a salvo en la tabla de clasificación.
               </p>
             </div>
 
