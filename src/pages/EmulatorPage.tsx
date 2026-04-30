@@ -164,7 +164,7 @@ export default function EmulatorPage() {
           <div className="absolute top-0 w-full p-5 md:p-6 flex justify-between items-center z-20 pointer-events-none">
             <div className="flex items-center gap-3 text-white/80">
               <Monitor className="w-5 h-5" />
-              <span className="font-pixel text-[10px] tracking-widest uppercase hidden sm:inline-block">Batocera.linux / Web Edition</span>
+              <span className="font-pixel text-[10px] tracking-widest uppercase hidden sm:inline-block">Forbiddens.linux / Web Edition</span>
             </div>
             <div className="flex items-center gap-4 md:gap-5 text-white/80">
               <Settings className="w-4 h-4 md:w-5 md:h-5" />
