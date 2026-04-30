@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom"; // Importar useNavigate y useLocation
 import { Gamepad2, Upload, Monitor, Trophy, Play, User, Lightbulb, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,9 @@ interface LeaderboardScore {
 export default function EmulatorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const gameId = searchParams.get("game");
   const consoleParam = searchParams.get("console") as ConsoleType | null;
 
@@ -88,13 +90,21 @@ export default function EmulatorPage() {
     });
   };
 
-  // 🔥 FIX: AHORA ESPERA A QUE CARGUE EL 'user' PARA NO TIRAR EL ERROR FALSO 🔥
   useEffect(() => {
     if (gameId && user) {
       const game = allGames.find((g) => g.id === gameId);
-      if (game) handleLaunch(game.romUrl, game.console, game.name);
+      if (game) {
+        handleLaunch(game.romUrl, game.console, game.name);
+        
+        // 🔥 LA SOLUCIÓN ESTÁ AQUÍ 🔥
+        // Limpiamos el parámetro de la URL para que no se auto-lance al recargar
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('game');
+        // Usamos replace: true para que el usuario no tenga que darle atrás dos veces
+        navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+      }
     }
-  }, [gameId, user]);
+  }, [gameId, user, location.pathname, navigate, searchParams]);
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
