@@ -108,7 +108,7 @@ export default function GameBubble() {
   // Radar que busca el contenedor físico de Batocera en la página en vivo
   useEffect(() => {
     const checkBatoceraContainer = () => {
-      const el = document.getElementById("batocera-screen");
+      const el = document.getElementById("batocera-target");
       if (el) {
         const rect = el.getBoundingClientRect();
         setTheaterRect(prev => {
@@ -123,7 +123,7 @@ export default function GameBubble() {
     };
     
     checkBatoceraContainer();
-    const interval = setInterval(checkBatoceraContainer, 200);
+    const interval = setInterval(checkBatoceraContainer, 200); // Polling constante para ajustar medidas si hay scroll o redimensión
     window.addEventListener('resize', checkBatoceraContainer);
     window.addEventListener('scroll', checkBatoceraContainer, true);
     
@@ -312,12 +312,11 @@ export default function GameBubble() {
         let romSrc: any = activeGame.romUrl;
         
         // 🔥 HACK VITAL PARA N64, ARCADE Y PS1 🔥
-        // Al subir un juego local, EmulatorPage guarda el "File" físico original en __localRoms.
-        // Aquí lo recuperamos para que Nostalgist lo lea con TODO y extensión.
+        // Recuperamos el archivo físico si se subió localmente en EmulatorPage
         if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
-            const localMap = (window as any).__localRoms;
-            if (localMap && localMap.has(romSrc)) {
-                romSrc = localMap.get(romSrc);
+            const localMap = (window as any).__uploadedFiles;
+            if (localMap && localMap[activeGame.gameName]) {
+                romSrc = localMap[activeGame.gameName]; // Pasamos el File físico original (.zip, .n64)
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
@@ -508,7 +507,7 @@ export default function GameBubble() {
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
     } catch (e) {
-      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre bien. 🔥
+      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre limpio. 🔥
       console.warn("Este core no soporta AutoSave.");
     }
   };
@@ -625,7 +624,7 @@ export default function GameBubble() {
     .map((game, idx) => ({ game, idx }))
     .filter(({ idx }) => idx !== currentGameIndex);
 
-  // 🔥 CSS DOCKING INTELIGENTE PARA NO ROMPER EL WEBGL DE EMSCRIPTEN 🔥
+  // 🔥 CSS DOCKING INTELIGENTE PARA MODO TEATRO O FLOTANTE 🔥
   let popupStyle: React.CSSProperties = {};
   if (!minimized) {
     if (isFullscreen) {
@@ -704,7 +703,7 @@ export default function GameBubble() {
                      else setForceFloating(true);
                    }} 
                    className="h-7 w-7 text-white hover:bg-white/20" 
-                   title="Restaurar Tamaño"
+                   title="Restaurar a Ventana Flotante"
                  >
                    <Copy className="w-3.5 h-3.5" />
                  </Button>
@@ -716,7 +715,7 @@ export default function GameBubble() {
                 </Button>
               )}
 
-              <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar">
+              <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar Juego">
                 <X className="w-3.5 h-3.5" />
               </Button>
             </div>
