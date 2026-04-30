@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 // 🔥 HACK MAESTRO DE AUDIO: Intercepta la Web Audio API globalmente 🔥
-// Esto obliga al emulador a pasar por nuestro control de volumen antes de sonar.
 if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
   (window as any).__audioDestPatched = true;
   (window as any).__masterVolume = 1.0;
@@ -20,7 +19,6 @@ if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
   AudioNode.prototype.connect = function (...args: any[]) {
     const destination = args[0];
     
-    // Si el emulador intenta enviar sonido a la salida final (parlantes)
     if (destination === this.context.destination) {
       const ctx = this.context as any;
       if (!ctx.__masterGain) {
@@ -28,10 +26,8 @@ if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
         gain.gain.value = (window as any).__masterVolume;
         (window as any).__masterGains.add(gain);
         ctx.__masterGain = gain;
-        // Conectamos nuestro filtro a los parlantes
         OrigConnect.call(gain, destination);
       }
-      // Conectamos el juego a nuestro filtro
       return OrigConnect.call(this, ctx.__masterGain);
     }
     
@@ -79,8 +75,7 @@ export default function GameBubble() {
 
   const [paused, setPaused] = useState(false);
 
-  // 🔥 ESTADO DEL DESLIZADOR DE VOLUMEN NATIVO 🔥
-  const [volume, setVolume] = useState(1); // 0 a 1
+  const [volume, setVolume] = useState(1); 
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -105,7 +100,6 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
-  // Aplicar volumen maestro
   const handleVolumeChange = (newVol: number) => {
     setVolume(newVol);
     (window as any).__masterVolume = newVol;
@@ -116,7 +110,6 @@ export default function GameBubble() {
     });
   };
 
-  // Detección de AFK
   useEffect(() => {
     const onInput = () => {
       lastInputRef.current = Date.now();
@@ -144,15 +137,88 @@ export default function GameBubble() {
     };
   }, [activeGame, romLoaded]);
 
+  // 🔥 MAGIA CLOUD SAVE: Función de Sincronización a Supabase 🔥
+  const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
+    if (!user || !activeGame) return;
+    try {
+      // Limitamos a 5 slots máximos para no explotar la memoria de la columna
+      const safeSlots = slotsToSync.slice(0, 5);
+      const slotsJson = JSON.stringify(safeSlots);
+
+      const { data: existing } = await supabase.from("leaderboard_scores")
+        .select("id").eq("user_id", user.id).eq("game_name", activeGame.gameName)
+        .eq("console_type", activeGame.consoleName).limit(1).maybeSingle();
+
+      if (existing) {
+        await supabase.from("leaderboard_scores").update({ game_state: slotsJson } as any).eq("id", existing.id);
+      } else {
+        // Si no tenía récord, creamos uno con 0 puntos para alojar la partida
+        await supabase.from("leaderboard_scores").insert({
+          user_id: user.id, display_name: profile?.display_name || "Anónimo",
+          game_name: activeGame.gameName, console_type: activeGame.consoleName,
+          score: 0, play_time_seconds: 0,
+          game_state: slotsJson
+        } as any);
+      }
+    } catch (e) {
+      console.error("Cloud sync error:", e);
+    }
+  };
+
+  // 🔥 MAGIA CLOUD SAVE: Carga inicial Inteligente (Fusiona PC actual + Nube) 🔥
   useEffect(() => {
     if (activeGame) {
       const key = `save_slots_${activeGame.gameName}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        try { setSaveSlots(JSON.parse(stored)); } catch { setSaveSlots([]); }
-      } else { setSaveSlots([]); }
+      
+      const syncAndLoadSaves = async () => {
+        let localSlots: SaveSlot[] = [];
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try { localSlots = JSON.parse(stored); } catch { localSlots = []; }
+        }
+        
+        // Si estamos logueados, traemos las de la nube y las fusionamos
+        if (user) {
+          try {
+            const { data } = await supabase.from("leaderboard_scores")
+              .select("game_state")
+              .eq("user_id", user.id)
+              .eq("game_name", activeGame.gameName)
+              .eq("console_type", activeGame.consoleName)
+              .limit(1).maybeSingle();
+
+            if (data && data.game_state) {
+              let cloudSlots: SaveSlot[] = typeof data.game_state === 'string' ? JSON.parse(data.game_state) : data.game_state;
+              
+              // Unimos las locales y las de la nube sin duplicar (usando el timestamp como ID)
+              const mergedMap = new Map();
+              localSlots.forEach(s => mergedMap.set(s.timestamp, s));
+              (cloudSlots || []).forEach((s: any) => mergedMap.set(s.timestamp, s));
+              
+              // Convertimos a array y ordenamos (las más nuevas arriba)
+              let finalSlots = Array.from(mergedMap.values());
+              finalSlots.sort((a, b) => b.timestamp - a.timestamp);
+              
+              // Limitamos a 5 y guardamos en LocalStorage
+              finalSlots = finalSlots.slice(0, 5);
+
+              setSaveSlots(finalSlots);
+              localStorage.setItem(key, JSON.stringify(finalSlots));
+              return;
+            }
+          } catch (e) {
+            console.error("Error sincronizando nube:", e);
+          }
+        }
+        // Si falla la nube o no hay internet, cargamos solo las locales
+        setSaveSlots(localSlots);
+      };
+
+      syncAndLoadSaves();
+    } else {
+      setSaveSlots([]);
     }
-  }, [activeGame?.gameName]);
+  }, [activeGame?.gameName, activeGame?.consoleName, user]);
 
   useEffect(() => {
     if (activeGame && !minimized && romLoaded && !paused) {
@@ -272,7 +338,6 @@ export default function GameBubble() {
     } catch {}
   }, [paused, romLoaded]);
 
-  // 🔥 MENÚ NATIVO (F1) 🔥
   const toggleEmulatorMenu = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas && romLoaded) {
@@ -371,12 +436,16 @@ export default function GameBubble() {
       const b64 = await stateToBase64(stateBlob);
       const name = `Auto-save ${new Date().toLocaleString()}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
+      
       const key = `save_slots_${activeGame.gameName}`;
       const stored = localStorage.getItem(key);
       let slots: SaveSlot[] = [];
       try { slots = stored ? JSON.parse(stored) : []; } catch {}
-      slots.push(newSlot);
-      localStorage.setItem(key, JSON.stringify(slots));
+      
+      // Agregamos al inicio y limitamos a 5
+      const updated = [newSlot, ...slots].slice(0, 5);
+      localStorage.setItem(key, JSON.stringify(updated));
+      await syncCloudSaves(updated); // Sincroniza a la nube
     } catch {}
   };
 
@@ -388,18 +457,19 @@ export default function GameBubble() {
       const b64 = await stateToBase64(stateBlob);
       const name = slotName.trim() || `Slot ${saveSlots.length + 1}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
-      const updated = [...saveSlots, newSlot];
+      
+      const updated = [newSlot, ...saveSlots].slice(0, 5);
       setSaveSlots(updated);
       localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+      await syncCloudSaves(updated); // Sincroniza a la nube
       
-      toast({ title: "Partida guardada", description: `"${name}"` });
+      toast({ title: "Partida guardada y subida a la nube", description: `"${name}"` });
       setSlotName("");
       setShowSaveDialog(false);
 
       if (user && scoreRef.current > 0) {
         await handleSaveScore(false);
       }
-
     } catch (err) {
       console.error("Save error:", err);
       toast({ title: "Error al guardar", variant: "destructive" });
@@ -419,12 +489,13 @@ export default function GameBubble() {
     }
   };
 
-  const handleDeleteSlot = (index: number) => {
+  const handleDeleteSlot = async (index: number) => {
     if (!activeGame) return;
     const updated = saveSlots.filter((_, i) => i !== index);
     setSaveSlots(updated);
     localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
-    toast({ title: "Slot eliminado" });
+    await syncCloudSaves(updated); // Sincroniza a la nube (borrado)
+    toast({ title: "Slot eliminado de tu PC y de la Nube" });
   };
 
   const handleClose = async (idx?: number) => {
@@ -629,7 +700,6 @@ export default function GameBubble() {
                   </Button>
                 )}
                 
-                {/* 🔥 BOTÓN Y SLIDER DE VOLUMEN (En línea, empuja hacia abajo) 🔥 */}
                 {romLoaded && (
                   <div className="flex flex-col items-center w-full my-1">
                     <Button 
@@ -660,7 +730,6 @@ export default function GameBubble() {
                   </div>
                 )}
                 
-                {/* BOTÓN MENÚ DE EMULADOR */}
                 {romLoaded && (
                   <Button 
                     size="icon" 
