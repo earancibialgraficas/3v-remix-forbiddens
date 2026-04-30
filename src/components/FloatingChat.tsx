@@ -80,6 +80,7 @@ export default function FloatingChat() {
 
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
+  const clickStartPos = useRef({ x: 0, y: 0 }); // Para la tolerancia de micro-movimientos
   const hasMoved = useRef(false);
   const lastFetch = useRef(0);
 
@@ -128,11 +129,21 @@ export default function FloatingChat() {
     isDragging.current = true;
     hasMoved.current = false;
     dragStart.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    clickStartPos.current = { x: e.clientX, y: e.clientY };
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging.current) return;
-    hasMoved.current = true;
+    
+    // 🔥 Tolerancia de 5 píxeles para evitar que un micro-temblor cancele el click 🔥
+    const dx = Math.abs(e.clientX - clickStartPos.current.x);
+    const dy = Math.abs(e.clientY - clickStartPos.current.y);
+    if (dx > 5 || dy > 5) {
+      hasMoved.current = true;
+    }
+    
+    if (!hasMoved.current) return;
+
     const newX = Math.max(0, Math.min(e.clientX - dragStart.current.x, window.innerWidth - 48)); 
     const minY = isMobile ? 130 : 0; 
     const newY = Math.max(minY, Math.min(e.clientY - dragStart.current.y, window.innerHeight - 48));
@@ -286,6 +297,7 @@ export default function FloatingChat() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onClick={handleBubbleClick} // 🔥 El click se recibe aquí con margen de tolerancia 🔥
         style={{ left: pos.x, top: pos.y, touchAction: 'none' }}
         className="fixed z-[250] w-12 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing"
       >
@@ -300,8 +312,8 @@ export default function FloatingChat() {
               }}
               className="absolute -top-[115px] w-11 h-11 bg-card border border-neon-magenta/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <Bell className="w-5 h-5 text-neon-magenta pointer-events-none" />
-              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{notifUnread > 9 ? "9+" : notifUnread}</span>}
+              <Bell className="w-5 h-5 text-neon-magenta" />
+              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{notifUnread > 9 ? "9+" : notifUnread}</span>}
             </button>
 
             <button
@@ -315,21 +327,20 @@ export default function FloatingChat() {
               }}
               className="absolute -top-[55px] w-11 h-11 bg-card border border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              <MessageSquare className="w-5 h-5 text-neon-cyan" />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             </button>
           </>
         )}
 
         <button
-          onClick={handleBubbleClick}
-          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all"
+          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all pointer-events-none"
         >
           <div className="absolute inset-0 bg-neon-cyan/10 rounded-full pointer-events-none" />
           {isMobile ? (
-            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan pointer-events-none" /> : <Menu className="w-5 h-5 text-neon-cyan pointer-events-none" />
+            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan" /> : <Menu className="w-5 h-5 text-neon-cyan" />
           ) : (
-            <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
+            <MessageSquare className="w-5 h-5 text-neon-cyan" />
           )}
           
           {totalUnread > 0 && !isMenuExpanded && (
