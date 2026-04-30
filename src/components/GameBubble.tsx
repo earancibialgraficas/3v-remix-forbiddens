@@ -98,7 +98,6 @@ export default function GameBubble() {
   const [theaterContainer, setTheaterContainer] = useState<HTMLElement | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const isBatoceraPage = location.pathname.includes("emuladores");
 
   // Escuchar cambios de Fullscreen del navegador
   useEffect(() => {
@@ -107,21 +106,28 @@ export default function GameBubble() {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // Detectar el contenedor de Batocera para inyectar el juego
+  // 🔥 Detectar el contenedor de Batocera INFALIBLE (MutationObserver) 🔥
   useEffect(() => {
-    if (isBatoceraPage && !minimized && !forceFloating) {
-      setTheaterContainer(document.getElementById("batocera-screen"));
-    } else {
-      setTheaterContainer(null);
-    }
-  }, [isBatoceraPage, minimized, forceFloating, activeGame]);
+    const checkBatoceraContainer = () => {
+      const el = document.getElementById("batocera-screen");
+      if (el !== theaterContainer) setTheaterContainer(el);
+    };
+    
+    checkBatoceraContainer(); // Chequeo inicial
+    
+    // Observador para detectar cuando el usuario navegue hacia Batocera sin refrescar
+    const observer = new MutationObserver(checkBatoceraContainer);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => observer.disconnect();
+  }, [theaterContainer]);
 
   // Si abrimos un juego nuevo, reiniciamos la vista flotante para que entre al Modo Teatro si corresponde
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
 
-  const isTheaterActive = !!theaterContainer;
+  const isTheaterActive = theaterContainer && !minimized && !forceFloating;
   const isExpanded = isTheaterActive || isFullscreen;
 
   const syncCanvasSurface = useCallback(() => {
@@ -292,33 +298,23 @@ export default function GameBubble() {
         const { Nostalgist } = await import("nostalgist");
         
         let romSrc: any = activeGame.romUrl;
-        if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
+        
+        // 🔥 HACK PARA ARCHIVOS LOCALES: Usar el archivo físico guardado por EmulatorPage 🔥
+        if ((window as any).__tempNostalgistFile) {
+           romSrc = (window as any).__tempNostalgistFile;
+           delete (window as any).__tempNostalgistFile; // Limpiamos memoria
+        } 
+        else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
            romSrc = window.location.origin + romSrc;
         }
 
-        // 🔥 SOLUCIÓN PARA N64, PS1, Y ARCADE: Asignar extensión si es un blob local 🔥
-        if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
-           const extMap: Record<string, string> = {
-              'mupen64plus_next': '.n64',
-              'pcsx_rearmed': '.bin',
-              'fbneo': '.zip',
-              'snes9x': '.sfc',
-              'fceumm': '.nes',
-              'mgba': '.gba',
-              'gambatte': '.gbc',
-              'genesis_plus_gx': '.md'
-           };
-           const ext = extMap[activeGame.consoleCore] || '.zip';
-           const response = await fetch(romSrc);
-           const blob = await response.blob();
-           romSrc = new File([blob], `${activeGame.gameName}${ext}`);
-        }
-
-        const instance = await Nostalgist.launch({
-          core: activeGame.consoleCore,
-          rom: romSrc,
-          element: el as HTMLCanvasElement,
+        const instance = await Nostalgist.launch({ 
+          core: activeGame.consoleCore, 
+          rom: romSrc, 
+          element: el as HTMLCanvasElement, 
           style: { width: "100%", height: "100%", backgroundColor: "black" },
+          // Mejora de estabilidad de resolución para N64
+          ...(activeGame.consoleCore.includes("mupen") && { resolution: { width: 640, height: 480 } })
         });
         
         nostalgistRef.current = instance;
@@ -333,7 +329,7 @@ export default function GameBubble() {
 
       } catch (err) {
         console.error("Emulator error:", err);
-        toast({ title: "Error", description: "No se pudo cargar el emulador. Asegúrate que el formato sea correcto.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo cargar el emulador. Es posible que el archivo esté corrupto.", variant: "destructive" });
       }
     };
     loadEmu();
@@ -498,7 +494,9 @@ export default function GameBubble() {
       const updated = [newSlot, ...slots].slice(0, 5);
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
-    } catch {}
+    } catch (err) {
+      // 🔥 SILENCIOSO para cores como Arcade que no soportan AutoSave 🔥
+    }
   };
 
   const handleSaveState = async () => {
@@ -523,7 +521,8 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
-      toast({ title: "Error al guardar", variant: "destructive" });
+      // 🔥 AVISO AMIGABLE SI EL JUEGO NO SOPORTA GUARDADO MANUAL 🔥
+      toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado.", variant: "destructive" });
     }
   };
 

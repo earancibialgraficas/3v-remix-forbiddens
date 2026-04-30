@@ -60,7 +60,7 @@ const systems = [
 export default function EmulatorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { launchGame, activeGames } = useGameBubble(); // Extraemos activeGames
+  const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -71,10 +71,10 @@ export default function EmulatorPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔥 ARREGLO DEL TECLADO: Si hay un juego activo, bloqueamos la navegación del carrusel 🔥
+  // 🔥 ARREGLO DEL TECLADO: Si hay un juego activo en GameBubble, ignora ENTER y Flechas 🔥
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (activeGames.length > 0) return; // <-- ESTO EVITA QUE EL ENTER MOLESTE
+      if (activeGames.length > 0) return; // <-- ESTO BLOQUEA QUE SE ABRA EL INPUT MIENTRAS JUEGAS
       
       if (e.key === "ArrowRight") setCurrentIndex((prev) => (prev + 1) % systems.length);
       else if (e.key === "ArrowLeft") setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
@@ -82,7 +82,7 @@ export default function EmulatorPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeGames.length]); // Re-ejecutar si cambia la cantidad de juegos
+  }, [activeGames.length]);
 
   const currentSystem = systems[currentIndex];
 
@@ -94,8 +94,11 @@ export default function EmulatorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 🔥 HACK VITAL PARA ARCADE, N64 Y PS1: Guardamos el File físico original en memoria 🔥
+    (window as any).__tempNostalgistFile = file;
+
     launchGame({
-      romUrl: URL.createObjectURL(file),
+      romUrl: URL.createObjectURL(file), // Lo usamos como ID temporal
       consoleName: currentSystem.id as any,
       gameName: file.name.replace(/\.[^/.]+$/, ""),
       consoleCore: currentSystem.core,
@@ -107,7 +110,7 @@ export default function EmulatorPage() {
   };
 
   return (
-    // ID CLAVE: batocera-screen
+    // 🔥 ID CLAVE: batocera-screen (GameBubble lo detectará automáticamente) 🔥
     <div id="batocera-screen" className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
       
       <div className="absolute inset-0 transition-opacity duration-1000">
