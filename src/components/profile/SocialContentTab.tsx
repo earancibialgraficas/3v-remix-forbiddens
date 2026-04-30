@@ -3,10 +3,21 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Youtube, Instagram, Globe, Facebook, Link as LinkIcon, X, PlayCircle, Clock, Camera, Filter } from "lucide-react";
+import { Trash2, Youtube, Instagram, Globe, Facebook, Link as LinkIcon, X, PlayCircle, Clock, Camera, Filter, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+// 🔥 ICONO PERSONALIZADO DE TIKTOK 🔥
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 352.28 398.67" className={className} fill="currentColor">
+    <path d="M137.17 156.98v-15.56c-5.34-.73-10.76-1.18-16.29-1.18C54.23 140.24 0 194.47 0 261.13c0 40.9 20.43 77.09 51.61 98.97-20.12-21.6-32.46-50.53-32.46-82.31 0-65.7 52.69-119.28 118.03-120.81Z"/>
+    <path d="M140.02 333c29.74 0 54-23.66 55.1-53.13l.11-263.2h48.08c-1-5.41-1.55-10.97-1.55-16.67h-65.67l-.11 263.2c-1.1 29.47-25.36 53.13-55.1 53.13-9.24 0-17.95-2.31-25.61-6.34C105.3 323.9 121.6 333 140.02 333ZM333.13 106V91.37c-18.34 0-35.43-5.45-49.76-14.8 12.76 14.65 30.09 25.22 49.76 29.43Z"/>
+    <path d="M283.38 76.57c-13.98-16.05-22.47-37-22.47-59.91h-17.59c4.63 25.02 19.48 46.49 40.06 59.91ZM120.88 205.92c-30.44 0-55.21 24.77-55.21 55.21 0 21.2 12.03 39.62 29.6 48.86-6.55-9.08-10.45-20.18-10.45-32.2 0-30.44 24.77-55.21 55.21-55.21 5.68 0 11.13.94 16.29 2.55v-67.05c-5.34-.73-10.76-1.18-16.29-1.18-.96 0-1.9.05-2.85.07v51.49c-5.16-1.61-10.61-2.55-16.29-2.55Z"/>
+    <path d="M333.13 106v51.04c-34.05 0-65.61-10.89-91.37-29.38v133.47c0 66.66-54.23 120.88-120.88 120.88-25.76 0-49.64-8.12-69.28-21.91 22.08 23.71 53.54 38.57 88.42 38.57 66.66 0 120.88-54.23 120.88-120.88V144.33c25.76 18.49 57.32 29.38 91.37 29.38v-65.68c-6.57 0-12.97-.71-19.14-2.03Z"/>
+    <path d="M241.76 261.13V127.66c25.76 18.49 57.32 29.38 91.37 29.38V106c-19.67-4.21-37-14.77-49.76-29.43-20.58-13.42-35.43-34.88-40.06-59.91h-48.08l-.11 263.2c-1.1 29.47-25.36 53.13-55.1 53.13-18.42 0-34.72-9.1-44.75-23.01-17.57-9.25-29.6-27.67-29.6-48.86 0-30.44 24.77-55.21 55.21-55.21 5.68 0 11.13.94 16.29 2.55v-51.49C71.83 158.5 19.14 212.08 19.14 277.78c0 31.78 12.34 60.71 32.46 82.31C71.23 373.87 95.12 382 120.88 382c66.65 0 120.88-54.23 120.88-120.88Z"/>
+  </svg>
+);
 
 // 🔥 UTILIDADES PARA MINIATURAS 🔥
 const getSeedFromId = (str: string) => {
@@ -52,12 +63,11 @@ const isVideoItem = (item: any) => {
 
 const getPlatformIcon = (platform: string, targetType: string, className: string = "w-4 h-4") => {
   if (targetType === 'photo') return <Camera className={cn(className, "text-neon-cyan")} />;
-  
   switch (platform?.toLowerCase()) {
     case "youtube": return <Youtube className={cn(className, "text-[#ff0000]")} />;
     case "instagram": return <Instagram className={cn(className, "text-[#e1306c]")} />;
     case "facebook": return <Facebook className={cn(className, "text-[#1877f2]")} />;
-    case "tiktok": return <Globe className={cn(className, "text-[#00f2fe]")} />; 
+    case "tiktok": return <TikTokIcon className={cn(className, "text-[#00f2fe]")} />; 
     default: return <LinkIcon className={cn(className, "text-muted-foreground")} />;
   }
 };
@@ -70,25 +80,16 @@ const getTimeAgo = (dateString: string) => {
 
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
   if (seconds < 60) return "hace un momento";
-  
   let interval = seconds / 31536000;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "año" : "años"}`;
-  
   interval = seconds / 2592000;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "mes" : "meses"}`;
-  
   interval = seconds / 86400;
-  if (interval >= 1) {
-      if (Math.floor(interval) === 1) return "ayer";
-      return `hace ${Math.floor(interval)} días`;
-  }
-  
+  if (interval >= 1) { if (Math.floor(interval) === 1) return "ayer"; return `hace ${Math.floor(interval)} días`; }
   interval = seconds / 3600;
   if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "hr" : "hrs"}`;
-  
   interval = seconds / 60;
   if (interval >= 1) return `hace ${Math.floor(interval)} min`;
-  
   return "hace un momento";
 };
 
@@ -102,23 +103,26 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
 
   // 🔥 ESTADO DE LAS PESTAÑAS (FILTROS) 🔥
   const [activeFilter, setActiveFilter] = useState("Todos");
-  const filters = ["Todos", "YouTube", "Instagram", "TikTok", "Facebook", "Imágenes"];
+  
+  // Array estructurado para renderizar los iconos rápidamente
+  const filterOptions = [
+    { id: "Todos", icon: <LayoutGrid className="w-4 h-4 text-foreground" /> },
+    { id: "YouTube", icon: <Youtube className="w-4 h-4 text-[#ff0000]" /> },
+    { id: "Instagram", icon: <Instagram className="w-4 h-4 text-[#e1306c]" /> },
+    { id: "TikTok", icon: <TikTokIcon className="w-4 h-4 text-[#00f2fe]" /> },
+    { id: "Facebook", icon: <Facebook className="w-4 h-4 text-[#1877f2]" /> },
+    { id: "Imágenes", icon: <Camera className="w-4 h-4 text-neon-cyan" /> },
+  ];
 
-  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR 🔥
   const [contentToRemove, setContentToRemove] = useState<{ id: string; title: string; targetType: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Congelar el scroll del fondo mientras el modal está abierto
   useEffect(() => {
-    if (contentToRemove) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
+    if (contentToRemove) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
   }, [contentToRemove]);
 
-  // Motor de tiempo real para las fechas
   const [, setTick] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setTick(t => t + 1), 60000);
@@ -126,11 +130,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
   }, []);
 
   const fetchContents = async () => {
-    // Buscar tanto del Social Hub como del Muro de Fotos
-    const [
-      { data: rawSocialContent },
-      { data: rawPhotos }
-    ] = await Promise.all([
+    const [ { data: rawSocialContent }, { data: rawPhotos } ] = await Promise.all([
       supabase.from("social_content").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("photos").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
     ]);
@@ -139,10 +139,8 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     if (rawSocialContent) combinedSocial.push(...rawSocialContent.map(s => ({...s, target_type: 'social_content'})));
     if (rawPhotos) combinedSocial.push(...rawPhotos.map(p => ({...p, target_type: 'photo'})));
     
-    // Ordenar todo por fecha
     combinedSocial.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // Resolvemos miniaturas de oEmbed (TikTok, Facebook) al vuelo
     const finalData = await Promise.all(combinedSocial.map(async (item: any) => {
         if (item.target_type === 'social_content') {
             const url = item.content_url || '';
@@ -178,9 +176,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     setContents(finalData);
   };
 
-  useEffect(() => { 
-    fetchContents(); 
-  }, [user.id]);
+  useEffect(() => { fetchContents(); }, [user.id]);
 
   const reachedLimit = !isStaff && contents.length >= limits.maxSocialContent;
 
@@ -261,7 +257,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
   return (
     <div className="space-y-4 animate-in fade-in relative">
       
-      {/* HEADER: BOTÓN DE REDES SOCIALES */}
       <div className="bg-card border rounded p-4 text-center">
         <h3 className="font-pixel text-[10px] opacity-60 mb-3 uppercase font-pixel tracking-tighter">
           Perfiles de Redes Sociales
@@ -271,7 +266,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         </Button>
       </div>
 
-      {/* FORMULARIO DE PUBLICAR */}
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body">
            <h3 className="font-pixel text-neon-cyan uppercase">Publicar en Social Hub</h3>
@@ -310,28 +304,28 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         </Button>
       </div>
       
-      {/* 🔥 SECCIÓN DE CONTENIDO CON PESTAÑAS 🔥 */}
+      {/* 🔥 SECCIÓN DE CONTENIDO CON PESTAÑAS (ICONOS) 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-          <h3 className="font-pixel text-[10px] opacity-80 uppercase text-center md:text-left flex items-center gap-2 shrink-0">
+        <div className="flex flex-col items-center md:items-start gap-3 mb-4">
+          <h3 className="font-pixel text-[10px] opacity-80 uppercase flex items-center gap-2 shrink-0">
             <Filter className="w-3.5 h-3.5" /> Tu Contenido Publicado
           </h3>
           
-          {/* 🔥 LOS BOTONES DE PESTAÑAS 🔥 */}
-          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 -mx-2 px-2 md:mx-0 md:px-0">
-            {filters.map((f) => (
+          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 w-full justify-center md:justify-start">
+            {filterOptions.map((f) => (
               <button
-                key={f}
-                onClick={() => setActiveFilter(f)}
+                key={f.id}
+                title={f.id}
+                onClick={() => setActiveFilter(f.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-[9px] uppercase font-pixel tracking-wider whitespace-nowrap transition-colors border",
-                  activeFilter === f
-                    ? "bg-neon-cyan text-black border-neon-cyan"
-                    : "bg-muted/30 text-muted-foreground border-white/5 hover:bg-muted/50 hover:text-foreground"
+                  "p-2 rounded-full transition-all border flex items-center justify-center shrink-0",
+                  activeFilter === f.id
+                    ? "bg-muted border-foreground/30 shadow-[0_0_8px_rgba(255,255,255,0.1)] scale-110"
+                    : "bg-card border-white/5 opacity-50 hover:opacity-100 hover:bg-muted/50"
                 )}
               >
-                {f}
+                {f.icon}
               </button>
             ))}
           </div>
@@ -341,7 +335,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
            <p className="text-xs text-muted-foreground text-center py-6 font-body opacity-60 italic">
              {activeFilter === "Todos" 
                ? "Aún no has publicado nada." 
-               : `No tienes contenido de tipo ${activeFilter}.`}
+               : `No tienes contenido en ${activeFilter}.`}
            </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
@@ -401,7 +395,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         )}
       </div>
 
-      {/* 🔥 MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ESTILO WINDOWS 🔥 */}
       {contentToRemove && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setContentToRemove(null)}>
           <div 
