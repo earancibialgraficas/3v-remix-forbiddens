@@ -312,29 +312,53 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 EL HACK DEFINITIVO PARA ARCHIVOS LOCALES 🔥
-        // Pasamos directamente el objeto File nativo a Nostalgist.
+        // 🔥 EL HACK DEFINITIVO PARA ARCHIVOS LOCALES (Con Typescript Fix) 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
-            if (localFile instanceof File) {
-                romSrc = localFile; // Pasamos el archivo físico directo (Así preserva la extensión y su contenido real)
+            if (localFile) {
+                const buffer = await localFile.arrayBuffer();
+                romSrc = {
+                    fileName: (localFile as File).name || fileId,
+                    fileContent: buffer
+                };
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
             const localMap = (window as any).__uploadedFiles;
             if (localMap && localMap[activeGame.gameName]) {
-                romSrc = localMap[activeGame.gameName];
+                const f = localMap[activeGame.gameName];
+                romSrc = { 
+                    fileName: (f as File).name || activeGame.gameName, 
+                    fileContent: await f.arrayBuffer() 
+                };
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
         }
 
-        const instance = await Nostalgist.launch({
-          core: activeGame.consoleCore,
+        // Configuración de emulador (Forzando parallel_n64 si es N64)
+        let coreToUse = activeGame.consoleCore;
+        if (activeGame.consoleName === "n64") {
+           coreToUse = "parallel_n64";
+        }
+
+        const launchOptions: any = {
+          core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-        });
+        };
+
+        // Configuración especial de BIOS y Resolución
+        if (activeGame.consoleName === "ps1") {
+          launchOptions.bios = [
+            { fileName: "scph1001.bin", fileContent: "/bios/scph1001.bin" }
+          ];
+        } else if (activeGame.consoleName === "n64") {
+          launchOptions.resolution = { width: 640, height: 480 };
+        }
+
+        const instance = await Nostalgist.launch(launchOptions);
         
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
@@ -696,10 +720,12 @@ export default function GameBubble() {
             </div>
             
             <div className="flex items-center gap-1">
+              {/* Botón Minimizar */}
               <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar (Enviar a esquina)">
                 <Minus className="w-3.5 h-3.5" />
               </Button>
               
+              {/* Botón Restaurar Tamaño (Si está expandido) */}
               {isExpanded && (
                  <Button 
                    size="icon" 
@@ -715,12 +741,14 @@ export default function GameBubble() {
                  </Button>
               )}
 
+              {/* Botón Pantalla Completa HTML5 (Si NO está en pantalla completa) */}
               {!isFullscreen && (
                 <Button size="icon" variant="ghost" onClick={toggleFullscreen} className="h-7 w-7 text-neon-yellow hover:bg-neon-yellow/10" title="Pantalla Completa Nativa">
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
               )}
 
+              {/* Botón Cerrar */}
               <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar Juego">
                 <X className="w-3.5 h-3.5" />
               </Button>
