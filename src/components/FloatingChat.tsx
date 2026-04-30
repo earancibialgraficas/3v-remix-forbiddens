@@ -66,7 +66,7 @@ export default function FloatingChat() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          const minY = isMobile ? 130 : 0; // Si es celu, no dejar subir mucho para que quepa el menú
+          const minY = isMobile ? 130 : 0; 
           return {
             x: Math.max(0, Math.min(parsed.x, window.innerWidth - 60)),
             y: Math.max(minY, Math.min(parsed.y, window.innerHeight - 60))
@@ -83,7 +83,6 @@ export default function FloatingChat() {
   const hasMoved = useRef(false);
   const lastFetch = useRef(0);
 
-  // Mantiene la burbuja dentro de los límites al redimensionar la pantalla
   useEffect(() => {
     const handleResize = () => {
       setPos(prev => {
@@ -98,19 +97,16 @@ export default function FloatingChat() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  // 🔥 CARGA PASIVA DE NOTIFICACIONES PARA CELULAR (SIN WEBSOCKETS) 🔥
   const fetchNotifs = async () => {
     if (!user) return;
     const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
     setNotifUnread(count || 0);
   };
 
-  // Se actualiza al cambiar de página
   useEffect(() => {
     fetchNotifs();
   }, [user, location.pathname]);
 
-  // Se actualiza si haces un click en cualquier lugar de la web (con un límite de 10 segs para no sobrecargar) o vuelves a la pestaña
   useEffect(() => {
     const fetchNotifsThrottled = () => {
       const now = Date.now();
@@ -138,7 +134,7 @@ export default function FloatingChat() {
     if (!isDragging.current) return;
     hasMoved.current = true;
     const newX = Math.max(0, Math.min(e.clientX - dragStart.current.x, window.innerWidth - 48)); 
-    const minY = isMobile ? 130 : 0; // Margen para que los botones redondos salgan hacia arriba
+    const minY = isMobile ? 130 : 0; 
     const newY = Math.max(minY, Math.min(e.clientY - dragStart.current.y, window.innerHeight - 48));
     setPos({ x: newX, y: newY });
   };
@@ -147,11 +143,12 @@ export default function FloatingChat() {
     isDragging.current = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('floatingBubblePos', JSON.stringify(pos)); // Guarda la posición en caché
+      localStorage.setItem('floatingBubblePos', JSON.stringify(pos)); 
     }
   };
 
-  const handleBubbleClick = () => {
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!hasMoved.current) {
       if (isMobile) {
         setIsMenuExpanded(!isMenuExpanded);
@@ -227,7 +224,6 @@ export default function FloatingChat() {
   useEffect(() => { loadFriends(); }, [user]);
   useEffect(() => { loadConversations(); }, [friends]);
 
-  // RT solo para el Chat, que no gasta tanta memoria como las notificaciones
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel("floating-chat-rt")
@@ -282,7 +278,6 @@ export default function FloatingChat() {
 
   if (!user) return null;
 
-  // 🔥 MENÚ FLOTANTE / BURBUJA PRINCIPAL 🔥
   if (!isOpen || minimized) {
     const totalUnread = unreadCount + (isMobile ? notifUnread : 0);
 
@@ -298,19 +293,21 @@ export default function FloatingChat() {
           <>
             <button
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setIsMenuExpanded(false);
                 navigate('/perfil?tab=avisos');
               }}
               className="absolute -top-[115px] w-11 h-11 bg-card border border-neon-magenta/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <Bell className="w-5 h-5 text-neon-magenta" />
-              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{notifUnread > 9 ? "9+" : notifUnread}</span>}
+              <Bell className="w-5 h-5 text-neon-magenta pointer-events-none" />
+              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{notifUnread > 9 ? "9+" : notifUnread}</span>}
             </button>
 
             <button
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setIsMenuExpanded(false);
                 setIsOpen(true);
                 setMinimized(false);
@@ -318,21 +315,21 @@ export default function FloatingChat() {
               }}
               className="absolute -top-[55px] w-11 h-11 bg-card border border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <MessageSquare className="w-5 h-5 text-neon-cyan" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             </button>
           </>
         )}
 
         <button
           onClick={handleBubbleClick}
-          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all pointer-events-none"
+          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all"
         >
           <div className="absolute inset-0 bg-neon-cyan/10 rounded-full pointer-events-none" />
           {isMobile ? (
-            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan" /> : <Menu className="w-5 h-5 text-neon-cyan" />
+            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan pointer-events-none" /> : <Menu className="w-5 h-5 text-neon-cyan pointer-events-none" />
           ) : (
-            <MessageSquare className="w-5 h-5 text-neon-cyan" />
+            <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
           )}
           
           {totalUnread > 0 && !isMenuExpanded && (
@@ -345,7 +342,6 @@ export default function FloatingChat() {
     );
   }
 
-  // 🔥 VENTANA DE CHAT ACTIVA 🔥
   const windowX = typeof window !== 'undefined' ? Math.min(pos.x, window.innerWidth - 320 - 16) : pos.x;
   const windowY = typeof window !== 'undefined' ? Math.min(pos.y, window.innerHeight - 448 - 16) : pos.y;
 
