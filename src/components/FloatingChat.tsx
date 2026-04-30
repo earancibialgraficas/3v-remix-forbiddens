@@ -80,7 +80,7 @@ export default function FloatingChat() {
 
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
-  const clickStartPos = useRef({ x: 0, y: 0 }); // Para la tolerancia de micro-movimientos
+  const clickStartPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
   const lastFetch = useRef(0);
 
@@ -98,14 +98,24 @@ export default function FloatingChat() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
+  // 🔥 CARGA PASIVA DE NOTIFICACIONES (AVISOS + SOLICITUDES) 🔥
   const fetchNotifs = async () => {
     if (!user) return;
     const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-    setNotifUnread(count || 0);
+    const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
+    setNotifUnread((count || 0) + (reqCount || 0));
   };
 
+  // 🔥 TEMPORIZADOR DE 5 MINUTOS 🔥
   useEffect(() => {
     fetchNotifs();
+    
+    // 300,000 milisegundos = 5 minutos exactos
+    const interval = setInterval(() => {
+      fetchNotifs();
+    }, 300000);
+    
+    return () => clearInterval(interval);
   }, [user, location.pathname]);
 
   useEffect(() => {
@@ -135,7 +145,6 @@ export default function FloatingChat() {
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging.current) return;
     
-    // 🔥 Tolerancia de 5 píxeles para evitar que un micro-temblor cancele el click 🔥
     const dx = Math.abs(e.clientX - clickStartPos.current.x);
     const dy = Math.abs(e.clientY - clickStartPos.current.y);
     if (dx > 5 || dy > 5) {
@@ -297,7 +306,7 @@ export default function FloatingChat() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onClick={handleBubbleClick} // 🔥 El click se recibe aquí con margen de tolerancia 🔥
+        onClick={handleBubbleClick}
         style={{ left: pos.x, top: pos.y, touchAction: 'none' }}
         className="fixed z-[250] w-12 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing"
       >
@@ -312,8 +321,9 @@ export default function FloatingChat() {
               }}
               className="absolute -top-[115px] w-11 h-11 bg-card border border-neon-magenta/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <Bell className="w-5 h-5 text-neon-magenta" />
-              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{notifUnread > 9 ? "9+" : notifUnread}</span>}
+              <Bell className="w-5 h-5 text-neon-magenta pointer-events-none" />
+              {/* Aquí los sub-menús sí conservan su numerito */}
+              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{notifUnread > 9 ? "9+" : notifUnread}</span>}
             </button>
 
             <button
@@ -327,8 +337,8 @@ export default function FloatingChat() {
               }}
               className="absolute -top-[55px] w-11 h-11 bg-card border border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
-              <MessageSquare className="w-5 h-5 text-neon-cyan" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             </button>
           </>
         )}
@@ -338,15 +348,14 @@ export default function FloatingChat() {
         >
           <div className="absolute inset-0 bg-neon-cyan/10 rounded-full pointer-events-none" />
           {isMobile ? (
-            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan" /> : <Menu className="w-5 h-5 text-neon-cyan" />
+            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan pointer-events-none" /> : <Menu className="w-5 h-5 text-neon-cyan pointer-events-none" />
           ) : (
-            <MessageSquare className="w-5 h-5 text-neon-cyan" />
+            <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
           )}
           
+          {/* 🔥 EL PUNTO ROJO SIMPLE EN EL BOTÓN PRINCIPAL CERRADO 🔥 */}
           {totalUnread > 0 && !isMenuExpanded && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold animate-pulse shadow-sm pointer-events-none">
-              {totalUnread > 9 ? "9+" : totalUnread}
-            </span>
+            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-destructive border-2 border-card rounded-full animate-pulse shadow-sm pointer-events-none" />
           )}
         </button>
       </div>
