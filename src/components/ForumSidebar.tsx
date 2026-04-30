@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// 🔥 Añadimos "color" a NavChild para pintar los títulos 🔥
 interface NavChild {
   label?: string;
   to?: string;
@@ -104,26 +103,37 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     };
     fetchInboxCount();
     window.addEventListener("updateBadges", fetchInboxCount);
+    
+    // 🔥 Si es celular, detenemos la suscripción en tiempo real para evitar pantallas negras 🔥
+    if (isMobile) {
+      return () => window.removeEventListener("updateBadges", fetchInboxCount);
+    }
+
     const channel = supabase.channel(`sidebar-inbox-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchInboxCount()).subscribe();
     return () => { window.removeEventListener("updateBadges", fetchInboxCount); supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user?.id, isMobile]);
 
   useEffect(() => {
     if (!user?.id) return;
     const fetchNotifsCount = async () => {
       try {
         const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-        // Sumamos solicitudes de amistad para ser exactos con el panel
         const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
         setUnreadNotifications((count || 0) + (reqCount || 0));
       } catch (e) {}
     };
     fetchNotifsCount();
     window.addEventListener("updateBadges", fetchNotifsCount);
+
+    // 🔥 Si es celular, detenemos la suscripción en tiempo real para evitar pantallas negras 🔥
+    if (isMobile) {
+      return () => window.removeEventListener("updateBadges", fetchNotifsCount);
+    }
+
     const channel1 = supabase.channel(`sidebar-notifs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
     const channel2 = supabase.channel(`sidebar-reqs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
     return () => { window.removeEventListener("updateBadges", fetchNotifsCount); supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
-  }, [user?.id]);
+  }, [user?.id, isMobile]);
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -168,8 +178,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil"><User className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
               </Button>
-              {/* 🔥 AQUÍ ESTÁ LA CAMPANA ROJA SOBRE EL PERFIL 🔥 */}
-              {unreadNotifications > 0 && (
+              {/* 🔥 Se oculta la campana dentro del Sidebar en celular porque ahora vive afuera 🔥 */}
+              {!isMobile && unreadNotifications > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-white h-4 w-4 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">
                   <Bell className="w-2.5 h-2.5" />
                 </span>

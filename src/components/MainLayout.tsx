@@ -57,6 +57,11 @@ export default function MainLayout() {
         </Button>
       </div>
 
+      {/* 🔥 NUEVO: Campana de Notificaciones separada en la esquina superior derecha solo para móviles 🔥 */}
+      <div className="md:hidden fixed top-2 right-2 z-50 flex gap-2">
+        <NotificationBell />
+      </div>
+
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-[100] flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
@@ -73,7 +78,6 @@ export default function MainLayout() {
           </div>
           
           {!isMobile && (
-            // 🔥 FIX: Añadimos sticky, top-4 y un límite de altura para que el panel derecho siga el scroll.
             <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)]">
               <RightPanel />
             </div>
@@ -110,7 +114,6 @@ export default function MainLayout() {
 
       <NavigationButtons />
       <GameBubble />
-      
       <FloatingChat />
     </div>
   );
