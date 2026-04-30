@@ -59,7 +59,7 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 ESTADOS PARA EL ARRASTRE Y GUARDADO EN CACHÉ 🔥
+  // ESTADOS PARA EL ARRASTRE Y GUARDADO EN CACHÉ
   const [pos, setPos] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('floatingBubblePos');
@@ -98,22 +98,24 @@ export default function FloatingChat() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  // 🔥 CARGA PASIVA DE NOTIFICACIONES (AVISOS + SOLICITUDES) 🔥
+  // CARGA PASIVA DE NOTIFICACIONES (AVISOS + SOLICITUDES)
   const fetchNotifs = async () => {
     if (!user) return;
-    const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-    const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
-    setNotifUnread((count || 0) + (reqCount || 0));
+    try {
+      const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
+      const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
+      setNotifUnread((count || 0) + (reqCount || 0));
+    } catch (e) {}
   };
 
-  // 🔥 TEMPORIZADOR DE 5 MINUTOS 🔥
+  // 🔥 TEMPORIZADOR DE 5 SEGUNDOS (5000ms) 🔥
   useEffect(() => {
     fetchNotifs();
     
-    // 300,000 milisegundos = 5 minutos exactos
+    // Ahora revisa cada 5 segundos
     const interval = setInterval(() => {
       fetchNotifs();
-    }, 300000);
+    }, 5000); 
     
     return () => clearInterval(interval);
   }, [user, location.pathname]);
@@ -121,7 +123,7 @@ export default function FloatingChat() {
   useEffect(() => {
     const fetchNotifsThrottled = () => {
       const now = Date.now();
-      if (now - lastFetch.current > 10000) { 
+      if (now - lastFetch.current > 2000) { // Pequeño margen para no saturar al hacer muchos clicks
         lastFetch.current = now;
         fetchNotifs();
       }
@@ -322,7 +324,6 @@ export default function FloatingChat() {
               className="absolute -top-[115px] w-11 h-11 bg-card border border-neon-magenta/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
             >
               <Bell className="w-5 h-5 text-neon-magenta pointer-events-none" />
-              {/* Aquí los sub-menús sí conservan su numerito */}
               {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{notifUnread > 9 ? "9+" : notifUnread}</span>}
             </button>
 
@@ -353,7 +354,6 @@ export default function FloatingChat() {
             <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
           )}
           
-          {/* 🔥 EL PUNTO ROJO SIMPLE EN EL BOTÓN PRINCIPAL CERRADO 🔥 */}
           {totalUnread > 0 && !isMenuExpanded && (
             <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-destructive border-2 border-card rounded-full animate-pulse shadow-sm pointer-events-none" />
           )}
