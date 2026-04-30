@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { HardDrive, Trash2, Gamepad2, X, Clock, FileText } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     }
   };
 
-  // 🔥 FUNCIÓN DE BORRADO DE PARTIDAS SEGURA 🔥
+  // 🔥 FUNCIÓN DE BORRADO: AHORA ELIMINA DEL LOCALSTORAGE 🔥
   const confirmDelete = async () => {
     if (itemsToRemove.length === 0) return;
     setIsRemoving(true);
@@ -61,17 +60,32 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
 
     for (const item of itemsToRemove) {
       try {
-        // En lugar de hacer update a null con un casting raro (as any), 
-        // le enviamos un string vacío o un JSON vacío para asegurar que no explote
-        const { error } = await supabase.from('leaderboard_scores')
-          .update({ game_state: null } as any)
-          .eq('id', item.id);
+        if (item.id.startsWith('local|')) {
+          // Es una partida local guardada en el navegador
+          const parts = item.id.split('|');
+          const key = parts[1]; // ej: save_slots_mario3
+          const timestamp = parseInt(parts[2], 10);
 
-        if (!error) {
+          const existingData = localStorage.getItem(key);
+          if (existingData) {
+            const slots = JSON.parse(existingData);
+            // Filtramos la partida exacta que el usuario quiere borrar (usando el timestamp único)
+            const filteredSlots = slots.filter((slot: any) => slot.timestamp !== timestamp);
+            
+            // Si aún quedan partidas en ese juego, guardamos el resto. Si no, borramos la llave completa
+            if (filteredSlots.length > 0) {
+              localStorage.setItem(key, JSON.stringify(filteredSlots));
+            } else {
+              localStorage.removeItem(key);
+            }
+            
+            freedSpace += item.size;
+            successfullyProcessedIds.add(item.id);
+          }
+        } else {
+          // Si por alguna razón es un registro de la nube (0.01 MB), solo lo quitamos visualmente
           freedSpace += item.size;
           successfullyProcessedIds.add(item.id);
-        } else {
-           console.error("Error al borrar partida:", error);
         }
       } catch (e) { 
          console.error("Error inesperado borrando partida:", e); 
@@ -83,7 +97,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     setSelectedIds(new Set());
     setIsRemoving(false);
     setItemsToRemove([]);
-    toast({ title: "Datos limpiados", description: `Se liberaron ${freedSpace.toFixed(2)} MB. Los puntajes permanecen guardados.` });
+    toast({ title: "Datos limpiados", description: `Se liberó espacio en tu navegador. Los puntajes permanecen guardados en la nube.` });
   };
 
   return (
@@ -134,7 +148,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
       <div className="bg-card border border-border rounded p-4">
         <div className="flex flex-wrap items-center justify-between mb-4 border-b border-white/5 pb-2 gap-2">
           <h4 className="font-pixel text-[10px] text-neon-green uppercase flex items-center gap-2">
-            <Gamepad2 className="w-4 h-4" /> Partidas en la Nube
+            <Gamepad2 className="w-4 h-4" /> Partidas Guardadas
           </h4>
           
           <div className="flex items-center gap-4">
@@ -156,7 +170,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         </div>
 
         {games.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No hay partidas guardadas que ocupen espacio.</p>
+          <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">No tienes partidas guardadas en este dispositivo.</p>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <div className="min-w-[450px]">
@@ -167,7 +181,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
               >
                 <span className="text-center">Sel</span>
                 <span></span>
-                <span>Juego</span>
+                <span>Juego y Ranura</span>
                 <span className="text-right">Último Guardado</span>
                 <span className="text-right">Espacio</span>
                 <span></span>
@@ -198,7 +212,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                     
                     <span className="text-muted-foreground text-[10px] flex items-center justify-end gap-1 whitespace-nowrap shrink-0">
                       <Clock className="w-3 h-3 opacity-50" />
-                      {item.created_at ? new Date(item.created_at).toLocaleDateString() : "---"}
+                      {item.created_at ? new Date(item.created_at).toLocaleString() : "---"}
                     </span>
                     
                     <span className="text-right text-muted-foreground text-[10px] font-mono whitespace-nowrap shrink-0 min-w-[50px]">
@@ -231,7 +245,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           >
             <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
               <h3 className="font-pixel text-[10px] text-destructive flex items-center gap-2">
-                <Trash2 className="w-3.5 h-3.5" /> GESTIÓN DE ESPACIO
+                <Trash2 className="w-3.5 h-3.5" /> BORRAR DATOS
               </h3>
               <X className="w-4 h-4 text-muted-foreground cursor-pointer" onClick={() => setItemsToRemove([])} />
             </div>
@@ -243,8 +257,8 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                   {itemsToRemove.length === 1 ? `"${itemsToRemove[0].name}"` : `${itemsToRemove.length} juegos seleccionados`}
                 </strong>
               </p>
-              <p className="text-[9px] font-pixel text-destructive/70 uppercase">
-                ¡Atención! Tu puntaje se mantendrá intacto, pero el progreso del juego se borrará.
+              <p className="text-[9px] font-pixel text-destructive/70 uppercase leading-snug">
+                ¡Atención! Tu progreso se borrará de este navegador, pero tus puntajes globales se mantendrán.
               </p>
             </div>
 
@@ -253,7 +267,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                 Cancelar
               </Button>
               <Button variant="destructive" onClick={confirmDelete} disabled={isRemoving} className="h-9 text-[10px] font-pixel shadow-lg shadow-destructive/20">
-                {isRemoving ? "Procesando..." : "Sí, Limpiar"}
+                {isRemoving ? "Borrando..." : "Sí, Limpiar"}
               </Button>
             </div>
           </div>
