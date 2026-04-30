@@ -4,7 +4,6 @@ import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
-import NotificationBell from "@/components/NotificationBell";
 import FloatingChat from "@/components/FloatingChat";
 import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,11 +54,6 @@ export default function MainLayout() {
         <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
           <Menu className="w-6 h-6" />
         </Button>
-      </div>
-
-      {/* 🔥 NUEVO: Campana de Notificaciones separada en la esquina superior derecha solo para móviles 🔥 */}
-      <div className="md:hidden fixed top-2 right-2 z-50 flex gap-2">
-        <NotificationBell />
       </div>
 
       {mobileSidebarOpen && (
