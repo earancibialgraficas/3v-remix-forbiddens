@@ -67,8 +67,8 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* 🔥 FIX DEL SCROLL: Agregamos pb-[110px] aquí. Esto genera un colchón natural al fondo de la página solo en celulares y tablets, evitando el scroll fantasma 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 pb-[110px] lg:pb-0">
+      {/* 🔥 AJUSTE: Bajamos el pb a 105px para que coincida con la nueva altura visible del footer (110px - 5px) 🔥 */}
+      <main className="flex-1 flex flex-col min-w-0 pb-[105px] lg:pb-0">
         <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
@@ -80,11 +80,12 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* Footer (Visible en Tablet y Celular gracias a isMobile) */}
+        {/* Footer (Visible en Tablet y Celular) */}
         {isMobile && (
           <div className={cn(
-            "fixed bottom-0 left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            mobileRightOpen ? "h-[80vh]" : "h-[110px]"
+            "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
+            /* 🔥 FIX MAESTRO: Cuando está cerrado, lo bajamos 5px con bottom-[-5px] 🔥 */
+            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-5px]"
           )}>
             <button 
               onClick={toggleMobileRight}
