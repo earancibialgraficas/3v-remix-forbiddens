@@ -45,7 +45,7 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-// 🔥 GENERADOR DE IMÁGENES REPARADO (POLLINATIONS MODERNO) 🔥
+// 🔥 GENERADOR DE IMÁGENES ESTANDARIZADO 🔥
 const getPostThumbnail = (post: any) => {
   const content = post.content || '';
   const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
@@ -55,9 +55,8 @@ const getPostThumbnail = (post: any) => {
   if (rawImgMatch && rawImgMatch[0]) return rawImgMatch[0];
   
   const idSeed = getSeedFromId(post.id);
-  // Aseguramos que siempre haya un string válido para la IA
   const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
-  return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
 const getSocialThumbnail = (item: any) => {
@@ -79,9 +78,8 @@ const getSocialThumbnail = (item: any) => {
   
   if (item.thumbnail_url && !isVideoExt(item.thumbnail_url)) return getProxyUrl(item.thumbnail_url);
   
-  // Aseguramos que siempre haya un string válido para la IA
   const title = (item.title || item.caption || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
-  return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
 const isVideoItem = (item: any) => {

@@ -320,7 +320,7 @@ export default function GuardadosTab() {
     return () => { document.body.style.overflow = 'auto'; };
   }, [selectedIndex]);
 
-  // 🔥 SOLUCIÓN A LA IA DE MINIATURAS (API ACTUALIZADA) 🔥
+  // 🔥 SOLUCIÓN A LA IA DE MINIATURAS ESTANDARIZADA 🔥
   const getThumbnailUrl = (item: any) => {
     let origContentUrl = item.originalData?.content_url || item.redirect_url || '';
     const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
@@ -342,7 +342,7 @@ export default function GuardadosTab() {
     let origImg = item.originalData?.image_url || item.originalData?.thumbnail_url;
     if (origImg && !isVideoExt(origImg)) return getProxyUrl(origImg);
 
-    // API de Pollinations Actualizada y blindada contra fallos
+    // 🔥 API de Pollinations Estandarizada 🔥
     if (item.item_type === 'post') {
        const content = item.originalData?.content || '';
        const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
@@ -351,12 +351,12 @@ export default function GuardadosTab() {
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
        
-       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming';
-       return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+       return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk';
-    return `https://pollinations.ai/p/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
   const renderMediaOnly = (item: any) => {
