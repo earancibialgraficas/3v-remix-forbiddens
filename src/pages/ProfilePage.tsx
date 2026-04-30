@@ -168,14 +168,13 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 1. CARGAR PARTIDAS DESDE EL LOCALSTORAGE (Aquí viven realmente) 🔥
+        // 1. CARGAR PARTIDAS DESDE EL LOCALSTORAGE
         try {
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('save_slots_')) {
               const gameName = key.replace('save_slots_', '');
               const slots = JSON.parse(localStorage.getItem(key) || '[]');
               slots.forEach((slot: any) => {
-                // Calculamos el tamaño real en MB (Cada caracter en base64 es aprox 0.75 bytes)
                 const sizeMB = (slot.data?.length || 0) * 0.75 / 1024 / 1024;
                 items.push({
                   type: "Partida guardada",
@@ -191,7 +190,7 @@ export default function ProfilePage() {
           console.error("Error leyendo LocalStorage:", e);
         }
 
-        // 🔥 2. CARGAR SCORES DE LA NUBE (Quitamos las columnas problemáticas) 🔥
+        // 2. CARGAR SCORES DE LA NUBE (Cambiado el tipo a "Partida en Nube")
         const { data: scores, error: scoresError } = await supabase.from("leaderboard_scores")
           .select("id, game_name, console_type")
           .eq("user_id", user.id);
@@ -199,7 +198,7 @@ export default function ProfilePage() {
         if (!scoresError && scores) {
           scores.forEach(s => {
             items.push({ 
-              type: "Registro en Nube", 
+              type: "Partida en Nube", 
               name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
               size: 0.01, 
               id: s.id, 
@@ -378,7 +377,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* CABECERA PRINCIPAL DEL PERFIL SIEMPRE VISIBLE */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
@@ -422,7 +420,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -440,7 +437,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
