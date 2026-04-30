@@ -94,35 +94,32 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
 
-  // 🔥 ESTADOS DE PANTALLA COMPLETA Y MODO TEATRO 🔥
+  // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
   const [theaterContainer, setTheaterContainer] = useState<HTMLElement | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Escuchar cambios de Fullscreen del navegador
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // 🔥 Detectar el contenedor de Batocera INFALIBLE (MutationObserver) 🔥
+  // Radar que busca el contenedor físico (Ignora la URL, así nunca falla)
   useEffect(() => {
     const checkBatoceraContainer = () => {
       const el = document.getElementById("batocera-screen");
       if (el !== theaterContainer) setTheaterContainer(el);
     };
     
-    checkBatoceraContainer(); // Chequeo inicial
-    
-    // Observador para detectar cuando el usuario navegue hacia Batocera sin refrescar
+    checkBatoceraContainer();
     const observer = new MutationObserver(checkBatoceraContainer);
     observer.observe(document.body, { childList: true, subtree: true });
     
     return () => observer.disconnect();
   }, [theaterContainer]);
 
-  // Si abrimos un juego nuevo, reiniciamos la vista flotante para que entre al Modo Teatro si corresponde
+  // Si abrimos un juego nuevo, reiniciamos el forzado a flotante
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
@@ -299,7 +296,7 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 HACK PARA ARCHIVOS LOCALES: Usar el archivo físico guardado por EmulatorPage 🔥
+        // Carga de archivo físico para extensiones locales (Ayuda a Arcade, N64 y PS1)
         if ((window as any).__tempNostalgistFile) {
            romSrc = (window as any).__tempNostalgistFile;
            delete (window as any).__tempNostalgistFile; // Limpiamos memoria
@@ -308,13 +305,11 @@ export default function GameBubble() {
            romSrc = window.location.origin + romSrc;
         }
 
-        const instance = await Nostalgist.launch({ 
-          core: activeGame.consoleCore, 
-          rom: romSrc, 
-          element: el as HTMLCanvasElement, 
+        const instance = await Nostalgist.launch({
+          core: activeGame.consoleCore,
+          rom: romSrc,
+          element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-          // Mejora de estabilidad de resolución para N64
-          ...(activeGame.consoleCore.includes("mupen") && { resolution: { width: 640, height: 480 } })
         });
         
         nostalgistRef.current = instance;
@@ -327,9 +322,10 @@ export default function GameBubble() {
           if (canvasRef.current) canvasRef.current.focus();
         }, 500);
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Emulator error:", err);
-        toast({ title: "Error", description: "No se pudo cargar el emulador. Es posible que el archivo esté corrupto.", variant: "destructive" });
+        // 🔥 ERROR REAL (Ya no dice que está corrupto si fue por otra cosa) 🔥
+        toast({ title: "No se pudo iniciar", description: err.message || "Verifica que el ROM sea válido para esta consola.", variant: "destructive" });
       }
     };
     loadEmu();
@@ -494,8 +490,9 @@ export default function GameBubble() {
       const updated = [newSlot, ...slots].slice(0, 5);
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
-    } catch (err) {
-      // 🔥 SILENCIOSO para cores como Arcade que no soportan AutoSave 🔥
+    } catch (e) {
+      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave 🔥
+      console.warn("Este core no soporta AutoSave.");
     }
   };
 
@@ -521,8 +518,8 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
-      // 🔥 AVISO AMIGABLE SI EL JUEGO NO SOPORTA GUARDADO MANUAL 🔥
-      toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado.", variant: "destructive" });
+      // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
+      toast({ title: "Guardado no compatible", description: "Este emulador/juego no soporta guardado de estado.", variant: "destructive" });
     }
   };
 
@@ -671,7 +668,7 @@ export default function GameBubble() {
                      else setForceFloating(true);
                    }} 
                    className="h-7 w-7 text-white hover:bg-white/20" 
-                   title="Restaurar Tamaño Flotante"
+                   title="Restaurar a Ventana Flotante"
                  >
                    <Copy className="w-3.5 h-3.5" />
                  </Button>
@@ -851,10 +848,10 @@ export default function GameBubble() {
       {/* Renderizado Condicional: Teatro vs Flotante */}
       {isTheaterActive ? (
         createPortal(
-          <div className="absolute inset-0 z-[100] flex bg-black">
+          <div className="absolute inset-0 z-[100] flex bg-black animate-in fade-in">
             {bubbleContent}
           </div>,
-          theaterContainer!
+          theaterContainer
         )
       ) : (
         <div className={cn("fixed z-[300]", minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 flex items-center justify-center")}>
