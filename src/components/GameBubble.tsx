@@ -312,16 +312,18 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 EL HACK DEFINITIVO BASADO EN resolvable-file.ts 🔥
+        // 🔥 EL HACK DEFINITIVO PARA ARCHIVOS LOCALES 🔥
+        // Pasamos directamente el objeto File nativo a Nostalgist.
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
-            if (localFile) {
-                // Nostalgist procesará correctamente esto y conservará la extensión del archivo.
-                romSrc = {
-                    fileName: localFile.name,
-                    fileContent: localFile
-                };
+            if (localFile instanceof File) {
+                romSrc = localFile; // Pasamos el archivo físico directo (Así preserva la extensión y su contenido real)
+            }
+        } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
+            const localMap = (window as any).__uploadedFiles;
+            if (localMap && localMap[activeGame.gameName]) {
+                romSrc = localMap[activeGame.gameName];
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
@@ -512,7 +514,7 @@ export default function GameBubble() {
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
     } catch (e) {
-      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos el error para que cierre limpio. 🔥
+      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre limpio. 🔥
     }
   };
 

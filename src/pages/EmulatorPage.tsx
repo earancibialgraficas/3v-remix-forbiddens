@@ -127,15 +127,15 @@ export default function EmulatorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 🔥 HACK VITAL: Guardamos el File real en memoria globalmente.
-    // GameBubble leerá esto y conservará la extensión (.zip, .n64, etc.)
+    // 🔥 HACK VITAL: Guardamos el File nativo real en memoria globalmente.
+    // GameBubble leerá esto directamente para no perder su propiedad .name y extensión (.zip, .n64)
     if (!(window as any).__localRoms) {
       (window as any).__localRoms = {};
     }
     const fileId = file.name;
     (window as any).__localRoms[fileId] = file;
 
-    // Le pasamos el prefijo 'local:' a la burbuja para que sepa dónde buscar
+    // Le pasamos el prefijo 'local:' a la burbuja para que sepa dónde buscar en memoria
     launchGame({
       romUrl: `local:${fileId}`,
       consoleName: currentSystem.id as any,
