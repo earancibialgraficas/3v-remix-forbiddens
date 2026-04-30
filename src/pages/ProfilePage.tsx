@@ -168,24 +168,45 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 SOLUCIÓN: Solo pedimos los datos ligeros, omitimos 'game_state' para evitar que explote la base de datos 🔥
-        const { data: scores, error } = await supabase.from("leaderboard_scores")
-          .select("id, game_name, console_type, created_at")
-          .eq("user_id", user.id);
-
-        if (error) {
-          console.error("Error al cargar partidas:", error);
+        // 🔥 1. CARGAR PARTIDAS DESDE EL LOCALSTORAGE (Aquí viven realmente) 🔥
+        try {
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('save_slots_')) {
+              const gameName = key.replace('save_slots_', '');
+              const slots = JSON.parse(localStorage.getItem(key) || '[]');
+              slots.forEach((slot: any) => {
+                // Calculamos el tamaño real en MB (Cada caracter en base64 es aprox 0.75 bytes)
+                const sizeMB = (slot.data?.length || 0) * 0.75 / 1024 / 1024;
+                items.push({
+                  type: "Partida guardada",
+                  name: `${gameName} - ${slot.name}`,
+                  size: sizeMB,
+                  id: `local|${key}|${slot.timestamp}`,
+                  created_at: new Date(slot.timestamp).toISOString()
+                });
+              });
+            }
+          });
+        } catch (e) {
+          console.error("Error leyendo LocalStorage:", e);
         }
 
-        (scores || []).forEach(s => {
-          items.push({ 
-            type: "Partida guardada", 
-            name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
-            size: 2, 
-            id: s.id, 
-            created_at: s.created_at 
+        // 🔥 2. CARGAR SCORES DE LA NUBE (Quitamos las columnas problemáticas) 🔥
+        const { data: scores, error: scoresError } = await supabase.from("leaderboard_scores")
+          .select("id, game_name, console_type")
+          .eq("user_id", user.id);
+
+        if (!scoresError && scores) {
+          scores.forEach(s => {
+            items.push({ 
+              type: "Registro en Nube", 
+              name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
+              size: 0.01, 
+              id: s.id, 
+              created_at: new Date().toISOString() 
+            });
           });
-        });
+        }
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
         (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
@@ -357,6 +378,7 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* CABECERA PRINCIPAL DEL PERFIL SIEMPRE VISIBLE */}
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
@@ -400,6 +422,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -417,6 +440,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
+      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
