@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, X, Minimize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX } from "lucide-react";
+import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -39,6 +39,11 @@ const consoleIcons: Record<string, string> = {
   nes: "🎮",
   snes: "🕹️",
   gba: "📱",
+  n64: "👾",
+  ps1: "💿",
+  sega: "🦔",
+  gbc: "📟",
+  arcade: "🕹️"
 };
 
 interface SaveSlot {
@@ -61,6 +66,9 @@ export default function GameBubble() {
 
   const lastInputRef = useRef(Date.now());
   const afkRef = useRef(false);
+
+  // 🔥 NUEVO ESTADO: MODO TEATRO / PANTALLA COMPLETA 🔥
+  const [isTheater, setIsTheater] = useState(false);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -137,11 +145,9 @@ export default function GameBubble() {
     };
   }, [activeGame, romLoaded]);
 
-  // 🔥 MAGIA CLOUD SAVE: Función de Sincronización a Supabase 🔥
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
     try {
-      // Limitamos a 5 slots máximos para no explotar la memoria de la columna
       const safeSlots = slotsToSync.slice(0, 5);
       const slotsJson = JSON.stringify(safeSlots);
 
@@ -152,7 +158,6 @@ export default function GameBubble() {
       if (existing) {
         await supabase.from("leaderboard_scores").update({ game_state: slotsJson } as any).eq("id", existing.id);
       } else {
-        // Si no tenía récord, creamos uno con 0 puntos para alojar la partida
         await supabase.from("leaderboard_scores").insert({
           user_id: user.id, display_name: profile?.display_name || "Anónimo",
           game_name: activeGame.gameName, console_type: activeGame.consoleName,
@@ -165,7 +170,6 @@ export default function GameBubble() {
     }
   };
 
-  // 🔥 MAGIA CLOUD SAVE: Carga inicial Inteligente (Fusiona PC actual + Nube) 🔥
   useEffect(() => {
     if (activeGame) {
       const key = `save_slots_${activeGame.gameName}`;
@@ -177,7 +181,6 @@ export default function GameBubble() {
           try { localSlots = JSON.parse(stored); } catch { localSlots = []; }
         }
         
-        // Si estamos logueados, traemos las de la nube y las fusionamos
         if (user) {
           try {
             const { data } = await supabase.from("leaderboard_scores")
@@ -189,28 +192,20 @@ export default function GameBubble() {
 
             if (data && data.game_state) {
               let cloudSlots: SaveSlot[] = typeof data.game_state === 'string' ? JSON.parse(data.game_state) : data.game_state;
-              
-              // Unimos las locales y las de la nube sin duplicar (usando el timestamp como ID)
               const mergedMap = new Map();
               localSlots.forEach(s => mergedMap.set(s.timestamp, s));
               (cloudSlots || []).forEach((s: any) => mergedMap.set(s.timestamp, s));
               
-              // Convertimos a array y ordenamos (las más nuevas arriba)
               let finalSlots = Array.from(mergedMap.values());
               finalSlots.sort((a, b) => b.timestamp - a.timestamp);
-              
-              // Limitamos a 5 y guardamos en LocalStorage
               finalSlots = finalSlots.slice(0, 5);
 
               setSaveSlots(finalSlots);
               localStorage.setItem(key, JSON.stringify(finalSlots));
               return;
             }
-          } catch (e) {
-            console.error("Error sincronizando nube:", e);
-          }
+          } catch (e) {}
         }
-        // Si falla la nube o no hay internet, cargamos solo las locales
         setSaveSlots(localSlots);
       };
 
@@ -262,7 +257,6 @@ export default function GameBubble() {
       
       try {
         const { Nostalgist } = await import("nostalgist");
-        
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
         const instance = await Nostalgist.launch({
@@ -277,10 +271,7 @@ export default function GameBubble() {
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
 
-        setTimeout(() => {
-          if (canvasRef.current) canvasRef.current.focus();
-        }, 500);
-
+        setTimeout(() => { if (canvasRef.current) canvasRef.current.focus(); }, 500);
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -302,7 +293,7 @@ export default function GameBubble() {
     if (!minimized && !paused) {
       try { nostalgistRef.current.resume(); } catch {}
     }
-  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isTheater]);
 
   useEffect(() => {
     if (!romLoaded) return;
@@ -406,24 +397,19 @@ export default function GameBubble() {
       }
       
       if (existing) {
-        const { error } = await supabase.from("leaderboard_scores").update({
+        await supabase.from("leaderboard_scores").update({
           score: currentScore, play_time_seconds: currentTime, display_name: profile?.display_name || "Anónimo",
         } as any).eq("id", (existing as any).id);
-        
-        if (error) throw error;
         if (!silent) toast({ title: "¡Nuevo récord!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       } else {
-        const { error } = await supabase.from("leaderboard_scores").insert({
+        await supabase.from("leaderboard_scores").insert({
           user_id: user.id, display_name: profile?.display_name || "Anónimo",
           game_name: activeGame.gameName, console_type: activeGame.consoleName,
           score: currentScore, play_time_seconds: currentTime,
         } as any);
-        
-        if (error) throw error;
         if (!silent) toast({ title: "¡Puntaje guardado!", description: `${currentScore} puntos en ${activeGame.gameName}` });
       }
     } catch (error: any) {
-      console.error("Score save error:", error);
       if (!silent) toast({ title: "Error al guardar puntaje", description: error.message, variant: "destructive" });
     }
   };
@@ -442,10 +428,9 @@ export default function GameBubble() {
       let slots: SaveSlot[] = [];
       try { slots = stored ? JSON.parse(stored) : []; } catch {}
       
-      // Agregamos al inicio y limitamos a 5
       const updated = [newSlot, ...slots].slice(0, 5);
       localStorage.setItem(key, JSON.stringify(updated));
-      await syncCloudSaves(updated); // Sincroniza a la nube
+      await syncCloudSaves(updated); 
     } catch {}
   };
 
@@ -461,7 +446,7 @@ export default function GameBubble() {
       const updated = [newSlot, ...saveSlots].slice(0, 5);
       setSaveSlots(updated);
       localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
-      await syncCloudSaves(updated); // Sincroniza a la nube
+      await syncCloudSaves(updated); 
       
       toast({ title: "Partida guardada y subida a la nube", description: `"${name}"` });
       setSlotName("");
@@ -494,32 +479,30 @@ export default function GameBubble() {
     const updated = saveSlots.filter((_, i) => i !== index);
     setSaveSlots(updated);
     localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
-    await syncCloudSaves(updated); // Sincroniza a la nube (borrado)
+    await syncCloudSaves(updated); 
     toast({ title: "Slot eliminado de tu PC y de la Nube" });
   };
 
   const handleClose = async (idx?: number) => {
     await autoSaveOnClose();
-    
-    if (activeGame && scoreRef.current > 0 && user) {
-      await handleSaveScore(true); 
-    }
-    
+    if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(true); 
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
       setNostalgistInstance(null);
+      setIsTheater(false); // 🔥 SALIR DEL MODO TEATRO AL CERRAR 🔥
     }
     closeGame(idx);
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
+    if (isTheater) return; // 🔥 NO ARRASTRAR EN MODO TEATRO 🔥
     setDragging(true);
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPosX: position.x, startPosY: position.y };
   };
 
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging || isTheater) return;
     const onMove = (e: MouseEvent) => {
       setPosition({
         x: dragRef.current.startPosX + (e.clientX - dragRef.current.startX),
@@ -530,16 +513,17 @@ export default function GameBubble() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [dragging]);
+  }, [dragging, isTheater]);
 
   const onResizeDown = (e: React.MouseEvent) => {
+    if (isTheater) return; // 🔥 NO REDIMENSIONAR EN MODO TEATRO 🔥
     e.stopPropagation();
     setResizing(true);
     resizeRef.current = { startX: e.clientX, startY: e.clientY, startW: popupSize.w, startH: popupSize.h };
   };
 
   useEffect(() => {
-    if (!resizing) return;
+    if (!resizing || isTheater) return;
     let rafId: number;
     const onMove = (e: MouseEvent) => {
       cancelAnimationFrame(rafId);
@@ -553,7 +537,7 @@ export default function GameBubble() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { cancelAnimationFrame(rafId); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [resizing, scheduleCanvasSurfaceSync]);
+  }, [resizing, scheduleCanvasSurfaceSync, isTheater]);
 
   if (activeGames.length === 0 || !activeGame) return null;
 
@@ -563,8 +547,13 @@ export default function GameBubble() {
 
   return (
     <>
-      {!minimized && (
+      {!minimized && !isTheater && (
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md animate-fade-in" onClick={minimizeGame} />
+      )}
+
+      {/* 🔥 OVERLAY NEGRO ABSOLUTO PARA EL MODO TEATRO 🔥 */}
+      {isTheater && !minimized && (
+        <div className="fixed inset-0 z-[200] bg-black" />
       )}
 
       <div
@@ -580,10 +569,12 @@ export default function GameBubble() {
             "relative bg-card border border-border overflow-hidden select-none",
             minimized
               ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group transition-transform duration-200"
+              : isTheater
+              ? "flex flex-col w-full h-full rounded-none border-none shadow-none animate-in fade-in" // 🔥 ESTILOS MODO TEATRO 🔥
               : "flex rounded-xl shadow-2xl shadow-black/50 animate-scale-in"
           )}
           style={
-            minimized
+            minimized || isTheater
               ? undefined
               : {
                   transform: `translate(${position.x}px, ${position.y}px)`,
@@ -595,14 +586,18 @@ export default function GameBubble() {
                 }
           }
         >
+          {/* Si está en modo teatro, el header de mover se esconde o cambia para no estorbar */}
           <div className={cn("relative flex-1 min-w-0", minimized ? "h-full w-full" : "flex flex-col")}> 
             {!minimized && (
               <div
-                className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border cursor-move select-none"
+                className={cn(
+                  "flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border select-none transition-all",
+                  !isTheater ? "cursor-move" : "opacity-0 hover:opacity-100 absolute top-0 w-full z-50 bg-black/80" // Se oculta en teatro y aparece en hover
+                )}
                 onMouseDown={onMouseDown}
               >
                 <div className="flex items-center gap-2">
-                  <Move className="w-3 h-3 text-muted-foreground" />
+                  {!isTheater && <Move className="w-3 h-3 text-muted-foreground" />}
                   <Gamepad2 className="w-4 h-4 text-neon-green" />
                   <div>
                     <p className="text-xs font-body font-medium text-foreground">{activeGame.gameName}</p>
@@ -615,9 +610,15 @@ export default function GameBubble() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar">
-                    <Minimize2 className="w-3.5 h-3.5" />
+                  {/* 🔥 NUEVO BOTÓN DE PANTALLA COMPLETA (TEATRO) 🔥 */}
+                  <Button size="icon" variant="ghost" onClick={() => { setIsTheater(!isTheater); scheduleCanvasSurfaceSync(); }} className="h-7 w-7 text-neon-yellow hover:bg-neon-yellow/10" title={isTheater ? "Salir de Pantalla Completa" : "Pantalla Completa"}>
+                    {isTheater ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                   </Button>
+                  {!isTheater && (
+                    <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar">
+                      <Minimize2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                   <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar">
                     <X className="w-3.5 h-3.5" />
                   </Button>
@@ -672,7 +673,7 @@ export default function GameBubble() {
               )}
             </div>
 
-            {!minimized && (
+            {!minimized && !isTheater && (
               <div className="px-3 py-1 bg-muted/30 border-t border-border">
                 <p className="text-[8px] text-muted-foreground font-body text-center">
                   Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
@@ -681,9 +682,13 @@ export default function GameBubble() {
             )}
           </div>
 
+          {/* BARRA DE HERRAMIENTAS (SIDEBAR) */}
           {!minimized && (
             <>
-              <div className="w-14 bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0">
+              <div className={cn(
+                "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-all",
+                isTheater ? "absolute right-0 h-full w-14 opacity-0 hover:opacity-100 bg-black/80 z-50 border-none" : "w-14"
+              )}>
                 {romLoaded && (
                   <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
                     <Save className="w-4 h-4" />
@@ -762,10 +767,13 @@ export default function GameBubble() {
                 <div className="flex-1" />
               </div>
 
-              <div onMouseDown={onResizeDown}
-                className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10">
-                <GripVertical className="w-3 h-3 rotate-[-45deg]" />
-              </div>
+              {/* Botón de Redimensionar (solo si no es teatro) */}
+              {!isTheater && (
+                <div onMouseDown={onResizeDown}
+                  className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10">
+                  <GripVertical className="w-3 h-3 rotate-[-45deg]" />
+                </div>
+              )}
             </>
           )}
         </div>
