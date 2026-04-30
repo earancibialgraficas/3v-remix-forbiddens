@@ -7,7 +7,7 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
 import { cn } from "@/lib/utils";
 
-// 🔥 SISTEMAS APUNTANDO A TU CARPETA LOCAL 🔥
+// 🔥 NOMBRES EXACTOS PARA TU CARPETA /consolasimg/ 🔥
 const systems = [
   {
     id: "nes", name: "Nintendo Entertainment System", short: "NES", core: "fceumm", extensions: ".nes,.zip",
@@ -74,7 +74,7 @@ export default function EmulatorPage() {
 
   const hasActiveGame = activeGames.length > 0;
 
-  // Lógica de carga automática si vienes desde la Biblioteca
+  // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
     const gameId = searchParams.get("game");
     if (gameId && user) {
@@ -90,7 +90,7 @@ export default function EmulatorPage() {
           playTime: 0,
         });
         
-        // Limpiamos los parámetros de la URL
+        // Limpiamos los parámetros de la URL para que no vuelva a cargar al refrescar
         const newSearchParams = new URLSearchParams(searchParams);
         newSearchParams.delete('game');
         navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
@@ -104,7 +104,7 @@ export default function EmulatorPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Bloquear navegación del teclado si hay un juego activo
+  // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (hasActiveGame) return; 
@@ -128,16 +128,18 @@ export default function EmulatorPage() {
     if (!file) return;
 
     // 🔥 HACK VITAL: Guardamos el File real en memoria globalmente.
-    // Así GameBubble lo recuperará y Nostalgist sabrá que es un .zip o .n64.
-    if (!(window as any).__uploadedFiles) {
-      (window as any).__uploadedFiles = {};
+    // GameBubble leerá esto y conservará la extensión (.zip, .n64, etc.)
+    if (!(window as any).__localRoms) {
+      (window as any).__localRoms = {};
     }
-    (window as any).__uploadedFiles[file.name] = file;
+    const fileId = file.name;
+    (window as any).__localRoms[fileId] = file;
 
+    // Le pasamos el prefijo 'local:' a la burbuja para que sepa dónde buscar
     launchGame({
-      romUrl: URL.createObjectURL(file), // GameBubble ignorará esta URL y usará el File directo
+      romUrl: `local:${fileId}`,
       consoleName: currentSystem.id as any,
-      gameName: file.name, // Esto sirve como llave para buscar el archivo
+      gameName: file.name.replace(/\.[^/.]+$/, ""),
       consoleCore: currentSystem.core,
       score: 0,
       playTime: 0,
@@ -147,12 +149,12 @@ export default function EmulatorPage() {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
+    <div id="batocera-screen" className="relative w-full h-[calc(100vh-5.5rem)] min-h-[600px] flex-1 bg-black rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fade-in group selection:bg-transparent">
       
-      {/* 🔥 EL RECIPIENTE MÁGICO: Aquí se inyectará GameBubble si hay un juego activo 🔥 */}
+      {/* 🔥 EL RECIPIENTE MÁGICO: Aquí se inyectará GameBubble de manera visual si hay un juego activo 🔥 */}
       <div id="batocera-target" className={cn("absolute inset-0 z-50 pointer-events-auto", hasActiveGame ? "block" : "hidden")}></div>
 
-      {/* Solo mostramos Batocera si NO hay un juego activo en pantalla */}
+      {/* Solo mostramos la interfaz de Batocera si NO hay un juego activo en pantalla */}
       {!hasActiveGame && (
         <>
           <div className="absolute inset-0 transition-opacity duration-1000">
@@ -164,7 +166,7 @@ export default function EmulatorPage() {
           <div className="absolute top-0 w-full p-5 md:p-6 flex justify-between items-center z-20 pointer-events-none">
             <div className="flex items-center gap-3 text-white/80">
               <Monitor className="w-5 h-5" />
-              <span className="font-pixel text-[10px] tracking-widest uppercase hidden sm:inline-block">Forbiddens.linux / Web Edition</span>
+              <span className="font-pixel text-[10px] tracking-widest uppercase hidden sm:inline-block">Batocera.linux / Web Edition</span>
             </div>
             <div className="flex items-center gap-4 md:gap-5 text-white/80">
               <Settings className="w-4 h-4 md:w-5 md:h-5" />

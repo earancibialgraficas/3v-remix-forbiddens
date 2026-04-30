@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX, Minus, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -123,7 +124,7 @@ export default function GameBubble() {
     };
     
     checkBatoceraContainer();
-    const interval = setInterval(checkBatoceraContainer, 200); // Polling constante para ajustar medidas si hay scroll o redimensión
+    const interval = setInterval(checkBatoceraContainer, 200);
     window.addEventListener('resize', checkBatoceraContainer);
     window.addEventListener('scroll', checkBatoceraContainer, true);
     
@@ -311,12 +312,16 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 HACK VITAL PARA N64, ARCADE Y PS1 🔥
-        // Recuperamos el archivo físico si se subió localmente en EmulatorPage
-        if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
-            const localMap = (window as any).__uploadedFiles;
-            if (localMap && localMap[activeGame.gameName]) {
-                romSrc = localMap[activeGame.gameName]; // Pasamos el File físico original (.zip, .n64)
+        // 🔥 EL HACK DEFINITIVO BASADO EN resolvable-file.ts 🔥
+        if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
+            const fileId = romSrc.replace("local:", "");
+            const localFile = (window as any).__localRoms?.[fileId];
+            if (localFile) {
+                // Nostalgist procesará correctamente esto y conservará la extensión del archivo.
+                romSrc = {
+                    fileName: localFile.name,
+                    fileContent: localFile
+                };
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
@@ -341,7 +346,7 @@ export default function GameBubble() {
 
       } catch (err: any) {
         console.error("Emulator error:", err);
-        toast({ title: "No se pudo iniciar", description: err.message || "Verifica que el ROM sea válido para esta consola.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo cargar el emulador. Verifique que el ROM sea compatible.", variant: "destructive" });
       }
     };
     loadEmu();
@@ -507,8 +512,7 @@ export default function GameBubble() {
       localStorage.setItem(key, JSON.stringify(updated));
       await syncCloudSaves(updated); 
     } catch (e) {
-      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre limpio. 🔥
-      console.warn("Este core no soporta AutoSave.");
+      // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos el error para que cierre limpio. 🔥
     }
   };
 
@@ -535,7 +539,7 @@ export default function GameBubble() {
       }
     } catch (err) {
       // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
-      toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado.", variant: "destructive" });
+      toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado rápido.", variant: "destructive" });
     }
   };
 
