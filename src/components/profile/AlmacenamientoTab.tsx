@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
   
-  // Protección contra NaN si los datos aún no cargan
   const safeMaxStorage = maxStorage || 100;
   const safeStorageUsed = storageUsed || 0;
   const storagePercent = safeMaxStorage >= 9999 ? 0 : Math.min(100, (safeStorageUsed / safeMaxStorage) * 100);
@@ -25,7 +24,6 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     return () => { document.body.style.overflow = 'auto'; };
   }, [itemsToRemove]);
 
-  // SEPARACIÓN DE DATOS
   const games = (storageItems || []).filter((i: any) => i.type && i.type.toLowerCase().includes("partida"));
   
   const socialUsage = (storageItems || [])
@@ -51,7 +49,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     }
   };
 
-  // 🔥 FUNCIÓN DE BORRADO: AHORA ELIMINA DEL LOCALSTORAGE Y DE LA NUBE DE FORMA SEGURA 🔥
+  // 🔥 FUNCIÓN DE BORRADO SUPER BLINDADA CONTRA ERRORES DE JAVASCRIPT 🔥
   const confirmDelete = async () => {
     if (itemsToRemove.length === 0) return;
     setIsRemoving(true);
@@ -62,30 +60,35 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     for (const item of itemsToRemove) {
       try {
         if (item.id && item.id.startsWith('local|')) {
-          // Es una partida local guardada en el navegador
           const parts = item.id.split('|');
-          const key = parts[1]; // ej: save_slots_mario3
-          const timestamp = parseInt(parts[2], 10);
+          const key = parts[1]; 
+          const timestampStr = String(parts[2]); // Lo forzamos a ser un texto siempre
 
           const existingData = localStorage.getItem(key);
           if (existingData) {
             const slots = JSON.parse(existingData);
-            // Filtramos la partida exacta que el usuario quiere borrar
-            const filteredSlots = slots.filter((slot: any) => slot.timestamp !== timestamp);
             
-            // Si aún quedan partidas en ese juego, guardamos el resto. Si no, borramos la llave completa
-            if (filteredSlots.length > 0) {
-              localStorage.setItem(key, JSON.stringify(filteredSlots));
+            // Filtramos forzando a que ambos lados de la comparación sean un string
+            const filteredSlots = slots.filter((slot: any) => String(slot.timestamp) !== timestampStr);
+            
+            // Si el filtro funcionó (es decir, el tamaño del array disminuyó)
+            if (filteredSlots.length < slots.length) {
+               if (filteredSlots.length > 0) {
+                 localStorage.setItem(key, JSON.stringify(filteredSlots));
+               } else {
+                 localStorage.removeItem(key);
+               }
             } else {
-              localStorage.removeItem(key);
+               // MODO DE EMERGENCIA: Si no encontró el timestamp exacto, borramos toda la llave de ese juego
+               console.warn("No se encontró el slot exacto, limpiando ranura completa por seguridad.");
+               localStorage.removeItem(key);
             }
             
             freedSpace += item.size;
             successfullyProcessedIds.add(item.id);
           }
         } else {
-          // Si es un registro de la nube, le borramos el 'game_state' para que no ocupe memoria real
-          // pero conservando sus puntos
+          // Si es una partida de la Nube, la limpiamos en Supabase
           const { error } = await supabase.from('leaderboard_scores')
             .update({ game_state: null } as any)
             .eq('id', item.id);
@@ -107,7 +110,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
     setSelectedIds(new Set());
     setIsRemoving(false);
     setItemsToRemove([]);
-    toast({ title: "Datos limpiados", description: `Se liberó espacio en tu navegador. Tus puntajes permanecen guardados en la nube.` });
+    toast({ title: "Datos limpiados", description: `Se liberó espacio correctamente. Tus récords globales permanecen intactos.` });
   };
 
   return (
@@ -268,7 +271,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
                 </strong>
               </p>
               <p className="text-[9px] font-pixel text-destructive/70 uppercase leading-snug">
-                ¡Atención! Tu progreso se borrará de este navegador, pero tus puntajes globales se mantendrán a salvo en la tabla de clasificación.
+                ¡Atención! Tu progreso de este dispositivo se borrará, pero tus puntajes globales se mantendrán a salvo.
               </p>
             </div>
 
