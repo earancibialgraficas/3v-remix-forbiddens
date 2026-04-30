@@ -17,6 +17,8 @@ interface Song {
 
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
+// 🔥 NUEVO: Función para obtener el volumen guardado en caché 🔥
+const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
 
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
@@ -28,7 +30,8 @@ export default function ChillMusicPlayer() {
   const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
   const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(80);
+  // 🔥 NUEVO: Inicia con el volumen guardado 🔥
+  const [volume, setVolume] = useState(getStoredVolume);
   const [expanded, setExpanded] = useState(false);
   const [minimized, setMinimized] = useState(false); 
   const [showAddSong, setShowAddSong] = useState(false);
@@ -48,7 +51,7 @@ export default function ChillMusicPlayer() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
   
-  // 🔥 CANDADO DE SEGURIDAD: Bloquea el guardado hasta aplicar el tiempo guardado
+  // CANDADO DE SEGURIDAD: Bloquea el guardado hasta aplicar el tiempo guardado
   const timeToRestoreRef = useRef<number | null>(null);
   const actualTimeRef = useRef<number>(0); // Referencia silenciosa del tiempo actual
   
@@ -56,12 +59,11 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // Actualizamos el Ref del tiempo en silencio para no romper el temporizador
   useEffect(() => {
     actualTimeRef.current = currentTime;
   }, [currentTime]);
 
-  // 🔥 1. GUARDAR CANCIÓN Y PLAYLIST (Reemplaza al instante al cambiar)
+  // 1. GUARDAR CANCIÓN Y PLAYLIST
   useEffect(() => {
     if (playlist.length > 0 && timeToRestoreRef.current === null) {
       localStorage.setItem('forbiddens_music_category', currentCategory);
@@ -69,14 +71,13 @@ export default function ChillMusicPlayer() {
     }
   }, [currentCategory, currentIndex, playlist.length]);
 
-  // 🔥 2. GUARDAR EL MINUTO ACTUAL (Independiente para que no falle)
+  // 2. GUARDAR EL MINUTO ACTUAL
   useEffect(() => {
     const timer = setInterval(() => {
-      // Solo guarda si la música ya cargó y ya quitamos el candado inicial
       if (timeToRestoreRef.current === null && actualTimeRef.current > 0) {
         localStorage.setItem('forbiddens_music_time', actualTimeRef.current.toString());
       }
-    }, 1000); // Aplasta y reemplaza el dato cada 1 segundo exacto
+    }, 1000); 
     return () => clearInterval(timer);
   }, []);
 
@@ -135,12 +136,10 @@ export default function ChillMusicPlayer() {
         const parsedTime = parseFloat(savedTime);
         setCurrentTime(parsedTime);
         setSeekDisplayValue(parsedTime);
-        timeToRestoreRef.current = parsedTime; // 🔒 Activa el candado
+        timeToRestoreRef.current = parsedTime; 
       }
 
-      if (initialPlaylist.length > 0) {
-        setIsPlaying(true);
-      }
+      // 🔥 Eliminado el setIsPlaying(true) para que no haga autoplay
     };
 
     fetchMusic();
@@ -149,7 +148,6 @@ export default function ChillMusicPlayer() {
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      // 🔥 Aplica el tiempo guardado y ROMPE el candado para permitir autoguardar de nuevo
       if (timeToRestoreRef.current !== null) {
         audioRef.current.currentTime = timeToRestoreRef.current;
         timeToRestoreRef.current = null; 
@@ -167,7 +165,7 @@ export default function ChillMusicPlayer() {
     setCurrentIndex(0);
     setIsPlaying(true);
     setCurrentTime(0);
-    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
+    timeToRestoreRef.current = null; 
     setShowCategoryMenu(false); 
   };
 
@@ -206,7 +204,6 @@ export default function ChillMusicPlayer() {
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
         
-        // 🔥 Aplica en Youtube y ROMPE el candado
         if (timeToRestoreRef.current !== null) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*');
           timeToRestoreRef.current = null;
@@ -216,8 +213,12 @@ export default function ChillMusicPlayer() {
     }
   }, [isPlaying, currentIndex, volume, current]);
 
+  // 🔥 NUEVO: Aplica y guarda el volumen en caché en tiempo real 🔥
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('forbiddens_music_volume', volume.toString());
+    }
   }, [volume]);
 
   useEffect(() => {
@@ -288,7 +289,7 @@ export default function ChillMusicPlayer() {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i + 1) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
-    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
+    timeToRestoreRef.current = null; 
     setIsPlaying(true);
   }, [playlist.length]);
 
@@ -296,7 +297,7 @@ export default function ChillMusicPlayer() {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
-    timeToRestoreRef.current = null; // 🔓 Romper candado por cambio manual
+    timeToRestoreRef.current = null; 
     setIsPlaying(true);
   };
 
@@ -332,7 +333,7 @@ export default function ChillMusicPlayer() {
     setIsSeeking(false);
     setCurrentTime(t);
     setSeekDisplayValue(t);
-    timeToRestoreRef.current = null; // 🔓 Romper candado por adelanto manual
+    timeToRestoreRef.current = null; 
     
     if (current?.type === 'local' && audioRef.current) {
       audioRef.current.currentTime = t;
@@ -450,13 +451,16 @@ export default function ChillMusicPlayer() {
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
-        <div className="px-3 pb-1">
-          <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
-          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
-            <span>{formatTime(displayTime)}</span>
-            <span>{formatTime(duration)}</span>
+        {/* 🔥 NUEVO: Oculta la barra de progreso si es un video de YouTube 🔥 */}
+        {current?.type !== 'youtube' && (
+          <div className="px-3 pb-1">
+            <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
+            <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
+              <span>{formatTime(displayTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="px-3 pb-2 flex items-center gap-2">
           <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">
