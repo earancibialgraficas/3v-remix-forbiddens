@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
 import { supabase } from "@/integrations/supabase/client";
+import { useGameBubble } from "@/contexts/GameBubbleContext"; // 🔥 IMPORTAMOS LA BURBUJA 🔥
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
@@ -31,6 +31,7 @@ interface LeaderboardScore {
 export default function BibliotecaPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { launchGame } = useGameBubble(); // 🔥 INICIALIZAMOS LA BURBUJA 🔥
 
   const [selectedConsole, setSelectedConsole] = useState<ConsoleType>("snes");
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +51,21 @@ export default function BibliotecaPage() {
       return matchesSearch && matchesConsole;
     });
   }, [searchQuery, selectedConsole]);
+
+  // 🔥 FUNCIÓN PARA OBTENER EL CORE CORRECTO 🔥
+  const getCoreForConsole = (consoleId: string) => {
+    const cores: Record<string, string> = {
+      nes: "fceumm",
+      snes: "snes9x",
+      gba: "mgba",
+      n64: "mupen64plus_next",
+      gbc: "gambatte",
+      sega: "genesis_plus_gx",
+      ps1: "pcsx_rearmed",
+      arcade: "fbneo"
+    };
+    return cores[consoleId] || "fceumm";
+  };
 
   // 🔥 FETCH DE LEADERBOARD EXACTO DE EMULATORPAGE 🔥
   useEffect(() => {
@@ -172,10 +188,18 @@ export default function BibliotecaPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {currentGames.map((game) => (
-              <Link
-                to={`/arcade/salas?console=${selectedConsole}&game=${game.id}`}
+              // 🔥 SOLUCIÓN: Cambiado de <Link> a <div> para que abra con GameBubble sin redireccionar 🔥
+              <div
                 key={game.id}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col"
+                onClick={() => launchGame({
+                  romUrl: game.romUrl,
+                  consoleName: selectedConsole,
+                  gameName: game.name,
+                  consoleCore: getCoreForConsole(selectedConsole),
+                  score: 0,
+                  playTime: 0
+                })}
+                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col cursor-pointer"
               >
                 <div className="aspect-square overflow-hidden bg-muted">
                   <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
@@ -184,7 +208,7 @@ export default function BibliotecaPage() {
                   <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                   <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -222,8 +246,22 @@ export default function BibliotecaPage() {
             <Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO
           </h3>
           <Input placeholder="Nombre del juego" value={gameName} onChange={e => setGameName(e.target.value)} className="h-7 bg-muted text-xs font-body" />
-          <Textarea placeholder="¿Por qué lo recomiendas? (opcional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-muted text-xs font-body min-h-[40px]" />
-          <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-7">
+          
+          {/* 🔥 LÍMITE DE 500 CARACTERES APLICADO 🔥 */}
+          <div className="space-y-1">
+            <Textarea 
+              placeholder="¿Por qué lo recomiendas? (opcional)" 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              maxLength={500}
+              className="bg-muted text-xs font-body min-h-[40px]" 
+            />
+            <div className="text-[9px] text-muted-foreground text-right">
+              {description.length}/500 caracteres
+            </div>
+          </div>
+
+          <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-7 w-full">
             <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}
           </Button>
         </div>
