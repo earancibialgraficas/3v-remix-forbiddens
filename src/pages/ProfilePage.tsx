@@ -168,7 +168,8 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 1. CARGAR PARTIDAS DESDE EL LOCALSTORAGE
+        // 🔥 SOLO CARGAMOS PARTIDAS REALES DESDE EL NAVEGADOR 🔥
+        // Ya no consultamos la tabla leaderboard_scores porque ahí solo están los puntos.
         try {
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('save_slots_')) {
@@ -188,23 +189,6 @@ export default function ProfilePage() {
           });
         } catch (e) {
           console.error("Error leyendo LocalStorage:", e);
-        }
-
-        // 2. CARGAR SCORES DE LA NUBE (Cambiado el tipo a "Partida en Nube")
-        const { data: scores, error: scoresError } = await supabase.from("leaderboard_scores")
-          .select("id, game_name, console_type")
-          .eq("user_id", user.id);
-
-        if (!scoresError && scores) {
-          scores.forEach(s => {
-            items.push({ 
-              type: "Partida en Nube", 
-              name: `${s.game_name} (${safeStr((s as any).console_type).toUpperCase()})`, 
-              size: 0.01, 
-              id: s.id, 
-              created_at: new Date().toISOString() 
-            });
-          });
         }
         
         const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
@@ -420,6 +404,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -437,6 +422,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
+      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
