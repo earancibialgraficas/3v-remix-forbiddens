@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
+import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX, Minus, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -40,9 +42,9 @@ const consoleIcons: Record<string, string> = {
   snes: "🕹️",
   gba: "📱",
   n64: "👾",
-  ps1: "💿",
-  sega: "🦔",
   gbc: "📟",
+  sega: "🦔",
+  ps1: "💿",
   arcade: "🕹️"
 };
 
@@ -55,9 +57,11 @@ interface SaveSlot {
 const AFK_TIMEOUT_MS = 30 * 1000;
 
 export default function GameBubble() {
+  const location = useLocation();
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -66,9 +70,6 @@ export default function GameBubble() {
 
   const lastInputRef = useRef(Date.now());
   const afkRef = useRef(false);
-
-  // 🔥 NUEVO ESTADO: MODO TEATRO / PANTALLA COMPLETA 🔥
-  const [isTheater, setIsTheater] = useState(false);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -92,6 +93,36 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+
+  // 🔥 ESTADOS DE PANTALLA COMPLETA Y MODO TEATRO 🔥
+  const [theaterContainer, setTheaterContainer] = useState<HTMLElement | null>(null);
+  const [forceFloating, setForceFloating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isBatoceraPage = location.pathname.includes("emuladores");
+
+  // Escuchar cambios de Fullscreen del navegador
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  // Detectar el contenedor de Batocera para inyectar el juego
+  useEffect(() => {
+    if (isBatoceraPage && !minimized && !forceFloating) {
+      setTheaterContainer(document.getElementById("batocera-screen"));
+    } else {
+      setTheaterContainer(null);
+    }
+  }, [isBatoceraPage, minimized, forceFloating, activeGame]);
+
+  // Si abrimos un juego nuevo, reiniciamos la vista flotante para que entre al Modo Teatro si corresponde
+  useEffect(() => {
+    setForceFloating(false);
+  }, [activeGame?.romUrl]);
+
+  const isTheaterActive = !!theaterContainer;
+  const isExpanded = isTheaterActive || isFullscreen;
 
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
@@ -204,7 +235,9 @@ export default function GameBubble() {
               localStorage.setItem(key, JSON.stringify(finalSlots));
               return;
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Error sincronizando nube:", e);
+          }
         }
         setSaveSlots(localSlots);
       };
@@ -257,6 +290,7 @@ export default function GameBubble() {
       
       try {
         const { Nostalgist } = await import("nostalgist");
+        
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
         const instance = await Nostalgist.launch({
@@ -271,7 +305,10 @@ export default function GameBubble() {
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
 
-        setTimeout(() => { if (canvasRef.current) canvasRef.current.focus(); }, 500);
+        setTimeout(() => {
+          if (canvasRef.current) canvasRef.current.focus();
+        }, 500);
+
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -293,7 +330,7 @@ export default function GameBubble() {
     if (!minimized && !paused) {
       try { nostalgistRef.current.resume(); } catch {}
     }
-  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isTheater]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isExpanded]);
 
   useEffect(() => {
     if (!romLoaded) return;
@@ -340,16 +377,24 @@ export default function GameBubble() {
     }
   }, [romLoaded]);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (popupRef.current) popupRef.current.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeGame && romLoaded && !minimized) {
+      if (e.key === "Escape" && activeGame && romLoaded && !minimized && !isFullscreen) {
         e.preventDefault();
         togglePause();
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [activeGame, romLoaded, minimized, togglePause]);
+  }, [activeGame, romLoaded, minimized, togglePause, isFullscreen]);
 
   const stateToBase64 = async (state: any): Promise<string> => {
     let bytes: Uint8Array;
@@ -456,7 +501,6 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
-      console.error("Save error:", err);
       toast({ title: "Error al guardar", variant: "destructive" });
     }
   };
@@ -469,7 +513,6 @@ export default function GameBubble() {
       toast({ title: "Partida cargada", description: `"${slot.name}"` });
       setShowLoadDialog(false);
     } catch (err) {
-      console.error("Load error:", err);
       toast({ title: "Error al cargar la partida", description: "No se pudo restaurar el estado", variant: "destructive" });
     }
   };
@@ -490,19 +533,21 @@ export default function GameBubble() {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
       setNostalgistInstance(null);
-      setIsTheater(false); // 🔥 SALIR DEL MODO TEATRO AL CERRAR 🔥
+    }
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
     }
     closeGame(idx);
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (isTheater) return; // 🔥 NO ARRASTRAR EN MODO TEATRO 🔥
+    if (isExpanded) return;
     setDragging(true);
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPosX: position.x, startPosY: position.y };
   };
 
   useEffect(() => {
-    if (!dragging || isTheater) return;
+    if (!dragging || isExpanded) return;
     const onMove = (e: MouseEvent) => {
       setPosition({
         x: dragRef.current.startPosX + (e.clientX - dragRef.current.startX),
@@ -513,17 +558,17 @@ export default function GameBubble() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [dragging, isTheater]);
+  }, [dragging, isExpanded]);
 
   const onResizeDown = (e: React.MouseEvent) => {
-    if (isTheater) return; // 🔥 NO REDIMENSIONAR EN MODO TEATRO 🔥
+    if (isExpanded) return;
     e.stopPropagation();
     setResizing(true);
     resizeRef.current = { startX: e.clientX, startY: e.clientY, startW: popupSize.w, startH: popupSize.h };
   };
 
   useEffect(() => {
-    if (!resizing || isTheater) return;
+    if (!resizing || isExpanded) return;
     let rafId: number;
     const onMove = (e: MouseEvent) => {
       cancelAnimationFrame(rafId);
@@ -537,7 +582,7 @@ export default function GameBubble() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { cancelAnimationFrame(rafId); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [resizing, scheduleCanvasSurfaceSync, isTheater]);
+  }, [resizing, scheduleCanvasSurfaceSync, isExpanded]);
 
   if (activeGames.length === 0 || !activeGame) return null;
 
@@ -545,260 +590,282 @@ export default function GameBubble() {
     .map((game, idx) => ({ game, idx }))
     .filter(({ idx }) => idx !== currentGameIndex);
 
-  return (
-    <>
-      {!minimized && !isTheater && (
-        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md animate-fade-in" onClick={minimizeGame} />
-      )}
+  const popupStyle = minimized || isExpanded ? undefined : {
+    transform: `translate(${position.x}px, ${position.y}px)`,
+    width: `${popupSize.w}px`,
+    height: `${popupSize.h}px`,
+    maxWidth: "95vw",
+    maxHeight: "90vh",
+    willChange: dragging || resizing ? "transform, width, height" : "auto",
+  };
 
-      {/* 🔥 OVERLAY NEGRO ABSOLUTO PARA EL MODO TEATRO 🔥 */}
-      {isTheater && !minimized && (
-        <div className="fixed inset-0 z-[200] bg-black" />
+  const bubbleContent = (
+    <div
+      ref={popupRef}
+      onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
+      className={cn(
+        "relative bg-card overflow-hidden select-none",
+        minimized ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group border border-border" :
+        isExpanded ? "flex flex-col w-full h-full rounded-none border-none shadow-none bg-black animate-in fade-in" :
+        "flex rounded-xl shadow-2xl shadow-black/50 border border-border animate-scale-in"
       )}
+      style={popupStyle}
+    >
+      <div className={cn("relative flex-1 min-w-0 bg-black", minimized ? "h-full w-full" : "flex flex-col")}> 
+        {!minimized && (
+          <div
+            className={cn(
+              "flex items-center justify-between px-3 py-2 select-none transition-opacity",
+              isExpanded 
+                ? "absolute top-0 left-0 w-full z-[60] bg-black/80 border-b border-white/10 opacity-0 hover:opacity-100 h-12" 
+                : "bg-muted/50 border-b border-border cursor-move"
+            )}
+            onMouseDown={!isExpanded ? onMouseDown : undefined}
+          >
+            <div className="flex items-center gap-2">
+              {!isExpanded && <Move className="w-3 h-3 text-muted-foreground" />}
+              <Gamepad2 className="w-4 h-4 text-neon-green" />
+              <div>
+                <p className="text-xs font-body font-medium text-foreground">{activeGame.gameName}</p>
+                <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
+                  <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
+                  <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame.score || 0}</span>
+                  <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame.playTime || 0) / 60)}:{((activeGame.playTime || 0) % 60).toString().padStart(2, "0")}</span>
+                  {afkRef.current && <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              {/* Botón Minimizar */}
+              <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar (Enviar a esquina)">
+                <Minus className="w-3.5 h-3.5" />
+              </Button>
+              
+              {/* Botón Restaurar Tamaño (Si está expandido) */}
+              {isExpanded && (
+                 <Button 
+                   size="icon" 
+                   variant="ghost" 
+                   onClick={() => {
+                     if (isFullscreen) document.exitFullscreen();
+                     else setForceFloating(true);
+                   }} 
+                   className="h-7 w-7 text-white hover:bg-white/20" 
+                   title="Restaurar Tamaño"
+                 >
+                   <Copy className="w-3.5 h-3.5" />
+                 </Button>
+              )}
 
-      <div
-        className={cn(
-          "fixed z-[300]",
-          minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 flex items-center justify-center"
+              {/* Botón Pantalla Completa HTML5 (Si NO está en pantalla completa) */}
+              {!isFullscreen && (
+                <Button size="icon" variant="ghost" onClick={toggleFullscreen} className="h-7 w-7 text-neon-yellow hover:bg-neon-yellow/10" title="Pantalla Completa Nativa">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+              )}
+
+              {/* Botón Cerrar */}
+              <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar">
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
         )}
-      >
-        <div
-          ref={popupRef}
-          onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
-          className={cn(
-            "relative bg-card border border-border overflow-hidden select-none",
-            minimized
-              ? "h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group transition-transform duration-200"
-              : isTheater
-              ? "flex flex-col w-full h-full rounded-none border-none shadow-none animate-in fade-in" // 🔥 ESTILOS MODO TEATRO 🔥
-              : "flex rounded-xl shadow-2xl shadow-black/50 animate-scale-in"
+
+        <div ref={canvasViewportRef} className={cn("relative bg-black overflow-hidden", minimized ? "h-full w-full" : "flex-1")}>
+          {!romLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-muted-foreground font-body">Cargando emulador...</p>
+            </div>
           )}
-          style={
-            minimized || isTheater
-              ? undefined
-              : {
-                  transform: `translate(${position.x}px, ${position.y}px)`,
-                  width: `${popupSize.w}px`,
-                  height: `${popupSize.h}px`,
-                  maxWidth: "95vw",
-                  maxHeight: "90vh",
-                  willChange: dragging || resizing ? "transform, width, height" : "auto",
-                }
-          }
-        >
-          {/* Si está en modo teatro, el header de mover se esconde o cambia para no estorbar */}
-          <div className={cn("relative flex-1 min-w-0", minimized ? "h-full w-full" : "flex flex-col")}> 
-            {!minimized && (
-              <div
-                className={cn(
-                  "flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border select-none transition-all",
-                  !isTheater ? "cursor-move" : "opacity-0 hover:opacity-100 absolute top-0 w-full z-50 bg-black/80" // Se oculta en teatro y aparece en hover
-                )}
-                onMouseDown={onMouseDown}
-              >
-                <div className="flex items-center gap-2">
-                  {!isTheater && <Move className="w-3 h-3 text-muted-foreground" />}
-                  <Gamepad2 className="w-4 h-4 text-neon-green" />
-                  <div>
-                    <p className="text-xs font-body font-medium text-foreground">{activeGame.gameName}</p>
-                    <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
+
+          <canvas 
+            ref={canvasRef} 
+            id="game-bubble-canvas" 
+            tabIndex={0} 
+            onClick={(e) => e.currentTarget.focus()}
+            style={{ width: "100%", height: "100%", display: "block", outline: "none" }} 
+          />
+
+          {minimized && (
+            <>
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-1.5">
+                <div className="flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[8px] font-body text-foreground truncate font-medium">{activeGame.gameName}</p>
+                    <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-body">
                       <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
-                      <span className="flex items-center gap-0.5"><Trophy className="w-2.5 h-2.5" /> {activeGame.score || 0}</span>
-                      <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame.playTime || 0) / 60)}:{((activeGame.playTime || 0) % 60).toString().padStart(2, "0")}</span>
-                      {afkRef.current && <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>}
+                      <span>⚡ {activeGame.score || 0}</span>
+                      {paused && <span className="text-neon-yellow font-pixel">PAUSA</span>}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {/* 🔥 NUEVO BOTÓN DE PANTALLA COMPLETA (TEATRO) 🔥 */}
-                  <Button size="icon" variant="ghost" onClick={() => { setIsTheater(!isTheater); scheduleCanvasSurfaceSync(); }} className="h-7 w-7 text-neon-yellow hover:bg-neon-yellow/10" title={isTheater ? "Salir de Pantalla Completa" : "Pantalla Completa"}>
-                    {isTheater ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                  </Button>
-                  {!isTheater && (
-                    <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar">
-                      <Minimize2 className="w-3.5 h-3.5" />
+                  {romLoaded && (
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); togglePause(); }}
+                      className={cn("h-7 w-7 rounded-full border border-border/70 bg-background/80 backdrop-blur-sm",
+                        paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-foreground hover:bg-background")} title="Pausar">
+                      {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                     </Button>
                   )}
-                  <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar">
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
                 </div>
               </div>
-            )}
-
-            <div ref={canvasViewportRef} className={cn("relative bg-black overflow-hidden", minimized ? "h-full w-full" : "flex-1")}>
-              {!romLoaded && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <p className="text-xs text-muted-foreground font-body">Cargando emulador...</p>
-                </div>
-              )}
-
-              <canvas 
-                ref={canvasRef} 
-                id="game-bubble-canvas" 
-                tabIndex={0} 
-                onClick={(e) => e.currentTarget.focus()}
-                style={{ width: "100%", height: "100%", display: "block", outline: "none" }} 
-              />
-
-              {minimized && (
-                <>
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-body text-foreground truncate font-medium">{activeGame.gameName}</p>
-                        <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-body">
-                          <span className="font-pixel text-neon-cyan">{activeGame.consoleName.toUpperCase()}</span>
-                          <span>⚡ {activeGame.score || 0}</span>
-                          {paused && <span className="text-neon-yellow font-pixel">PAUSA</span>}
-                        </div>
-                      </div>
-                      {romLoaded && (
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); togglePause(); }}
-                          className={cn("h-7 w-7 rounded-full border border-border/70 bg-background/80 backdrop-blur-sm",
-                            paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-foreground hover:bg-background")} title="Pausar">
-                          {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <span className={cn("absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full", paused ? "bg-neon-yellow" : "bg-neon-green animate-pulse")} />
-                  <button onClick={(e) => { e.stopPropagation(); handleClose(currentGameIndex); }}
-                    className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X className="w-3 h-3 text-destructive-foreground" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {!minimized && !isTheater && (
-              <div className="px-3 py-1 bg-muted/30 border-t border-border">
-                <p className="text-[8px] text-muted-foreground font-body text-center">
-                  Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* BARRA DE HERRAMIENTAS (SIDEBAR) */}
-          {!minimized && (
-            <>
-              <div className={cn(
-                "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-all",
-                isTheater ? "absolute right-0 h-full w-14 opacity-0 hover:opacity-100 bg-black/80 z-50 border-none" : "w-14"
-              )}>
-                {romLoaded && (
-                  <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
-                    <Save className="w-4 h-4" />
-                  </Button>
-                )}
-                {romLoaded && saveSlots.length > 0 && (
-                  <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                )}
-                {user && activeGame.score > 0 && (
-                  <Button size="icon" variant="ghost" onClick={() => handleSaveScore(false)} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                )}
-                
-                {romLoaded && (
-                  <div className="flex flex-col items-center w-full my-1">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => setShowVolumeSlider(!showVolumeSlider)} 
-                      className={cn("h-10 w-10 rounded-lg transition-colors", showVolumeSlider ? "bg-neon-magenta/20 text-neon-magenta" : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta")}
-                      title="Ajustar Volumen"
-                    >
-                      {volume === 0 ? <VolumeX className="w-4 h-4" /> : volume > 0.5 ? <Volume2 className="w-4 h-4" /> : <Volume1 className="w-4 h-4" />}
-                    </Button>
-                    
-                    {showVolumeSlider && (
-                      <div className="flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in">
-                        <span className="text-[8px] font-pixel text-neon-magenta mb-2">{Math.round(volume * 100)}</span>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="1" 
-                          step="0.05" 
-                          value={volume}
-                          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                          className="h-20 appearance-none bg-muted/50 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-neon-magenta [&::-webkit-slider-thumb]:rounded-full cursor-pointer hover:[&::-webkit-slider-thumb]:bg-white transition-all"
-                          style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {romLoaded && (
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={toggleEmulatorMenu} 
-                    className="h-10 w-10 text-muted-foreground hover:text-white hover:bg-white/10 rounded-lg" 
-                    title="Ajustes del Emulador (F1)"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                )}
-
-                {romLoaded && (
-                  <Button size="icon" variant="ghost" onClick={togglePause}
-                    className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
-                    {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                  </Button>
-                )}
-
-                <div className="flex-1" />
-
-                {activeGames.length > 1 && activeGames.map((g, idx) => (
-                  <button key={g.romUrl} onClick={() => maximizeGame(idx)}
-                    className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
-                      idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50")} title={g.gameName}>
-                    {consoleIcons[g.consoleName] || "🎮"}
-                  </button>
-                ))}
-
-                <div className="flex-1" />
-              </div>
-
-              {/* Botón de Redimensionar (solo si no es teatro) */}
-              {!isTheater && (
-                <div onMouseDown={onResizeDown}
-                  className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10">
-                  <GripVertical className="w-3 h-3 rotate-[-45deg]" />
-                </div>
-              )}
+              <span className={cn("absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full", paused ? "bg-neon-yellow" : "bg-neon-green animate-pulse")} />
+              <button onClick={(e) => { e.stopPropagation(); handleClose(currentGameIndex); }}
+                className="absolute top-1 left-1 w-5 h-5 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <X className="w-3 h-3 text-destructive-foreground" />
+              </button>
             </>
           )}
         </div>
 
-        {minimized && inactiveGames.length > 0 && (
-          <div className="flex flex-col items-end gap-2">
-            {inactiveGames.map(({ game, idx }) => (
-              <button key={game.romUrl} onClick={() => maximizeGame(idx)}
-                className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
-                <div className="relative flex h-full flex-col justify-between">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
-                    <span className="font-pixel text-[8px] text-neon-cyan">{game.consoleName.toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-body font-medium text-foreground truncate">{game.gameName}</p>
-                    <p className="text-[8px] font-body text-muted-foreground">⚡ {game.score}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
+        {!minimized && !isExpanded && (
+          <div className="px-3 py-1 bg-muted/30 border-t border-border">
+            <p className="text-[8px] text-muted-foreground font-body text-center">
+              Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
+            </p>
           </div>
         )}
       </div>
+
+      {!minimized && (
+        <>
+          <div className={cn(
+            "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-opacity",
+            isExpanded ? "absolute right-0 top-0 h-full w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 hover:opacity-100" : "w-14"
+          )}>
+            {romLoaded && (
+              <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
+                <Save className="w-4 h-4" />
+              </Button>
+            )}
+            {romLoaded && saveSlots.length > 0 && (
+              <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
+                <Download className="w-4 h-4" />
+              </Button>
+            )}
+            {user && activeGame.score > 0 && (
+              <Button size="icon" variant="ghost" onClick={() => handleSaveScore(false)} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
+                <Upload className="w-4 h-4" />
+              </Button>
+            )}
+            
+            {romLoaded && (
+              <div className="flex flex-col items-center w-full my-1">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => setShowVolumeSlider(!showVolumeSlider)} 
+                  className={cn("h-10 w-10 rounded-lg transition-colors", showVolumeSlider ? "bg-neon-magenta/20 text-neon-magenta" : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta")}
+                  title="Ajustar Volumen"
+                >
+                  {volume === 0 ? <VolumeX className="w-4 h-4" /> : volume > 0.5 ? <Volume2 className="w-4 h-4" /> : <Volume1 className="w-4 h-4" />}
+                </Button>
+                
+                {showVolumeSlider && (
+                  <div className="flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in">
+                    <span className="text-[8px] font-pixel text-neon-magenta mb-2">{Math.round(volume * 100)}</span>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.05" 
+                      value={volume}
+                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                      className="h-20 appearance-none bg-muted/50 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-neon-magenta [&::-webkit-slider-thumb]:rounded-full cursor-pointer hover:[&::-webkit-slider-thumb]:bg-white transition-all"
+                      style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {romLoaded && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                onClick={toggleEmulatorMenu} 
+                className="h-10 w-10 text-muted-foreground hover:text-white hover:bg-white/10 rounded-lg" 
+                title="Ajustes del Emulador (F1)"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            )}
+
+            {romLoaded && (
+              <Button size="icon" variant="ghost" onClick={togglePause}
+                className={cn("h-10 w-10 rounded-lg", paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50")} title="Pausar (ESC)">
+                {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              </Button>
+            )}
+
+            <div className="flex-1" />
+
+            {activeGames.length > 1 && activeGames.map((g, idx) => (
+              <button key={g.romUrl} onClick={() => maximizeGame(idx)}
+                className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all",
+                  idx === currentGameIndex ? "bg-neon-green/20 border border-neon-green/40" : "hover:bg-muted/50")} title={g.gameName}>
+                {consoleIcons[g.consoleName] || "🎮"}
+              </button>
+            ))}
+
+            <div className="flex-1" />
+          </div>
+
+          {!isExpanded && (
+            <div onMouseDown={onResizeDown}
+              className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize flex items-end justify-end p-0.5 text-muted-foreground hover:text-foreground z-10">
+              <GripVertical className="w-3 h-3 rotate-[-45deg]" />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Overlay oscuro para la burbuja flotante normal */}
+      {!minimized && !isExpanded && (
+        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md animate-fade-in" onClick={minimizeGame} />
+      )}
+
+      {/* Renderizado Condicional: Teatro vs Flotante */}
+      {isTheaterActive ? (
+        createPortal(
+          <div className="absolute inset-0 z-[100] flex bg-black">
+            {bubbleContent}
+          </div>,
+          theaterContainer!
+        )
+      ) : (
+        <div className={cn("fixed z-[300]", minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 flex items-center justify-center")}>
+          {bubbleContent}
+
+          {/* Burbujas Inactivas Minimizadas */}
+          {minimized && inactiveGames.length > 0 && (
+            <div className="flex flex-col items-end gap-2">
+              {inactiveGames.map(({ game, idx }) => (
+                <button key={game.romUrl} onClick={() => maximizeGame(idx)}
+                  className="relative h-[72px] w-32 overflow-hidden rounded-xl border border-border bg-card/95 p-2 text-left shadow-xl transition-transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/90" />
+                  <div className="relative flex h-full flex-col justify-between">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-lg">{consoleIcons[game.consoleName] || "🎮"}</span>
+                      <span className="font-pixel text-[8px] text-neon-cyan">{game.consoleName.toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-body font-medium text-foreground truncate">{game.gameName}</p>
+                      <p className="text-[8px] font-body text-muted-foreground">⚡ {game.score}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Save Dialog */}
       {showSaveDialog && (
