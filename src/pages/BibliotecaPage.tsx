@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search } from "lucide-react";
+import { Search, Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
 import { supabase } from "@/integrations/supabase/client";
+import { useGameBubble } from "@/contexts/GameBubbleContext";
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
@@ -20,216 +19,246 @@ const consoles: { id: ConsoleType; label: string; color: string }[] = [
   { id: "n64", label: "Nintendo 64", color: "text-[#ffff00]" },
 ];
 
-interface LeaderboardScore {
-  id: string;
-  display_name: string;
-  game_name: string;
-  score: number;
-  user_id: string;
-}
-
 export default function BibliotecaPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>("snes");
+  const { launchGame } = useGameBubble(); // 🔥 USAMOS LA BURBUJA PARA ABRIRLO AQUÍ MISMO 🔥
+  const [activeTab, setActiveTab] = useState<ConsoleType>("snes");
   const [searchQuery, setSearchQuery] = useState("");
   
-  const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
-  const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
+  const [scores, setScores] = useState<any[]>([]);
+  const [loadingScores, setLoadingScores] = useState(false);
 
   const [gameName, setGameName] = useState("");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
 
-  // 🔥 LÓGICA DE BÚSQUEDA Y FILTRADO 🔥
-  const currentGames = useMemo(() => {
+  const filteredGames = useMemo(() => {
     return allGames.filter((game) => {
       const matchesSearch = game.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesConsole = game.console === selectedConsole;
+      const matchesConsole = game.console === activeTab;
       return matchesSearch && matchesConsole;
     });
-  }, [searchQuery, selectedConsole]);
+  }, [searchQuery, activeTab]);
 
-  // 🔥 FETCH DE LEADERBOARD EXACTO DE EMULATORPAGE 🔥
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data } = await supabase
+    const fetchScores = async () => {
+      setLoadingScores(true);
+      const { data, error } = await supabase
         .from("leaderboard_scores")
-        .select("id, display_name, game_name, score, user_id")
-        .eq("console_type", selectedConsole)
+        .select(`*, profiles(display_name, avatar_url)`)
+        .eq("console_type", activeTab)
         .order("score", { ascending: false })
-        .limit(50);
-
-      if (data) {
-        // Deduplicate: keep only highest score per user
-        const best: Record<string, LeaderboardScore> = {};
-        (data as LeaderboardScore[]).forEach(s => {
-          const key = s.user_id;
-          if (!best[key] || s.score > best[key].score) best[key] = s;
-        });
-        const deduped = Object.values(best).sort((a, b) => b.score - a.score).slice(0, 10);
-        setLeaderboard(deduped);
-        
-        const uids = [...new Set(deduped.map(s => s.user_id).filter(Boolean))];
-        if (uids.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
-          const cm: Record<string, string | null> = {};
-          profiles?.forEach((p: any) => { cm[p.user_id] = p.color_name || null; });
-          setLeaderboardColors(cm);
-        }
-      } else {
-        setLeaderboard([]);
-      }
+        .limit(10);
+      if (!error && data) setScores(data);
+      setLoadingScores(false);
     };
-    fetchLeaderboard();
-  }, [selectedConsole]);
+    fetchScores();
+  }, [activeTab]);
 
-  const consoleInfo = consoles.find((c) => c.id === selectedConsole)!;
-
-  // 🔥 ENVIAR SUGERENCIA AL STAFF COMO UN BOT 🔥
   const handleSuggestSubmit = async () => {
     if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     if (!gameName.trim()) return;
+    
     setSending(true);
-
     try {
-      const { error } = await supabase.from("game_suggestions").insert({
-        user_id: user.id, console_type: selectedConsole, game_name: gameName.trim(), description: description.trim(),
+      await supabase.from("game_suggestions").insert({
+        user_id: user.id, console_type: activeTab, game_name: gameName.trim(), description: description.trim(),
       } as any);
 
-      if (error) throw error;
-
-      // Notificar al Staff (Bot)
       const { data: staffRoles } = await supabase.from("user_roles").select("user_id").in("role", ["master_web", "admin", "moderator"]);
       if (staffRoles && staffRoles.length > 0) {
         const staffIds = Array.from(new Set(staffRoles.map(r => r.user_id)));
-        const messageContent = `🤖 [BOT SISTEMA] NUEVA SUGERENCIA DE JUEGO:\n\n🎮 Juego: ${gameName}\n🕹️ Consola: ${selectedConsole.toUpperCase()}\n💬 Comentario: ${description || "Sin comentario adicional."}`;
-
-        const messages = staffIds.map(id => ({
+        const messageContent = `🤖 [BOT BIBLIOTECA] NUEVA SUGERENCIA:\n🎮 Juego: ${gameName}\n🕹️ Consola: ${activeTab.toUpperCase()}\n💬 Motivo: ${description || "Sin descripción."}`;
+        
+        const notifications = staffIds.map(id => ({
           sender_id: user.id, receiver_id: id, content: messageContent, is_read: false
         }));
-        await supabase.from("inbox_messages").insert(messages as any);
+        await supabase.from("inbox_messages").insert(notifications as any);
       }
 
-      toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); 
-      setGameName(""); 
-      setDescription("");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Hubo un error.", variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+      toast({ title: "Sugerencia enviada", description: "El equipo de moderación ha sido notificado." });
+      setGameName(""); setDescription("");
+    } catch (e) {
+      toast({ title: "Error", variant: "destructive" });
+    } finally { setSending(false); }
+  };
+
+  // 🔥 DETERMINA EL NÚCLEO DEL EMULADOR SEGÚN LA CONSOLA 🔥
+  const getCoreForConsole = (consoleId: string) => {
+    const cores: Record<string, string> = {
+      nes: "fceumm",
+      snes: "snes9x",
+      gba: "mgba",
+      n64: "mupen64plus_next",
+      gbc: "gambatte",
+      sega: "genesis_plus_gx",
+      ps1: "pcsx_rearmed",
+      arcade: "fbneo"
+    };
+    return cores[consoleId] || "fceumm";
   };
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
+    <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto pb-20 px-4 md:px-0">
       
-      {/* HEADER COPIADO DE EMULATORPAGE */}
-      <div className="bg-card border border-neon-green/30 rounded-lg p-4">
-        <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
-        </h1>
-        <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-14 h-14 rounded-full bg-neon-cyan/10 flex items-center justify-center border border-neon-cyan/30 shrink-0 shadow-[0_0_20px_rgba(0,240,255,0.1)]">
+          <Monitor className="w-7 h-7 text-neon-cyan" />
+        </div>
+        <div>
+          <h1 className="font-pixel text-2xl text-neon-cyan uppercase tracking-tighter leading-none">Salas de Arcade</h1>
+          <p className="text-[11px] text-muted-foreground font-body mt-1.5">Elige una consola y prepárate para jugar</p>
+        </div>
       </div>
 
-      {/* BOTONES (PESTAÑAS) COPIADOS DE EMULATORPAGE */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 border-b border-white/5 pb-0 overflow-x-auto custom-scrollbar mb-6">
         {consoles.map((c) => (
-          <Button
+          <button
             key={c.id}
-            variant={selectedConsole === c.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setSelectedConsole(c.id); setSearchQuery(""); }}
-            className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
+            onClick={() => { setActiveTab(c.id); setSearchQuery(""); }}
+            className={cn(
+              "px-6 py-3 font-pixel text-[10px] uppercase transition-all shrink-0 border-t-2",
+              activeTab === c.id
+                ? `bg-white/5 border-t-current ${c.color} opacity-100`
+                : "border-t-transparent text-muted-foreground opacity-50 hover:opacity-100 hover:bg-white/5"
+            )}
           >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label}
-          </Button>
+            {c.label}
+          </button>
         ))}
       </div>
 
-      {/* BARRA DE BÚSQUEDA ADAPTADA AL ESTILO */}
-      <div className="relative w-full max-w-sm mt-2">
+      <div className="relative w-full md:w-80 mb-8">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input 
-          placeholder={`Buscar en ${consoleInfo.label}...`} 
+          placeholder={`Buscar en ${activeTab.toUpperCase()}...`} 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-8 bg-card border-border font-body text-xs focus:border-primary transition-colors"
+          className="pl-10 h-10 bg-black/20 border-white/10 font-body text-xs focus:border-neon-cyan"
         />
       </div>
 
-      {/* TITULO DE JUEGOS Y GRID (5 COLUMNAS) COPIADO DE EMULATORPAGE */}
-      <div>
-        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo.color)}>
-          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
-        </h2>
-        
-        {currentGames.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center text-[10px] text-muted-foreground font-body">
-             {selectedConsole === "n64" ? "Próximamente se subirán los juegos de Nintendo 64 a través del servidor." : "No se encontraron juegos para esta búsqueda."}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {currentGames.map((game) => (
-              <Link
-                to={`/arcade/salas?console=${selectedConsole}&game=${game.id}`}
-                key={game.id}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col"
-              >
-                <div className="aspect-square overflow-hidden bg-muted">
-                  <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+      {filteredGames.length === 0 ? (
+        <div className="bg-card border border-white/5 rounded-xl p-16 text-center shadow-lg">
+           <AlertCircle className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+           <p className="text-sm text-muted-foreground font-body max-w-md mx-auto leading-relaxed">
+             {activeTab === "n64" 
+               ? "Estamos preparando los juegos de Nintendo 64. Se subirán muy pronto directamente a la base de datos." 
+               : "No hay resultados para esta búsqueda."}
+           </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filteredGames.map((game) => (
+            // 🔥 AQUÍ SE CAMBIÓ EL LINK POR UN BOTÓN PARA ABRIRLO EN LA BURBUJA 🔥
+            <div 
+              key={game.id}
+              onClick={() => launchGame({
+                romUrl: game.romUrl,
+                consoleName: activeTab,
+                gameName: game.name,
+                consoleCore: getCoreForConsole(activeTab),
+                score: 0,
+                playTime: 0
+              })}
+              className="group flex flex-col bg-card border border-white/5 rounded-lg overflow-hidden hover:border-neon-cyan/50 transition-all shadow-sm cursor-pointer"
+            >
+              <div className="relative aspect-[3/4] w-full bg-black overflow-hidden">
+                <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" loading="lazy" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <Play className="w-12 h-12 text-white/80 group-hover:text-neon-cyan transition-all" />
                 </div>
-                <div className="p-1.5 flex items-center gap-1">
-                  <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                  <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ZONA INFERIOR (LEADERBOARD Y SUGERENCIAS) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-        
-        {/* LEADERBOARD EXACTO AL EMULATORPAGE */}
-        <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden h-fit">
-          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
-            <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
-            <h2 className="font-pixel text-[10px] text-neon-yellow">LEADERBOARD — {consoleInfo.label.toUpperCase()}</h2>
-          </div>
-          {leaderboard.length === 0 ? (
-            <div className="p-4 text-center text-[10px] text-muted-foreground font-body">Sin puntuaciones aún. ¡Sé el primero!</div>
-          ) : (
-            leaderboard.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 text-[10px] font-body hover:bg-muted/30 transition-colors">
-                <span className={cn("w-5 font-bold text-center", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
-                  {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
-                </span>
-                <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="flex-1 text-foreground truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
-                <span className="text-muted-foreground truncate max-w-[80px]">{s.game_name}</span>
-                <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
               </div>
-            ))
-          )}
+              <div className="p-3 border-t border-white/5 bg-black/20 text-center">
+                <h4 className="font-pixel text-[9px] text-muted-foreground group-hover:text-white truncate" title={game.name}>
+                  {game.name}
+                </h4>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-20 pt-10 border-t border-white/10">
+        
+        <div className="bg-card border border-white/5 rounded-xl p-5 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <h3 className="font-pixel text-[11px] text-neon-green flex items-center gap-2 uppercase">
+              <Trophy className="w-4 h-4" /> MEJORES RÉCORDS {activeTab}
+            </h3>
+            <span className="text-[8px] font-pixel text-muted-foreground">TOP 10</span>
+          </div>
+
+          <div className="space-y-2 min-h-[300px]">
+            {loadingScores ? (
+              <div className="flex flex-col items-center justify-center h-full py-20 opacity-30">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : scores.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground italic text-xs font-body">No hay récords en esta consola aún.</div>
+            ) : (
+              scores.map((s, i) => (
+                <div key={s.id} className="flex items-center justify-between p-2.5 rounded bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className={cn("font-pixel text-[10px] w-5 text-center shrink-0", i === 0 ? "text-neon-yellow" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : "text-muted-foreground")}>
+                      #{i + 1}
+                    </span>
+                    <div className="w-7 h-7 rounded-full bg-muted overflow-hidden border border-white/10 shrink-0">
+                      {s.profiles?.avatar_url ? <img src={s.profiles.avatar_url} className="w-full h-full object-cover" /> : <User className="w-4 h-4 m-1.5 text-muted-foreground" />}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-foreground group-hover:text-neon-green transition-colors truncate">{s.profiles?.display_name || "Anónimo"}</span>
+                      <span className="text-[8px] text-muted-foreground font-body uppercase truncate">{s.game_name}</span>
+                    </div>
+                  </div>
+                  <span className="font-pixel text-[11px] text-neon-green pr-2 shrink-0">{s.score.toLocaleString()}</span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* SUGERENCIAS EXACTAS AL EMULATORPAGE */}
-        <div className="bg-card border border-neon-cyan/20 rounded-lg p-3 space-y-2 h-fit">
-          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1">
-            <Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO
-          </h3>
-          <Input placeholder="Nombre del juego" value={gameName} onChange={e => setGameName(e.target.value)} className="h-7 bg-muted text-xs font-body" />
-          <Textarea placeholder="¿Por qué lo recomiendas? (opcional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-muted text-xs font-body min-h-[40px]" />
-          <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-7">
-            <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}
-          </Button>
+        <div className="bg-card border border-white/5 rounded-xl p-5 space-y-4 shadow-xl flex flex-col h-fit">
+          <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+            <Lightbulb className="w-4 h-4 text-neon-cyan" />
+            <h3 className="font-pixel text-[11px] text-neon-cyan uppercase">Sugerir un Juego</h3>
+          </div>
+          
+          <p className="text-xs text-muted-foreground font-body leading-relaxed">
+            ¿Buscas un juego que no está? Cuéntanos qué título te gustaría ver en la biblioteca de <span className="text-foreground font-bold">{activeTab.toUpperCase()}</span>.
+          </p>
+
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1.5">
+               <label className="text-[9px] font-pixel text-muted-foreground uppercase pl-1">Nombre del juego</label>
+               <Input 
+                 placeholder="Ej: Donkey Kong Country" 
+                 value={gameName} 
+                 onChange={e => setGameName(e.target.value)} 
+                 className="h-10 bg-black/30 border-white/10 text-xs font-body" 
+               />
+            </div>
+            <div className="space-y-1.5">
+               <label className="text-[9px] font-pixel text-muted-foreground uppercase pl-1">¿Por qué lo recomiendas?</label>
+               <Textarea 
+                 placeholder="Opcional..." 
+                 value={description} 
+                 onChange={e => setDescription(e.target.value)} 
+                 className="min-h-[100px] bg-black/30 border-white/10 text-xs font-body resize-none" 
+               />
+            </div>
+            <Button 
+              onClick={handleSuggestSubmit} 
+              disabled={sending || !gameName.trim()} 
+              className="w-full h-11 bg-neon-cyan text-black hover:bg-neon-cyan/80 font-pixel text-[10px] uppercase shadow-[0_0_20px_rgba(0,240,255,0.2)] mt-2"
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR SUGERENCIA AL STAFF"}
+            </Button>
+          </div>
         </div>
 
       </div>
-
     </div>
   );
 }
