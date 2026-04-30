@@ -101,10 +101,8 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
 
-  // 🔥 ESTADO DE LAS PESTAÑAS (FILTROS) 🔥
   const [activeFilter, setActiveFilter] = useState("Todos");
   
-  // Array estructurado para renderizar los iconos rápidamente
   const filterOptions = [
     { id: "Todos", icon: <LayoutGrid className="w-4 h-4 text-foreground" /> },
     { id: "YouTube", icon: <Youtube className="w-4 h-4 text-[#ff0000]" /> },
@@ -243,7 +241,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     }
   };
 
-  // 🔥 LÓGICA DE FILTRADO 🔥
   const filteredContents = contents.filter((c) => {
     if (activeFilter === "Todos") return true;
     if (activeFilter === "Imágenes") return c.target_type === 'photo';
@@ -304,7 +301,6 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         </Button>
       </div>
       
-      {/* 🔥 SECCIÓN DE CONTENIDO CON PESTAÑAS (ICONOS) 🔥 */}
       <div className="bg-card border border-border rounded p-4">
         
         <div className="flex flex-col items-center md:items-start gap-3 mb-4">
@@ -312,20 +308,24 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
             <Filter className="w-3.5 h-3.5" /> Tu Contenido Publicado
           </h3>
           
-          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 w-full justify-center md:justify-start">
+          <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2.5 w-full justify-center md:justify-start">
             {filterOptions.map((f) => (
               <button
                 key={f.id}
                 title={f.id}
                 onClick={() => setActiveFilter(f.id)}
                 className={cn(
-                  "p-2 rounded-full transition-all border flex items-center justify-center shrink-0",
+                  "p-3.5 rounded-full transition-all border flex items-center justify-center shrink-0 relative",
                   activeFilter === f.id
-                    ? "bg-muted border-foreground/30 shadow-[0_0_8px_rgba(255,255,255,0.1)] scale-110"
+                    ? "bg-muted border-foreground/30 shadow-[0_0_8px_rgba(255,255,255,0.1)] opacity-100 scale-105"
                     : "bg-card border-white/5 opacity-50 hover:opacity-100 hover:bg-muted/50"
                 )}
               >
                 {f.icon}
+                {/* 🔥 EL BORDE CIRCULAR SEPARADO (Hijo absoluto) 🔥 */}
+                {activeFilter === f.id && (
+                  <div className="absolute -inset-[2.5px] rounded-full border-2 border-border pointer-events-none animate-fade-in" />
+                )}
               </button>
             ))}
           </div>
