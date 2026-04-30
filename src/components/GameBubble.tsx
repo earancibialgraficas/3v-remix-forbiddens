@@ -312,25 +312,34 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 EL HACK DEFINITIVO PARA ARCHIVOS LOCALES (Con Typescript Fix) 🔥
+        // 🔥 EL HACK DEFINITIVO (Con Uint8Array) 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
-            if (localFile) {
+            
+            if (localFile instanceof File) {
+                console.log("🎮 ROM FILE ENCONTRADO:", localFile.name, "Tamaño:", localFile.size);
+                
+                // Extraemos los bytes puros para que Nostalgist no tenga problemas al leer un Blob
                 const buffer = await localFile.arrayBuffer();
                 romSrc = {
-                    fileName: (localFile as File).name || fileId,
-                    fileContent: buffer
+                    fileName: localFile.name,
+                    fileContent: new Uint8Array(buffer)
                 };
+                console.log("✅ ROM Convertida a Uint8Array exitosamente");
+            } else {
+                console.error("❌ El archivo local no es una instancia de File válida");
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
             const localMap = (window as any).__uploadedFiles;
             if (localMap && localMap[activeGame.gameName]) {
                 const f = localMap[activeGame.gameName];
-                romSrc = { 
-                    fileName: (f as File).name || activeGame.gameName, 
-                    fileContent: await f.arrayBuffer() 
-                };
+                if (f instanceof File) {
+                    romSrc = { 
+                        fileName: f.name, 
+                        fileContent: new Uint8Array(await f.arrayBuffer()) 
+                    };
+                }
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
@@ -358,6 +367,7 @@ export default function GameBubble() {
           launchOptions.resolution = { width: 640, height: 480 };
         }
 
+        console.log("🚀 Lanzando Nostalgist con opciones:", launchOptions);
         const instance = await Nostalgist.launch(launchOptions);
         
         nostalgistRef.current = instance;
@@ -720,12 +730,10 @@ export default function GameBubble() {
             </div>
             
             <div className="flex items-center gap-1">
-              {/* Botón Minimizar */}
               <Button size="icon" variant="ghost" onClick={minimizeGame} className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10" title="Minimizar (Enviar a esquina)">
                 <Minus className="w-3.5 h-3.5" />
               </Button>
               
-              {/* Botón Restaurar Tamaño (Si está expandido) */}
               {isExpanded && (
                  <Button 
                    size="icon" 
@@ -741,14 +749,12 @@ export default function GameBubble() {
                  </Button>
               )}
 
-              {/* Botón Pantalla Completa HTML5 (Si NO está en pantalla completa) */}
               {!isFullscreen && (
                 <Button size="icon" variant="ghost" onClick={toggleFullscreen} className="h-7 w-7 text-neon-yellow hover:bg-neon-yellow/10" title="Pantalla Completa Nativa">
                   <Maximize2 className="w-3.5 h-3.5" />
                 </Button>
               )}
 
-              {/* Botón Cerrar */}
               <Button size="icon" variant="ghost" onClick={() => handleClose()} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Cerrar Juego">
                 <X className="w-3.5 h-3.5" />
               </Button>
