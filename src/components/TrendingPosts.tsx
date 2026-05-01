@@ -45,7 +45,6 @@ export default function TrendingPosts() {
       const { data, error } = await supabase
         .from("posts")
         .select("*, profiles:user_id(display_name)")
-        .neq("is_banned", true)
         .in("category", allowedCategories)
         .order("upvotes", { ascending: false })
         .limit(5);
