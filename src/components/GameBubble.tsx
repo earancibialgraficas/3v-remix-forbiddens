@@ -740,6 +740,8 @@ button[aria-label="Context Menu" i],
 
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
+    // 🚫 N64/PS1/Arcade: NO autoguardar estado al cerrar (el usuario lo gestiona localmente con .state).
+    if (["n64", "ps1", "arcade"].includes(activeGame.consoleName)) return;
     try {
       const result = await nostalgistRef.current.saveState();
       const stateBlob: Blob = result.state;
