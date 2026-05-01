@@ -218,6 +218,8 @@ export default function GameBubble() {
 
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
+    // 🚫 N64/PS1/Arcade: NO subir estados a la nube. Se guardan solo localmente.
+    if (activeGame && ["n64", "ps1", "arcade"].includes(activeGame.consoleName)) return;
     try {
       const safeSlots = slotsToSync.slice(0, 5);
       const slotsJson = JSON.stringify(safeSlots);
@@ -389,6 +391,7 @@ export default function GameBubble() {
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
           // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
+          // 🚫 Oculta el botón "Context Menu" del menú nativo
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
 #game{position:relative!important}
@@ -407,6 +410,13 @@ div[class*="menu_bar"],
   z-index:9999!important;
 }
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
+/* Ocultar botón Context Menu (varias variantes según versión EJS) */
+.ejs_menu_button[title="Context Menu" i],
+.ejs_menu_button[aria-label="Context Menu" i],
+button[title="Context Menu" i],
+button[aria-label="Context Menu" i],
+.ejs_context_menu_button,
+.ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
@@ -636,6 +646,40 @@ div[class*="menu_bar"],
   }, [paused, romLoaded]);
 
   const toggleEmulatorMenu = useCallback(() => {
+    // 🎮 EmulatorJS (N64/PS1/Arcade): abrir directamente el panel de Ajustes de Control
+    if (usesEmulatorJs) {
+      const win = emulatorFrameRef.current?.contentWindow as any;
+      const ejs = win?.EJS_emulator;
+      try {
+        // 1) Vía API directa si existe
+        if (ejs?.controlMenu?.style) {
+          ejs.controlMenu.style.display = "flex";
+          return;
+        }
+        if (typeof ejs?.openControls === "function") { ejs.openControls(); return; }
+        if (typeof ejs?.controls?.open === "function") { ejs.controls.open(); return; }
+
+        // 2) Fallback: simular click en el botón "Control Settings" del menú nativo
+        const doc = win?.document;
+        if (doc) {
+          const selectors = [
+            '.ejs_menu_button[title="Control Settings" i]',
+            '.ejs_menu_button[aria-label="Control Settings" i]',
+            'button[title="Control Settings" i]',
+            'button[aria-label="Control Settings" i]',
+          ];
+          for (const sel of selectors) {
+            const btn = doc.querySelector(sel) as HTMLElement | null;
+            if (btn) { btn.click(); return; }
+          }
+        }
+        toast({ title: "Ajustes de control no disponibles", variant: "destructive" });
+      } catch {
+        toast({ title: "No se pudo abrir los ajustes de control", variant: "destructive" });
+      }
+      return;
+    }
+    // 🕹️ Nostalgist (NES/SNES/GBA/etc): F1 menú nativo
     const canvas = canvasRef.current;
     if (canvas && romLoaded) {
       canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
@@ -644,7 +688,7 @@ div[class*="menu_bar"],
       }, 100);
       canvas.focus();
     }
-  }, [romLoaded]);
+  }, [romLoaded, usesEmulatorJs, toast]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -730,6 +774,8 @@ div[class*="menu_bar"],
 
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
+    // 🚫 N64/PS1/Arcade: NO autoguardar estado al cerrar (el usuario lo gestiona localmente con .state).
+    if (["n64", "ps1", "arcade"].includes(activeGame.consoleName)) return;
     try {
       const result = await nostalgistRef.current.saveState();
       const stateBlob: Blob = result.state;
@@ -1048,7 +1094,7 @@ div[class*="menu_bar"],
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => {
+                onClick={async () => {
                   const win = emulatorFrameRef.current?.contentWindow as any;
                   const ejs = win?.EJS_emulator;
                   try {
@@ -1064,6 +1110,10 @@ div[class*="menu_bar"],
                     a.click();
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
                     toast({ title: "Estado descargado ✔️" });
+                    // 💾 También guardamos el puntaje en la base de datos (igual que los otros emuladores)
+                    if (user && scoreRef.current > 0) {
+                      await handleSaveScore(true);
+                    }
                   } catch {
                     toast({ title: "No se pudo guardar el estado", variant: "destructive" });
                   }
