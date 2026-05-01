@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX, Minus, Copy } from "lucide-react";
+import { Gamepad2, X, Minimize2, Maximize2, Trophy, Clock, Save, Move, GripVertical, Download, Upload, Pause, Play, Settings, Volume2, Volume1, VolumeX, Minus, Copy, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -1207,10 +1207,32 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       {!minimized && (
         <>
-          {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" (Comienza desde top-12 para no tapar la barra superior) 🔥 */}
+          {/* 🎯 Botón pequeño tipo "pestaña" para mostrar/ocultar el menú L cuando el juego está maximizado */}
+          {isExpanded && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setExpandedControlsOpen(v => !v); }}
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 z-[62] h-16 w-7 flex items-center justify-center",
+                "bg-black/70 border border-white/20 backdrop-blur-md text-white/90 hover:text-white hover:bg-black/90 transition-all",
+                "rounded-l-lg shadow-[0_0_12px_rgba(0,0,0,0.6)]",
+                expandedControlsOpen ? "right-14" : "right-0"
+              )}
+              title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
+            >
+              {expandedControlsOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          )}
+
+          {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" - desplegable cuando hay juego maximizado 🔥 */}
           <div className={cn(
-            "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-opacity",
-            isExpanded ? "absolute right-0 top-12 bottom-0 w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 group-hover:opacity-100" : "w-14"
+            "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-transform duration-300",
+            isExpanded
+              ? cn(
+                  "absolute right-0 top-12 bottom-0 w-14 bg-black/85 border-l border-white/10 z-[60]",
+                  expandedControlsOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+                )
+              : "w-14"
           )}>
             {romLoaded && !isN64 && (
               <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
