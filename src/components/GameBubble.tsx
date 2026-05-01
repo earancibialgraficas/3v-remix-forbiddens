@@ -1178,13 +1178,29 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
               El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
           {isPs2 && (
-            <iframe
-              title="Play!.js (PS2)"
-              src="https://playjs.purei.org/"
-              className="absolute inset-0 h-full w-full border-0 bg-black"
-              allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
-              referrerPolicy="no-referrer"
-            />
+            <div className="absolute inset-0 bg-white overflow-auto">
+              <div className="bg-yellow-100 border-b-2 border-yellow-500 text-black text-xs sm:text-sm p-3 font-body leading-snug">
+                <strong>⚠️ Aviso PS2 (Play!.js):</strong> Por restricciones de seguridad del navegador (CORS / SharedArrayBuffer),
+                el emulador puede quedarse en <em>"Loading..."</em> al embeberse aquí. Si no carga en ~30 seg,
+                ábrelo en pestaña nueva 👇
+                <a
+                  href="https://playjs.purei.org/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 inline-block bg-blue-600 text-white px-2 py-1 rounded font-bold no-underline hover:bg-blue-700"
+                >
+                  Abrir Play!.js ↗
+                </a>
+              </div>
+              <iframe
+                title="Play!.js (PS2)"
+                src="https://playjs.purei.org/"
+                className="w-full border-0 bg-white"
+                style={{ height: "calc(100% - 60px)" }}
+                allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
+                referrerPolicy="no-referrer"
+              />
+            </div>
           )}
 
           {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
