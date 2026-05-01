@@ -168,6 +168,15 @@ export default function GameBubble() {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
+    // 🔥 FIX BLACK SCREEN EN LANDSCAPE: ajusta el backbuffer del canvas al
+    // tamaño real en CSS px. Sin esto, al rotar el WebGL context queda con
+    // dimensiones obsoletas y todo se ve negro.
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.max(1, Math.floor(rect.width * dpr));
+    const targetH = Math.max(1, Math.floor(rect.height * dpr));
+    if (canvas.width !== targetW) canvas.width = targetW;
+    if (canvas.height !== targetH) canvas.height = targetH;
   }, []);
 
   const scheduleCanvasSurfaceSync = useCallback(() => {
