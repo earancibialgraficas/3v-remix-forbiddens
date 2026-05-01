@@ -205,8 +205,11 @@ export default function EmulatorPage() {
 
   // 🖱️👆 Drag/Swipe handlers (mouse + touch) — fluido con rAF
   const SWIPE_THRESHOLD_RATIO = 0.18; // 18% del ancho del carrusel
+  const SLOT_DISTANCE = 260; // debe coincidir con el render
+  const [isSettling, setIsSettling] = useState(false);
 
   const onPointerDown = (clientX: number) => {
+    if (isSettling) return;
     dragStartX.current = clientX;
     dragDelta.current = 0;
     setIsDragging(true);
@@ -227,11 +230,7 @@ export default function EmulatorPage() {
     const delta = dragDelta.current;
     const width = carouselRef.current?.clientWidth || 1;
     const threshold = Math.max(40, width * SWIPE_THRESHOLD_RATIO);
-    if (delta <= -threshold) {
-      setCurrentIndex((prev) => (prev + 1) % systems.length);
-    } else if (delta >= threshold) {
-      setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
-    }
+
     dragStartX.current = null;
     dragDelta.current = 0;
     if (rafId.current !== null) {
@@ -239,7 +238,31 @@ export default function EmulatorPage() {
       rafId.current = null;
     }
     setIsDragging(false);
-    setDragOffset(0);
+
+    let direction: 1 | -1 | 0 = 0;
+    if (delta <= -threshold) direction = 1;       // siguiente
+    else if (delta >= threshold) direction = -1;  // anterior
+
+    if (direction === 0) {
+      // Vuelve al centro suavemente
+      setIsSettling(true);
+      setDragOffset(0);
+      window.setTimeout(() => setIsSettling(false), 350);
+      return;
+    }
+
+    // Anima hasta el slot vecino y luego, sin transición, fija el nuevo índice
+    setIsSettling(true);
+    setDragOffset(direction === 1 ? -SLOT_DISTANCE : SLOT_DISTANCE);
+    window.setTimeout(() => {
+      // Cambia índice y resetea offset SIN transición para evitar el salto
+      setCurrentIndex((prev) => (prev + direction + systems.length) % systems.length);
+      setDragOffset(0);
+      // Permite que el render aplique sin transición antes de soltar el flag
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setIsSettling(false));
+      });
+    }, 350);
   };
 
   return (
