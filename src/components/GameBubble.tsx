@@ -481,7 +481,34 @@ div[class*="virtual_gamepad"] > *{
   }
 }
 `;
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>
+(function(){
+  // Bloquea drag&drop nativo (evita el overlay "Suelta el estado guardado aquí")
+  ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
+    window.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+    document.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  });
+  // Elimina nodos basura por texto ("undefined", "Suelta el estado guardado aquí")
+  function nuke(){
+    try{
+      var all = document.body.querySelectorAll('div,span,p');
+      for (var i=0;i<all.length;i++){
+        var el = all[i];
+        if (el.children.length>0) continue;
+        var t = (el.textContent||'').trim().toLowerCase();
+        if (!t) continue;
+        if (t === 'undefined' || t.indexOf('suelta')!==-1 || t.indexOf('drop')!==-1 && t.indexOf('save')!==-1){
+          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="overlay"],div[class*="Overlay"]') || el;
+          if (p && p.parentNode) p.parentNode.removeChild(p);
+        }
+      }
+    }catch(_){}
+  }
+  setInterval(nuke, 800);
+  new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
+})();
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
