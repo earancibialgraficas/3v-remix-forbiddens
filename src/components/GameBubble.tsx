@@ -1076,9 +1076,12 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           // 🔥 BARRA SUPERIOR CON "group-hover:opacity-100" Y z-[61] PARA EVITAR SOLAPAMIENTOS 🔥
           <div
             className={cn(
-              "flex items-center justify-between px-3 py-2 select-none transition-opacity",
-              isExpanded 
-                ? "absolute top-0 left-0 w-full z-[61] bg-black/80 border-b border-white/10 opacity-0 group-hover:opacity-100 h-12" 
+              "flex items-center justify-between px-3 py-2 select-none transition-transform duration-300",
+              isExpanded
+                ? cn(
+                    "absolute top-0 left-0 w-full z-[61] bg-black/85 border-b border-white/10 h-12",
+                    expandedControlsOpen ? "translate-y-0" : "-translate-y-full pointer-events-none"
+                  )
                 : "bg-muted/50 border-b border-border cursor-move"
             )}
             onMouseDown={!isExpanded ? onMouseDown : undefined}
