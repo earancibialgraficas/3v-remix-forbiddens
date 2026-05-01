@@ -1059,7 +1059,7 @@ div[class*="menu_bar"],
                     const url = URL.createObjectURL(blob);
                     const a = win.document.createElement("a");
                     a.href = url;
-                    const safe = (activeGame?.name || "game").replace(/[^a-z0-9]+/gi, "_");
+                    const safe = (activeGame?.gameName || "game").replace(/[^a-z0-9]+/gi, "_");
                     a.download = `${safe}.state`;
                     a.click();
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
