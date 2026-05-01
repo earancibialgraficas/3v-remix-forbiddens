@@ -284,6 +284,7 @@ export type Database = {
           created_at: string
           display_name: string
           game_name: string
+          game_state: string | null
           id: string
           play_time_seconds: number
           score: number
@@ -295,6 +296,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           game_name: string
+          game_state?: string | null
           id?: string
           play_time_seconds?: number
           score?: number
@@ -306,6 +308,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           game_name?: string
+          game_state?: string | null
           id?: string
           play_time_seconds?: number
           score?: number
@@ -354,6 +357,8 @@ export type Database = {
           dislikes: number
           id: string
           image_url: string
+          is_apify: boolean
+          is_banned: boolean
           likes: number
           user_id: string
         }
@@ -363,6 +368,8 @@ export type Database = {
           dislikes?: number
           id?: string
           image_url: string
+          is_apify?: boolean
+          is_banned?: boolean
           likes?: number
           user_id: string
         }
@@ -372,6 +379,8 @@ export type Database = {
           dislikes?: number
           id?: string
           image_url?: string
+          is_apify?: boolean
+          is_banned?: boolean
           likes?: number
           user_id?: string
         }
@@ -416,6 +425,7 @@ export type Database = {
           created_at: string
           downvotes: number
           id: string
+          is_banned: boolean
           is_pinned: boolean
           signature: string | null
           title: string
@@ -429,6 +439,7 @@ export type Database = {
           created_at?: string
           downvotes?: number
           id?: string
+          is_banned?: boolean
           is_pinned?: boolean
           signature?: string | null
           title: string
@@ -442,6 +453,7 @@ export type Database = {
           created_at?: string
           downvotes?: number
           id?: string
+          is_banned?: boolean
           is_pinned?: boolean
           signature?: string | null
           title?: string
@@ -515,6 +527,7 @@ export type Database = {
           signature_color: string | null
           signature_font: string | null
           signature_font_family: string | null
+          signature_font_size: number | null
           signature_image_align: string | null
           signature_image_url: string | null
           signature_image_width: number | null
@@ -547,6 +560,7 @@ export type Database = {
           signature_color?: string | null
           signature_font?: string | null
           signature_font_family?: string | null
+          signature_font_size?: number | null
           signature_image_align?: string | null
           signature_image_url?: string | null
           signature_image_width?: number | null
@@ -579,6 +593,7 @@ export type Database = {
           signature_color?: string | null
           signature_font?: string | null
           signature_font_family?: string | null
+          signature_font_size?: number | null
           signature_image_align?: string | null
           signature_image_url?: string | null
           signature_image_width?: number | null
@@ -664,6 +679,7 @@ export type Database = {
           created_at: string
           dislikes: number
           id: string
+          is_banned: boolean
           is_public: boolean
           likes: number
           platform: string
@@ -678,6 +694,7 @@ export type Database = {
           created_at?: string
           dislikes?: number
           id?: string
+          is_banned?: boolean
           is_public?: boolean
           likes?: number
           platform: string
@@ -692,6 +709,7 @@ export type Database = {
           created_at?: string
           dislikes?: number
           id?: string
+          is_banned?: boolean
           is_public?: boolean
           likes?: number
           platform?: string
