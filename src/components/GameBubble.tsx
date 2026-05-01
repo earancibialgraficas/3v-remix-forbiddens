@@ -668,17 +668,19 @@ div[class*="virtual_gamepad"] > *{
       // CSS, y disparar un evento "resize" para que el core actualice GL.
       try {
         const rect = viewport.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // 📱 En móvil usamos DPR=1 para no crear backbuffers gigantes que
+        // colapsan WebGL al rotar (causa principal de pantalla negra).
+        const dpr = window.innerWidth < 1024 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
         const w = Math.max(1, Math.floor(rect.width * dpr));
         const h = Math.max(1, Math.floor(rect.height * dpr));
         const mod: any = nostalgistRef.current?.getEmscriptenModule?.();
         if (mod && typeof mod.setCanvasSize === "function") {
           mod.setCanvasSize(w, h);
-        } else {
-          // Fallback: ajustar backbuffer manualmente
-          if (canvas.width !== w) canvas.width = w;
-          if (canvas.height !== h) canvas.height = h;
         }
+        // Siempre forzamos el backbuffer del canvas también (algunos cores
+        // no implementan setCanvasSize y solo leen canvas.width/height).
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
       } catch {}
 
       try { window.dispatchEvent(new Event("resize")); } catch {}
