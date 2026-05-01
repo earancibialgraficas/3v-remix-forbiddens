@@ -331,16 +331,12 @@ export default function EmulatorPage() {
           {/* CENTER */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pt-12 pb-20 sm:pt-16 sm:pb-24">
             <div className="mb-4 sm:mb-8 md:mb-12 text-center transition-all duration-500 px-3 sm:px-4 max-w-full w-full">
-              <h2
-                className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap mx-auto"
-                style={{
-                  // Reduce el tamaño base cuando el nombre es largo para que SIEMPRE quepa en 1 línea
-                  // y la imagen + botón no se desplacen hacia abajo.
-                  fontSize: `clamp(0.7rem, ${Math.min(4.2, 60 / Math.max(currentSystem.name.length, 8))}vw, 3rem)`,
-                }}
-              >
-                {currentSystem.name}
+              <h2 className="font-pixel text-[clamp(1.1rem,5vw,3rem)] leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap">
+                {currentSystem.short}
               </h2>
+              <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
+                ({currentSystem.name})
+              </p>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4 mt-3 sm:mt-4 text-muted-foreground font-pixel text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest">
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10">AÑO {currentSystem.year}</span>
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10 max-w-[80vw] truncate">CORE: {currentSystem.core}</span>
