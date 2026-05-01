@@ -991,16 +991,31 @@ div[class*="virtual_gamepad"] > *{
     if (isFullscreen) {
       popupStyle = { width: '100vw', height: '100vh', borderRadius: 0 };
     } else if (isTheaterActive && theaterRect) {
-      popupStyle = {
-        position: 'fixed',
-        top: theaterRect.top,
-        left: theaterRect.left,
-        width: theaterRect.width,
-        height: theaterRect.height,
-        zIndex: 40,
-        borderRadius: '0.75rem',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      };
+      // 📱 EN MÓVIL/TABLET: el contenedor batocera-target puede quedar fuera de
+      // la pantalla por scroll o rotación → forzamos viewport completo para
+      // que el juego SIEMPRE se vea, tanto en vertical como horizontal.
+      if (isMobile) {
+        popupStyle = {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          zIndex: 50,
+          borderRadius: 0,
+        };
+      } else {
+        popupStyle = {
+          position: 'fixed',
+          top: theaterRect.top,
+          left: theaterRect.left,
+          width: theaterRect.width,
+          height: theaterRect.height,
+          zIndex: 40,
+          borderRadius: '0.75rem',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        };
+      }
     } else {
       popupStyle = {
         transform: `translate(${position.x}px, ${position.y}px)`,
