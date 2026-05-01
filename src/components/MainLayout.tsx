@@ -44,7 +44,10 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className="flex bg-background text-foreground w-full min-h-screen relative">
+    /* 🔥 FIX MAESTRO: En móvil/tablet usamos h-[100dvh] (NO min-h-screen) para que el contenedor 
+        ocupe EXACTAMENTE el viewport y nunca haya scroll global. El scroll vive solo dentro de <main>.
+        En desktop volvemos a min-h-screen para permitir scroll normal de página completa. 🔥 */
+    <div className="flex bg-background text-foreground w-full h-[100dvh] lg:h-auto lg:min-h-screen overflow-hidden lg:overflow-visible relative">
       {/* Sidebar de PC (Oculto en Tablet y Celular) */}
       <div className="hidden lg:block sticky top-0 h-screen">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -67,11 +70,12 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* 🔥 FIX: En móvil, en vez de pb-[105px] que añadía scroll innecesario, limitamos la altura
-          máxima del main a (100vh - 104px = altura visible del footer minimizado). Así el contenido
-          nunca queda tapado por el footer y solo hace scroll si su contenido real lo excede. 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 max-h-[calc(100vh-104px)] overflow-y-auto lg:max-h-none lg:overflow-visible">
-        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
+      {/* 🔥 FIX: En móvil, <main> ocupa el espacio restante (viewport - 104px del footer fijo) y 
+          es el ÚNICO scroll. Como el contenedor raíz es h-[100dvh] sin scroll global, no se 
+          genera scroll innecesario en páginas cortas y el contenido nunca queda tapado por el footer.
+          Añadimos pb-4 al contenedor interno para que el último contenido no toque la sombra del footer. 🔥 */}
+      <main className="flex-1 flex flex-col min-w-0 h-[calc(100dvh-104px)] overflow-y-auto lg:h-auto lg:overflow-visible">
+        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 pb-6 lg:pb-6 max-w-[1800px] mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
           </div>
