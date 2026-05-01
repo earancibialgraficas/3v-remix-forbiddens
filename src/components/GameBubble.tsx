@@ -175,7 +175,8 @@ export default function GameBubble() {
     setExpandedControlsOpen(false);
   }, [activeGame?.romUrl]);
 
-  const isTheaterActive = theaterRect && !minimized && !forceFloating;
+  // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
+  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2;
   const isExpanded = isTheaterActive || isFullscreen;
 
   useEffect(() => {
@@ -318,7 +319,8 @@ export default function GameBubble() {
   }, [activeGame?.gameName, activeGame?.consoleName, user]);
 
   useEffect(() => {
-    if (activeGame && !minimized && romLoaded && !paused) {
+    // 🚫 PS2 no acumula puntaje (es solo informativo, no se juega aquí dentro)
+    if (activeGame && !minimized && romLoaded && !paused && !isPs2) {
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
@@ -337,7 +339,7 @@ export default function GameBubble() {
       }, 10000);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeGame, minimized, romLoaded, paused, updateScore]);
+  }, [activeGame, minimized, romLoaded, paused, updateScore, isPs2]);
 
   useEffect(() => {
     if (!activeGame) {
@@ -1206,7 +1208,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                     Cómo jugar PS2:
                   </p>
                   <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed">
-                    <li>Abre una pestaña nueva en Chrome o Firefox (escritorio).</li>
+                    <li>Abre una pestaña nueva en tu navegador (escritorio).</li>
                     <li>Copia y pega esta URL en la barra de direcciones:</li>
                   </ol>
                   <div className="mt-3 flex items-center gap-2 bg-black/80 border border-neon-cyan/40 rounded px-3 py-2">
