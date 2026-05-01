@@ -203,29 +203,43 @@ export default function EmulatorPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // 🖱️👆 Drag/Swipe handlers (mouse + touch)
-  const SWIPE_THRESHOLD = 60;
+  // 🖱️👆 Drag/Swipe handlers (mouse + touch) — fluido con rAF
+  const SWIPE_THRESHOLD_RATIO = 0.18; // 18% del ancho del carrusel
 
   const onPointerDown = (clientX: number) => {
     dragStartX.current = clientX;
     dragDelta.current = 0;
     setIsDragging(true);
+    setDragOffset(0);
   };
   const onPointerMove = (clientX: number) => {
     if (dragStartX.current === null) return;
-    dragDelta.current = clientX - dragStartX.current;
+    const delta = clientX - dragStartX.current;
+    dragDelta.current = delta;
+    if (rafId.current !== null) return;
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      setDragOffset(dragDelta.current);
+    });
   };
   const onPointerUp = () => {
     if (dragStartX.current === null) return;
     const delta = dragDelta.current;
-    if (delta <= -SWIPE_THRESHOLD) {
+    const width = carouselRef.current?.clientWidth || 1;
+    const threshold = Math.max(40, width * SWIPE_THRESHOLD_RATIO);
+    if (delta <= -threshold) {
       setCurrentIndex((prev) => (prev + 1) % systems.length);
-    } else if (delta >= SWIPE_THRESHOLD) {
+    } else if (delta >= threshold) {
       setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
     }
     dragStartX.current = null;
     dragDelta.current = 0;
+    if (rafId.current !== null) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
     setIsDragging(false);
+    setDragOffset(0);
   };
 
   return (
