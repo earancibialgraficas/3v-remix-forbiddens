@@ -331,7 +331,13 @@ export default function EmulatorPage() {
           {/* CENTER */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pt-12 pb-20 sm:pt-16 sm:pb-24">
             <div className="mb-4 sm:mb-8 md:mb-12 text-center transition-all duration-500 px-3 sm:px-4 max-w-full w-full">
-              <h2 className="font-pixel text-[clamp(1.1rem,5vw,3rem)] leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap">
+              <h2
+                className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap mx-auto"
+                style={{
+                  // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
+                  fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
+                }}
+              >
                 {currentSystem.short}
               </h2>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
