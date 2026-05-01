@@ -34,6 +34,8 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [userRoles, setUserRoles] = useState<Record<string, string[]>>({});
+  const [consoleFilter, setConsoleFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const fetchScores = async () => {
