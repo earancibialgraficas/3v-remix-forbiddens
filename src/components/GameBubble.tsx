@@ -418,7 +418,9 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;
 #game{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important}
 #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:calc(100% - 40px)!important;width:100%!important;height:calc(100% - 40px)!important;object-fit:contain!important;display:block!important;background:#000!important}
 .ejs_drop_zone,.ejs_dropzone,.ejs_status,.ejs_message,.ejs_notification,
-div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
+.ejs_loading_text,.ejs_cheat_menu,.ejs_popup_box,
+div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"],
+div[class*="overlay"],div[class*="Overlay"]:not(.ejs_menu_bar):not([class*="menu_bar"]){
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
 /* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
