@@ -390,11 +390,21 @@ export default function GameBubble() {
           // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
-#game,#game>div{width:100%!important;height:100%!important;position:relative!important;display:flex!important;flex-direction:column!important}
-#game canvas{flex:1 1 auto!important;min-height:0!important;width:100%!important;height:auto!important;display:block!important}
-/* Barra de controles nativa SIEMPRE abajo */
-.ejs_menu_bar{position:absolute!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%!important;background:rgba(0,0,0,0.85)!important;z-index:9999!important}
-/* Menús desplegables del emulador alineados al fondo */
+#game{position:relative!important}
+#game canvas{width:100%!important;height:calc(100% - 40px)!important;display:block!important}
+/* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
+.ejs_menu_bar,
+div[class*="menu_bar"],
+.ejs_canvas_parent ~ div:last-child {
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  top:auto!important;
+  width:100%!important;
+  background:rgba(0,0,0,0.9)!important;
+  z-index:9999!important;
+}
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
@@ -416,26 +426,67 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
               revokeEmulatorObjectUrls();
             },
             saveState: async () => {
-              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
-              if (!gm?.getState) throw new Error("Guardado no disponible");
-              // mupen64plus_next (N64) y otros cores devuelven Promise<Uint8Array>
-              let state: any = gm.getState();
-              if (state && typeof state.then === "function") state = await state;
-              if (!state || (state.length !== undefined && state.length === 0)) {
-                throw new Error("Estado vacío");
+              const ejs = (frame.contentWindow as any)?.EJS_emulator;
+              if (!ejs) throw new Error("Emulador no listo");
+              const gm = ejs.gameManager;
+
+              // 1) API directa de EJS_emulator (versiones recientes)
+              if (typeof ejs.getState === "function") {
+                let st: any = ejs.getState();
+                if (st && typeof st.then === "function") st = await st;
+                if (st && (st.byteLength > 0 || st.size > 0 || st.length > 0)) {
+                  return { state: st instanceof Blob ? st : new Blob([st]) };
+                }
               }
-              return { state: new Blob([state]) };
+
+              // 2) gameManager.getState() — puede ser sync o async
+              if (gm && typeof gm.getState === "function") {
+                let state: any = gm.getState();
+                if (state && typeof state.then === "function") state = await state;
+                if (state && (state.byteLength > 0 || state.length > 0 || state.size > 0)) {
+                  return { state: state instanceof Blob ? state : new Blob([state]) };
+                }
+              }
+
+              // 3) Fallback: quickSave + leer del FS virtual
+              if (gm && typeof gm.quickSave === "function") {
+                try { gm.quickSave("/save.state"); } catch {}
+                await new Promise(r => setTimeout(r, 300));
+                try {
+                  const FS = gm.FS || (frame.contentWindow as any).FS;
+                  if (FS) {
+                    const data = FS.readFile("/save.state");
+                    if (data && data.length > 0) return { state: new Blob([data]) };
+                  }
+                } catch {}
+              }
+
+              throw new Error("Guardado no disponible para este core");
             },
             loadState: async (blob: Blob) => {
-              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
-              if (!gm?.loadState) throw new Error("Carga no disponible");
+              const ejs = (frame.contentWindow as any)?.EJS_emulator;
+              if (!ejs) throw new Error("Emulador no listo");
+              const gm = ejs.gameManager;
               const bytes = new Uint8Array(await blob.arrayBuffer());
-              // EJS espera (path, bytes) en algunos cores; intentamos ambas firmas
-              try {
-                gm.loadState(bytes);
-              } catch {
-                gm.loadState("/save.state", bytes);
+
+              // 1) API directa
+              if (typeof ejs.loadState === "function") {
+                try { await ejs.loadState(bytes); return; } catch {}
               }
+              if (gm && typeof gm.loadState === "function") {
+                try { gm.loadState(bytes); return; } catch {}
+                try { gm.loadState("/save.state", bytes); return; } catch {}
+              }
+              // Fallback: escribir al FS y quickLoad
+              if (gm && typeof gm.quickLoad === "function") {
+                try {
+                  const FS = gm.FS || (frame.contentWindow as any).FS;
+                  if (FS) FS.writeFile("/save.state", bytes);
+                  gm.quickLoad("/save.state");
+                  return;
+                } catch {}
+              }
+              throw new Error("Carga no disponible");
             },
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
