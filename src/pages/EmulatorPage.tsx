@@ -14,6 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 // 🎮 PS2 (Play!.js) — juegos con buena compatibilidad reportada en el tracker oficial
 // Fuente: https://github.com/jpd002/Play-Compatibility/issues
