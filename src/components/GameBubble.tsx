@@ -1022,7 +1022,7 @@ div[class*="virtual_gamepad"] > *{
       // 📱 EN MÓVIL/TABLET: el contenedor batocera-target puede quedar fuera de
       // la pantalla por scroll o rotación → forzamos viewport completo para
       // que el juego SIEMPRE se vea, tanto en vertical como horizontal.
-      if (isMobile) {
+        if (isMobile) {
         popupStyle = {
           position: 'fixed',
           top: 0,
@@ -1129,7 +1129,15 @@ div[class*="virtual_gamepad"] > *{
           </div>
         )}
 
-        <div ref={canvasViewportRef} className={cn("relative bg-black overflow-hidden", minimized ? "h-full w-full" : "flex-1")}>
+        <div
+          ref={canvasViewportRef}
+          className={cn(
+            "relative bg-black overflow-hidden",
+            minimized ? "h-full w-full" : "flex-1",
+            isExpanded && isMobile && "flex items-center justify-center",
+            isExpanded && isMobile && isLandscape && !usesEmulatorJs && "px-28"
+          )}
+        >
           {!romLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -1142,7 +1150,7 @@ div[class*="virtual_gamepad"] > *{
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none" }} 
+            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
           />
 
           {usesEmulatorJs && (
@@ -1161,6 +1169,7 @@ div[class*="virtual_gamepad"] > *{
               canvasRef={canvasRef}
               consoleName={activeGame.consoleName}
               visible={true}
+              landscape={isLandscape}
             />
           )}
 
