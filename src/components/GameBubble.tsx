@@ -108,8 +108,9 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+  const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
-  const isN64 = !!activeGame && ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+  const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2"].includes(activeGame.consoleName);
 
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
