@@ -1208,7 +1208,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                     Cómo jugar PS2:
                   </p>
                   <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed">
-                    <li>Abre una pestaña nueva en Chrome o Firefox (escritorio).</li>
+                    <li>Abre una pestaña nueva en tu navegador (escritorio).</li>
                     <li>Copia y pega esta URL en la barra de direcciones:</li>
                   </ol>
                   <div className="mt-3 flex items-center gap-2 bg-black/80 border border-neon-cyan/40 rounded px-3 py-2">
