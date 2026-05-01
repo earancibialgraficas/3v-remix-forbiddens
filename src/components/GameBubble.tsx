@@ -106,6 +106,7 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
+  const isN64 = !!activeGame && activeGame.consoleName === "n64";
 
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -407,7 +408,7 @@ div[class*="menu_bar"],
 }
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
 `;
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
@@ -1033,12 +1034,12 @@ div[class*="menu_bar"],
             "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-opacity",
             isExpanded ? "absolute right-0 top-12 bottom-0 w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 group-hover:opacity-100" : "w-14"
           )}>
-            {romLoaded && (
+            {romLoaded && !isN64 && (
               <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
                 <Save className="w-4 h-4" />
               </Button>
             )}
-            {romLoaded && saveSlots.length > 0 && (
+            {romLoaded && !isN64 && saveSlots.length > 0 && (
               <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
                 <Download className="w-4 h-4" />
               </Button>
@@ -1049,7 +1050,7 @@ div[class*="menu_bar"],
               </Button>
             )}
             
-            {romLoaded && (
+            {romLoaded && !isN64 && (
               <div className="flex flex-col items-center w-full my-1">
                 <Button 
                   size="icon" 
