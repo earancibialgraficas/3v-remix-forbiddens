@@ -390,11 +390,21 @@ export default function GameBubble() {
           // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
-#game,#game>div{width:100%!important;height:100%!important;position:relative!important;display:flex!important;flex-direction:column!important}
-#game canvas{flex:1 1 auto!important;min-height:0!important;width:100%!important;height:auto!important;display:block!important}
-/* Barra de controles nativa SIEMPRE abajo */
-.ejs_menu_bar{position:absolute!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%!important;background:rgba(0,0,0,0.85)!important;z-index:9999!important}
-/* Menús desplegables del emulador alineados al fondo */
+#game{position:relative!important}
+#game canvas{width:100%!important;height:calc(100% - 40px)!important;display:block!important}
+/* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
+.ejs_menu_bar,
+div[class*="menu_bar"],
+.ejs_canvas_parent ~ div:last-child {
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  top:auto!important;
+  width:100%!important;
+  background:rgba(0,0,0,0.9)!important;
+  z-index:9999!important;
+}
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
