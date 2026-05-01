@@ -96,6 +96,7 @@ export default function GameBubble() {
   const [paused, setPaused] = useState(false);
 
   const [volume, setVolume] = useState(1); 
+  const volumeRef = useRef(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -175,12 +176,17 @@ export default function GameBubble() {
   const handleVolumeChange = (newVol: number) => {
     setVolume(newVol);
     (window as any).__masterVolume = newVol;
+    (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator?.setVolume?.(newVol);
     (window as any).__masterGains.forEach((gainNode: any) => {
       if (gainNode && gainNode.gain) {
         gainNode.gain.value = newVol;
       }
     });
   };
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
 
   useEffect(() => {
     const onInput = () => {
@@ -381,7 +387,7 @@ export default function GameBubble() {
 
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game>div{width:100%!important;height:100%!important}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volume)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game>div{width:100%!important;height:100%!important}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
@@ -393,28 +399,28 @@ export default function GameBubble() {
           frame.srcdoc = html;
 
           const emulatorJsInstance = {
-            pause: () => frame.contentWindow?.EJS_emulator?.pause?.(),
-            resume: () => frame.contentWindow?.EJS_emulator?.play?.(),
+            pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
+            resume: () => (frame.contentWindow as any)?.EJS_emulator?.play?.(),
             exit: () => {
               frame.srcdoc = "";
               revokeEmulatorObjectUrls();
             },
             saveState: async () => {
-              const state = frame.contentWindow?.EJS_emulator?.gameManager?.getState?.();
+              const state = (frame.contentWindow as any)?.EJS_emulator?.gameManager?.getState?.();
               if (!state) throw new Error("Guardado no disponible");
               return { state: new Blob([state]) };
             },
             loadState: async (blob: Blob) => {
               const bytes = new Uint8Array(await blob.arrayBuffer());
-              frame.contentWindow?.EJS_emulator?.gameManager?.loadState?.(bytes);
+              (frame.contentWindow as any)?.EJS_emulator?.gameManager?.loadState?.(bytes);
             },
-            openMenu: () => frame.contentWindow?.EJS_emulator?.menu?.open?.(),
+            openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
 
           nostalgistRef.current = emulatorJsInstance;
           setNostalgistInstance(emulatorJsInstance);
           setTimeout(() => {
-            if (!romLoaded && frame.contentWindow?.EJS_emulator) setRomLoaded(true);
+            if (!romLoaded && (frame.contentWindow as any)?.EJS_emulator) setRomLoaded(true);
             window.removeEventListener("message", onMessage);
           }, 5000);
           return;
@@ -510,7 +516,7 @@ export default function GameBubble() {
         nostalgistRef.current = null;
       }
     };
-    }, [activeGame?.romUrl, activeGame?.consoleName, activeGame?.gameName, scheduleCanvasSurfaceSync, toast, usesEmulatorJs, revokeEmulatorObjectUrls, volume]);
+    }, [activeGame?.romUrl, activeGame?.consoleName, activeGame?.gameName, scheduleCanvasSurfaceSync, toast, usesEmulatorJs, revokeEmulatorObjectUrls]);
 
   useEffect(() => {
     if (!romLoaded || !nostalgistRef.current) return;
