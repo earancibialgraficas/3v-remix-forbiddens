@@ -113,7 +113,10 @@ export default function EmulatorPage() {
   // 🖱️ Drag/swipe state
   const dragStartX = useRef<number | null>(null);
   const dragDelta = useRef<number>(0);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const rafId = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
