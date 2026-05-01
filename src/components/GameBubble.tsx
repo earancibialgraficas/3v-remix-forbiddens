@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import TouchGamepad from "@/components/TouchGamepad";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // 🔥 HACK MAESTRO DE AUDIO: Intercepta la Web Audio API globalmente 🔥
 if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
