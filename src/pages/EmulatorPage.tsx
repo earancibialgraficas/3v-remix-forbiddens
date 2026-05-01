@@ -14,6 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 // 🎮 PS2 (Play!.js) — juegos con buena compatibilidad reportada en el tracker oficial
 // Fuente: https://github.com/jpd002/Play-Compatibility/issues
@@ -184,6 +191,8 @@ export default function EmulatorPage() {
   const rafId = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
+  const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
+  const [ps2Copied, setPs2Copied] = useState(false);
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -246,24 +255,25 @@ export default function EmulatorPage() {
     toast({ title: "Zona horaria actualizada", description: label });
   };
 
-  // 🚀 Launch PS2 directamente — Play!.js trae su propio cargador de ISO en la UI del iframe
+  // 🚀 PS2 abre un modal informativo (no usa el GameBubble) — Play!.js no se puede embeber
   const launchPs2 = () => {
     if (!user) {
-      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para acceder a esta sección.", variant: "destructive" });
       return;
     }
-    launchGame({
-      romUrl: "playjs:embed",
-      consoleName: "ps2" as any,
-      gameName: "PlayStation 2",
-      consoleCore: "play!.js",
-      score: 0,
-      playTime: 0,
-    });
-    toast({
-      title: "PS2 iniciado",
-      description: "Sube tu ISO desde el botón dentro del emulador. Solo PC, experimental.",
-    });
+    setPs2Copied(false);
+    setPs2DialogOpen(true);
+  };
+
+  const copyPs2Url = async () => {
+    try {
+      await navigator.clipboard.writeText("https://playjs.purei.org/");
+      setPs2Copied(true);
+      toast({ title: "URL copiada", description: "Pégala en una pestaña nueva de tu navegador." });
+      setTimeout(() => setPs2Copied(false), 2500);
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Copia manualmente: playjs.purei.org", variant: "destructive" });
+    }
   };
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -629,6 +639,63 @@ export default function EmulatorPage() {
           </div>
         </>
       )}
+
+      {/* 🎮 PS2 (Play!.js) — Modal informativo, NO se embebe el emulador */}
+      <Dialog open={ps2DialogOpen} onOpenChange={setPs2DialogOpen}>
+        <DialogContent className="max-w-lg bg-black/95 border-2 border-neon-magenta/50 shadow-[0_0_50px_rgba(217,70,239,0.4)] text-white">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-pixel text-[10px] px-2 py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse tracking-widest uppercase">
+                Experimental
+              </span>
+              <span className="font-pixel text-[9px] text-white/50 tracking-widest uppercase">
+                Solo PC
+              </span>
+            </div>
+            <DialogTitle className="font-pixel text-base sm:text-lg text-neon-cyan tracking-wide">
+              Jugar PS2 con Play!.js
+            </DialogTitle>
+            <DialogDescription className="font-body text-xs sm:text-sm text-white/70 leading-relaxed pt-2">
+              Play!.js no se puede embeber aquí por restricciones de seguridad
+              del navegador (<code className="text-neon-yellow">SharedArrayBuffer</code> / COOP+COEP).
+              Tienes que abrirlo en una pestaña nueva de tu navegador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-black/60 border border-neon-cyan/30 rounded-lg p-3 sm:p-4 mt-2">
+            <p className="font-pixel text-[9px] sm:text-[10px] text-neon-cyan uppercase tracking-widest mb-3">
+              Cómo jugar:
+            </p>
+            <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed">
+              <li>Abre una pestaña nueva en tu navegador (escritorio).</li>
+              <li>Copia esta URL y pégala en la barra de direcciones:</li>
+            </ol>
+            <div className="mt-3 flex items-center gap-2 bg-black/80 border border-neon-cyan/40 rounded px-3 py-2">
+              <code className="flex-1 font-mono text-xs sm:text-sm text-neon-yellow break-all select-all">
+                https://playjs.purei.org/
+              </code>
+              <button
+                onClick={copyPs2Url}
+                className={cn(
+                  "font-pixel text-[8px] sm:text-[9px] px-3 py-1.5 rounded border uppercase tracking-widest transition-colors active:scale-95 flex items-center gap-1",
+                  ps2Copied
+                    ? "bg-neon-green/20 border-neon-green/50 text-neon-green"
+                    : "bg-neon-cyan/20 hover:bg-neon-cyan/40 border-neon-cyan/50 text-neon-cyan"
+                )}
+              >
+                {ps2Copied ? <><Check className="w-3 h-3" /> Copiado</> : "Copiar"}
+              </button>
+            </div>
+            <ol start={3} className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed mt-3">
+              <li>Dentro del emulador, presiona <strong className="text-neon-yellow">"Boot DiskImage"</strong> y selecciona tu archivo <code className="text-neon-yellow">.iso</code> / <code className="text-neon-yellow">.cso</code>.</li>
+            </ol>
+          </div>
+
+          <p className="font-body text-[10px] sm:text-xs text-white/50 italic leading-snug mt-2">
+            💡 No requiere BIOS · Compatibilidad limitada · No otorga puntaje en el ranking.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
