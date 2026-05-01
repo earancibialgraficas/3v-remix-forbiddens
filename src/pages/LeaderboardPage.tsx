@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Trophy, Gamepad2, User, Search, X } from "lucide-react";
+import { Trophy, Gamepad2, User, Search, X, ChevronDown, Check } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
@@ -173,41 +174,62 @@ export default function LeaderboardPage() {
       {/* 🔍 Filtros: consola + búsqueda */}
       {!loading && scores.length > 0 && (
         <div className="bg-card border border-border rounded p-3 flex flex-col sm:flex-row gap-2">
-          {/* Selector de consola */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              onClick={() => setConsoleFilter("all")}
-              className={cn(
-                "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
-                consoleFilter === "all"
-                  ? "bg-neon-yellow/20 border-neon-yellow text-neon-yellow"
-                  : "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-              )}
+          {/* Selector de consola (dropdown) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-pixel uppercase tracking-wider rounded border bg-muted/50 border-border text-foreground hover:border-neon-green/60 hover:text-neon-green transition-all min-w-[160px]"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Gamepad2 className="w-3.5 h-3.5" />
+                  {consoleFilter === "all"
+                    ? "Todas las consolas"
+                    : ALL_CONSOLES.find(c => c.id === consoleFilter)?.label || consoleFilter}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-56 bg-card border-border max-h-80 overflow-y-auto"
             >
-              Todas
-            </button>
-            {ALL_CONSOLES.map(c => {
-              const hasScores = consolesWithScores.has(c.id);
-              const isActive = consoleFilter === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setConsoleFilter(c.id)}
-                  title={hasScores ? c.label : `${c.label} — sin puntajes aún`}
-                  className={cn(
-                    "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
-                    isActive
-                      ? "bg-neon-green/20 border-neon-green text-neon-green"
-                      : hasScores
-                        ? "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                        : "bg-muted/20 border-border/50 text-muted-foreground/50 hover:text-muted-foreground hover:border-foreground/20"
-                  )}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
+              <DropdownMenuItem
+                onClick={() => setConsoleFilter("all")}
+                className={cn(
+                  "font-pixel text-[10px] uppercase tracking-wider cursor-pointer flex items-center justify-between",
+                  consoleFilter === "all" && "text-neon-yellow"
+                )}
+              >
+                <span>Todas las consolas</span>
+                {consoleFilter === "all" && <Check className="w-3.5 h-3.5" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {ALL_CONSOLES.map(c => {
+                const hasScores = consolesWithScores.has(c.id);
+                const isActive = consoleFilter === c.id;
+                return (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onClick={() => setConsoleFilter(c.id)}
+                    className={cn(
+                      "font-pixel text-[10px] uppercase tracking-wider cursor-pointer flex items-center justify-between",
+                      isActive ? "text-neon-green" : !hasScores && "text-muted-foreground/60"
+                    )}
+                  >
+                    <span>{c.label}</span>
+                    <span className="flex items-center gap-1.5">
+                      {!hasScores && (
+                        <span className="text-[8px] font-body normal-case tracking-normal text-muted-foreground/60">
+                          (vacía)
+                        </span>
+                      )}
+                      {isActive && <Check className="w-3.5 h-3.5" />}
+                    </span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Buscador de juego */}
           <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
