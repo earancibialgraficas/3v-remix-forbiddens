@@ -308,37 +308,33 @@ export default function GameBubble() {
       if (!el) return;
       
       try {
+        // 🔥 VERIFICACIÓN ESTRICTA DE WEBGL PARA N64 🔥
+        if (activeGame.consoleName === "n64" && !window.WebGLRenderingContext) {
+            toast({ title: "Error Fatal", description: "Tu navegador no soporta WebGL, necesario para Nintendo 64.", variant: "destructive" });
+            return;
+        }
+
         const { Nostalgist } = await import("nostalgist");
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 EL HACK DEFINITIVO (Con Uint8Array) 🔥
+        // 🔥 LECTURA DEL FILE LOCAL INTACTO 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
-            
             if (localFile instanceof File) {
-                console.log("🎮 ROM FILE ENCONTRADO:", localFile.name, "Tamaño:", localFile.size);
-                
-                // Extraemos los bytes puros para que Nostalgist no tenga problemas al leer un Blob
                 const buffer = await localFile.arrayBuffer();
                 romSrc = {
                     fileName: localFile.name,
-                    fileContent: new Uint8Array(buffer)
+                    fileContent: buffer
                 };
-                console.log("✅ ROM Convertida a Uint8Array exitosamente");
-            } else {
-                console.error("❌ El archivo local no es una instancia de File válida");
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
             const localMap = (window as any).__uploadedFiles;
             if (localMap && localMap[activeGame.gameName]) {
                 const f = localMap[activeGame.gameName];
                 if (f instanceof File) {
-                    romSrc = { 
-                        fileName: f.name, 
-                        fileContent: new Uint8Array(await f.arrayBuffer()) 
-                    };
+                   romSrc = { fileName: f.name, fileContent: await f.arrayBuffer() };
                 }
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
@@ -351,11 +347,16 @@ export default function GameBubble() {
            coreToUse = "parallel_n64";
         }
 
+        // 🔥 CONFIGURACIÓN RETROARCH PARA CARGAR CORES LOCALES 🔥
         const launchOptions: any = {
           core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
+          retroarch: {
+            wasm: "/cores/",
+            assets: "/cores/"
+          }
         };
 
         // Configuración especial de BIOS y Resolución
@@ -367,8 +368,22 @@ export default function GameBubble() {
           launchOptions.resolution = { width: 640, height: 480 };
         }
 
-        console.log("🚀 Lanzando Nostalgist con opciones:", launchOptions);
-        const instance = await Nostalgist.launch(launchOptions);
+        console.log("🚀 Iniciando Nostalgist con opciones:", launchOptions);
+        
+        let instance;
+        try {
+            // Intento principal con parallel_n64 u otros cores
+            instance = await Nostalgist.launch(launchOptions);
+        } catch (err) {
+            // 🔥 SISTEMA DE FALLBACK AUTOMÁTICO PARA N64 🔥
+            if (activeGame.consoleName === "n64" && coreToUse === "parallel_n64") {
+                console.warn("⚠️ parallel_n64 falló. Intentando con mupen64plus_next...");
+                launchOptions.core = "mupen64plus_next";
+                instance = await Nostalgist.launch(launchOptions);
+            } else {
+                throw err;
+            }
+        }
         
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
@@ -693,12 +708,13 @@ export default function GameBubble() {
   }
 
   const bubbleContent = (
+    // 🔥 CLASS "group" AÑADIDO PARA QUE LAS DOS BARRAS APAREZCAN AL MISMO TIEMPO 🔥
     <div
       ref={popupRef}
       onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
       className={cn(
-        "relative overflow-hidden select-none",
-        minimized ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer group border border-border" :
+        "relative overflow-hidden select-none group",
+        minimized ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer border border-border" :
         isTheaterActive || isFullscreen ? "flex flex-col bg-black shadow-2xl" :
         "flex bg-card rounded-xl shadow-2xl shadow-black/50 border border-border animate-scale-in"
       )}
@@ -706,11 +722,12 @@ export default function GameBubble() {
     >
       <div className={cn("relative flex-1 min-w-0 bg-black", minimized ? "h-full w-full" : "flex flex-col")}> 
         {!minimized && (
+          // 🔥 BARRA SUPERIOR CON "group-hover:opacity-100" Y z-[61] PARA EVITAR SOLAPAMIENTOS 🔥
           <div
             className={cn(
               "flex items-center justify-between px-3 py-2 select-none transition-opacity",
               isExpanded 
-                ? "absolute top-0 left-0 w-full z-[60] bg-black/80 border-b border-white/10 opacity-0 hover:opacity-100 h-12" 
+                ? "absolute top-0 left-0 w-full z-[61] bg-black/80 border-b border-white/10 opacity-0 group-hover:opacity-100 h-12" 
                 : "bg-muted/50 border-b border-border cursor-move"
             )}
             onMouseDown={!isExpanded ? onMouseDown : undefined}
@@ -734,7 +751,8 @@ export default function GameBubble() {
                 <Minus className="w-3.5 h-3.5" />
               </Button>
               
-              {isExpanded && (
+              {/* 🔥 BOTÓN DE RESTAURAR OCULTO SI ESTÁS EN MODO TEATRO 🔥 */}
+              {isExpanded && !isTheaterActive && (
                  <Button 
                    size="icon" 
                    variant="ghost" 
@@ -820,9 +838,10 @@ export default function GameBubble() {
 
       {!minimized && (
         <>
+          {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" (Comienza desde top-12 para no tapar la barra superior) 🔥 */}
           <div className={cn(
             "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-opacity",
-            isExpanded ? "absolute right-0 top-0 h-full w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 hover:opacity-100" : "w-14"
+            isExpanded ? "absolute right-0 top-12 bottom-0 w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 group-hover:opacity-100" : "w-14"
           )}>
             {romLoaded && (
               <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
