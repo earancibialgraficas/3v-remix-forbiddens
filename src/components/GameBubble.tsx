@@ -121,6 +121,7 @@ export default function GameBubble() {
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
 
   useEffect(() => {
     const updateOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
@@ -170,7 +171,12 @@ export default function GameBubble() {
 
   useEffect(() => {
     setForceFloating(false);
+    setExpandedControlsOpen(false);
   }, [activeGame?.romUrl]);
+
+  useEffect(() => {
+    if (!isExpanded) setExpandedControlsOpen(false);
+  }, [isExpanded]);
 
   const isTheaterActive = theaterRect && !minimized && !forceFloating;
   const isExpanded = isTheaterActive || isFullscreen;
@@ -723,6 +729,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           canvas.style.height = "100%";
           canvas.style.objectFit = "contain";
           canvas.focus({ preventScroll: true });
+          try { window.dispatchEvent(new Event("resize")); } catch {}
+          if (!minimized && nostalgistRef.current && !paused) {
+            try { nostalgistRef.current.resume(); } catch {}
+          }
           return;
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
