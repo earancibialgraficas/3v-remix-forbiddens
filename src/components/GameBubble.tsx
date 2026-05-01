@@ -106,6 +106,7 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
+  const isN64 = !!activeGame && activeGame.consoleName === "n64";
 
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
