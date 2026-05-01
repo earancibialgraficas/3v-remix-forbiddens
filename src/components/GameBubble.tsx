@@ -112,6 +112,13 @@ export default function GameBubble() {
         }
       }, 500);
     }
+    // Para EmulatorJS (N64, PS1, arcade), resetear AFK cada 10s para evitar pausa falsa
+    let emulatorAfkInterval: NodeJS.Timeout | null = null;
+    if (activeGame && romLoaded && ["n64", "ps1", "arcade"].includes(activeGame.consoleCore)) {
+      emulatorAfkInterval = setInterval(() => {
+        lastInputRef.current = Date.now();
+      }, 10000);
+    }
     // Agregar listeners al canvas para detectar actividad dentro del emulador
     const canvas = canvasRef.current;
     if (canvas) {
@@ -130,6 +137,7 @@ export default function GameBubble() {
         canvas.removeEventListener("touchstart", onInput);
       }
       if (gpInterval) clearInterval(gpInterval);
+      if (emulatorAfkInterval) clearInterval(emulatorAfkInterval);
     };
   }, [activeGame, romLoaded]);
 
@@ -191,37 +199,55 @@ export default function GameBubble() {
       setPaused(false);
       await new Promise((r) => setTimeout(r, 200));
       const el = canvasRef.current;
-      if (!el) return;
+      const viewportEl = canvasViewportRef.current;
+      if (!el || !viewportEl) return;
       try {
-        const { Nostalgist } = await import("nostalgist");
-
-        // Monkey-patch AudioContext to track instances for volume control
-        const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (OrigAudioContext && !(window as any).__audioContextPatched) {
-          (window as any).__audioContexts = (window as any).__audioContexts || [];
-          const origCtor = OrigAudioContext;
-          (window as any).AudioContext = function (...args: any[]) {
-            const ctx = new origCtor(...args);
-            (window as any).__audioContexts.push(ctx);
-            return ctx;
-          };
-          (window as any).AudioContext.prototype = origCtor.prototype;
-          (window as any).__audioContextPatched = true;
-        }
-
         let romSrc = activeGame.romUrl;
         if (romSrc.startsWith("/")) romSrc = window.location.origin + romSrc;
-        const instance = await Nostalgist.launch({
-          core: activeGame.consoleCore,
-          rom: romSrc,
-          element: el as HTMLCanvasElement,
-          style: { width: "100%", height: "100%" },
-        });
-        nostalgistRef.current = instance;
-        setNostalgistInstance(instance);
-        setRomLoaded(true);
-        lastInputRef.current = Date.now();
-        scheduleCanvasSurfaceSync();
+
+        if (["n64", "ps1", "arcade"].includes(activeGame.consoleCore)) {
+          // Usar EmulatorJS para N64, PS1, arcade
+          const { default: EmulatorJS } = await import("emulatorjs");
+          const emulator = new EmulatorJS({
+            element: viewportEl,
+            rom: romSrc,
+            core: activeGame.consoleCore,
+            style: { width: "100%", height: "100%" },
+          });
+          nostalgistRef.current = emulator; // Usar la misma ref para consistencia
+          setNostalgistInstance(emulator);
+          setRomLoaded(true);
+          lastInputRef.current = Date.now();
+        } else {
+          // Usar Nostalgist para otros
+          const { Nostalgist } = await import("nostalgist");
+
+          // Monkey-patch AudioContext to track instances for volume control
+          const OrigAudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          if (OrigAudioContext && !(window as any).__audioContextPatched) {
+            (window as any).__audioContexts = (window as any).__audioContexts || [];
+            const origCtor = OrigAudioContext;
+            (window as any).AudioContext = function (...args: any[]) {
+              const ctx = new origCtor(...args);
+              (window as any).__audioContexts.push(ctx);
+              return ctx;
+            };
+            (window as any).AudioContext.prototype = origCtor.prototype;
+            (window as any).__audioContextPatched = true;
+          }
+
+          const instance = await Nostalgist.launch({
+            core: activeGame.consoleCore,
+            rom: romSrc,
+            element: el as HTMLCanvasElement,
+            style: { width: "100%", height: "100%" },
+          });
+          nostalgistRef.current = instance;
+          setNostalgistInstance(instance);
+          setRomLoaded(true);
+          lastInputRef.current = Date.now();
+          scheduleCanvasSurfaceSync();
+        }
       } catch (err) {
         console.error("Emulator error:", err);
         toast({ title: "Error", description: "No se pudo cargar el emulador", variant: "destructive" });
@@ -652,11 +678,13 @@ export default function GameBubble() {
                 </div>
               )}
 
-              <canvas
-                ref={canvasRef}
-                id="game-bubble-canvas"
-                style={{ width: "100%", height: "100%", display: "block" }}
-              />
+              {!["n64", "ps1", "arcade"].includes(activeGame.consoleCore) && (
+                <canvas
+                  ref={canvasRef}
+                  id="game-bubble-canvas"
+                  style={{ width: "100%", height: "100%", display: "block" }}
+                />
+              )}
 
               {minimized && (
                 <>
@@ -723,7 +751,7 @@ export default function GameBubble() {
           {!minimized && (
             <>
               <div className="w-14 bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0">
-                {romLoaded && (
+                {romLoaded && !["n64", "ps1", "arcade"].includes(activeGame.consoleCore) && (
                   <Button
                     size="icon"
                     variant="ghost"
@@ -734,7 +762,7 @@ export default function GameBubble() {
                     <Save className="w-4 h-4" />
                   </Button>
                 )}
-                {romLoaded && saveSlots.length > 0 && (
+                {romLoaded && !["n64", "ps1", "arcade"].includes(activeGame.consoleCore) && saveSlots.length > 0 && (
                   <Button
                     size="icon"
                     variant="ghost"
