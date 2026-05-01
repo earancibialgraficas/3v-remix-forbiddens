@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -14,6 +14,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// 🎮 PS2 (Play!.js) — juegos con buena compatibilidad reportada en el tracker oficial
+// Fuente: https://github.com/jpd002/Play-Compatibility/issues
+const PS2_COMPATIBLE_GAMES: { name: string; status: "Playable" | "In-Game" | "Menus" }[] = [
+  { name: "Ape Escape 2", status: "Playable" },
+  { name: "Ape Escape 3", status: "Playable" },
+  { name: "ATV Offroad Fury", status: "Playable" },
+  { name: "Beyond Good & Evil", status: "Playable" },
+  { name: "Burnout", status: "Playable" },
+  { name: "Burnout 2: Point of Impact", status: "Playable" },
+  { name: "Crash Bandicoot: The Wrath of Cortex", status: "Playable" },
+  { name: "Crash Nitro Kart", status: "Playable" },
+  { name: "Crash Twinsanity", status: "In-Game" },
+  { name: "Dragon Ball Z: Budokai", status: "Playable" },
+  { name: "Dragon Ball Z: Budokai 2", status: "Playable" },
+  { name: "Dragon Ball Z: Budokai 3", status: "In-Game" },
+  { name: "Final Fantasy X", status: "In-Game" },
+  { name: "Final Fantasy XII", status: "In-Game" },
+  { name: "God of War", status: "In-Game" },
+  { name: "Grand Theft Auto III", status: "Playable" },
+  { name: "Grand Theft Auto: Vice City", status: "Playable" },
+  { name: "Grand Theft Auto: San Andreas", status: "In-Game" },
+  { name: "Gran Turismo 3: A-Spec", status: "In-Game" },
+  { name: "Gran Turismo 4", status: "In-Game" },
+  { name: "ICO", status: "Playable" },
+  { name: "Jak and Daxter: The Precursor Legacy", status: "In-Game" },
+  { name: "Kingdom Hearts", status: "In-Game" },
+  { name: "Kingdom Hearts II", status: "In-Game" },
+  { name: "Metal Gear Solid 2: Sons of Liberty", status: "In-Game" },
+  { name: "Metal Gear Solid 3: Snake Eater", status: "Menus" },
+  { name: "Need for Speed: Underground", status: "Playable" },
+  { name: "Need for Speed: Underground 2", status: "Playable" },
+  { name: "Need for Speed: Most Wanted", status: "In-Game" },
+  { name: "Prince of Persia: The Sands of Time", status: "Playable" },
+  { name: "Ratchet & Clank", status: "In-Game" },
+  { name: "Resident Evil 4", status: "In-Game" },
+  { name: "Shadow of the Colossus", status: "In-Game" },
+  { name: "Silent Hill 2", status: "In-Game" },
+  { name: "SpongeBob SquarePants: Battle for Bikini Bottom", status: "Playable" },
+  { name: "Sly Cooper and the Thievius Raccoonus", status: "Playable" },
+  { name: "Sonic Heroes", status: "Playable" },
+  { name: "Sonic Mega Collection Plus", status: "Playable" },
+  { name: "SSX Tricky", status: "Playable" },
+  { name: "Tekken 4", status: "In-Game" },
+  { name: "Tekken 5", status: "In-Game" },
+  { name: "The Simpsons: Hit & Run", status: "Playable" },
+  { name: "Tony Hawk's Pro Skater 3", status: "Playable" },
+  { name: "Tony Hawk's Pro Skater 4", status: "Playable" },
+  { name: "Tony Hawk's Underground", status: "Playable" },
+  { name: "Viewtiful Joe", status: "Playable" },
+  { name: "Wallace & Gromit: Project Zoo", status: "Playable" },
+  { name: "WWE SmackDown! Here Comes the Pain", status: "Playable" },
+];
 
 // 🔥 NOMBRES EXACTOS PARA TU CARPETA /consolasimg/ 🔥
 // Cores REALES de Libretro usados por Nostalgist.js
