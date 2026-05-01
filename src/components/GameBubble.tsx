@@ -1091,6 +1091,16 @@ div[class*="virtual_gamepad"] > *{
             />
           )}
 
+          {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
+              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos. */}
+          {!usesEmulatorJs && !minimized && isMobile && romLoaded && (
+            <TouchGamepad
+              canvasRef={canvasRef}
+              consoleName={activeGame.consoleName}
+              visible={true}
+            />
+          )}
+
           {minimized && (
             <>
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
