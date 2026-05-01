@@ -84,11 +84,23 @@ export default function LeaderboardPage() {
 
   const deduped = dedupScores(scores);
 
-  // Lista de consolas disponibles (calculada del dataset)
-  const availableConsoles = useMemo(() => {
+  // Lista completa de consolas soportadas (debe coincidir con EmulatorPage)
+  const ALL_CONSOLES: { id: string; label: string }[] = [
+    { id: "nes", label: "NES" },
+    { id: "snes", label: "SNES" },
+    { id: "n64", label: "N64" },
+    { id: "gba", label: "GBA" },
+    { id: "gbc", label: "GBC" },
+    { id: "sega", label: "MEGA DRIVE" },
+    { id: "ps1", label: "PSX" },
+    { id: "arcade", label: "ARCADE" },
+  ];
+
+  // Consolas que tienen al menos un score (para resaltar visualmente)
+  const consolesWithScores = useMemo(() => {
     const set = new Set<string>();
     deduped.forEach(s => s.console_type && set.add(s.console_type));
-    return Array.from(set).sort();
+    return set;
   }, [deduped]);
 
   // Aplicar filtros
@@ -174,20 +186,27 @@ export default function LeaderboardPage() {
             >
               Todas
             </button>
-            {availableConsoles.map(c => (
-              <button
-                key={c}
-                onClick={() => setConsoleFilter(c)}
-                className={cn(
-                  "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
-                  consoleFilter === c
-                    ? "bg-neon-green/20 border-neon-green text-neon-green"
-                    : "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                )}
-              >
-                {c}
-              </button>
-            ))}
+            {ALL_CONSOLES.map(c => {
+              const hasScores = consolesWithScores.has(c.id);
+              const isActive = consoleFilter === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setConsoleFilter(c.id)}
+                  title={hasScores ? c.label : `${c.label} — sin puntajes aún`}
+                  className={cn(
+                    "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
+                    isActive
+                      ? "bg-neon-green/20 border-neon-green text-neon-green"
+                      : hasScores
+                        ? "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                        : "bg-muted/20 border-border/50 text-muted-foreground/50 hover:text-muted-foreground hover:border-foreground/20"
+                  )}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Buscador de juego */}
