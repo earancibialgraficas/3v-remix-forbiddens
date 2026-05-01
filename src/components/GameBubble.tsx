@@ -1034,12 +1034,12 @@ div[class*="menu_bar"],
             "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-opacity",
             isExpanded ? "absolute right-0 top-12 bottom-0 w-14 bg-black/80 border-l border-white/10 z-[60] opacity-0 group-hover:opacity-100" : "w-14"
           )}>
-            {romLoaded && (
+            {romLoaded && !isN64 && (
               <Button size="icon" variant="ghost" onClick={() => setShowSaveDialog(true)} className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg" title="Guardar partida">
                 <Save className="w-4 h-4" />
               </Button>
             )}
-            {romLoaded && saveSlots.length > 0 && (
+            {romLoaded && !isN64 && saveSlots.length > 0 && (
               <Button size="icon" variant="ghost" onClick={() => setShowLoadDialog(true)} className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg" title="Cargar partida">
                 <Download className="w-4 h-4" />
               </Button>
@@ -1050,7 +1050,7 @@ div[class*="menu_bar"],
               </Button>
             )}
             
-            {romLoaded && (
+            {romLoaded && !isN64 && (
               <div className="flex flex-col items-center w-full my-1">
                 <Button 
                   size="icon" 
