@@ -416,47 +416,18 @@ export default function GameBubble() {
 
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
-          // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
-          // 🚫 Oculta el botón "Context Menu" del menú nativo
-          // 📱 Ajusta los controles táctiles para no quedar tapados por la barra en L
+          const safeRomFileName = romFileName || activeGame.gameName || "Game";
+          // Mantiene los controles nativos de EmulatorJS en su posición original.
+          // Solo limpiamos overlays basura y hacemos que el canvas quepa en pantalla.
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
 #game{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important}
-#game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:calc(100% - 40px)!important;width:100%!important;height:calc(100% - 40px)!important;object-fit:contain!important;display:block!important;background:#000!important}
+#game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:100%!important;width:100%!important;height:100%!important;object-fit:contain!important;display:block!important;background:#000!important}
 .ejs_drop_zone,.ejs_dropzone,.ejs_status,.ejs_message,.ejs_notification,
 .ejs_loading_text,.ejs_cheat_menu,.ejs_popup_box,
-div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"],
-div[class*="overlay"],div[class*="Overlay"]:not(.ejs_menu_bar):not([class*="menu_bar"]){
+div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
-.ejs_menu_bar,
-div[class*="menu_bar"],
-.ejs_canvas_parent ~ div:last-child {
-  position:absolute!important;
-  left:0!important;
-  right:0!important;
-  bottom:0!important;
-  top:auto!important;
-  width:100%!important;
-  background:rgba(0,0,0,0.9)!important;
-  z-index:9999!important;
-  display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:4px!important;
-  padding:4px 6px!important;
-  overflow-x:auto!important;
-}
-/* Que start/rápido/lento queden en línea con los demás (sin saltar de fila) */
-.ejs_menu_bar > *,
-div[class*="menu_bar"] > *{
-  flex:0 0 auto!important;
-  margin:0!important;
-}
-.ejs_menu_bar_hidden{transform:translateY(100%)!important}
 /* Ocultar botón Context Menu (varias variantes según versión EJS) */
 .ejs_menu_button[title="Context Menu" i],
 .ejs_menu_button[aria-label="Context Menu" i],
@@ -464,27 +435,8 @@ button[title="Context Menu" i],
 button[aria-label="Context Menu" i],
 .ejs_context_menu_button,
 .ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
-
-/* 📱 Controles táctiles (virtual gamepad) — desplazar hacia adentro para
-   no chocar con la barra en L del sitio (top, bottom, left, right) */
-.ejs_virtualGamepad,
-div[class*="virtualGamepad"],
-div[class*="virtual_gamepad"]{
-  --ejs-inset: 56px;
-}
-.ejs_virtualGamepad > *,
-div[class*="virtualGamepad"] > *,
-div[class*="virtual_gamepad"] > *{
-  /* Empuja todos los botones flotantes para que vivan dentro de un margen seguro */
-  margin: var(--ejs-inset) !important;
-}
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
-  .ejs_virtualGamepad,
-  div[class*="virtualGamepad"],
-  div[class*="virtual_gamepad"]{
-    --ejs-inset: 64px;
-  }
 }
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>
