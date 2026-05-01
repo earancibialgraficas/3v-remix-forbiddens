@@ -357,17 +357,17 @@ export default function EmulatorPage() {
             >
               {(() => {
                 // Posiciones base por "slot" relativo al activo
-                const SLOT_DISTANCE = 260; // px entre slots
+                const SLOT_DISTANCE_PX = 260; // px entre slots (coincide con SLOT_DISTANCE arriba)
                 const ACTIVE_SCALE = 1.1;
                 const SIDE_SCALE = 0.65;
                 const ACTIVE_OPACITY = 1;
                 const SIDE_OPACITY = 0.5;
 
-                const width = carouselRef.current?.clientWidth || 1;
-                // Progreso del drag: -1 (yendo a next) ... 0 ... +1 (yendo a prev)
-                const rawProgress = isDragging ? dragOffset / (width * 0.4) : 0;
-                const progress = Math.max(-1, Math.min(1, rawProgress));
-                const absP = Math.abs(progress);
+                // Offset visual unificado: durante drag o settle se aplica como desplazamiento del "tren"
+                // dragOffset > 0 (drag derecha) => el tren se mueve a la derecha => prev (slot -1) viene al centro
+                // dragOffset < 0 (drag izquierda) => el tren se mueve a la izquierda => next (slot +1) viene al centro
+                const visualOffsetPx = (isDragging || isSettling) ? dragOffset : 0;
+                const progress = Math.max(-1, Math.min(1, visualOffsetPx / SLOT_DISTANCE_PX));
 
                 return systems.map((sys, index) => {
                   // Slot relativo (-1 prev, 0 active, 1 next), con wrap
@@ -375,35 +375,35 @@ export default function EmulatorPage() {
                   if (slot > systems.length / 2) slot -= systems.length;
                   if (slot < -systems.length / 2) slot += systems.length;
 
-                  // Slot efectivo se desplaza con el drag (drag derecha = progress>0 trae al prev al centro => slot baja)
-                  const effectiveSlot = slot - progress;
+                  // Posición efectiva: el tren completo se desplaza con el offset visual
+                  const effectiveSlot = slot + progress;
                   const absSlot = Math.abs(effectiveSlot);
 
-                  // Solo renderizamos los cercanos
-                  if (absSlot > 1.6) {
-                    return null;
-                  }
+                  if (absSlot > 1.6) return null;
 
                   // Interpolación suave entre activo y lateral
-                  const t = Math.min(1, absSlot); // 0 = centrado, 1 = lateral
+                  const t = Math.min(1, absSlot);
                   const ease = t * t * (3 - 2 * t); // smoothstep
                   const scale = ACTIVE_SCALE + (SIDE_SCALE - ACTIVE_SCALE) * ease;
                   const opacity = ACTIVE_OPACITY + (SIDE_OPACITY - ACTIVE_OPACITY) * ease;
-                  const translatePx = effectiveSlot * SLOT_DISTANCE;
+                  const translatePx = effectiveSlot * SLOT_DISTANCE_PX;
                   const zIndex = Math.round(30 - absSlot * 10);
 
-                  // Glow se desvanece al alejarse del centro
                   const glowAlpha = 1 - ease;
                   const filter = glowAlpha > 0.05
                     ? `drop-shadow(0 0 ${35 * glowAlpha}px ${sys.glow})`
                     : "grayscale(60%) brightness(0.75)";
+
+                  // Sin transición durante el drag activo (sigue al dedo en vivo).
+                  // Con transición durante el settle y el reposo.
+                  const useTransition = !isDragging;
 
                   return (
                     <div
                       key={sys.id}
                       className={cn(
                         "absolute flex flex-col items-center will-change-transform",
-                        isDragging ? "transition-none" : "transition-all duration-500 ease-out"
+                        useTransition ? "transition-all duration-[350ms] ease-out" : "transition-none"
                       )}
                       style={{
                         transform: `translate3d(${translatePx}px, 0, 0) scale(${scale})`,
