@@ -99,14 +99,12 @@ export default function GameBubble() {
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Escuchar cambios de Fullscreen del navegador
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // Radar que busca el contenedor físico de Batocera en la página en vivo
   useEffect(() => {
     const checkBatoceraContainer = () => {
       const el = document.getElementById("batocera-target");
@@ -135,7 +133,6 @@ export default function GameBubble() {
     };
   }, [activeGame, minimized, location.pathname]);
 
-  // Si abrimos un juego nuevo, reiniciamos el forzado a flotante
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
@@ -308,7 +305,7 @@ export default function GameBubble() {
       if (!el) return;
       
       try {
-        // 🔥 VERIFICACIÓN ESTRICTA DE WEBGL PARA N64 🔥
+        // 🔥 VERIFICACIÓN DE WEBGL (Esencial para N64) 🔥
         if (activeGame.consoleName === "n64" && !window.WebGLRenderingContext) {
             toast({ title: "Error Fatal", description: "Tu navegador no soporta WebGL, necesario para Nintendo 64.", variant: "destructive" });
             return;
@@ -318,13 +315,13 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 EL HACK DEFINITIVO (Paso del File puro a Uint8Array) 🔥
+        // 🔥 CONVERSIÓN DE FILE LOCAL A UINT8ARRAY (Evita desincronización de Blob) 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
             
             if (localFile instanceof File) {
-                console.log("🎮 ROM FILE LOCAL:", localFile.name, localFile.size);
+                console.log("🎮 CARGANDO ROM LOCAL:", localFile.name, "TAMAÑO:", localFile.size);
                 const buffer = await localFile.arrayBuffer();
                 romSrc = {
                     fileName: localFile.name,
@@ -336,7 +333,7 @@ export default function GameBubble() {
             if (localMap && localMap[activeGame.gameName]) {
                 const f = localMap[activeGame.gameName];
                 if (f instanceof File) {
-                    console.log("🎮 ROM FILE BLOB:", f.name, f.size);
+                    console.log("🎮 CARGANDO ROM BLOB:", f.name, "TAMAÑO:", f.size);
                     romSrc = { 
                         fileName: f.name, 
                         fileContent: new Uint8Array(await f.arrayBuffer()) 
@@ -347,7 +344,7 @@ export default function GameBubble() {
             romSrc = window.location.origin + romSrc;
         }
 
-        // 🛠️ CONFIGURACIÓN DEL CORE
+        // 🛠️ SELECCIÓN DEL CORE (Prioridad parallel_n64 y pcsx_rearmed)
         let coreToUse = activeGame.consoleCore;
         if (activeGame.consoleName === "n64") {
            coreToUse = "parallel_n64";
@@ -355,17 +352,22 @@ export default function GameBubble() {
            coreToUse = "pcsx_rearmed";
         }
 
-        // 🔥 CDN ESTABLE PARA TODOS LOS CORES 🔥
-        // Al forzar esta URL estable, Nostalgist descargará el .wasm desde aquí y evitará el error 404
+        // 🔥 LA CLAVE: OBLIGAR A NOSTALGIST A USAR EL CDN VÁLIDO PARA TODO 🔥
+        // Así evitamos por completo que intente descargar .zip inexistentes o rotos
+        const CDN_URL = "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/";
+
         const launchOptions: any = {
           core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
           retroarch: {
-            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
-            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/"
-          }
+            wasm: CDN_URL,
+            assets: CDN_URL
+          },
+          // Sobrescribimos el resolvedor para que busque los archivos .js/.wasm explícitamente en el CDN
+          resolveCoreJs: (core: string) => `${CDN_URL}${core}_libretro.js`,
+          resolveCoreWasm: (core: string) => `${CDN_URL}${core}_libretro.wasm`,
         };
 
         // 💾 BIOS DE PS1 Y RESOLUCIÓN N64
@@ -378,14 +380,14 @@ export default function GameBubble() {
           launchOptions.resolution = { width: 640, height: 480 };
         }
 
-        console.log("🚀 Iniciando Nostalgist con:", launchOptions);
+        console.log("🚀 LANZANDO NOSTALGIST CON LAS SIGUIENTES OPCIONES:", launchOptions);
         
         let instance;
         try {
-            // Intento principal
+            // Primer intento con el core por defecto
             instance = await Nostalgist.launch(launchOptions);
         } catch (err) {
-            // 🔥 SISTEMA DE FALLBACK AUTOMÁTICO PARA N64 🔥
+            // 🔥 SISTEMA DE FALLBACK PARA N64: Si parallel_n64 crashea, usamos mupen 🔥
             if (activeGame.consoleName === "n64" && coreToUse === "parallel_n64") {
                 console.warn("⚠️ parallel_n64 falló. Intentando con mupen64plus_next...");
                 launchOptions.core = "mupen64plus_next";
@@ -407,7 +409,7 @@ export default function GameBubble() {
 
       } catch (err: any) {
         console.error("Emulator error:", err);
-        toast({ title: "Error", description: "No se pudo cargar el emulador. Verifique que el ROM sea compatible.", variant: "destructive" });
+        toast({ title: "Error al cargar", description: "Revisa la consola. Si es N64, puede ser incompatibilidad web.", variant: "destructive" });
       }
     };
     loadEmu();
@@ -599,7 +601,6 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
-      // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
       toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado rápido.", variant: "destructive" });
     }
   };
@@ -999,7 +1000,7 @@ export default function GameBubble() {
               <div className="mt-3 border-t border-border pt-2">
                 <p className="text-[9px] text-muted-foreground font-body mb-1">Slots guardados ({saveSlots.length}):</p>
                 {saveSlots.map((s, i) => (
-                  <div className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
+                  <div key={i} className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
                     <span>{s.name}</span>
                     <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
                   </div>
