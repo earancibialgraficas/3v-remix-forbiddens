@@ -255,24 +255,25 @@ export default function EmulatorPage() {
     toast({ title: "Zona horaria actualizada", description: label });
   };
 
-  // 🚀 Launch PS2 directamente — Play!.js trae su propio cargador de ISO en la UI del iframe
+  // 🚀 PS2 abre un modal informativo (no usa el GameBubble) — Play!.js no se puede embeber
   const launchPs2 = () => {
     if (!user) {
-      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para acceder a esta sección.", variant: "destructive" });
       return;
     }
-    launchGame({
-      romUrl: "playjs:embed",
-      consoleName: "ps2" as any,
-      gameName: "PlayStation 2",
-      consoleCore: "play!.js",
-      score: 0,
-      playTime: 0,
-    });
-    toast({
-      title: "PS2 iniciado",
-      description: "Sube tu ISO desde el botón dentro del emulador. Solo PC, experimental.",
-    });
+    setPs2Copied(false);
+    setPs2DialogOpen(true);
+  };
+
+  const copyPs2Url = async () => {
+    try {
+      await navigator.clipboard.writeText("https://playjs.purei.org/");
+      setPs2Copied(true);
+      toast({ title: "URL copiada", description: "Pégala en una pestaña nueva de tu navegador." });
+      setTimeout(() => setPs2Copied(false), 2500);
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Copia manualmente: playjs.purei.org", variant: "destructive" });
+    }
   };
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
