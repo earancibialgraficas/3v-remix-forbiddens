@@ -418,7 +418,9 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;
 #game{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important}
 #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:calc(100% - 40px)!important;width:100%!important;height:calc(100% - 40px)!important;object-fit:contain!important;display:block!important;background:#000!important}
 .ejs_drop_zone,.ejs_dropzone,.ejs_status,.ejs_message,.ejs_notification,
-div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
+.ejs_loading_text,.ejs_cheat_menu,.ejs_popup_box,
+div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"],
+div[class*="overlay"],div[class*="Overlay"]:not(.ejs_menu_bar):not([class*="menu_bar"]){
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
 /* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
@@ -479,7 +481,34 @@ div[class*="virtual_gamepad"] > *{
   }
 }
 `;
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>
+(function(){
+  // Bloquea drag&drop nativo (evita el overlay "Suelta el estado guardado aquí")
+  ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
+    window.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+    document.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  });
+  // Elimina nodos basura por texto ("undefined", "Suelta el estado guardado aquí")
+  function nuke(){
+    try{
+      var all = document.body.querySelectorAll('div,span,p');
+      for (var i=0;i<all.length;i++){
+        var el = all[i];
+        if (el.children.length>0) continue;
+        var t = (el.textContent||'').trim().toLowerCase();
+        if (!t) continue;
+        if (t === 'undefined' || t.indexOf('suelta')!==-1 || t.indexOf('drop')!==-1 && t.indexOf('save')!==-1){
+          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="overlay"],div[class*="Overlay"]') || el;
+          if (p && p.parentNode) p.parentNode.removeChild(p);
+        }
+      }
+    }catch(_){}
+  }
+  setInterval(nuke, 800);
+  new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
+})();
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
