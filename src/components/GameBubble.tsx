@@ -353,6 +353,14 @@ export default function GameBubble() {
     const loadEmu = async () => {
       setRomLoaded(false);
       setPaused(false);
+
+      // 🎮 PS2 (Play!.js): se carga dentro de su propio iframe, no necesitamos hacer nada aquí.
+      // Marcamos romLoaded=true para que la UI esconda el spinner y muestre el iframe.
+      if (isPs2) {
+        setRomLoaded(true);
+        return;
+      }
+
       await new Promise(r => setTimeout(r, 200));
       const el = canvasRef.current;
       const frame = emulatorFrameRef.current;
