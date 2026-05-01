@@ -387,7 +387,17 @@ export default function GameBubble() {
 
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game>div{width:100%!important;height:100%!important}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+          // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
+          const ejsCss = `
+html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
+#game,#game>div{width:100%!important;height:100%!important;position:relative!important;display:flex!important;flex-direction:column!important}
+#game canvas{flex:1 1 auto!important;min-height:0!important;width:100%!important;height:auto!important;display:block!important}
+/* Barra de controles nativa SIEMPRE abajo */
+.ejs_menu_bar{position:absolute!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%!important;background:rgba(0,0,0,0.85)!important;z-index:9999!important}
+/* Menús desplegables del emulador alineados al fondo */
+.ejs_menu_bar_hidden{transform:translateY(100%)!important}
+`;
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
@@ -406,13 +416,26 @@ export default function GameBubble() {
               revokeEmulatorObjectUrls();
             },
             saveState: async () => {
-              const state = (frame.contentWindow as any)?.EJS_emulator?.gameManager?.getState?.();
-              if (!state) throw new Error("Guardado no disponible");
+              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
+              if (!gm?.getState) throw new Error("Guardado no disponible");
+              // mupen64plus_next (N64) y otros cores devuelven Promise<Uint8Array>
+              let state: any = gm.getState();
+              if (state && typeof state.then === "function") state = await state;
+              if (!state || (state.length !== undefined && state.length === 0)) {
+                throw new Error("Estado vacío");
+              }
               return { state: new Blob([state]) };
             },
             loadState: async (blob: Blob) => {
+              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
+              if (!gm?.loadState) throw new Error("Carga no disponible");
               const bytes = new Uint8Array(await blob.arrayBuffer());
-              (frame.contentWindow as any)?.EJS_emulator?.gameManager?.loadState?.(bytes);
+              // EJS espera (path, bytes) en algunos cores; intentamos ambas firmas
+              try {
+                gm.loadState(bytes);
+              } catch {
+                gm.loadState("/save.state", bytes);
+              }
             },
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
