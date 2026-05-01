@@ -392,6 +392,7 @@ export default function GameBubble() {
           const romForFrame = String(romSrc);
           // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
           // 🚫 Oculta el botón "Context Menu" del menú nativo
+          // 📱 Ajusta los controles táctiles para no quedar tapados por la barra en L
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
 #game{position:relative!important}
@@ -408,6 +409,20 @@ div[class*="menu_bar"],
   width:100%!important;
   background:rgba(0,0,0,0.9)!important;
   z-index:9999!important;
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:4px!important;
+  padding:4px 6px!important;
+  overflow-x:auto!important;
+}
+/* Que start/rápido/lento queden en línea con los demás (sin saltar de fila) */
+.ejs_menu_bar > *,
+div[class*="menu_bar"] > *{
+  flex:0 0 auto!important;
+  margin:0!important;
 }
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
 /* Ocultar botón Context Menu (varias variantes según versión EJS) */
@@ -417,6 +432,27 @@ button[title="Context Menu" i],
 button[aria-label="Context Menu" i],
 .ejs_context_menu_button,
 .ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
+
+/* 📱 Controles táctiles (virtual gamepad) — desplazar hacia adentro para
+   no chocar con la barra en L del sitio (top, bottom, left, right) */
+.ejs_virtualGamepad,
+div[class*="virtualGamepad"],
+div[class*="virtual_gamepad"]{
+  --ejs-inset: 56px;
+}
+.ejs_virtualGamepad > *,
+div[class*="virtualGamepad"] > *,
+div[class*="virtual_gamepad"] > *{
+  /* Empuja todos los botones flotantes para que vivan dentro de un margen seguro */
+  margin: var(--ejs-inset) !important;
+}
+@media (orientation: landscape) and (max-height: 500px){
+  .ejs_virtualGamepad,
+  div[class*="virtualGamepad"],
+  div[class*="virtual_gamepad"]{
+    --ejs-inset: 64px;
+  }
+}
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
@@ -615,9 +651,26 @@ button[aria-label="Context Menu" i],
     if (!romLoaded) return;
     const refreshViewport = () => {
       scheduleCanvasSurfaceSync();
+      // 🔄 Fuerza al core a redibujar tras cambios de tamaño/orientación.
+      // Sin esto, al rotar a landscape el canvas WebGL queda en negro porque
+      // el backbuffer mantiene las dimensiones viejas.
+      const canvas = canvasRef.current;
+      if (canvas) {
+        try {
+          // Dispara un resize sintético que la mayoría de cores escuchan
+          window.dispatchEvent(new Event("resize"));
+        } catch {}
+      }
       if (!minimized && nostalgistRef.current && !paused) {
         try { nostalgistRef.current.resume(); } catch {}
       }
+    };
+    const handleOrientation = () => {
+      // Espera a que el navegador termine la rotación (las medidas no son
+      // confiables hasta varios frames después).
+      setTimeout(refreshViewport, 50);
+      setTimeout(refreshViewport, 250);
+      setTimeout(refreshViewport, 600);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refreshViewport();
@@ -627,11 +680,13 @@ button[aria-label="Context Menu" i],
     if (observer && canvasViewportRef.current) observer.observe(canvasViewportRef.current);
     window.addEventListener("resize", refreshViewport);
     window.addEventListener("focus", refreshViewport);
+    window.addEventListener("orientationchange", handleOrientation);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", refreshViewport);
       window.removeEventListener("focus", refreshViewport);
+      window.removeEventListener("orientationchange", handleOrientation);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
