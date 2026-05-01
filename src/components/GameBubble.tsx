@@ -1044,6 +1044,42 @@ div[class*="menu_bar"],
                 <Download className="w-4 h-4" />
               </Button>
             )}
+            {romLoaded && isN64 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  const ejs = (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator;
+                  try {
+                    if (typeof ejs?.quickSave === "function") ejs.quickSave();
+                    else ejs?.gameManager?.quickSave?.("/save.state");
+                    toast({ title: "Guardado rápido ✔️" });
+                  } catch { toast({ title: "No se pudo guardar", variant: "destructive" }); }
+                }}
+                className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg"
+                title="Guardado rápido (N64)"
+              >
+                <Save className="w-4 h-4" />
+              </Button>
+            )}
+            {romLoaded && isN64 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  const ejs = (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator;
+                  try {
+                    if (typeof ejs?.quickLoad === "function") ejs.quickLoad();
+                    else ejs?.gameManager?.quickLoad?.("/save.state");
+                    toast({ title: "Cargado rápido ✔️" });
+                  } catch { toast({ title: "No se pudo cargar", variant: "destructive" }); }
+                }}
+                className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg"
+                title="Carga rápida (N64)"
+              >
+                <Download className="w-4 h-4" />
+              </Button>
+            )}
             {user && activeGame.score > 0 && (
               <Button size="icon" variant="ghost" onClick={() => handleSaveScore(false)} className="h-10 w-10 text-neon-yellow hover:bg-neon-yellow/10 rounded-lg" title="Guardar puntaje">
                 <Upload className="w-4 h-4" />
