@@ -344,38 +344,44 @@ export default function GameBubble() {
             romSrc = window.location.origin + romSrc;
         }
 
-        // 🛠️ SELECCIÓN DEL CORE (Prioridad parallel_n64 y pcsx_rearmed)
+        // 🛠️ SELECCIÓN DEL CORE POR CONSOLA
+        // Mapeo a cores libretro que SÍ están publicados en el CDN actual de Nostalgist
         let coreToUse = activeGame.consoleCore;
+        const coreFallbacks: string[] = [];
+        
         if (activeGame.consoleName === "n64") {
-           coreToUse = "parallel_n64";
+           coreToUse = "mupen64plus_next";
+           coreFallbacks.push("parallel_n64");
         } else if (activeGame.consoleName === "ps1") {
            coreToUse = "pcsx_rearmed";
+           coreFallbacks.push("mednafen_psx_hw");
+        } else if (activeGame.consoleName === "arcade") {
+           coreToUse = "fbneo";
+           coreFallbacks.push("mame2003_plus");
         }
 
-        // 🔥 LA CLAVE: OBLIGAR A NOSTALGIST A USAR EL CDN VÁLIDO PARA TODO 🔥
-        // Así evitamos por completo que intente descargar .zip inexistentes o rotos
-        const CDN_URL = "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/";
-
+        // 🔥 IMPORTANTE: NO sobrescribir resolveCoreJs/resolveCoreWasm.
+        // Nostalgist v0.21+ ya apunta al CDN correcto por defecto (jsdelivr/@retroarch-cores).
+        // Forzar URLs viejas causaba 404 en TODOS los cores.
         const launchOptions: any = {
           core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-          retroarch: {
-            wasm: CDN_URL,
-            assets: CDN_URL
-          },
-          // Sobrescribimos el resolvedor para que busque los archivos .js/.wasm explícitamente en el CDN
-          resolveCoreJs: (core: string) => `${CDN_URL}${core}_libretro.js`,
-          resolveCoreWasm: (core: string) => `${CDN_URL}${core}_libretro.wasm`,
         };
 
-        // 💾 BIOS DE PS1 Y RESOLUCIÓN N64
+        // 💾 BIOS DE PS1 (opcional: solo si el archivo existe en /public/bios/)
         if (activeGame.consoleName === "ps1") {
-          launchOptions.retroarch.system = "/bios/";
-          launchOptions.bios = [
-            { fileName: "scph1001.bin", fileContent: "/bios/scph1001.bin" }
-          ];
+          try {
+            const biosCheck = await fetch("/bios/scph1001.bin", { method: "HEAD" });
+            if (biosCheck.ok) {
+              launchOptions.bios = ["/bios/scph1001.bin"];
+            } else {
+              console.warn("⚠️ BIOS de PS1 no encontrado en /bios/scph1001.bin. Algunos juegos pueden no arrancar.");
+            }
+          } catch {
+            console.warn("⚠️ No se pudo verificar el BIOS de PS1.");
+          }
         } else if (activeGame.consoleName === "n64") {
           launchOptions.resolution = { width: 640, height: 480 };
         }
@@ -383,19 +389,23 @@ export default function GameBubble() {
         console.log("🚀 LANZANDO NOSTALGIST CON LAS SIGUIENTES OPCIONES:", launchOptions);
         
         let instance;
-        try {
-            // Primer intento con el core por defecto
+        let lastErr: any = null;
+        const coresToTry = [coreToUse, ...coreFallbacks];
+        
+        for (const candidateCore of coresToTry) {
+          try {
+            launchOptions.core = candidateCore;
+            console.log(`🎯 Intentando core: ${candidateCore}`);
             instance = await Nostalgist.launch(launchOptions);
-        } catch (err) {
-            // 🔥 SISTEMA DE FALLBACK PARA N64: Si parallel_n64 crashea, usamos mupen 🔥
-            if (activeGame.consoleName === "n64" && coreToUse === "parallel_n64") {
-                console.warn("⚠️ parallel_n64 falló. Intentando con mupen64plus_next...");
-                launchOptions.core = "mupen64plus_next";
-                instance = await Nostalgist.launch(launchOptions);
-            } else {
-                throw err;
-            }
+            lastErr = null;
+            break;
+          } catch (err) {
+            console.warn(`⚠️ Core ${candidateCore} falló:`, err);
+            lastErr = err;
+          }
         }
+        
+        if (!instance) throw lastErr || new Error("No se pudo cargar ningún core compatible");
         
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
