@@ -94,7 +94,7 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
 
-  // 🔥 DETECCIÓN INFALIBLE DE MODO TEATRO 🔥
+  // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
   const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -106,7 +106,7 @@ export default function GameBubble() {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // Radar que busca el contenedor físico de Batocera en la página
+  // Radar que busca el contenedor físico de Batocera en la página en vivo
   useEffect(() => {
     const checkBatoceraContainer = () => {
       const el = document.getElementById("batocera-target");
@@ -135,7 +135,7 @@ export default function GameBubble() {
     };
   }, [activeGame, minimized, location.pathname]);
 
-  // Reiniciar el forzado flotante si abres un juego nuevo
+  // Si abrimos un juego nuevo, reiniciamos el forzado a flotante
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
@@ -352,46 +352,37 @@ export default function GameBubble() {
         if (activeGame.consoleName === "n64") {
            coreToUse = "parallel_n64";
         } else if (activeGame.consoleName === "ps1") {
-           coreToUse = "pcsx_rearmed"; // Aseguramos usar el core correcto
+           coreToUse = "pcsx_rearmed";
         }
 
-        // ⚙️ OPCIONES MAESTRAS DE NOSTALGIST
+        // 🔥 CDN ESTABLE PARA TODOS LOS CORES 🔥
+        // Al forzar esta URL estable, Nostalgist descargará el .wasm desde aquí y evitará el error 404
         const launchOptions: any = {
           core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
+          retroarch: {
+            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
+            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/"
+          }
         };
 
-        // 🔥 LÓGICA DE RUTAS Y BIOS EXACTA PARA EVITAR ERRORES DE CDN Y DESCOMPRESIÓN 🔥
+        // 💾 BIOS DE PS1 Y RESOLUCIÓN N64
         if (activeGame.consoleName === "ps1") {
-          // Usando el CDN seguro y el directorio de sistema apuntando a /bios/
-          launchOptions.retroarch = {
-            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
-            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
-            system: "/bios/"
-          };
+          launchOptions.retroarch.system = "/bios/";
           launchOptions.bios = [
             { fileName: "scph1001.bin", fileContent: "/bios/scph1001.bin" }
           ];
         } else if (activeGame.consoleName === "n64") {
-          // N64 utiliza los recursos locales para evitar descargas rotas
           launchOptions.resolution = { width: 640, height: 480 };
-          launchOptions.resolveCoreJs = (core: string) => `/cores/${core}_libretro.js`;
-          launchOptions.resolveCoreWasm = (core: string) => `/cores/${core}_libretro.wasm`;
-        } else {
-          // Resto de consolas pueden usar el CDN estable por defecto
-          launchOptions.retroarch = {
-            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
-            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/"
-          };
         }
 
         console.log("🚀 Iniciando Nostalgist con:", launchOptions);
         
         let instance;
         try {
-            // Intento principal de inicio
+            // Intento principal
             instance = await Nostalgist.launch(launchOptions);
         } catch (err) {
             // 🔥 SISTEMA DE FALLBACK AUTOMÁTICO PARA N64 🔥
@@ -608,6 +599,7 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
+      // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
       toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado rápido.", variant: "destructive" });
     }
   };
@@ -1007,7 +999,7 @@ export default function GameBubble() {
               <div className="mt-3 border-t border-border pt-2">
                 <p className="text-[9px] text-muted-foreground font-body mb-1">Slots guardados ({saveSlots.length}):</p>
                 {saveSlots.map((s, i) => (
-                  <div key={i} className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
+                  <div className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
                     <span>{s.name}</span>
                     <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
                   </div>
