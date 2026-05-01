@@ -900,8 +900,17 @@ export default function GameBubble() {
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: "block", outline: "none" }} 
+            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none" }} 
           />
+
+          {usesEmulatorJs && (
+            <iframe
+              ref={emulatorFrameRef}
+              title="EmulatorJS"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+              allow="autoplay; gamepad; fullscreen"
+            />
+          )}
 
           {minimized && (
             <>
