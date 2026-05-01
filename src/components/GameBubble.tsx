@@ -426,26 +426,67 @@ div[class*="menu_bar"],
               revokeEmulatorObjectUrls();
             },
             saveState: async () => {
-              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
-              if (!gm?.getState) throw new Error("Guardado no disponible");
-              // mupen64plus_next (N64) y otros cores devuelven Promise<Uint8Array>
-              let state: any = gm.getState();
-              if (state && typeof state.then === "function") state = await state;
-              if (!state || (state.length !== undefined && state.length === 0)) {
-                throw new Error("Estado vacío");
+              const ejs = (frame.contentWindow as any)?.EJS_emulator;
+              if (!ejs) throw new Error("Emulador no listo");
+              const gm = ejs.gameManager;
+
+              // 1) API directa de EJS_emulator (versiones recientes)
+              if (typeof ejs.getState === "function") {
+                let st: any = ejs.getState();
+                if (st && typeof st.then === "function") st = await st;
+                if (st && (st.byteLength > 0 || st.size > 0 || st.length > 0)) {
+                  return { state: st instanceof Blob ? st : new Blob([st]) };
+                }
               }
-              return { state: new Blob([state]) };
+
+              // 2) gameManager.getState() — puede ser sync o async
+              if (gm && typeof gm.getState === "function") {
+                let state: any = gm.getState();
+                if (state && typeof state.then === "function") state = await state;
+                if (state && (state.byteLength > 0 || state.length > 0 || state.size > 0)) {
+                  return { state: state instanceof Blob ? state : new Blob([state]) };
+                }
+              }
+
+              // 3) Fallback: quickSave + leer del FS virtual
+              if (gm && typeof gm.quickSave === "function") {
+                try { gm.quickSave("/save.state"); } catch {}
+                await new Promise(r => setTimeout(r, 300));
+                try {
+                  const FS = gm.FS || (frame.contentWindow as any).FS;
+                  if (FS) {
+                    const data = FS.readFile("/save.state");
+                    if (data && data.length > 0) return { state: new Blob([data]) };
+                  }
+                } catch {}
+              }
+
+              throw new Error("Guardado no disponible para este core");
             },
             loadState: async (blob: Blob) => {
-              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
-              if (!gm?.loadState) throw new Error("Carga no disponible");
+              const ejs = (frame.contentWindow as any)?.EJS_emulator;
+              if (!ejs) throw new Error("Emulador no listo");
+              const gm = ejs.gameManager;
               const bytes = new Uint8Array(await blob.arrayBuffer());
-              // EJS espera (path, bytes) en algunos cores; intentamos ambas firmas
-              try {
-                gm.loadState(bytes);
-              } catch {
-                gm.loadState("/save.state", bytes);
+
+              // 1) API directa
+              if (typeof ejs.loadState === "function") {
+                try { await ejs.loadState(bytes); return; } catch {}
               }
+              if (gm && typeof gm.loadState === "function") {
+                try { gm.loadState(bytes); return; } catch {}
+                try { gm.loadState("/save.state", bytes); return; } catch {}
+              }
+              // Fallback: escribir al FS y quickLoad
+              if (gm && typeof gm.quickLoad === "function") {
+                try {
+                  const FS = gm.FS || (frame.contentWindow as any).FS;
+                  if (FS) FS.writeFile("/save.state", bytes);
+                  gm.quickLoad("/save.state");
+                  return;
+                } catch {}
+              }
+              throw new Error("Carga no disponible");
             },
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
