@@ -1049,15 +1049,27 @@ div[class*="menu_bar"],
                 size="icon"
                 variant="ghost"
                 onClick={() => {
-                  const ejs = (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator;
+                  const win = emulatorFrameRef.current?.contentWindow as any;
+                  const ejs = win?.EJS_emulator;
                   try {
-                    if (typeof ejs?.quickSave === "function") ejs.quickSave();
-                    else ejs?.gameManager?.quickSave?.("/save.state");
-                    toast({ title: "Guardado rápido ✔️" });
-                  } catch { toast({ title: "No se pudo guardar", variant: "destructive" }); }
+                    // Genera el estado y lo descarga como archivo .state
+                    const state = ejs?.gameManager?.getState?.();
+                    if (!state) throw new Error("no-state");
+                    const blob = new Blob([state], { type: "application/octet-stream" });
+                    const url = URL.createObjectURL(blob);
+                    const a = win.document.createElement("a");
+                    a.href = url;
+                    const safe = (activeGame?.name || "game").replace(/[^a-z0-9]+/gi, "_");
+                    a.download = `${safe}.state`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    toast({ title: "Estado descargado ✔️" });
+                  } catch {
+                    toast({ title: "No se pudo guardar el estado", variant: "destructive" });
+                  }
                 }}
                 className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg"
-                title="Guardado rápido (N64)"
+                title="Descargar archivo de estado"
               >
                 <Save className="w-4 h-4" />
               </Button>
@@ -1067,15 +1079,26 @@ div[class*="menu_bar"],
                 size="icon"
                 variant="ghost"
                 onClick={() => {
-                  const ejs = (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator;
+                  const win = emulatorFrameRef.current?.contentWindow as any;
+                  const ejs = win?.EJS_emulator;
                   try {
-                    if (typeof ejs?.quickLoad === "function") ejs.quickLoad();
-                    else ejs?.gameManager?.quickLoad?.("/save.state");
-                    toast({ title: "Cargado rápido ✔️" });
-                  } catch { toast({ title: "No se pudo cargar", variant: "destructive" }); }
+                    const input = win.document.createElement("input");
+                    input.type = "file";
+                    input.accept = ".state,application/octet-stream";
+                    input.onchange = async (e: any) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const buf = new Uint8Array(await file.arrayBuffer());
+                      ejs?.gameManager?.loadState?.(buf);
+                      toast({ title: "Estado cargado ✔️" });
+                    };
+                    input.click();
+                  } catch {
+                    toast({ title: "No se pudo cargar el estado", variant: "destructive" });
+                  }
                 }}
                 className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg"
-                title="Carga rápida (N64)"
+                title="Cargar archivo de estado"
               >
                 <Download className="w-4 h-4" />
               </Button>
