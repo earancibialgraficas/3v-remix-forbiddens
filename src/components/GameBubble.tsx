@@ -1163,10 +1163,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
+            style={{ width: "100%", height: "100%", display: (usesEmulatorJs || isPs2) ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
           />
 
-          {usesEmulatorJs && (
+          {usesEmulatorJs && !isPs2 && (
             <iframe
               ref={emulatorFrameRef}
               title="EmulatorJS"
@@ -1175,9 +1175,22 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             />
           )}
 
+          {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
+              El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
+          {isPs2 && (
+            <iframe
+              title="Play!.js (PS2)"
+              src="https://playjs.purei.org/"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+              allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
+              referrerPolicy="no-referrer"
+            />
+          )}
+
           {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
-              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos. */}
-          {!usesEmulatorJs && !minimized && isMobile && romLoaded && (
+              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos.
+              PS2 no soporta móvil. */}
+          {!usesEmulatorJs && !isPs2 && !minimized && isMobile && romLoaded && (
             <TouchGamepad
               canvasRef={canvasRef}
               consoleName={activeGame.consoleName}
