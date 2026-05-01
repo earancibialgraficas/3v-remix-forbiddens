@@ -332,56 +332,71 @@ export default function EmulatorPage() {
               onTouchMove={(e) => onPointerMove(e.touches[0].clientX)}
               onTouchEnd={onPointerUp}
             >
-              {systems.map((sys, index) => {
-                const offset = index - currentIndex;
-                const isActive = offset === 0;
-                const isPrev = offset === -1 || (currentIndex === 0 && index === systems.length - 1);
-                const isNext = offset === 1 || (currentIndex === systems.length - 1 && index === 0);
-                let baseTranslate = 1000; // hidden far away
-                let baseScale = 0;
-                let opacity = 0;
-                let zIndex = 0;
-                let filter = "grayscale(100%) brightness(0.5)";
-                if (isActive) { baseTranslate = 0; baseScale = 1.1; opacity = 1; zIndex = 30; filter = `drop-shadow(0 0 35px ${sys.glow})`; }
-                else if (isPrev) { baseTranslate = -260; baseScale = 0.65; opacity = 0.5; zIndex = 20; filter = "grayscale(60%) brightness(0.7)"; }
-                else if (isNext) { baseTranslate = 260; baseScale = 0.65; opacity = 0.5; zIndex = 20; filter = "grayscale(60%) brightness(0.7)"; }
+              {(() => {
+                // Posiciones base por "slot" relativo al activo
+                const SLOT_DISTANCE = 260; // px entre slots
+                const ACTIVE_SCALE = 1.1;
+                const SIDE_SCALE = 0.65;
+                const ACTIVE_OPACITY = 1;
+                const SIDE_OPACITY = 0.5;
 
-                // Aplicar offset del drag en vivo (con resistencia para los lados)
-                const liveOffset = isDragging ? dragOffset : 0;
-                const translatePx = baseTranslate + liveOffset;
-
-                // Durante el drag: opacidad dinámica para los vecinos según cuánto se arrastra
                 const width = carouselRef.current?.clientWidth || 1;
-                const dragProgress = Math.min(1, Math.abs(liveOffset) / (width * 0.5));
-                let dynOpacity = opacity;
-                if (isDragging) {
-                  if (isActive) dynOpacity = 1 - dragProgress * 0.3;
-                  else if ((isPrev && liveOffset > 0) || (isNext && liveOffset < 0)) {
-                    dynOpacity = Math.min(1, opacity + dragProgress * 0.5);
-                  }
-                }
+                // Progreso del drag: -1 (yendo a next) ... 0 ... +1 (yendo a prev)
+                const rawProgress = isDragging ? dragOffset / (width * 0.4) : 0;
+                const progress = Math.max(-1, Math.min(1, rawProgress));
+                const absP = Math.abs(progress);
 
-                return (
-                  <div
-                    key={sys.id}
-                    className={cn(
-                      "absolute flex flex-col items-center will-change-transform",
-                      isDragging ? "transition-none" : "transition-all duration-500 ease-out"
-                    )}
-                    style={{
-                      transform: `translate3d(${translatePx}px, 0, 0) scale(${baseScale})`,
-                      opacity: dynOpacity,
-                      zIndex,
-                      filter,
-                    }}
-                    onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
-                  >
-                    <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-64 md:h-64 flex items-center justify-center pointer-events-none">
-                       <img src={sys.consoleImg} alt={sys.name} className="w-full h-full object-contain" draggable={false} />
+                return systems.map((sys, index) => {
+                  // Slot relativo (-1 prev, 0 active, 1 next), con wrap
+                  let slot = index - currentIndex;
+                  if (slot > systems.length / 2) slot -= systems.length;
+                  if (slot < -systems.length / 2) slot += systems.length;
+
+                  // Slot efectivo se desplaza con el drag (drag derecha = progress>0 trae al prev al centro => slot baja)
+                  const effectiveSlot = slot - progress;
+                  const absSlot = Math.abs(effectiveSlot);
+
+                  // Solo renderizamos los cercanos
+                  if (absSlot > 1.6) {
+                    return null;
+                  }
+
+                  // Interpolación suave entre activo y lateral
+                  const t = Math.min(1, absSlot); // 0 = centrado, 1 = lateral
+                  const ease = t * t * (3 - 2 * t); // smoothstep
+                  const scale = ACTIVE_SCALE + (SIDE_SCALE - ACTIVE_SCALE) * ease;
+                  const opacity = ACTIVE_OPACITY + (SIDE_OPACITY - ACTIVE_OPACITY) * ease;
+                  const translatePx = effectiveSlot * SLOT_DISTANCE;
+                  const zIndex = Math.round(30 - absSlot * 10);
+
+                  // Glow se desvanece al alejarse del centro
+                  const glowAlpha = 1 - ease;
+                  const filter = glowAlpha > 0.05
+                    ? `drop-shadow(0 0 ${35 * glowAlpha}px ${sys.glow})`
+                    : "grayscale(60%) brightness(0.75)";
+
+                  return (
+                    <div
+                      key={sys.id}
+                      className={cn(
+                        "absolute flex flex-col items-center will-change-transform",
+                        isDragging ? "transition-none" : "transition-all duration-500 ease-out"
+                      )}
+                      style={{
+                        transform: `translate3d(${translatePx}px, 0, 0) scale(${scale})`,
+                        opacity,
+                        zIndex,
+                        filter,
+                      }}
+                      onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
+                    >
+                      <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-64 md:h-64 flex items-center justify-center pointer-events-none">
+                         <img src={sys.consoleImg} alt={sys.name} className="w-full h-full object-contain" draggable={false} />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
 
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
