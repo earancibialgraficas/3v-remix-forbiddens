@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import TouchGamepad from "@/components/TouchGamepad";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // 🔥 HACK MAESTRO DE AUDIO: Intercepta la Web Audio API globalmente 🔥
 if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
@@ -70,6 +72,7 @@ export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
@@ -165,6 +168,10 @@ export default function GameBubble() {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
+    // 🔥 FIX BLACK SCREEN: muchos cores libretro usan Module.setCanvasSize() o
+    // escuchan el evento "resize". Si el canvas tiene tamaño 0 al rotar,
+    // el GL viewport queda inválido. Forzamos reflow leyendo offsetHeight.
+    void canvas.offsetHeight;
   }, []);
 
   const scheduleCanvasSurfaceSync = useCallback(() => {
@@ -651,16 +658,31 @@ div[class*="virtual_gamepad"] > *{
     if (!romLoaded) return;
     const refreshViewport = () => {
       scheduleCanvasSurfaceSync();
-      // 🔄 Fuerza al core a redibujar tras cambios de tamaño/orientación.
-      // Sin esto, al rotar a landscape el canvas WebGL queda en negro porque
-      // el backbuffer mantiene las dimensiones viejas.
       const canvas = canvasRef.current;
-      if (canvas) {
-        try {
-          // Dispara un resize sintético que la mayoría de cores escuchan
-          window.dispatchEvent(new Event("resize"));
-        } catch {}
-      }
+      const viewport = canvasViewportRef.current;
+      if (!canvas || !viewport) return;
+
+      // 🔥 FIX BLACK SCREEN AL ROTAR: el WebGL backbuffer queda con dimensiones
+      // viejas tras una rotación. Solución: pedirle al Module de Emscripten
+      // (RetroArch) que reajuste el tamaño del canvas a las nuevas medidas
+      // CSS, y disparar un evento "resize" para que el core actualice GL.
+      try {
+        const rect = viewport.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(1, Math.floor(rect.width * dpr));
+        const h = Math.max(1, Math.floor(rect.height * dpr));
+        const mod: any = nostalgistRef.current?.getEmscriptenModule?.();
+        if (mod && typeof mod.setCanvasSize === "function") {
+          mod.setCanvasSize(w, h);
+        } else {
+          // Fallback: ajustar backbuffer manualmente
+          if (canvas.width !== w) canvas.width = w;
+          if (canvas.height !== h) canvas.height = h;
+        }
+      } catch {}
+
+      try { window.dispatchEvent(new Event("resize")); } catch {}
+
       if (!minimized && nostalgistRef.current && !paused) {
         try { nostalgistRef.current.resume(); } catch {}
       }
@@ -671,6 +693,7 @@ div[class*="virtual_gamepad"] > *{
       setTimeout(refreshViewport, 50);
       setTimeout(refreshViewport, 250);
       setTimeout(refreshViewport, 600);
+      setTimeout(refreshViewport, 1000);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refreshViewport();
@@ -1085,6 +1108,16 @@ div[class*="virtual_gamepad"] > *{
               title="EmulatorJS"
               className="absolute inset-0 h-full w-full border-0 bg-black"
               allow="autoplay; gamepad; fullscreen"
+            />
+          )}
+
+          {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
+              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos. */}
+          {!usesEmulatorJs && !minimized && isMobile && romLoaded && (
+            <TouchGamepad
+              canvasRef={canvasRef}
+              consoleName={activeGame.consoleName}
+              visible={true}
             />
           )}
 
