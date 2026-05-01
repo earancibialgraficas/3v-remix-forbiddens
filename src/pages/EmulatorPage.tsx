@@ -191,6 +191,8 @@ export default function EmulatorPage() {
   const rafId = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
+  const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
+  const [ps2Copied, setPs2Copied] = useState(false);
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
