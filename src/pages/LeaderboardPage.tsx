@@ -84,8 +84,25 @@ export default function LeaderboardPage() {
 
   const deduped = dedupScores(scores);
 
+  // Lista de consolas disponibles (calculada del dataset)
+  const availableConsoles = useMemo(() => {
+    const set = new Set<string>();
+    deduped.forEach(s => s.console_type && set.add(s.console_type));
+    return Array.from(set).sort();
+  }, [deduped]);
+
+  // Aplicar filtros
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return deduped.filter(s => {
+      if (consoleFilter !== "all" && s.console_type !== consoleFilter) return false;
+      if (q && !s.game_name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [deduped, consoleFilter, search]);
+
   // Group scores by game
-  const gameGroups = deduped.reduce<Record<string, Score[]>>((acc, s) => {
+  const gameGroups = filtered.reduce<Record<string, Score[]>>((acc, s) => {
     const key = `${s.game_name} (${s.console_type.toUpperCase()})`;
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);
