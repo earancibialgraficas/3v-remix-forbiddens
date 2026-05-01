@@ -86,6 +86,9 @@ export default function MainLayout() {
       if (x <= EDGE || y >= h - EDGE) {
         if (!lBarVisible) setLBarVisible(true);
         scheduleHide();
+      } else if (!mobileRightOpen && !mobileSidebarOpen) {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        setLBarVisible(false);
       }
     };
     window.addEventListener("touchstart", handler, { passive: true });

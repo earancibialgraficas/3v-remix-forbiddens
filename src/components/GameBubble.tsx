@@ -120,6 +120,19 @@ export default function GameBubble() {
   const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const updateOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    updateOrientation();
+    window.addEventListener("resize", updateOrientation);
+    const mql = window.matchMedia("(orientation: landscape)");
+    mql.addEventListener("change", updateOrientation);
+    return () => {
+      window.removeEventListener("resize", updateOrientation);
+      mql.removeEventListener("change", updateOrientation);
+    };
+  }, []);
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -401,9 +414,13 @@ export default function GameBubble() {
           // 🚫 Oculta el botón "Context Menu" del menú nativo
           // 📱 Ajusta los controles táctiles para no quedar tapados por la barra en L
           const ejsCss = `
-html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
-#game{position:relative!important}
-#game canvas{width:100%!important;height:calc(100% - 40px)!important;display:block!important}
+html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
+#game{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important}
+#game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:calc(100% - 40px)!important;width:100%!important;height:calc(100% - 40px)!important;object-fit:contain!important;display:block!important;background:#000!important}
+.ejs_drop_zone,.ejs_dropzone,.ejs_status,.ejs_message,.ejs_notification,
+div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
+  display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
+}
 /* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
 .ejs_menu_bar,
 div[class*="menu_bar"],
@@ -454,6 +471,7 @@ div[class*="virtual_gamepad"] > *{
   margin: var(--ejs-inset) !important;
 }
 @media (orientation: landscape) and (max-height: 500px){
+  #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
   .ejs_virtualGamepad,
   div[class*="virtualGamepad"],
   div[class*="virtual_gamepad"]{
@@ -668,9 +686,17 @@ div[class*="virtual_gamepad"] > *{
       // CSS, y disparar un evento "resize" para que el core actualice GL.
       try {
         const rect = viewport.getBoundingClientRect();
-        // 📱 En móvil usamos DPR=1 para no crear backbuffers gigantes que
-        // colapsan WebGL al rotar (causa principal de pantalla negra).
-        const dpr = window.innerWidth < 1024 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+        // 📱 En móvil NO tocamos el backbuffer de RetroArch/Nostalgist al rotar:
+        // varios cores se van a negro si se cambia canvas.width/height en caliente.
+        // Imitamos el proyecto estable: CSS 100% + object-fit contain + resize/focus.
+        if (isMobile) {
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          canvas.style.objectFit = "contain";
+          canvas.focus({ preventScroll: true });
+          return;
+        }
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = Math.max(1, Math.floor(rect.width * dpr));
         const h = Math.max(1, Math.floor(rect.height * dpr));
         const mod: any = nostalgistRef.current?.getEmscriptenModule?.();
@@ -714,7 +740,7 @@ div[class*="virtual_gamepad"] > *{
       window.removeEventListener("orientationchange", handleOrientation);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isMobile]);
 
   const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;
@@ -996,7 +1022,7 @@ div[class*="virtual_gamepad"] > *{
       // 📱 EN MÓVIL/TABLET: el contenedor batocera-target puede quedar fuera de
       // la pantalla por scroll o rotación → forzamos viewport completo para
       // que el juego SIEMPRE se vea, tanto en vertical como horizontal.
-      if (isMobile) {
+        if (isMobile) {
         popupStyle = {
           position: 'fixed',
           top: 0,
@@ -1103,7 +1129,15 @@ div[class*="virtual_gamepad"] > *{
           </div>
         )}
 
-        <div ref={canvasViewportRef} className={cn("relative bg-black overflow-hidden", minimized ? "h-full w-full" : "flex-1")}>
+        <div
+          ref={canvasViewportRef}
+          className={cn(
+            "relative bg-black overflow-hidden",
+            minimized ? "h-full w-full" : "flex-1",
+            isExpanded && isMobile && "flex items-center justify-center",
+            isExpanded && isMobile && isLandscape && !usesEmulatorJs && "px-28"
+          )}
+        >
           {!romLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -1116,7 +1150,7 @@ div[class*="virtual_gamepad"] > *{
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none" }} 
+            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
           />
 
           {usesEmulatorJs && (
@@ -1135,6 +1169,7 @@ div[class*="virtual_gamepad"] > *{
               canvasRef={canvasRef}
               consoleName={activeGame.consoleName}
               visible={true}
+              landscape={isLandscape}
             />
           )}
 

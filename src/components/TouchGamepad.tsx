@@ -21,6 +21,7 @@ interface TouchGamepadProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   consoleName: string;
   visible: boolean;
+  landscape?: boolean;
 }
 
 interface KeyMap {
@@ -164,7 +165,7 @@ function ActionCluster({
   );
 }
 
-export default function TouchGamepad({ canvasRef, consoleName, visible }: TouchGamepadProps) {
+export default function TouchGamepad({ canvasRef, consoleName, visible, landscape = false }: TouchGamepadProps) {
   const [opacity, setOpacity] = useState(1);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -200,11 +201,11 @@ export default function TouchGamepad({ canvasRef, consoleName, visible }: TouchG
       {/* L / R (shoulder buttons) - arriba a los lados */}
       {showShoulders && (
         <>
-          <div className="absolute top-2 left-2 pointer-events-auto">
+          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 left-28" : "top-2 left-2")}>
             <Btn label="L" onPress={press(K.Q)} onRelease={release(K.Q)}
               className="w-14 h-9 !rounded-lg" small />
           </div>
-          <div className="absolute top-2 right-2 pointer-events-auto">
+          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 right-28" : "top-2 right-2")}>
             <Btn label="R" onPress={press(K.W)} onRelease={release(K.W)}
               className="w-14 h-9 !rounded-lg" small />
           </div>
@@ -212,17 +213,17 @@ export default function TouchGamepad({ canvasRef, consoleName, visible }: TouchG
       )}
 
       {/* D-Pad - abajo izquierda */}
-      <div className="absolute bottom-3 left-3 pointer-events-auto">
+      <div className={cn("absolute pointer-events-auto", landscape ? "bottom-4 left-10" : "bottom-3 left-3")}>
         <DPad canvas={canvasRef} />
       </div>
 
       {/* Acción - abajo derecha */}
-      <div className="absolute bottom-3 right-3 pointer-events-auto">
+      <div className={cn("absolute pointer-events-auto", landscape ? "bottom-4 right-10" : "bottom-3 right-3")}>
         <ActionCluster canvas={canvasRef} consoleName={consoleName} />
       </div>
 
       {/* Start / Select - centro inferior */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 pointer-events-auto">
+      <div className={cn("absolute left-1/2 -translate-x-1/2 flex gap-2 pointer-events-auto", landscape ? "bottom-5" : "bottom-2")}>
         <Btn label="SELECT" onPress={press(K.ShiftRight)} onRelease={release(K.ShiftRight)}
           className="w-16 h-7 !rounded-full" small />
         <Btn label="START" onPress={press(K.Enter)} onRelease={release(K.Enter)}
