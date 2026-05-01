@@ -158,12 +158,75 @@ export default function LeaderboardPage() {
         </p>
       </div>
 
+      {/* 🔍 Filtros: consola + búsqueda */}
+      {!loading && scores.length > 0 && (
+        <div className="bg-card border border-border rounded p-3 flex flex-col sm:flex-row gap-2">
+          {/* Selector de consola */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setConsoleFilter("all")}
+              className={cn(
+                "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
+                consoleFilter === "all"
+                  ? "bg-neon-yellow/20 border-neon-yellow text-neon-yellow"
+                  : "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              )}
+            >
+              Todas
+            </button>
+            {availableConsoles.map(c => (
+              <button
+                key={c}
+                onClick={() => setConsoleFilter(c)}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-pixel uppercase tracking-wider rounded border transition-all",
+                  consoleFilter === c
+                    ? "bg-neon-green/20 border-neon-green text-neon-green"
+                    : "bg-muted/50 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          {/* Buscador de juego */}
+          <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar juego..."
+              className="w-full pl-8 pr-8 py-1.5 text-xs font-body bg-muted/50 border border-border rounded focus:outline-none focus:border-neon-cyan focus:bg-background transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="p-8 text-center text-xs text-muted-foreground font-body">Cargando puntuaciones...</div>
       ) : scores.length === 0 ? (
         <div className="bg-card border border-border rounded p-8 text-center space-y-2">
           <Gamepad2 className="w-8 h-8 mx-auto text-muted-foreground" />
           <p className="text-xs text-muted-foreground font-body">Aún no hay puntuaciones. ¡Sé el primero en jugar!</p>
+        </div>
+      ) : Object.keys(gameGroups).length === 0 ? (
+        <div className="bg-card border border-border rounded p-8 text-center space-y-2">
+          <Search className="w-8 h-8 mx-auto text-muted-foreground" />
+          <p className="text-xs text-muted-foreground font-body">
+            No se encontraron resultados{search ? ` para "${search}"` : ""}
+            {consoleFilter !== "all" ? ` en ${consoleFilter.toUpperCase()}` : ""}.
+          </p>
         </div>
       ) : (
         Object.entries(gameGroups).map(([gameName, gameScores]) => (
