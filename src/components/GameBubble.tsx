@@ -389,6 +389,7 @@ export default function GameBubble() {
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
           // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
+          // 🚫 Oculta el botón "Context Menu" del menú nativo
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
 #game{position:relative!important}
@@ -407,6 +408,13 @@ div[class*="menu_bar"],
   z-index:9999!important;
 }
 .ejs_menu_bar_hidden{transform:translateY(100%)!important}
+/* Ocultar botón Context Menu (varias variantes según versión EJS) */
+.ejs_menu_button[title="Context Menu" i],
+.ejs_menu_button[aria-label="Context Menu" i],
+button[title="Context Menu" i],
+button[aria-label="Context Menu" i],
+.ejs_context_menu_button,
+.ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
