@@ -646,6 +646,40 @@ button[aria-label="Context Menu" i],
   }, [paused, romLoaded]);
 
   const toggleEmulatorMenu = useCallback(() => {
+    // 🎮 EmulatorJS (N64/PS1/Arcade): abrir directamente el panel de Ajustes de Control
+    if (usesEmulatorJs) {
+      const win = emulatorFrameRef.current?.contentWindow as any;
+      const ejs = win?.EJS_emulator;
+      try {
+        // 1) Vía API directa si existe
+        if (ejs?.controlMenu?.style) {
+          ejs.controlMenu.style.display = "flex";
+          return;
+        }
+        if (typeof ejs?.openControls === "function") { ejs.openControls(); return; }
+        if (typeof ejs?.controls?.open === "function") { ejs.controls.open(); return; }
+
+        // 2) Fallback: simular click en el botón "Control Settings" del menú nativo
+        const doc = win?.document;
+        if (doc) {
+          const selectors = [
+            '.ejs_menu_button[title="Control Settings" i]',
+            '.ejs_menu_button[aria-label="Control Settings" i]',
+            'button[title="Control Settings" i]',
+            'button[aria-label="Control Settings" i]',
+          ];
+          for (const sel of selectors) {
+            const btn = doc.querySelector(sel) as HTMLElement | null;
+            if (btn) { btn.click(); return; }
+          }
+        }
+        toast({ title: "Ajustes de control no disponibles", variant: "destructive" });
+      } catch {
+        toast({ title: "No se pudo abrir los ajustes de control", variant: "destructive" });
+      }
+      return;
+    }
+    // 🕹️ Nostalgist (NES/SNES/GBA/etc): F1 menú nativo
     const canvas = canvasRef.current;
     if (canvas && romLoaded) {
       canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", code: "F1", keyCode: 112, bubbles: true }));
@@ -654,7 +688,7 @@ button[aria-label="Context Menu" i],
       }, 100);
       canvas.focus();
     }
-  }, [romLoaded]);
+  }, [romLoaded, usesEmulatorJs, toast]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
