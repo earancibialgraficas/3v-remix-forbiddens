@@ -668,17 +668,19 @@ div[class*="virtual_gamepad"] > *{
       // CSS, y disparar un evento "resize" para que el core actualice GL.
       try {
         const rect = viewport.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // 📱 En móvil usamos DPR=1 para no crear backbuffers gigantes que
+        // colapsan WebGL al rotar (causa principal de pantalla negra).
+        const dpr = window.innerWidth < 1024 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
         const w = Math.max(1, Math.floor(rect.width * dpr));
         const h = Math.max(1, Math.floor(rect.height * dpr));
         const mod: any = nostalgistRef.current?.getEmscriptenModule?.();
         if (mod && typeof mod.setCanvasSize === "function") {
           mod.setCanvasSize(w, h);
-        } else {
-          // Fallback: ajustar backbuffer manualmente
-          if (canvas.width !== w) canvas.width = w;
-          if (canvas.height !== h) canvas.height = h;
         }
+        // Siempre forzamos el backbuffer del canvas también (algunos cores
+        // no implementan setCanvasSize y solo leen canvas.width/height).
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
       } catch {}
 
       try { window.dispatchEvent(new Event("resize")); } catch {}
@@ -991,16 +993,31 @@ div[class*="virtual_gamepad"] > *{
     if (isFullscreen) {
       popupStyle = { width: '100vw', height: '100vh', borderRadius: 0 };
     } else if (isTheaterActive && theaterRect) {
-      popupStyle = {
-        position: 'fixed',
-        top: theaterRect.top,
-        left: theaterRect.left,
-        width: theaterRect.width,
-        height: theaterRect.height,
-        zIndex: 40,
-        borderRadius: '0.75rem',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      };
+      // 📱 EN MÓVIL/TABLET: el contenedor batocera-target puede quedar fuera de
+      // la pantalla por scroll o rotación → forzamos viewport completo para
+      // que el juego SIEMPRE se vea, tanto en vertical como horizontal.
+      if (isMobile) {
+        popupStyle = {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          zIndex: 50,
+          borderRadius: 0,
+        };
+      } else {
+        popupStyle = {
+          position: 'fixed',
+          top: theaterRect.top,
+          left: theaterRect.left,
+          width: theaterRect.width,
+          height: theaterRect.height,
+          zIndex: 40,
+          borderRadius: '0.75rem',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        };
+      }
     } else {
       popupStyle = {
         transform: `translate(${position.x}px, ${position.y}px)`,
