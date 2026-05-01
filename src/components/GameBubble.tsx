@@ -48,6 +48,15 @@ const consoleIcons: Record<string, string> = {
   arcade: "🕹️"
 };
 
+const emulatorJsConsoles = new Set(["n64", "ps1", "arcade"]);
+
+const getEmulatorJsCore = (consoleName: string) => {
+  if (consoleName === "n64") return "n64";
+  if (consoleName === "ps1") return "psx";
+  if (consoleName === "arcade") return "arcade";
+  return consoleName;
+};
+
 interface SaveSlot {
   name: string;
   data: any;
@@ -80,6 +89,8 @@ export default function GameBubble() {
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const emulatorFrameRef = useRef<HTMLIFrameElement>(null);
+  const emulatorObjectUrlsRef = useRef<string[]>([]);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   const [paused, setPaused] = useState(false);
@@ -93,6 +104,12 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+  const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
+
+  const revokeEmulatorObjectUrls = useCallback(() => {
+    emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    emulatorObjectUrlsRef.current = [];
+  }, []);
 
   // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
   const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
