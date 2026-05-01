@@ -319,7 +319,8 @@ export default function GameBubble() {
   }, [activeGame?.gameName, activeGame?.consoleName, user]);
 
   useEffect(() => {
-    if (activeGame && !minimized && romLoaded && !paused) {
+    // 🚫 PS2 no acumula puntaje (es solo informativo, no se juega aquí dentro)
+    if (activeGame && !minimized && romLoaded && !paused && !isPs2) {
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
@@ -338,7 +339,7 @@ export default function GameBubble() {
       }, 10000);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeGame, minimized, romLoaded, paused, updateScore]);
+  }, [activeGame, minimized, romLoaded, paused, updateScore, isPs2]);
 
   useEffect(() => {
     if (!activeGame) {
