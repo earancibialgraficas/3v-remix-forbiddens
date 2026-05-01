@@ -84,11 +84,23 @@ export default function LeaderboardPage() {
 
   const deduped = dedupScores(scores);
 
-  // Lista de consolas disponibles (calculada del dataset)
-  const availableConsoles = useMemo(() => {
+  // Lista completa de consolas soportadas (debe coincidir con EmulatorPage)
+  const ALL_CONSOLES: { id: string; label: string }[] = [
+    { id: "nes", label: "NES" },
+    { id: "snes", label: "SNES" },
+    { id: "n64", label: "N64" },
+    { id: "gba", label: "GBA" },
+    { id: "gbc", label: "GBC" },
+    { id: "sega", label: "MEGA DRIVE" },
+    { id: "ps1", label: "PSX" },
+    { id: "arcade", label: "ARCADE" },
+  ];
+
+  // Consolas que tienen al menos un score (para resaltar visualmente)
+  const consolesWithScores = useMemo(() => {
     const set = new Set<string>();
     deduped.forEach(s => s.console_type && set.add(s.console_type));
-    return Array.from(set).sort();
+    return set;
   }, [deduped]);
 
   // Aplicar filtros
