@@ -452,20 +452,22 @@ button[aria-label="Context Menu" i],
       var all = document.body.querySelectorAll('div,span,p');
       for (var i=0;i<all.length;i++){
         var el = all[i];
-        if (el.children.length>0) continue;
         var t = (el.textContent||'').trim().toLowerCase();
         if (!t) continue;
-        if (t === 'undefined' || t.indexOf('suelta')!==-1 || t.indexOf('drop')!==-1 && t.indexOf('save')!==-1){
-          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="overlay"],div[class*="Overlay"]') || el;
+        if (t === 'undefined' || t.indexOf('undefined')!==-1 || t.indexOf('suelta')!==-1 || (t.indexOf('drop')!==-1 && t.indexOf('save')!==-1)){
+          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]') || el;
           if (p && p.parentNode) p.parentNode.removeChild(p);
         }
       }
     }catch(_){}
   }
+  var style = document.createElement('style');
+  style.textContent = '[data-forbiddens-removed],.forbiddens-removed{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}';
+  document.head.appendChild(style);
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
