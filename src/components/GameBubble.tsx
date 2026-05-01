@@ -1178,28 +1178,59 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
               El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
           {isPs2 && (
-            <div className="absolute inset-0 bg-white overflow-auto">
-              <div className="bg-yellow-100 border-b-2 border-yellow-500 text-black text-xs sm:text-sm p-3 font-body leading-snug">
-                <strong>⚠️ Aviso PS2 (Play!.js):</strong> Por restricciones de seguridad del navegador (CORS / SharedArrayBuffer),
-                el emulador puede quedarse en <em>"Loading..."</em> al embeberse aquí. Si no carga en ~30 seg,
-                ábrelo en pestaña nueva 👇
-                <a
-                  href="https://playjs.purei.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-2 inline-block bg-blue-600 text-white px-2 py-1 rounded font-bold no-underline hover:bg-blue-700"
-                >
-                  Abrir Play!.js ↗
-                </a>
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-purple-950/40 to-black overflow-auto flex items-center justify-center p-4 sm:p-6">
+              <div className="max-w-2xl w-full bg-black/70 backdrop-blur-xl border-2 border-neon-magenta/50 rounded-2xl p-5 sm:p-8 shadow-[0_0_50px_rgba(217,70,239,0.4)]">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="font-pixel text-[10px] sm:text-xs px-2 py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse tracking-widest uppercase">
+                    Experimental
+                  </span>
+                  <span className="font-pixel text-[9px] sm:text-[10px] text-white/50 tracking-widest uppercase">
+                    PlayStation 2 · Solo PC
+                  </span>
+                </div>
+
+                <h3 className="font-pixel text-base sm:text-xl md:text-2xl text-neon-cyan mb-3 leading-tight tracking-wide">
+                  Play!.js no se puede embeber aquí
+                </h3>
+
+                <p className="font-body text-xs sm:text-sm text-white/80 leading-relaxed mb-4">
+                  El emulador oficial requiere headers de seguridad especiales
+                  (<code className="text-neon-yellow text-[10px] sm:text-xs">SharedArrayBuffer</code> / COOP+COEP)
+                  que <strong>solo funcionan abriéndolo directo en el navegador</strong>, no embebido en otra página.
+                  El sitio bloquea la conexión con <code className="text-red-400 text-[10px] sm:text-xs">ERR_BLOCKED_BY_RESPONSE</code>.
+                </p>
+
+                <div className="bg-black/60 border border-neon-cyan/30 rounded-lg p-3 sm:p-4 mb-4">
+                  <p className="font-pixel text-[9px] sm:text-[10px] text-neon-cyan uppercase tracking-widest mb-2">
+                    Cómo jugar PS2:
+                  </p>
+                  <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed">
+                    <li>Abre una pestaña nueva en Chrome o Firefox (escritorio).</li>
+                    <li>Copia y pega esta URL en la barra de direcciones:</li>
+                  </ol>
+                  <div className="mt-3 flex items-center gap-2 bg-black/80 border border-neon-cyan/40 rounded px-3 py-2">
+                    <code className="flex-1 font-mono text-xs sm:text-sm text-neon-yellow break-all select-all">
+                      playjs.purei.org
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText("https://playjs.purei.org/");
+                      }}
+                      className="font-pixel text-[8px] sm:text-[9px] px-2 sm:px-3 py-1.5 rounded bg-neon-cyan/20 hover:bg-neon-cyan/40 border border-neon-cyan/50 text-neon-cyan uppercase tracking-widest transition-colors active:scale-95"
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <ol start={3} className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed mt-2">
+                    <li>Dentro del emulador, presiona <strong className="text-neon-yellow">"Boot DiskImage"</strong> y selecciona tu archivo <code className="text-[10px] sm:text-xs text-neon-yellow">.iso</code> / <code className="text-[10px] sm:text-xs text-neon-yellow">.cso</code>.</li>
+                  </ol>
+                </div>
+
+                <p className="font-body text-[10px] sm:text-xs text-white/50 italic leading-snug">
+                  💡 No requiere BIOS · Compatibilidad limitada · Mejor en Chrome de escritorio con buen hardware.
+                </p>
               </div>
-              <iframe
-                title="Play!.js (PS2)"
-                src="https://playjs.purei.org/"
-                className="w-full border-0 bg-white"
-                style={{ height: "calc(100% - 60px)" }}
-                allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
-                referrerPolicy="no-referrer"
-              />
             </div>
           )}
 
