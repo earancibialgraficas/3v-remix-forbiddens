@@ -1,7 +1,7 @@
 export interface GameEntry {
   id: string;
   name: string;
-  console: "nes" | "snes" | "gba";
+  console: "nes" | "snes" | "gba" | "n64";
   romUrl: string;
   coverUrl: string;
 }
