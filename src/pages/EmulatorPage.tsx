@@ -472,7 +472,7 @@ export default function EmulatorPage() {
                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
             </div>
-            <div className="hidden md:flex font-pixel text-[8px] text-white/30 uppercase tracking-widest">Emuladores locales · Nostalgist</div>
+            
           </div>
         </>
       )}
