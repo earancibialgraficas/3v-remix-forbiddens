@@ -113,9 +113,23 @@ export default function MainLayout() {
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) */}
-      <div className="lg:hidden fixed top-2 left-2 z-50 flex gap-2">
-        <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
+      {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) - se auto-oculta tras 3.5s */}
+      <div
+        className={cn(
+          "lg:hidden fixed top-2 left-2 z-50 flex gap-2 transition-all duration-300",
+          lBarVisible
+            ? "opacity-100 translate-x-0 pointer-events-auto"
+            : "opacity-0 -translate-x-full pointer-events-none"
+        )}
+      >
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => {
+            setMobileSidebarOpen(true);
+            showLBar();
+          }}
+        >
           <Menu className="w-6 h-6" />
         </Button>
       </div>
