@@ -446,17 +446,26 @@ button[aria-label="Context Menu" i],
     window.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
     document.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
   });
-  // Elimina nodos basura por texto ("undefined", "Suelta el estado guardado aquí")
+  // Elimina SOLO nodos basura por texto ("undefined", "Suelta el estado guardado aquí")
+  // SEGURO: nunca remueve elementos que contengan canvas/iframe (no rompe el render del juego)
   function nuke(){
     try{
-      var all = document.body.querySelectorAll('div,span,p');
-      for (var i=0;i<all.length;i++){
-        var el = all[i];
+      // 1) Drop zones por clase (seguro)
+      var zones = document.querySelectorAll('.ejs_drop_zone,.ejs_dropzone,div[class*="dropzone" i]');
+      for (var z=0; z<zones.length; z++){
+        var zn = zones[z];
+        if (zn.querySelector && zn.querySelector('canvas,iframe')) continue;
+        if (zn.parentNode) zn.parentNode.removeChild(zn);
+      }
+      // 2) SOLO nodos hoja con texto EXACTAMENTE "undefined" o que empiecen con "suelta"
+      var leaves = document.body.querySelectorAll('span,p,h1,h2,h3,h4,h5,h6,label');
+      for (var i=0;i<leaves.length;i++){
+        var el = leaves[i];
+        if (el.children && el.children.length > 0) continue; // solo hojas
         var t = (el.textContent||'').trim().toLowerCase();
         if (!t) continue;
-        if (t === 'undefined' || t.indexOf('undefined')!==-1 || t.indexOf('suelta')!==-1 || (t.indexOf('drop')!==-1 && t.indexOf('save')!==-1)){
-          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]') || el;
-          if (p && p.parentNode) p.parentNode.removeChild(p);
+        if (t === 'undefined' || t.indexOf('suelta')===0 || (t.indexOf('drop')!==-1 && t.indexOf('save')!==-1)){
+          if (el.parentNode) el.parentNode.removeChild(el);
         }
       }
     }catch(_){}
