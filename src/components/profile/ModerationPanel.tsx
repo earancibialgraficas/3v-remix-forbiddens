@@ -113,15 +113,8 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       }
 
       if (activeSubTab === "ocultos") {
-        const [phRes, scRes] = await Promise.all([
-          supabase.from("photos").select("*").eq("is_banned", true),
-          supabase.from("social_content").select("*").eq("is_banned", true)
-        ]);
-        
-        setBannedContent([
-          ...(phRes.data || []).map(x => ({ ...x, type: 'Foto' })), 
-          ...(scRes.data || []).map(x => ({ ...x, type: 'Redes' }))
-        ]);
+        // Función "ocultos" desactivada: la base de datos no tiene la columna is_banned
+        setBannedContent([]);
       }
 
       if (activeSubTab === "mods" || activeSubTab === "admins") {
