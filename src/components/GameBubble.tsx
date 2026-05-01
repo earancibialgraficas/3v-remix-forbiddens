@@ -218,6 +218,8 @@ export default function GameBubble() {
 
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
+    // 🚫 N64/PS1/Arcade: NO subir estados a la nube. Se guardan solo localmente.
+    if (activeGame && ["n64", "ps1", "arcade"].includes(activeGame.consoleName)) return;
     try {
       const safeSlots = slotsToSync.slice(0, 5);
       const slotsJson = JSON.stringify(safeSlots);
