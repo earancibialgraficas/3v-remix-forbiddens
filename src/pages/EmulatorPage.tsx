@@ -113,7 +113,10 @@ export default function EmulatorPage() {
   // 🖱️ Drag/swipe state
   const dragStartX = useRef<number | null>(null);
   const dragDelta = useRef<number>(0);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const rafId = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -200,29 +203,43 @@ export default function EmulatorPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // 🖱️👆 Drag/Swipe handlers (mouse + touch)
-  const SWIPE_THRESHOLD = 60;
+  // 🖱️👆 Drag/Swipe handlers (mouse + touch) — fluido con rAF
+  const SWIPE_THRESHOLD_RATIO = 0.18; // 18% del ancho del carrusel
 
   const onPointerDown = (clientX: number) => {
     dragStartX.current = clientX;
     dragDelta.current = 0;
     setIsDragging(true);
+    setDragOffset(0);
   };
   const onPointerMove = (clientX: number) => {
     if (dragStartX.current === null) return;
-    dragDelta.current = clientX - dragStartX.current;
+    const delta = clientX - dragStartX.current;
+    dragDelta.current = delta;
+    if (rafId.current !== null) return;
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      setDragOffset(dragDelta.current);
+    });
   };
   const onPointerUp = () => {
     if (dragStartX.current === null) return;
     const delta = dragDelta.current;
-    if (delta <= -SWIPE_THRESHOLD) {
+    const width = carouselRef.current?.clientWidth || 1;
+    const threshold = Math.max(40, width * SWIPE_THRESHOLD_RATIO);
+    if (delta <= -threshold) {
       setCurrentIndex((prev) => (prev + 1) % systems.length);
-    } else if (delta >= SWIPE_THRESHOLD) {
+    } else if (delta >= threshold) {
       setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
     }
     dragStartX.current = null;
     dragDelta.current = 0;
+    if (rafId.current !== null) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
     setIsDragging(false);
+    setDragOffset(0);
   };
 
   return (
@@ -302,6 +319,7 @@ export default function EmulatorPage() {
 
             {/* CARRUSEL — drag/swipe enabled */}
             <div
+              ref={carouselRef}
               className={cn(
                 "relative w-full h-44 sm:h-48 md:h-64 flex items-center justify-center overflow-visible touch-pan-y select-none",
                 isDragging ? "cursor-grabbing" : "cursor-grab"
@@ -319,15 +337,43 @@ export default function EmulatorPage() {
                 const isActive = offset === 0;
                 const isPrev = offset === -1 || (currentIndex === 0 && index === systems.length - 1);
                 const isNext = offset === 1 || (currentIndex === systems.length - 1 && index === 0);
-                let transform = "translateX(1000px) scale(0)"; let opacity = 0; let zIndex = 0; let filter = "grayscale(100%) brightness(0.5)";
-                if (isActive) { transform = "translateX(0) scale(1.1)"; opacity = 1; zIndex = 30; filter = `drop-shadow(0 0 35px ${sys.glow})`; }
-                else if (isPrev) { transform = "translateX(-160%) scale(0.65)"; opacity = 0.5; zIndex = 20; }
-                else if (isNext) { transform = "translateX(160%) scale(0.65)"; opacity = 0.5; zIndex = 20; }
+                let baseTranslate = 1000; // hidden far away
+                let baseScale = 0;
+                let opacity = 0;
+                let zIndex = 0;
+                let filter = "grayscale(100%) brightness(0.5)";
+                if (isActive) { baseTranslate = 0; baseScale = 1.1; opacity = 1; zIndex = 30; filter = `drop-shadow(0 0 35px ${sys.glow})`; }
+                else if (isPrev) { baseTranslate = -260; baseScale = 0.65; opacity = 0.5; zIndex = 20; filter = "grayscale(60%) brightness(0.7)"; }
+                else if (isNext) { baseTranslate = 260; baseScale = 0.65; opacity = 0.5; zIndex = 20; filter = "grayscale(60%) brightness(0.7)"; }
+
+                // Aplicar offset del drag en vivo (con resistencia para los lados)
+                const liveOffset = isDragging ? dragOffset : 0;
+                const translatePx = baseTranslate + liveOffset;
+
+                // Durante el drag: opacidad dinámica para los vecinos según cuánto se arrastra
+                const width = carouselRef.current?.clientWidth || 1;
+                const dragProgress = Math.min(1, Math.abs(liveOffset) / (width * 0.5));
+                let dynOpacity = opacity;
+                if (isDragging) {
+                  if (isActive) dynOpacity = 1 - dragProgress * 0.3;
+                  else if ((isPrev && liveOffset > 0) || (isNext && liveOffset < 0)) {
+                    dynOpacity = Math.min(1, opacity + dragProgress * 0.5);
+                  }
+                }
+
                 return (
                   <div
                     key={sys.id}
-                    className="absolute transition-all duration-700 ease-out flex flex-col items-center"
-                    style={{ transform, opacity, zIndex, filter }}
+                    className={cn(
+                      "absolute flex flex-col items-center will-change-transform",
+                      isDragging ? "transition-none" : "transition-all duration-500 ease-out"
+                    )}
+                    style={{
+                      transform: `translate3d(${translatePx}px, 0, 0) scale(${baseScale})`,
+                      opacity: dynOpacity,
+                      zIndex,
+                      filter,
+                    }}
                     onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                   >
                     <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-64 md:h-64 flex items-center justify-center pointer-events-none">
