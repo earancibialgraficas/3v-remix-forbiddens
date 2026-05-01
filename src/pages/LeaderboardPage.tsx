@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Trophy, Gamepad2, User } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Trophy, Gamepad2, User, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
