@@ -398,21 +398,76 @@ export default function EmulatorPage() {
           {/* CENTER */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pt-12 pb-20 sm:pt-16 sm:pb-24">
             <div className="mb-4 sm:mb-8 md:mb-12 text-center transition-all duration-500 px-3 sm:px-4 max-w-full w-full">
-              <h2
-                className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap mx-auto"
-                style={{
-                  // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
-                  fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
-                }}
-              >
-                {currentSystem.short}
-              </h2>
+              <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                <h2
+                  className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap"
+                  style={{
+                    // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
+                    fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
+                  }}
+                >
+                  {currentSystem.short}
+                </h2>
+                {currentSystem.experimental && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.6)]"
+                    title="Emulador en fase experimental — la compatibilidad y el rendimiento varían"
+                  >
+                    Experimental
+                  </span>
+                )}
+              </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4 mt-3 sm:mt-4 text-muted-foreground font-pixel text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest">
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10">AÑO {currentSystem.year}</span>
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10 max-w-[80vw] truncate">CORE: {currentSystem.core}</span>
+                 {currentSystem.compatGames && currentSystem.compatGames.length > 0 && (
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                       <button
+                         className="flex items-center gap-1.5 bg-neon-cyan/15 hover:bg-neon-cyan/25 active:bg-neon-cyan/30 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-neon-cyan/40 text-neon-cyan transition-colors shadow-[0_0_12px_rgba(34,211,238,0.25)] cursor-pointer"
+                         title="Ver juegos compatibles"
+                       >
+                         <ListChecks className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                         <span>Juegos compatibles ({currentSystem.compatGames.length})</span>
+                       </button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent
+                       align="center"
+                       sideOffset={8}
+                       className="w-72 sm:w-80 max-h-80 overflow-y-auto bg-black/95 border-neon-cyan/30 text-white backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                     >
+                       <DropdownMenuLabel className="font-pixel text-[10px] tracking-widest text-neon-cyan flex items-center justify-between">
+                         <span>Compatibles</span>
+                         <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: tracker oficial</span>
+                       </DropdownMenuLabel>
+                       <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                         Estos títulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar según tu navegador y hardware.
+                       </div>
+                       <DropdownMenuSeparator className="bg-white/10" />
+                       {currentSystem.compatGames.map((g) => (
+                         <DropdownMenuItem
+                           key={g.name}
+                           className="font-body text-xs cursor-default focus:bg-white/10 focus:text-white flex items-center justify-between gap-2 normal-case tracking-normal"
+                         >
+                           <span className="truncate">{g.name}</span>
+                           <span
+                             className={cn(
+                               "font-pixel text-[8px] uppercase px-1.5 py-0.5 rounded border flex-shrink-0",
+                               g.status === "Playable" && "bg-neon-green/15 text-neon-green border-neon-green/40",
+                               g.status === "In-Game" && "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/40",
+                               g.status === "Menus" && "bg-white/10 text-white/60 border-white/20",
+                             )}
+                           >
+                             {g.status}
+                           </span>
+                         </DropdownMenuItem>
+                       ))}
+                     </DropdownMenuContent>
+                   </DropdownMenu>
+                 )}
               </div>
             </div>
 
