@@ -39,23 +39,38 @@ export const snesGames: GameEntry[] = [
   { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_%5B!%5D.smc", coverUrl: "/roms/covers/snes/super_metroid.png" },
 ];
 
+const GBA_THUMB = "https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy%20Advance/Named_Boxarts";
+const N64_THUMB = "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts";
+
 export const gbaGames: GameEntry[] = [
-  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: "/roms/gba/Metroid%20Fusion%20(USA).gba", coverUrl: "/roms/covers/gba/metroid%20fusion.jpeg" },
-  { id: "gba-crash", name: "Crash Bandicoot: Huge Adventure", console: "gba", romUrl: "/roms/gba/Crash%20Bandicoot%20-%20The%20Huge%20Adventure%20(USA).gba", coverUrl: "/roms/covers/gba/crash%20bandicoot.jpeg" },
-  { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840%20-%20Metal%20Slug%20Advance%20(E)(TRSI).gba", coverUrl: "/roms/covers/gba/metal%20slug.jpg" },
-  { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need%20for%20Speed%20-%20Most%20Wanted%20(USA%2C%20Europe)%20(En%2CFr%2CDe%2CIt).gba", coverUrl: "/roms/covers/gba/NFS%20most%20wanted.jpeg" },
+  { id: "gba-metroid-fusion", name: "Metroid Fusion", console: "gba", romUrl: "/roms/gba/Metroid%20Fusion%20(USA).gba", coverUrl: `${GBA_THUMB}/Metroid%20Fusion%20(USA).png` },
+  { id: "gba-crash", name: "Crash Bandicoot: Huge Adventure", console: "gba", romUrl: "/roms/gba/Crash%20Bandicoot%20-%20The%20Huge%20Adventure%20(USA).gba", coverUrl: `${GBA_THUMB}/Crash%20Bandicoot%20-%20The%20Huge%20Adventure%20(USA).png` },
+  { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840%20-%20Metal%20Slug%20Advance%20(E)(TRSI).gba", coverUrl: `${GBA_THUMB}/Metal%20Slug%20Advance%20(USA).png` },
+  { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need%20for%20Speed%20-%20Most%20Wanted%20(USA%2C%20Europe)%20(En%2CFr%2CDe%2CIt).gba", coverUrl: `${GBA_THUMB}/Need%20for%20Speed%20-%20Most%20Wanted%20(USA)%20(En%2CFr%2CDe%2CIt).png` },
+  { id: "gba-mario-luigi", name: "Mario & Luigi: Superstar Saga", console: "gba", romUrl: "/roms/gba/1246%20-%20Mario%20And%20Luigi%20Superstar%20Saga%20(E)(Menace).gba", coverUrl: `${GBA_THUMB}/Mario%20%26%20Luigi%20-%20Superstar%20Saga%20(USA).png` },
+  { id: "gba-castlevania-aria", name: "Castlevania: Aria of Sorrow", console: "gba", romUrl: "/roms/gba/Castlevania-%20Aria%20of%20Sorrow%20-%2075759.zip", coverUrl: `${GBA_THUMB}/Castlevania%20-%20Aria%20of%20Sorrow%20(USA).png` },
+  { id: "gba-ff-dawn", name: "Final Fantasy I & II: Dawn of Souls", console: "gba", romUrl: "/roms/gba/Final%20Fantasy%20I%20%26%20II%20-%20Dawn%20of%20Souls%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: `${GBA_THUMB}/Final%20Fantasy%20I%20%26%20II%20-%20Dawn%20of%20Souls%20(USA).png` },
+  { id: "gba-kirby-mirror", name: "Kirby & The Amazing Mirror", console: "gba", romUrl: "/roms/gba/Kirby%20%26%20The%20Amazing%20Mirror%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: `${GBA_THUMB}/Kirby%20%26%20the%20Amazing%20Mirror%20(USA).png` },
+  { id: "gba-kirby-nightmare", name: "Kirby: Nightmare in Dream Land", console: "gba", romUrl: "/roms/gba/Kirby%20-%20Nightmare%20in%20Dream%20Land%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: `${GBA_THUMB}/Kirby%20-%20Nightmare%20in%20Dream%20Land%20(USA).png` },
+  { id: "gba-klonoa", name: "Klonoa: Empire of Dreams", console: "gba", romUrl: "/roms/gba/Klonoa%20-%20Empire%20of%20Dreams%20(Europe).gba", coverUrl: `${GBA_THUMB}/Klonoa%20-%20Empire%20of%20Dreams%20(USA).png` },
+  { id: "gba-mother3", name: "Mother 3 (English)", console: "gba", romUrl: "/roms/gba/Mother%203%20(Japan)%20%5BT-En%20by%20Chewy%20%26%20Jeffman%20%26%20Tomato%20v1.3a%5D%20%5BHQ%20audio%20mix%20by%20MusicTheorist%5D.gba", coverUrl: `${GBA_THUMB}/Mother%203%20(Japan).png` },
+  { id: "gba-pokemon-esmeralda", name: "Pokémon Edición Esmeralda", console: "gba", romUrl: "/roms/gba/Pokemon%20-%20Edicion%20Esmeralda%20(Spain).gba", coverUrl: `${GBA_THUMB}/Pokemon%20-%20Emerald%20Version%20(USA%2C%20Europe).png` },
+  { id: "gba-pokemon-rojofuego", name: "Pokémon Rojo Fuego", console: "gba", romUrl: "/roms/gba/Pokemon%20-%20Edicion%20Rojo%20Fuego%20(Spain).gba", coverUrl: `${GBA_THUMB}/Pokemon%20-%20FireRed%20Version%20(USA).png` },
+  { id: "gba-sonic-advance3", name: "Sonic Advance 3", console: "gba", romUrl: "/roms/gba/Sonic%20Advance%203%20(USA)%20(En%2CJa%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: `${GBA_THUMB}/Sonic%20Advance%203%20(USA).png` },
+  { id: "gba-zelda-minish", name: "Zelda: The Minish Cap", console: "gba", romUrl: "/roms/gba/The%20Legend%20of%20Zelda-%20The%20Minish%20Cap%20-%2079577.zip", coverUrl: `${GBA_THUMB}/Legend%20of%20Zelda%2C%20The%20-%20The%20Minish%20Cap%20(USA).png` },
 ];
 
 export const n64Games: GameEntry[] = [
-  // 👇 Edita los nombres de archivo para que coincidan EXACTAMENTE con los que subiste a /public/roms/n64/
-  { id: "n64-mario64", name: "Super Mario 64", console: "n64", romUrl: "/roms/n64/Super_Mario_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Super%20Mario%2064%20(USA).png" },
-  { id: "n64-zelda-oot", name: "Zelda: Ocarina of Time", console: "n64", romUrl: "/roms/n64/Legend_of_Zelda_Ocarina_of_Time_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Legend%20of%20Zelda%2C%20The%20-%20Ocarina%20of%20Time%20(USA).png" },
-  { id: "n64-mariokart", name: "Mario Kart 64", console: "n64", romUrl: "/roms/n64/Mario_Kart_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Mario%20Kart%2064%20(USA).png" },
-  { id: "n64-smash", name: "Super Smash Bros.", console: "n64", romUrl: "/roms/n64/Super_Smash_Bros_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Super%20Smash%20Bros.%20(USA).png" },
-  { id: "n64-dk64", name: "Donkey Kong 64", console: "n64", romUrl: "/roms/n64/Donkey_Kong_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Donkey%20Kong%2064%20(USA).png" },
-  { id: "n64-banjo", name: "Banjo-Kazooie", console: "n64", romUrl: "/roms/n64/Banjo-Kazooie_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Banjo-Kazooie%20(USA).png" },
-  { id: "n64-goldeneye", name: "GoldenEye 007", console: "n64", romUrl: "/roms/n64/GoldenEye_007_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/GoldenEye%20007%20(USA).png" },
-  { id: "n64-mm", name: "Zelda: Majora's Mask", console: "n64", romUrl: "/roms/n64/Legend_of_Zelda_Majoras_Mask_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Legend%20of%20Zelda%2C%20The%20-%20Majora's%20Mask%20(USA).png" },
+  { id: "n64-mario64", name: "Super Mario 64", console: "n64", romUrl: "/roms/n64/Super%20Mario%2064%20(USA).z64", coverUrl: `${N64_THUMB}/Super%20Mario%2064%20(USA).png` },
+  { id: "n64-zelda-oot", name: "Zelda: Ocarina of Time", console: "n64", romUrl: "/roms/n64/Legend%20of%20Zelda%2C%20The%20-%20Ocarina%20of%20Time%20(U)%20(V1.2)%20%5B!%5D.z64", coverUrl: `${N64_THUMB}/Legend%20of%20Zelda%2C%20The%20-%20Ocarina%20of%20Time%20(USA).png` },
+  { id: "n64-mariokart", name: "Mario Kart 64", console: "n64", romUrl: "/roms/n64/Mario%20Kart%2064%20(USA).z64", coverUrl: `${N64_THUMB}/Mario%20Kart%2064%20(USA).png` },
+  { id: "n64-smash", name: "Super Smash Bros.", console: "n64", romUrl: "/roms/n64/Super%20Smash%20Bros.%20(USA).z64", coverUrl: `${N64_THUMB}/Super%20Smash%20Bros.%20(USA).png` },
+  { id: "n64-banjo", name: "Banjo-Kazooie", console: "n64", romUrl: "/roms/n64/Banjo-Kazooie%20(USA)%20(Rev%201).z64", coverUrl: `${N64_THUMB}/Banjo-Kazooie%20(USA).png` },
+  { id: "n64-conker", name: "Conker's Bad Fur Day", console: "n64", romUrl: "/roms/n64/Conker's%20Bad%20Fur%20Day%20(USA).z64", coverUrl: `${N64_THUMB}/Conker's%20Bad%20Fur%20Day%20(USA).png` },
+  { id: "n64-fzerox", name: "F-Zero X", console: "n64", romUrl: "/roms/n64/F-Zero%20X%20(USA).z64", coverUrl: `${N64_THUMB}/F-Zero%20X%20(USA).png` },
+  { id: "n64-kirby64", name: "Kirby 64: The Crystal Shards", console: "n64", romUrl: "/roms/n64/Kirby%2064%20-%20The%20Crystal%20Shards%20(USA).z64", coverUrl: `${N64_THUMB}/Kirby%2064%20-%20The%20Crystal%20Shards%20(USA).png` },
+  { id: "n64-papermario", name: "Paper Mario", console: "n64", romUrl: "/roms/n64/Paper%20Mario%20(USA).z64", coverUrl: `${N64_THUMB}/Paper%20Mario%20(USA).png` },
+  { id: "n64-pokestadium", name: "Pokémon Stadium", console: "n64", romUrl: "/roms/n64/Pokemon%20Stadium%20(USA)%20(Rev%202).z64", coverUrl: `${N64_THUMB}/Pokemon%20Stadium%20(USA).png` },
 ];
 
 export const allGames = [...nesGames, ...snesGames, ...gbaGames, ...n64Games];
