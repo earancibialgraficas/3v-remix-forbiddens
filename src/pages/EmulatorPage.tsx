@@ -121,8 +121,22 @@ const systems = [
     bg: "https://image.pollinations.ai/prompt/arcade%20cabinet%20machine%20neon%20cyberpunk%20dark%20room?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/Arcade.png",
     glow: "rgba(249,115,22,0.7)", year: "1990"
+  },
+  {
+    // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
+    id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
+    bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",
+    consoleImg: "/consolasimg/PlayStation 2.png",
+    glow: "rgba(96,165,250,0.7)", year: "2000",
+    experimental: true,
+    compatGames: PS2_COMPATIBLE_GAMES,
   }
-];
+] as Array<{
+  id: string; name: string; short: string; core: string; extensions: string;
+  bg: string; consoleImg: string; glow: string; year: string;
+  experimental?: boolean;
+  compatGames?: { name: string; status: "Playable" | "In-Game" | "Menus" }[];
+}>;
 
 // 🌎 Lista corta de zonas horarias comunes (con Chile primero)
 const TIMEZONES = [
