@@ -108,8 +108,9 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+  const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
-  const isN64 = !!activeGame && ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+  const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2"].includes(activeGame.consoleName);
 
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -352,6 +353,14 @@ export default function GameBubble() {
     const loadEmu = async () => {
       setRomLoaded(false);
       setPaused(false);
+
+      // 🎮 PS2 (Play!.js): se carga dentro de su propio iframe, no necesitamos hacer nada aquí.
+      // Marcamos romLoaded=true para que la UI esconda el spinner y muestre el iframe.
+      if (isPs2) {
+        setRomLoaded(true);
+        return;
+      }
+
       await new Promise(r => setTimeout(r, 200));
       const el = canvasRef.current;
       const frame = emulatorFrameRef.current;
@@ -1154,10 +1163,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
+            style={{ width: "100%", height: "100%", display: (usesEmulatorJs || isPs2) ? "none" : "block", outline: "none", objectFit: "contain", background: "black" }} 
           />
 
-          {usesEmulatorJs && (
+          {usesEmulatorJs && !isPs2 && (
             <iframe
               ref={emulatorFrameRef}
               title="EmulatorJS"
@@ -1166,9 +1175,22 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             />
           )}
 
+          {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
+              El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
+          {isPs2 && (
+            <iframe
+              title="Play!.js (PS2)"
+              src="https://playjs.purei.org/"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+              allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
+              referrerPolicy="no-referrer"
+            />
+          )}
+
           {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
-              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos. */}
-          {!usesEmulatorJs && !minimized && isMobile && romLoaded && (
+              EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos.
+              PS2 no soporta móvil. */}
+          {!usesEmulatorJs && !isPs2 && !minimized && isMobile && romLoaded && (
             <TouchGamepad
               canvasRef={canvasRef}
               consoleName={activeGame.consoleName}

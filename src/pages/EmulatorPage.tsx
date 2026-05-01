@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
@@ -14,6 +14,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// 🎮 PS2 (Play!.js) — juegos con buena compatibilidad reportada en el tracker oficial
+// Fuente: https://github.com/jpd002/Play-Compatibility/issues
+const PS2_COMPATIBLE_GAMES: { name: string; status: "Playable" | "In-Game" | "Menus" }[] = [
+  { name: "Ape Escape 2", status: "Playable" },
+  { name: "Ape Escape 3", status: "Playable" },
+  { name: "ATV Offroad Fury", status: "Playable" },
+  { name: "Beyond Good & Evil", status: "Playable" },
+  { name: "Burnout", status: "Playable" },
+  { name: "Burnout 2: Point of Impact", status: "Playable" },
+  { name: "Crash Bandicoot: The Wrath of Cortex", status: "Playable" },
+  { name: "Crash Nitro Kart", status: "Playable" },
+  { name: "Crash Twinsanity", status: "In-Game" },
+  { name: "Dragon Ball Z: Budokai", status: "Playable" },
+  { name: "Dragon Ball Z: Budokai 2", status: "Playable" },
+  { name: "Dragon Ball Z: Budokai 3", status: "In-Game" },
+  { name: "Final Fantasy X", status: "In-Game" },
+  { name: "Final Fantasy XII", status: "In-Game" },
+  { name: "God of War", status: "In-Game" },
+  { name: "Grand Theft Auto III", status: "Playable" },
+  { name: "Grand Theft Auto: Vice City", status: "Playable" },
+  { name: "Grand Theft Auto: San Andreas", status: "In-Game" },
+  { name: "Gran Turismo 3: A-Spec", status: "In-Game" },
+  { name: "Gran Turismo 4", status: "In-Game" },
+  { name: "ICO", status: "Playable" },
+  { name: "Jak and Daxter: The Precursor Legacy", status: "In-Game" },
+  { name: "Kingdom Hearts", status: "In-Game" },
+  { name: "Kingdom Hearts II", status: "In-Game" },
+  { name: "Metal Gear Solid 2: Sons of Liberty", status: "In-Game" },
+  { name: "Metal Gear Solid 3: Snake Eater", status: "Menus" },
+  { name: "Need for Speed: Underground", status: "Playable" },
+  { name: "Need for Speed: Underground 2", status: "Playable" },
+  { name: "Need for Speed: Most Wanted", status: "In-Game" },
+  { name: "Prince of Persia: The Sands of Time", status: "Playable" },
+  { name: "Ratchet & Clank", status: "In-Game" },
+  { name: "Resident Evil 4", status: "In-Game" },
+  { name: "Shadow of the Colossus", status: "In-Game" },
+  { name: "Silent Hill 2", status: "In-Game" },
+  { name: "SpongeBob SquarePants: Battle for Bikini Bottom", status: "Playable" },
+  { name: "Sly Cooper and the Thievius Raccoonus", status: "Playable" },
+  { name: "Sonic Heroes", status: "Playable" },
+  { name: "Sonic Mega Collection Plus", status: "Playable" },
+  { name: "SSX Tricky", status: "Playable" },
+  { name: "Tekken 4", status: "In-Game" },
+  { name: "Tekken 5", status: "In-Game" },
+  { name: "The Simpsons: Hit & Run", status: "Playable" },
+  { name: "Tony Hawk's Pro Skater 3", status: "Playable" },
+  { name: "Tony Hawk's Pro Skater 4", status: "Playable" },
+  { name: "Tony Hawk's Underground", status: "Playable" },
+  { name: "Viewtiful Joe", status: "Playable" },
+  { name: "Wallace & Gromit: Project Zoo", status: "Playable" },
+  { name: "WWE SmackDown! Here Comes the Pain", status: "Playable" },
+];
 
 // 🔥 NOMBRES EXACTOS PARA TU CARPETA /consolasimg/ 🔥
 // Cores REALES de Libretro usados por Nostalgist.js
@@ -68,8 +121,22 @@ const systems = [
     bg: "https://image.pollinations.ai/prompt/arcade%20cabinet%20machine%20neon%20cyberpunk%20dark%20room?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/Arcade.png",
     glow: "rgba(249,115,22,0.7)", year: "1990"
+  },
+  {
+    // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
+    id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
+    bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",
+    consoleImg: "/consolasimg/PlayStation 2.png",
+    glow: "rgba(96,165,250,0.7)", year: "2000",
+    experimental: true,
+    compatGames: PS2_COMPATIBLE_GAMES,
   }
-];
+] as Array<{
+  id: string; name: string; short: string; core: string; extensions: string;
+  bg: string; consoleImg: string; glow: string; year: string;
+  experimental?: boolean;
+  compatGames?: { name: string; status: "Playable" | "In-Game" | "Menus" }[];
+}>;
 
 // 🌎 Lista corta de zonas horarias comunes (con Chile primero)
 const TIMEZONES = [
@@ -177,6 +244,26 @@ export default function EmulatorPage() {
     localStorage.setItem("emulator_timezone", tz);
     const label = TIMEZONES.find(t => t.value === tz)?.label || tz;
     toast({ title: "Zona horaria actualizada", description: label });
+  };
+
+  // 🚀 Launch PS2 directamente — Play!.js trae su propio cargador de ISO en la UI del iframe
+  const launchPs2 = () => {
+    if (!user) {
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+    launchGame({
+      romUrl: "playjs:embed",
+      consoleName: "ps2" as any,
+      gameName: "PlayStation 2",
+      consoleCore: "play!.js",
+      score: 0,
+      playTime: 0,
+    });
+    toast({
+      title: "PS2 iniciado",
+      description: "Sube tu ISO desde el botón dentro del emulador. Solo PC, experimental.",
+    });
   };
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -331,21 +418,76 @@ export default function EmulatorPage() {
           {/* CENTER */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pt-12 pb-20 sm:pt-16 sm:pb-24">
             <div className="mb-4 sm:mb-8 md:mb-12 text-center transition-all duration-500 px-3 sm:px-4 max-w-full w-full">
-              <h2
-                className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap mx-auto"
-                style={{
-                  // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
-                  fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
-                }}
-              >
-                {currentSystem.short}
-              </h2>
+              <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                <h2
+                  className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap"
+                  style={{
+                    // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
+                    fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
+                  }}
+                >
+                  {currentSystem.short}
+                </h2>
+                {currentSystem.experimental && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.6)]"
+                    title="Emulador en fase experimental — la compatibilidad y el rendimiento varían"
+                  >
+                    Experimental
+                  </span>
+                )}
+              </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4 mt-3 sm:mt-4 text-muted-foreground font-pixel text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest">
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10">AÑO {currentSystem.year}</span>
                  <span className="bg-white/10 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-white/10 max-w-[80vw] truncate">CORE: {currentSystem.core}</span>
+                 {currentSystem.compatGames && currentSystem.compatGames.length > 0 && (
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                       <button
+                         className="flex items-center gap-1.5 bg-neon-cyan/15 hover:bg-neon-cyan/25 active:bg-neon-cyan/30 px-2 sm:px-3 py-1 rounded backdrop-blur-md border border-neon-cyan/40 text-neon-cyan transition-colors shadow-[0_0_12px_rgba(34,211,238,0.25)] cursor-pointer"
+                         title="Ver juegos compatibles"
+                       >
+                         <ListChecks className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                         <span>Juegos compatibles ({currentSystem.compatGames.length})</span>
+                       </button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent
+                       align="center"
+                       sideOffset={8}
+                       className="w-72 sm:w-80 max-h-80 overflow-y-auto bg-black/95 border-neon-cyan/30 text-white backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                     >
+                       <DropdownMenuLabel className="font-pixel text-[10px] tracking-widest text-neon-cyan flex items-center justify-between">
+                         <span>Compatibles</span>
+                         <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: tracker oficial</span>
+                       </DropdownMenuLabel>
+                       <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                         Estos títulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar según tu navegador y hardware.
+                       </div>
+                       <DropdownMenuSeparator className="bg-white/10" />
+                       {currentSystem.compatGames.map((g) => (
+                         <DropdownMenuItem
+                           key={g.name}
+                           className="font-body text-xs cursor-default focus:bg-white/10 focus:text-white flex items-center justify-between gap-2 normal-case tracking-normal"
+                         >
+                           <span className="truncate">{g.name}</span>
+                           <span
+                             className={cn(
+                               "font-pixel text-[8px] uppercase px-1.5 py-0.5 rounded border flex-shrink-0",
+                               g.status === "Playable" && "bg-neon-green/15 text-neon-green border-neon-green/40",
+                               g.status === "In-Game" && "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/40",
+                               g.status === "Menus" && "bg-white/10 text-white/60 border-white/20",
+                             )}
+                           >
+                             {g.status}
+                           </span>
+                         </DropdownMenuItem>
+                       ))}
+                     </DropdownMenuContent>
+                   </DropdownMenu>
+                 )}
               </div>
             </div>
 
@@ -434,15 +576,19 @@ export default function EmulatorPage() {
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
                <button
-                 onClick={() => fileInputRef.current?.click()}
+                 onClick={() => currentSystem.id === "ps2" ? launchPs2() : fileInputRef.current?.click()}
                  className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
                >
                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
                  <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
-                 <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">Cargar ROM Local</span>
+                 <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
+                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : "Cargar ROM Local"}
+                 </span>
                </button>
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
-                 Formatos: {currentSystem.extensions}
+                 {currentSystem.id === "ps2"
+                   ? "Solo PC · Sube tu ISO desde la UI del emulador (no se requiere BIOS)"
+                   : `Formatos: ${currentSystem.extensions}`}
                </p>
             </div>
           </div>
@@ -467,8 +613,8 @@ export default function EmulatorPage() {
                <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
-               <button onClick={() => fileInputRef.current?.click()} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-                 SUBIR JUEGO
+               <button onClick={() => currentSystem.id === "ps2" ? launchPs2() : fileInputRef.current?.click()} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+                 {currentSystem.id === "ps2" ? "INICIAR PS2" : "SUBIR JUEGO"}
                </button>
                <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
