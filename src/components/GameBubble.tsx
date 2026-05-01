@@ -1241,7 +1241,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-transform duration-300",
             isExpanded
               ? cn(
-                  "absolute right-0 top-12 bottom-0 w-14 bg-black/85 border-l border-white/10 z-[60]",
+                  "absolute right-0 top-0 bottom-0 w-14 bg-black/85 border-l border-white/10 z-[60] pt-14",
                   expandedControlsOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
                 )
               : "w-14"
