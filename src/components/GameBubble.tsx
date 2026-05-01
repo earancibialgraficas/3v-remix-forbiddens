@@ -121,6 +121,7 @@ export default function GameBubble() {
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
 
   useEffect(() => {
     const updateOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
@@ -170,10 +171,15 @@ export default function GameBubble() {
 
   useEffect(() => {
     setForceFloating(false);
+    setExpandedControlsOpen(false);
   }, [activeGame?.romUrl]);
 
   const isTheaterActive = theaterRect && !minimized && !forceFloating;
   const isExpanded = isTheaterActive || isFullscreen;
+
+  useEffect(() => {
+    if (!isExpanded) setExpandedControlsOpen(false);
+  }, [isExpanded]);
 
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
@@ -410,47 +416,18 @@ export default function GameBubble() {
 
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
-          // 🔥 CSS para anclar la barra de menú nativa de EmulatorJS abajo del juego
-          // 🚫 Oculta el botón "Context Menu" del menú nativo
-          // 📱 Ajusta los controles táctiles para no quedar tapados por la barra en L
+          const safeRomFileName = romFileName || activeGame.gameName || "Game";
+          // Mantiene los controles nativos de EmulatorJS en su posición original.
+          // Solo limpiamos overlays basura y hacemos que el canvas quepa en pantalla.
           const ejsCss = `
 html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
 #game{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important}
-#game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:calc(100% - 40px)!important;width:100%!important;height:calc(100% - 40px)!important;object-fit:contain!important;display:block!important;background:#000!important}
+#game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{max-width:100%!important;max-height:100%!important;width:100%!important;height:100%!important;object-fit:contain!important;display:block!important;background:#000!important}
 .ejs_drop_zone,.ejs_dropzone,.ejs_status,.ejs_message,.ejs_notification,
 .ejs_loading_text,.ejs_cheat_menu,.ejs_popup_box,
-div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"],
-div[class*="overlay"],div[class*="Overlay"]:not(.ejs_menu_bar):not([class*="menu_bar"]){
+div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Barra de controles nativa SIEMPRE abajo (cubre múltiples versiones de EJS) */
-.ejs_menu_bar,
-div[class*="menu_bar"],
-.ejs_canvas_parent ~ div:last-child {
-  position:absolute!important;
-  left:0!important;
-  right:0!important;
-  bottom:0!important;
-  top:auto!important;
-  width:100%!important;
-  background:rgba(0,0,0,0.9)!important;
-  z-index:9999!important;
-  display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:4px!important;
-  padding:4px 6px!important;
-  overflow-x:auto!important;
-}
-/* Que start/rápido/lento queden en línea con los demás (sin saltar de fila) */
-.ejs_menu_bar > *,
-div[class*="menu_bar"] > *{
-  flex:0 0 auto!important;
-  margin:0!important;
-}
-.ejs_menu_bar_hidden{transform:translateY(100%)!important}
 /* Ocultar botón Context Menu (varias variantes según versión EJS) */
 .ejs_menu_button[title="Context Menu" i],
 .ejs_menu_button[aria-label="Context Menu" i],
@@ -458,27 +435,8 @@ button[title="Context Menu" i],
 button[aria-label="Context Menu" i],
 .ejs_context_menu_button,
 .ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
-
-/* 📱 Controles táctiles (virtual gamepad) — desplazar hacia adentro para
-   no chocar con la barra en L del sitio (top, bottom, left, right) */
-.ejs_virtualGamepad,
-div[class*="virtualGamepad"],
-div[class*="virtual_gamepad"]{
-  --ejs-inset: 56px;
-}
-.ejs_virtualGamepad > *,
-div[class*="virtualGamepad"] > *,
-div[class*="virtual_gamepad"] > *{
-  /* Empuja todos los botones flotantes para que vivan dentro de un margen seguro */
-  margin: var(--ejs-inset) !important;
-}
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
-  .ejs_virtualGamepad,
-  div[class*="virtualGamepad"],
-  div[class*="virtual_gamepad"]{
-    --ejs-inset: 64px;
-  }
 }
 `;
           const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>
@@ -494,20 +452,22 @@ div[class*="virtual_gamepad"] > *{
       var all = document.body.querySelectorAll('div,span,p');
       for (var i=0;i<all.length;i++){
         var el = all[i];
-        if (el.children.length>0) continue;
         var t = (el.textContent||'').trim().toLowerCase();
         if (!t) continue;
-        if (t === 'undefined' || t.indexOf('suelta')!==-1 || t.indexOf('drop')!==-1 && t.indexOf('save')!==-1){
-          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="overlay"],div[class*="Overlay"]') || el;
+        if (t === 'undefined' || t.indexOf('undefined')!==-1 || t.indexOf('suelta')!==-1 || (t.indexOf('drop')!==-1 && t.indexOf('save')!==-1)){
+          var p = el.closest('div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]') || el;
           if (p && p.parentNode) p.parentNode.removeChild(p);
         }
       }
     }catch(_){}
   }
+  var style = document.createElement('style');
+  style.textContent = '[data-forbiddens-removed],.forbiddens-removed{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}';
+  document.head.appendChild(style);
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
@@ -723,6 +683,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           canvas.style.height = "100%";
           canvas.style.objectFit = "contain";
           canvas.focus({ preventScroll: true });
+          try { window.dispatchEvent(new Event("resize")); } catch {}
+          if (!minimized && nostalgistRef.current && !paused) {
+            try { nostalgistRef.current.resume(); } catch {}
+          }
           return;
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1163,8 +1127,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           className={cn(
             "relative bg-black overflow-hidden",
             minimized ? "h-full w-full" : "flex-1",
-            isExpanded && isMobile && "flex items-center justify-center",
-            isExpanded && isMobile && isLandscape && !usesEmulatorJs && "px-28"
+            isExpanded && isMobile && "flex items-center justify-center w-full h-full min-h-0 max-w-[100vw] max-h-[100dvh]"
           )}
         >
           {!romLoaded && (
