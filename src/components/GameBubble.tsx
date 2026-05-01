@@ -658,16 +658,31 @@ div[class*="virtual_gamepad"] > *{
     if (!romLoaded) return;
     const refreshViewport = () => {
       scheduleCanvasSurfaceSync();
-      // 🔄 Fuerza al core a redibujar tras cambios de tamaño/orientación.
-      // Sin esto, al rotar a landscape el canvas WebGL queda en negro porque
-      // el backbuffer mantiene las dimensiones viejas.
       const canvas = canvasRef.current;
-      if (canvas) {
-        try {
-          // Dispara un resize sintético que la mayoría de cores escuchan
-          window.dispatchEvent(new Event("resize"));
-        } catch {}
-      }
+      const viewport = canvasViewportRef.current;
+      if (!canvas || !viewport) return;
+
+      // 🔥 FIX BLACK SCREEN AL ROTAR: el WebGL backbuffer queda con dimensiones
+      // viejas tras una rotación. Solución: pedirle al Module de Emscripten
+      // (RetroArch) que reajuste el tamaño del canvas a las nuevas medidas
+      // CSS, y disparar un evento "resize" para que el core actualice GL.
+      try {
+        const rect = viewport.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(1, Math.floor(rect.width * dpr));
+        const h = Math.max(1, Math.floor(rect.height * dpr));
+        const mod: any = nostalgistRef.current?.getEmscriptenModule?.();
+        if (mod && typeof mod.setCanvasSize === "function") {
+          mod.setCanvasSize(w, h);
+        } else {
+          // Fallback: ajustar backbuffer manualmente
+          if (canvas.width !== w) canvas.width = w;
+          if (canvas.height !== h) canvas.height = h;
+        }
+      } catch {}
+
+      try { window.dispatchEvent(new Event("resize")); } catch {}
+
       if (!minimized && nostalgistRef.current && !paused) {
         try { nostalgistRef.current.resume(); } catch {}
       }
@@ -678,6 +693,7 @@ div[class*="virtual_gamepad"] > *{
       setTimeout(refreshViewport, 50);
       setTimeout(refreshViewport, 250);
       setTimeout(refreshViewport, 600);
+      setTimeout(refreshViewport, 1000);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refreshViewport();
