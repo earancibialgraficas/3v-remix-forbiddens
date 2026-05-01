@@ -651,9 +651,26 @@ div[class*="virtual_gamepad"] > *{
     if (!romLoaded) return;
     const refreshViewport = () => {
       scheduleCanvasSurfaceSync();
+      // 🔄 Fuerza al core a redibujar tras cambios de tamaño/orientación.
+      // Sin esto, al rotar a landscape el canvas WebGL queda en negro porque
+      // el backbuffer mantiene las dimensiones viejas.
+      const canvas = canvasRef.current;
+      if (canvas) {
+        try {
+          // Dispara un resize sintético que la mayoría de cores escuchan
+          window.dispatchEvent(new Event("resize"));
+        } catch {}
+      }
       if (!minimized && nostalgistRef.current && !paused) {
         try { nostalgistRef.current.resume(); } catch {}
       }
+    };
+    const handleOrientation = () => {
+      // Espera a que el navegador termine la rotación (las medidas no son
+      // confiables hasta varios frames después).
+      setTimeout(refreshViewport, 50);
+      setTimeout(refreshViewport, 250);
+      setTimeout(refreshViewport, 600);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") refreshViewport();
@@ -663,11 +680,13 @@ div[class*="virtual_gamepad"] > *{
     if (observer && canvasViewportRef.current) observer.observe(canvasViewportRef.current);
     window.addEventListener("resize", refreshViewport);
     window.addEventListener("focus", refreshViewport);
+    window.addEventListener("orientationchange", handleOrientation);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", refreshViewport);
       window.removeEventListener("focus", refreshViewport);
+      window.removeEventListener("orientationchange", handleOrientation);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync]);
