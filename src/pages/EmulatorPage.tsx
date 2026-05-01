@@ -246,6 +246,26 @@ export default function EmulatorPage() {
     toast({ title: "Zona horaria actualizada", description: label });
   };
 
+  // 🚀 Launch PS2 directamente — Play!.js trae su propio cargador de ISO en la UI del iframe
+  const launchPs2 = () => {
+    if (!user) {
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+    launchGame({
+      romUrl: "playjs:embed",
+      consoleName: "ps2" as any,
+      gameName: "PlayStation 2",
+      consoleCore: "play!.js",
+      score: 0,
+      playTime: 0,
+    });
+    toast({
+      title: "PS2 iniciado",
+      description: "Sube tu ISO desde el botón dentro del emulador. Solo PC, experimental.",
+    });
+  };
+
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
