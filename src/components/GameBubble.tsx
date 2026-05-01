@@ -48,6 +48,15 @@ const consoleIcons: Record<string, string> = {
   arcade: "🕹️"
 };
 
+const emulatorJsConsoles = new Set(["n64", "ps1", "arcade"]);
+
+const getEmulatorJsCore = (consoleName: string) => {
+  if (consoleName === "n64") return "n64";
+  if (consoleName === "ps1") return "psx";
+  if (consoleName === "arcade") return "arcade";
+  return consoleName;
+};
+
 interface SaveSlot {
   name: string;
   data: any;
@@ -80,11 +89,14 @@ export default function GameBubble() {
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const emulatorFrameRef = useRef<HTMLIFrameElement>(null);
+  const emulatorObjectUrlsRef = useRef<string[]>([]);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   const [paused, setPaused] = useState(false);
 
   const [volume, setVolume] = useState(1); 
+  const volumeRef = useRef(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
@@ -93,6 +105,12 @@ export default function GameBubble() {
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
+  const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
+
+  const revokeEmulatorObjectUrls = useCallback(() => {
+    emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    emulatorObjectUrlsRef.current = [];
+  }, []);
 
   // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
   const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
@@ -158,12 +176,17 @@ export default function GameBubble() {
   const handleVolumeChange = (newVol: number) => {
     setVolume(newVol);
     (window as any).__masterVolume = newVol;
+    (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator?.setVolume?.(newVol);
     (window as any).__masterGains.forEach((gainNode: any) => {
       if (gainNode && gainNode.gain) {
         gainNode.gain.value = newVol;
       }
     });
   };
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
 
   useEffect(() => {
     const onInput = () => {
@@ -302,18 +325,17 @@ export default function GameBubble() {
       setPaused(false);
       await new Promise(r => setTimeout(r, 200));
       const el = canvasRef.current;
-      if (!el) return;
+      const frame = emulatorFrameRef.current;
+      if (!el && !frame) return;
       
       try {
-        // 🔥 VERIFICACIÓN DE WEBGL (Esencial para N64) 🔥
-        if (activeGame.consoleName === "n64" && !window.WebGLRenderingContext) {
+        if (usesEmulatorJs && activeGame.consoleName === "n64" && !window.WebGLRenderingContext) {
             toast({ title: "Error Fatal", description: "Tu navegador no soporta WebGL, necesario para Nintendo 64.", variant: "destructive" });
             return;
         }
-
-        const { Nostalgist } = await import("nostalgist");
         
         let romSrc: any = activeGame.romUrl;
+        let romFileName = activeGame.gameName;
         
         // 🔥 CONVERSIÓN DE FILE LOCAL A UINT8ARRAY (Evita desincronización de Blob) 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
@@ -322,11 +344,17 @@ export default function GameBubble() {
             
             if (localFile instanceof File) {
                 console.log("🎮 CARGANDO ROM LOCAL:", localFile.name, "TAMAÑO:", localFile.size);
-                const buffer = await localFile.arrayBuffer();
-                romSrc = {
-                    fileName: localFile.name,
-                    fileContent: new Uint8Array(buffer)
-                };
+                romFileName = localFile.name;
+                if (usesEmulatorJs) {
+                  romSrc = URL.createObjectURL(localFile);
+                  emulatorObjectUrlsRef.current.push(romSrc);
+                } else {
+                  const buffer = await localFile.arrayBuffer();
+                  romSrc = {
+                      fileName: localFile.name,
+                      fileContent: new Uint8Array(buffer)
+                  };
+                }
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
             const localMap = (window as any).__uploadedFiles;
@@ -334,15 +362,73 @@ export default function GameBubble() {
                 const f = localMap[activeGame.gameName];
                 if (f instanceof File) {
                     console.log("🎮 CARGANDO ROM BLOB:", f.name, "TAMAÑO:", f.size);
-                    romSrc = { 
-                        fileName: f.name, 
-                        fileContent: new Uint8Array(await f.arrayBuffer()) 
-                    };
+                    romFileName = f.name;
+                    if (!usesEmulatorJs) {
+                      romSrc = { 
+                          fileName: f.name, 
+                          fileContent: new Uint8Array(await f.arrayBuffer()) 
+                      };
+                    }
                 }
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
         }
+
+        if (usesEmulatorJs) {
+          if (!frame) return;
+          let biosUrl = "";
+          if (activeGame.consoleName === "ps1") {
+            try {
+              const biosCheck = await fetch("/bios/scph1001.bin", { method: "HEAD" });
+              if (biosCheck.ok) biosUrl = `${window.location.origin}/bios/scph1001.bin`;
+            } catch {}
+          }
+
+          const emuCore = getEmulatorJsCore(activeGame.consoleName);
+          const romForFrame = String(romSrc);
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#game>div{width:100%!important;height:100%!important}</style></head><body><div id="game"></div><script>window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(romFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+
+          const onMessage = (event: MessageEvent) => {
+            if (event.data?.type !== "forbiddens-emulator-started") return;
+            setRomLoaded(true);
+            lastInputRef.current = Date.now();
+            window.removeEventListener("message", onMessage);
+          };
+          window.addEventListener("message", onMessage);
+          frame.srcdoc = html;
+
+          const emulatorJsInstance = {
+            pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
+            resume: () => (frame.contentWindow as any)?.EJS_emulator?.play?.(),
+            exit: () => {
+              frame.srcdoc = "";
+              revokeEmulatorObjectUrls();
+            },
+            saveState: async () => {
+              const state = (frame.contentWindow as any)?.EJS_emulator?.gameManager?.getState?.();
+              if (!state) throw new Error("Guardado no disponible");
+              return { state: new Blob([state]) };
+            },
+            loadState: async (blob: Blob) => {
+              const bytes = new Uint8Array(await blob.arrayBuffer());
+              (frame.contentWindow as any)?.EJS_emulator?.gameManager?.loadState?.(bytes);
+            },
+            openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
+          };
+
+          nostalgistRef.current = emulatorJsInstance;
+          setNostalgistInstance(emulatorJsInstance);
+          setTimeout(() => {
+            if (!romLoaded && (frame.contentWindow as any)?.EJS_emulator) setRomLoaded(true);
+            window.removeEventListener("message", onMessage);
+          }, 5000);
+          return;
+        }
+
+        if (!el) return;
+
+        const { Nostalgist } = await import("nostalgist");
 
         // 🛠️ SELECCIÓN DEL CORE POR CONSOLA
         // Mapeo a cores libretro que SÍ están publicados en el CDN actual de Nostalgist
@@ -430,7 +516,7 @@ export default function GameBubble() {
         nostalgistRef.current = null;
       }
     };
-  }, [activeGame?.romUrl, scheduleCanvasSurfaceSync, toast]);
+    }, [activeGame?.romUrl, activeGame?.consoleName, activeGame?.gameName, scheduleCanvasSurfaceSync, toast, usesEmulatorJs, revokeEmulatorObjectUrls]);
 
   useEffect(() => {
     if (!romLoaded || !nostalgistRef.current) return;
@@ -814,8 +900,17 @@ export default function GameBubble() {
             id="game-bubble-canvas" 
             tabIndex={0} 
             onClick={(e) => e.currentTarget.focus()}
-            style={{ width: "100%", height: "100%", display: "block", outline: "none" }} 
+            style={{ width: "100%", height: "100%", display: usesEmulatorJs ? "none" : "block", outline: "none" }} 
           />
+
+          {usesEmulatorJs && (
+            <iframe
+              ref={emulatorFrameRef}
+              title="EmulatorJS"
+              className="absolute inset-0 h-full w-full border-0 bg-black"
+              allow="autoplay; gamepad; fullscreen"
+            />
+          )}
 
           {minimized && (
             <>
