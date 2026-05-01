@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Trophy, Gamepad2, User, Search, X } from "lucide-react";
+import { Trophy, Gamepad2, User, Search, X, ChevronDown, Check } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
