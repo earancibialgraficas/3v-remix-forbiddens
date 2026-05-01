@@ -67,8 +67,10 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* 🔥 AJUSTE: Bajamos el pb a 105px para que coincida con la nueva altura visible del footer (110px - 5px) 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 pb-[105px] lg:pb-0">
+      {/* 🔥 FIX: En móvil, en vez de pb-[105px] que añadía scroll innecesario, limitamos la altura
+          máxima del main a (100vh - 104px = altura visible del footer minimizado). Así el contenido
+          nunca queda tapado por el footer y solo hace scroll si su contenido real lo excede. 🔥 */}
+      <main className="flex-1 flex flex-col min-w-0 max-h-[calc(100vh-104px)] overflow-y-auto lg:max-h-none lg:overflow-visible">
         <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 max-w-[1800px] mx-auto w-full">
           <div className="flex-1 min-w-0">
             <Outlet />
