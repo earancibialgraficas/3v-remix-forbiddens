@@ -1071,8 +1071,8 @@ div[class*="menu_bar"],
                   try {
                     if (typeof ejs?.quickLoad === "function") ejs.quickLoad();
                     else ejs?.gameManager?.quickLoad?.("/save.state");
-                    toast.success("Cargado rápido ✔️");
-                  } catch { toast.error("No se pudo cargar"); }
+                    toast({ title: "Cargado rápido ✔️" });
+                  } catch { toast({ title: "No se pudo cargar", variant: "destructive" }); }
                 }}
                 className="h-10 w-10 text-neon-cyan hover:bg-neon-cyan/10 rounded-lg"
                 title="Carga rápida (N64)"
