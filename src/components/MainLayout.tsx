@@ -14,6 +14,10 @@ export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
+  // 🔥 Auto-hide de la "barra en L" (hamburguesa + footer info) tras 3.5s sin interacción.
+  // Reaparecen al tocar el borde izquierdo o el borde inferior de la pantalla.
+  const [lBarVisible, setLBarVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -22,6 +26,62 @@ export default function MainLayout() {
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  // Auto-hide timer (solo móvil/tablet)
+  const scheduleHide = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      // No ocultar si el panel inferior está abierto o si el menú lateral está abierto
+      setLBarVisible(false);
+    }, 3500);
+  };
+
+  const showLBar = () => {
+    setLBarVisible(true);
+    scheduleHide();
+  };
+
+  useEffect(() => {
+    if (!isMobile) {
+      setLBarVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      return;
+    }
+    // No ocultar mientras esté abierto el panel info o el menú lateral
+    if (mobileRightOpen || mobileSidebarOpen) {
+      setLBarVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      return;
+    }
+    scheduleHide();
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [isMobile, mobileRightOpen, mobileSidebarOpen, location.pathname]);
+
+  // Detectar toques en bordes (izquierdo o inferior) para reaparecer la barra
+  useEffect(() => {
+    if (!isMobile) return;
+    const EDGE = 24; // px desde el borde
+    const handler = (e: TouchEvent | MouseEvent) => {
+      const point = "touches" in e ? e.touches[0] : (e as MouseEvent);
+      if (!point) return;
+      const x = point.clientX;
+      const y = point.clientY;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (x <= EDGE || y >= h - EDGE) {
+        if (!lBarVisible) setLBarVisible(true);
+        scheduleHide();
+      }
+    };
+    window.addEventListener("touchstart", handler, { passive: true });
+    window.addEventListener("mousemove", handler);
+    return () => {
+      window.removeEventListener("touchstart", handler);
+      window.removeEventListener("mousemove", handler);
+    };
+  }, [isMobile, lBarVisible]);
 
   const toggleMobileRight = () => {
     const nextState = !mobileRightOpen;
