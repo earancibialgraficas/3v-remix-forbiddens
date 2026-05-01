@@ -1060,7 +1060,7 @@ button[aria-label="Context Menu" i],
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => {
+                onClick={async () => {
                   const win = emulatorFrameRef.current?.contentWindow as any;
                   const ejs = win?.EJS_emulator;
                   try {
@@ -1076,6 +1076,10 @@ button[aria-label="Context Menu" i],
                     a.click();
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
                     toast({ title: "Estado descargado ✔️" });
+                    // 💾 También guardamos el puntaje en la base de datos (igual que los otros emuladores)
+                    if (user && scoreRef.current > 0) {
+                      await handleSaveScore(true);
+                    }
                   } catch {
                     toast({ title: "No se pudo guardar el estado", variant: "destructive" });
                   }
