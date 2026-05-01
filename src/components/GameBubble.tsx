@@ -174,12 +174,12 @@ export default function GameBubble() {
     setExpandedControlsOpen(false);
   }, [activeGame?.romUrl]);
 
+  const isTheaterActive = theaterRect && !minimized && !forceFloating;
+  const isExpanded = isTheaterActive || isFullscreen;
+
   useEffect(() => {
     if (!isExpanded) setExpandedControlsOpen(false);
   }, [isExpanded]);
-
-  const isTheaterActive = theaterRect && !minimized && !forceFloating;
-  const isExpanded = isTheaterActive || isFullscreen;
 
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
