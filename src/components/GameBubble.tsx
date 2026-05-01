@@ -175,7 +175,8 @@ export default function GameBubble() {
     setExpandedControlsOpen(false);
   }, [activeGame?.romUrl]);
 
-  const isTheaterActive = theaterRect && !minimized && !forceFloating;
+  // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
+  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2;
   const isExpanded = isTheaterActive || isFullscreen;
 
   useEffect(() => {
