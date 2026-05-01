@@ -15,8 +15,10 @@ export default function MainLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   // 🔥 Auto-hide de la "barra en L" (hamburguesa + footer info) tras 3.5s sin interacción.
-  // Reaparecen al tocar el borde izquierdo o el borde inferior de la pantalla.
+  // SOLO se activa cuando hay un juego maximizado (modo teatro o fullscreen),
+  // para no tapar los controles del emulador. En navegación normal SIEMPRE visibles.
   const [lBarVisible, setLBarVisible] = useState(true);
+  const [gameMaximized, setGameMaximized] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const mobileScrollRef = useRef<HTMLDivElement>(null);
@@ -27,28 +29,39 @@ export default function MainLayout() {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // Auto-hide timer (solo móvil/tablet)
+  // Detectar si hay un juego maximizado (popup de GameBubble en pantalla completa o modo teatro)
+  useEffect(() => {
+    if (!isMobile) return;
+    const check = () => {
+      const fs = !!document.fullscreenElement;
+      const theater = !!document.getElementById("batocera-target");
+      setGameMaximized(fs || theater);
+    };
+    check();
+    const interval = setInterval(check, 300);
+    document.addEventListener("fullscreenchange", check);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("fullscreenchange", check);
+    };
+  }, [isMobile, location.pathname]);
+
+  // Auto-hide timer (solo móvil/tablet + juego maximizado)
   const scheduleHide = () => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
-      // No ocultar si el panel inferior está abierto o si el menú lateral está abierto
       setLBarVisible(false);
     }, 3500);
   };
 
   const showLBar = () => {
     setLBarVisible(true);
-    scheduleHide();
+    if (gameMaximized) scheduleHide();
   };
 
   useEffect(() => {
-    if (!isMobile) {
-      setLBarVisible(true);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      return;
-    }
-    // No ocultar mientras esté abierto el panel info o el menú lateral
-    if (mobileRightOpen || mobileSidebarOpen) {
+    // Si no es móvil, o no hay juego maximizado, o hay paneles abiertos → SIEMPRE visible
+    if (!isMobile || !gameMaximized || mobileRightOpen || mobileSidebarOpen) {
       setLBarVisible(true);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       return;
@@ -57,18 +70,18 @@ export default function MainLayout() {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [isMobile, mobileRightOpen, mobileSidebarOpen, location.pathname]);
+  }, [isMobile, gameMaximized, mobileRightOpen, mobileSidebarOpen, location.pathname]);
 
   // Detectar toques en bordes (izquierdo o inferior) para reaparecer la barra
+  // Solo activo cuando hay juego maximizado
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || !gameMaximized) return;
     const EDGE = 24; // px desde el borde
     const handler = (e: TouchEvent | MouseEvent) => {
       const point = "touches" in e ? e.touches[0] : (e as MouseEvent);
       if (!point) return;
       const x = point.clientX;
       const y = point.clientY;
-      const w = window.innerWidth;
       const h = window.innerHeight;
       if (x <= EDGE || y >= h - EDGE) {
         if (!lBarVisible) setLBarVisible(true);
@@ -81,7 +94,7 @@ export default function MainLayout() {
       window.removeEventListener("touchstart", handler);
       window.removeEventListener("mousemove", handler);
     };
-  }, [isMobile, lBarVisible]);
+  }, [isMobile, gameMaximized, lBarVisible]);
 
   const toggleMobileRight = () => {
     const nextState = !mobileRightOpen;
