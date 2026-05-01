@@ -1,7 +1,7 @@
 export interface GameEntry {
   id: string;
   name: string;
-  console: "nes" | "snes" | "gba";
+  console: "nes" | "snes" | "gba" | "n64";
   romUrl: string;
   coverUrl: string;
 }
@@ -46,4 +46,16 @@ export const gbaGames: GameEntry[] = [
   { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need%20for%20Speed%20-%20Most%20Wanted%20(USA%2C%20Europe)%20(En%2CFr%2CDe%2CIt).gba", coverUrl: "/roms/covers/gba/NFS%20most%20wanted.jpeg" },
 ];
 
-export const allGames = [...nesGames, ...snesGames, ...gbaGames];
+export const n64Games: GameEntry[] = [
+  // 👇 Edita los nombres de archivo para que coincidan EXACTAMENTE con los que subiste a /public/roms/n64/
+  { id: "n64-mario64", name: "Super Mario 64", console: "n64", romUrl: "/roms/n64/Super_Mario_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Super%20Mario%2064%20(USA).png" },
+  { id: "n64-zelda-oot", name: "Zelda: Ocarina of Time", console: "n64", romUrl: "/roms/n64/Legend_of_Zelda_Ocarina_of_Time_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Legend%20of%20Zelda%2C%20The%20-%20Ocarina%20of%20Time%20(USA).png" },
+  { id: "n64-mariokart", name: "Mario Kart 64", console: "n64", romUrl: "/roms/n64/Mario_Kart_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Mario%20Kart%2064%20(USA).png" },
+  { id: "n64-smash", name: "Super Smash Bros.", console: "n64", romUrl: "/roms/n64/Super_Smash_Bros_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Super%20Smash%20Bros.%20(USA).png" },
+  { id: "n64-dk64", name: "Donkey Kong 64", console: "n64", romUrl: "/roms/n64/Donkey_Kong_64_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Donkey%20Kong%2064%20(USA).png" },
+  { id: "n64-banjo", name: "Banjo-Kazooie", console: "n64", romUrl: "/roms/n64/Banjo-Kazooie_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Banjo-Kazooie%20(USA).png" },
+  { id: "n64-goldeneye", name: "GoldenEye 007", console: "n64", romUrl: "/roms/n64/GoldenEye_007_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/GoldenEye%20007%20(USA).png" },
+  { id: "n64-mm", name: "Zelda: Majora's Mask", console: "n64", romUrl: "/roms/n64/Legend_of_Zelda_Majoras_Mask_(USA).z64", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%2064/Named_Boxarts/Legend%20of%20Zelda%2C%20The%20-%20Majora's%20Mask%20(USA).png" },
+];
+
+export const allGames = [...nesGames, ...snesGames, ...gbaGames, ...n64Games];

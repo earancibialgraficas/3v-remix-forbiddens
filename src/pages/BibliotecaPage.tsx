@@ -183,7 +183,7 @@ export default function BibliotecaPage() {
         
         {currentGames.length === 0 ? (
           <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center text-[10px] text-muted-foreground font-body">
-             {selectedConsole === "n64" ? "Próximamente se subirán los juegos de Nintendo 64 a través del servidor." : "No se encontraron juegos para esta búsqueda."}
+             No se encontraron juegos para esta búsqueda.
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
