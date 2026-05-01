@@ -1053,8 +1053,8 @@ div[class*="menu_bar"],
                   try {
                     if (typeof ejs?.quickSave === "function") ejs.quickSave();
                     else ejs?.gameManager?.quickSave?.("/save.state");
-                    toast.success("Guardado rápido ✔️");
-                  } catch { toast.error("No se pudo guardar"); }
+                    toast({ title: "Guardado rápido ✔️" });
+                  } catch { toast({ title: "No se pudo guardar", variant: "destructive" }); }
                 }}
                 className="h-10 w-10 text-neon-green hover:bg-neon-green/10 rounded-lg"
                 title="Guardado rápido (N64)"
