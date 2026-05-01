@@ -94,7 +94,7 @@ export default function GameBubble() {
 
   const activeGame = activeGames[currentGameIndex] || null;
 
-  // 🔥 DETECCIÓN INFALIBLE DE PANTALLA COMPLETA Y MODO TEATRO 🔥
+  // 🔥 DETECCIÓN INFALIBLE DE MODO TEATRO 🔥
   const [theaterRect, setTheaterRect] = useState<DOMRect | null>(null);
   const [forceFloating, setForceFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -106,7 +106,7 @@ export default function GameBubble() {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // Radar que busca el contenedor físico de Batocera en la página en vivo
+  // Radar que busca el contenedor físico de Batocera en la página
   useEffect(() => {
     const checkBatoceraContainer = () => {
       const el = document.getElementById("batocera-target");
@@ -135,7 +135,7 @@ export default function GameBubble() {
     };
   }, [activeGame, minimized, location.pathname]);
 
-  // Si abrimos un juego nuevo, reiniciamos el forzado a flotante
+  // Reiniciar el forzado flotante si abres un juego nuevo
   useEffect(() => {
     setForceFloating(false);
   }, [activeGame?.romUrl]);
@@ -318,15 +318,17 @@ export default function GameBubble() {
         
         let romSrc: any = activeGame.romUrl;
         
-        // 🔥 LECTURA DEL FILE LOCAL INTACTO 🔥
+        // 🔥 EL HACK DEFINITIVO (Paso del File puro a Uint8Array) 🔥
         if (typeof romSrc === 'string' && romSrc.startsWith("local:")) {
             const fileId = romSrc.replace("local:", "");
             const localFile = (window as any).__localRoms?.[fileId];
+            
             if (localFile instanceof File) {
+                console.log("🎮 ROM FILE LOCAL:", localFile.name, localFile.size);
                 const buffer = await localFile.arrayBuffer();
                 romSrc = {
                     fileName: localFile.name,
-                    fileContent: buffer
+                    fileContent: new Uint8Array(buffer)
                 };
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("blob:")) {
@@ -334,45 +336,62 @@ export default function GameBubble() {
             if (localMap && localMap[activeGame.gameName]) {
                 const f = localMap[activeGame.gameName];
                 if (f instanceof File) {
-                   romSrc = { fileName: f.name, fileContent: await f.arrayBuffer() };
+                    console.log("🎮 ROM FILE BLOB:", f.name, f.size);
+                    romSrc = { 
+                        fileName: f.name, 
+                        fileContent: new Uint8Array(await f.arrayBuffer()) 
+                    };
                 }
             }
         } else if (typeof romSrc === 'string' && romSrc.startsWith("/")) {
             romSrc = window.location.origin + romSrc;
         }
 
-        // Configuración de emulador (Forzando parallel_n64 si es N64)
+        // 🛠️ CONFIGURACIÓN DEL CORE
         let coreToUse = activeGame.consoleCore;
         if (activeGame.consoleName === "n64") {
            coreToUse = "parallel_n64";
+        } else if (activeGame.consoleName === "ps1") {
+           coreToUse = "pcsx_rearmed"; // Aseguramos usar el core correcto
         }
 
-        // 🔥 CONFIGURACIÓN RETROARCH PARA CARGAR CORES LOCALES 🔥
+        // ⚙️ OPCIONES MAESTRAS DE NOSTALGIST
         const launchOptions: any = {
           core: coreToUse,
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-          retroarch: {
-            wasm: "/cores/",
-            assets: "/cores/"
-          }
         };
 
-        // Configuración especial de BIOS y Resolución
+        // 🔥 LÓGICA DE RUTAS Y BIOS EXACTA PARA EVITAR ERRORES DE CDN Y DESCOMPRESIÓN 🔥
         if (activeGame.consoleName === "ps1") {
+          // Usando el CDN seguro y el directorio de sistema apuntando a /bios/
+          launchOptions.retroarch = {
+            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
+            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
+            system: "/bios/"
+          };
           launchOptions.bios = [
             { fileName: "scph1001.bin", fileContent: "/bios/scph1001.bin" }
           ];
         } else if (activeGame.consoleName === "n64") {
+          // N64 utiliza los recursos locales para evitar descargas rotas
           launchOptions.resolution = { width: 640, height: 480 };
+          launchOptions.resolveCoreJs = (core: string) => `/cores/${core}_libretro.js`;
+          launchOptions.resolveCoreWasm = (core: string) => `/cores/${core}_libretro.wasm`;
+        } else {
+          // Resto de consolas pueden usar el CDN estable por defecto
+          launchOptions.retroarch = {
+            wasm: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/",
+            assets: "https://cdn.jsdelivr.net/gh/arianrhodsandlot/retroarch-emscripten-build@v1.22.0/retroarch/"
+          };
         }
 
-        console.log("🚀 Iniciando Nostalgist con opciones:", launchOptions);
+        console.log("🚀 Iniciando Nostalgist con:", launchOptions);
         
         let instance;
         try {
-            // Intento principal con parallel_n64 u otros cores
+            // Intento principal de inicio
             instance = await Nostalgist.launch(launchOptions);
         } catch (err) {
             // 🔥 SISTEMA DE FALLBACK AUTOMÁTICO PARA N64 🔥
@@ -589,7 +608,6 @@ export default function GameBubble() {
         await handleSaveScore(false);
       }
     } catch (err) {
-      // 🔥 AVISO AMIGABLE SI EL CORE ES ARCADE U OTRO INCOMPATIBLE 🔥
       toast({ title: "Guardado no compatible", description: "Este emulador no soporta guardado de estado rápido.", variant: "destructive" });
     }
   };
