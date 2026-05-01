@@ -14,6 +14,10 @@ export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
+  // 🔥 Auto-hide de la "barra en L" (hamburguesa + footer info) tras 3.5s sin interacción.
+  // Reaparecen al tocar el borde izquierdo o el borde inferior de la pantalla.
+  const [lBarVisible, setLBarVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -22,6 +26,62 @@ export default function MainLayout() {
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  // Auto-hide timer (solo móvil/tablet)
+  const scheduleHide = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      // No ocultar si el panel inferior está abierto o si el menú lateral está abierto
+      setLBarVisible(false);
+    }, 3500);
+  };
+
+  const showLBar = () => {
+    setLBarVisible(true);
+    scheduleHide();
+  };
+
+  useEffect(() => {
+    if (!isMobile) {
+      setLBarVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      return;
+    }
+    // No ocultar mientras esté abierto el panel info o el menú lateral
+    if (mobileRightOpen || mobileSidebarOpen) {
+      setLBarVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      return;
+    }
+    scheduleHide();
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [isMobile, mobileRightOpen, mobileSidebarOpen, location.pathname]);
+
+  // Detectar toques en bordes (izquierdo o inferior) para reaparecer la barra
+  useEffect(() => {
+    if (!isMobile) return;
+    const EDGE = 24; // px desde el borde
+    const handler = (e: TouchEvent | MouseEvent) => {
+      const point = "touches" in e ? e.touches[0] : (e as MouseEvent);
+      if (!point) return;
+      const x = point.clientX;
+      const y = point.clientY;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (x <= EDGE || y >= h - EDGE) {
+        if (!lBarVisible) setLBarVisible(true);
+        scheduleHide();
+      }
+    };
+    window.addEventListener("touchstart", handler, { passive: true });
+    window.addEventListener("mousemove", handler);
+    return () => {
+      window.removeEventListener("touchstart", handler);
+      window.removeEventListener("mousemove", handler);
+    };
+  }, [isMobile, lBarVisible]);
 
   const toggleMobileRight = () => {
     const nextState = !mobileRightOpen;
@@ -53,9 +113,23 @@ export default function MainLayout() {
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) */}
-      <div className="lg:hidden fixed top-2 left-2 z-50 flex gap-2">
-        <Button variant="secondary" size="icon" onClick={() => setMobileSidebarOpen(true)}>
+      {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) - se auto-oculta tras 3.5s */}
+      <div
+        className={cn(
+          "lg:hidden fixed top-2 left-2 z-50 flex gap-2 transition-all duration-300",
+          lBarVisible
+            ? "opacity-100 translate-x-0 pointer-events-auto"
+            : "opacity-0 -translate-x-full pointer-events-none"
+        )}
+      >
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => {
+            setMobileSidebarOpen(true);
+            showLBar();
+          }}
+        >
           <Menu className="w-6 h-6" />
         </Button>
       </div>
@@ -89,9 +163,13 @@ export default function MainLayout() {
         {/* Footer (Visible en Tablet y Celular) */}
         {isMobile && (
           <div className={cn(
-            "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
+            "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
             /* 🔥 FIX MAESTRO: Cuando está cerrado, lo bajamos 5px con bottom-[-5px] 🔥 */
-            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]"
+            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]",
+            /* Auto-hide: se desliza hacia abajo cuando lBarVisible=false (y panel cerrado) */
+            !lBarVisible && !mobileRightOpen
+              ? "translate-y-full opacity-0 pointer-events-none"
+              : "translate-y-0 opacity-100 pointer-events-auto"
           )}>
             <button 
               onClick={toggleMobileRight}
