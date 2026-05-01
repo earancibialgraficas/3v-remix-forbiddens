@@ -37,6 +37,8 @@ export const snesGames: GameEntry[] = [
   { id: "sonic4", name: "Sonic the Hedgehog 4", console: "snes", romUrl: "/roms/snes/Sonic_the_Hedgehog_4_(World)_(Unl).sfc", coverUrl: "/roms/covers/snes/sonic.png" },
   { id: "smw", name: "Super Mario World", console: "snes", romUrl: "/roms/snes/Super_Mario_World_(EUR).sfc", coverUrl: "/roms/covers/snes/super_mario_world.png" },
   { id: "smetroid", name: "Super Metroid", console: "snes", romUrl: "/roms/snes/Super_Metroid_(JU)_%5B!%5D.smc", coverUrl: "/roms/covers/snes/super_metroid.png" },
+  { id: "zombies", name: "Zombies Ate My Neighbors", console: "snes", romUrl: "/roms/snes/Zombies_Ate_My_Neighbors_USA.sfc", coverUrl: "https://upload.wikimedia.org/wikipedia/en/7/75/Zombies_Ate_My_Neighbors_box.jpg" },
+  { id: "sailormoon", name: "Bishoujo Senshi Sailor Moon R", console: "snes", romUrl: "/roms/snes/Bishoujo_Senshi_Sailor_Moon_R_Japan_patched.sfc", coverUrl: "https://m.media-amazon.com/images/M/MV5BNGNjYWRlODctYmM2OS00MDY3LTgwYjItMjNiNTBjYzQxMjEyXkEyXkFqcGc@._V1_.jpg" },
 ];
 
 const GBA_THUMB = "https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy%20Advance/Named_Boxarts";
