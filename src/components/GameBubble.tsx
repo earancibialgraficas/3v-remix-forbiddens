@@ -1127,8 +1127,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           className={cn(
             "relative bg-black overflow-hidden",
             minimized ? "h-full w-full" : "flex-1",
-            isExpanded && isMobile && "flex items-center justify-center",
-            isExpanded && isMobile && isLandscape && !usesEmulatorJs && "px-28"
+            isExpanded && isMobile && "flex items-center justify-center w-full h-full min-h-0 max-w-[100vw] max-h-[100dvh]"
           )}
         >
           {!romLoaded && (
