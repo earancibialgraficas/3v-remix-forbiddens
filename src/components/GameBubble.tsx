@@ -416,13 +416,26 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
               revokeEmulatorObjectUrls();
             },
             saveState: async () => {
-              const state = (frame.contentWindow as any)?.EJS_emulator?.gameManager?.getState?.();
-              if (!state) throw new Error("Guardado no disponible");
+              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
+              if (!gm?.getState) throw new Error("Guardado no disponible");
+              // mupen64plus_next (N64) y otros cores devuelven Promise<Uint8Array>
+              let state: any = gm.getState();
+              if (state && typeof state.then === "function") state = await state;
+              if (!state || (state.length !== undefined && state.length === 0)) {
+                throw new Error("Estado vacío");
+              }
               return { state: new Blob([state]) };
             },
             loadState: async (blob: Blob) => {
+              const gm = (frame.contentWindow as any)?.EJS_emulator?.gameManager;
+              if (!gm?.loadState) throw new Error("Carga no disponible");
               const bytes = new Uint8Array(await blob.arrayBuffer());
-              (frame.contentWindow as any)?.EJS_emulator?.gameManager?.loadState?.(bytes);
+              // EJS espera (path, bytes) en algunos cores; intentamos ambas firmas
+              try {
+                gm.loadState(bytes);
+              } catch {
+                gm.loadState("/save.state", bytes);
+              }
             },
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
