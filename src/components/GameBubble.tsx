@@ -72,6 +72,7 @@ export default function GameBubble() {
   const { activeGames, currentGameIndex, minimized, maximizeGame, minimizeGame, closeGame, updateScore } = useGameBubble();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
