@@ -845,7 +845,7 @@ button[aria-label="Context Menu" i],
 
   const handleClose = async (idx?: number) => {
     await autoSaveOnClose();
-    if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(true); 
+    if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(false); 
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try { nostalgistRef.current.exit(); } catch {}
       nostalgistRef.current = null;
