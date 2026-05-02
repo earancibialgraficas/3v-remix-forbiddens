@@ -614,59 +614,70 @@ export default function ChillMusicPlayer() {
         </div>
       </div>
 
-      {/* Popover de playlist — Portal al body, encima de todo, bloquea clicks detrás */}
-      {showCategoryMenu && categoryBtnRef.current && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] animate-fade-in"
-          onClick={() => setShowCategoryMenu(false)}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {(() => {
-            const rect = categoryBtnRef.current!.getBoundingClientRect();
-            // Burbuja apuntando hacia adentro: aparece arriba del botón, alineada a su derecha,
-            // desplazada hacia el centro de la pantalla (izquierda en este caso, ya que el slot está en la esquina inferior derecha).
-            const right = Math.max(8, window.innerWidth - rect.right);
-            const bottom = Math.max(8, window.innerHeight - rect.top + 8);
-            return (
-              <div
-                style={{ right, bottom }}
-                className="absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Cola de la burbuja apuntando al botón */}
-                <div className="absolute -bottom-[7px] right-3 w-3 h-3 bg-black/95 border-r-2 border-b-2 border-neon-cyan/60 rotate-45" />
-                <div className="relative">
-                  <div className="px-2 py-1 border-b border-neon-cyan/30 bg-neon-cyan/10">
-                    <p className="text-[8px] font-pixel text-neon-cyan uppercase tracking-widest text-center">
-                      ♪ Playlist ♪
-                    </p>
-                  </div>
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCategoryChange(cat);
-                        setShowCategoryMenu(false);
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-1.5 text-[9px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
-                        currentCategory === cat
-                          ? "bg-neon-cyan/25 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
-                          : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
-                      )}
-                    >
-                      {cat === "Todos" ? "★ Todos" : cat}
-                    </button>
-                  ))}
+      {/* Popover de playlist — En emulador se ancla al viewport del juego (igual que el toast),
+          en cualquier otro caso usa el body. En ambos casos hay un backdrop sin fondo que cierra
+          la burbuja al tocar fuera SIN propagar el click a botones detrás. */}
+      {showCategoryMenu && categoryBtnRef.current && (() => {
+        const emulatorViewport = inEmulator ? document.getElementById('game-bubble-viewport') : null;
+        const portalHost = emulatorViewport || document.body;
+        // Posicionamiento: dentro del emulador usamos coords RELATIVAS al viewport.
+        const btnRect = categoryBtnRef.current!.getBoundingClientRect();
+        let right: number, bottom: number;
+        if (emulatorViewport) {
+          const vpRect = emulatorViewport.getBoundingClientRect();
+          right = Math.max(8, vpRect.right - btnRect.right);
+          bottom = Math.max(8, vpRect.bottom - btnRect.top + 8);
+        } else {
+          right = Math.max(8, window.innerWidth - btnRect.right);
+          bottom = Math.max(8, window.innerHeight - btnRect.top + 8);
+        }
+        return createPortal(
+          <div
+            className={cn(
+              "z-[9999] animate-fade-in",
+              emulatorViewport ? "absolute inset-0" : "fixed inset-0"
+            )}
+            onClick={(e) => { e.stopPropagation(); setShowCategoryMenu(false); }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{ right, bottom }}
+              className="absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cola de la burbuja apuntando al botón */}
+              <div className="absolute -bottom-[7px] right-3 w-3 h-3 bg-black/95 border-r-2 border-b-2 border-neon-cyan/60 rotate-45" />
+              <div className="relative">
+                <div className="px-2 py-1 border-b border-neon-cyan/30 bg-neon-cyan/10">
+                  <p className="text-[8px] font-pixel text-neon-cyan uppercase tracking-widest text-center">
+                    ♪ Playlist ♪
+                  </p>
                 </div>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCategoryChange(cat);
+                      setShowCategoryMenu(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-[9px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
+                      currentCategory === cat
+                        ? "bg-neon-cyan/25 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
+                        : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
+                    )}
+                  >
+                    {cat === "Todos" ? "★ Todos" : cat}
+                  </button>
+                ))}
               </div>
-            );
-          })()}
-        </div>,
-        document.body
-      )}
+            </div>
+          </div>,
+          portalHost
+        );
+      })()}
 
       {/* 🔔 Notificación "ahora suena" — anclada al viewport del emulador, no interactiva, 3s */}
       {songToast && inEmulator && typeof document !== 'undefined' && (() => {
