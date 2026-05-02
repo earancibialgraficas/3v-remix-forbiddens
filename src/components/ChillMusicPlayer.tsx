@@ -105,6 +105,23 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  // 🔔 Notificación efímera de "ahora suena" dentro del emulador (3s, sin interrumpir el juego)
+  const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
+  const lastNotifiedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!inEmulator) return;
+    if (!current?.id) return;
+    if (!isPlaying) return;
+    if (lastNotifiedRef.current === current.id) return;
+    lastNotifiedRef.current = current.id;
+    const id = Date.now();
+    setSongToast({ id, title: current.title });
+    const t = setTimeout(() => {
+      setSongToast(prev => (prev?.id === id ? null : prev));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [inEmulator, current?.id, current?.title, isPlaying]);
+
   useEffect(() => {
     actualTimeRef.current = currentTime;
   }, [currentTime]);
@@ -466,88 +483,75 @@ export default function ChillMusicPlayer() {
           />
         </div>
 
-        {/* Transport controls */}
-        <div className="flex items-center justify-center gap-1.5 px-1.5 py-1.5">
-          <button
-            onClick={prev}
-            className="p-1 rounded-md text-neon-cyan/70 hover:text-neon-cyan hover:bg-neon-cyan/10 hover:shadow-[0_0_6px_rgba(34,211,238,0.5)] transition-all active:scale-90"
-            title="Anterior"
-          >
-            <SkipBack className="w-3 h-3 fill-current" />
-          </button>
+        {/* Transport: Play central + filas (prev arriba / next abajo) y volumen (+/-) — todo apilado, simétrico */}
+        <div className="flex items-center justify-center gap-2 px-1.5 py-1.5">
+          {/* Columna prev/next apilados (mismo diseño que +/-) */}
+          <div className="flex flex-col gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={prev}
+              className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90"
+              title="Canción anterior"
+              aria-label="Canción anterior"
+            >
+              <SkipBack className="w-2.5 h-2.5 fill-current" />
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90"
+              title="Canción siguiente"
+              aria-label="Canción siguiente"
+            >
+              <SkipForward className="w-2.5 h-2.5 fill-current" />
+            </button>
+          </div>
+
+          {/* Play / Pause central */}
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className={cn(
-              "relative p-1.5 rounded-full border transition-all active:scale-90",
+              "relative p-2 rounded-full border transition-all active:scale-90 shrink-0",
               isPlaying
                 ? "bg-neon-magenta/20 border-neon-magenta/60 text-neon-magenta shadow-[0_0_10px_rgba(236,72,153,0.6)]"
                 : "bg-neon-green/20 border-neon-green/60 text-neon-green shadow-[0_0_10px_rgba(74,222,128,0.6)]"
             )}
             title={isPlaying ? "Pausar" : "Reproducir"}
           >
-            {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-[1px]" />}
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-[1px]" />}
           </button>
-          <button
-            onClick={next}
-            className="p-1 rounded-md text-neon-cyan/70 hover:text-neon-cyan hover:bg-neon-cyan/10 hover:shadow-[0_0_6px_rgba(34,211,238,0.5)] transition-all active:scale-90"
-            title="Siguiente"
-          >
-            <SkipForward className="w-3 h-3 fill-current" />
-          </button>
+
+          {/* Columna volumen +/- apilados */}
+          <div className="flex flex-col gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setVolume(v => Math.min(100, v + 10))}
+              className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[11px] leading-none transition-all active:scale-90"
+              title="Subir volumen"
+              aria-label="Subir volumen"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onClick={() => setVolume(v => Math.max(0, v - 10))}
+              className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
+              title="Bajar volumen"
+              aria-label="Bajar volumen"
+            >
+              −
+            </button>
+          </div>
         </div>
 
-        {/* Volumen — botones +/- apilados (uno encima del otro) para que siempre quepan en slots angostos */}
-        <div className="px-1.5 pb-1.5">
-          <div className="flex items-stretch gap-1 bg-black/50 border border-neon-yellow/30 rounded px-1 py-1">
-            {/* Columna botones apilados */}
-            <div className="flex flex-col gap-0.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setVolume(v => Math.min(100, v + 10))}
-                className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[11px] leading-none transition-all active:scale-90"
-                title="Subir volumen"
-                aria-label="Subir volumen"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => setVolume(v => Math.max(0, v - 10))}
-                className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
-                title="Bajar volumen"
-                aria-label="Bajar volumen"
-              >
-                −
-              </button>
-            </div>
-            {/* Barra LED de volumen (10 segmentos) */}
-            <div className="flex-1 flex items-center gap-[1.5px] min-w-0">
-              {Array.from({ length: 10 }).map((_, i) => {
-                const active = volume >= (i + 1) * 10;
-                const color =
-                  i < 6 ? "bg-neon-green shadow-[0_0_3px_rgba(74,222,128,0.8)]"
-                  : i < 8 ? "bg-neon-yellow shadow-[0_0_3px_rgba(250,204,21,0.8)]"
-                  : "bg-neon-magenta shadow-[0_0_3px_rgba(236,72,153,0.8)]";
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex-1 h-full rounded-[1px] transition-all min-w-[2px]",
-                      active ? color : "bg-muted/20"
-                    )}
-                  />
-                );
-              })}
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-1 mt-0.5">
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-2.5 h-2.5 text-muted-foreground" />
-            ) : (
-              <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />
-            )}
-            <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
-          </div>
+        {/* Indicador de volumen (sin barra LED, solo número) */}
+        <div className="flex items-center justify-center gap-1 px-1.5 pb-1.5">
+          {isMuted || volume === 0 ? (
+            <VolumeX className="w-2.5 h-2.5 text-muted-foreground" />
+          ) : (
+            <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />
+          )}
+          <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
         </div>
 
         {/* Selector de playlist (popover renderizado vía portal — ver abajo) */}
@@ -625,6 +629,26 @@ export default function ChillMusicPlayer() {
         </div>,
         document.body
       )}
+
+      {/* 🔔 Notificación "ahora suena" — anclada al viewport del emulador, no interactiva, 3s */}
+      {songToast && inEmulator && typeof document !== 'undefined' && (() => {
+        const viewport = document.getElementById('game-bubble-viewport');
+        if (!viewport) return null;
+        return createPortal(
+          <div
+            key={songToast.id}
+            className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-[80] animate-fade-in"
+          >
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/85 border border-neon-cyan/60 shadow-[0_0_14px_rgba(34,211,238,0.45),inset_0_0_8px_rgba(34,211,238,0.15)] backdrop-blur-md max-w-[80vw]">
+              <Music className="w-3 h-3 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
+              <span className="font-pixel text-[8px] text-neon-cyan uppercase tracking-wider drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate">
+                ♪ {songToast.title}
+              </span>
+            </div>
+          </div>,
+          viewport
+        );
+      })()}
     </div>
   );
 
