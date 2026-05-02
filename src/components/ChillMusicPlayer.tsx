@@ -19,8 +19,10 @@ interface Song {
 
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
-// 🔥 NUEVO: Función para obtener el volumen guardado en caché 🔥
+// 🔥 Volumen guardado en caché del dispositivo
 const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
+// 🔥 NUEVO: Estado de reproducción guardado (para reanudar tras re-parenting de portal)
+const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
 
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
