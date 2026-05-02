@@ -146,6 +146,42 @@ export default function ChillMusicPlayer() {
     return () => clearInterval(timer);
   }, []);
 
+  // 🔥 NUEVO: Persiste el estado de reproducción (play/pause) en caché del dispositivo
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('forbiddens_music_playing', isPlaying ? 'true' : 'false');
+    }
+  }, [isPlaying]);
+
+  // 🔥 NUEVO: Cuando el reproductor cambia de slot DOM (PC → móvil → emulador, etc.)
+  // el navegador puede pausar el <audio> al re-parentar. Aquí reanudamos exactamente
+  // donde estaba (mismo tiempo, mismo volumen) sin que el usuario lo note.
+  useEffect(() => {
+    if (!portalTarget) return;
+    if (!isPlaying) return;
+    const t = setTimeout(() => {
+      // Audio local: si quedó pausado tras el re-parent, reanudar
+      if (current?.type === 'local' && audioRef.current) {
+        audioRef.current.volume = volume / 100;
+        if (audioRef.current.paused) {
+          // Restaurar tiempo silenciosamente si se perdió
+          if (actualTimeRef.current > 0 && Math.abs(audioRef.current.currentTime - actualTimeRef.current) > 1) {
+            audioRef.current.currentTime = actualTimeRef.current;
+          }
+          audioRef.current.play().catch(() => { /* ignorar bloqueo de autoplay */ });
+        }
+      } else if (current?.type === 'youtube' && iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'playVideo' }), '*'
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
+        );
+      }
+    }, 150); // pequeño delay para que el DOM termine de re-parentar
+    return () => clearTimeout(t);
+  }, [portalTarget, current, isPlaying, volume]);
+
   useEffect(() => {
     setMinimized(isMobile);
   }, [isMobile]);
