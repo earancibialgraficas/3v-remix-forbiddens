@@ -90,6 +90,7 @@ export default function ChillMusicPlayer() {
   const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const categoryBtnRef = useRef<HTMLButtonElement>(null);
   
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
