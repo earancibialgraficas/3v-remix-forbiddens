@@ -686,6 +686,15 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
+          // 🎮 Habilita autodetección de joysticks/gamepads en RetroArch (Nostalgist)
+          // Mapea automáticamente el primer gamepad conectado al Player 1.
+          retroarchConfig: {
+            input_autodetect_enable: true,
+            input_joypad_driver: "gamepad",
+            input_max_users: 4,
+            menu_swap_ok_cancel_buttons: false,
+            input_overlay_enable: false,
+          },
         };
 
         // 💾 BIOS DE PS1 (opcional: solo si el archivo existe en /public/bios/)
