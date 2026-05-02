@@ -495,13 +495,15 @@ export default function ChillMusicPlayer() {
           </button>
         </div>
 
-        {/* Volumen con barra LED */}
+        {/* Volumen con barra LED — botones +/- SIEMPRE visibles e interactivos */}
         <div className="px-1.5 pb-1.5">
-          <div className="flex items-center gap-1 bg-black/50 border border-neon-yellow/25 rounded px-1 py-0.5">
+          <div className="flex items-center gap-1 bg-black/50 border border-neon-yellow/30 rounded px-1 py-0.5">
             <button
+              type="button"
               onClick={() => setVolume(v => Math.max(0, v - 10))}
-              className="w-4 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/20 border border-neon-magenta/40 text-neon-magenta hover:bg-neon-magenta/40 font-pixel text-[10px] leading-none transition-all active:scale-90"
+              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
               title="Bajar volumen"
+              aria-label="Bajar volumen"
             >
               −
             </button>
@@ -525,9 +527,11 @@ export default function ChillMusicPlayer() {
               })}
             </div>
             <button
+              type="button"
               onClick={() => setVolume(v => Math.min(100, v + 10))}
-              className="w-4 h-4 flex items-center justify-center rounded-sm bg-neon-green/20 border border-neon-green/40 text-neon-green hover:bg-neon-green/40 font-pixel text-[10px] leading-none transition-all active:scale-90"
+              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
               title="Subir volumen"
+              aria-label="Subir volumen"
             >
               +
             </button>
@@ -542,10 +546,12 @@ export default function ChillMusicPlayer() {
           </div>
         </div>
 
-        {/* Selector de playlist */}
-        <div className="relative px-1.5 pb-1.5">
+        {/* Selector de playlist (popover renderizado vía portal — ver abajo) */}
+        <div className="px-1.5 pb-1.5">
           <button
-            onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+            ref={categoryBtnRef}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowCategoryMenu(v => !v); }}
             className="w-full flex items-center justify-between gap-1 bg-black/50 hover:bg-neon-cyan/10 border border-neon-cyan/30 hover:border-neon-cyan/60 rounded px-1.5 py-1 transition-all"
             title="Cambiar playlist"
           >
@@ -559,25 +565,62 @@ export default function ChillMusicPlayer() {
               ? <ChevronUp className="w-2.5 h-2.5 text-neon-cyan shrink-0" />
               : <ChevronDown className="w-2.5 h-2.5 text-neon-cyan shrink-0" />}
           </button>
-          {showCategoryMenu && (
-            <div className="absolute bottom-full left-1.5 right-1.5 mb-1 bg-black/95 border border-neon-cyan/50 rounded shadow-[0_0_15px_rgba(34,211,238,0.4)] overflow-hidden z-[400] animate-fade-in backdrop-blur-md">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={cn(
-                    "w-full text-left px-2 py-1 text-[8px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
-                    currentCategory === cat
-                      ? "bg-neon-cyan/20 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
-                      : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
-                  )}
-                >
-                  {cat === "Todos" ? "★ Todos" : cat}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* Popover de playlist — Portal al body, encima de todo, bloquea clicks detrás */}
+      {showCategoryMenu && categoryBtnRef.current && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] animate-fade-in"
+          onClick={() => setShowCategoryMenu(false)}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {(() => {
+            const rect = categoryBtnRef.current!.getBoundingClientRect();
+            // Burbuja apuntando hacia adentro: aparece arriba del botón, alineada a su derecha,
+            // desplazada hacia el centro de la pantalla (izquierda en este caso, ya que el slot está en la esquina inferior derecha).
+            const right = Math.max(8, window.innerWidth - rect.right);
+            const bottom = Math.max(8, window.innerHeight - rect.top + 8);
+            return (
+              <div
+                style={{ right, bottom }}
+                className="absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Cola de la burbuja apuntando al botón */}
+                <div className="absolute -bottom-[7px] right-3 w-3 h-3 bg-black/95 border-r-2 border-b-2 border-neon-cyan/60 rotate-45" />
+                <div className="relative">
+                  <div className="px-2 py-1 border-b border-neon-cyan/30 bg-neon-cyan/10">
+                    <p className="text-[8px] font-pixel text-neon-cyan uppercase tracking-widest text-center">
+                      ♪ Playlist ♪
+                    </p>
+                  </div>
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCategoryChange(cat);
+                        setShowCategoryMenu(false);
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-1.5 text-[9px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
+                        currentCategory === cat
+                          ? "bg-neon-cyan/25 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
+                          : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
+                      )}
+                    >
+                      {cat === "Todos" ? "★ Todos" : cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>,
+        document.body
+      )}
       </div>
     </div>
   );
