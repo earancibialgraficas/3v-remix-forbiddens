@@ -621,7 +621,6 @@ export default function ChillMusicPlayer() {
         </div>,
         document.body
       )}
-      </div>
     </div>
   );
 
