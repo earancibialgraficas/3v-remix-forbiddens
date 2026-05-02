@@ -195,19 +195,24 @@ export default function MainLayout() {
               {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
               INFO & COMUNIDAD
             </button>
-            <div className={cn("shrink-0 px-3 pt-1 pointer-events-auto transition-all duration-300", mobileRightOpen ? "pb-2" : "pb-1")}>
-              <div id="music-slot-mobile" className="w-full" />
-            </div>
-            
+            {/* Slot fijo del reproductor SOLO visible cuando el footer está colapsado (mini player). */}
+            {!mobileRightOpen && (
+              <div className="shrink-0 px-3 pt-1 pb-1 pointer-events-auto">
+                <div id="music-slot-mobile-collapsed" className="w-full" />
+              </div>
+            )}
+
             <div 
               ref={mobileScrollRef}
               className={cn(
                 "flex-1 w-full overflow-y-auto overflow-x-hidden retro-scrollbar px-3 pt-1 pb-5 min-h-0",
-                mobileRightOpen ? "" : "overflow-hidden pointer-events-none"
+                mobileRightOpen ? "" : "overflow-hidden pointer-events-none hidden"
               )}
             >
               <div className="pointer-events-auto">
-                 <RightPanel />
+                {/* Slot scrolleable del reproductor: forma parte del contenido cuando el footer está abierto. */}
+                <div id="music-slot-mobile" className="w-full mb-3" />
+                <RightPanel />
               </div>
             </div>
           </div>

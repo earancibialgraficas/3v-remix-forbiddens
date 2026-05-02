@@ -31,10 +31,14 @@ export default function ChillMusicPlayer() {
   // Importante: el componente NUNCA se desmonta; solo cambia su contenedor DOM.
   // Esto evita que el <audio> o el <iframe> de YouTube se reinicien (sin doble audio).
   const inEmulator = activeGames.length > 0 && !gameMinimized;
+  // En móvil, el slot depende de si el footer está colapsado o expandido:
+  // - Colapsado → slot fijo arriba del footer (mini player visible).
+  // - Expandido → slot dentro del scroll del footer (sube/baja con el contenido).
+  const [mobileFooterOpen, setMobileFooterOpen] = useState(false);
   const slotId = inEmulator
     ? "music-slot-emulator"
     : isMobile
-    ? "music-slot-mobile"
+    ? (mobileFooterOpen ? "music-slot-mobile" : "music-slot-mobile-collapsed")
     : "music-slot-desktop";
 
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -213,7 +217,9 @@ export default function ChillMusicPlayer() {
   useEffect(() => {
     const handleSync = (e: any) => {
       if (isMobile) {
-        setMinimized(!e.detail.open);
+        const open = !!e.detail.open;
+        setMinimized(!open);
+        setMobileFooterOpen(open);
       }
     };
     window.addEventListener("syncMusicPlayer", handleSync);
