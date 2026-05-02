@@ -686,14 +686,46 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-          // 🎮 Habilita autodetección de joysticks/gamepads en RetroArch (Nostalgist)
-          // Mapea automáticamente el primer gamepad conectado al Player 1.
+          // 🎮 Habilita autodetección + mapeo explícito de joysticks/gamepads (RetroArch).
+          // Compatible con Xbox 360/One, PS4/PS5, 8BitDo y cualquier mando "Standard Gamepad" del W3C.
+          // Los índices siguen el estándar W3C Gamepad API:
+          // 0=A(B en SNES), 1=B(A en SNES), 2=X(Y en SNES), 3=Y(X en SNES),
+          // 4=LB, 5=RB, 6=LT, 7=RT, 8=Back/Select, 9=Start,
+          // 10=L3, 11=R3, 12=Up, 13=Down, 14=Left, 15=Right
           retroarchConfig: {
             input_autodetect_enable: true,
             input_joypad_driver: "gamepad",
             input_max_users: 4,
             menu_swap_ok_cancel_buttons: false,
             input_overlay_enable: false,
+            // --- Player 1 — bindings explícitos por si la autodetección falla ---
+            input_player1_joypad_index: 0,
+            input_player1_a_btn: 0,        // A (Xbox) / Cross (PS) → botón A RetroPad
+            input_player1_b_btn: 1,        // B (Xbox) / Circle (PS) → botón B RetroPad
+            input_player1_x_btn: 2,        // X (Xbox) / Square (PS) → botón X RetroPad
+            input_player1_y_btn: 3,        // Y (Xbox) / Triangle (PS) → botón Y RetroPad
+            input_player1_l_btn: 4,        // LB / L1
+            input_player1_r_btn: 5,        // RB / R1
+            input_player1_l2_btn: 6,       // LT / L2
+            input_player1_r2_btn: 7,       // RT / R2
+            input_player1_select_btn: 8,   // Back / Share
+            input_player1_start_btn: 9,    // Start / Options
+            input_player1_l3_btn: 10,
+            input_player1_r3_btn: 11,
+            input_player1_up_btn: 12,
+            input_player1_down_btn: 13,
+            input_player1_left_btn: 14,
+            input_player1_right_btn: 15,
+            // Stick analógico izquierdo
+            input_player1_l_x_plus_axis: "+0",
+            input_player1_l_x_minus_axis: "-0",
+            input_player1_l_y_plus_axis: "+1",
+            input_player1_l_y_minus_axis: "-1",
+            // Stick analógico derecho
+            input_player1_r_x_plus_axis: "+2",
+            input_player1_r_x_minus_axis: "-2",
+            input_player1_r_y_plus_axis: "+3",
+            input_player1_r_y_minus_axis: "-3",
           },
         };
 
