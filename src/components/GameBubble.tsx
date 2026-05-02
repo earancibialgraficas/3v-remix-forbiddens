@@ -284,6 +284,41 @@ export default function GameBubble() {
     };
   }, [activeGame, romLoaded, usesEmulatorJs]);
 
+  // 🎮 PUENTE GAMEPAD → EmulatorJS (iframe).
+  // En móviles con mando Bluetooth, el iframe srcdoc no recibe Gamepad API.
+  // Sondeamos desde el padre y reenviamos el estado al iframe vía postMessage.
+  useEffect(() => {
+    if (!usesEmulatorJs || !romLoaded || isPs2) return;
+    const frame = emulatorFrameRef.current;
+    if (!frame) return;
+    let raf = 0;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      try {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let gp: Gamepad | null = null;
+        for (let i = 0; i < (pads?.length || 0); i++) {
+          if (pads![i]) { gp = pads![i]!; break; }
+        }
+        if (gp && frame.contentWindow) {
+          const state = {
+            buttons: gp.buttons.map((b) => !!b.pressed),
+            axes: Array.from(gp.axes),
+          };
+          frame.contentWindow.postMessage({ type: "forbiddens-gamepad", state }, "*");
+        }
+      } catch {}
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      stopped = true;
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [usesEmulatorJs, romLoaded, isPs2, currentGameIndex]);
+
+
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
     // 🚫 N64/PS1/Arcade: NO subir estados a la nube. Se guardan solo localmente.
