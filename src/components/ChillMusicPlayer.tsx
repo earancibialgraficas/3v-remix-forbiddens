@@ -217,7 +217,9 @@ export default function ChillMusicPlayer() {
   useEffect(() => {
     const handleSync = (e: any) => {
       if (isMobile) {
-        setMinimized(!e.detail.open);
+        const open = !!e.detail.open;
+        setMinimized(!open);
+        setMobileFooterOpen(open);
       }
     };
     window.addEventListener("syncMusicPlayer", handleSync);
