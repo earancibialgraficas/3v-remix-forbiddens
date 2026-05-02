@@ -540,13 +540,23 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;
 div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Ocultar botón Context Menu (varias variantes según versión EJS) */
+/* Ocultar SIEMPRE el botón Context Menu (varias variantes según versión EJS) */
 .ejs_menu_button[title="Context Menu" i],
 .ejs_menu_button[aria-label="Context Menu" i],
 button[title="Context Menu" i],
 button[aria-label="Context Menu" i],
 .ejs_context_menu_button,
 .ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
+/* Ocultar la barra de menú inferior nativa por defecto.
+   Se vuelve visible añadiendo la clase .forbiddens-show-menu en <html>. */
+.ejs_menu_bar,div[class*="menu_bar" i]{display:none!important;}
+html.forbiddens-show-menu .ejs_menu_bar,
+html.forbiddens-show-menu div[class*="menu_bar" i]{display:flex!important;}
+/* Reforzar: Context Menu sigue oculto incluso cuando la barra está visible */
+html.forbiddens-show-menu .ejs_menu_button[title="Context Menu" i],
+html.forbiddens-show-menu .ejs_menu_button[aria-label="Context Menu" i],
+html.forbiddens-show-menu button[title="Context Menu" i],
+html.forbiddens-show-menu button[aria-label="Context Menu" i]{display:none!important;}
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
 }
@@ -986,45 +996,15 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   }, [paused, romLoaded]);
 
   const toggleEmulatorMenu = useCallback(() => {
-    // 🎮 EmulatorJS (N64/PS1/Arcade): abrir directamente el panel de Ajustes de Control
+    // 🎮 EmulatorJS (N64/PS1/Arcade): mostrar/ocultar la barra inferior NATIVA del emulador
+    // (la que tiene Save/Load/Cheats/Controls/etc.). NO abrimos directamente Control Settings.
     if (usesEmulatorJs) {
       const win = emulatorFrameRef.current?.contentWindow as any;
-      const ejs = win?.EJS_emulator;
-      try {
-        // 1) Vía API directa si existe
-        if (ejs?.controlMenu?.style) {
-          ejs.controlMenu.style.display = "flex";
-          return;
-        }
-        if (typeof ejs?.openControls === "function") {
-          ejs.openControls();
-          return;
-        }
-        if (typeof ejs?.controls?.open === "function") {
-          ejs.controls.open();
-          return;
-        }
-
-        // 2) Fallback: simular click en el botón "Control Settings" del menú nativo
-        const doc = win?.document;
-        if (doc) {
-          const selectors = [
-            '.ejs_menu_button[title="Control Settings" i]',
-            '.ejs_menu_button[aria-label="Control Settings" i]',
-            'button[title="Control Settings" i]',
-            'button[aria-label="Control Settings" i]',
-          ];
-          for (const sel of selectors) {
-            const btn = doc.querySelector(sel) as HTMLElement | null;
-            if (btn) {
-              btn.click();
-              return;
-            }
-          }
-        }
-        toast({ title: "Ajustes de control no disponibles", variant: "destructive" });
-      } catch {
-        toast({ title: "No se pudo abrir los ajustes de control", variant: "destructive" });
+      const doc = win?.document;
+      if (doc) {
+        try {
+          doc.documentElement.classList.toggle("forbiddens-show-menu");
+        } catch {}
       }
       return;
     }
@@ -1037,7 +1017,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       }, 100);
       canvas.focus();
     }
-  }, [romLoaded, usesEmulatorJs, toast]);
+  }, [romLoaded, usesEmulatorJs]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
