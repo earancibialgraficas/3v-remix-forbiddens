@@ -629,6 +629,26 @@ export default function ChillMusicPlayer() {
         </div>,
         document.body
       )}
+
+      {/* 🔔 Notificación "ahora suena" — anclada al viewport del emulador, no interactiva, 3s */}
+      {songToast && inEmulator && typeof document !== 'undefined' && (() => {
+        const viewport = document.getElementById('game-bubble-viewport');
+        if (!viewport) return null;
+        return createPortal(
+          <div
+            key={songToast.id}
+            className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-[80] animate-fade-in"
+          >
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/85 border border-neon-cyan/60 shadow-[0_0_14px_rgba(34,211,238,0.45),inset_0_0_8px_rgba(34,211,238,0.15)] backdrop-blur-md max-w-[80vw]">
+              <Music className="w-3 h-3 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
+              <span className="font-pixel text-[8px] text-neon-cyan uppercase tracking-wider drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate">
+                ♪ {songToast.title}
+              </span>
+            </div>
+          </div>,
+          viewport
+        );
+      })()}
     </div>
   );
 
