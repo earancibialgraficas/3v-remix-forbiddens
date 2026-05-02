@@ -209,6 +209,22 @@ export default function MainLayout() {
             </div>
           </div>
         )}
+
+        {/* 🎵 Slot del reproductor en móvil — FIJO encima del footer "INFO & COMUNIDAD",
+            siempre visible esté el panel cerrado o abierto. Se oculta junto con la barra L. */}
+        {isMobile && (
+          <div
+            className={cn(
+              "lg:hidden fixed left-0 right-0 z-[81] px-2 transition-all duration-300",
+              mobileRightOpen ? "bottom-[80vh]" : "bottom-[104px]",
+              !lBarVisible && !mobileRightOpen
+                ? "translate-y-full opacity-0 pointer-events-none"
+                : "translate-y-0 opacity-100 pointer-events-auto"
+            )}
+          >
+            <div id="music-slot-mobile" className="w-full" />
+          </div>
+        )}
       </main>
 
       <NavigationButtons />
