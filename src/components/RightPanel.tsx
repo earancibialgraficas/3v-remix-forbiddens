@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
-import ChillMusicPlayer from "@/components/ChillMusicPlayer";
+// ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
 
 interface TopUser { display_name: string; total_score: number; color_name?: string | null; }
