@@ -251,9 +251,26 @@ export default function GameBubble() {
       lastInputRef.current = Date.now();
       if (afkRef.current) afkRef.current = false;
     };
+    const onGamepadConnected = (e: GamepadEvent) => {
+      onInput();
+      toast({
+        title: "🎮 Mando detectado",
+        description: `${e.gamepad.id} listo para jugar. Pulsa cualquier botón.`,
+      });
+      // Auto-focus del emulador para que reciba inputs del gamepad
+      try {
+        if (usesEmulatorJs && emulatorFrameRef.current) {
+          emulatorFrameRef.current.focus();
+          (emulatorFrameRef.current.contentWindow as any)?.focus?.();
+        } else {
+          const canvas = document.querySelector<HTMLCanvasElement>("#nostalgist-canvas, canvas");
+          canvas?.focus();
+        }
+      } catch {}
+    };
     window.addEventListener("keydown", onInput);
     window.addEventListener("mousedown", onInput);
-    window.addEventListener("gamepadconnected", onInput);
+    window.addEventListener("gamepadconnected", onGamepadConnected);
     let gpInterval: ReturnType<typeof setInterval> | null = null;
     if (activeGame && romLoaded) {
       gpInterval = setInterval(() => {
@@ -278,7 +295,7 @@ export default function GameBubble() {
     return () => {
       window.removeEventListener("keydown", onInput);
       window.removeEventListener("mousedown", onInput);
-      window.removeEventListener("gamepadconnected", onInput);
+      window.removeEventListener("gamepadconnected", onGamepadConnected);
       if (gpInterval) clearInterval(gpInterval);
       if (emulatorAfkInterval) clearInterval(emulatorAfkInterval);
     };
