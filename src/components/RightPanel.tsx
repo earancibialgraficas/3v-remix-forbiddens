@@ -131,8 +131,12 @@ export default function RightPanel() {
           onScroll={handleScroll}
           className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
         >
-          {/* 🎵 En móvil el slot del reproductor vive en MainLayout (fijo encima del footer),
-              no aquí dentro, para que sea visible aunque el panel "INFO & COMUNIDAD" esté cerrado. */}
+          {isMobile && (
+            <div className="mb-3 relative z-30 animate-fade-in pointer-events-auto mt-2">
+              {/* 🎵 Slot móvil — el ChillMusicPlayer se portaleará aquí cuando NO hay juego abierto */}
+              <div id="music-slot-mobile" className="w-full" />
+            </div>
+          )}
 
           <div className={cn("bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
             <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
