@@ -607,6 +607,25 @@ html.forbiddens-show-menu button[aria-label="Context Menu" i]{display:none!impor
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 
+  // Mantener la barra de menú nativa visible cuando el usuario la activó.
+  // EmulatorJS la auto-oculta tras inactividad con style.display='none' inline.
+  function keepMenuVisible(){
+    try{
+      if (!document.documentElement.classList.contains('forbiddens-show-menu')) return;
+      var bars = document.querySelectorAll('.ejs_menu_bar,div[class*="menu_bar" i]');
+      for (var i=0;i<bars.length;i++){
+        var b = bars[i];
+        if (b.style){
+          if (b.style.display === 'none') b.style.display = '';
+          b.style.opacity=''; b.style.visibility=''; b.style.pointerEvents='';
+        }
+        b.removeAttribute && b.removeAttribute('hidden');
+      }
+    }catch(_){}
+  }
+  setInterval(keepMenuVisible, 250);
+  new MutationObserver(keepMenuVisible).observe(document.documentElement,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class','hidden']});
+
   // 🎮 PUENTE DE GAMEPAD PADRE → IFRAME
   // Los iframes con srcdoc (origin "null") no reciben Gamepad API en muchos navegadores
   // (sobre todo móvil/Bluetooth). El padre nos manda el estado por postMessage y aquí
