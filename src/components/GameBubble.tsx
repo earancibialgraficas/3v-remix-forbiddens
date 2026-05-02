@@ -553,7 +553,7 @@ button[aria-label="Context Menu" i],
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_gamepad=true;window.EJS_disableControlButton=false;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*");try{window.addEventListener("gamepadconnected",function(e){console.log("[EJS] Gamepad conectado:",e.gamepad.id);});}catch(_){}};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
@@ -686,6 +686,15 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
+          // 🎮 Habilita autodetección de joysticks/gamepads en RetroArch (Nostalgist)
+          // Mapea automáticamente el primer gamepad conectado al Player 1.
+          retroarchConfig: {
+            input_autodetect_enable: true,
+            input_joypad_driver: "gamepad",
+            input_max_users: 4,
+            menu_swap_ok_cancel_buttons: false,
+            input_overlay_enable: false,
+          },
         };
 
         // 💾 BIOS DE PS1 (opcional: solo si el archivo existe en /public/bios/)
