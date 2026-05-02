@@ -1837,6 +1837,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               ))}
 
             <div className="flex-1" />
+
+            {/* 🎵 SLOT del reproductor de música — el ChillMusicPlayer se portaleará aquí */}
+            <div id="music-slot-emulator" className="w-full px-1 pb-1 mt-auto" />
           </div>
 
           {!isExpanded && (

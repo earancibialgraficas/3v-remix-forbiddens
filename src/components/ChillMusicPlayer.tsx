@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useGameBubble } from "@/contexts/GameBubbleContext";
 
 interface Song {
   id: string;
@@ -23,6 +25,45 @@ const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStor
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
   const isMobile = useIsMobile();
+  const { activeGames, minimized: gameMinimized } = useGameBubble();
+
+  // 🎵 Slot activo donde renderizar el reproductor (vía portal).
+  // Importante: el componente NUNCA se desmonta; solo cambia su contenedor DOM.
+  // Esto evita que el <audio> o el <iframe> de YouTube se reinicien (sin doble audio).
+  const inEmulator = activeGames.length > 0 && !gameMinimized;
+  const slotId = inEmulator
+    ? "music-slot-emulator"
+    : isMobile
+    ? "music-slot-mobile"
+    : "music-slot-desktop";
+
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const find = () => {
+      if (cancelled) return;
+      const el = document.getElementById(slotId);
+      if (el) {
+        setPortalTarget(el);
+        return true;
+      }
+      return false;
+    };
+    if (!find()) {
+      // El slot puede tardar un tick en aparecer (p. ej. al abrir el emulador)
+      const interval = setInterval(() => {
+        if (find()) clearInterval(interval);
+      }, 100);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [slotId]);
   
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
@@ -374,40 +415,134 @@ export default function ChillMusicPlayer() {
     />
   );
 
-  if (minimized) {
-    return (
-      <div className="w-full relative shadow-lg">
-        {renderYT} {renderLocal}
-        <div className="bg-card border border-neon-cyan/30 rounded p-2">
-          <div className="flex items-center gap-1.5">
-            <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
-              <SkipBack className="w-3 h-3" />
-            </button>
-            <button onClick={() => setIsPlaying(!isPlaying)} className="p-1 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors shrink-0">
-              {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-            </button>
-            <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
-              <SkipForward className="w-3 h-3" />
-            </button>
+  // 🎮 VISTA COMPACTA dentro del emulador (esquina inferior derecha de la barra en L)
+  // Diseño ultra-compacto: avance/retroceso, play/pausa, +/- volumen con indicador,
+  // selector de playlist y botón para abrir/cerrar la lista de canciones.
+  const compactContent = (
+    <div className="w-full">
+      {renderYT} {renderLocal}
+      <div className="bg-black/80 border border-neon-cyan/40 rounded-lg p-1.5 flex flex-col items-stretch gap-1 shadow-[0_0_10px_rgba(34,211,238,0.25)]">
+        {/* Título scrolling-friendly */}
+        <div className="text-center">
+          <p className="text-[7px] font-pixel text-neon-cyan truncate leading-tight" title={current?.title}>
+            {current?.title || "♪ ♫"}
+          </p>
+        </div>
 
-            <canvas ref={miniCanvasRef} width={60} height={16} className="h-4 flex-1 rounded bg-muted/30 ml-1" />
-            <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
-            <button 
-              onClick={() => { 
-                setMinimized(false); 
-                window.dispatchEvent(new Event("openMobilePanel")); 
-              }} 
-              className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1"
-            >
-              <ChevronUp className="w-3 h-3" />
-            </button>
+        {/* Visualizador mini */}
+        <canvas ref={miniCanvasRef} width={60} height={14} className="w-full h-3 rounded bg-muted/30" />
+
+        {/* Controles play */}
+        <div className="flex items-center justify-between gap-1">
+          <button onClick={prev} className="p-1 rounded text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors" title="Anterior">
+            <SkipBack className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 transition-colors"
+            title={isPlaying ? "Pausar" : "Reproducir"}
+          >
+            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={next} className="p-1 rounded text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors" title="Siguiente">
+            <SkipForward className="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* Volumen +/- con indicador */}
+        <div className="flex items-center justify-between gap-1 bg-muted/20 rounded px-1 py-0.5">
+          <button
+            onClick={() => setVolume(v => Math.max(0, v - 10))}
+            className="w-5 h-5 flex items-center justify-center rounded bg-neon-magenta/20 text-neon-magenta hover:bg-neon-magenta/40 font-pixel text-[10px] leading-none transition-colors"
+            title="Bajar volumen"
+          >
+            −
+          </button>
+          <div className="flex items-center gap-0.5 flex-1 justify-center">
+            {isMuted ? <VolumeX className="w-2.5 h-2.5 text-muted-foreground" /> : <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />}
+            <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}</span>
           </div>
+          <button
+            onClick={() => setVolume(v => Math.min(100, v + 10))}
+            className="w-5 h-5 flex items-center justify-center rounded bg-neon-green/20 text-neon-green hover:bg-neon-green/40 font-pixel text-[10px] leading-none transition-colors"
+            title="Subir volumen"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Selector compacto de playlist */}
+        <div className="relative">
+          <button
+            onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+            className="w-full flex items-center justify-between bg-muted/20 hover:bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 transition-colors"
+            title="Cambiar playlist"
+          >
+            <div className="flex items-center gap-1 min-w-0">
+              <ListFilter className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
+              <span className="text-[8px] font-body text-foreground truncate">
+                {currentCategory === "Todos" ? "Todos" : currentCategory}
+              </span>
+            </div>
+            {showCategoryMenu ? <ChevronUp className="w-2.5 h-2.5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 text-muted-foreground shrink-0" />}
+          </button>
+          {showCategoryMenu && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border border-neon-cyan/40 rounded shadow-2xl overflow-hidden z-[400] animate-fade-in">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleCategoryChange(cat)}
+                  className={cn(
+                    "w-full text-left px-2 py-1 text-[8px] font-body transition-colors border-b border-border/30 last:border-0",
+                    currentCategory === cat
+                      ? "bg-neon-cyan/15 text-neon-cyan"
+                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  )}
+                >
+                  {cat === "Todos" ? "Todos los géneros" : cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  return (
+  // 🔻 VISTA MINIMIZADA (solo móvil/tablet en footer cerrado, mantiene comportamiento original)
+  const minimizedContent = (
+    <div className="w-full relative shadow-lg">
+      {renderYT} {renderLocal}
+      <div className="bg-card border border-neon-cyan/30 rounded p-2">
+        <div className="flex items-center gap-1.5">
+          <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
+            <SkipBack className="w-3 h-3" />
+          </button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="p-1 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors shrink-0">
+            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          </button>
+          <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
+            <SkipForward className="w-3 h-3" />
+          </button>
+
+          <canvas ref={miniCanvasRef} width={60} height={16} className="h-4 flex-1 rounded bg-muted/30 ml-1" />
+          <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
+          <button
+            onClick={() => {
+              setMinimized(false);
+              window.dispatchEvent(new Event("openMobilePanel"));
+            }}
+            className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1"
+          >
+            <ChevronUp className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 🖥️ VISTA COMPLETA (desktop o móvil con footer abierto)
+  const fullContent = (
     <div className="w-full relative shadow-lg">
       {renderYT} {renderLocal}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-visible relative">
@@ -451,7 +586,6 @@ export default function ChillMusicPlayer() {
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
-        {/* 🔥 NUEVO: Oculta la barra de progreso si es un video de YouTube 🔥 */}
         {current?.type !== 'youtube' && (
           <div className="px-3 pb-1">
             <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
@@ -503,4 +637,15 @@ export default function ChillMusicPlayer() {
       </div>
     </div>
   );
+
+  // 🎯 Selección de qué vista mostrar según el slot
+  // - emulator → vista compacta (siempre)
+  // - mobile (sin emulador) → respeta el flag `minimized` (footer cerrado)
+  // - desktop → vista completa
+  const content = inEmulator ? compactContent : minimized ? minimizedContent : fullContent;
+
+  // Si todavía no encontramos el slot DOM, no renderizamos nada (el audio sigue intacto
+  // dentro del propio JSX porque está dentro de `content`, así que se montará en cuanto exista).
+  if (!portalTarget) return null;
+  return createPortal(content, portalTarget);
 }

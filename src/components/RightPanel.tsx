@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
-import ChillMusicPlayer from "@/components/ChillMusicPlayer";
+// ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
 
 interface TopUser { display_name: string; total_score: number; color_name?: string | null; }
@@ -133,7 +133,8 @@ export default function RightPanel() {
         >
           {isMobile && (
             <div className="mb-3 relative z-30 animate-fade-in pointer-events-auto mt-2">
-              <ChillMusicPlayer />
+              {/* 🎵 Slot móvil — el ChillMusicPlayer se portaleará aquí cuando NO hay juego abierto */}
+              <div id="music-slot-mobile" className="w-full" />
             </div>
           )}
 
@@ -183,7 +184,8 @@ export default function RightPanel() {
           </div>
 
           <div className="mt-6 pt-4 border-t border-border space-y-4">
-            {!isMobile && <ChillMusicPlayer />}
+            {/* 🎵 Slot escritorio — el ChillMusicPlayer se portaleará aquí cuando NO hay juego abierto */}
+            {!isMobile && <div id="music-slot-desktop" className="w-full" />}
             <Footer />
           </div>
         </aside>
