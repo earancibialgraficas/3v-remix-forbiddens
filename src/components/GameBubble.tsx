@@ -251,26 +251,9 @@ export default function GameBubble() {
       lastInputRef.current = Date.now();
       if (afkRef.current) afkRef.current = false;
     };
-    const onGamepadConnected = (e: GamepadEvent) => {
-      onInput();
-      toast({
-        title: "🎮 Mando detectado",
-        description: `${e.gamepad.id} listo para jugar. Pulsa cualquier botón.`,
-      });
-      // Auto-focus del emulador para que reciba inputs del gamepad
-      try {
-        if (usesEmulatorJs && emulatorFrameRef.current) {
-          emulatorFrameRef.current.focus();
-          (emulatorFrameRef.current.contentWindow as any)?.focus?.();
-        } else {
-          const canvas = document.querySelector<HTMLCanvasElement>("#nostalgist-canvas, canvas");
-          canvas?.focus();
-        }
-      } catch {}
-    };
     window.addEventListener("keydown", onInput);
     window.addEventListener("mousedown", onInput);
-    window.addEventListener("gamepadconnected", onGamepadConnected);
+    window.addEventListener("gamepadconnected", onInput);
     let gpInterval: ReturnType<typeof setInterval> | null = null;
     if (activeGame && romLoaded) {
       gpInterval = setInterval(() => {
@@ -295,7 +278,7 @@ export default function GameBubble() {
     return () => {
       window.removeEventListener("keydown", onInput);
       window.removeEventListener("mousedown", onInput);
-      window.removeEventListener("gamepadconnected", onGamepadConnected);
+      window.removeEventListener("gamepadconnected", onInput);
       if (gpInterval) clearInterval(gpInterval);
       if (emulatorAfkInterval) clearInterval(emulatorAfkInterval);
     };
@@ -570,42 +553,7 @@ button[aria-label="Context Menu" i],
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_gamepad=true;window.EJS_disableControlButton=false;
-/* 🎮 Mapeo gamepad estándar W3C (Xbox 360/One, PS4/PS5, 8BitDo, genéricos).
-   Formato EmulatorJS: {value:"<index>", value2:"<gamepad button name>"} por jugador.
-   Buttons: BUTTON_1=A(Cross), BUTTON_2=B(Circle), BUTTON_3=X(Square), BUTTON_4=Y(Triangle),
-            L=LB/L1, R=RB/R1, L2=LT, R2=RT, SELECT=Back/Share, START=Start/Options,
-            L3/R3=stick clicks, DPAD_*=cruceta, LEFT_STICK_*/RIGHT_STICK_* analógicos. */
-window.EJS_defaultControls={0:{
-  0:{value:"x",value2:"BUTTON_2"},      // RetroPad B → A físico (Xbox A / PS X)
-  1:{value:"s",value2:"BUTTON_4"},      // RetroPad Y → Y físico
-  2:{value:"v",value2:"SELECT"},        // RetroPad SELECT → Back/Share
-  3:{value:"enter",value2:"START"},     // RetroPad START → Start/Options
-  4:{value:"up",value2:"DPAD_UP"},
-  5:{value:"down",value2:"DPAD_DOWN"},
-  6:{value:"left",value2:"DPAD_LEFT"},
-  7:{value:"right",value2:"DPAD_RIGHT"},
-  8:{value:"z",value2:"BUTTON_1"},      // RetroPad A → B físico
-  9:{value:"a",value2:"BUTTON_3"},      // RetroPad X → X físico
-  10:{value:"q",value2:"L"},            // L1/LB
-  11:{value:"e",value2:"R"},            // R1/RB
-  12:{value:"tab",value2:"L2"},         // L2/LT
-  13:{value:"r",value2:"R2"},           // R2/RT
-  14:{value:"",value2:"L3"},
-  15:{value:"",value2:"R3"},
-  16:{value:"h",value2:"LEFT_STICK_UP"},
-  17:{value:"n",value2:"LEFT_STICK_DOWN"},
-  18:{value:"b",value2:"LEFT_STICK_LEFT"},
-  19:{value:"m",value2:"LEFT_STICK_RIGHT"},
-  20:{value:"i",value2:"RIGHT_STICK_UP"},
-  21:{value:"k",value2:"RIGHT_STICK_DOWN"},
-  22:{value:"j",value2:"RIGHT_STICK_LEFT"},
-  23:{value:"l",value2:"RIGHT_STICK_RIGHT"},
-  24:{value:"",value2:""},
-  25:{value:"",value2:""},
-  26:{value:"",value2:""}
-},1:{},2:{},3:{}};
-window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*");try{window.addEventListener("gamepadconnected",function(e){console.log("[EJS] Gamepad conectado:",e.gamepad.id);try{window.focus();var c=document.querySelector("#game canvas");if(c){c.setAttribute("tabindex","0");c.focus();}}catch(_){}parent.postMessage({type:"forbiddens-gamepad-connected",id:e.gamepad.id},"*");});var existing=navigator.getGamepads&&navigator.getGamepads();if(existing){for(var i=0;i<existing.length;i++){if(existing[i]){console.log("[EJS] Gamepad ya conectado:",existing[i].id);parent.postMessage({type:"forbiddens-gamepad-connected",id:existing[i].id},"*");break;}}}}catch(_){}};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_gamepad=true;window.EJS_disableControlButton=false;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*");try{window.addEventListener("gamepadconnected",function(e){console.log("[EJS] Gamepad conectado:",e.gamepad.id);});}catch(_){}};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
@@ -738,46 +686,14 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
           rom: romSrc,
           element: el as HTMLCanvasElement,
           style: { width: "100%", height: "100%", backgroundColor: "black" },
-          // 🎮 Habilita autodetección + mapeo explícito de joysticks/gamepads (RetroArch).
-          // Compatible con Xbox 360/One, PS4/PS5, 8BitDo y cualquier mando "Standard Gamepad" del W3C.
-          // Los índices siguen el estándar W3C Gamepad API:
-          // 0=A(B en SNES), 1=B(A en SNES), 2=X(Y en SNES), 3=Y(X en SNES),
-          // 4=LB, 5=RB, 6=LT, 7=RT, 8=Back/Select, 9=Start,
-          // 10=L3, 11=R3, 12=Up, 13=Down, 14=Left, 15=Right
+          // 🎮 Habilita autodetección de joysticks/gamepads en RetroArch (Nostalgist)
+          // Mapea automáticamente el primer gamepad conectado al Player 1.
           retroarchConfig: {
             input_autodetect_enable: true,
             input_joypad_driver: "gamepad",
             input_max_users: 4,
             menu_swap_ok_cancel_buttons: false,
             input_overlay_enable: false,
-            // --- Player 1 — bindings explícitos por si la autodetección falla ---
-            input_player1_joypad_index: 0,
-            input_player1_a_btn: 0,        // A (Xbox) / Cross (PS) → botón A RetroPad
-            input_player1_b_btn: 1,        // B (Xbox) / Circle (PS) → botón B RetroPad
-            input_player1_x_btn: 2,        // X (Xbox) / Square (PS) → botón X RetroPad
-            input_player1_y_btn: 3,        // Y (Xbox) / Triangle (PS) → botón Y RetroPad
-            input_player1_l_btn: 4,        // LB / L1
-            input_player1_r_btn: 5,        // RB / R1
-            input_player1_l2_btn: 6,       // LT / L2
-            input_player1_r2_btn: 7,       // RT / R2
-            input_player1_select_btn: 8,   // Back / Share
-            input_player1_start_btn: 9,    // Start / Options
-            input_player1_l3_btn: 10,
-            input_player1_r3_btn: 11,
-            input_player1_up_btn: 12,
-            input_player1_down_btn: 13,
-            input_player1_left_btn: 14,
-            input_player1_right_btn: 15,
-            // Stick analógico izquierdo
-            input_player1_l_x_plus_axis: "+0",
-            input_player1_l_x_minus_axis: "-0",
-            input_player1_l_y_plus_axis: "+1",
-            input_player1_l_y_minus_axis: "-1",
-            // Stick analógico derecho
-            input_player1_r_x_plus_axis: "+2",
-            input_player1_r_x_minus_axis: "-2",
-            input_player1_r_y_plus_axis: "+3",
-            input_player1_r_y_minus_axis: "-3",
           },
         };
 
