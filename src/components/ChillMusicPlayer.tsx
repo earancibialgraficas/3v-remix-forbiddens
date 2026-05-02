@@ -105,6 +105,23 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  // 🔔 Notificación efímera de "ahora suena" dentro del emulador (3s, sin interrumpir el juego)
+  const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
+  const lastNotifiedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!inEmulator) return;
+    if (!current?.id) return;
+    if (!isPlaying) return;
+    if (lastNotifiedRef.current === current.id) return;
+    lastNotifiedRef.current = current.id;
+    const id = Date.now();
+    setSongToast({ id, title: current.title });
+    const t = setTimeout(() => {
+      setSongToast(prev => (prev?.id === id ? null : prev));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [inEmulator, current?.id, current?.title, isPlaying]);
+
   useEffect(() => {
     actualTimeRef.current = currentTime;
   }, [currentTime]);
