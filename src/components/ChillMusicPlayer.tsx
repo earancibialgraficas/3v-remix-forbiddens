@@ -25,6 +25,45 @@ const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStor
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
   const isMobile = useIsMobile();
+  const { activeGames, minimized: gameMinimized } = useGameBubble();
+
+  // 🎵 Slot activo donde renderizar el reproductor (vía portal).
+  // Importante: el componente NUNCA se desmonta; solo cambia su contenedor DOM.
+  // Esto evita que el <audio> o el <iframe> de YouTube se reinicien (sin doble audio).
+  const inEmulator = activeGames.length > 0 && !gameMinimized;
+  const slotId = inEmulator
+    ? "music-slot-emulator"
+    : isMobile
+    ? "music-slot-mobile"
+    : "music-slot-desktop";
+
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const find = () => {
+      if (cancelled) return;
+      const el = document.getElementById(slotId);
+      if (el) {
+        setPortalTarget(el);
+        return true;
+      }
+      return false;
+    };
+    if (!find()) {
+      // El slot puede tardar un tick en aparecer (p. ej. al abrir el emulador)
+      const interval = setInterval(() => {
+        if (find()) clearInterval(interval);
+      }, 100);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [slotId]);
   
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [playlist, setPlaylist] = useState<Song[]>([]);
