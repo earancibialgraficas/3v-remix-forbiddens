@@ -540,13 +540,32 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;
 div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Ocultar SIEMPRE el botón Context Menu (varias variantes según versión EJS) */
-.ejs_menu_button[title="Context Menu" i],
-.ejs_menu_button[aria-label="Context Menu" i],
-button[title="Context Menu" i],
-button[aria-label="Context Menu" i],
+/* Ocultar SIEMPRE botones peligrosos del menú nativo (varias variantes EJS).
+   Incluye: Context Menu, Save State, Load State, Quick Save/Load, Screenshot a disco. */
+.ejs_menu_button[title*="Context" i],
+.ejs_menu_button[aria-label*="Context" i],
+button[title*="Context" i],
+button[aria-label*="Context" i],
+.ejs_menu_button[title*="Save State" i],
+.ejs_menu_button[aria-label*="Save State" i],
+.ejs_menu_button[title*="Load State" i],
+.ejs_menu_button[aria-label*="Load State" i],
+.ejs_menu_button[title*="Quick Save" i],
+.ejs_menu_button[title*="Quick Load" i],
+.ejs_menu_button[title*="Guardar" i],
+.ejs_menu_button[title*="Cargar estado" i],
+.ejs_menu_button[aria-label*="Guardar" i],
+.ejs_menu_button[aria-label*="Cargar estado" i],
+button[title*="Save State" i],
+button[title*="Load State" i],
+button[aria-label*="Save State" i],
+button[aria-label*="Load State" i],
 .ejs_context_menu_button,
-.ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
+.ejs_contextmenu_button,
+.ejs_save_state_button,
+.ejs_load_state_button,
+.ejs_quick_save_button,
+.ejs_quick_load_button{display:none!important;visibility:hidden!important;width:0!important;pointer-events:none!important;}
 /* Ocultar la barra de menú inferior nativa por defecto.
    Se vuelve visible añadiendo la clase .forbiddens-show-menu en <html>.
    Forzamos visibilidad con máxima prioridad para anular el auto-hide
@@ -561,11 +580,16 @@ html.forbiddens-show-menu div[class*="menu_bar" i]{
   transform:none!important;
   bottom:0!important;
 }
-/* Reforzar: Context Menu sigue oculto incluso cuando la barra está visible */
-html.forbiddens-show-menu .ejs_menu_button[title="Context Menu" i],
-html.forbiddens-show-menu .ejs_menu_button[aria-label="Context Menu" i],
-html.forbiddens-show-menu button[title="Context Menu" i],
-html.forbiddens-show-menu button[aria-label="Context Menu" i]{display:none!important;}
+/* Reforzar: botones peligrosos siguen ocultos incluso cuando la barra está visible */
+html.forbiddens-show-menu .ejs_menu_button[title*="Context" i],
+html.forbiddens-show-menu .ejs_menu_button[aria-label*="Context" i],
+html.forbiddens-show-menu button[title*="Context" i],
+html.forbiddens-show-menu button[aria-label*="Context" i],
+html.forbiddens-show-menu .ejs_menu_button[title*="Save State" i],
+html.forbiddens-show-menu .ejs_menu_button[title*="Load State" i],
+html.forbiddens-show-menu .ejs_menu_button[title*="Quick" i],
+html.forbiddens-show-menu .ejs_menu_button[title*="Guardar" i],
+html.forbiddens-show-menu .ejs_menu_button[title*="Cargar estado" i]{display:none!important;}
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
 }
@@ -625,6 +649,42 @@ html.forbiddens-show-menu button[aria-label="Context Menu" i]{display:none!impor
   }
   setInterval(keepMenuVisible, 250);
   new MutationObserver(keepMenuVisible).observe(document.documentElement,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class','hidden']});
+
+  // 🛡️ Bloquear menú contextual del navegador (click derecho / long-press)
+  // dentro del iframe del emulador para evitar acceso a "Save State to disk".
+  window.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+
+  // 🛡️ Eliminar del DOM cualquier botón peligroso del menú nativo que se cuele.
+  // (Doble red: además del CSS, los quitamos por completo del árbol.)
+  function purgeDangerousButtons(){
+    try{
+      var sel = [
+        '[title*="Context" i]','[aria-label*="Context" i]',
+        '[title*="Save State" i]','[aria-label*="Save State" i]',
+        '[title*="Load State" i]','[aria-label*="Load State" i]',
+        '[title*="Quick Save" i]','[title*="Quick Load" i]',
+        '[title*="Guardar estado" i]','[title*="Cargar estado" i]',
+        '.ejs_save_state_button','.ejs_load_state_button',
+        '.ejs_quick_save_button','.ejs_quick_load_button',
+        '.ejs_context_menu_button','.ejs_contextmenu_button'
+      ].join(',');
+      var nodes = document.querySelectorAll(sel);
+      for (var i=0; i<nodes.length; i++){
+        var n = nodes[i];
+        // Sólo dentro de la barra de menú nativa
+        if (n.closest && n.closest('.ejs_menu_bar,div[class*="menu_bar" i]')){
+          n.style.display = 'none';
+          n.style.pointerEvents = 'none';
+          n.setAttribute('aria-hidden','true');
+          n.tabIndex = -1;
+        }
+      }
+    }catch(_){}
+  }
+  setInterval(purgeDangerousButtons, 500);
+  new MutationObserver(purgeDangerousButtons).observe(document.documentElement,{childList:true,subtree:true});
+
 
   // 🎮 PUENTE DE GAMEPAD PADRE → IFRAME
   // Los iframes con srcdoc (origin "null") no reciben Gamepad API en muchos navegadores
