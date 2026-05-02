@@ -496,20 +496,32 @@ export default function ChillMusicPlayer() {
           </button>
         </div>
 
-        {/* Volumen con barra LED — botones +/- SIEMPRE visibles e interactivos */}
+        {/* Volumen — botones +/- apilados (uno encima del otro) para que siempre quepan en slots angostos */}
         <div className="px-1.5 pb-1.5">
-          <div className="flex items-center gap-1 bg-black/50 border border-neon-yellow/30 rounded px-1 py-0.5">
-            <button
-              type="button"
-              onClick={() => setVolume(v => Math.max(0, v - 10))}
-              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
-              title="Bajar volumen"
-              aria-label="Bajar volumen"
-            >
-              −
-            </button>
+          <div className="flex items-stretch gap-1 bg-black/50 border border-neon-yellow/30 rounded px-1 py-1">
+            {/* Columna botones apilados */}
+            <div className="flex flex-col gap-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setVolume(v => Math.min(100, v + 10))}
+                className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[11px] leading-none transition-all active:scale-90"
+                title="Subir volumen"
+                aria-label="Subir volumen"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setVolume(v => Math.max(0, v - 10))}
+                className="w-5 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
+                title="Bajar volumen"
+                aria-label="Bajar volumen"
+              >
+                −
+              </button>
+            </div>
             {/* Barra LED de volumen (10 segmentos) */}
-            <div className="flex-1 flex items-center gap-[1.5px] h-3 px-0.5">
+            <div className="flex-1 flex items-center gap-[1.5px] min-w-0">
               {Array.from({ length: 10 }).map((_, i) => {
                 const active = volume >= (i + 1) * 10;
                 const color =
@@ -520,22 +532,13 @@ export default function ChillMusicPlayer() {
                   <div
                     key={i}
                     className={cn(
-                      "flex-1 h-full rounded-[1px] transition-all",
+                      "flex-1 h-full rounded-[1px] transition-all min-w-[2px]",
                       active ? color : "bg-muted/20"
                     )}
                   />
                 );
               })}
             </div>
-            <button
-              type="button"
-              onClick={() => setVolume(v => Math.min(100, v + 10))}
-              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
-              title="Subir volumen"
-              aria-label="Subir volumen"
-            >
-              +
-            </button>
           </div>
           <div className="flex items-center justify-center gap-1 mt-0.5">
             {isMuted || volume === 0 ? (
