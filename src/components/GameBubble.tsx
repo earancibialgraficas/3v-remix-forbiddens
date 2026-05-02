@@ -540,13 +540,23 @@ html,body,#game{margin:0;width:100%;height:100%;background:#000;overflow:hidden;
 div[class*="drop"],div[class*="Drop"],div[class*="drag"],div[class*="Drag"]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-/* Ocultar botón Context Menu (varias variantes según versión EJS) */
+/* Ocultar SIEMPRE el botón Context Menu (varias variantes según versión EJS) */
 .ejs_menu_button[title="Context Menu" i],
 .ejs_menu_button[aria-label="Context Menu" i],
 button[title="Context Menu" i],
 button[aria-label="Context Menu" i],
 .ejs_context_menu_button,
 .ejs_contextmenu_button{display:none!important;visibility:hidden!important;width:0!important;}
+/* Ocultar la barra de menú inferior nativa por defecto.
+   Se vuelve visible añadiendo la clase .forbiddens-show-menu en <html>. */
+.ejs_menu_bar,div[class*="menu_bar" i]{display:none!important;}
+html.forbiddens-show-menu .ejs_menu_bar,
+html.forbiddens-show-menu div[class*="menu_bar" i]{display:flex!important;}
+/* Reforzar: Context Menu sigue oculto incluso cuando la barra está visible */
+html.forbiddens-show-menu .ejs_menu_button[title="Context Menu" i],
+html.forbiddens-show-menu .ejs_menu_button[aria-label="Context Menu" i],
+html.forbiddens-show-menu button[title="Context Menu" i],
+html.forbiddens-show-menu button[aria-label="Context Menu" i]{display:none!important;}
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
 }
