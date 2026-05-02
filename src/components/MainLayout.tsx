@@ -5,6 +5,7 @@ import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import FloatingChat from "@/components/FloatingChat";
+import ChillMusicPlayer from "@/components/ChillMusicPlayer";
 import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
