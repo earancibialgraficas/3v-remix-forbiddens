@@ -52,26 +52,38 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
         .single();
         
       const reporterName = profile?.display_name || 'Usuario';
+      const reporterEmail = user.email || 'desconocido';
+      const targetUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}${window.location.search}${postId ? (window.location.search ? '&' : '?') + 'focus=' + postId : ''}`
+        : '';
 
-      const systemTicket = `🚨 REPORTE DE SISTEMA 🚨
-      
-EMISOR: ${reporterName}
-REPORTADO: ${reportedUserName}
-MOTIVO: ${reason}
-ORIGEN: ${postId ? 'Post ID: ' + postId : 'Reporte de Perfil'}
+      const systemTicket = `🚨 NUEVO REPORTE 🚨
 
-DETALLES ADICIONALES:
-${details.trim() || 'El usuario no proporcionó detalles.'}
+👤 EMISOR: ${reporterName} (${reporterEmail})
+🎯 REPORTADO: ${reportedUserName}
+📝 MOTIVO: ${reason}
+${postId ? '🆔 POST ID: ' + postId : '📍 Reporte de Perfil'}
+🔗 ENLACE: ${targetUrl}
 
----------------------------
-Requiere revisión inmediata.`;
+💬 DETALLES:
+${details.trim() || '— Sin detalles adicionales —'}
 
-      const { error } = await supabase.rpc("send_staff_report", {
-        p_reporter_id: BOT_SYSTEM_ID, 
-        p_reported_user_id: reportedUserId,
-        p_reason: reason,
-        p_details: systemTicket,
-        p_post_id: postId || null,
+———————————————
+Requiere revisión del staff.`;
+
+      // Registrar el reporte en la tabla
+      await supabase.from('reports').insert({
+        reporter_id: user.id,
+        reported_user_id: reportedUserId,
+        reason,
+        post_id: postId || null,
+      } as any);
+
+      // Enviar mensaje del bot SISTEMA al staff
+      const { error } = await supabase.rpc("send_system_staff_message", {
+        p_title: `Nuevo reporte: ${reason}`,
+        p_content: systemTicket,
+        p_message_type: 'report',
       });
 
       if (error) throw error;
