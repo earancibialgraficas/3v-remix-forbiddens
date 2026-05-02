@@ -669,7 +669,20 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             window.removeEventListener("message", onMessage);
           };
           window.addEventListener("message", onMessage);
-          frame.srcdoc = html;
+          // `srcdoc` puede quedar inestable en algunos móviles/tablets con
+          // Gamepad + blobs. Escribimos sobre about:blank para heredar origen
+          // del padre y permitir que EmulatorJS cargue ROMs/CDN de forma normal.
+          frame.srcdoc = "";
+          frame.src = "about:blank";
+          try {
+            const doc = frame.contentDocument;
+            if (!doc) throw new Error("Iframe document no disponible");
+            doc.open();
+            doc.write(html);
+            doc.close();
+          } catch {
+            frame.srcdoc = html;
+          }
 
           const emulatorJsInstance = {
             pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
