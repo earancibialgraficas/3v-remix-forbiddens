@@ -1442,6 +1442,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
         <div
           ref={canvasViewportRef}
+          id="game-bubble-viewport"
           className={cn(
             "relative bg-black overflow-hidden",
             minimized ? "h-full w-full" : "flex-1",
