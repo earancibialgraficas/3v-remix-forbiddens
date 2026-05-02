@@ -76,8 +76,8 @@ export default function ChillMusicPlayer() {
   
   const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
   const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
-  const [isPlaying, setIsPlaying] = useState(false);
-  // 🔥 NUEVO: Inicia con el volumen guardado 🔥
+  const [isPlaying, setIsPlaying] = useState(getStoredPlaying);
+  // 🔥 Inicia con el volumen guardado en caché del dispositivo
   const [volume, setVolume] = useState(getStoredVolume);
   const [expanded, setExpanded] = useState(false);
   const [minimized, setMinimized] = useState(false); 
