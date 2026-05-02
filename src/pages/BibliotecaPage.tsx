@@ -116,17 +116,13 @@ export default function BibliotecaPage() {
 
       if (error) throw error;
 
-      // Notificar al Staff (Bot)
-      const { data: staffRoles } = await supabase.from("user_roles").select("user_id").in("role", ["master_web", "admin", "moderator"]);
-      if (staffRoles && staffRoles.length > 0) {
-        const staffIds = Array.from(new Set(staffRoles.map(r => r.user_id)));
-        const messageContent = `🤖 [BOT SISTEMA] NUEVA SUGERENCIA DE JUEGO:\n\n🎮 Juego: ${gameName}\n🕹️ Consola: ${selectedConsole.toUpperCase()}\n💬 Comentario: ${description || "Sin comentario adicional."}`;
-
-        const messages = staffIds.map(id => ({
-          sender_id: user.id, receiver_id: id, content: messageContent, is_read: false
-        }));
-        await supabase.from("inbox_messages").insert(messages as any);
-      }
+      // Notificar al Staff usando el bot SISTEMA
+      const messageContent = `🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO\n\n👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}\n📧 Email: ${user.email || 'desconocido'}\n🎮 Juego: ${gameName}\n🕹️ Consola: ${selectedConsole.toUpperCase()}\n💬 Motivo / Descripción:\n${description || 'Sin comentario adicional.'}\n\n🔗 ${typeof window !== 'undefined' ? window.location.origin + '/arcade/biblioteca' : ''}`;
+      await supabase.rpc("send_system_staff_message", {
+        p_title: `Sugerencia de juego: ${gameName}`,
+        p_content: messageContent,
+        p_message_type: 'game_suggestion',
+      });
 
       toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); 
       setGameName(""); 
