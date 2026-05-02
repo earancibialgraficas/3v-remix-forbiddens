@@ -650,6 +650,52 @@ html.forbiddens-show-menu .ejs_menu_button[title*="Cargar estado" i]{display:non
   setInterval(keepMenuVisible, 250);
   new MutationObserver(keepMenuVisible).observe(document.documentElement,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class','hidden']});
 
+  // 🛡️ Bloquear menú contextual del navegador (click derecho / long-press)
+  // dentro del iframe del emulador para evitar acceso a "Save State to disk".
+  ['contextmenu'].forEach(function(ev){
+    window.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+    document.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  });
+
+  // 🛡️ Neutralizar funciones de Save/Load State del core de EmulatorJS.
+  // Los puntajes ya se guardan vía nuestro sistema (leaderboard_scores).
+  // Esto evita que el menú nativo escriba state files pesados al disco/BD.
+  function neutralizeStateAPI(){
+    try{
+      var ejs = window.EJS_emulator;
+      if (!ejs || ejs.__forbiddensNeutralized) return;
+      var noop = function(){ return null; };
+      var asyncNoop = function(){ return Promise.resolve(null); };
+      // Métodos directos del emulador
+      ['getState','setState','saveState','loadState','quickSave','quickLoad',
+       'saveStateUrl','loadStateUrl','downloadFile','screenshot'].forEach(function(k){
+        if (typeof ejs[k] === 'function') ejs[k] = noop;
+      });
+      // Métodos del gameManager
+      var gm = ejs.gameManager;
+      if (gm){
+        ['getState','saveState','loadState','quickSave','quickLoad',
+         'saveSaveFiles','loadSaveFiles'].forEach(function(k){
+          if (typeof gm[k] === 'function') gm[k] = noop;
+        });
+        if (typeof gm.getStateInfo === 'function') gm.getStateInfo = function(){ return ''; };
+      }
+      ejs.__forbiddensNeutralized = true;
+    }catch(_){}
+  }
+  // Reintentar hasta que EJS esté listo, luego seguir vigilando.
+  var neutralizeTimer = setInterval(function(){
+    if (window.EJS_emulator) {
+      neutralizeStateAPI();
+    }
+  }, 300);
+  // Tras 30s asumimos que está estable pero seguimos cada 2s por si recrea métodos.
+  setTimeout(function(){
+    clearInterval(neutralizeTimer);
+    setInterval(neutralizeStateAPI, 2000);
+  }, 30000);
+
+
   // 🎮 PUENTE DE GAMEPAD PADRE → IFRAME
   // Los iframes con srcdoc (origin "null") no reciben Gamepad API en muchos navegadores
   // (sobre todo móvil/Bluetooth). El padre nos manda el estado por postMessage y aquí
