@@ -669,12 +669,19 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             window.removeEventListener("message", onMessage);
           };
           window.addEventListener("message", onMessage);
-          frame.srcdoc = html;
+          // En móvil/tablet, `srcdoc` queda con origen opaco y puede fallar al
+          // cargar ROMs/blob o permisos del emulador. Usamos un Blob HTML del
+          // mismo origen para que EmulatorJS arranque de forma más estable.
+          const frameHtmlUrl = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+          emulatorObjectUrlsRef.current.push(frameHtmlUrl);
+          frame.srcdoc = "";
+          frame.src = frameHtmlUrl;
 
           const emulatorJsInstance = {
             pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
             resume: () => (frame.contentWindow as any)?.EJS_emulator?.play?.(),
             exit: () => {
+              frame.src = "about:blank";
               frame.srcdoc = "";
               revokeEmulatorObjectUrls();
             },
