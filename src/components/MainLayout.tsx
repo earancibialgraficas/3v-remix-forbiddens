@@ -214,6 +214,9 @@ export default function MainLayout() {
       <NavigationButtons />
       <GameBubble />
       <FloatingChat />
+      {/* 🎵 ChillMusicPlayer: instancia ÚNICA siempre montada. Se portalea al slot activo
+          (desktop / mobile / emulador) sin remontar — evita audio duplicado. */}
+      <ChillMusicPlayer />
     </div>
   );
 }
