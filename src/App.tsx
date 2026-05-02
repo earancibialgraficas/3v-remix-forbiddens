@@ -27,6 +27,8 @@ import SocialReelsPage from "./pages/SocialReelsPage";
 import NotFound from "./pages/NotFound";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
+import ContactoPage from "./pages/ContactoPage";
+import PrivacidadPage from "./pages/PrivacidadPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
@@ -68,6 +70,8 @@ const App = () => {
                   <Route path="/membresias" element={<MembershipsPage />} />
                   <Route path="/ayuda" element={<AyudaPage />} />
                   <Route path="/reglas" element={<RulesPage />} />
+                  <Route path="/contacto" element={<ContactoPage />} />
+                  <Route path="/privacidad" element={<PrivacidadPage />} />
                   
                   {/* RUTAS CRÍTICAS PARA TUS BOTONES */}
                   <Route path="/perfil" element={<ProfilePage />} />
