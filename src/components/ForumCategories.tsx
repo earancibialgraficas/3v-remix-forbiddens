@@ -20,7 +20,7 @@ const categories = [
     color: "text-neon-cyan",
     borderClass: "border-neon-cyan/30 hover:border-neon-cyan/60",
     glowClass: "text-glow-cyan",
-    link: "/gaming-anime",
+    link: "/gaming-anime/foro",
     subs: ["Off-Topic", "Anime & Manga", "Rincón del Creador"],
   },
   {
@@ -30,7 +30,7 @@ const categories = [
     color: "text-neon-magenta",
     borderClass: "border-neon-magenta/30 hover:border-neon-magenta/60",
     glowClass: "text-glow-magenta",
-    link: "/motociclismo",
+    link: "/motociclismo/riders",
     subs: ["Foro de Riders", "Taller & Mecánica", "Rutas & Quedadas"],
   },
   {
@@ -40,7 +40,7 @@ const categories = [
     color: "text-neon-yellow",
     borderClass: "border-neon-yellow/30 hover:border-neon-yellow/60",
     glowClass: "",
-    link: "/mercado",
+    link: "/mercado/gaming",
     subs: ["Gaming", "Motor"],
   },
   {
@@ -50,7 +50,7 @@ const categories = [
     color: "text-neon-orange",
     borderClass: "border-neon-orange/30 hover:border-neon-orange/60",
     glowClass: "",
-    link: "/social",
+    link: "/social/feed",
     subs: ["Feed Principal", "Reels & Videos", "Muro Fotográfico"],
   },
   {
