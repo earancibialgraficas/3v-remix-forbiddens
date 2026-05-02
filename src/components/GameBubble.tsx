@@ -553,7 +553,42 @@ button[aria-label="Context Menu" i],
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_gamepad=true;window.EJS_disableControlButton=false;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*");try{window.addEventListener("gamepadconnected",function(e){console.log("[EJS] Gamepad conectado:",e.gamepad.id);});}catch(_){}};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_gamepad=true;window.EJS_disableControlButton=false;
+/* 🎮 Mapeo gamepad estándar W3C (Xbox 360/One, PS4/PS5, 8BitDo, genéricos).
+   Formato EmulatorJS: {value:"<index>", value2:"<gamepad button name>"} por jugador.
+   Buttons: BUTTON_1=A(Cross), BUTTON_2=B(Circle), BUTTON_3=X(Square), BUTTON_4=Y(Triangle),
+            L=LB/L1, R=RB/R1, L2=LT, R2=RT, SELECT=Back/Share, START=Start/Options,
+            L3/R3=stick clicks, DPAD_*=cruceta, LEFT_STICK_*/RIGHT_STICK_* analógicos. */
+window.EJS_defaultControls={0:{
+  0:{value:"x",value2:"BUTTON_2"},      // RetroPad B → A físico (Xbox A / PS X)
+  1:{value:"s",value2:"BUTTON_4"},      // RetroPad Y → Y físico
+  2:{value:"v",value2:"SELECT"},        // RetroPad SELECT → Back/Share
+  3:{value:"enter",value2:"START"},     // RetroPad START → Start/Options
+  4:{value:"up",value2:"DPAD_UP"},
+  5:{value:"down",value2:"DPAD_DOWN"},
+  6:{value:"left",value2:"DPAD_LEFT"},
+  7:{value:"right",value2:"DPAD_RIGHT"},
+  8:{value:"z",value2:"BUTTON_1"},      // RetroPad A → B físico
+  9:{value:"a",value2:"BUTTON_3"},      // RetroPad X → X físico
+  10:{value:"q",value2:"L"},            // L1/LB
+  11:{value:"e",value2:"R"},            // R1/RB
+  12:{value:"tab",value2:"L2"},         // L2/LT
+  13:{value:"r",value2:"R2"},           // R2/RT
+  14:{value:"",value2:"L3"},
+  15:{value:"",value2:"R3"},
+  16:{value:"h",value2:"LEFT_STICK_UP"},
+  17:{value:"n",value2:"LEFT_STICK_DOWN"},
+  18:{value:"b",value2:"LEFT_STICK_LEFT"},
+  19:{value:"m",value2:"LEFT_STICK_RIGHT"},
+  20:{value:"i",value2:"RIGHT_STICK_UP"},
+  21:{value:"k",value2:"RIGHT_STICK_DOWN"},
+  22:{value:"j",value2:"RIGHT_STICK_LEFT"},
+  23:{value:"l",value2:"RIGHT_STICK_RIGHT"},
+  24:{value:"",value2:""},
+  25:{value:"",value2:""},
+  26:{value:"",value2:""}
+},1:{},2:{},3:{}};
+window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*");try{window.addEventListener("gamepadconnected",function(e){console.log("[EJS] Gamepad conectado:",e.gamepad.id);try{window.focus();var c=document.querySelector("#game canvas");if(c){c.setAttribute("tabindex","0");c.focus();}}catch(_){}parent.postMessage({type:"forbiddens-gamepad-connected",id:e.gamepad.id},"*");});var existing=navigator.getGamepads&&navigator.getGamepads();if(existing){for(var i=0;i<existing.length;i++){if(existing[i]){console.log("[EJS] Gamepad ya conectado:",existing[i].id);parent.postMessage({type:"forbiddens-gamepad-connected",id:existing[i].id},"*");break;}}}}catch(_){}};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
