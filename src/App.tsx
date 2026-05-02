@@ -27,9 +27,8 @@ import SocialReelsPage from "./pages/SocialReelsPage";
 import NotFound from "./pages/NotFound";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
-import ContactoPage from "./pages/ContactoPage";
-import PrivacidadPage from "./pages/PrivacidadPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
+import { Navigate } from "react-router-dom";
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
@@ -70,8 +69,8 @@ const App = () => {
                   <Route path="/membresias" element={<MembershipsPage />} />
                   <Route path="/ayuda" element={<AyudaPage />} />
                   <Route path="/reglas" element={<RulesPage />} />
-                  <Route path="/contacto" element={<ContactoPage />} />
-                  <Route path="/privacidad" element={<PrivacidadPage />} />
+                  <Route path="/contacto" element={<Navigate to="/ayuda?seccion=contacto" replace />} />
+                  <Route path="/privacidad" element={<Navigate to="/ayuda?seccion=privacidad" replace />} />
                   
                   {/* RUTAS CRÍTICAS PARA TUS BOTONES */}
                   <Route path="/perfil" element={<ProfilePage />} />
