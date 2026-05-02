@@ -552,6 +552,77 @@ button[aria-label="Context Menu" i],
   document.head.appendChild(style);
   setInterval(nuke, 800);
   new MutationObserver(nuke).observe(document.documentElement, {childList:true, subtree:true});
+
+  // 🎮 PUENTE DE GAMEPAD PADRE → IFRAME
+  // Los iframes con srcdoc (origin "null") no reciben Gamepad API en muchos navegadores
+  // (sobre todo móvil/Bluetooth). El padre nos manda el estado por postMessage y aquí
+  // lo inyectamos directo al core de EmulatorJS con simulateInput().
+  // Mapeo Standard Gamepad → RetroPad (orden de EJS_emulator.gameManager):
+  // 0:B  1:Y  2:Select 3:Start 4:Up 5:Down 6:Left 7:Right
+  // 8:A  9:X  10:L  11:R  12:L2 13:R2 14:L3 15:R3
+  var BTN_MAP = {
+    0: 8,   // A (cross)        → RetroPad A
+    1: 0,   // B (circle)       → RetroPad B
+    2: 1,   // X (square)       → RetroPad Y
+    3: 9,   // Y (triangle)     → RetroPad X
+    4: 10,  // L1               → L
+    5: 11,  // R1               → R
+    6: 12,  // L2               → L2
+    7: 13,  // R2               → R2
+    8: 2,   // Select/Back      → Select
+    9: 3,   // Start            → Start
+    10: 14, // L3
+    11: 15, // R3
+    12: 4,  // D-Up             → Up
+    13: 5,  // D-Down           → Down
+    14: 6,  // D-Left           → Left
+    15: 7   // D-Right          → Right
+  };
+  var lastBtns = {};
+  var lastDpadFromAxis = {up:false,down:false,left:false,right:false};
+  function applyState(state){
+    try{
+      var gm = window.EJS_emulator && window.EJS_emulator.gameManager;
+      if (!gm || typeof gm.simulateInput !== 'function') return;
+      var player = 0;
+      // Botones
+      var btns = state.buttons || [];
+      for (var i=0; i<btns.length; i++){
+        var pressed = !!btns[i];
+        if (lastBtns[i] === pressed) continue;
+        lastBtns[i] = pressed;
+        var retro = BTN_MAP[i];
+        if (retro === undefined) continue;
+        try { gm.simulateInput(player, retro, pressed ? 1 : 0); } catch(_){}
+      }
+      // Stick izquierdo → D-Pad si pasa el umbral (ayuda en mandos sin D-Pad real)
+      var ax = state.axes || [];
+      var x = ax[0]||0, y = ax[1]||0;
+      var TH = 0.5;
+      var nowDpad = {
+        left:  x < -TH,
+        right: x >  TH,
+        up:    y < -TH,
+        down:  y >  TH
+      };
+      var dirs = ['up','down','left','right'];
+      var dirRetro = {up:4,down:5,left:6,right:7};
+      for (var d=0; d<dirs.length; d++){
+        var k = dirs[d];
+        if (nowDpad[k] !== lastDpadFromAxis[k]){
+          try { gm.simulateInput(player, dirRetro[k], nowDpad[k] ? 1 : 0); } catch(_){}
+          lastDpadFromAxis[k] = nowDpad[k];
+        }
+      }
+    }catch(_){}
+  }
+  window.addEventListener('message', function(ev){
+    var d = ev.data;
+    if (!d || d.type !== 'forbiddens-gamepad') return;
+    applyState(d.state || {});
+  });
+  // Avisar al padre que el bridge está listo
+  parent.postMessage({type:'forbiddens-gamepad-ready'}, '*');
 })();
 window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=false;window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
 </script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
