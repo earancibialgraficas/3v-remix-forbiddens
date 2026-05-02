@@ -19,8 +19,10 @@ interface Song {
 
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
-// 🔥 NUEVO: Función para obtener el volumen guardado en caché 🔥
+// 🔥 Volumen guardado en caché del dispositivo
 const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
+// 🔥 NUEVO: Estado de reproducción guardado (para reanudar tras re-parenting de portal)
+const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
 
 export default function ChillMusicPlayer() {
   const { onPauseMusic } = useAuth();
@@ -74,8 +76,8 @@ export default function ChillMusicPlayer() {
   
   const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
   const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
-  const [isPlaying, setIsPlaying] = useState(false);
-  // 🔥 NUEVO: Inicia con el volumen guardado 🔥
+  const [isPlaying, setIsPlaying] = useState(getStoredPlaying);
+  // 🔥 Inicia con el volumen guardado en caché del dispositivo
   const [volume, setVolume] = useState(getStoredVolume);
   const [expanded, setExpanded] = useState(false);
   const [minimized, setMinimized] = useState(false); 
@@ -143,6 +145,42 @@ export default function ChillMusicPlayer() {
     }, 1000); 
     return () => clearInterval(timer);
   }, []);
+
+  // 🔥 NUEVO: Persiste el estado de reproducción (play/pause) en caché del dispositivo
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('forbiddens_music_playing', isPlaying ? 'true' : 'false');
+    }
+  }, [isPlaying]);
+
+  // 🔥 NUEVO: Cuando el reproductor cambia de slot DOM (PC → móvil → emulador, etc.)
+  // el navegador puede pausar el <audio> al re-parentar. Aquí reanudamos exactamente
+  // donde estaba (mismo tiempo, mismo volumen) sin que el usuario lo note.
+  useEffect(() => {
+    if (!portalTarget) return;
+    if (!isPlaying) return;
+    const t = setTimeout(() => {
+      // Audio local: si quedó pausado tras el re-parent, reanudar
+      if (current?.type === 'local' && audioRef.current) {
+        audioRef.current.volume = volume / 100;
+        if (audioRef.current.paused) {
+          // Restaurar tiempo silenciosamente si se perdió
+          if (actualTimeRef.current > 0 && Math.abs(audioRef.current.currentTime - actualTimeRef.current) > 1) {
+            audioRef.current.currentTime = actualTimeRef.current;
+          }
+          audioRef.current.play().catch(() => { /* ignorar bloqueo de autoplay */ });
+        }
+      } else if (current?.type === 'youtube' && iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'playVideo' }), '*'
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
+        );
+      }
+    }, 150); // pequeño delay para que el DOM termine de re-parentar
+    return () => clearTimeout(t);
+  }, [portalTarget, current, isPlaying, volume]);
 
   useEffect(() => {
     setMinimized(isMobile);
