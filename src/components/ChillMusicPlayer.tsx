@@ -427,85 +427,152 @@ export default function ChillMusicPlayer() {
   const compactContent = (
     <div className="w-full">
       {renderYT} {renderLocal}
-      <div className="bg-black/80 border border-neon-cyan/40 rounded-lg p-1.5 flex flex-col items-stretch gap-1 shadow-[0_0_10px_rgba(34,211,238,0.25)]">
-        {/* Título scrolling-friendly */}
-        <div className="text-center">
-          <p className="text-[7px] font-pixel text-neon-cyan truncate leading-tight" title={current?.title}>
-            {current?.title || "♪ ♫"}
-          </p>
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-md",
+          "bg-gradient-to-b from-black/95 via-background/95 to-black/95",
+          "border border-neon-cyan/50",
+          "shadow-[0_0_12px_rgba(34,211,238,0.35),inset_0_0_8px_rgba(34,211,238,0.08)]",
+          "backdrop-blur-sm"
+        )}
+      >
+        {/* Header neón con scanline */}
+        <div className="relative flex items-center gap-1 px-1.5 py-1 border-b border-neon-cyan/25 bg-neon-cyan/5">
+          <Music className="w-2.5 h-2.5 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
+          <div className="relative flex-1 min-w-0 overflow-hidden">
+            <p
+              className="text-[8px] font-pixel text-neon-cyan whitespace-nowrap leading-tight drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate"
+              title={current?.title}
+            >
+              {current?.title || "♪ NO SIGNAL ♫"}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "w-1 h-1 rounded-full shrink-0 transition-colors",
+              isPlaying ? "bg-neon-green shadow-[0_0_4px_rgba(74,222,128,0.9)] animate-pulse" : "bg-muted-foreground/50"
+            )}
+          />
         </div>
 
-        {/* Visualizador mini */}
-        <canvas ref={miniCanvasRef} width={60} height={14} className="w-full h-3 rounded bg-muted/30" />
+        {/* Visualizador */}
+        <div className="px-1.5 pt-1">
+          <canvas
+            ref={miniCanvasRef}
+            width={120}
+            height={16}
+            className="w-full h-3.5 rounded-sm bg-black/60 border border-neon-cyan/20"
+          />
+        </div>
 
-        {/* Controles play */}
-        <div className="flex items-center justify-between gap-1">
-          <button onClick={prev} className="p-1 rounded text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors" title="Anterior">
-            <SkipBack className="w-3 h-3" />
+        {/* Transport controls */}
+        <div className="flex items-center justify-center gap-1.5 px-1.5 py-1.5">
+          <button
+            onClick={prev}
+            className="p-1 rounded-md text-neon-cyan/70 hover:text-neon-cyan hover:bg-neon-cyan/10 hover:shadow-[0_0_6px_rgba(34,211,238,0.5)] transition-all active:scale-90"
+            title="Anterior"
+          >
+            <SkipBack className="w-3 h-3 fill-current" />
           </button>
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 transition-colors"
+            className={cn(
+              "relative p-1.5 rounded-full border transition-all active:scale-90",
+              isPlaying
+                ? "bg-neon-magenta/20 border-neon-magenta/60 text-neon-magenta shadow-[0_0_10px_rgba(236,72,153,0.6)]"
+                : "bg-neon-green/20 border-neon-green/60 text-neon-green shadow-[0_0_10px_rgba(74,222,128,0.6)]"
+            )}
             title={isPlaying ? "Pausar" : "Reproducir"}
           >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-[1px]" />}
           </button>
-          <button onClick={next} className="p-1 rounded text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 transition-colors" title="Siguiente">
-            <SkipForward className="w-3 h-3" />
+          <button
+            onClick={next}
+            className="p-1 rounded-md text-neon-cyan/70 hover:text-neon-cyan hover:bg-neon-cyan/10 hover:shadow-[0_0_6px_rgba(34,211,238,0.5)] transition-all active:scale-90"
+            title="Siguiente"
+          >
+            <SkipForward className="w-3 h-3 fill-current" />
           </button>
         </div>
 
-        {/* Volumen +/- con indicador */}
-        <div className="flex items-center justify-between gap-1 bg-muted/20 rounded px-1 py-0.5">
-          <button
-            onClick={() => setVolume(v => Math.max(0, v - 10))}
-            className="w-5 h-5 flex items-center justify-center rounded bg-neon-magenta/20 text-neon-magenta hover:bg-neon-magenta/40 font-pixel text-[10px] leading-none transition-colors"
-            title="Bajar volumen"
-          >
-            −
-          </button>
-          <div className="flex items-center gap-0.5 flex-1 justify-center">
-            {isMuted ? <VolumeX className="w-2.5 h-2.5 text-muted-foreground" /> : <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />}
-            <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}</span>
+        {/* Volumen con barra LED */}
+        <div className="px-1.5 pb-1.5">
+          <div className="flex items-center gap-1 bg-black/50 border border-neon-yellow/25 rounded px-1 py-0.5">
+            <button
+              onClick={() => setVolume(v => Math.max(0, v - 10))}
+              className="w-4 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/20 border border-neon-magenta/40 text-neon-magenta hover:bg-neon-magenta/40 font-pixel text-[10px] leading-none transition-all active:scale-90"
+              title="Bajar volumen"
+            >
+              −
+            </button>
+            {/* Barra LED de volumen (10 segmentos) */}
+            <div className="flex-1 flex items-center gap-[1.5px] h-3 px-0.5">
+              {Array.from({ length: 10 }).map((_, i) => {
+                const active = volume >= (i + 1) * 10;
+                const color =
+                  i < 6 ? "bg-neon-green shadow-[0_0_3px_rgba(74,222,128,0.8)]"
+                  : i < 8 ? "bg-neon-yellow shadow-[0_0_3px_rgba(250,204,21,0.8)]"
+                  : "bg-neon-magenta shadow-[0_0_3px_rgba(236,72,153,0.8)]";
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex-1 h-full rounded-[1px] transition-all",
+                      active ? color : "bg-muted/20"
+                    )}
+                  />
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setVolume(v => Math.min(100, v + 10))}
+              className="w-4 h-4 flex items-center justify-center rounded-sm bg-neon-green/20 border border-neon-green/40 text-neon-green hover:bg-neon-green/40 font-pixel text-[10px] leading-none transition-all active:scale-90"
+              title="Subir volumen"
+            >
+              +
+            </button>
           </div>
-          <button
-            onClick={() => setVolume(v => Math.min(100, v + 10))}
-            className="w-5 h-5 flex items-center justify-center rounded bg-neon-green/20 text-neon-green hover:bg-neon-green/40 font-pixel text-[10px] leading-none transition-colors"
-            title="Subir volumen"
-          >
-            +
-          </button>
+          <div className="flex items-center justify-center gap-1 mt-0.5">
+            {isMuted || volume === 0 ? (
+              <VolumeX className="w-2.5 h-2.5 text-muted-foreground" />
+            ) : (
+              <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />
+            )}
+            <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
+          </div>
         </div>
 
-        {/* Selector compacto de playlist */}
-        <div className="relative">
+        {/* Selector de playlist */}
+        <div className="relative px-1.5 pb-1.5">
           <button
             onClick={() => setShowCategoryMenu(!showCategoryMenu)}
-            className="w-full flex items-center justify-between bg-muted/20 hover:bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 transition-colors"
+            className="w-full flex items-center justify-between gap-1 bg-black/50 hover:bg-neon-cyan/10 border border-neon-cyan/30 hover:border-neon-cyan/60 rounded px-1.5 py-1 transition-all"
             title="Cambiar playlist"
           >
             <div className="flex items-center gap-1 min-w-0">
-              <ListFilter className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
-              <span className="text-[8px] font-body text-foreground truncate">
-                {currentCategory === "Todos" ? "Todos" : currentCategory}
+              <ListFilter className="w-2.5 h-2.5 text-neon-magenta shrink-0" />
+              <span className="text-[8px] font-pixel text-neon-cyan truncate uppercase tracking-wider">
+                {currentCategory}
               </span>
             </div>
-            {showCategoryMenu ? <ChevronUp className="w-2.5 h-2.5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 text-muted-foreground shrink-0" />}
+            {showCategoryMenu
+              ? <ChevronUp className="w-2.5 h-2.5 text-neon-cyan shrink-0" />
+              : <ChevronDown className="w-2.5 h-2.5 text-neon-cyan shrink-0" />}
           </button>
           {showCategoryMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-background border border-neon-cyan/40 rounded shadow-2xl overflow-hidden z-[400] animate-fade-in">
+            <div className="absolute bottom-full left-1.5 right-1.5 mb-1 bg-black/95 border border-neon-cyan/50 rounded shadow-[0_0_15px_rgba(34,211,238,0.4)] overflow-hidden z-[400] animate-fade-in backdrop-blur-md">
               {categories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => handleCategoryChange(cat)}
                   className={cn(
-                    "w-full text-left px-2 py-1 text-[8px] font-body transition-colors border-b border-border/30 last:border-0",
+                    "w-full text-left px-2 py-1 text-[8px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
                     currentCategory === cat
-                      ? "bg-neon-cyan/15 text-neon-cyan"
-                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                      ? "bg-neon-cyan/20 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
+                      : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
                   )}
                 >
-                  {cat === "Todos" ? "Todos los géneros" : cat}
+                  {cat === "Todos" ? "★ Todos" : cat}
                 </button>
               ))}
             </div>
