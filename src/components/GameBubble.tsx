@@ -996,45 +996,15 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   }, [paused, romLoaded]);
 
   const toggleEmulatorMenu = useCallback(() => {
-    // 🎮 EmulatorJS (N64/PS1/Arcade): abrir directamente el panel de Ajustes de Control
+    // 🎮 EmulatorJS (N64/PS1/Arcade): mostrar/ocultar la barra inferior NATIVA del emulador
+    // (la que tiene Save/Load/Cheats/Controls/etc.). NO abrimos directamente Control Settings.
     if (usesEmulatorJs) {
       const win = emulatorFrameRef.current?.contentWindow as any;
-      const ejs = win?.EJS_emulator;
-      try {
-        // 1) Vía API directa si existe
-        if (ejs?.controlMenu?.style) {
-          ejs.controlMenu.style.display = "flex";
-          return;
-        }
-        if (typeof ejs?.openControls === "function") {
-          ejs.openControls();
-          return;
-        }
-        if (typeof ejs?.controls?.open === "function") {
-          ejs.controls.open();
-          return;
-        }
-
-        // 2) Fallback: simular click en el botón "Control Settings" del menú nativo
-        const doc = win?.document;
-        if (doc) {
-          const selectors = [
-            '.ejs_menu_button[title="Control Settings" i]',
-            '.ejs_menu_button[aria-label="Control Settings" i]',
-            'button[title="Control Settings" i]',
-            'button[aria-label="Control Settings" i]',
-          ];
-          for (const sel of selectors) {
-            const btn = doc.querySelector(sel) as HTMLElement | null;
-            if (btn) {
-              btn.click();
-              return;
-            }
-          }
-        }
-        toast({ title: "Ajustes de control no disponibles", variant: "destructive" });
-      } catch {
-        toast({ title: "No se pudo abrir los ajustes de control", variant: "destructive" });
+      const doc = win?.document;
+      if (doc) {
+        try {
+          doc.documentElement.classList.toggle("forbiddens-show-menu");
+        } catch {}
       }
       return;
     }
@@ -1047,7 +1017,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       }, 100);
       canvas.focus();
     }
-  }, [romLoaded, usesEmulatorJs, toast]);
+  }, [romLoaded, usesEmulatorJs]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
