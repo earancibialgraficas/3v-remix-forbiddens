@@ -652,48 +652,38 @@ html.forbiddens-show-menu .ejs_menu_button[title*="Cargar estado" i]{display:non
 
   // 🛡️ Bloquear menú contextual del navegador (click derecho / long-press)
   // dentro del iframe del emulador para evitar acceso a "Save State to disk".
-  ['contextmenu'].forEach(function(ev){
-    window.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
-    document.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); }, true);
-  });
+  window.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
 
-  // 🛡️ Neutralizar funciones de Save/Load State del core de EmulatorJS.
-  // Los puntajes ya se guardan vía nuestro sistema (leaderboard_scores).
-  // Esto evita que el menú nativo escriba state files pesados al disco/BD.
-  function neutralizeStateAPI(){
+  // 🛡️ Eliminar del DOM cualquier botón peligroso del menú nativo que se cuele.
+  // (Doble red: además del CSS, los quitamos por completo del árbol.)
+  function purgeDangerousButtons(){
     try{
-      var ejs = window.EJS_emulator;
-      if (!ejs || ejs.__forbiddensNeutralized) return;
-      var noop = function(){ return null; };
-      var asyncNoop = function(){ return Promise.resolve(null); };
-      // Métodos directos del emulador
-      ['getState','setState','saveState','loadState','quickSave','quickLoad',
-       'saveStateUrl','loadStateUrl','downloadFile','screenshot'].forEach(function(k){
-        if (typeof ejs[k] === 'function') ejs[k] = noop;
-      });
-      // Métodos del gameManager
-      var gm = ejs.gameManager;
-      if (gm){
-        ['getState','saveState','loadState','quickSave','quickLoad',
-         'saveSaveFiles','loadSaveFiles'].forEach(function(k){
-          if (typeof gm[k] === 'function') gm[k] = noop;
-        });
-        if (typeof gm.getStateInfo === 'function') gm.getStateInfo = function(){ return ''; };
+      var sel = [
+        '[title*="Context" i]','[aria-label*="Context" i]',
+        '[title*="Save State" i]','[aria-label*="Save State" i]',
+        '[title*="Load State" i]','[aria-label*="Load State" i]',
+        '[title*="Quick Save" i]','[title*="Quick Load" i]',
+        '[title*="Guardar estado" i]','[title*="Cargar estado" i]',
+        '.ejs_save_state_button','.ejs_load_state_button',
+        '.ejs_quick_save_button','.ejs_quick_load_button',
+        '.ejs_context_menu_button','.ejs_contextmenu_button'
+      ].join(',');
+      var nodes = document.querySelectorAll(sel);
+      for (var i=0; i<nodes.length; i++){
+        var n = nodes[i];
+        // Sólo dentro de la barra de menú nativa
+        if (n.closest && n.closest('.ejs_menu_bar,div[class*="menu_bar" i]')){
+          n.style.display = 'none';
+          n.style.pointerEvents = 'none';
+          n.setAttribute('aria-hidden','true');
+          n.tabIndex = -1;
+        }
       }
-      ejs.__forbiddensNeutralized = true;
     }catch(_){}
   }
-  // Reintentar hasta que EJS esté listo, luego seguir vigilando.
-  var neutralizeTimer = setInterval(function(){
-    if (window.EJS_emulator) {
-      neutralizeStateAPI();
-    }
-  }, 300);
-  // Tras 30s asumimos que está estable pero seguimos cada 2s por si recrea métodos.
-  setTimeout(function(){
-    clearInterval(neutralizeTimer);
-    setInterval(neutralizeStateAPI, 2000);
-  }, 30000);
+  setInterval(purgeDangerousButtons, 500);
+  new MutationObserver(purgeDangerousButtons).observe(document.documentElement,{childList:true,subtree:true});
 
 
   // 🎮 PUENTE DE GAMEPAD PADRE → IFRAME
