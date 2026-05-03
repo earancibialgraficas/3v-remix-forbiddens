@@ -325,7 +325,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
              <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
           ) : (
              <img 
-               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous" data-fallback-step="0"
                className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
                onError={(e) => handleImgFallback(e, targetUrl)}
              />
