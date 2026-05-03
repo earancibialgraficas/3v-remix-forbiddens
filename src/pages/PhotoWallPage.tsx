@@ -171,14 +171,14 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
       style={neonStyle}
       onClick={onExpand}
     >
-      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
+      <div className="relative w-full overflow-hidden rounded-xl bg-black">
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
           data-fallback-step="0"
-          className="absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          className="block w-full h-auto rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onLoad={(e) => handleThumbnailLoad(e, targetUrl)}
           onError={(e) => handleImgFallback(e, targetUrl)}
