@@ -326,26 +326,25 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y GLOW ROJO AL ABRIR UN REPORTE 🔥
+  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        const postElement = document.getElementById(`post-${directPostId}`);
-        if (postElement) {
-          postElement.scrollIntoView({ behavior: "smooth", block: "center" });
-          // Aplicamos el parpadeo rojo por 3 segundos
-          postElement.classList.add('ring-2', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
-          setTimeout(() => postElement.classList.remove('ring-2', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
-          
-          // Limpiamos la URL para que no vuelva a scrollear si el usuario recarga la página
+        // Si hay comentario específico, priorizamos eso
+        const commentEl = directCommentId ? document.getElementById(`comment-${directCommentId}`) : null;
+        const targetEl = commentEl || document.getElementById(`post-${directPostId}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          targetEl.classList.add('arcade-report-highlight');
+          setTimeout(() => targetEl.classList.remove('arcade-report-highlight'), 3500);
           window.history.replaceState({}, '', location.pathname);
         }
-      }, 500);
+      }, directCommentId ? 900 : 500);
     }
-  }, [directPostId, posts, location.pathname]);
+  }, [directPostId, directCommentId, posts, location.pathname]);
 
   const handleNewPostClick = () => {
     const rulesKey = `rules_accepted_${user?.id}`;
