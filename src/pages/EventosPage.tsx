@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 type EventType = "all" | "torneo" | "estreno" | "rodada" | "stream" | "sorteo" | "comunidad" | "podcast" | "otro";
 
 const eventTabs: { id: EventType; label: string; icon: React.ElementType; color: string }[] = [
-  { id: "all", label: "Todos", icon: Calendar, color: "text-foreground" },
+  { id: "all", label: "Todos los eventos", icon: Calendar, color: "text-foreground" },
   { id: "torneo", label: "Torneos Gaming", icon: Gamepad2, color: "text-neon-green" },
   { id: "estreno", label: "Estrenos", icon: Tv, color: "text-neon-cyan" },
   { id: "rodada", label: "Rodadas", icon: Bike, color: "text-neon-magenta" },
@@ -124,7 +124,7 @@ export default function EventosPage() {
 [COLOR:#ffffff]💬 Descripción:
 ${sgDescription || 'Sin descripción.'}[/COLOR]
 
-[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${typeof window !== 'undefined' ? window.location.origin + '/eventos' : ''}]Ir a Eventos[/LINK]`;
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/eventos]Ir a Eventos[/LINK]`;
 
       const { error } = await supabase.rpc("send_system_staff_message", {
         p_title: `Sugerencia de evento: ${sgTitle}`,
@@ -202,7 +202,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         event_date: crDate || null,
         event_time: crTime || null,
         location: crLocation || null,
-        image_url: crColor, // reutilizamos para guardar la clase de color del título
+        image_url: crColor,
       };
 
       if (editingId) {
@@ -232,23 +232,29 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
       </div>
 
       <div className="flex gap-2 flex-wrap items-center">
-        {/* 🔥 FILTRO DESPLEGABLE EN LUGAR DE MÚLTIPLES BOTONES 🔥 */}
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as EventType)}
-          className="h-8 rounded-md border border-border bg-card text-xs font-body px-3 text-foreground outline-none focus:border-neon-cyan/50 transition-colors"
-        >
-          {eventTabs.map(tab => (
-            <option key={tab.id} value={tab.id}>{tab.label}</option>
-          ))}
-        </select>
-        
+        {/* 🔥 FILTRO DESPLEGABLE PARA AHORRAR ESPACIO 🔥 */}
+        <div className="relative group">
+          <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value as EventType)}
+            className="h-9 rounded-md border border-border bg-card text-xs font-body px-3 text-foreground outline-none focus:border-neon-cyan/50 transition-colors cursor-pointer appearance-none pr-8 min-w-[160px]"
+          >
+            {eventTabs.map(tab => (
+              <option key={tab.id} value={tab.id} className="bg-card text-foreground">{tab.label}</option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+             <Calendar className="w-3.5 h-3.5" />
+          </div>
+        </div>
+
         <div className="flex-1" />
-        
+
         <Button size="sm" variant="outline" onClick={() => setSuggestOpen(true)}
           className="text-xs font-body border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/10">
           <Sparkles className="w-3 h-3 mr-1" /> Sugerir evento
         </Button>
+
         {isStaff && (
           <Button size="sm" onClick={openCreateDialog}
             className="text-xs font-body font-bold bg-neon-magenta text-background hover:bg-neon-magenta/80 shadow-[0_0_15px_rgba(236,72,153,0.4)]">
@@ -262,7 +268,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
           const Icon = typeIcons[event.event_type] || Calendar;
           const titleColor = (event.image_url && event.image_url.startsWith("text-")) ? event.image_url : null;
           return (
-            <div key={event.id} className="bg-card border border-border rounded p-4 hover:border-neon-cyan/30 transition-all duration-300">
+            <div key={event.id} className="bg-card border border-border rounded p-4 hover:border-neon-cyan/30 transition-all duration-300 group relative">
               <div className="flex items-start gap-3">
                 <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", typeColors[event.event_type] || "text-foreground")} />
                 <div className="min-w-0 flex-1">
@@ -275,19 +281,27 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                     {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                   </div>
 
-                  {/* 🔥 BOTONES DE EDICIÓN Y ELIMINACIÓN PARA EL STAFF 🔥 */}
-                  {/* Se ocultan en los placeholders ("p1", "p2") porque no existen en la base de datos real */}
+                  {/* 🔥 BOTONES PARA STAFF (Solo en eventos reales de la DB) 🔥 */}
                   {isStaff && !event.id.startsWith("p") && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(event)} className="h-6 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10">
-                        <Edit className="w-3 h-3 mr-1" /> Editar
+                    <div className="flex gap-2 mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEditClick(event)} 
+                        className="h-7 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1" /> Editar
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(event.id)} className="h-6 text-[10px] font-body px-2 text-destructive hover:bg-destructive/10">
-                        <Trash2 className="w-3 h-3 mr-1" /> Eliminar
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDelete(event.id)} 
+                        className="h-7 text-[10px] font-body px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar
                       </Button>
                     </div>
                   )}
-
                 </div>
               </div>
             </div>
@@ -295,7 +309,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         })}
       </div>
 
-      {/* SUGERIR EVENTO */}
+      {/* MODAL: SUGERIR EVENTO */}
       <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)]">
           <DialogHeader>
@@ -326,7 +340,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         </DialogContent>
       </Dialog>
 
-      {/* CREAR/EDITAR EVENTO (STAFF) */}
+      {/* MODAL: CREAR/EDITAR EVENTO (STAFF) */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="bg-card border-neon-magenta/30 max-w-lg shadow-[0_0_50px_rgba(236,72,153,0.15)]">
           <DialogHeader>
