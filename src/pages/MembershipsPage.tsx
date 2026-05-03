@@ -37,6 +37,21 @@ const tiers = [
     ],
   },
   {
+    name: "Lite", basePrice: 5, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
+    features: [
+      { label: "Emuladores", value: "3 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
+      { label: "Avatar/Perfil", value: "28 Avatares Pixel-Art" },
+      { label: "Subir Avatar", value: "No", bad: true },
+      { label: "Post en Foro", value: "Texto + Imagenes" },
+      { label: "Comentarios", value: "500 Caracteres Maximo" },
+      { label: "Amigos", value: "Maximo 25" },
+      { label: "Almacenamiento", value: "75 MB" },
+      { label: "Social Hub", value: "15 Imagenes/Videos" },
+      { label: "Muro Fotografico", value: "15 Fotos" },
+    ],
+  },
+  {
     name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
     features: [

@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
+import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -163,10 +164,25 @@ const TIMEZONES = [
 ];
 
 export default function EmulatorPage() {
-  const { user } = useAuth();
+  const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
+  const requiresLite = (consoleId: string) => (EXTRA_CONSOLES as readonly string[]).includes(consoleId);
+  const blockIfLocked = (consoleId: string): boolean => {
+    if (requiresLite(consoleId) && !canPlayExtraConsole(profile?.membership_tier, isStaff)) {
+      toast({
+        title: "🔒 Membresía requerida",
+        description: `${consoleId.toUpperCase()} está disponible desde la membresía LITE ($5 USD). Visita la página de Membresías para mejorar tu cuenta.`,
+        variant: "destructive",
+      });
+      navigate("/membresias");
+      return true;
+    }
+    return false;
+  };
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -200,6 +216,12 @@ export default function EmulatorPage() {
     if (gameId && user) {
       const game = allGames.find((g) => g.id === gameId);
       if (game) {
+        if (blockIfLocked(game.console)) {
+          const np = new URLSearchParams(searchParams);
+          np.delete('game');
+          navigate(`${location.pathname}?${np.toString()}`, { replace: true });
+          return;
+        }
         const sys = systems.find(s => s.id === game.console);
         launchGame({
           romUrl: game.romUrl,
@@ -261,6 +283,7 @@ export default function EmulatorPage() {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para acceder a esta sección.", variant: "destructive" });
       return;
     }
+    if (blockIfLocked("ps2")) return;
     setPs2Copied(false);
     setPs2DialogOpen(true);
   };
@@ -279,6 +302,10 @@ export default function EmulatorPage() {
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+    if (blockIfLocked(currentSystem.id)) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     const file = e.target.files?.[0];
@@ -444,6 +471,14 @@ export default function EmulatorPage() {
                     title="Emulador en fase experimental — la compatibilidad y el rendimiento varían"
                   >
                     Experimental
+                  </span>
+                )}
+                {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    title="Requiere membresía LITE o superior"
+                  >
+                    🔒 Requiere LITE
                   </span>
                 )}
               </div>
