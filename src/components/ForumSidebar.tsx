@@ -229,7 +229,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                           <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[999]">
+                      <TooltipContent side="right" sideOffset={8} className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[9999]">
                         <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>{item.label}</p>
                         {hasChildren && (
                           <div className="flex flex-col gap-0.5">
