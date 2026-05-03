@@ -345,7 +345,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     } catch (e) { }
   };
 
-  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
+  // Solo usamos iframe si NO tenemos ninguna URL de imagen real (ni thumbnail, ni resuelta por Apify)
+  const hasRealImage = !!photo.thumbnail_url || (resolvedTargetUrl && resolvedTargetUrl !== initialTargetUrl);
+  const isEmbed = !hasRealImage && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   if (typeof document === "undefined") return null;
