@@ -303,16 +303,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
                         {user && user.id !== c.user_id && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="text-[8px] text-muted-foreground hover:text-foreground p-0.5" title="Opciones">⋮</button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="z-[6500] bg-card border-border min-w-[140px]">
-                              <DropdownMenuItem onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-destructive focus:bg-destructive/10 cursor-pointer text-[11px]">
-                                <Flag className="w-3 h-3 mr-2" /> Reportar comentario
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <button onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar comentario">
+                            <Flag className="w-2.5 h-2.5" />
+                          </button>
                         )}
                         {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
