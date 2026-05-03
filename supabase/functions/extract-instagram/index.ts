@@ -30,20 +30,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fast path: try oEmbed first (free, no quota). Often returns thumbnail.
-    try {
-      const oembed = await fetch(`https://www.instagram.com/oembed/?url=${encodeURIComponent(url)}`);
-      if (oembed.ok) {
-        const data = await oembed.json();
-        if (data?.thumbnail_url) {
-          return new Response(JSON.stringify({ imageUrl: data.thumbnail_url, source: 'oembed' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-      }
-    } catch (_) { /* fall through to Apify */ }
-
-    // Fallback: Apify synchronous run
+    // Primary path: Apify synchronous run. It usually returns the real display image.
     const apifyUrl = `https://api.apify.com/v2/acts/${ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=45`;
     const apifyRes = await fetch(apifyUrl, {
       method: 'POST',
@@ -59,23 +46,33 @@ Deno.serve(async (req) => {
     if (!apifyRes.ok) {
       const txt = await apifyRes.text();
       console.error('Apify error', apifyRes.status, txt);
-      return new Response(JSON.stringify({ error: 'Apify request failed', detail: txt }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    } else {
+      const items = await apifyRes.json();
+      const first = Array.isArray(items) ? items[0] : null;
+      const imageUrl = first?.displayUrl || first?.images?.[0] || first?.thumbnailUrl || null;
+
+      if (imageUrl) {
+        return new Response(JSON.stringify({ imageUrl, source: 'apify' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
-    const items = await apifyRes.json();
-    const first = Array.isArray(items) ? items[0] : null;
-    const imageUrl = first?.displayUrl || first?.images?.[0] || first?.thumbnailUrl || null;
+    // Last fallback: extract the Instagram oEmbed thumbnail.
+    try {
+      const oembed = await fetch(`https://www.instagram.com/oembed/?url=${encodeURIComponent(url)}`);
+      if (oembed.ok) {
+        const data = await oembed.json();
+        if (data?.thumbnail_url) {
+          return new Response(JSON.stringify({ imageUrl: data.thumbnail_url, source: 'oembed-thumbnail' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    } catch (_) { /* final error below */ }
 
-    if (!imageUrl) {
-      return new Response(JSON.stringify({ error: 'No image found in Apify response' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ imageUrl, source: 'apify' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'No image found for Instagram URL' }), {
+      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('extract-instagram unexpected', err);
