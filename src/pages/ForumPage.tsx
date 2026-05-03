@@ -786,7 +786,7 @@ export default function ForumPage() {
                 {expandedPost === post.id && (
                   <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
                     {(comments[post.id] || []).map((comment) => (
-                      <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
+                      <div key={comment.id} id={`comment-${comment.id}`} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
