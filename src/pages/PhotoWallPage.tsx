@@ -89,6 +89,16 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
           }}
         />
         
+        {/* Botón Reportar siempre visible en miniaturas */}
+        {user && !isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onReport(); }}
+            className="absolute top-2 right-2 p-1 bg-black/60 backdrop-blur-sm rounded-md text-white/80 hover:text-destructive transition-colors z-30 opacity-80 hover:opacity-100"
+            title="Reportar imagen"
+          >
+            <Flag className="w-3 h-3" />
+          </button>
+        )}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl">
           <div className="flex justify-between items-start">
             
