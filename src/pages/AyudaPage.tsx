@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 
 const faqs = [
   { q: "¿Cómo juego en los emuladores?", a: "Ve a Salas de Juego en el menú lateral, escoge un juego de la Biblioteca o sube tu propia ROM. El emulador se abrirá automáticamente en el navegador." },
-  { q: "¿Cómo subo de rango?", a: "Acumula puntos jugando en los emuladores y participando en el foro. Los puntos se actualizan en tiempo real en el Leaderboard." },
+  { q: "¿Cómo subo de clasificación?", a: "Acumula puntos jugando en los emuladores o en la pagina de biblioteca. Los puntos se actualizan en tiempo real en el Leaderboard." },
   { q: "¿Qué incluye cada membresía?", a: "Cada plan ofrece diferentes beneficios como avatares animados, más espacio de subida, acceso VIP y más. Revisa la sección de Membresías para ver los detalles." },
-  { q: "¿Cómo linkeo mis redes sociales?", a: "Ve a Configuración > Redes Sociales y agrega tus URLs de Instagram, YouTube y TikTok." },
+  { q: "¿Cómo linkeo mis redes sociales?", a: "Ve a tu perfil, Configuración > Redes Sociales y agrega tus URLs de Instagram, YouTube y TikTok." },
   { q: "¿Cómo reporto a un usuario?", a: "En cualquier post, haz clic en el botón de reporte (bandera). Los administradores revisarán tu reporte." },
   { q: "¿Puedo cambiar mi nombre de usuario?", a: "Sí, depende de tu membresía. Los usuarios gratuitos no pueden cambiarlo, mientras que miembros de pago pueden hacerlo según su plan." },
 ];
@@ -71,7 +71,7 @@ export default function AyudaPage() {
         },
         body: JSON.stringify({
           from: "onboarding@resend.dev",
-          to: ["forobiddens@gmail.com"],
+          to: ["forbiddens.mcraft@gmail.com"],
           subject: `Nueva Consulta de Soporte Forbiddens - ${name}`,
           html: `
             <h2>Nueva solicitud de contacto</h2>
@@ -156,7 +156,7 @@ export default function AyudaPage() {
             <div className="space-y-2 text-xs font-body text-muted-foreground leading-relaxed">
               <p>¿Tienes una pregunta, sugerencia o necesitas reportar algo? Estamos aquí para ayudarte.</p>
               <ul className="space-y-1 pl-2">
-                <li>📩 <span className="text-foreground">Email general:</span> forobiddens@gmail.com</li>
+                <li>📩 <span className="text-foreground">Email general:</span> forbiddens.mcraft@gmail.com</li>
                 <li>🛠️ <span className="text-foreground">Soporte técnico:</span> usa el formulario de abajo</li>
                 <li>⏱️ <span className="text-foreground">Tiempo de respuesta:</span> 24–48 horas</li>
               </ul>
