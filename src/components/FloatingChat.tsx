@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -38,7 +40,10 @@ interface Conversation {
 const FONT_SIZES = [10, 11, 12, 13, 14] as const;
 
 export default function FloatingChat() {
-  const { user } = useAuth();
+  const { user, profile, roles, isAdmin, isMasterWeb } = useAuth() as any;
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  const tier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const dmLimit = (isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[tier])?.maxDmChars ?? 200;
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -286,6 +291,10 @@ export default function FloatingChat() {
   const handleSend = async () => {
     if (!user || !partnerId || !text.trim()) return;
     const content = text.trim();
+    if (content.length > dmLimit) {
+      toast.error(`Tu membresía permite ${dmLimit} caracteres por mensaje.`);
+      return;
+    }
     setText("");
     const tempId = `temp-${Date.now()}`;
     // UI optimista para que se vea al instante
@@ -483,17 +492,21 @@ export default function FloatingChat() {
             <div ref={endRef} />
           </div>
 
-          <div className="flex items-center gap-1.5 p-2 border-t border-border bg-card shrink-0">
-            <input
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Escribe un mensaje..."
-              className="flex-1 h-8 bg-muted/50 rounded-md px-2 text-[11px] font-body text-foreground outline-none border border-border focus:border-neon-cyan/50 transition-colors"
-            />
-            <button onClick={handleSend} disabled={!text.trim()} className="p-2 rounded-md bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/30 disabled:opacity-50 transition-colors">
-              <Send className="w-3.5 h-3.5" />
-            </button>
+          <div className="flex flex-col gap-1 p-2 border-t border-border bg-card shrink-0">
+            <div className="flex items-center gap-1.5">
+              <input
+                value={text}
+                onChange={e => setText(e.target.value.slice(0, dmLimit))}
+                maxLength={dmLimit}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 h-8 bg-muted/50 rounded-md px-2 text-[11px] font-body text-foreground outline-none border border-border focus:border-neon-cyan/50 transition-colors"
+              />
+              <button onClick={handleSend} disabled={!text.trim()} className="p-2 rounded-md bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/30 disabled:opacity-50 transition-colors">
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <span className={cn("text-[8px] text-right font-pixel pr-1", text.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{text.length}/{dmLimit}</span>
           </div>
         </>
       )}
