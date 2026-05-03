@@ -56,6 +56,7 @@ const tiers = [
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
     features: [
       { label: "Emuladores", value: "6 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
       { label: "Subir Avatar", value: "Si (500x500px)" },
       { label: "Post en Foro", value: "Ilimitado - Formato Completo" },
@@ -74,6 +75,7 @@ const tiers = [
     requirements: "Requisitos: 1000+ Seguidores y 50 Horas",
     features: [
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
       { label: "Subir Avatar", value: "Si (500x500px)" },
       { label: "Post en Foro", value: "Todo + HTML + Embeds" },
@@ -90,6 +92,7 @@ const tiers = [
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "55 Avatares" },
       { label: "Subir Avatar", value: "Si" }, // 🔥 CAMBIADO DE "NO" A "SI"
       { label: "Post en Foro", value: "Ilimitado - Texto + Imagenes" },
@@ -104,6 +107,7 @@ const tiers = [
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
     features: [
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "60 Avatares" },
       { label: "Subir Avatar", value: "Si (500x500px)" },
       { label: "Post en Foro", value: "Formato Completo + Multimedia" },
@@ -119,6 +123,7 @@ const tiers = [
     requirements: "Requisitos: 750+ Seguidores y 30 Horas",
     features: [
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
+      { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
       { label: "Subir Avatar", value: "Si (500x500px)" },
       { label: "Post en Foro", value: "Todo tipo de contenido" },
