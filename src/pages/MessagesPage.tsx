@@ -216,7 +216,11 @@ export default function MessagesPage() {
 
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
-    const content = newMessage.trim();
+    let content = newMessage.trim();
+    if (content.length > dmLimit) {
+      toast({ title: "Límite alcanzado", description: `Tu membresía permite ${dmLimit} caracteres por mensaje.`, variant: "destructive" });
+      return;
+    }
     setNewMessage("");
     // UI optimista
     const tempId = `temp-${Date.now()}`;
@@ -301,9 +305,12 @@ export default function MessagesPage() {
               ))}
               <div ref={endRef} />
             </div>
-            <div className="p-2 border-t border-border flex gap-2">
-              <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Mensaje..." className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-              <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+            <div className="p-2 border-t border-border flex flex-col gap-1">
+              <div className="flex gap-2">
+                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+              </div>
+              <span className={cn("text-[9px] text-right font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
             </div>
           </div>
         )}
