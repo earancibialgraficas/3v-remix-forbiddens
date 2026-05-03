@@ -759,9 +759,10 @@ export default function FeedPage() {
   }, [items, filter, sourceTab, friendIds]);
 
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post") || searchParams.get("focus"); // Capturamos ambos por si acaso
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
 
-  // 🔥 EFECTO MÁGICO DE SCROLL Y BRILLO PARA REPORTES 🔥
+  // 🔥 EFECTO MÁGICO DE SCROLL Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -772,19 +773,33 @@ export default function FeedPage() {
           const postElement = document.getElementById(`feed-post-${directPostId}`);
           if (postElement && containerRef.current) {
             
-            // 1. Hacemos el scroll perfecto al elemento
             containerRef.current.scrollTo({ top: postElement.offsetTop, behavior: "auto" });
             setVisibleIndex(index);
             setHasScrolled(true);
             
-            // 2. Le agregamos el borde rojo parpadeante a la tarjeta hija
-            const cardElement = postElement.firstElementChild;
+            const cardElement = postElement.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // 3. Limpiamos la URL para no scrollear eternamente si recargas la página
+            // Si hay comentario, scroll al comentario en el panel
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 60) {
+                  setTimeout(tryComment, 150);
+                }
+              };
+              setTimeout(tryComment, 700);
+            }
+
             window.history.replaceState({}, '', location.pathname);
 
           } else if (attempts < 50) {
@@ -795,13 +810,12 @@ export default function FeedPage() {
         };
         requestAnimationFrame(attemptScroll);
       } else if (hasMore && !isFetching) {
-         // Si el post no está en la página actual, forzamos cargar más
          loadMore(); 
       } else {
          setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled, hasMore, isFetching]);
+  }, [directPostId, directCommentId, filteredItems, hasScrolled, hasMore, isFetching]);
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
