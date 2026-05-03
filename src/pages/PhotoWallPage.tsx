@@ -270,7 +270,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
-  const targetUrl = photo.thumbnail_url || photo.image_url;
+  const initialTargetUrl = photo.thumbnail_url || photo.image_url;
+  const [resolvedTargetUrl, setResolvedTargetUrl] = useState(initialTargetUrl);
+  const targetUrl = resolvedTargetUrl || initialTargetUrl;
   const originalUrl = photo.content_url || targetUrl;
   const neonStyle = getPhotoNeonStyle(photo);
   const isOwner = user?.id === photo.user_id;
@@ -281,6 +283,21 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'auto'; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setResolvedTargetUrl(initialTargetUrl);
+
+    if (!isInstagramPermalink(initialTargetUrl)) return;
+
+    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
+      .then(({ data, error }) => {
+        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
+  }, [initialTargetUrl]);
 
   const fetchComments = async () => {
     const { data: rawComments } = await supabase.from("social_comments").select("*").eq("content_id", photo.id).order("created_at", { ascending: true });
