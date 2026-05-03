@@ -150,7 +150,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ir a la consola sugerida[/LINK]`;
 
-      await supabase.rpc("send_system_staff_message", {
+      await supabase.rpc("send_system_admin_message" as any, {
         p_title: `Sugerencia de juego: ${gameName}`,
         p_content: messageContent,
         p_message_type: 'game_suggestion',
