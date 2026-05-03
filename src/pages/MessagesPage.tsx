@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
 interface Message {
@@ -30,8 +30,8 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
-// 🔥 Función Traductora de Colores y Enlaces con Scroll Automático 🔥
-const renderFormattedText = (content: string) => {
+// 🔥 Función Traductora de Colores y Enlaces (Ahora usa React Router para evitar 404) 🔥
+const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
   const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
   let currentColor = "";
   let currentLink = "";
@@ -58,31 +58,36 @@ const renderFormattedText = (content: string) => {
     if (!part) return null;
     
     if (currentLink) {
+      // Congelamos el valor del link actual para esta etiqueta
+      const linkHref = currentLink;
+      
       return (
         <a 
           key={i} 
-          href={currentLink} 
+          href={linkHref} 
           className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
           onClick={(e) => {
+            e.preventDefault(); // 🔥 Evita la recarga de página (Error 404) 🔥
             try {
-              const url = new URL(currentLink, window.location.origin);
+              const url = new URL(linkHref, window.location.origin);
               const focusId = url.searchParams.get('focus');
-              if (focusId) {
-                e.preventDefault();
-                // Navegar si no estamos en la misma página, o simplemente scrollear si ya estamos
-                if (window.location.pathname !== url.pathname) {
-                  window.location.href = currentLink;
-                  return;
-                }
-                const el = document.getElementById(focusId);
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
-                  setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
+              
+              if (window.location.pathname !== url.pathname) {
+                // Navegamos internamente con React Router hacia la otra página
+                navigate(url.pathname + url.search);
+              } else {
+                // Si ya estamos en la página correcta, solo hacemos el scroll
+                if (focusId) {
+                  const el = document.getElementById(focusId);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
+                  }
                 }
               }
             } catch {
-              // Si falla el parseo de la URL, dejamos que el enlace funcione normal
+              window.location.href = linkHref;
             }
           }}
         >
@@ -102,6 +107,7 @@ const renderFormattedText = (content: string) => {
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate(); // 🔥 Inicializamos React Router
   const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
@@ -112,13 +118,11 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Efecto para abrir chat desde URL
   useEffect(() => {
     const p = searchParams.get("partner") || searchParams.get("to");
     if (p && user && !selectedPartner) loadMessages(p);
   }, [searchParams, user]);
 
-  // Listener para mensajes nuevos
   useEffect(() => {
     if (!user) return;
     loadConversations();
@@ -242,7 +246,6 @@ export default function MessagesPage() {
                     {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center shrink-0 ml-1">{c.unread}</span>}
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate block w-full">
-                    {/* Limpiamos las etiquetas para la vista previa de la lista */}
                     {c.lastMessage.replace(/\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]/g, '')}
                   </p>
                 </div>
@@ -261,7 +264,8 @@ export default function MessagesPage() {
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
                   <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
-                    {renderFormattedText(m.content)}
+                    {/* 🔥 LLAMAMOS A LA FUNCIÓN PASÁNDOLE EL NAVEGADOR 🔥 */}
+                    {renderFormattedText(m.content, navigate)}
                   </div>
                 </div>
               ))}
