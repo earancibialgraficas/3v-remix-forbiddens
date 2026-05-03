@@ -174,8 +174,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
-          <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
+        <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-2 py-3" : "px-3 items-start gap-2")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col gap-1.5" : "gap-2")}>
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil"><User className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
