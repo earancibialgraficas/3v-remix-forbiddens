@@ -129,11 +129,28 @@ const getPhotoNeonStyle = (photo: any) => {
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const targetUrl = photo.thumbnail_url || photo.image_url;
+  const initialTargetUrl = photo.thumbnail_url || photo.image_url;
+  const [resolvedTargetUrl, setResolvedTargetUrl] = useState(initialTargetUrl);
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
+  const targetUrl = resolvedTargetUrl || initialTargetUrl;
   
   const isOwner = user?.id === photo.user_id;
+
+  useEffect(() => {
+    let active = true;
+    setResolvedTargetUrl(initialTargetUrl);
+
+    if (!isInstagramPermalink(initialTargetUrl)) return;
+
+    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
+      .then(({ data, error }) => {
+        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
+  }, [initialTargetUrl]);
 
   return (
     <div 
