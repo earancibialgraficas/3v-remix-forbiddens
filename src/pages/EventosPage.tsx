@@ -119,7 +119,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/eventos]Ir a Eventos[/LINK]`;
 
-      const { error } = await supabase.rpc("send_system_staff_message", {
+      const { error } = await supabase.rpc("send_system_admin_message" as any, {
         p_title: `Sugerencia de evento: ${sgTitle}`,
         p_content: content,
         p_message_type: 'event_suggestion',

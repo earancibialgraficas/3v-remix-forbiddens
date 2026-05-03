@@ -827,6 +827,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      send_system_admin_message: {
+        Args: { p_content: string; p_message_type?: string; p_title: string }
+        Returns: undefined
+      }
       send_system_staff_message: {
         Args: { p_content: string; p_message_type?: string; p_title: string }
         Returns: undefined
