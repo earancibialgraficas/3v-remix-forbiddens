@@ -473,6 +473,14 @@ export default function EmulatorPage() {
                     Experimental
                   </span>
                 )}
+                {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    title="Requiere membresía LITE o superior"
+                  >
+                    🔒 Requiere LITE
+                  </span>
+                )}
               </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
