@@ -1,6 +1,15 @@
 // src/lib/membershipLimits.ts
 
-export type MembershipTier = 'novato' | 'entusiasta' | 'coleccionista' | 'miembro del legado' | 'leyenda arcade' | 'creador de contenido';
+export type MembershipTier = 'novato' | 'lite' | 'entusiasta' | 'coleccionista' | 'miembro del legado' | 'leyenda arcade' | 'creador de contenido';
+
+// Tiers que tienen acceso a las consolas extra (N64, PS1, PS2). LITE es el mínimo.
+export const EXTRA_CONSOLE_TIERS: MembershipTier[] = ['lite', 'entusiasta', 'coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
+export const EXTRA_CONSOLES = ['n64', 'ps1', 'ps2'] as const;
+export const canPlayExtraConsole = (tier: string | null | undefined, isStaff: boolean): boolean => {
+  if (isStaff) return true;
+  const t = (tier || 'novato').toLowerCase() as MembershipTier;
+  return EXTRA_CONSOLE_TIERS.includes(t);
+};
 
 export interface MembershipLimits {
   maxAvatars: number;
@@ -21,6 +30,16 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxSocialContent: 15,
     maxFriends: 25,
     storageMB: 50
+  },
+  lite: {
+    // Mitad de los límites de Entusiasta + acceso a N64/PS1/PS2
+    maxAvatars: 28,
+    canUploadAvatar: false,
+    maxForumChars: 500,
+    maxPhotos: 15,
+    maxSocialContent: 15,
+    maxFriends: 25,
+    storageMB: 75
   },
   entusiasta: {
     maxAvatars: 55,
