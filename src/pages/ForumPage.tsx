@@ -230,7 +230,7 @@ export default function ForumPage() {
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
-  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
