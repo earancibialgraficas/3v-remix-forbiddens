@@ -171,6 +171,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
