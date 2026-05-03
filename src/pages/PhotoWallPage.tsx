@@ -38,8 +38,23 @@ const isVideoItem = (item: any) => {
 
 const getProxyUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('wsrv.nl')) return url;
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+  if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&n=-1`;
+};
+
+// Cadena de fallbacks: wsrv.nl → images.weserv.nl → URL directa
+const handleImgFallback = (e: React.SyntheticEvent<HTMLImageElement>, originalUrl: string) => {
+  const cur = e.currentTarget.src;
+  if (cur.includes('wsrv.nl') && !cur.includes('weserv.nl')) {
+    e.currentTarget.src = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl.replace(/^https?:\/\//, ''))}`;
+    return;
+  }
+  if (cur.includes('weserv.nl')) {
+    e.currentTarget.src = originalUrl;
+    return;
+  }
+  // Última opción: placeholder
+  e.currentTarget.style.opacity = '0.3';
 };
 
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
@@ -83,10 +98,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
           crossOrigin="anonymous"
           className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
-          onError={(e) => {
-            if (!e.currentTarget.src.includes('wsrv.nl')) return;
-            e.currentTarget.src = targetUrl;
-          }}
+          onError={(e) => handleImgFallback(e, targetUrl)}
         />
         
         {/* Botón Reportar siempre visible en miniaturas */}
@@ -261,7 +273,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
              <img 
                src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
                className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-               onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
+               onError={(e) => handleImgFallback(e, targetUrl)}
              />
           )}
         </div>
