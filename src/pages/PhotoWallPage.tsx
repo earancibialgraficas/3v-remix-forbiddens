@@ -95,8 +95,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          className="absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => handleImgFallback(e, targetUrl)}
         />
