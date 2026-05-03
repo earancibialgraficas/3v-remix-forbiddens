@@ -159,12 +159,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
-          <Link to="/" className="flex flex-col items-center">
+          <Link to="/" className="flex flex-col items-center w-full">
              {collapsed ? (
-               <div className="flex flex-col items-center gap-[4px] py-2">
-                 {"FORBIDDENS".split("").map((letter, i) => (
-                   <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{letter}</span>
-                 ))}
+               <div className="relative h-[28px] w-full overflow-hidden flex justify-center" aria-label="FORBIDDENS">
+                 <div className="flex flex-col items-center gap-[2px] animate-marquee-y">
+                   {[..."FORBIDDENS", ..."FORBIDDENS"].map((letter, i) => (
+                     <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{letter}</span>
+                   ))}
+                 </div>
                </div>
              ) : (
                <span className="font-pixel text-[10px] xl:text-[12px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
