@@ -301,7 +301,6 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                        {/* 🔥 AQUÍ ESTÁ LA CORRECCIÓN: c.id en lugar de commentId 🔥 */}
                         {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
                     </div>
@@ -695,36 +694,51 @@ export default function PhotoWallPage() {
     return sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   }, [photos, sourceTab, friendIds]);
 
-  // 🔥 SCROLL MAGIC DESDE GUARDADOS 🔥
+  // 🔥 SCROLL MAGIC DESDE GUARDADOS Y REPORTES 🔥
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post");
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
 
   useEffect(() => {
     if (directPostId && !hasScrolled && displayPhotos.length > 0) {
       const index = displayPhotos.findIndex(item => item.id === directPostId);
       if (index !== -1) {
-        setTimeout(() => {
+        let attempts = 0;
+        const attemptScroll = () => {
+          attempts++;
           const el = document.getElementById(`photo-post-${directPostId}`);
           if (el) {
+            // 1. Scroll al elemento
             const elRect = el.getBoundingClientRect();
             const absoluteTop = elRect.top + window.pageYOffset;
             const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
             window.scrollTo({ top: middle, behavior: 'smooth' });
             
+            // 2. Agregamos el borde rojo parpadeante a la tarjeta de la foto
+            const cardElement = el.firstElementChild;
+            if (cardElement) {
+               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10');
+               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10'), 3000);
+            }
+
             // Abrimos el modal mágicamente
             setExpandedPhotoId(directPostId);
 
             setHasScrolled(true);
             window.history.replaceState({}, '', location.pathname);
+          } else if (attempts < 50) {
+            requestAnimationFrame(attemptScroll);
           } else {
-             setHasScrolled(true);
+            setHasScrolled(true);
           }
-        }, 500); 
+        };
+        requestAnimationFrame(attemptScroll);
+      } else if (hasMore && !isFetching) {
+         fetchContent(false, sort);
       } else {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, displayPhotos, hasScrolled, location.pathname]);
+  }, [directPostId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
 
   // 🔥 OBSERVER DE SCROLL INFINITO (MASONRY) 🔥
   useEffect(() => {
@@ -841,7 +855,7 @@ export default function PhotoWallPage() {
                   onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
-                  onReport={() => setReportingPhotoIdMini(photo.id)} // Pass callback for reporting from mini card
+                  onReport={() => setReportingPhotoIdMini(photo.id)}
                 />
               </div>
             ))}

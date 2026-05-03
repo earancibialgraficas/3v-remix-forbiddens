@@ -510,14 +510,13 @@ function SnapCard({
   );
 }
 
-// 🔥 COMPONENTE PRINCIPAL CON LOS ESTADOS EXACTOS QUE PIDIÓ LA OTRA IA 🔥
+// 🔥 COMPONENTE PRINCIPAL CON EFECTO DE SCROLL MÁGICO 🔥
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const location = useLocation();
 
-  // 🔥 1. ESTADOS MAESTROS EXACTOS 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [page, setPage] = useState(0);
@@ -525,7 +524,6 @@ export default function FeedPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [visibleIndex, setVisibleIndex] = useState(0);
 
-  // Estados visuales extra (Filtros)
   const [filter, setFilter] = useState<string>("all");
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -535,7 +533,6 @@ export default function FeedPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
 
-  // 🔥 2. FETCH REAL (Independiente de los filtros visuales) 🔥
   const fetchContent = async (resetPage: boolean, sortMode: 'new' | 'popular') => {
     if (isFetching) return;
     setIsFetching(true);
@@ -547,7 +544,6 @@ export default function FeedPage() {
 
       const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
-      // SOCIAL CONTENT
       const { data: content, error: err1 } = await supabase
         .from("social_content")
         .select("*")
@@ -559,7 +555,6 @@ export default function FeedPage() {
 
       if (err1) console.error("Error social_content:", err1);
 
-      // PHOTOS
       const { data: photos, error: err2 } = await supabase
         .from("photos")
         .select("*")
@@ -583,7 +578,7 @@ export default function FeedPage() {
             dislikes: c.dislikes || 0,
             created_at: c.created_at || new Date().toISOString(),
             target_type: "social_content"
-          })).filter(c => c.created_at) // Filtra items sin fecha válida
+          })).filter(c => c.created_at) 
         ];
       }
 
@@ -605,7 +600,7 @@ export default function FeedPage() {
             likes: p.likes || 0,
             dislikes: p.dislikes || 0,
             target_type: "photo"
-          })).filter(p => p.created_at) // Filtra items sin fecha válida
+          })).filter(p => p.created_at) 
         ];
       }
 
@@ -618,14 +613,12 @@ export default function FeedPage() {
         return { ...c, display_name: p?.display_name || "Anónimo", avatar_url: p?.avatar_url, color_name: p?.color_name || null, color_avatar_border: p?.color_avatar_border || null };
       });
 
-      // 🔥 3. ORDEN FINAL ABSOLUTO DEL BLOQUE OBTENIDO 🔥
       processed.sort((a, b) => {
         if (sortMode === "popular") {
           const scoreA = (a.likes || 0) - (a.dislikes || 0);
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
         }
-        // Fallback por fecha, con manejo de NULL
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return dateB - dateA;
@@ -646,14 +639,12 @@ export default function FeedPage() {
           const unique = processed.filter((x) => !ids.has(x.id));
           const merged = [...prev, ...unique];
 
-          // 🔁 IMPORTANTE: ordenar TODO el array acumulado de nuevo
           return merged.sort((a, b) => {
             if (sortMode === "popular") {
               const scoreA = (a.likes || 0) - (a.dislikes || 0);
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
             }
-            // Fallback por fecha, con manejo de NULL
             const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
             const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
             return dateB - dateA;
@@ -675,7 +666,6 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 4. EFECTO: CUANDO CAMBIA SORT = CARGA DESDE CERO 🔥
   useEffect(() => {
     fetchContent(true, sort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -687,7 +677,6 @@ export default function FeedPage() {
     }
   };
 
-  // Acciones de los posts 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
@@ -746,7 +735,6 @@ export default function FeedPage() {
     }
   };
 
-  // 🔥 5. USEMEMO SOLO PARA FILTROS VISUALES TIPO "VIDEOS", "AMIGOS", ETC 🔥
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -758,9 +746,9 @@ export default function FeedPage() {
   }, [items, filter, sourceTab, friendIds]);
 
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post");
+  const directPostId = searchParams.get("post") || searchParams.get("focus"); // Capturamos ambos por si acaso
 
-  // Scroll a Post Específico desde la URL
+  // 🔥 EFECTO MÁGICO DE SCROLL Y BRILLO PARA REPORTES 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -768,12 +756,24 @@ export default function FeedPage() {
         let attempts = 0;
         const attemptScroll = () => {
           attempts++;
-          const card = document.getElementById(`feed-post-${directPostId}`);
-          if (card && containerRef.current) {
-            containerRef.current.scrollTo({ top: card.offsetTop, behavior: "auto" });
+          const postElement = document.getElementById(`feed-post-${directPostId}`);
+          if (postElement && containerRef.current) {
+            
+            // 1. Hacemos el scroll perfecto al elemento
+            containerRef.current.scrollTo({ top: postElement.offsetTop, behavior: "auto" });
             setVisibleIndex(index);
             setHasScrolled(true);
-            window.history.replaceState({}, '', '/social/feed');
+            
+            // 2. Le agregamos el borde rojo parpadeante a la tarjeta hija
+            const cardElement = postElement.firstElementChild;
+            if (cardElement) {
+               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
+               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
+            }
+
+            // 3. Limpiamos la URL para no scrollear eternamente si recargas la página
+            window.history.replaceState({}, '', location.pathname);
+
           } else if (attempts < 50) {
             requestAnimationFrame(attemptScroll);
           } else {
@@ -781,13 +781,15 @@ export default function FeedPage() {
           }
         };
         requestAnimationFrame(attemptScroll);
+      } else if (hasMore && !isFetching) {
+         // Si el post no está en la página actual, forzamos cargar más
+         loadMore(); 
       } else {
-        setHasScrolled(true);
+         setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled]);
+  }, [directPostId, filteredItems, hasScrolled, hasMore, isFetching]);
 
-  // 🔥 6. OBSERVER QUE DISPARA EL PAGINADO "INFINITO" 🔥
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
 
@@ -803,7 +805,6 @@ export default function FeedPage() {
 
             setVisibleIndex(index);
 
-            // Si llegamos casi al final de la lista visual, cargamos más
             if (index >= filteredItems.length - 2 && hasMore && !isFetching) {
               loadMore();
             }

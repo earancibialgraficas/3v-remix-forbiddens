@@ -331,25 +331,6 @@ function SnapCard({
         user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
       });
       if (error) throw error;
-      
-      // 🔥 LÓGICA DE NOTIFICACIÓN DE COMENTARIOS Y RESPUESTAS 🔥
-      let targetUserId = item.user_id;
-      if (replyTo) {
-        const parentComment = comments.find(c => c.id === replyTo.id);
-        if (parentComment) targetUserId = parentComment.user_id;
-      }
-
-      if (targetUserId && targetUserId !== user.id) {
-         await supabase.from("notifications").insert({
-           id: crypto.randomUUID(),
-           user_id: targetUserId,
-           type: "comment_reel",
-           title: replyTo ? "Nueva respuesta" : "Nuevo comentario",
-           body: `${profile?.display_name || 'Un usuario'} ${replyTo ? 'respondió a tu comentario' : 'comentó en tu publicación'}.`,
-           related_id: item.id // Mandamos el ID del reel
-         } as any);
-      }
-
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
@@ -368,29 +349,7 @@ function SnapCard({
     }
   };
 
-  // 🔥 SOLUCIÓN IFRAMES: SIN AUTOPLAY EN FB Y TIKTOK PARA PERMITIR SONIDO AL HACER CLIC 🔥
-  const getDynamicEmbedUrl = () => {
-    if (!embedUrl) return null;
-    if (!isVisible) return null; 
-    
-    let url = embedUrl;
-    if (item.platform === 'youtube') url += '?autoplay=1&mute=0';
-    else if (item.platform === 'tiktok') url += ''; // Sin autoplay forzado
-    else if (item.platform === 'facebook') url += ''; // Sin autoplay forzado
-    else if (item.platform === 'instagram') url += '';
-    
-    return url;
-  };
-  
-  const finalEmbedUrl = getDynamicEmbedUrl();
-  const [iframeKey, setIframeKey] = useState(0);
-  
-  useEffect(() => {
-    if (isVisible && (item.platform === 'facebook' || item.platform === 'instagram' || item.platform === 'tiktok')) {
-      setIframeKey(prev => prev + 1);
-    }
-  }, [isVisible, item.platform]);
-
+  const finalEmbedUrl = isVisible && embedUrl ? embedUrl : embedUrl?.replace('autoplay=1', 'autoplay=0');
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
@@ -435,7 +394,6 @@ function SnapCard({
               width: '100%'
             }}>
               <iframe 
-                key={`instagram-${item.id}-${iframeKey}`}
                 src={finalEmbedUrl} 
                 className="bg-white" 
                 style={{ 
@@ -455,7 +413,6 @@ function SnapCard({
             <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
               style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
               <iframe 
-                key={`other-${item.id}-${iframeKey}`}
                 src={finalEmbedUrl} 
                 className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'facebook' ? "bg-white" : "")} 
                 style={{ border: "none" }} 
@@ -889,32 +846,51 @@ export default function SocialReelsPage() {
   }, [items, filter, sourceTab, friendIds]);
 
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post");
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
 
+  // 🔥 EFECTO MÁGICO DE SCROLL Y BRILLO PARA REPORTES 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
       if (index !== -1) {
-        setTimeout(() => {
-          const card = document.getElementById(`feed-post-${directPostId}`);
-          if (card && containerRef.current) {
+        let attempts = 0;
+        const attemptScroll = () => {
+          attempts++;
+          const postElement = document.getElementById(`feed-post-${directPostId}`);
+          if (postElement && containerRef.current) {
             setIsSnapping(false);
-            card.scrollIntoView({ behavior: "smooth", block: "center" });
+            
+            // 1. Hacemos el scroll perfecto al elemento
+            postElement.scrollIntoView({ behavior: "smooth", block: "center" });
             setVisibleIndex(index);
             setHasScrolled(true);
             
+            // 2. Le agregamos el borde rojo parpadeante a la tarjeta hija
+            const cardElement = postElement.firstElementChild;
+            if (cardElement) {
+               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
+               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
+            }
+
+            // 3. Limpiamos la URL para no scrollear eternamente si recargas la página
             window.history.replaceState({}, '', location.pathname);
-            
+
             setTimeout(() => setIsSnapping(true), 800);
+          } else if (attempts < 50) {
+            requestAnimationFrame(attemptScroll);
           } else {
-             setHasScrolled(true);
+            setHasScrolled(true);
           }
-        }, 500); 
+        };
+        requestAnimationFrame(attemptScroll);
+      } else if (hasMore && !isFetching) {
+         // Si el post no está en la página actual, forzamos cargar más
+         loadMore(); 
       } else {
-        setHasScrolled(true);
+         setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled, location.pathname]);
+  }, [directPostId, filteredItems, hasScrolled, hasMore, isFetching]);
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
