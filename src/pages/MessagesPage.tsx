@@ -30,7 +30,7 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
-// 🔥 Función Traductora Maestra: Navegación Interna Garantizada y Libre de 404 🔥
+// 🔥 Función Traductora Maestra y Cero-Errores 🔥
 const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
   const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
   let currentColor = "";
@@ -60,40 +60,32 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
           href={linkRaw} 
           className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
           onClick={(e) => {
-            // 🔥 CLAVE: Bloquear SIEMPRE la recarga de la página para evitar el 404
-            e.preventDefault();
+            e.preventDefault(); // Bloquear la recarga de página al 100%
             e.stopPropagation();
             
             try {
-              let targetPath = linkRaw;
-              // Limpiamos si por si acaso viene con "http://localhost" o algo así de la base de datos
-              if (linkRaw.startsWith('http')) {
-                const urlObj = new URL(linkRaw);
-                targetPath = urlObj.pathname + urlObj.search;
-              }
+              // Parseo infalible de URLs
+              const url = new URL(linkRaw, window.location.origin);
+              const targetPath = url.pathname + url.search;
+              const focusId = url.searchParams.get('focus');
 
-              const [purePath, queryString] = targetPath.split('?');
-              const params = new URLSearchParams(queryString || "");
-              const focusId = params.get('focus');
-
-              if (window.location.pathname !== purePath) {
-                // Si es hacia otra página (ej. de Mensajes a Biblioteca), usamos navigate
+              if (window.location.pathname !== url.pathname || window.location.search !== url.search) {
                 navigate(targetPath);
-              } else if (focusId) {
-                // Si estamos en la misma página y tiene "focus", hacemos el scroll
-                const el = document.getElementById(focusId);
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
-                  setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
-                }
-              } else {
-                // Si estamos en la misma página pero cambian variables (ej. de consola), actualizamos la URL
-                navigate(targetPath);
+              } 
+              
+              if (focusId) {
+                setTimeout(() => {
+                  const el = document.getElementById(focusId);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
+                  }
+                }, 150);
               }
             } catch (err) {
-              // En caso de que falle el código anterior, intentamos una navegación relativa cruda
-              navigate(linkRaw.replace(window.location.origin, ''));
+              // Fallback extremo
+              navigate(linkRaw);
             }
           }}
         >
@@ -113,7 +105,7 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate(); // 🔥 Hook de enrutamiento
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
@@ -270,7 +262,6 @@ export default function MessagesPage() {
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
                   <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
-                    {/* 🔥 Mandamos renderizar el mensaje pasándole la función de navegación */}
                     {renderFormattedText(m.content, navigate)}
                   </div>
                 </div>

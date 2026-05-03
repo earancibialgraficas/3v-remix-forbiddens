@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { useSearchParams } from "react-router-dom"; // 🔥 NUEVO IMPORT PARA LEER LA URL 🔥
+import { useSearchParams } from "react-router-dom";
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
@@ -34,10 +34,8 @@ export default function BibliotecaPage() {
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
   
-  // 🔥 LÓGICA PARA LEER LA CONSOLA DESDE LA URL 🔥
   const [searchParams] = useSearchParams();
   
-  // Inicializamos leyendo el parámetro, si no hay, usamos "snes"
   const initialConsoleParam = searchParams.get("console") as ConsoleType;
   const initialConsole = consoles.some(c => c.id === initialConsoleParam) ? initialConsoleParam : "snes";
 
@@ -47,13 +45,11 @@ export default function BibliotecaPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
 
-  // Estados del formulario de sugerencias
   const [gameName, setGameName] = useState("");
   const [suggestConsole, setSuggestConsole] = useState<ConsoleType>("snes");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
 
-  // 🔥 Efecto para cambiar de consola si la URL cambia mientras ya estamos en la página
   useEffect(() => {
     const consoleParam = searchParams.get("console") as ConsoleType;
     if (consoleParam && consoles.some(c => c.id === consoleParam)) {
@@ -61,7 +57,6 @@ export default function BibliotecaPage() {
     }
   }, [searchParams]);
 
-  // Al cambiar la consola de la vista, actualizamos por defecto la del formulario
   useEffect(() => {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
@@ -137,7 +132,11 @@ export default function BibliotecaPage() {
 
       if (error) throw error;
 
-      // 🔥 ENLACE RELATIVO CON FILTRO DE CONSOLA 🔥
+      // 🔥 MEJORA: Usamos la ruta dinámica real igual que en ReportModal 🔥
+      const targetUrl = typeof window !== 'undefined' 
+        ? `${window.location.pathname}?console=${suggestConsole}` 
+        : `/?console=${suggestConsole}`;
+
       const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]
 
 [COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]
@@ -149,7 +148,7 @@ export default function BibliotecaPage() {
 [COLOR:#ffffff]💬 Motivo / Descripción:
 ${description || 'Sin comentario adicional.'}[/COLOR]
 
-[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/biblioteca?console=${suggestConsole}]Ir a Biblioteca[/LINK]`;
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ir a la consola sugerida[/LINK]`;
 
       await supabase.rpc("send_system_staff_message", {
         p_title: `Sugerencia de juego: ${gameName}`,
@@ -274,7 +273,6 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
               onChange={e => setGameName(e.target.value)} 
               className="h-8 bg-muted text-xs font-body" 
             />
-            {/* 🔥 Menú desplegable para elegir consola 🔥 */}
             <select
               value={suggestConsole}
               onChange={(e) => setSuggestConsole(e.target.value as ConsoleType)}
