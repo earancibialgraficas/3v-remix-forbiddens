@@ -146,9 +146,12 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
+          crossOrigin="anonymous"
           referrerPolicy="no-referrer"
+          data-fallback-step="0"
           className="absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
+          onLoad={(e) => handleThumbnailLoad(e, targetUrl)}
           onError={(e) => handleImgFallback(e, targetUrl)}
         />
         
