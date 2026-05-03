@@ -860,8 +860,9 @@ export default function SocialReelsPage() {
 
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
 
-  // 🔥 EFECTO MÁGICO DE SCROLL Y BRILLO PARA REPORTES 🔥
+  // 🔥 SCROLL Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -872,20 +873,32 @@ export default function SocialReelsPage() {
           const postElement = document.getElementById(`feed-post-${directPostId}`);
           if (postElement && containerRef.current) {
             setIsSnapping(false);
-            
-            // 1. Hacemos el scroll perfecto al elemento
             postElement.scrollIntoView({ behavior: "smooth", block: "center" });
             setVisibleIndex(index);
             setHasScrolled(true);
-            
-            // 2. Le agregamos el borde rojo parpadeante a la tarjeta hija
-            const cardElement = postElement.firstElementChild;
+
+            const cardElement = postElement.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // 3. Limpiamos la URL para no scrollear eternamente si recargas la página
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 60) {
+                  setTimeout(tryComment, 150);
+                }
+              };
+              setTimeout(tryComment, 700);
+            }
+
             window.history.replaceState({}, '', location.pathname);
 
             setTimeout(() => setIsSnapping(true), 800);
@@ -897,7 +910,6 @@ export default function SocialReelsPage() {
         };
         requestAnimationFrame(attemptScroll);
       } else if (hasMore && !isFetching) {
-         // Si el post no está en la página actual, forzamos cargar más
          loadMore(); 
       } else {
          setHasScrolled(true);
