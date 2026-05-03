@@ -38,6 +38,18 @@ const isVideoItem = (item: any) => {
 
 const isInstagramPermalink = (url: string) => /instagram\.com\/(p|reel|reels|stories)\//.test(url || '');
 
+// Caché compartido para no invocar Apify dos veces (miniatura + modal)
+const apifyResolveCache = new Map<string, Promise<string | null>>();
+const resolveInstagramImage = (url: string): Promise<string | null> => {
+  if (!isInstagramPermalink(url)) return Promise.resolve(null);
+  if (apifyResolveCache.has(url)) return apifyResolveCache.get(url)!;
+  const p = supabase.functions.invoke('extract-instagram', { body: { url } })
+    .then(({ data, error }: any) => (!error && data?.imageUrl) ? data.imageUrl as string : null)
+    .catch(() => null);
+  apifyResolveCache.set(url, p);
+  return p;
+};
+
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
