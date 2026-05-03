@@ -36,25 +36,79 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+const isInstagramPermalink = (url: string) => /instagram\.com\/(p|reel|reels|stories)\//.test(url || '');
+
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&n=-1`;
 };
 
-// Cadena de fallbacks: wsrv.nl → images.weserv.nl → URL directa
+const getAnonymousProxyUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
+  return `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}&n=-1`;
+};
+
+const isProxiedImageUrl = (url: string) => url.includes('wsrv.nl') || url.includes('weserv.nl');
+
+const getImageFallbackSources = (url: string) => Array.from(new Set([
+  getProxyUrl(url),
+  getAnonymousProxyUrl(url),
+  url,
+].filter(Boolean)));
+
+const setNextImageFallback = (img: HTMLImageElement, originalUrl: string) => {
+  const sources = getImageFallbackSources(originalUrl);
+  const currentStep = Number(img.dataset.fallbackStep || '0');
+  const nextStep = currentStep + 1;
+
+  if (nextStep < sources.length) {
+    const nextSrc = sources[nextStep];
+    img.dataset.fallbackStep = String(nextStep);
+    if (isProxiedImageUrl(nextSrc)) img.crossOrigin = 'anonymous';
+    else img.removeAttribute('crossorigin');
+    img.src = nextSrc;
+    return true;
+  }
+
+  img.style.opacity = '0.3';
+  return false;
+};
+
+const isMostlyBlackImage = (img: HTMLImageElement) => {
+  if (!img.naturalWidth || !img.naturalHeight || typeof document === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    const size = 24;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return false;
+    ctx.drawImage(img, 0, 0, size, size);
+    const pixels = ctx.getImageData(0, 0, size, size).data;
+    let dark = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const brightness = pixels[i] + pixels[i + 1] + pixels[i + 2];
+      if (pixels[i + 3] < 12 || brightness < 42) dark += 1;
+    }
+    return dark / (pixels.length / 4) > 0.92;
+  } catch (_) {
+    return false;
+  }
+};
+
+// Cadena de fallbacks: Apify URL → proxy anónimo → proxy alternativo → URL directa
 const handleImgFallback = (e: React.SyntheticEvent<HTMLImageElement>, originalUrl: string) => {
-  const cur = e.currentTarget.src;
-  if (cur.includes('wsrv.nl') && !cur.includes('weserv.nl')) {
-    e.currentTarget.src = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl.replace(/^https?:\/\//, ''))}`;
-    return;
-  }
-  if (cur.includes('weserv.nl')) {
-    e.currentTarget.src = originalUrl;
-    return;
-  }
-  // Última opción: placeholder
-  e.currentTarget.style.opacity = '0.3';
+  setNextImageFallback(e.currentTarget, originalUrl);
+};
+
+const handleThumbnailLoad = (e: React.SyntheticEvent<HTMLImageElement>, originalUrl: string) => {
+  const img = e.currentTarget;
+  if (!isProxiedImageUrl(img.currentSrc || img.src)) return;
+  requestAnimationFrame(() => {
+    if (isMostlyBlackImage(img)) setNextImageFallback(img, originalUrl);
+  });
 };
 
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
@@ -75,11 +129,28 @@ const getPhotoNeonStyle = (photo: any) => {
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const targetUrl = photo.thumbnail_url || photo.image_url;
+  const initialTargetUrl = photo.thumbnail_url || photo.image_url;
+  const [resolvedTargetUrl, setResolvedTargetUrl] = useState(initialTargetUrl);
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
+  const targetUrl = resolvedTargetUrl || initialTargetUrl;
   
   const isOwner = user?.id === photo.user_id;
+
+  useEffect(() => {
+    let active = true;
+    setResolvedTargetUrl(initialTargetUrl);
+
+    if (!isInstagramPermalink(initialTargetUrl)) return;
+
+    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
+      .then(({ data, error }) => {
+        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
+  }, [initialTargetUrl]);
 
   return (
     <div 
@@ -94,9 +165,12 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
+          crossOrigin="anonymous"
           referrerPolicy="no-referrer"
+          data-fallback-step="0"
           className="absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
+          onLoad={(e) => handleThumbnailLoad(e, targetUrl)}
           onError={(e) => handleImgFallback(e, targetUrl)}
         />
         
@@ -196,7 +270,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
-  const targetUrl = photo.thumbnail_url || photo.image_url;
+  const initialTargetUrl = photo.thumbnail_url || photo.image_url;
+  const [resolvedTargetUrl, setResolvedTargetUrl] = useState(initialTargetUrl);
+  const targetUrl = resolvedTargetUrl || initialTargetUrl;
   const originalUrl = photo.content_url || targetUrl;
   const neonStyle = getPhotoNeonStyle(photo);
   const isOwner = user?.id === photo.user_id;
@@ -207,6 +283,21 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'auto'; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setResolvedTargetUrl(initialTargetUrl);
+
+    if (!isInstagramPermalink(initialTargetUrl)) return;
+
+    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
+      .then(({ data, error }) => {
+        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
+  }, [initialTargetUrl]);
 
   const fetchComments = async () => {
     const { data: rawComments } = await supabase.from("social_comments").select("*").eq("content_id", photo.id).order("created_at", { ascending: true });
@@ -270,7 +361,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
              <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
           ) : (
              <img 
-               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous" data-fallback-step="0"
                className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
                onError={(e) => handleImgFallback(e, targetUrl)}
              />
