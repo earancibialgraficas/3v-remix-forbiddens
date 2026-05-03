@@ -124,17 +124,33 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     loadConversations();
-    const channel = supabase.channel("messages-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
+    const channel = supabase.channel(`messages-sync-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, (payload) => {
+        const row: any = payload.new || payload.old;
+        if (!row) return;
+        if (row.sender_id !== user.id && row.receiver_id !== user.id) return;
         loadConversations();
-        if (selectedPartner) loadMessages(selectedPartner);
+        const partner = selectedPartnerRef.current;
+        if (partner && (row.sender_id === partner || row.receiver_id === partner)) {
+          loadMessages(partner);
+        }
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, selectedPartner]);
+  }, [user]);
+
+  // Ref siempre actualizada con el partner seleccionado para usarla dentro del canal
+  const selectedPartnerRef = useRef<string | null>(null);
+  useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const sortMsgs = (arr: Message[]) =>
+    [...arr].sort((a, b) => {
+      const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return t !== 0 ? t : a.id.localeCompare(b.id);
+    });
 
   const loadConversations = async () => {
     if (!user) return;
@@ -185,7 +201,7 @@ export default function MessagesPage() {
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true });
     
-    if (data) setMessages(data as Message[]);
+    if (data) setMessages(sortMsgs(data as Message[]));
 
     await supabase.from("inbox_messages").update({ is_read: true })
       .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
@@ -196,11 +212,24 @@ export default function MessagesPage() {
 
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
+    const content = newMessage.trim();
+    setNewMessage("");
+    // UI optimista
+    const tempId = `temp-${Date.now()}`;
+    setMessages(prev => sortMsgs([...prev, {
+      id: tempId, sender_id: user.id, receiver_id: selectedPartner,
+      content, is_read: false, created_at: new Date().toISOString(),
+    }]));
     const { error } = await supabase.from("inbox_messages").insert({
-      sender_id: user.id, receiver_id: selectedPartner, content: newMessage.trim(), is_read: false
+      sender_id: user.id, receiver_id: selectedPartner, content, is_read: false
     });
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setNewMessage(""); loadMessages(selectedPartner); }
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setNewMessage(content);
+    } else {
+      loadMessages(selectedPartner);
+    }
   };
 
   const handleSearch = async () => {

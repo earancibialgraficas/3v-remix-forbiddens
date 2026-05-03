@@ -285,10 +285,24 @@ export default function FloatingChat() {
 
   const handleSend = async () => {
     if (!user || !partnerId || !text.trim()) return;
-    await supabase.from("private_messages").insert({
-      sender_id: user.id, receiver_id: partnerId, content: text.trim(),
-    } as any);
+    const content = text.trim();
     setText("");
+    const tempId = `temp-${Date.now()}`;
+    // UI optimista para que se vea al instante
+    setMessages(prev => [...prev, {
+      id: tempId, sender_id: user.id, receiver_id: partnerId,
+      content, is_read: false, created_at: new Date().toISOString(),
+    }]);
+    const { error } = await supabase.from("private_messages").insert({
+      sender_id: user.id, receiver_id: partnerId, content,
+    } as any);
+    if (error) {
+      console.error("FloatingChat send error:", error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setText(content);
+      alert(`No se pudo enviar el mensaje: ${error.message}`);
+      return;
+    }
     loadMessages(partnerId);
   };
 
