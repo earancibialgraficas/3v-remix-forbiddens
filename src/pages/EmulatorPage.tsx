@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
+import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -163,10 +164,25 @@ const TIMEZONES = [
 ];
 
 export default function EmulatorPage() {
-  const { user } = useAuth();
+  const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
+  const requiresLite = (consoleId: string) => (EXTRA_CONSOLES as readonly string[]).includes(consoleId);
+  const blockIfLocked = (consoleId: string): boolean => {
+    if (requiresLite(consoleId) && !canPlayExtraConsole(profile?.membership_tier, isStaff)) {
+      toast({
+        title: "🔒 Membresía requerida",
+        description: `${consoleId.toUpperCase()} está disponible desde la membresía LITE ($5 USD). Visita la página de Membresías para mejorar tu cuenta.`,
+        variant: "destructive",
+      });
+      navigate("/membresias");
+      return true;
+    }
+    return false;
+  };
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
