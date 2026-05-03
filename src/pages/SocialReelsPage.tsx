@@ -560,7 +560,7 @@ function SnapCard({
             </div>
             <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
-                <div key={c.id} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
+                <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
@@ -571,7 +571,18 @@ function SnapCard({
                     )}
                   </div>
                   <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {user && user.id !== c.user_id && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-2.5 h-2.5" /></button>}
+                    {user && user.id !== c.user_id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground p-0.5" title="Opciones"><MoreVertical className="w-3 h-3" /></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[200] bg-card border-border min-w-[140px]">
+                          <DropdownMenuItem onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-destructive focus:bg-destructive/10 cursor-pointer text-[11px]">
+                            <Flag className="w-3 h-3 mr-2" /> Reportar comentario
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
                   </div>
                 </div>
