@@ -30,7 +30,7 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
-// 🔥 Función Traductora de Colores y Enlaces (Ahora usa React Router para evitar 404) 🔥
+// 🔥 Función Traductora Maestra: Ahora es inmune a dominios viejos y errores 404 🔥
 const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
   const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
   let currentColor = "";
@@ -42,52 +42,53 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
       currentColor = part.match(/\[COLOR:([^\]]+)\]/)?.[1] || ""; 
       return null; 
     }
-    if (part === "[/COLOR]") { 
-      currentColor = ""; 
-      return null; 
-    }
+    if (part === "[/COLOR]") { currentColor = ""; return null; }
     if (part.startsWith("[LINK:")) { 
       currentLink = part.match(/\[LINK:([^\]]+)\]/)?.[1] || ""; 
       return null; 
     }
-    if (part === "[/LINK]") { 
-      currentLink = ""; 
-      return null; 
-    }
+    if (part === "[/LINK]") { currentLink = ""; return null; }
     
     if (!part) return null;
     
     if (currentLink) {
-      // Congelamos el valor del link actual para esta etiqueta
-      const linkHref = currentLink;
+      const linkRaw = currentLink;
       
       return (
         <a 
           key={i} 
-          href={linkHref} 
+          href={linkRaw} 
           className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
           onClick={(e) => {
-            e.preventDefault(); // 🔥 Evita la recarga de página (Error 404) 🔥
+            e.preventDefault();
             try {
-              const url = new URL(linkHref, window.location.origin);
-              const focusId = url.searchParams.get('focus');
-              
-              if (window.location.pathname !== url.pathname) {
-                // Navegamos internamente con React Router hacia la otra página
-                navigate(url.pathname + url.search);
-              } else {
-                // Si ya estamos en la página correcta, solo hacemos el scroll
-                if (focusId) {
-                  const el = document.getElementById(focusId);
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
-                    setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
-                  }
+              // 🔥 TRUCO: Extraemos solo la ruta, ignorando si el dominio es localhost o el real 🔥
+              let targetPath = linkRaw;
+              if (linkRaw.startsWith('http')) {
+                const urlObj = new URL(linkRaw);
+                targetPath = urlObj.pathname + urlObj.search;
+              }
+
+              const params = new URLSearchParams(targetPath.split('?')[1] || "");
+              const focusId = params.get('focus');
+              const purePath = targetPath.split('?')[0];
+
+              if (window.location.pathname !== purePath) {
+                // Navegación interna suave
+                navigate(targetPath);
+              } else if (focusId) {
+                // Si ya estamos ahí, solo hacemos scroll
+                const el = document.getElementById(focusId);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
+                  setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
                 }
               }
-            } catch {
-              window.location.href = linkHref;
+            } catch (err) {
+              console.error("Error al navegar:", err);
+              // Fallback por si todo falla
+              navigate(linkRaw.replace(window.location.origin, ''));
             }
           }}
         >
@@ -107,7 +108,7 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate(); // 🔥 Inicializamos React Router
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
@@ -264,7 +265,6 @@ export default function MessagesPage() {
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
                   <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
-                    {/* 🔥 LLAMAMOS A LA FUNCIÓN PASÁNDOLE EL NAVEGADOR 🔥 */}
                     {renderFormattedText(m.content, navigate)}
                   </div>
                 </div>
