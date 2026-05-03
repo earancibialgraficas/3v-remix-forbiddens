@@ -216,6 +216,12 @@ export default function EmulatorPage() {
     if (gameId && user) {
       const game = allGames.find((g) => g.id === gameId);
       if (game) {
+        if (blockIfLocked(game.console)) {
+          const np = new URLSearchParams(searchParams);
+          np.delete('game');
+          navigate(`${location.pathname}?${np.toString()}`, { replace: true });
+          return;
+        }
         const sys = systems.find(s => s.id === game.console);
         launchGame({
           romUrl: game.romUrl,
@@ -277,6 +283,7 @@ export default function EmulatorPage() {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para acceder a esta sección.", variant: "destructive" });
       return;
     }
+    if (blockIfLocked("ps2")) return;
     setPs2Copied(false);
     setPs2DialogOpen(true);
   };
@@ -295,6 +302,10 @@ export default function EmulatorPage() {
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+    if (blockIfLocked(currentSystem.id)) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     const file = e.target.files?.[0];
