@@ -1,295 +1,289 @@
-import { useState, useEffect, useMemo } from "react";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageSquare, Send, User, Search, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { allGames } from "@/lib/gameLibrary";
 import { supabase } from "@/integrations/supabase/client";
-import { useGameBubble } from "@/contexts/GameBubbleContext";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 
-type ConsoleType = "nes" | "snes" | "gba" | "n64";
-
-const consoles: { id: ConsoleType; label: string; color: string }[] = [
-  { id: "nes", label: "NES", color: "text-neon-green" },
-  { id: "snes", label: "SNES", color: "text-neon-cyan" },
-  { id: "gba", label: "Game Boy Advance", color: "text-neon-magenta" },
-  { id: "n64", label: "Nintendo 64", color: "text-[#ffff00]" },
-];
-
-interface LeaderboardScore {
+interface Message {
   id: string;
-  display_name: string;
-  game_name: string;
-  score: number;
-  user_id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
 }
 
-export default function BibliotecaPage() {
+interface Conversation {
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string | null;
+  lastMessage: string;
+  lastDate: string;
+  unread: number;
+  partnerColorName?: string | null;
+  partnerColorAvatarBorder?: string | null;
+}
+
+// 🔥 Función Traductora Maestra: Navegación Interna Garantizada y Libre de 404 🔥
+const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
+  const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
+  let currentColor = "";
+  let currentLink = "";
+  
+  return parts.map((part, i) => {
+    if (part === "\n") return <br key={i} />;
+    if (part.startsWith("[COLOR:")) { 
+      currentColor = part.match(/\[COLOR:([^\]]+)\]/)?.[1] || ""; 
+      return null; 
+    }
+    if (part === "[/COLOR]") { currentColor = ""; return null; }
+    if (part.startsWith("[LINK:")) { 
+      currentLink = part.match(/\[LINK:([^\]]+)\]/)?.[1] || ""; 
+      return null; 
+    }
+    if (part === "[/LINK]") { currentLink = ""; return null; }
+    
+    if (!part) return null;
+    
+    if (currentLink) {
+      const linkRaw = currentLink;
+      
+      return (
+        <a 
+          key={i} 
+          href={linkRaw} 
+          className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
+          onClick={(e) => {
+            // 🔥 CLAVE: Bloquear SIEMPRE la recarga de la página para evitar el 404
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+              let targetPath = linkRaw;
+              // Limpiamos si por si acaso viene con "http://localhost" o algo así de la base de datos
+              if (linkRaw.startsWith('http')) {
+                const urlObj = new URL(linkRaw);
+                targetPath = urlObj.pathname + urlObj.search;
+              }
+
+              const [purePath, queryString] = targetPath.split('?');
+              const params = new URLSearchParams(queryString || "");
+              const focusId = params.get('focus');
+
+              if (window.location.pathname !== purePath) {
+                // Si es hacia otra página (ej. de Mensajes a Biblioteca), usamos navigate
+                navigate(targetPath);
+              } else if (focusId) {
+                // Si estamos en la misma página y tiene "focus", hacemos el scroll
+                const el = document.getElementById(focusId);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
+                  setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
+                }
+              } else {
+                // Si estamos en la misma página pero cambian variables (ej. de consola), actualizamos la URL
+                navigate(targetPath);
+              }
+            } catch (err) {
+              // En caso de que falle el código anterior, intentamos una navegación relativa cruda
+              navigate(linkRaw.replace(window.location.origin, ''));
+            }
+          }}
+        >
+          <span style={currentColor ? { color: currentColor } : {}}>{part}</span>
+        </a>
+      );
+    }
+    
+    if (currentColor) {
+      return <span key={i} style={{ color: currentColor }}>{part}</span>;
+    }
+    
+    return <span key={i}>{part}</span>;
+  });
+};
+
+export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { launchGame } = useGameBubble();
+  const navigate = useNavigate(); // 🔥 Hook de enrutamiento
+  const [searchParams] = useSearchParams();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchUser, setSearchUser] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>("snes");
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
-  const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
-
-  // Estados del formulario de sugerencias
-  const [gameName, setGameName] = useState("");
-  const [suggestConsole, setSuggestConsole] = useState<ConsoleType>("snes");
-  const [description, setDescription] = useState("");
-  const [sending, setSending] = useState(false);
-
-  // Al cambiar la consola de la vista, actualizamos por defecto la del formulario
   useEffect(() => {
-    setSuggestConsole(selectedConsole);
-  }, [selectedConsole]);
+    const p = searchParams.get("partner") || searchParams.get("to");
+    if (p && user && !selectedPartner) loadMessages(p);
+  }, [searchParams, user]);
 
-  const currentGames = useMemo(() => {
-    return allGames.filter((game) => {
-      const matchesSearch = game.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesConsole = game.console === selectedConsole;
-      return matchesSearch && matchesConsole;
+  useEffect(() => {
+    if (!user) return;
+    loadConversations();
+    const channel = supabase.channel("messages-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
+        loadConversations();
+        if (selectedPartner) loadMessages(selectedPartner);
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, selectedPartner]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const loadConversations = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("inbox_messages").select("*")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+    
+    if (!data) { setLoading(false); return; }
+    
+    const convMap: Record<string, { msgs: any[] }> = {};
+    data.forEach((m: any) => {
+      const pid = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+      if (!convMap[pid]) convMap[pid] = { msgs: [] };
+      convMap[pid].msgs.push(m);
     });
-  }, [searchQuery, selectedConsole]);
 
-  const getCoreForConsole = (consoleId: string) => {
-    const cores: Record<string, string> = {
-      nes: "fceumm",
-      snes: "snes9x",
-      gba: "mgba",
-      n64: "mupen64plus_next",
-      gbc: "gambatte",
-      sega: "genesis_plus_gx",
-      ps1: "pcsx_rearmed",
-      arcade: "fbneo"
-    };
-    return cores[consoleId] || "fceumm";
+    const partnerIds = Object.keys(convMap);
+    if (partnerIds.length === 0) { setConversations([]); setLoading(false); return; }
+
+    const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", partnerIds);
+    const profileMap: Record<string, any> = {};
+    profiles?.forEach(p => profileMap[p.user_id] = p);
+
+    const convs: Conversation[] = partnerIds.map(pid => {
+      const msgs = convMap[pid].msgs;
+      const last = msgs[0];
+      const unread = msgs.filter(m => m.receiver_id === user.id && m.is_read === false).length;
+      return {
+        partnerId: pid,
+        partnerName: profileMap[pid]?.display_name || "Usuario",
+        partnerAvatar: profileMap[pid]?.avatar_url,
+        lastMessage: last.content,
+        lastDate: last.created_at,
+        unread,
+        partnerColorName: profileMap[pid]?.color_name,
+        partnerColorAvatarBorder: profileMap[pid]?.color_avatar_border,
+      };
+    });
+    setConversations(convs.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()));
+    setLoading(false);
   };
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data } = await supabase
-        .from("leaderboard_scores")
-        .select("id, display_name, game_name, score, user_id")
-        .eq("console_type", selectedConsole)
-        .order("score", { ascending: false })
-        .limit(50);
+  const loadMessages = async (partnerId: string) => {
+    if (!user) return;
+    setSelectedPartner(partnerId);
+    
+    const { data } = await supabase.from("inbox_messages").select("*")
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
+      .order("created_at", { ascending: true });
+    
+    if (data) setMessages(data as Message[]);
 
-      if (data) {
-        const best: Record<string, LeaderboardScore> = {};
-        (data as LeaderboardScore[]).forEach(s => {
-          const key = s.user_id;
-          if (!best[key] || s.score > best[key].score) best[key] = s;
-        });
-        const deduped = Object.values(best).sort((a, b) => b.score - a.score).slice(0, 10);
-        setLeaderboard(deduped);
-        
-        const uids = [...new Set(deduped.map(s => s.user_id).filter(Boolean))];
-        if (uids.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
-          const cm: Record<string, string | null> = {};
-          profiles?.forEach((p: any) => { cm[p.user_id] = p.color_name || null; });
-          setLeaderboardColors(cm);
-        }
-      } else {
-        setLeaderboard([]);
-      }
-    };
-    fetchLeaderboard();
-  }, [selectedConsole]);
+    await supabase.from("inbox_messages").update({ is_read: true })
+      .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
+    
+    setConversations(prev => prev.map(c => c.partnerId === partnerId ? { ...c, unread: 0 } : c));
+    window.dispatchEvent(new Event("updateBadges"));
+  };
 
-  const consoleInfo = consoles.find((c) => c.id === selectedConsole)!;
+  const handleSend = async () => {
+    if (!user || !selectedPartner || !newMessage.trim()) return;
+    const { error } = await supabase.from("inbox_messages").insert({
+      sender_id: user.id, receiver_id: selectedPartner, content: newMessage.trim(), is_read: false
+    });
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { setNewMessage(""); loadMessages(selectedPartner); }
+  };
 
-  const handleSuggestSubmit = async () => {
-    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    if (!gameName.trim()) return;
-    setSending(true);
-
-    try {
-      const { error } = await supabase.from("game_suggestions").insert({
-        user_id: user.id, 
-        console_type: suggestConsole, 
-        game_name: gameName.trim(), 
-        description: description.trim(),
-      } as any);
-
-      if (error) throw error;
-
-      // 🔥 ENLACE RELATIVO CON FILTRO DE CONSOLA 🔥
-      const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]
-
-[COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]
-[COLOR:#06b6d4]📧 Email: ${user.email || 'desconocido'}[/COLOR]
-
-[COLOR:#eab308]🎮 Juego: ${gameName}[/COLOR]
-[COLOR:#ffffff]🕹️ Consola elegida: ${suggestConsole.toUpperCase()}[/COLOR]
-
-[COLOR:#ffffff]💬 Motivo / Descripción:
-${description || 'Sin comentario adicional.'}[/COLOR]
-
-[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/biblioteca?console=${suggestConsole}]Ir a Biblioteca[/LINK]`;
-
-      await supabase.rpc("send_system_staff_message", {
-        p_title: `Sugerencia de juego: ${gameName}`,
-        p_content: messageContent,
-        p_message_type: 'game_suggestion',
-      });
-
-      toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); 
-      setGameName(""); 
-      setDescription("");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Hubo un error.", variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+  const handleSearch = async () => {
+    if (!searchUser.trim()) return;
+    const { data } = await supabase.from("profiles").select("*")
+      .ilike("display_name", `%${searchUser}%`).limit(10);
+    setSearchResults(data?.filter(p => p.user_id !== user?.id) || []);
   };
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
-      
-      <div className="bg-card border border-neon-green/30 rounded-lg p-4">
-        <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
-        </h1>
-        <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
+    <div className="space-y-3 animate-fade-in w-full min-w-0" style={{ height: 'calc(100dvh - 80px)' }}>
+      <div className="bg-card border border-neon-cyan/30 rounded p-3">
+        <h1 className="font-pixel text-xs text-neon-cyan flex items-center gap-2"><Mail className="w-4 h-4" /> BANDEJA PÚBLICA</h1>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {consoles.map((c) => (
-          <Button
-            key={c.id}
-            variant={selectedConsole === c.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setSelectedConsole(c.id); setSearchQuery(""); }}
-            className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
-          >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="relative w-full max-w-sm mt-2">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input 
-          placeholder={`Buscar en ${consoleInfo.label}...`} 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-8 bg-card border-border font-body text-xs focus:border-primary transition-colors"
-        />
-      </div>
-
-      <div>
-        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo.color)}>
-          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
-        </h2>
-        
-        {currentGames.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center text-[10px] text-muted-foreground font-body">
-             No se encontraron juegos para esta búsqueda.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {currentGames.map((game) => (
-              <div
-                key={game.id}
-                onClick={() => launchGame({
-                  romUrl: game.romUrl,
-                  consoleName: selectedConsole,
-                  gameName: game.name,
-                  consoleCore: getCoreForConsole(selectedConsole),
-                  score: 0,
-                  playTime: 0
-                })}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col cursor-pointer"
-              >
-                <div className="aspect-square overflow-hidden bg-muted">
-                  <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+      <div className="flex gap-3 min-w-0 w-full" style={{ height: 'calc(100% - 70px)' }}>
+        <div className={cn("bg-card border border-border rounded flex flex-col min-w-0 overflow-hidden", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
+          <div className="p-2 border-b border-border">
+            <div className="flex gap-1">
+              <Input placeholder="Buscar..." value={searchUser} onChange={e => setSearchUser(e.target.value)} className="h-7 text-xs" onKeyDown={e => e.key === "Enter" && handleSearch()} />
+              <Button size="sm" variant="ghost" onClick={handleSearch} className="h-7 w-7 p-0"><Search className="w-3 h-3" /></Button>
+            </div>
+            {searchResults.map(r => (
+              <button key={r.user_id} onClick={() => { loadMessages(r.user_id); setSearchResults([]); setSearchUser(""); }} className="w-full flex items-center gap-2 p-1.5 hover:bg-muted/50 text-left mt-1 rounded">
+                <div className="w-6 h-6 rounded-full bg-muted shrink-0 overflow-hidden" style={getAvatarBorderStyle(r.color_avatar_border)}>
+                   {r.avatar_url && <img src={r.avatar_url} className="w-full h-full object-cover" />}
                 </div>
-                <div className="p-1.5 flex items-center gap-1">
-                  <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                  <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-                </div>
-              </div>
+                <span className="text-xs truncate" style={getNameStyle(r.color_name)}>{r.display_name}</span>
+              </button>
             ))}
+          </div>
+          <div className="flex-1 overflow-y-auto retro-scrollbar">
+            {conversations.map(c => (
+              <button key={c.partnerId} onClick={() => loadMessages(c.partnerId)} className={cn("w-full flex items-center gap-2 p-2.5 border-b border-border/30 hover:bg-muted/30 text-left overflow-hidden", selectedPartner === c.partnerId && "bg-muted/50")}>
+                <div className="w-8 h-8 rounded-full bg-muted shrink-0 overflow-hidden" style={getAvatarBorderStyle(c.partnerColorAvatarBorder)}>
+                  {c.partnerAvatar && <img src={c.partnerAvatar} className="w-full h-full object-cover" />}
+                </div>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium truncate block" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
+                    {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center shrink-0 ml-1">{c.unread}</span>}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground truncate block w-full">
+                    {c.lastMessage.replace(/\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]/g, '')}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {selectedPartner && (
+          <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
+            <div className="p-2 border-b border-border flex items-center gap-2">
+              <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground"><ArrowLeft className="w-4 h-4" /></button>
+              <span className="text-xs font-medium truncate" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
+              {messages.map(m => (
+                <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
+                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
+                    {/* 🔥 Mandamos renderizar el mensaje pasándole la función de navegación */}
+                    {renderFormattedText(m.content, navigate)}
+                  </div>
+                </div>
+              ))}
+              <div ref={endRef} />
+            </div>
+            <div className="p-2 border-t border-border flex gap-2">
+              <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Mensaje..." className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+              <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+            </div>
           </div>
         )}
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-        
-        <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden h-fit">
-          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
-            <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
-            <h2 className="font-pixel text-[10px] text-neon-yellow">LEADERBOARD — {consoleInfo.label.toUpperCase()}</h2>
-          </div>
-          {leaderboard.length === 0 ? (
-            <div className="p-4 text-center text-[10px] text-muted-foreground font-body">Sin puntuaciones aún. ¡Sé el primero!</div>
-          ) : (
-            leaderboard.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 text-[10px] font-body hover:bg-muted/30 transition-colors">
-                <span className={cn("w-5 font-bold text-center", i === 0 ? "text-neon-yellow" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-neon-orange" : "text-muted-foreground")}>
-                  {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
-                </span>
-                <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="flex-1 text-foreground truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
-                <span className="text-muted-foreground truncate max-w-[80px]">{s.game_name}</span>
-                <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="bg-card border border-neon-cyan/20 rounded-lg p-3 space-y-2 h-fit">
-          <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1">
-            <Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Input 
-              placeholder="Nombre del juego" 
-              value={gameName} 
-              onChange={e => setGameName(e.target.value)} 
-              className="h-8 bg-muted text-xs font-body" 
-            />
-            {/* 🔥 Menú desplegable para elegir consola 🔥 */}
-            <select
-              value={suggestConsole}
-              onChange={(e) => setSuggestConsole(e.target.value as ConsoleType)}
-              className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none focus:border-neon-cyan/50 transition-colors"
-            >
-              {consoles.map(c => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="space-y-1">
-            <Textarea 
-              placeholder="¿Por qué lo recomiendas? (opcional)" 
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              maxLength={500}
-              className="bg-muted text-xs font-body min-h-[60px]" 
-            />
-            <div className="text-[9px] text-muted-foreground text-right">
-              {description.length}/500 caracteres
-            </div>
-          </div>
-
-          <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-8 w-full">
-            <Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}
-          </Button>
-        </div>
-
-      </div>
-
     </div>
   );
 }

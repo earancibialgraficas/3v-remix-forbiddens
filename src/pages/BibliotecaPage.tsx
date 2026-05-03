@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
+import { useSearchParams } from "react-router-dom"; // 🔥 NUEVO IMPORT PARA LEER LA URL 🔥
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
@@ -32,20 +33,35 @@ export default function BibliotecaPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  
+  // 🔥 LÓGICA PARA LEER LA CONSOLA DESDE LA URL 🔥
+  const [searchParams] = useSearchParams();
+  
+  // Inicializamos leyendo el parámetro, si no hay, usamos "snes"
+  const initialConsoleParam = searchParams.get("console") as ConsoleType;
+  const initialConsole = consoles.some(c => c.id === initialConsoleParam) ? initialConsoleParam : "snes";
 
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>("snes");
+  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>(initialConsole);
   const [searchQuery, setSearchQuery] = useState("");
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
 
-  // Estados del formulario
+  // Estados del formulario de sugerencias
   const [gameName, setGameName] = useState("");
   const [suggestConsole, setSuggestConsole] = useState<ConsoleType>("snes");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Sincronizar la consola del formulario con la seleccionada en la vista principal inicialmente
+  // 🔥 Efecto para cambiar de consola si la URL cambia mientras ya estamos en la página
+  useEffect(() => {
+    const consoleParam = searchParams.get("console") as ConsoleType;
+    if (consoleParam && consoles.some(c => c.id === consoleParam)) {
+      setSelectedConsole(consoleParam);
+    }
+  }, [searchParams]);
+
+  // Al cambiar la consola de la vista, actualizamos por defecto la del formulario
   useEffect(() => {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
@@ -121,7 +137,7 @@ export default function BibliotecaPage() {
 
       if (error) throw error;
 
-      // 🔥 ENLACE RELATIVO Y CONSOLA ELEGIDA 🔥
+      // 🔥 ENLACE RELATIVO CON FILTRO DE CONSOLA 🔥
       const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]
 
 [COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]
@@ -133,7 +149,7 @@ export default function BibliotecaPage() {
 [COLOR:#ffffff]💬 Motivo / Descripción:
 ${description || 'Sin comentario adicional.'}[/COLOR]
 
-[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/biblioteca]Ir a Biblioteca[/LINK]`;
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/biblioteca?console=${suggestConsole}]Ir a Biblioteca[/LINK]`;
 
       await supabase.rpc("send_system_staff_message", {
         p_title: `Sugerencia de juego: ${gameName}`,
@@ -258,7 +274,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
               onChange={e => setGameName(e.target.value)} 
               className="h-8 bg-muted text-xs font-body" 
             />
-            {/* 🔥 NUEVO: SELECCIÓN DE CONSOLA DISPONIBLE 🔥 */}
+            {/* 🔥 Menú desplegable para elegir consola 🔥 */}
             <select
               value={suggestConsole}
               onChange={(e) => setSuggestConsole(e.target.value as ConsoleType)}
