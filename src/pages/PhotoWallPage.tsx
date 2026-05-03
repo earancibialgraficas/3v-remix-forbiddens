@@ -152,17 +152,15 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
   useEffect(() => {
     let active = true;
     setResolvedTargetUrl(initialTargetUrl);
-
-    if (!isInstagramPermalink(initialTargetUrl)) return;
-
-    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
-      .then(({ data, error }) => {
-        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
-      })
-      .catch(() => {});
-
+    const source = isInstagramPermalink(initialTargetUrl)
+      ? initialTargetUrl
+      : (isInstagramPermalink(photo.content_url) ? photo.content_url : null);
+    if (!source) return;
+    resolveInstagramImage(source).then(img => {
+      if (active && img) setResolvedTargetUrl(img);
+    });
     return () => { active = false; };
-  }, [initialTargetUrl]);
+  }, [initialTargetUrl, photo.content_url]);
 
   return (
     <div 
