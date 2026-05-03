@@ -712,6 +712,8 @@ export default function PhotoWallPage() {
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post") || searchParams.get("focus");
 
+  const directCommentId = searchParams.get("comment");
+
   useEffect(() => {
     if (directPostId && !hasScrolled && displayPhotos.length > 0) {
       const index = displayPhotos.findIndex(item => item.id === directPostId);
@@ -727,15 +729,32 @@ export default function PhotoWallPage() {
             const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
             window.scrollTo({ top: middle, behavior: 'smooth' });
             
-            // 2. Agregamos el borde rojo parpadeante a la tarjeta de la foto
-            const cardElement = el.firstElementChild;
+            // 2. Highlight arcade neón
+            const cardElement = el.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // Abrimos el modal mágicamente
+            // 3. Abrimos el modal de la foto reportada
             setExpandedPhotoId(directPostId);
+
+            // 4. Si hay comentario, scroll dentro del modal cuando carga
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 80) {
+                  setTimeout(tryComment, 120);
+                }
+              };
+              setTimeout(tryComment, 600);
+            }
 
             setHasScrolled(true);
             window.history.replaceState({}, '', location.pathname);
@@ -752,7 +771,7 @@ export default function PhotoWallPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
+  }, [directPostId, directCommentId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
 
   // 🔥 OBSERVER DE SCROLL INFINITO (MASONRY) 🔥
   useEffect(() => {
