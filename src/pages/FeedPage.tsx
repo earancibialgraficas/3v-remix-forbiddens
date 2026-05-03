@@ -140,6 +140,7 @@ function SnapCard({
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
   const [showMobilePanel, setShowMobilePanel] = useState(false);
   
   const [isEditing, setIsEditing] = useState(false);
