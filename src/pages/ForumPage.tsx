@@ -817,6 +817,7 @@ export default function ForumPage() {
                                   userId: comment.user_id,
                                   userName: comment.profile?.display_name || "Anónimo",
                                   postId: comment.post_id,
+                                  commentId: comment.id,
                                 })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
                                   <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
                                 </button>
