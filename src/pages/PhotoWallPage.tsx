@@ -273,7 +273,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
              <img 
                src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
                className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-               onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
+               onError={(e) => handleImgFallback(e, targetUrl)}
              />
           )}
         </div>
