@@ -25,17 +25,18 @@ interface ReportModalProps {
   reportedUserId: string;
   reportedUserName: string;
   postId?: string;
+  commentId?: string;
+  contentLabel?: string;
   onClose: () => void;
 }
 
-export default function ReportModal({ reportedUserId, reportedUserName, postId, onClose }: ReportModalProps) {
+export default function ReportModal({ reportedUserId, reportedUserName, postId, commentId, contentLabel, onClose }: ReportModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [reason, setReason] = useState(REPORT_REASONS[0]);
   const [details, setDetails] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Congelar el scroll del fondo mientras el modal de reporte está abierto
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'auto'; };
@@ -54,17 +55,23 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
       const reporterName = profile?.display_name || 'Usuario';
       const reporterEmail = user.email || 'desconocido';
       
-      // 🔥 MEJORA: Usamos rutas relativas (sin origin) para evitar errores 404 🔥
-      const targetUrl = typeof window !== 'undefined'
-        ? `${window.location.pathname}${window.location.search}${postId ? (window.location.search ? '&' : '?') + 'focus=' + postId : ''}`
-        : '';
+      // URL relativa con focus + comment para deep-link y scroll automático
+      const params = new URLSearchParams();
+      if (postId) params.set('focus', postId);
+      if (commentId) params.set('comment', commentId);
+      const qs = params.toString();
+      const targetUrl = `${window.location.pathname}${qs ? '?' + qs : ''}`;
+
+      const kindLabel = contentLabel || (commentId ? 'Comentario' : (postId ? 'Publicación' : 'Perfil'));
 
       const systemTicket = `[COLOR:#ef4444]🚨 NUEVO REPORTE 🚨[/COLOR]
 
 [COLOR:#3b82f6]👤 EMISOR: ${reporterName} (${reporterEmail})[/COLOR]
 [COLOR:#06b6d4]🎯 REPORTADO: ${reportedUserName}[/COLOR]
 [COLOR:#eab308]📝 MOTIVO: ${reason}[/COLOR]
-${postId ? '[COLOR:#ffffff]🆔 POST ID: ' + postId + '[/COLOR]' : '[COLOR:#ffffff]📍 Reporte de Perfil[/COLOR]'}
+[COLOR:#a78bfa]📂 TIPO: ${kindLabel}[/COLOR]
+${postId ? '[COLOR:#ffffff]🆔 POST ID: ' + postId + '[/COLOR]' : ''}
+${commentId ? '[COLOR:#ffffff]💭 COMMENT ID: ' + commentId + '[/COLOR]' : ''}
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ver contenido reportado[/LINK]
 
 [COLOR:#ffffff]💬 DETALLES:
