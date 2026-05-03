@@ -19,6 +19,7 @@ export interface MembershipLimits {
   maxSocialContent: number;
   maxFriends: number;
   storageMB: number;
+  maxDmChars: number;
 }
 
 export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimits> = {
@@ -29,7 +30,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 15,
     maxSocialContent: 15,
     maxFriends: 25,
-    storageMB: 50
+    storageMB: 50,
+    maxDmChars: 200
   },
   lite: {
     // Mitad de los límites de Entusiasta + acceso a N64/PS1/PS2
@@ -39,7 +41,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 15,
     maxSocialContent: 15,
     maxFriends: 25,
-    storageMB: 75
+    storageMB: 75,
+    maxDmChars: 300
   },
   entusiasta: {
     maxAvatars: 55,
@@ -48,7 +51,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 30,
     maxSocialContent: 30,
     maxFriends: 50,
-    storageMB: 150
+    storageMB: 150,
+    maxDmChars: 500
   },
   coleccionista: {
     maxAvatars: 60,
@@ -57,7 +61,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 50,
     maxSocialContent: 50,
     maxFriends: 100,
-    storageMB: 500
+    storageMB: 500,
+    maxDmChars: 800
   },
   'miembro del legado': {
     maxAvatars: 999, // Desbloqueado
@@ -66,7 +71,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 90,
     maxSocialContent: 90,
     maxFriends: 200,
-    storageMB: 1000
+    storageMB: 1000,
+    maxDmChars: 1500
   },
   'leyenda arcade': {
     maxAvatars: 999, // Desbloqueado
@@ -75,7 +81,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 100,
     maxSocialContent: 100,
     maxFriends: 500,
-    storageMB: 3000
+    storageMB: 3000,
+    maxDmChars: 2500
   },
   'creador de contenido': {
     maxAvatars: 999, // Desbloqueado
@@ -84,7 +91,8 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 999, // Ilimitado
     maxSocialContent: 999, // Ilimitado
     maxFriends: 999, // Ilimitado
-    storageMB: 5000
+    storageMB: 5000,
+    maxDmChars: 5000
   },
   staff: {
     maxAvatars: 999,
@@ -93,6 +101,7 @@ export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimit
     maxPhotos: 999,
     maxSocialContent: 999,
     maxFriends: 999,
-    storageMB: 10000
+    storageMB: 10000,
+    maxDmChars: 10000
   }
 };

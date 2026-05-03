@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
+import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 
 interface Message {
   id: string;
@@ -103,7 +104,10 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
 };
 
 export default function MessagesPage() {
-  const { user } = useAuth();
+  const { user, profile, roles, isAdmin, isMasterWeb } = useAuth() as any;
+  const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
+  const tier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const dmLimit = (isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[tier])?.maxDmChars ?? 200;
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -212,7 +216,11 @@ export default function MessagesPage() {
 
   const handleSend = async () => {
     if (!user || !selectedPartner || !newMessage.trim()) return;
-    const content = newMessage.trim();
+    let content = newMessage.trim();
+    if (content.length > dmLimit) {
+      toast({ title: "Límite alcanzado", description: `Tu membresía permite ${dmLimit} caracteres por mensaje.`, variant: "destructive" });
+      return;
+    }
     setNewMessage("");
     // UI optimista
     const tempId = `temp-${Date.now()}`;
@@ -297,9 +305,12 @@ export default function MessagesPage() {
               ))}
               <div ref={endRef} />
             </div>
-            <div className="p-2 border-t border-border flex gap-2">
-              <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Mensaje..." className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-              <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+            <div className="p-2 border-t border-border flex flex-col gap-1">
+              <div className="flex gap-2">
+                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+              </div>
+              <span className={cn("text-[9px] text-right font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
             </div>
           </div>
         )}
