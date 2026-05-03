@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2 } from "lucide-react";
+import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -140,6 +140,7 @@ function SnapCard({
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
   const [showMobilePanel, setShowMobilePanel] = useState(false);
   
   const [isEditing, setIsEditing] = useState(false);
@@ -452,7 +453,7 @@ function SnapCard({
             </div>
             <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
-                <div key={c.id} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
+                <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
                     <span className="text-primary font-medium">{c.display_name}: </span>
                     <span className="text-foreground/90">{c.content}</span>
@@ -463,7 +464,18 @@ function SnapCard({
                     )}
                   </div>
                   <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {user && user.id !== c.user_id && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive" title="Reportar"><Flag className="w-2.5 h-2.5" /></button>}
+                    {user && user.id !== c.user_id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground p-0.5" title="Opciones"><MoreVertical className="w-3 h-3" /></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[200] bg-card border-border min-w-[140px]">
+                          <DropdownMenuItem onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-destructive focus:bg-destructive/10 cursor-pointer text-[11px]">
+                            <Flag className="w-3 h-3 mr-2" /> Reportar comentario
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
                   </div>
                 </div>
@@ -506,6 +518,7 @@ function SnapCard({
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={item.user_id} reportedUserName={item.display_name || "Anónimo"} postId={item.id} onClose={() => setShowReport(false)} />}
+      {reportingComment && <ReportModal reportedUserId={reportingComment.userId} reportedUserName={reportingComment.userName} postId={item.id} commentId={reportingComment.commentId} contentLabel="Comentario" onClose={() => setReportingComment(null)} />}
     </div>
   );
 }
@@ -746,9 +759,10 @@ export default function FeedPage() {
   }, [items, filter, sourceTab, friendIds]);
 
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post") || searchParams.get("focus"); // Capturamos ambos por si acaso
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
 
-  // 🔥 EFECTO MÁGICO DE SCROLL Y BRILLO PARA REPORTES 🔥
+  // 🔥 EFECTO MÁGICO DE SCROLL Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -759,19 +773,33 @@ export default function FeedPage() {
           const postElement = document.getElementById(`feed-post-${directPostId}`);
           if (postElement && containerRef.current) {
             
-            // 1. Hacemos el scroll perfecto al elemento
             containerRef.current.scrollTo({ top: postElement.offsetTop, behavior: "auto" });
             setVisibleIndex(index);
             setHasScrolled(true);
             
-            // 2. Le agregamos el borde rojo parpadeante a la tarjeta hija
-            const cardElement = postElement.firstElementChild;
+            const cardElement = postElement.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // 3. Limpiamos la URL para no scrollear eternamente si recargas la página
+            // Si hay comentario, scroll al comentario en el panel
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 60) {
+                  setTimeout(tryComment, 150);
+                }
+              };
+              setTimeout(tryComment, 700);
+            }
+
             window.history.replaceState({}, '', location.pathname);
 
           } else if (attempts < 50) {
@@ -782,13 +810,12 @@ export default function FeedPage() {
         };
         requestAnimationFrame(attemptScroll);
       } else if (hasMore && !isFetching) {
-         // Si el post no está en la página actual, forzamos cargar más
          loadMore(); 
       } else {
          setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled, hasMore, isFetching]);
+  }, [directPostId, directCommentId, filteredItems, hasScrolled, hasMore, isFetching]);
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;

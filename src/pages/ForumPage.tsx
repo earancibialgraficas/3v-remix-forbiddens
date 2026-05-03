@@ -230,7 +230,7 @@ export default function ForumPage() {
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
-  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string } | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -242,7 +242,8 @@ export default function ForumPage() {
   const hasUnlimited = isAdmin || isMasterWeb;
 
   const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post");
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
 
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
@@ -325,26 +326,25 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y GLOW ROJO AL ABRIR UN REPORTE 🔥
+  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        const postElement = document.getElementById(`post-${directPostId}`);
-        if (postElement) {
-          postElement.scrollIntoView({ behavior: "smooth", block: "center" });
-          // Aplicamos el parpadeo rojo por 3 segundos
-          postElement.classList.add('ring-2', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500');
-          setTimeout(() => postElement.classList.remove('ring-2', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500'), 3000);
-          
-          // Limpiamos la URL para que no vuelva a scrollear si el usuario recarga la página
+        // Si hay comentario específico, priorizamos eso
+        const commentEl = directCommentId ? document.getElementById(`comment-${directCommentId}`) : null;
+        const targetEl = commentEl || document.getElementById(`post-${directPostId}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          targetEl.classList.add('arcade-report-highlight');
+          setTimeout(() => targetEl.classList.remove('arcade-report-highlight'), 3500);
           window.history.replaceState({}, '', location.pathname);
         }
-      }, 500);
+      }, directCommentId ? 900 : 500);
     }
-  }, [directPostId, posts, location.pathname]);
+  }, [directPostId, directCommentId, posts, location.pathname]);
 
   const handleNewPostClick = () => {
     const rulesKey = `rules_accepted_${user?.id}`;
@@ -786,7 +786,7 @@ export default function ForumPage() {
                 {expandedPost === post.id && (
                   <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
                     {(comments[post.id] || []).map((comment) => (
-                      <div key={comment.id} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
+                      <div key={comment.id} id={`comment-${comment.id}`} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
@@ -817,6 +817,7 @@ export default function ForumPage() {
                                   userId: comment.user_id,
                                   userName: comment.profile?.display_name || "Anónimo",
                                   postId: comment.post_id,
+                                  commentId: comment.id,
                                 })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
                                   <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
                                 </button>
@@ -913,6 +914,8 @@ export default function ForumPage() {
           reportedUserId={reportTarget.userId}
           reportedUserName={reportTarget.userName}
           postId={reportTarget.postId}
+          commentId={reportTarget.commentId}
+          contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"}
           onClose={() => setReportTarget(null)}
         />
       )}

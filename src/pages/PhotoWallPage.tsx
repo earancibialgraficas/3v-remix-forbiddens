@@ -171,6 +171,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
@@ -292,7 +293,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 </div>
               ) : (
                 comments.map(c => (
-                  <div key={c.id} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
+                  <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
                     <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
@@ -301,6 +302,18 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
+                        {user && user.id !== c.user_id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="text-[8px] text-muted-foreground hover:text-foreground p-0.5" title="Opciones">⋮</button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="z-[6500] bg-card border-border min-w-[140px]">
+                              <DropdownMenuItem onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-destructive focus:bg-destructive/10 cursor-pointer text-[11px]">
+                                <Flag className="w-3 h-3 mr-2" /> Reportar comentario
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                         {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
                     </div>
@@ -374,6 +387,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} postId={photo.id} onClose={() => setShowReport(false)} />}
+      {reportingComment && <ReportModal reportedUserId={reportingComment.userId} reportedUserName={reportingComment.userName} postId={photo.id} commentId={reportingComment.commentId} contentLabel="Comentario" onClose={() => setReportingComment(null)} />}
     </div>,
     document.body
   );
@@ -698,6 +712,8 @@ export default function PhotoWallPage() {
   const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post") || searchParams.get("focus");
 
+  const directCommentId = searchParams.get("comment");
+
   useEffect(() => {
     if (directPostId && !hasScrolled && displayPhotos.length > 0) {
       const index = displayPhotos.findIndex(item => item.id === directPostId);
@@ -713,15 +729,32 @@ export default function PhotoWallPage() {
             const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
             window.scrollTo({ top: middle, behavior: 'smooth' });
             
-            // 2. Agregamos el borde rojo parpadeante a la tarjeta de la foto
-            const cardElement = el.firstElementChild;
+            // 2. Highlight arcade neón
+            const cardElement = el.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // Abrimos el modal mágicamente
+            // 3. Abrimos el modal de la foto reportada
             setExpandedPhotoId(directPostId);
+
+            // 4. Si hay comentario, scroll dentro del modal cuando carga
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 80) {
+                  setTimeout(tryComment, 120);
+                }
+              };
+              setTimeout(tryComment, 600);
+            }
 
             setHasScrolled(true);
             window.history.replaceState({}, '', location.pathname);
@@ -738,7 +771,7 @@ export default function PhotoWallPage() {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
+  }, [directPostId, directCommentId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
 
   // 🔥 OBSERVER DE SCROLL INFINITO (MASONRY) 🔥
   useEffect(() => {
