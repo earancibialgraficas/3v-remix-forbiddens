@@ -232,13 +232,19 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
       </div>
 
       <div className="flex gap-2 flex-wrap items-center">
-        {eventTabs.map(tab => (
-          <Button key={tab.id} variant={filter === tab.id ? "default" : "outline"} size="sm" onClick={() => setFilter(tab.id)}
-            className={cn("text-xs font-body transition-all", filter === tab.id ? "bg-primary text-primary-foreground" : "border-border")}>
-            <tab.icon className="w-3 h-3 mr-1" /> {tab.label}
-          </Button>
-        ))}
+        {/* 🔥 FILTRO DESPLEGABLE EN LUGAR DE MÚLTIPLES BOTONES 🔥 */}
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as EventType)}
+          className="h-8 rounded-md border border-border bg-card text-xs font-body px-3 text-foreground outline-none focus:border-neon-cyan/50 transition-colors"
+        >
+          {eventTabs.map(tab => (
+            <option key={tab.id} value={tab.id}>{tab.label}</option>
+          ))}
+        </select>
+        
         <div className="flex-1" />
+        
         <Button size="sm" variant="outline" onClick={() => setSuggestOpen(true)}
           className="text-xs font-body border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/10">
           <Sparkles className="w-3 h-3 mr-1" /> Sugerir evento
@@ -269,6 +275,8 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                     {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                   </div>
 
+                  {/* 🔥 BOTONES DE EDICIÓN Y ELIMINACIÓN PARA EL STAFF 🔥 */}
+                  {/* Se ocultan en los placeholders ("p1", "p2") porque no existen en la base de datos real */}
                   {isStaff && !event.id.startsWith("p") && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
                       <Button variant="ghost" size="sm" onClick={() => handleEditClick(event)} className="h-6 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10">

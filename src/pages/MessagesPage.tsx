@@ -30,6 +30,75 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
+// 🔥 Función Traductora de Colores y Enlaces con Scroll Automático 🔥
+const renderFormattedText = (content: string) => {
+  const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
+  let currentColor = "";
+  let currentLink = "";
+  
+  return parts.map((part, i) => {
+    if (part === "\n") return <br key={i} />;
+    if (part.startsWith("[COLOR:")) { 
+      currentColor = part.match(/\[COLOR:([^\]]+)\]/)?.[1] || ""; 
+      return null; 
+    }
+    if (part === "[/COLOR]") { 
+      currentColor = ""; 
+      return null; 
+    }
+    if (part.startsWith("[LINK:")) { 
+      currentLink = part.match(/\[LINK:([^\]]+)\]/)?.[1] || ""; 
+      return null; 
+    }
+    if (part === "[/LINK]") { 
+      currentLink = ""; 
+      return null; 
+    }
+    
+    if (!part) return null;
+    
+    if (currentLink) {
+      return (
+        <a 
+          key={i} 
+          href={currentLink} 
+          className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
+          onClick={(e) => {
+            try {
+              const url = new URL(currentLink, window.location.origin);
+              const focusId = url.searchParams.get('focus');
+              if (focusId) {
+                e.preventDefault();
+                // Navegar si no estamos en la misma página, o simplemente scrollear si ya estamos
+                if (window.location.pathname !== url.pathname) {
+                  window.location.href = currentLink;
+                  return;
+                }
+                const el = document.getElementById(focusId);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
+                  setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
+                }
+              }
+            } catch {
+              // Si falla el parseo de la URL, dejamos que el enlace funcione normal
+            }
+          }}
+        >
+          <span style={currentColor ? { color: currentColor } : {}}>{part}</span>
+        </a>
+      );
+    }
+    
+    if (currentColor) {
+      return <span key={i} style={{ color: currentColor }}>{part}</span>;
+    }
+    
+    return <span key={i}>{part}</span>;
+  });
+};
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -90,7 +159,6 @@ export default function MessagesPage() {
     const convs: Conversation[] = partnerIds.map(pid => {
       const msgs = convMap[pid].msgs;
       const last = msgs[0];
-      // Contamos como no leídos los mensajes donde somos receptores Y is_read es explícitamente false
       const unread = msgs.filter(m => m.receiver_id === user.id && m.is_read === false).length;
       return {
         partnerId: pid,
@@ -117,14 +185,10 @@ export default function MessagesPage() {
     
     if (data) setMessages(data as Message[]);
 
-    // Marcamos como leído de forma robusta
     await supabase.from("inbox_messages").update({ is_read: true })
       .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
     
-    // Actualizamos localmente para feedback instantáneo
     setConversations(prev => prev.map(c => c.partnerId === partnerId ? { ...c, unread: 0 } : c));
-    
-    // 🔥 MAGIA AQUÍ: Disparamos una alarma invisible para apagar el número rojo del sobre de inmediato
     window.dispatchEvent(new Event("updateBadges"));
   };
 
@@ -177,7 +241,10 @@ export default function MessagesPage() {
                     <span className="text-xs font-medium truncate block" style={getNameStyle(c.partnerColorName)}>{c.partnerName}</span>
                     {c.unread > 0 && <span className="w-4 h-4 bg-primary rounded-full text-[8px] text-primary-foreground flex items-center justify-center shrink-0 ml-1">{c.unread}</span>}
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate block w-full">{c.lastMessage}</p>
+                  <p className="text-[10px] text-muted-foreground truncate block w-full">
+                    {/* Limpiamos las etiquetas para la vista previa de la lista */}
+                    {c.lastMessage.replace(/\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]/g, '')}
+                  </p>
                 </div>
               </button>
             ))}
@@ -193,8 +260,8 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
-                    {m.content}
+                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
+                    {renderFormattedText(m.content)}
                   </div>
                 </div>
               ))}
