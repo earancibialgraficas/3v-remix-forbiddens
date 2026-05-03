@@ -19,6 +19,7 @@ export interface MembershipLimits {
   maxSocialContent: number;
   maxFriends: number;
   storageMB: number;
+  maxDmChars: number;
 }
 
 export const MEMBERSHIP_LIMITS: Record<MembershipTier | 'staff', MembershipLimits> = {
