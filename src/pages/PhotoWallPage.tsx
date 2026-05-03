@@ -38,6 +38,18 @@ const isVideoItem = (item: any) => {
 
 const isInstagramPermalink = (url: string) => /instagram\.com\/(p|reel|reels|stories)\//.test(url || '');
 
+// Caché compartido para no invocar Apify dos veces (miniatura + modal)
+const apifyResolveCache = new Map<string, Promise<string | null>>();
+const resolveInstagramImage = (url: string): Promise<string | null> => {
+  if (!isInstagramPermalink(url)) return Promise.resolve(null);
+  if (apifyResolveCache.has(url)) return apifyResolveCache.get(url)!;
+  const p = supabase.functions.invoke('extract-instagram', { body: { url } })
+    .then(({ data, error }: any) => (!error && data?.imageUrl) ? data.imageUrl as string : null)
+    .catch(() => null);
+  apifyResolveCache.set(url, p);
+  return p;
+};
+
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
@@ -140,17 +152,15 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
   useEffect(() => {
     let active = true;
     setResolvedTargetUrl(initialTargetUrl);
-
-    if (!isInstagramPermalink(initialTargetUrl)) return;
-
-    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
-      .then(({ data, error }) => {
-        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
-      })
-      .catch(() => {});
-
+    const source = isInstagramPermalink(initialTargetUrl)
+      ? initialTargetUrl
+      : (isInstagramPermalink(photo.content_url) ? photo.content_url : null);
+    if (!source) return;
+    resolveInstagramImage(source).then(img => {
+      if (active && img) setResolvedTargetUrl(img);
+    });
     return () => { active = false; };
-  }, [initialTargetUrl]);
+  }, [initialTargetUrl, photo.content_url]);
 
   return (
     <div 
@@ -287,17 +297,15 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   useEffect(() => {
     let active = true;
     setResolvedTargetUrl(initialTargetUrl);
-
-    if (!isInstagramPermalink(initialTargetUrl)) return;
-
-    supabase.functions.invoke('extract-instagram', { body: { url: initialTargetUrl } })
-      .then(({ data, error }) => {
-        if (active && !error && data?.imageUrl) setResolvedTargetUrl(data.imageUrl);
-      })
-      .catch(() => {});
-
+    const source = isInstagramPermalink(initialTargetUrl)
+      ? initialTargetUrl
+      : (isInstagramPermalink(photo.content_url) ? photo.content_url : null);
+    if (!source) return;
+    resolveInstagramImage(source).then(img => {
+      if (active && img) setResolvedTargetUrl(img);
+    });
     return () => { active = false; };
-  }, [initialTargetUrl]);
+  }, [initialTargetUrl, photo.content_url]);
 
   const fetchComments = async () => {
     const { data: rawComments } = await supabase.from("social_comments").select("*").eq("content_id", photo.id).order("created_at", { ascending: true });
@@ -337,7 +345,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     } catch (e) { }
   };
 
-  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
+  // Solo usamos iframe si NO tenemos ninguna URL de imagen real (ni thumbnail, ni resuelta por Apify)
+  const hasRealImage = !!photo.thumbnail_url || (resolvedTargetUrl && resolvedTargetUrl !== initialTargetUrl);
+  const isEmbed = !hasRealImage && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
   if (typeof document === "undefined") return null;
