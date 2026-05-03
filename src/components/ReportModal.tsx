@@ -53,8 +53,10 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
         
       const reporterName = profile?.display_name || 'Usuario';
       const reporterEmail = user.email || 'desconocido';
+      
+      // 🔥 MEJORA: Usamos rutas relativas (sin origin) para evitar errores 404 🔥
       const targetUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}${window.location.pathname}${window.location.search}${postId ? (window.location.search ? '&' : '?') + 'focus=' + postId : ''}`
+        ? `${window.location.pathname}${window.location.search}${postId ? (window.location.search ? '&' : '?') + 'focus=' + postId : ''}`
         : '';
 
       const systemTicket = `[COLOR:#ef4444]🚨 NUEVO REPORTE 🚨[/COLOR]
@@ -98,10 +100,8 @@ Requiere revisión del staff.`;
 
   if (typeof document === "undefined") return null;
 
-  // 🔥 Magia: createPortal teletransporta el modal al Body 🔥
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-destructive/40 rounded-xl p-5 shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-scale-in flex flex-col max-h-[90vh]" 
         onClick={e => e.stopPropagation()}
