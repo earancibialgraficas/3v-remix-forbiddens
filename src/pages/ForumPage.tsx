@@ -914,6 +914,8 @@ export default function ForumPage() {
           reportedUserId={reportTarget.userId}
           reportedUserName={reportTarget.userName}
           postId={reportTarget.postId}
+          commentId={reportTarget.commentId}
+          contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"}
           onClose={() => setReportTarget(null)}
         />
       )}
