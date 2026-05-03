@@ -159,12 +159,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
-          <Link to="/" className="flex flex-col items-center">
+          <Link to="/" className="flex flex-col items-center w-full">
              {collapsed ? (
-               <div className="flex flex-col items-center gap-[4px] py-2">
-                 {"FORBIDDENS".split("").map((letter, i) => (
-                   <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{letter}</span>
-                 ))}
+               <div className="relative h-[28px] w-full overflow-hidden flex justify-center" aria-label="FORBIDDENS">
+                 <div className="flex flex-col items-center gap-[2px] animate-marquee-y">
+                   {[..."FORBIDDENS", ..."FORBIDDENS"].map((letter, i) => (
+                     <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{letter}</span>
+                   ))}
+                 </div>
                </div>
              ) : (
                <span className="font-pixel text-[10px] xl:text-[12px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
@@ -172,8 +174,8 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </Link>
         </div>
 
-        <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-5 py-5" : "px-3 items-start gap-2")}>
-          <div className={cn("flex items-center", collapsed ? "flex-col gap-6" : "gap-2")}>
+        <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-2 py-3" : "px-3 items-start gap-2")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col gap-1.5" : "gap-2")}>
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
                 <Link to="/perfil"><User className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
@@ -227,7 +229,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                           <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[999]">
+                      <TooltipContent side="right" sideOffset={8} className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[9999]">
                         <p className={cn("text-[9px] font-pixel mb-1.5 border-b border-border pb-1 uppercase tracking-tighter", item.color)}>{item.label}</p>
                         {hasChildren && (
                           <div className="flex flex-col gap-0.5">
