@@ -36,6 +36,8 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+const isInstagramPermalink = (url: string) => /instagram\.com\/(p|reel|reels|stories)\//.test(url || '');
+
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl') || url.includes('weserv.nl')) return url;
