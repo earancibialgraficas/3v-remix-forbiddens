@@ -915,7 +915,7 @@ export default function SocialReelsPage() {
          setHasScrolled(true);
       }
     }
-  }, [directPostId, filteredItems, hasScrolled, hasMore, isFetching]);
+  }, [directPostId, directCommentId, filteredItems, hasScrolled, hasMore, isFetching]);
 
   useEffect(() => {
     if (!containerRef.current || !isSnapping) return;
