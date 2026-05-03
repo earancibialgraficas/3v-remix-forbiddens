@@ -57,16 +57,16 @@ export default function ReportModal({ reportedUserId, reportedUserName, postId, 
         ? `${window.location.origin}${window.location.pathname}${window.location.search}${postId ? (window.location.search ? '&' : '?') + 'focus=' + postId : ''}`
         : '';
 
-      const systemTicket = `🚨 NUEVO REPORTE 🚨
+      const systemTicket = `[COLOR:#ef4444]🚨 NUEVO REPORTE 🚨[/COLOR]
 
-👤 EMISOR: ${reporterName} (${reporterEmail})
-🎯 REPORTADO: ${reportedUserName}
-📝 MOTIVO: ${reason}
-${postId ? '🆔 POST ID: ' + postId : '📍 Reporte de Perfil'}
-🔗 ENLACE: ${targetUrl}
+[COLOR:#3b82f6]👤 EMISOR: ${reporterName} (${reporterEmail})[/COLOR]
+[COLOR:#06b6d4]🎯 REPORTADO: ${reportedUserName}[/COLOR]
+[COLOR:#eab308]📝 MOTIVO: ${reason}[/COLOR]
+${postId ? '[COLOR:#ffffff]🆔 POST ID: ' + postId + '[/COLOR]' : '[COLOR:#ffffff]📍 Reporte de Perfil[/COLOR]'}
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ver contenido reportado[/LINK]
 
-💬 DETALLES:
-${details.trim() || '— Sin detalles adicionales —'}
+[COLOR:#ffffff]💬 DETALLES:
+${details.trim() || '— Sin detalles adicionales —'}[/COLOR]
 
 ———————————————
 Requiere revisión del staff.`;

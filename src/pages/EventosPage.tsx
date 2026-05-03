@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles } from "lucide-react";
+import { Calendar, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,13 +9,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-type EventType = "all" | "torneo" | "estreno" | "rodada";
+type EventType = "all" | "torneo" | "estreno" | "rodada" | "stream" | "sorteo" | "comunidad" | "podcast" | "otro";
 
 const eventTabs: { id: EventType; label: string; icon: React.ElementType; color: string }[] = [
   { id: "all", label: "Todos", icon: Calendar, color: "text-foreground" },
   { id: "torneo", label: "Torneos Gaming", icon: Gamepad2, color: "text-neon-green" },
   { id: "estreno", label: "Estrenos", icon: Tv, color: "text-neon-cyan" },
   { id: "rodada", label: "Rodadas", icon: Bike, color: "text-neon-magenta" },
+  { id: "stream", label: "Streams", icon: MonitorPlay, color: "text-neon-yellow" },
+  { id: "sorteo", label: "Sorteos", icon: Gift, color: "text-green-400" },
+  { id: "comunidad", label: "Comunidad", icon: Users, color: "text-blue-400" },
+  { id: "podcast", label: "Podcasts", icon: Mic, color: "text-purple-400" },
+  { id: "otro", label: "Otros", icon: Star, color: "text-orange-400" },
 ];
 
 const TITLE_ICONS = ["🎮","🕹️","🏆","🎯","⚔️","🎬","📺","🍿","🏍️","🛣️","🌟","🔥","⚡","🎉","💎","👾","🎊","🚀","🎤","🎧"];
@@ -45,19 +50,20 @@ export default function EventosPage() {
   // Sugerir evento
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [sgTitle, setSgTitle] = useState("");
-  const [sgType, setSgType] = useState<"torneo"|"estreno"|"rodada">("torneo");
+  const [sgType, setSgType] = useState<EventType>("torneo");
   const [sgDate, setSgDate] = useState("");
   const [sgTime, setSgTime] = useState("");
   const [sgLocation, setSgLocation] = useState("");
   const [sgDescription, setSgDescription] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Crear evento (staff)
+  // Crear/Editar evento (staff)
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [crIcon, setCrIcon] = useState("🎮");
   const [crColor, setCrColor] = useState(COLOR_OPTIONS[0].value);
   const [crTitle, setCrTitle] = useState("");
-  const [crType, setCrType] = useState<"torneo"|"estreno"|"rodada">("torneo");
+  const [crType, setCrType] = useState<EventType>("torneo");
   const [crDate, setCrDate] = useState("");
   const [crTime, setCrTime] = useState("");
   const [crLocation, setCrLocation] = useState("");
@@ -74,8 +80,27 @@ export default function EventosPage() {
   const allEvents = [...dbEvents, ...placeholderEvents.filter(pe => !dbEvents.some(de => de.title === pe.title))];
   const filtered = filter === "all" ? allEvents : allEvents.filter(e => e.event_type === filter);
 
-  const typeColors: Record<string, string> = { torneo: "text-neon-green", estreno: "text-neon-cyan", rodada: "text-neon-magenta" };
-  const typeIcons: Record<string, React.ElementType> = { torneo: Gamepad2, estreno: Tv, rodada: Bike };
+  const typeColors: Record<string, string> = { 
+    torneo: "text-neon-green", 
+    estreno: "text-neon-cyan", 
+    rodada: "text-neon-magenta",
+    stream: "text-neon-yellow",
+    sorteo: "text-green-400",
+    comunidad: "text-blue-400",
+    podcast: "text-purple-400",
+    otro: "text-orange-400"
+  };
+  
+  const typeIcons: Record<string, React.ElementType> = { 
+    torneo: Gamepad2, 
+    estreno: Tv, 
+    rodada: Bike,
+    stream: MonitorPlay,
+    sorteo: Gift,
+    comunidad: Users,
+    podcast: Mic,
+    otro: Star
+  };
 
   const handleSuggest = async () => {
     if (!user) { toast({ title: "Inicia sesión para sugerir", variant: "destructive" }); return; }
@@ -84,7 +109,23 @@ export default function EventosPage() {
     try {
       const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single();
       const name = profile?.display_name || 'Usuario';
-      const content = `🤖 [SISTEMA] NUEVA SUGERENCIA DE EVENTO\n\n👤 Sugerido por: ${name}\n📧 Email: ${user.email || 'desconocido'}\n\n🏷️ Título: ${sgTitle}\n🎯 Tipo: ${sgType.toUpperCase()}\n📅 Fecha: ${sgDate || '—'}\n🕐 Hora: ${sgTime || '—'}\n📍 Lugar: ${sgLocation || '—'}\n\n💬 Descripción:\n${sgDescription || 'Sin descripción.'}\n\n🔗 ${typeof window !== 'undefined' ? window.location.origin + '/eventos' : ''}`;
+      
+      const content = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE EVENTO[/COLOR]
+
+[COLOR:#3b82f6]👤 Sugerido por: ${name}[/COLOR]
+[COLOR:#06b6d4]📧 Email: ${user.email || 'desconocido'}[/COLOR]
+
+[COLOR:#eab308]🏷️ Título: ${sgTitle}[/COLOR]
+[COLOR:#ffffff]🎯 Tipo: ${sgType.toUpperCase()}[/COLOR]
+[COLOR:#ffffff]📅 Fecha: ${sgDate || '—'}[/COLOR]
+[COLOR:#ffffff]🕐 Hora: ${sgTime || '—'}[/COLOR]
+[COLOR:#06b6d4]📍 Lugar: ${sgLocation || '—'}[/COLOR]
+
+[COLOR:#ffffff]💬 Descripción:
+${sgDescription || 'Sin descripción.'}[/COLOR]
+
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${typeof window !== 'undefined' ? window.location.origin + '/eventos' : ''}]Ir a Eventos[/LINK]`;
+
       const { error } = await supabase.rpc("send_system_staff_message", {
         p_title: `Sugerencia de evento: ${sgTitle}`,
         p_content: content,
@@ -99,26 +140,82 @@ export default function EventosPage() {
     } finally { setSending(false); }
   };
 
+  const openCreateDialog = () => {
+    setEditingId(null);
+    setCrIcon("🎮");
+    setCrTitle("");
+    setCrType("torneo");
+    setCrDate("");
+    setCrTime("");
+    setCrLocation("");
+    setCrDescription("");
+    setCrColor(COLOR_OPTIONS[0].value);
+    setCreateOpen(true);
+  };
+
+  const handleEditClick = (ev: any) => {
+    setEditingId(ev.id);
+    const firstSpace = ev.title.indexOf(" ");
+    let titleText = ev.title;
+    let iconText = "🎮";
+    if (firstSpace !== -1) {
+      const possibleIcon = ev.title.substring(0, firstSpace);
+      if (TITLE_ICONS.includes(possibleIcon)) {
+        iconText = possibleIcon;
+        titleText = ev.title.substring(firstSpace + 1);
+      }
+    }
+    
+    setCrIcon(iconText);
+    setCrTitle(titleText);
+    setCrType(ev.event_type);
+    setCrDate(ev.event_date || "");
+    setCrTime(ev.event_time || "");
+    setCrLocation(ev.location || "");
+    setCrDescription(ev.description || "");
+    setCrColor(ev.image_url || COLOR_OPTIONS[0].value);
+    setCreateOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Seguro que deseas eliminar este evento?")) return;
+    try {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Evento eliminado" });
+      fetchEvents();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleCreate = async () => {
     if (!user || !isStaff) return;
     if (!crTitle.trim()) { toast({ title: "Falta el título", variant: "destructive" }); return; }
     setCreating(true);
     try {
       const fullTitle = `${crIcon} ${crTitle}`.trim();
-      const { error } = await supabase.from("events").insert({
+      const payload = {
         title: fullTitle,
         description: crDescription,
         event_type: crType,
         event_date: crDate || null,
         event_time: crTime || null,
         location: crLocation || null,
-        created_by: user.id,
         image_url: crColor, // reutilizamos para guardar la clase de color del título
-      } as any);
-      if (error) throw error;
-      toast({ title: "Evento creado" });
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from("events").update(payload as any).eq("id", editingId);
+        if (error) throw error;
+        toast({ title: "Evento actualizado" });
+      } else {
+        const { error } = await supabase.from("events").insert({ ...payload, created_by: user.id } as any);
+        if (error) throw error;
+        toast({ title: "Evento creado" });
+      }
+      
       setCreateOpen(false);
-      setCrTitle(""); setCrDate(""); setCrTime(""); setCrLocation(""); setCrDescription("");
       fetchEvents();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -147,8 +244,8 @@ export default function EventosPage() {
           <Sparkles className="w-3 h-3 mr-1" /> Sugerir evento
         </Button>
         {isStaff && (
-          <Button size="sm" onClick={() => setCreateOpen(true)}
-            className="text-xs font-pixel bg-neon-magenta text-background hover:bg-neon-magenta/80 shadow-[0_0_15px_rgba(236,72,153,0.4)]">
+          <Button size="sm" onClick={openCreateDialog}
+            className="text-xs font-body font-bold bg-neon-magenta text-background hover:bg-neon-magenta/80 shadow-[0_0_15px_rgba(236,72,153,0.4)]">
             <Plus className="w-3 h-3 mr-1" /> Crear evento
           </Button>
         )}
@@ -171,6 +268,18 @@ export default function EventosPage() {
                     {event.event_time && <span>🕐 {event.event_time}</span>}
                     {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                   </div>
+
+                  {isStaff && !event.id.startsWith("p") && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(event)} className="h-6 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10">
+                        <Edit className="w-3 h-3 mr-1" /> Editar
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(event.id)} className="h-6 text-[10px] font-body px-2 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-3 h-3 mr-1" /> Eliminar
+                      </Button>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
@@ -186,12 +295,12 @@ export default function EventosPage() {
               <Sparkles className="w-4 h-4" /> SUGERIR EVENTO
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
             <Input placeholder="Título del evento *" value={sgTitle} onChange={e => setSgTitle(e.target.value)} className="bg-black/40 text-xs" maxLength={120} />
-            <select value={sgType} onChange={e => setSgType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3">
-              <option value="torneo">Torneo Gaming</option>
-              <option value="estreno">Estreno</option>
-              <option value="rodada">Rodada</option>
+            <select value={sgType} onChange={e => setSgType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
+              {eventTabs.filter(t => t.id !== "all").map(t => (
+                 <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
             </select>
             <div className="grid grid-cols-2 gap-2">
               <Input type="date" value={sgDate} onChange={e => setSgDate(e.target.value)} className="bg-black/40 text-xs" />
@@ -209,15 +318,16 @@ export default function EventosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* CREAR EVENTO (STAFF) */}
+      {/* CREAR/EDITAR EVENTO (STAFF) */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="bg-card border-neon-magenta/30 max-w-lg shadow-[0_0_50px_rgba(236,72,153,0.15)]">
           <DialogHeader>
             <DialogTitle className="font-pixel text-[11px] text-neon-magenta flex items-center gap-2">
-              <Plus className="w-4 h-4" /> CREAR EVENTO
+              {editingId ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />} 
+              {editingId ? "EDITAR EVENTO" : "CREAR EVENTO"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Icono del título</label>
               <div className="flex flex-wrap gap-1 p-2 bg-black/40 rounded border border-border">
@@ -244,10 +354,10 @@ export default function EventosPage() {
             <div className="text-[10px] text-muted-foreground font-body">
               Vista previa: <span className={cn("font-medium text-sm", crColor)}>{crIcon} {crTitle || "Tu evento"}</span>
             </div>
-            <select value={crType} onChange={e => setCrType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3">
-              <option value="torneo">Torneo Gaming</option>
-              <option value="estreno">Estreno</option>
-              <option value="rodada">Rodada</option>
+            <select value={crType} onChange={e => setCrType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
+              {eventTabs.filter(t => t.id !== "all").map(t => (
+                 <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
             </select>
             <div className="grid grid-cols-2 gap-2">
               <Input type="date" value={crDate} onChange={e => setCrDate(e.target.value)} className="bg-black/40 text-xs" />
@@ -259,7 +369,8 @@ export default function EventosPage() {
           <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
             <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="text-xs">Cancelar</Button>
             <Button size="sm" onClick={handleCreate} disabled={creating} className="text-xs font-pixel bg-neon-magenta text-background hover:bg-neon-magenta/80">
-              <Plus className="w-3 h-3 mr-1" /> {creating ? "Creando..." : "Crear"}
+              {editingId ? <Edit className="w-3 h-3 mr-1" /> : <Plus className="w-3 h-3 mr-1" />} 
+              {creating ? "Guardando..." : (editingId ? "Actualizar" : "Crear")}
             </Button>
           </div>
         </DialogContent>

@@ -117,7 +117,19 @@ export default function BibliotecaPage() {
       if (error) throw error;
 
       // Notificar al Staff usando el bot SISTEMA
-      const messageContent = `🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO\n\n👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}\n📧 Email: ${user.email || 'desconocido'}\n🎮 Juego: ${gameName}\n🕹️ Consola: ${selectedConsole.toUpperCase()}\n💬 Motivo / Descripción:\n${description || 'Sin comentario adicional.'}\n\n🔗 ${typeof window !== 'undefined' ? window.location.origin + '/arcade/biblioteca' : ''}`;
+      const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]
+
+[COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]
+[COLOR:#06b6d4]📧 Email: ${user.email || 'desconocido'}[/COLOR]
+
+[COLOR:#eab308]🎮 Juego: ${gameName}[/COLOR]
+[COLOR:#ffffff]🕹️ Consola: ${selectedConsole.toUpperCase()}[/COLOR]
+
+[COLOR:#ffffff]💬 Motivo / Descripción:
+${description || 'Sin comentario adicional.'}[/COLOR]
+
+[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${typeof window !== 'undefined' ? window.location.origin + '/biblioteca' : ''}]Ir a Biblioteca[/LINK]`;
+
       await supabase.rpc("send_system_staff_message", {
         p_title: `Sugerencia de juego: ${gameName}`,
         p_content: messageContent,
