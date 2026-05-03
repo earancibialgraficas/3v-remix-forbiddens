@@ -32,14 +32,7 @@ const COLOR_OPTIONS = [
   { name: "Blanco", value: "text-foreground" },
 ];
 
-const placeholderEvents = [
-  { id: "p1", title: "Torneo Retro: Super Mario Bros 3", description: "Inscripciones abiertas. Premios para top 3.", event_type: "torneo", event_date: "2026-04-20", event_time: "18:00", location: "Discord FORBIDDENS" },
-  { id: "p2", title: "Estreno: One Piece temporada 3", description: "Nuevo arco en Crunchyroll. Discusión en el foro.", event_type: "estreno", event_date: "2026-04-15", event_time: "14:00", location: "Crunchyroll" },
-  { id: "p3", title: "Rodada nocturna CDMX", description: "Punto de encuentro: Reforma 222. Ruta hacia Coyoacán.", event_type: "rodada", event_date: "2026-04-18", event_time: "20:00", location: "Reforma 222, CDMX" },
-  { id: "p4", title: "Juegos gratis en Epic Games", description: "Esta semana: Celeste y Hollow Knight gratis en Epic Store.", event_type: "torneo", event_date: "2026-04-12", event_time: "00:00", location: "Epic Games Store" },
-  { id: "p5", title: "Estreno: Attack on Titan Final", description: "Último episodio disponible en Netflix.", event_type: "estreno", event_date: "2026-04-25", event_time: "12:00", location: "Netflix" },
-  { id: "p6", title: "Rodada Sierra de Guadarrama", description: "Ruta de montaña, nivel intermedio. Llevar casco y protección.", event_type: "rodada", event_date: "2026-04-22", event_time: "09:00", location: "Madrid, España" },
-];
+const placeholderEvents: any[] = [];
 
 export default function EventosPage() {
   const { user, isStaff } = useAuth();

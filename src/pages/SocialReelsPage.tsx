@@ -570,18 +570,11 @@ function SnapCard({
                       </button>
                     )}
                   </div>
-                  <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <div className="flex gap-1.5 items-center shrink-0">
                     {user && user.id !== c.user_id && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground p-0.5" title="Opciones"><MoreVertical className="w-3 h-3" /></button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="z-[200] bg-card border-border min-w-[140px]">
-                          <DropdownMenuItem onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-destructive focus:bg-destructive/10 cursor-pointer text-[11px]">
-                            <Flag className="w-3 h-3 mr-2" /> Reportar comentario
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <button onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar comentario">
+                        <Flag className="w-3 h-3" />
+                      </button>
                     )}
                     {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
                   </div>

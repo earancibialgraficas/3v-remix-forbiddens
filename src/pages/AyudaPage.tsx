@@ -63,28 +63,11 @@ export default function AyudaPage() {
         user_id: user.id, name, email, message,
       } as any);
 
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer re_CH7h6Grx_GXG6mMB5484i3TaZrsNp6AM1"
-        },
-        body: JSON.stringify({
-          from: "onboarding@resend.dev",
-          to: ["forbiddens.mcraft@gmail.com"],
-          subject: `Nueva Consulta de Soporte Forbiddens - ${name}`,
-          html: `
-            <h2>Nueva solicitud de contacto</h2>
-            <p><strong>Nombre:</strong> ${name}</p>
-            <p><strong>Email del usuario:</strong> ${email}</p>
-            <hr />
-            <p><strong>Mensaje:</strong></p>
-            <p>${message}</p>
-          `
-        })
+      const { error: fnError } = await supabase.functions.invoke("send-contact-email", {
+        body: { name, email, message },
       });
 
-      if (!res.ok) throw new Error("No se pudo enviar el correo a través de Resend.");
+      if (fnError) throw fnError;
 
       setSent(true);
       toast({ title: "Enviado", description: "Tu consulta fue enviada exitosamente." });
