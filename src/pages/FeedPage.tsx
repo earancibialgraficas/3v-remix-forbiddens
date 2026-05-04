@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Youtube, Music2, Globe, ExternalLink, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, MoreVertical, Maximize, Minimize, Volume2, VolumeX } from "lucide-react";
+import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,8 +51,7 @@ interface SocialComment {
   avatar_url?: string | null;
 }
 
-// 🔥 SE AÑADE EL CONTROL DE MUTEO AL ENLACE IFRAME 🔥
-const getAdvancedEmbedUrl = (url: string, platform: string, isMuted: boolean) => {
+const getAdvancedEmbedUrl = (url: string, platform: string) => {
   if (!url) return null;
   const lowerUrl = url.toLowerCase();
   let baseEmbed = url;
@@ -74,10 +73,9 @@ const getAdvancedEmbedUrl = (url: string, platform: string, isMuted: boolean) =>
     baseEmbed = `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=0&width=560`;
   }
 
-  // Inyectar Autoplay y Mute (Inicial)
   const connector = baseEmbed.includes('?') ? '&' : '?';
   if (baseEmbed !== url && platform === 'youtube') {
-    return `${baseEmbed}${connector}autoplay=1&mute=${isMuted ? 1 : 0}&enablejsapi=1`;
+    return `${baseEmbed}${connector}autoplay=1&enablejsapi=1`;
   } else if (baseEmbed !== url) {
     return `${baseEmbed}${connector}autoplay=1`;
   }
@@ -101,7 +99,6 @@ function SnapCard({
   isVisible, 
   onPauseMusic, 
   isStaff,
-  globalMuted,
   onDeletePost,
   onEditPost,
   onHidePost,
@@ -113,7 +110,6 @@ function SnapCard({
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
-  globalMuted: boolean;
   onDeletePost: (id: string, targetType: string) => void;
   onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
@@ -130,16 +126,15 @@ function SnapCard({
   const isOwner = user?.id === item.user_id;
 
   const isVideo = isVideoItem(item);
-  const isDirectMp4 = item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+  const isDirectMp4 = !!item.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
   
   const isInstagram = item.platform === 'instagram';
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  // 🔥 LÓGICA MODO CINE 🔥 Solo para videos horizontales/panorámicos
-  const canCinema = !['tiktok', 'reel'].includes(item.content_type || '');
+  const canCinema = item.platform === 'youtube' || item.platform === 'facebook' || isDirectMp4;
 
-  const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform, globalMuted) : "";
+  const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
   
   const [scale, setScale] = useState(1);
@@ -160,7 +155,6 @@ function SnapCard({
   const [editTitle, setEditTitle] = useState(item.title || item.caption || "");
   const [mediaError, setMediaError] = useState(false);
 
-  // 🔥 ESTADOS MODO CINE 🔥
   const [cinemaMode, setCinemaMode] = useState(false);
   const [cinemaPanelOpen, setCinemaPanelOpen] = useState(false);
 
@@ -172,35 +166,32 @@ function SnapCard({
     return { w: 640, h: 360 };
   };
 
-  // 🔥 LÓGICA DE AUTOPLAY MEJORADA CON INTENTO DE SONIDO Y GLOBAL MUTE 🔥
   useEffect(() => {
     if (nativeVideoRef.current && isDirectMp4) {
       if (isVisible) {
-        nativeVideoRef.current.muted = globalMuted; // Intentamos con el setting global
+        nativeVideoRef.current.muted = false;
         const playPromise = nativeVideoRef.current.play();
         
         if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log("El navegador bloqueó el sonido automático. Mutando el video como fallback.");
+          playPromise.catch(() => {
             if (nativeVideoRef.current) {
-              nativeVideoRef.current.muted = true; // Forzamos mute para que al menos inicie el video
-              nativeVideoRef.current.play().catch(e => console.error("Fallo total de autoplay", e));
+              nativeVideoRef.current.muted = true; 
+              nativeVideoRef.current.play().catch(e => console.error(e));
             }
           });
         }
-        if (!globalMuted) onPauseMusic();
+        onPauseMusic();
       } else {
         nativeVideoRef.current.pause();
       }
     }
-    if (isVisible && isVideo && !isDirectMp4 && !globalMuted) {
+    if (isVisible && isVideo && !isDirectMp4) {
       onPauseMusic();
     }
-  }, [isVisible, isVideo, isDirectMp4, globalMuted]);
+  }, [isVisible, isVideo, isDirectMp4]);
 
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
-
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -214,7 +205,6 @@ function SnapCard({
         setScale(newScale);
       }
     });
-
     observer.observe(videoContainerRef.current);
     return () => observer.disconnect();
   }, [item.platform, item.content_type, item.content_url, isVideo, isDirectMp4, isPhoto, cinemaMode]);
@@ -320,7 +310,6 @@ function SnapCard({
     }
   };
 
-  // 🔥 INYECCIÓN DE PERMISOS DE AUTOPLAY AL IFRAME FINAL 🔥
   let finalEmbedUrl = "";
   if (isVisible && embedUrl) {
     const connector = embedUrl.includes('?') ? '&' : '?';
@@ -344,14 +333,7 @@ function SnapCard({
     <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
-        
-        {/* BOTÓN TOGGLE MODO CINE */}
-        {canCinema && (
-          <button onClick={() => { setCinemaMode(!cinemaMode); setCinemaPanelOpen(false); }} className="absolute top-4 right-4 z-50 p-2.5 bg-black/60 hover:bg-black/90 rounded-full text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group">
-             {cinemaMode ? <Minimize className="w-5 h-5 group-hover:scale-90 transition-transform"/> : <Maximize className="w-5 h-5 group-hover:scale-110 transition-transform"/>}
-          </button>
-        )}
+      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 md:mb-2", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0 md:mb-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md md:mt-[5px]")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -367,7 +349,7 @@ function SnapCard({
         )}
 
         {isPhoto ? (
-          <div className="relative w-full h-full flex items-center justify-center group/ig">
+          <div className="relative w-full h-full flex items-center justify-center group/ig z-10">
             <img 
               src={getSafeUrl(targetImgUrl)} 
               alt={item.title || "Imagen"} 
@@ -395,11 +377,11 @@ function SnapCard({
             controls 
             loop
             playsInline
-            className="w-full h-full object-contain" 
+            className="w-full h-full object-contain z-10" 
             onError={() => setMediaError(true)}
           />
         ) : finalEmbedUrl ? (
-          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
+          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center z-10"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
             <iframe 
               src={finalEmbedUrl} 
@@ -411,7 +393,7 @@ function SnapCard({
             />
           </div>
         ) : (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4 z-10">
             <PlayCircle className="w-16 h-16 text-neon-cyan animate-pulse" />
             <a href={item.content_url} target="_blank" rel="noopener" className="px-4 py-2 bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 border border-neon-cyan/50 rounded-lg text-[10px] uppercase font-pixel tracking-widest transition-colors">
               VER ENLACE EXTERNO
@@ -419,13 +401,71 @@ function SnapCard({
           </div>
         )}
 
-        {/* BOTÓN DESPLEGABLE DE COMENTARIOS EN MODO CINE */}
+        {/* 🔥 BOTÓN TOGGLE MODO CINE (z-[100]) 🔥 */}
+        {canCinema && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); setCinemaMode(!cinemaMode); setCinemaPanelOpen(false); }} 
+            className="absolute top-4 right-4 z-[100] p-2.5 bg-black/60 hover:bg-black/90 rounded-full text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group"
+            title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
+          >
+             {cinemaMode ? <Minimize className="w-5 h-5 group-hover:scale-90 transition-transform"/> : <Maximize className="w-5 h-5 group-hover:scale-110 transition-transform"/>}
+          </button>
+        )}
+
+        {/* 🔥 BARRA INFERIOR ELEGANTE EN MODO CINE 🔥 */}
         {cinemaMode && (
-           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-               <button onClick={() => setCinemaPanelOpen(true)} className="px-5 py-2.5 bg-black/60 border border-neon-cyan/50 text-neon-cyan rounded-full text-[10px] font-pixel backdrop-blur-md flex items-center gap-2 hover:bg-black/80 transition-all shadow-lg hover:scale-105">
-                   <MessageSquare className="w-4 h-4" /> VER DETALLES Y COMENTARIOS
-               </button>
-           </div>
+          <div className="absolute bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 flex items-end justify-between z-[100] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+             
+             {/* Izquierda: Avatar y Nombre */}
+             <div className="flex items-center gap-3 pointer-events-auto">
+                <Link to={`/usuario/${item.user_id}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:scale-105 transition-transform bg-muted" style={getAvatarBorderStyle(item.color_avatar_border)}>
+                   {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-2 text-white" />}
+                </Link>
+             </div>
+
+             {/* Centro: Acciones Rápidas */}
+             <div className="flex items-center gap-3 md:gap-5 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6">
+                <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-1 group">
+                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsUp className={cn("w-4 h-4 md:w-5 md:h-5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+                   </div>
+                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{likes}</span>
+                </button>
+
+                <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-1 group">
+                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsDown className={cn("w-4 h-4 md:w-5 md:h-5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+                   </div>
+                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{dislikes}</span>
+                </button>
+
+                <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-1 group">
+                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                      <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-neon-cyan transition-transform group-active:scale-90" />
+                   </div>
+                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{comments.length}</span>
+                </button>
+
+                {user && !isOwner && (
+                   <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-1 group">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                         <Flag className="w-4 h-4 md:w-5 md:h-5 text-white transition-transform group-active:scale-90" />
+                      </div>
+                      <span className="text-white text-[10px] font-bold drop-shadow-md opacity-0">.</span>
+                   </button>
+                )}
+             </div>
+
+             {/* Derecha: Subir / Bajar */}
+             <div className="flex gap-2 pointer-events-auto">
+                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                </button>
+             </div>
+          </div>
         )}
       </div>
 
@@ -461,7 +501,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t z-[70] p-4 md:p-4" 
-          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none",
+          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[44px]", // Ajustado para coincidir con la altura del filtro PC
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full md:translate-x-0" : "",
@@ -656,9 +696,8 @@ export default function FeedPage() {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
 
-  // 🔥 NUEVOS ESTADOS: Banner Auto-ocultable y Volumen Global 🔥
+  // 🔥 ESTADO DE BANNER AUTO-OCULTABLE 🔥
   const [showHeader, setShowHeader] = useState(true);
-  const [globalMuted, setGlobalMuted] = useState(false);
 
   const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -874,6 +913,18 @@ export default function FeedPage() {
     }
   };
 
+  const handleFilterChange = (val: string) => {
+    if (val === "friends") {
+      setFilter("all");
+      setSourceTab("friends");
+    } else {
+      setFilter(val);
+      setSourceTab("all");
+    }
+    setVisibleIndex(0);
+    containerRef.current?.scrollTo({top:0, behavior:'smooth'});
+  };
+
   const filteredItems = useMemo(() => {
     let filt = sourceTab === "friends" ? items.filter(i => friendIds.includes(i.user_id)) : items;
 
@@ -972,7 +1023,7 @@ export default function FeedPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden gap-2 pb-1 md:pb-2">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden pb-1 md:pb-2">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden shrink-0 mx-1 md:mx-2", showHeader ? "max-h-[100px] opacity-100 mt-1" : "max-h-0 opacity-0 mt-0")}>
@@ -983,101 +1034,104 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {/* 🔥 FILTROS COMPACTOS 🔥 */}
-      <div className="flex gap-2 bg-card border border-border rounded-xl p-1 items-center shrink-0 shadow-sm mx-1 md:mx-2 justify-between">
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <div className="relative group min-w-[100px]">
+      <div className="flex-1 w-full relative flex flex-col min-h-0 md:mt-1">
+        
+        {/* 🔥 FILTRO MÓVIL (Compacto en 1 sola línea) 🔥 */}
+        <div className="md:hidden flex gap-2 bg-card border border-border rounded-xl p-1 items-center shrink-0 shadow-sm mx-1 justify-between z-10 mb-1 relative">
+          <div className="relative group flex-1 min-w-[100px]">
             <select 
-              value={filter} 
-              onChange={e => { setFilter(e.target.value); setVisibleIndex(0); containerRef.current?.scrollTo({top:0, behavior:'smooth'}); }} 
+              value={sourceTab === "friends" ? "friends" : filter} 
+              onChange={e => handleFilterChange(e.target.value)} 
               className="w-full h-8 bg-muted/30 border border-border rounded-lg text-[10px] font-body text-foreground font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-muted/50 transition-colors"
             >
               <option value="all">Todos</option>
               <option value="videos">Videos</option>
               <option value="reels">Reels</option>
               <option value="photos">Imágenes</option>
+              {user && <option value="friends">Amigos</option>}
             </select>
             <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
           </div>
-          
-          {user && (
-            <button 
-              onClick={() => {setSourceTab(prev => prev === "friends" ? "all" : "friends"); setVisibleIndex(0); containerRef.current?.scrollTo({top:0, behavior:'smooth'})}} 
-              className={cn("h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[10px] font-body font-bold transition-all border shrink-0", sourceTab === "friends" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50")}
-            >
-              <Users className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Amigos</span>
-            </button>
-          )}
+
+          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+               <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
+            </Button>
+          </div>
         </div>
 
-        <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
-          <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
-             <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
-             <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
-          </Button>
+        {/* 🔥 FILTRO DESKTOP (Alineado y anclado a la columna derecha) 🔥 */}
+        <div className="hidden md:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute right-2 top-0 z-20 w-[240px] lg:w-[260px] justify-between">
+          <div className="relative group flex-1 min-w-[80px]">
+            <select 
+              value={sourceTab === "friends" ? "friends" : filter} 
+              onChange={e => handleFilterChange(e.target.value)} 
+              className="w-full h-8 bg-muted/30 border border-border rounded-lg text-[10px] font-body text-foreground font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-muted/50 transition-colors"
+            >
+              <option value="all">Todos</option>
+              <option value="videos">Videos</option>
+              <option value="reels">Reels</option>
+              <option value="photos">Imágenes</option>
+              {user && <option value="friends">Amigos</option>}
+            </select>
+            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+          </div>
+          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+               <Flame className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
+            </Button>
+          </div>
         </div>
+
+        {filteredItems.length === 0 && !isFetching ? (
+          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-2">
+            <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+            <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
+            <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
+              <Link to="/perfil?tab=social">Agregar Contenido</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="relative flex-1 min-h-0 w-full overflow-hidden">
+            <div 
+              ref={containerRef} 
+              className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
+              style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+              
+              {filteredItems.map((item, i) => (
+                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
+                  <SnapCard 
+                    item={item} 
+                    isVisible={i === visibleIndex} 
+                    onPauseMusic={pauseMusic} 
+                    isStaff={isStaff} 
+                    onDeletePost={handleDeletePost} 
+                    onEditPost={handleEditPost}
+                    onHidePost={handleHidePost}
+                    onSavePost={handleSaveToProfile}
+                    onScrollUp={() => scrollContainer('up')} 
+                    onScrollDown={() => scrollContainer('down')} 
+                  />
+                </div>
+              ))}
+
+              {hasMore && filteredItems.length > 0 && (
+                <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
+                  <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-
-      {filteredItems.length === 0 && !isFetching ? (
-        <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-2">
-          <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
-          <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
-          <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
-            <Link to="/perfil?tab=social">Agregar Contenido</Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="relative flex-1 min-h-0 w-full overflow-hidden">
-          <div 
-            ref={containerRef} 
-            className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
-            style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-            
-            {filteredItems.map((item, i) => (
-              <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
-                <SnapCard 
-                  item={item} 
-                  isVisible={i === visibleIndex} 
-                  onPauseMusic={pauseMusic} 
-                  isStaff={isStaff} 
-                  globalMuted={globalMuted}
-                  onDeletePost={handleDeletePost} 
-                  onEditPost={handleEditPost}
-                  onHidePost={handleHidePost}
-                  onSavePost={handleSaveToProfile}
-                  onScrollUp={() => scrollContainer('up')} 
-                  onScrollDown={() => scrollContainer('down')} 
-                />
-              </div>
-            ))}
-
-            {hasMore && filteredItems.length > 0 && (
-              <div className="h-full w-full snap-center snap-always flex items-center justify-center bg-[#09090b]">
-                <Loader2 className="animate-spin text-neon-cyan w-8 h-8 opacity-50" />
-              </div>
-            )}
-          </div>
-
-          {/* 🔥 BOTÓN MAESTRO DE VOLUMEN GLOBAL 🔥 */}
-          <div className="absolute bottom-24 left-4 z-50 md:bottom-8 md:left-8">
-            <button 
-              onClick={() => {
-                setGlobalMuted(!globalMuted);
-                if (globalMuted) pauseMusic(); // Pausar la radio web si desmuteamos el feed
-              }} 
-              className={cn("p-3 rounded-full backdrop-blur-md border shadow-lg transition-all active:scale-95 flex items-center justify-center group", globalMuted ? "bg-black/60 border-white/20 text-white hover:bg-black/80" : "bg-neon-cyan/20 border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/40")}
-              title={globalMuted ? "Activar Sonido Global" : "Silenciar Feed"}
-            >
-              {globalMuted ? <VolumeX className="w-5 h-5 opacity-80 group-hover:opacity-100" /> : <Volume2 className="w-5 h-5 animate-pulse" />}
-            </button>
-          </div>
-
-        </div>
-      )}
     </div>
   );
 }
