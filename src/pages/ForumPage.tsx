@@ -699,6 +699,7 @@ export default function ForumPage() {
           {allPosts.map((post) => {
             const authorProfile = postProfiles[post.user_id];
             const authorRoles = postRoles[post.user_id] || [];
+            const postPermissions = getContentPermissions(authorProfile?.membership_tier, authorRoles);
             const myVote = userVotes[post.id] || null;
 
             return (
@@ -758,7 +759,7 @@ export default function ForumPage() {
                             {post.title}
                           </p>
                           {post.content && (
-                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content, postPermissions)}</div>
                           )}
                         </>
                       )}
