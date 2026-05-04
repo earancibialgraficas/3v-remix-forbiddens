@@ -31,6 +31,21 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
+// 🔥 Función para formatear fecha de forma inteligente 🔥
+const formatMsgDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  if (isToday) return timeStr;
+  
+  // Si no es hoy, mostramos día y mes para que se entienda el orden
+  const dayMonth = date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+  return `${dayMonth} ${timeStr}`;
+};
+
 const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
   const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
   let currentColor = "";
@@ -48,12 +63,10 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
       return null; 
     }
     if (part === "[/LINK]") { currentLink = ""; return null; }
-    
     if (!part) return null;
     
     if (currentLink) {
       const linkRaw = currentLink;
-      
       return (
         <a 
           key={i} 
@@ -62,26 +75,10 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            
             try {
               const url = new URL(linkRaw, window.location.origin);
               const targetPath = url.pathname + url.search;
-              const focusId = url.searchParams.get('focus');
-
-              if (window.location.pathname !== url.pathname || window.location.search !== url.search) {
-                navigate(targetPath);
-              } 
-              
-              if (focusId) {
-                setTimeout(() => {
-                  const el = document.getElementById(focusId);
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('ring-2', 'ring-destructive', 'animate-pulse');
-                    setTimeout(() => el.classList.remove('ring-2', 'ring-destructive', 'animate-pulse'), 2000);
-                  }
-                }, 150);
-              }
+              navigate(targetPath);
             } catch (err) {
               navigate(linkRaw);
             }
@@ -95,7 +92,6 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
     if (currentColor) {
       return <span key={i} style={{ color: currentColor }}>{part}</span>;
     }
-    
     return <span key={i}>{part}</span>;
   });
 };
@@ -117,20 +113,17 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Ref para el partner actual para que el Realtime no se confunda
-  const activePartnerRef = useRef<string | null>(null);
-  useEffect(() => { activePartnerRef.current = selectedPartner; }, [selectedPartner]);
+  const selectedPartnerRef = useRef<string | null>(null);
+  useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
 
-  // 🔥 Función de ordenación ultra-estable (Antiguo arriba, Nuevo abajo)
-  const sortMsgs = (arr: Message[]) => {
-    return [...arr].sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      // Si la fecha es igual, decidimos por ID para evitar que bailen
-      if (dateA === dateB) return a.id.localeCompare(b.id);
-      return dateA - dateB;
+  // 🔥 ORDENACIÓN CRONOLÓGICA ABSOLUTA (Fecha + Hora) 🔥
+  const sortMsgs = (arr: Message[]) =>
+    [...arr].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id);
     });
-  };
 
   useEffect(() => {
     const p = searchParams.get("partner") || searchParams.get("to");
@@ -146,19 +139,15 @@ export default function MessagesPage() {
         const newMsg = payload.new as Message;
         if (!newMsg) return;
         
-        // Actualizamos lista de chats lateral
         if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
           loadConversations();
-        }
-
-        // Si el mensaje es para el chat que tengo abierto actualmente...
-        const currentPartner = activePartnerRef.current;
-        if (currentPartner && (newMsg.sender_id === currentPartner || newMsg.receiver_id === currentPartner)) {
-          setMessages(prev => {
-            // Evitar duplicar si el mensaje ya está (por el insert optimista)
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            return sortMsgs([...prev, newMsg]);
-          });
+          const activePartner = selectedPartnerRef.current;
+          if (activePartner && (newMsg.sender_id === activePartner || newMsg.receiver_id === activePartner)) {
+             setMessages(prev => {
+                if (prev.find(m => m.id === newMsg.id)) return prev;
+                return sortMsgs([...prev, newMsg]);
+             });
+          }
         }
       }).subscribe();
       
@@ -166,7 +155,7 @@ export default function MessagesPage() {
   }, [user]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "instant" });
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const loadConversations = async () => {
@@ -216,7 +205,7 @@ export default function MessagesPage() {
     
     const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: true }); 
+      .order("created_at", { ascending: true });
     
     if (data) setMessages(sortMsgs(data as Message[]));
 
@@ -231,12 +220,11 @@ export default function MessagesPage() {
     if (!user || !selectedPartner || !newMessage.trim()) return;
     let content = newMessage.trim();
     if (content.length > dmLimit) {
-      toast({ title: "Límite alcanzado", description: `Tu membresía permite ${dmLimit} caracteres.`, variant: "destructive" });
+      toast({ title: "Límite alcanzado", description: `Máximo ${dmLimit} caracteres.`, variant: "destructive" });
       return;
     }
     setNewMessage("");
 
-    // 🔥 Mensaje Optimista con ID temporal
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: Message = {
       id: tempId, 
@@ -247,7 +235,6 @@ export default function MessagesPage() {
       created_at: new Date().toISOString(),
     };
 
-    // Añadir a la lista inmediatamente
     setMessages(prev => sortMsgs([...prev, optimisticMsg]));
 
     const { error, data } = await supabase.from("inbox_messages").insert({
@@ -257,10 +244,9 @@ export default function MessagesPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setMessages(prev => prev.filter(m => m.id !== tempId));
+      setNewMessage(content);
     } else if (data) {
-      // 🔥 Reemplazar el temporal con el real de la base de datos
       setMessages(prev => sortMsgs(prev.map(m => m.id === tempId ? data : m)));
-      loadConversations();
     }
   };
 
@@ -278,7 +264,6 @@ export default function MessagesPage() {
       </div>
 
       <div className="flex gap-3 min-w-0 w-full" style={{ height: 'calc(100% - 70px)' }}>
-        {/* LISTA DE CONVERSACIONES (IZQUIERDA) */}
         <div className={cn("bg-card border border-border rounded flex flex-col min-w-0 overflow-hidden", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
           <div className="p-2 border-b border-border">
             <div className="flex gap-1">
@@ -314,48 +299,33 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* ÁREA DE CHAT (DERECHA) */}
         {selectedPartner && (
           <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
             <div className="p-2 border-b border-border flex items-center gap-2">
               <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground"><ArrowLeft className="w-4 h-4" /></button>
               <span className="text-xs font-medium truncate" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
             </div>
-            
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-4">
-              {messages.map((m, idx) => {
-                const isMe = m.sender_id === user?.id;
-                return (
-                  <div key={m.id} className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
-                    {/* Header: Nombre y hora (opcional) */}
-                    <span className="text-[9px] text-muted-foreground mb-1 px-1">
-                      {isMe ? "Tú" : conversations.find(c => c.partnerId === selectedPartner)?.partnerName} • {new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                    
-                    {/* Cuerpo del mensaje estilo lista limpia */}
-                    <div className={cn(
-                      "max-w-[85%] px-3 py-2 rounded-lg text-xs font-body shadow-sm border",
-                      isMe 
-                        ? "bg-primary/10 border-primary/20 text-foreground" 
-                        : "bg-muted/50 border-border text-foreground"
-                    )}>
-                      {renderFormattedText(m.content, navigate)}
-                    </div>
+              {messages.map(m => (
+                <div key={m.id} className={cn("flex flex-col", m.sender_id === user?.id ? "items-end" : "items-start")}>
+                  {/* 🔥 AHORA MUESTRA FECHA SI NO ES HOY 🔥 */}
+                  <span className="text-[9px] text-muted-foreground mb-1 px-1">
+                    {m.sender_id === user?.id ? "Tú" : conversations.find(c => c.partnerId === selectedPartner)?.partnerName} • {formatMsgDate(m.created_at)}
+                  </span>
+                  
+                  <div className={cn("max-w-[80%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap border shadow-sm", m.sender_id === user?.id ? "bg-primary/10 border-primary/20 text-foreground" : "bg-muted/50 border-border text-foreground")}>
+                    {renderFormattedText(m.content, navigate)}
                   </div>
-                );
-              })}
+                </div>
+              ))}
               <div ref={endRef} />
             </div>
-
             <div className="p-2 border-t border-border flex flex-col gap-1">
               <div className="flex gap-2">
-                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Escribe un mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[100px] flex-1 resize-none" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                <Button size="sm" onClick={handleSend} className="h-auto px-3 bg-neon-cyan text-black hover:bg-neon-cyan/80"><Send className="w-4 h-4" /></Button>
+                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1 resize-none" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <Button size="sm" onClick={handleSend} className="h-auto px-3 bg-neon-cyan text-black hover:bg-neon-cyan/80"><Send className="w-3.5 h-3.5" /></Button>
               </div>
-              <div className="flex justify-between items-center px-1">
-                <span className="text-[9px] text-muted-foreground">Presiona Enter para enviar</span>
-                <span className={cn("text-[9px] font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
-              </div>
+              <span className={cn("text-[9px] text-right font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
             </div>
           </div>
         )}
