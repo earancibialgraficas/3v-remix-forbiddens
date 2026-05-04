@@ -838,7 +838,9 @@ export default function ForumPage() {
 
                 {expandedPost === post.id && (
                   <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
-                    {(comments[post.id] || []).map((comment) => (
+                    {(comments[post.id] || []).map((comment) => {
+                      const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
+                      return (
                       <div key={comment.id} id={`comment-${comment.id}`} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
@@ -858,7 +860,7 @@ export default function ForumPage() {
                               />
                               <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
-                            <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
+                            <div className="text-foreground leading-relaxed">{renderContent(comment.content, commentPermissions)}</div>
                             <div className="flex items-center gap-2 mt-1">
                               {user && (
                                 <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
@@ -879,7 +881,7 @@ export default function ForumPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    );})}
                     {user ? (
                       <div className="space-y-2 bg-card border border-border rounded p-3">
                         {replyTo && (
