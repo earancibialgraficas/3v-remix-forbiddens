@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Maximize, Minimize } from "lucide-react";
+import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Minimize, RectangleHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,12 @@ const getSafeUrl = (url: string) => {
   if (url.includes('supabase.co')) return url;
   if (url.includes('wsrv.nl')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
+const formatFeedDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.toLocaleDateString()} a las ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
 };
 
 interface FeedItem {
@@ -99,6 +105,8 @@ function SnapCard({
   isVisible, 
   onPauseMusic, 
   isStaff,
+  globalCinemaMode,
+  setGlobalCinemaMode,
   onDeletePost,
   onEditPost,
   onHidePost,
@@ -110,6 +118,8 @@ function SnapCard({
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
+  globalCinemaMode: boolean;
+  setGlobalCinemaMode: (val: boolean) => void;
   onDeletePost: (id: string, targetType: string) => void;
   onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
@@ -132,7 +142,9 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  const canCinema = item.platform === 'youtube' || item.platform === 'facebook' || isDirectMp4;
+  // 🔥 MODO CINE PERSISTENTE 🔥
+  const canCinema = item.platform === 'youtube' || item.platform === 'facebook' || isDirectMp4 || isPhoto;
+  const cinemaMode = globalCinemaMode && canCinema;
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -155,8 +167,8 @@ function SnapCard({
   const [editTitle, setEditTitle] = useState(item.title || item.caption || "");
   const [mediaError, setMediaError] = useState(false);
 
-  const [cinemaMode, setCinemaMode] = useState(false);
   const [cinemaPanelOpen, setCinemaPanelOpen] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
 
   const votingRef = useRef(false);
 
@@ -333,7 +345,7 @@ function SnapCard({
     <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 md:mb-2", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0 md:mb-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md md:mt-[5px]")}>
+      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0 md:mb-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md md:mb-2")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -404,65 +416,77 @@ function SnapCard({
         {/* 🔥 BOTÓN TOGGLE MODO CINE (z-[100]) 🔥 */}
         {canCinema && (
           <button 
-            onClick={(e) => { e.stopPropagation(); setCinemaMode(!cinemaMode); setCinemaPanelOpen(false); }} 
+            onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
             className="absolute top-4 right-4 z-[100] p-2.5 bg-black/60 hover:bg-black/90 rounded-full text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group"
             title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
           >
-             {cinemaMode ? <Minimize className="w-5 h-5 group-hover:scale-90 transition-transform"/> : <Maximize className="w-5 h-5 group-hover:scale-110 transition-transform"/>}
+             {cinemaMode ? <Minimize className="w-5 h-5 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-5 h-5 group-hover:scale-110 transition-transform"/>}
           </button>
         )}
 
-        {/* 🔥 BARRA INFERIOR ELEGANTE EN MODO CINE 🔥 */}
+        {/* 🔥 BARRA INFERIOR ATENUADA EN MODO CINE 🔥 */}
         {cinemaMode && (
-          <div className="absolute bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 flex items-end justify-between z-[100] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none">
+          <div className="absolute bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 flex items-end justify-between z-[100] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none opacity-30 hover:opacity-100 transition-opacity duration-300">
              
-             {/* Izquierda: Avatar y Nombre */}
-             <div className="flex items-center gap-3 pointer-events-auto">
-                <Link to={`/usuario/${item.user_id}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:scale-105 transition-transform bg-muted" style={getAvatarBorderStyle(item.color_avatar_border)}>
+             {/* Izquierda: Avatar interactivo + Burbuja Glassmorphism */}
+             <div className="relative pointer-events-auto"
+                  onMouseEnter={() => setShowBubble(true)}
+                  onMouseLeave={() => setShowBubble(false)}
+                  onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }}
+             >
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
                    {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-2 text-white" />}
-                </Link>
+                </div>
+
+                {/* 💬 Burbuja Flotante de Detalles 💬 */}
+                <div className={cn("absolute bottom-full left-0 mb-3 w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl z-[120] transition-all duration-300 origin-bottom-left", showBubble ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none")}>
+                   <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-xs font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
+                   <div className="text-[9px] text-muted-foreground mb-2">{formatFeedDate(item.created_at)}</div>
+                   <p className="text-[10px] text-white/90 line-clamp-3 leading-snug mb-3">{item.caption || item.title || "Sin descripción."}</p>
+                   <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); setShowBubble(false); }} className="w-full text-[10px] text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 py-1.5 rounded-lg hover:bg-neon-cyan/20 transition-colors">LEER MÁS</button>
+                </div>
              </div>
 
-             {/* Centro: Acciones Rápidas */}
-             <div className="flex items-center gap-3 md:gap-5 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6">
+             {/* Centro: Acciones Rápidas (Iconos más pequeños) */}
+             <div className="flex items-center gap-2 md:gap-4 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6">
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsUp className={cn("w-4 h-4 md:w-5 md:h-5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsUp className={cn("w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
                    </div>
-                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{likes}</span>
+                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{likes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsDown className={cn("w-4 h-4 md:w-5 md:h-5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsDown className={cn("w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
                    </div>
-                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{dislikes}</span>
+                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{dislikes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                      <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-neon-cyan transition-transform group-active:scale-90" />
+                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                      <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4 text-neon-cyan transition-transform group-active:scale-90" />
                    </div>
-                   <span className="text-white text-[10px] md:text-[11px] font-bold drop-shadow-md">{comments.length}</span>
+                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{comments.length}</span>
                 </button>
 
                 {user && !isOwner && (
                    <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-1 group">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                         <Flag className="w-4 h-4 md:w-5 md:h-5 text-white transition-transform group-active:scale-90" />
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                         <Flag className="w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform group-active:scale-90" />
                       </div>
-                      <span className="text-white text-[10px] font-bold drop-shadow-md opacity-0">.</span>
+                      <span className="text-white text-[9px] font-bold drop-shadow-md opacity-0">.</span>
                    </button>
                 )}
              </div>
 
              {/* Derecha: Subir / Bajar */}
              <div className="flex gap-2 pointer-events-auto">
-                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronUp className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
              </div>
           </div>
@@ -501,7 +525,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t z-[70] p-4 md:p-4" 
-          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[44px]", // Ajustado para coincidir con la altura del filtro PC
+          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[50px]", // Espaciado perfecto de 8px entre Filtro y Panel en PC
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full md:translate-x-0" : "",
@@ -696,8 +720,9 @@ export default function FeedPage() {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isSnapping, setIsSnapping] = useState(true);
 
-  // 🔥 ESTADO DE BANNER AUTO-OCULTABLE 🔥
+  // 🔥 ESTADOS GLOBALES DE MODO CINE Y BANNER 🔥
   const [showHeader, setShowHeader] = useState(true);
+  const [globalCinemaMode, setGlobalCinemaMode] = useState(false);
 
   const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1022,6 +1047,13 @@ export default function FeedPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
+  // Chequeo global para atenuar o esconder filtros
+  const currentItem = filteredItems[visibleIndex];
+  const isCurrentDirectMp4 = !!currentItem?.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+  const isCurrentPhoto = currentItem?.target_type === 'photo' || currentItem?.content_type === 'photo' || currentItem?.platform === 'upload' || (currentItem?.platform === 'instagram' && currentItem?.content_type !== 'reel') || !!currentItem?.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
+  const canCinemaCurrent = currentItem && (currentItem.platform === 'youtube' || currentItem.platform === 'facebook' || isCurrentDirectMp4 || isCurrentPhoto);
+  const isCinemaActive = globalCinemaMode && canCinemaCurrent;
+
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden pb-1 md:pb-2">
       
@@ -1034,10 +1066,15 @@ export default function FeedPage() {
         </div>
       </div>
 
-      <div className="flex-1 w-full relative flex flex-col min-h-0 md:mt-1">
+      <div className="flex-1 w-full relative flex flex-col min-h-0 md:mt-[5px]">
         
-        {/* 🔥 FILTRO MÓVIL (Compacto en 1 sola línea) 🔥 */}
-        <div className="md:hidden flex gap-2 bg-card border border-border rounded-xl p-1 items-center shrink-0 shadow-sm mx-1 justify-between z-10 mb-1 relative">
+        {/* 🔥 FILTRO MÓVIL 🔥 */}
+        <div className={cn(
+          "md:hidden flex gap-2 items-center shrink-0 shadow-sm justify-between transition-all duration-300",
+          isCinemaActive 
+            ? "absolute left-2 top-2 right-2 z-[100] bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 opacity-30 hover:opacity-100"
+            : "relative bg-card border border-border rounded-xl p-1 mx-1 mb-1 z-10"
+        )}>
           <div className="relative group flex-1 min-w-[100px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
@@ -1063,8 +1100,13 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* 🔥 FILTRO DESKTOP (Alineado y anclado a la columna derecha) 🔥 */}
-        <div className="hidden md:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute right-2 top-0 z-20 w-[240px] lg:w-[260px] justify-between">
+        {/* 🔥 FILTRO DESKTOP 🔥 */}
+        <div className={cn(
+          "hidden md:flex gap-1 items-center shadow-sm absolute transition-all duration-500",
+          isCinemaActive
+            ? "left-4 top-4 z-[100] bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left"
+            : "right-2 top-0 z-20 w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1"
+        )}>
           <div className="relative group flex-1 min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
@@ -1113,6 +1155,8 @@ export default function FeedPage() {
                     isVisible={i === visibleIndex} 
                     onPauseMusic={pauseMusic} 
                     isStaff={isStaff} 
+                    globalCinemaMode={globalCinemaMode}
+                    setGlobalCinemaMode={setGlobalCinemaMode}
                     onDeletePost={handleDeletePost} 
                     onEditPost={handleEditPost}
                     onHidePost={handleHidePost}
