@@ -123,7 +123,8 @@ export default function BibliotecaPage() {
     setSending(true);
 
     try {
-      const { error } = await supabase.from("game_suggestions").insert({
+      // Usamos 'as any' para evitar bloqueos por caché de esquema
+      const { error } = await supabase.from("game_suggestions" as any).insert({
         user_id: user.id, 
         console_type: suggestConsole, 
         game_name: gameName.trim(), 
@@ -132,7 +133,6 @@ export default function BibliotecaPage() {
 
       if (error) throw error;
 
-      // 🔥 MEJORA: Usamos la ruta dinámica real igual que en ReportModal 🔥
       const targetUrl = typeof window !== 'undefined' 
         ? `${window.location.pathname}?console=${suggestConsole}` 
         : `/?console=${suggestConsole}`;
@@ -150,7 +150,10 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ir a la consola sugerida[/LINK]`;
 
-      await supabase.rpc("send_system_admin_message" as any, {
+      // 🔥 CORRECCIÓN CRÍTICA: Llamamos a la función correcta send_system_staff_message
+      // Como enviamos 'game_suggestion' (que es distinto a 'report'),
+      // el SQL enviará el mensaje SOLO a Admin y Master Web.
+      await supabase.rpc("send_system_staff_message" as any, {
         p_title: `Sugerencia de juego: ${gameName}`,
         p_content: messageContent,
         p_message_type: 'game_suggestion',
