@@ -65,10 +65,6 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
   
   const isOwner = user?.id === photo.user_id;
 
-  // Detectamos si es un link de Instagram que no es imagen directa para usar iframe
-  const isIGEmbed = photo.platform === 'instagram' && !targetUrl?.match(/\.(jpeg|jpg|gif|png|webp)/i);
-  const embedSrc = isIGEmbed ? getEmbedUrl(photo.content_url || targetUrl, "instagram") : null;
-
   return (
     <div 
       className={cn(
@@ -79,27 +75,19 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
-        {isIGEmbed && embedSrc ? (
-          <iframe 
-            src={embedSrc} 
-            className="w-full h-full min-h-[250px] pointer-events-none bg-white" 
-            style={{ border: 'none', objectFit: 'cover' }} 
-            scrolling="no" 
-          />
-        ) : (
-          <img 
-            src={getProxyUrl(targetUrl)} 
-            alt={photo.caption || "Foto"} 
-            referrerPolicy="no-referrer"
-            className="w-full h-auto min-h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
-            onError={(e) => {
-              if (!e.currentTarget.src.includes('wsrv.nl')) return;
-              e.currentTarget.src = targetUrl;
-            }}
-          />
-        )}
+        {/* Usamos SIEMPRE imagen para la miniatura, eliminando el iframe que causa el velo negro */}
+        <img 
+          src={getProxyUrl(targetUrl)} 
+          alt={photo.caption || "Foto"} 
+          referrerPolicy="no-referrer"
+          className="w-full h-auto min-h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          onError={(e) => {
+            if (!e.currentTarget.src.includes('wsrv.nl')) return;
+            e.currentTarget.src = targetUrl;
+          }}
+        />
         
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl">
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl z-10">
           <div className="flex justify-between items-start">
             
             {/* MENÚ DE MODERACIÓN STAFF */}
@@ -321,7 +309,11 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
               </div>
               
               <div className="flex gap-2 items-center">
-                {user && !isOwner && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
+                {user && !isOwner && (
+                  <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar">
+                    <Flag className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 
                 {isOwner && (
                   <>
@@ -407,7 +399,7 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [hasScrolled, setHasScrolled] = useState(false);
-  const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null); // State for reporting from mini card
+  const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null); 
   
   const observerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -694,7 +686,6 @@ export default function PhotoWallPage() {
   }, [photos, sourceTab, friendIds]);
 
   // 🔥 SCROLL MAGIC DESDE GUARDADOS Y REPORTES 🔥
-  const searchParams = new URLSearchParams(location.search);
   const directPostId = searchParams.get("post") || searchParams.get("focus");
 
   useEffect(() => {
@@ -787,6 +778,7 @@ export default function PhotoWallPage() {
           <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1 hidden sm:inline" /> Todos</Button>
           <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
           <div className="w-px h-5 bg-border mx-1" />
+          {/* 🔥 BOTONES TOP / NUEVOS 🔥 */}
           <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
              <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
           </Button>
