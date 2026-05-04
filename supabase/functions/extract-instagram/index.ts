@@ -1,4 +1,6 @@
-// @ts-ignore: Deno is a global in the Supabase Edge Function environment
+// Declaramos Deno globalmente para evitar errores en TypeScript en GitHub/Vercel
+declare const Deno: any;
+
 const APIFY_TOKEN = Deno.env.get('APIFY_API_TOKEN');
 
 const corsHeaders = {
@@ -22,9 +24,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { url } = await req.json();
+    const body = await req.json();
+    const url = body.url;
 
-    if (!url || !url.includes('instagram.com')) {
+    if (!url || typeof url !== 'string' || !url.includes('instagram.com')) {
       return new Response(
         JSON.stringify({ error: 'URL de Instagram no válida' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -34,7 +37,6 @@ Deno.serve(async (req: Request) => {
     console.log(`Procesando URL: ${url}`);
 
     // Llamada al Actor de Apify (Instagram Scraper)
-    // Usamos el endpoint sync-run que espera a que termine y nos da los datos directamente
     const response = await fetch(
       `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=55`,
       {
@@ -73,10 +75,10 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) { // <-- AQUÍ CORREGIMOS EL TIPO A ANY
     console.error("Error en la función:", error.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
