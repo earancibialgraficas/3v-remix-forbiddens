@@ -1,5 +1,5 @@
-// Declaramos Deno globalmente para que TypeScript no arroje errores en GitHub/Vercel
-declare const Deno: any;
+// @ts-ignore: Deno is a global in the Supabase Edge Function environment
+const APIFY_TOKEN = Deno.env.get('APIFY_API_TOKEN');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,76 +7,77 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const APIFY_TOKEN = Deno.env.get('APIFY_API_TOKEN');
-const ACTOR_ID = 'apify~instagram-scraper';
-
-// Le indicamos explícitamente a TypeScript que 'req' es de tipo 'Request'
 Deno.serve(async (req: Request) => {
+  // Manejo de pre-vuelo de CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     if (!APIFY_TOKEN) {
-      return new Response(JSON.stringify({ error: 'APIFY_API_TOKEN no está configurado en los Supabase Secrets' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("TOKEN FALTANTE: APIFY_API_TOKEN no está configurado.");
+      return new Response(
+        JSON.stringify({ error: 'Configuración incompleta: Falta el token de Apify' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const body = await req.json();
-    const url = body.url;
+    const { url } = await req.json();
 
-    if (!url || typeof url !== 'string' || !url.includes('instagram.com')) {
-      return new Response(JSON.stringify({ error: 'URL de Instagram inválida' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!url || !url.includes('instagram.com')) {
+      return new Response(
+        JSON.stringify({ error: 'URL de Instagram no válida' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`Iniciando extracción para: ${url}`);
+    console.log(`Procesando URL: ${url}`);
 
-    // Intentamos correr el actor sincrónicamente. Aumentamos el timeout a 55s para evitar cortes
-    const apifyUrl = `https://api.apify.com/v2/acts/${ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=55`;
-    const apifyRes = await fetch(apifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        directUrls: [url],
-        resultsType: 'posts',
-        resultsLimit: 1
-      }),
-    });
+    // Llamada al Actor de Apify (Instagram Scraper)
+    // Usamos el endpoint sync-run que espera a que termine y nos da los datos directamente
+    const response = await fetch(
+      `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=55`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          "directUrls": [url],
+          "resultsLimit": 1,
+          "resultsType": "posts"
+        }),
+      }
+    );
 
-    if (!apifyRes.ok) {
-      const errorText = await apifyRes.text();
-      console.error('Error desde Apify:', apifyRes.status, errorText);
-      return new Response(JSON.stringify({ error: `Fallo de Apify: ${apifyRes.status}`, details: errorText }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!response.ok) {
+      const errorMsg = await response.text();
+      console.error("Error de Apify:", errorMsg);
+      throw new Error(`Apify respondió con error ${response.status}`);
     }
 
-    const items = await apifyRes.json();
-    const first = Array.isArray(items) ? items[0] : null;
-    
-    // Diferentes formas en las que Apify devuelve la imagen
-    const imageUrl = first?.displayUrl || first?.images?.[0] || first?.thumbnailUrl || null;
+    const items = await response.json();
+    const result = Array.isArray(items) ? items[0] : null;
 
-    if (imageUrl) {
-      console.log('Imagen encontrada:', imageUrl);
-      return new Response(JSON.stringify({ imageUrl, source: 'apify' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Buscamos la URL de la imagen en los campos que suele usar Apify
+    const imageUrl = result?.displayUrl || result?.display_url || result?.thumbnailUrl || (result?.images && result.images[0]);
+
+    if (!imageUrl) {
+      console.error("No se encontró imagen en el resultado:", JSON.stringify(result));
+      return new Response(
+        JSON.stringify({ error: 'No se pudo extraer la imagen de este post' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Si llegamos aquí, Apify ejecutó bien pero no encontró imagen en la respuesta
-    console.error('Apify no devolvió una imagen útil. Respuesta cruda:', JSON.stringify(first).substring(0, 200));
-    return new Response(JSON.stringify({ error: 'Apify no encontró ninguna imagen en esa URL', data: first }), {
-      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ imageUrl, caption: result?.caption || "" }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
-  } catch (err) {
-    console.error('Error inesperado en extract-instagram:', err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (error) {
+    console.error("Error en la función:", error.message);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
