@@ -36,6 +36,7 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// 🔥 SISTEMA DE IMÁGENES RÁPIDO DE LA V1 RESTAURADO 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
@@ -59,6 +60,7 @@ const getPhotoNeonStyle = (photo: any) => {
 /* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const targetUrl = photo.thumbnail_url || photo.image_url;
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
@@ -74,19 +76,22 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
       style={neonStyle}
       onClick={onExpand}
     >
-      <div className="relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
-        {/* Usamos SIEMPRE imagen para la miniatura, eliminando el iframe que causa el velo negro */}
+      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
+        {/* Imagen cargada directamente con el proxy, igual que en la V1 */}
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
-          className="w-full h-auto min-h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          crossOrigin="anonymous"
+          className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          loading="lazy" 
           onError={(e) => {
             if (!e.currentTarget.src.includes('wsrv.nl')) return;
             e.currentTarget.src = targetUrl;
           }}
         />
         
+        {/* OVERLAY: Todo este div es invisible hasta que haces hover (opacity-0 group-hover:opacity-100) */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl z-10">
           <div className="flex justify-between items-start">
             
@@ -94,7 +99,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
             {isStaff && !isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button onClick={e => e.stopPropagation()} className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/60 rounded-md backdrop-blur-sm transition-colors z-20">
+                  <button onClick={e => e.stopPropagation()} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
                     <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </DropdownMenuTrigger>
@@ -109,25 +114,26 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
               </DropdownMenu>
             )}
 
-            <div className={cn("ml-auto flex items-center gap-1.5 z-20", (!isStaff || isOwner) && "ml-auto")}>
+            {/* 🔥 ICONOS PEQUEÑOS ESTILO FORO + BOTONES REPORTAR/GUARDAR 🔥 */}
+            <div className={cn("ml-auto flex items-center gap-1 sm:gap-1.5 z-20", (!isStaff || isOwner) && "ml-auto")}>
                {isOwner && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Editar">
-                      <Edit2 className="w-3.5 h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Editar">
+                      <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Eliminar">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Eliminar">
+                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </>
                )}
                {user && !isOwner && (
-                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Reportar">
-                   <Flag className="w-3.5 h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Reportar">
+                   <Flag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                  </button>
                )}
                {user && (
-                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Guardar">
-                   <Bookmark className="w-3.5 h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Guardar">
+                   <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                  </button>
                )}
             </div>
@@ -137,15 +143,19 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
              <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white/50 mb-1 sm:mb-2 pointer-events-none" />
              <div className="flex items-center gap-2 sm:gap-4 text-white font-body text-[10px] sm:text-xs">
                 
+                {/* 1. VOTO POSITIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
                    <ThumbsUp className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "like" && "fill-current")} /> <span className="hidden sm:inline">{photo.likes}</span>
                 </button>
 
+                {/* 2. VOTO NEGATIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "dislike", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
                    <ThumbsDown className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "dislike" && "fill-current")} /> <span className="hidden sm:inline">{photo.dislikes}</span>
                 </button>
 
+                {/* 3. ICONO DE COMENTARIOS */}
                 <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
+
              </div>
           </div>
         </div>
@@ -162,6 +172,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
@@ -215,6 +226,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     } catch (e) { }
   };
 
+  // Restaurado el chequeo de embed de la V1
   const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
@@ -283,7 +295,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 </div>
               ) : (
                 comments.map(c => (
-                  <div key={c.id} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
+                  <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
                     <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
@@ -292,6 +304,12 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
+                        {/* Botón reportar comentario de la V2 */}
+                        {user && user.id !== c.user_id && (
+                          <button onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar comentario">
+                            <Flag className="w-2.5 h-2.5" />
+                          </button>
+                        )}
                         {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
                       </div>
                     </div>
@@ -308,12 +326,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
               </div>
               
+              {/* 🔥 BOTONES DE EDICIÓN Y ELIMINAR (ICONOS PEQUEÑOS JUNTO A GUARDAR) 🔥 */}
               <div className="flex gap-2 items-center">
-                {user && !isOwner && (
-                  <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar">
-                    <Flag className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                {user && !isOwner && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
                 
                 {isOwner && (
                   <>
@@ -368,6 +383,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
         </div>
       </div>
       {showReport && <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} postId={photo.id} onClose={() => setShowReport(false)} />}
+      {reportingComment && <ReportModal reportedUserId={reportingComment.userId} reportedUserName={reportingComment.userName} postId={photo.id} commentId={reportingComment.commentId} contentLabel="Comentario" onClose={() => setReportingComment(null)} />}
     </div>,
     document.body
   );
@@ -399,7 +415,7 @@ export default function PhotoWallPage() {
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [hasScrolled, setHasScrolled] = useState(false);
-  const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null); 
+  const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null);
   
   const observerRef = useRef<HTMLDivElement>(null);
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -420,6 +436,7 @@ export default function PhotoWallPage() {
 
       const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
+      // 1. Obtener límite diario Apify (solo primera página)
       if (pageNum === 0) {
         const getChileMidnightISO = () => {
           const now = new Date();
@@ -672,6 +689,7 @@ export default function PhotoWallPage() {
     } catch (e) { }
   };
 
+  // 🔥 HANDLER DE BOTONES TOP / NUEVOS 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
     if (newSort === sort || isFetching) return;
     setPhotos([]);
@@ -681,47 +699,75 @@ export default function PhotoWallPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
+  // USEMEMO DE FILTRO (Amigos)
   const displayPhotos = useMemo(() => {
     return sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   }, [photos, sourceTab, friendIds]);
 
   // 🔥 SCROLL MAGIC DESDE GUARDADOS Y REPORTES 🔥
   const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
 
   useEffect(() => {
     if (directPostId && !hasScrolled && displayPhotos.length > 0) {
       const index = displayPhotos.findIndex(item => item.id === directPostId);
       if (index !== -1) {
-        setTimeout(() => {
+        let attempts = 0;
+        const attemptScroll = () => {
+          attempts++;
           const el = document.getElementById(`photo-post-${directPostId}`);
           if (el) {
+            // 1. Scroll al elemento
             const elRect = el.getBoundingClientRect();
             const absoluteTop = elRect.top + window.pageYOffset;
             const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
             window.scrollTo({ top: middle, behavior: 'smooth' });
             
-            const cardElement = el.firstElementChild;
+            // 2. Highlight arcade neón
+            const cardElement = el.firstElementChild as HTMLElement | null;
             if (cardElement) {
-               cardElement.classList.add('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10');
-               setTimeout(() => cardElement.classList.remove('ring-4', 'ring-destructive', 'animate-pulse', 'transition-all', 'duration-500', 'z-10'), 3000);
+               cardElement.classList.add('arcade-report-highlight');
+               setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
+            // 3. Abrimos el modal de la foto reportada
             setExpandedPhotoId(directPostId);
+
+            // 4. Si hay comentario, scroll dentro del modal cuando carga
+            if (directCommentId) {
+              let cAttempts = 0;
+              const tryComment = () => {
+                cAttempts++;
+                const cEl = document.getElementById(`comment-${directCommentId}`);
+                if (cEl) {
+                  cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cEl.classList.add('arcade-report-highlight');
+                  setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
+                } else if (cAttempts < 80) {
+                  setTimeout(tryComment, 120);
+                }
+              };
+              setTimeout(tryComment, 600);
+            }
 
             setHasScrolled(true);
             window.history.replaceState({}, '', location.pathname);
+          } else if (attempts < 50) {
+            requestAnimationFrame(attemptScroll);
           } else {
-             setHasScrolled(true);
+            setHasScrolled(true);
           }
-        }, 500); 
+        };
+        requestAnimationFrame(attemptScroll);
       } else if (hasMore && !isFetching) {
          fetchContent(false, sort);
       } else {
         setHasScrolled(true);
       }
     }
-  }, [directPostId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
+  }, [directPostId, directCommentId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
 
+  // 🔥 OBSERVER DE SCROLL INFINITO (MASONRY) 🔥
   useEffect(() => {
     const currentRef = observerRef.current;
     if (!currentRef) return;
@@ -836,7 +882,7 @@ export default function PhotoWallPage() {
                   onSave={handleSaveToProfile}
                   userReaction={userReactions[photo.id]}
                   isStaff={isStaff}
-                  onReport={() => setReportingPhotoIdMini(photo.id)} 
+                  onReport={() => setReportingPhotoIdMini(photo.id)}
                 />
               </div>
             ))}
