@@ -20,7 +20,7 @@ const APIFY_DAILY_LIMIT = 80;
 const getEmbedUrl = (url: string, platform: string) => {
   if (platform === "instagram") {
     const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    if (igMatch) return `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/?hidecaption=true`;
+    if (igMatch) return `https://www.instagram.com/p/${igMatch[2]}/embed/?hidecaption=true`;
   }
   return null;
 };
@@ -36,7 +36,6 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
-// 🔥 SISTEMA DE IMÁGENES RÁPIDO DE LA V1 RESTAURADO 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl')) return url;
@@ -60,7 +59,6 @@ const getPhotoNeonStyle = (photo: any) => {
 /* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const targetUrl = photo.thumbnail_url || photo.image_url;
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
@@ -76,14 +74,13 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
       style={neonStyle}
       onClick={onExpand}
     >
-      <div className="relative w-full h-full overflow-hidden rounded-xl bg-black flex items-center justify-center min-h-[150px]">
-        {/* Imagen cargada directamente con el proxy, igual que en la V1 */}
+      <div className="relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
+        {/* Como Apify ya funciona, usamos la imagen pura de la V1 (Carga rápida, sin iframes) */}
         <img 
           src={getProxyUrl(targetUrl)} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-          className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+          className="w-full h-auto min-h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
             if (!e.currentTarget.src.includes('wsrv.nl')) return;
@@ -91,15 +88,14 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
           }}
         />
         
-        {/* OVERLAY: Todo este div es invisible hasta que haces hover (opacity-0 group-hover:opacity-100) */}
+        {/* OVERLAY INVISIBLE HASTA HOVER */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-3 rounded-xl z-10">
           <div className="flex justify-between items-start">
             
-            {/* MENÚ DE MODERACIÓN STAFF */}
             {isStaff && !isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button onClick={e => e.stopPropagation()} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
+                  <button onClick={e => e.stopPropagation()} className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/60 rounded-md backdrop-blur-sm transition-colors z-20">
                     <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </DropdownMenuTrigger>
@@ -114,26 +110,25 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
               </DropdownMenu>
             )}
 
-            {/* 🔥 ICONOS PEQUEÑOS ESTILO FORO + BOTONES REPORTAR/GUARDAR 🔥 */}
-            <div className={cn("ml-auto flex items-center gap-1 sm:gap-1.5 z-20", (!isStaff || isOwner) && "ml-auto")}>
+            <div className={cn("flex items-center gap-1 sm:gap-1.5 z-20", (!isStaff || isOwner) && "ml-auto")}>
                {isOwner && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Editar">
-                      <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Editar">
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Eliminar">
-                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Eliminar">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </>
                )}
                {user && !isOwner && (
-                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Reportar">
-                   <Flag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Reportar">
+                   <Flag className="w-3.5 h-3.5" />
                  </button>
                )}
                {user && (
-                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Guardar">
-                   <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Guardar">
+                   <Bookmark className="w-3.5 h-3.5" />
                  </button>
                )}
             </div>
@@ -143,19 +138,15 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
              <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white/50 mb-1 sm:mb-2 pointer-events-none" />
              <div className="flex items-center gap-2 sm:gap-4 text-white font-body text-[10px] sm:text-xs">
                 
-                {/* 1. VOTO POSITIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "like", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "like" ? "text-neon-green" : "text-white hover:text-neon-green")}>
                    <ThumbsUp className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "like" && "fill-current")} /> <span className="hidden sm:inline">{photo.likes}</span>
                 </button>
 
-                {/* 2. VOTO NEGATIVO */}
                 <button onClick={(e) => { e.stopPropagation(); onReaction(photo.id, "dislike", photo.target_type); }} className={cn("flex items-center gap-1 sm:gap-1.5 transition-transform hover:scale-105 z-20", userReaction === "dislike" ? "text-destructive" : "text-white hover:text-destructive")}>
                    <ThumbsDown className={cn("w-3 h-3 sm:w-4 sm:h-4", userReaction === "dislike" && "fill-current")} /> <span className="hidden sm:inline">{photo.dislikes}</span>
                 </button>
 
-                {/* 3. ICONO DE COMENTARIOS */}
                 <span className="flex items-center gap-1 sm:gap-1.5 pointer-events-none"><MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" /></span>
-
              </div>
           </div>
         </div>
@@ -226,7 +217,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     } catch (e) { }
   };
 
-  // Restaurado el chequeo de embed de la V1
+  // Respaldo de iframe solo para la vista expandida por si hay links antiguos rotos en la DB
   const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
   const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
 
@@ -248,10 +239,10 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
           </a>
 
           {isEmbed && embedSrc ? (
-             <iframe src={embedSrc} className="w-full h-full object-contain rounded" allowFullScreen />
+             <iframe src={embedSrc} className="w-full h-full object-contain rounded bg-white" allowFullScreen />
           ) : (
              <img 
-               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer"
                className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
                onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
              />
@@ -304,7 +295,6 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>
-                        {/* Botón reportar comentario de la V2 */}
                         {user && user.id !== c.user_id && (
                           <button onClick={() => setReportingComment({ userId: c.user_id, userName: c.display_name || "Anónimo", commentId: c.id })} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar comentario">
                             <Flag className="w-2.5 h-2.5" />
@@ -326,7 +316,6 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 <button onClick={() => onReaction(photo.id, "dislike", photo.target_type)} className={cn("flex items-center gap-1 text-[11px] transition-transform hover:scale-110", userReaction === "dislike" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}><ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-current")} /> {photo.dislikes}</button>
               </div>
               
-              {/* 🔥 BOTONES DE EDICIÓN Y ELIMINAR (ICONOS PEQUEÑOS JUNTO A GUARDAR) 🔥 */}
               <div className="flex gap-2 items-center">
                 {user && !isOwner && <button onClick={() => setShowReport(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
                 
@@ -397,14 +386,12 @@ export default function PhotoWallPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams(); 
   
-  // 🔥 ESTADOS MAESTROS EXACTOS 🔥
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const [photos, setPhotos] = useState<any[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
 
-  // Estados extra
   const [showUpload, setShowUpload] = useState(false);
   const [caption, setCaption] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -424,7 +411,6 @@ export default function PhotoWallPage() {
 
   const ITEMS_PER_PAGE = 20;
 
-  // 🔥 FETCH CENTRALIZADO Y SIN CONFLICTOS 🔥
   const fetchContent = async (resetPage: boolean, sortMode: 'new' | 'popular') => {
     if (isFetching) return;
     setIsFetching(true);
@@ -436,7 +422,6 @@ export default function PhotoWallPage() {
 
       const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
-      // 1. Obtener límite diario Apify (solo primera página)
       if (pageNum === 0) {
         const getChileMidnightISO = () => {
           const now = new Date();
@@ -456,56 +441,32 @@ export default function PhotoWallPage() {
         setDailyApifyCount(count || 0);
       }
 
-      // 2. Traer Fotos
-      const { data: photosRes, error: pErr } = await supabase.from("photos")
-        .select("*").neq("is_banned", true)
-        .order(orderCol, { ascending: false }).order('created_at', { ascending: false })
-        .range(from, to);
-
-      // 3. Traer Social Content (solo fotos, ignoramos videos/reels)
-      const { data: socialRes, error: sErr } = await supabase.from("social_content")
-        .select("*").eq("is_public", true).neq("is_banned", true)
-        .order(orderCol, { ascending: false }).order('created_at', { ascending: false })
-        .range(from, to);
+      const { data: photosRes } = await supabase.from("photos").select("*").neq("is_banned", true).order(orderCol, { ascending: false }).order('created_at', { ascending: false }).range(from, to);
+      const { data: socialRes } = await supabase.from("social_content").select("*").eq("is_public", true).neq("is_banned", true).order(orderCol, { ascending: false }).order('created_at', { ascending: false }).range(from, to);
 
       let combined: any[] = [];
       
-      if (photosRes) {
-        combined = [...combined, ...photosRes.map((p: any) => ({ ...p, target_type: 'photo', likes: p.likes || 0, dislikes: p.dislikes || 0, created_at: p.created_at || new Date().toISOString() }))];
-      }
-      
-      if (socialRes) {
-        const socialImages = socialRes.filter((item: any) => !isVideoItem(item)).map((item: any) => ({
-          ...item, id: item.id, target_type: 'social_content', image_url: item.thumbnail_url || item.content_url, caption: item.title || "", platform: item.platform, likes: item.likes || 0, dislikes: item.dislikes || 0, created_at: item.created_at || new Date().toISOString()
-        }));
-        combined = [...combined, ...socialImages];
-      }
+      if (photosRes) combined = [...combined, ...photosRes.map((p: any) => ({ ...p, target_type: 'photo', likes: p.likes || 0, dislikes: p.dislikes || 0, created_at: p.created_at || new Date().toISOString() }))];
+      if (socialRes) combined = [...combined, ...socialRes.filter((item: any) => !isVideoItem(item)).map((item: any) => ({ ...item, id: item.id, target_type: 'social_content', image_url: item.thumbnail_url || item.content_url, caption: item.title || "", platform: item.platform, likes: item.likes || 0, dislikes: item.dislikes || 0, created_at: item.created_at || new Date().toISOString() }))];
 
       const userIds = [...new Set(combined.map((c: any) => c.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_name, color_avatar_border").in("user_id", userIds);
       const profileMap: Record<string, any> = {};
       profiles?.forEach((p: any) => { profileMap[p.user_id] = p; });
 
-      const processed = combined.map((p: any) => ({
-        ...p, profiles: profileMap[p.user_id] || { display_name: "Anónimo", avatar_url: null }
-      }));
+      const processed = combined.map((p: any) => ({ ...p, profiles: profileMap[p.user_id] || { display_name: "Anónimo", avatar_url: null } }));
 
-      // 🔥 ORDEN FINAL ABSOLUTO 🔥
       processed.sort((a, b) => {
         if (sortMode === "popular") {
           const scoreA = (a.likes || 0) - (a.dislikes || 0);
           const scoreB = (b.likes || 0) - (b.dislikes || 0);
           if (scoreB !== scoreA) return scoreB - scoreA;
         }
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return dateB - dateA;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
 
-      if (resetPage) {
-        setPhotos(processed);
-        setPage(1);
-      } else {
+      if (resetPage) { setPhotos(processed); setPage(1); }
+      else {
         setPhotos(prev => {
           const ids = new Set(prev.map((x) => x.id));
           const unique = processed.filter((x) => !ids.has(x.id));
@@ -516,19 +477,13 @@ export default function PhotoWallPage() {
               const scoreB = (b.likes || 0) - (b.dislikes || 0);
               if (scoreB !== scoreA) return scoreB - scoreA;
             }
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateB - dateA;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           });
         });
         setPage(prev => prev + 1);
       }
 
-      if ((photosRes?.length || 0) < ITEMS_PER_PAGE && (socialRes?.length || 0) < ITEMS_PER_PAGE) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
+      setHasMore((photosRes?.length || 0) === ITEMS_PER_PAGE || (socialRes?.length || 0) === ITEMS_PER_PAGE);
 
       if (user && pageNum === 0) {
         const { data: reactions } = await supabase.from("social_reactions").select("target_id, reaction_type").eq("user_id", user.id);
@@ -538,29 +493,15 @@ export default function PhotoWallPage() {
         supabase.from("photos").select("id", { count: "exact" }).eq("user_id", user.id).then(({ count }) => setUserPhotoCount(count || 0));
       }
 
-    } catch (e) { 
-      console.error(e); 
-    } finally { 
-      setIsFetching(false); 
-    }
+    } catch (e) { console.error(e); } finally { setIsFetching(false); }
   };
 
-  // 🔥 EFECTO INICIAL Y CUANDO CAMBIA SORT 🔥
-  useEffect(() => { 
-    fetchContent(true, sort); 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
+  useEffect(() => { fetchContent(true, sort); }, [sort]);
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
-    
-    if (!isStaff && userPhotoCount >= limits.maxPhotos) {
-      toast({ title: "Límite de Membresía", description: `Tu plan permite un máximo de ${limits.maxPhotos} fotos.`, variant: "destructive" }); return;
-    }
-
-    if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) {
-       toast({ title: "Servidor Lleno", description: "Cupos agotados.", variant: "destructive" }); return;
-    }
+    if (!isStaff && userPhotoCount >= limits.maxPhotos) { toast({ title: "Límite de Membresía", variant: "destructive" }); return; }
+    if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) { toast({ title: "Servidor Lleno", variant: "destructive" }); return; }
 
     setUploading(true);
     let finalUrl = imageUrl.trim();
@@ -570,18 +511,14 @@ export default function PhotoWallPage() {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
         if (!error && data?.imageUrl) { finalUrl = data.imageUrl; usedApify = true; }
-      } catch (err) { console.error("Error IG:", err); }
+      } catch (err) {}
     }
 
     const { error } = await supabase.from("photos").insert({ id: crypto.randomUUID(), user_id: user.id, image_url: finalUrl, caption: caption.trim(), is_apify: usedApify } as any);
 
-    if (!error) {
-      setCaption(""); setImageUrl(""); setShowUpload(false); 
-      fetchContent(true, sort); // Recarga para mostrar la foto nueva
-      toast({ title: usedApify ? "¡Extracción Exitosa!" : "Foto subida con éxito" });
-    } else {
-      toast({ title: "Error al publicar", description: error.message, variant: "destructive" });
-    }
+    if (!error) { setCaption(""); setImageUrl(""); setShowUpload(false); fetchContent(true, sort); toast({ title: "Foto subida con éxito" }); } 
+    else { toast({ title: "Error al publicar", variant: "destructive" }); }
+    
     setUploading(false);
   };
 
@@ -590,121 +527,64 @@ export default function PhotoWallPage() {
     const table = targetType === "photo" ? "photos" : "social_content";
     const current = photos.find(p => p.id === itemId);
     if (!current) return;
-    
     const prevReaction = userReactions[itemId];
-    const prevLikes = current.likes || 0;
-    const prevDislikes = current.dislikes || 0;
-
-    let newLikes = prevLikes;
-    let newDislikes = prevDislikes;
+    let newLikes = current.likes || 0;
+    let newDislikes = current.dislikes || 0;
     let newReaction: string | null = type;
 
-    if (prevReaction === type) {
-      newReaction = null;
-      if (type === "like") newLikes--; else newDislikes--;
-    } else {
-      if (type === "like") {
-        newLikes++;
-        if (prevReaction === "dislike") newDislikes--;
-      } else {
-        newDislikes++;
-        if (prevReaction === "like") newLikes--;
-      }
-    }
+    if (prevReaction === type) { newReaction = null; if (type === "like") newLikes--; else newDislikes--; }
+    else { if (type === "like") { newLikes++; if (prevReaction === "dislike") newDislikes--; } else { newDislikes++; if (prevReaction === "like") newLikes--; } }
+    newLikes = Math.max(0, newLikes); newDislikes = Math.max(0, newDislikes);
 
-    newLikes = Math.max(0, newLikes);
-    newDislikes = Math.max(0, newDislikes);
-
-    setUserReactions(prev => {
-      const next = { ...prev };
-      if (newReaction) next[itemId] = newReaction;
-      else delete next[itemId];
-      return next;
-    });
-
+    setUserReactions(prev => { const next = { ...prev }; if (newReaction) next[itemId] = newReaction; else delete next[itemId]; return next; });
     setPhotos(prev => prev.map(p => p.id === itemId ? { ...p, likes: newLikes, dislikes: newDislikes } : p));
     
     try {
-      if (prevReaction === type) {
-        await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
-      } else {
-        await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
-      }
+      if (prevReaction === type) await supabase.from("social_reactions").delete().eq("user_id", user.id).eq("target_id", itemId);
+      else await supabase.from("social_reactions").upsert({ user_id: user.id, target_id: itemId, reaction_type: type, target_type: targetType });
       await supabase.from(table).update({ likes: newLikes, dislikes: newDislikes }).eq("id", itemId);
-    } catch (err) {
-      setUserReactions(prev => {
-        const next = { ...prev };
-        if (prevReaction) next[itemId] = prevReaction;
-        else delete next[itemId];
-        return next;
-      });
-      setPhotos(prev => prev.map(p => p.id === itemId ? { ...p, likes: prevLikes, dislikes: prevDislikes } : p));
-    }
+    } catch (err) { fetchContent(true, sort); }
   };
 
   const handleEditPost = async (id: string, newTitle: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const field = targetType === "photo" ? "caption" : "title";
     const { error } = await supabase.from(table).update({ [field]: newTitle } as any).eq("id", id);
-    if (!error) {
-      setPhotos(prev => prev.map(i => i.id === id ? { ...i, title: newTitle, caption: newTitle } : i));
-      toast({ title: "Publicación editada con éxito" });
-    } else {
-      toast({ title: "Error", description: "No se pudo editar", variant: "destructive" });
-    }
+    if (!error) { setPhotos(prev => prev.map(i => i.id === id ? { ...i, title: newTitle, caption: newTitle } : i)); toast({ title: "Editado con éxito" }); }
   };
 
   const handleHide = async (id: string, targetType: string) => {
     const table = targetType === "photo" ? "photos" : "social_content";
     const { error } = await supabase.from(table).update({ is_banned: true }).eq("id", id);
-    if (!error) { toast({ title: "Publicación baneada." }); setPhotos(prev => prev.filter(i => i.id !== id)); setExpandedPhotoId(null); }
+    if (!error) { setPhotos(prev => prev.filter(i => i.id !== id)); setExpandedPhotoId(null); }
   };
 
   const handleDeletePost = async (id: string, targetType: string) => {
-    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    if (!confirm("¿Eliminar permanentemente?")) return;
     const table = targetType === "photo" ? "photos" : "social_content";
     const { error } = await supabase.from(table).delete().eq("id", id);
-    if (!error) {
-      setPhotos(prev => prev.filter(i => i.id !== id));
-      toast({ title: "Publicación eliminada" });
-      setExpandedPhotoId(null);
-    } else {
-      toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
-    }
+    if (!error) { setPhotos(prev => prev.filter(i => i.id !== id)); setExpandedPhotoId(null); }
   };
 
   const handleSaveToProfile = async (photo: any) => {
     if (!user) return;
     try { 
       const { error } = await supabase.from("saved_items" as any).insert({ 
-        user_id: user.id, 
-        item_type: photo.target_type || 'photo',
-        original_id: photo.id,
-        title: photo.caption || 'Foto de la comunidad',
-        thumbnail_url: photo.image_url || photo.thumbnail_url,
-        redirect_url: '/social/fotos?post=' + photo.id
+        user_id: user.id, item_type: photo.target_type || 'photo', original_id: photo.id, title: photo.caption || 'Foto', thumbnail_url: photo.image_url || photo.thumbnail_url, redirect_url: '/social/fotos?post=' + photo.id
       }); 
-      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta foto guardada en tu perfil." });
-      else if (!error) toast({ title: "¡Guardada en tu Perfil!" }); 
+      if (!error) toast({ title: "Guardado" }); 
     } catch (e) { }
   };
 
-  // 🔥 HANDLER DE BOTONES TOP / NUEVOS 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
     if (newSort === sort || isFetching) return;
-    setPhotos([]);
-    setPage(0);
-    setHasMore(true);
-    setSort(newSort);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    setPhotos([]); setPage(0); setHasMore(true); setSort(newSort); window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
-  // USEMEMO DE FILTRO (Amigos)
   const displayPhotos = useMemo(() => {
     return sourceTab === "friends" ? photos.filter(p => friendIds.includes(p.user_id)) : photos;
   }, [photos, sourceTab, friendIds]);
 
-  // 🔥 SCROLL MAGIC DESDE GUARDADOS Y REPORTES 🔥
   const directPostId = searchParams.get("post") || searchParams.get("focus");
   const directCommentId = searchParams.get("comment");
 
@@ -717,23 +597,14 @@ export default function PhotoWallPage() {
           attempts++;
           const el = document.getElementById(`photo-post-${directPostId}`);
           if (el) {
-            // 1. Scroll al elemento
             const elRect = el.getBoundingClientRect();
-            const absoluteTop = elRect.top + window.pageYOffset;
-            const middle = absoluteTop - (window.innerHeight / 2) + (elRect.height / 2);
-            window.scrollTo({ top: middle, behavior: 'smooth' });
-            
-            // 2. Highlight arcade neón
+            window.scrollTo({ top: elRect.top + window.pageYOffset - (window.innerHeight / 2) + (elRect.height / 2), behavior: 'smooth' });
             const cardElement = el.firstElementChild as HTMLElement | null;
             if (cardElement) {
                cardElement.classList.add('arcade-report-highlight');
                setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
-
-            // 3. Abrimos el modal de la foto reportada
             setExpandedPhotoId(directPostId);
-
-            // 4. Si hay comentario, scroll dentro del modal cuando carga
             if (directCommentId) {
               let cAttempts = 0;
               const tryComment = () => {
@@ -743,48 +614,24 @@ export default function PhotoWallPage() {
                   cEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   cEl.classList.add('arcade-report-highlight');
                   setTimeout(() => cEl.classList.remove('arcade-report-highlight'), 3500);
-                } else if (cAttempts < 80) {
-                  setTimeout(tryComment, 120);
-                }
+                } else if (cAttempts < 80) setTimeout(tryComment, 120);
               };
               setTimeout(tryComment, 600);
             }
-
-            setHasScrolled(true);
-            window.history.replaceState({}, '', location.pathname);
-          } else if (attempts < 50) {
-            requestAnimationFrame(attemptScroll);
-          } else {
-            setHasScrolled(true);
-          }
+            setHasScrolled(true); window.history.replaceState({}, '', location.pathname);
+          } else if (attempts < 50) requestAnimationFrame(attemptScroll); else setHasScrolled(true);
         };
         requestAnimationFrame(attemptScroll);
-      } else if (hasMore && !isFetching) {
-         fetchContent(false, sort);
-      } else {
-        setHasScrolled(true);
-      }
+      } else if (hasMore && !isFetching) fetchContent(false, sort); else setHasScrolled(true);
     }
   }, [directPostId, directCommentId, displayPhotos, hasScrolled, location.pathname, hasMore, isFetching, sort]);
 
-  // 🔥 OBSERVER DE SCROLL INFINITO (MASONRY) 🔥
   useEffect(() => {
     const currentRef = observerRef.current;
     if (!currentRef) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isFetching) {
-          fetchContent(false, sort);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
+    const observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting && hasMore && !isFetching) fetchContent(false, sort); }, { threshold: 0.1 });
     observer.observe(currentRef);
-
     return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, isFetching, sort, photos.length]);
 
   const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
@@ -795,12 +642,8 @@ export default function PhotoWallPage() {
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
 
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0 relative overflow-hidden">
-        {isFetching && page === 0 && (
-          <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />
-        )}
-        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2">
-          <Camera className="w-4 h-4" /> MURO FOTOGRÁFICO
-        </h1>
+        {isFetching && page === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />}
+        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2"><Camera className="w-4 h-4" /> MURO FOTOGRÁFICO</h1>
         <p className="text-[10px] text-muted-foreground font-body uppercase tracking-tight">Galería de la comunidad — Haz clic para expandir</p>
       </div>
 
@@ -824,31 +667,16 @@ export default function PhotoWallPage() {
           <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1 hidden sm:inline" /> Todos</Button>
           <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
           <div className="w-px h-5 bg-border mx-1" />
-          {/* 🔥 BOTONES TOP / NUEVOS 🔥 */}
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
-             <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
-             <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
-          </Button>
+          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}><Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top</Button>
+          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}><Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos</Button>
         </div>
         
-        <Button 
-          size="sm" 
-          className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" 
-          onClick={() => setShowUpload(!showUpload)} 
-          disabled={reachedDailyLimit || reachedPhotoLimit}
-        >
-          <Camera className="w-3 h-3 mr-1 hidden sm:inline" /> 
-          {reachedDailyLimit ? "Servidor Lleno" : reachedPhotoLimit ? "Límite Alcanzado" : "Subir Foto"}
-        </Button>
+        <Button size="sm" className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" onClick={() => setShowUpload(!showUpload)} disabled={reachedDailyLimit || reachedPhotoLimit}><Camera className="w-3 h-3 mr-1 hidden sm:inline" /> {reachedDailyLimit ? "Servidor Lleno" : reachedPhotoLimit ? "Límite Alcanzado" : "Subir Foto"}</Button>
       </div>
 
       {showUpload && (
         <div className="bg-card border border-neon-orange/30 rounded-xl p-4 space-y-3 animate-fade-in shadow-xl mx-2 md:mx-0">
-          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body">
-             <span>Límite de cuenta: {userPhotoCount} / {limits.maxPhotos} fotos</span>
-          </div>
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body"><span>Límite de cuenta: {userPhotoCount} / {limits.maxPhotos} fotos</span></div>
           <Input placeholder="URL de imagen o Link de Instagram" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="h-9 bg-black/40 text-xs border-border font-body" />
           <Textarea placeholder="Escribe una descripción..." value={caption} onChange={e => setCaption(e.target.value)} className="bg-black/40 text-xs min-h-[60px] border-border font-body" />
           <div className="flex justify-end gap-2 items-center">
@@ -868,66 +696,26 @@ export default function PhotoWallPage() {
         <>
           <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
             {displayPhotos.map(photo => (
-              <div 
-                key={`${photo.target_type}-${photo.id}`}
-                id={`photo-post-${photo.id}`}
-                className="w-full mb-2 sm:mb-4 break-inside-avoid relative"
-              >
-                <PhotoCardMiniature
-                  photo={photo}
-                  onExpand={() => setExpandedPhotoId(photo.id)}
-                  onReaction={handleReaction}
-                  onHide={handleHide}
-                  onDelete={handleDeletePost}
-                  onSave={handleSaveToProfile}
-                  userReaction={userReactions[photo.id]}
-                  isStaff={isStaff}
-                  onReport={() => setReportingPhotoIdMini(photo.id)}
-                />
+              <div key={`${photo.target_type}-${photo.id}`} id={`photo-post-${photo.id}`} className="w-full mb-2 sm:mb-4 break-inside-avoid relative">
+                <PhotoCardMiniature photo={photo} onExpand={() => setExpandedPhotoId(photo.id)} onReaction={handleReaction} onHide={handleHide} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} onReport={() => setReportingPhotoIdMini(photo.id)} />
               </div>
             ))}
           </div>
 
-          {hasMore && displayPhotos.length > 0 && (
-            <div ref={observerRef} className="py-8 flex justify-center w-full">
-               <Loader2 className="animate-spin text-neon-orange w-8 h-8 opacity-50" />
-            </div>
-          )}
+          {hasMore && displayPhotos.length > 0 && <div ref={observerRef} className="py-8 flex justify-center w-full"><Loader2 className="animate-spin text-neon-orange w-8 h-8 opacity-50" /></div>}
         </>
       )}
 
-      {/* 🔥 MODAL EXPANDIDO MÁGICO 🔥 */}
       {expandedPhotoId && (() => {
         const photo = photos.find(p => p.id === expandedPhotoId);
         if (!photo) return null;
-        return (
-          <ExpandedPhotoModal 
-            photo={photo}
-            onClose={() => setExpandedPhotoId(null)}
-            onReaction={handleReaction}
-            onHide={handleHide}
-            onEdit={handleEditPost}
-            onDelete={handleDeletePost}
-            onSave={handleSaveToProfile}
-            userReaction={userReactions[photo.id]}
-            isStaff={isStaff}
-            limits={limits}
-          />
-        );
+        return <ExpandedPhotoModal photo={photo} onClose={() => setExpandedPhotoId(null)} onReaction={handleReaction} onHide={handleHide} onEdit={handleEditPost} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} limits={limits} />;
       })()}
 
-      {/* Report Modal from Mini Card */}
       {reportingPhotoIdMini && (() => {
           const photo = photos.find(p => p.id === reportingPhotoIdMini);
           if (!photo) return null;
-          return (
-              <ReportModal
-                  reportedUserId={photo.user_id}
-                  reportedUserName={photo.profiles?.display_name || "Anónimo"}
-                  postId={photo.id}
-                  onClose={() => setReportingPhotoIdMini(null)}
-              />
-          );
+          return <ReportModal reportedUserId={photo.user_id} reportedUserName={photo.profiles?.display_name || "Anónimo"} postId={photo.id} onClose={() => setReportingPhotoIdMini(null)} />;
       })()}
 
     </div>
