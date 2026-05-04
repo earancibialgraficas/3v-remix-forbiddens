@@ -33,7 +33,16 @@ const getProxyUrl = (url: string) => {
 };
 
 const getSocialThumbnail = (item: any) => {
-  if (item.target_type === 'photo' || item.image_url) return getProxyUrl(item.image_url);
+  if (item.target_type === 'photo' || item.image_url) {
+     let origUrl = item.image_url || '';
+     // 🔥 TRUCO DE INSTAGRAM PARA IMÁGENES GUARDADAS EN TABLA PHOTOS 🔥
+     if (origUrl.includes('instagram.com') && !origUrl.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+       const igMatch = origUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+       if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
+     }
+     return getProxyUrl(item.image_url);
+  }
+  
   let origContentUrl = item.content_url || '';
   const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
   const idSeed = getSeedFromId(item.id);
@@ -44,6 +53,7 @@ const getSocialThumbnail = (item: any) => {
   if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
   if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb);
 
+  // 🔥 TRUCO DE INSTAGRAM PARA REDES SOCIALES 🔥
   if (origContentUrl.includes('instagram.com')) {
      const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
      if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
@@ -186,43 +196,75 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     if (!newUrl.trim()) return;
     setAdding(true);
     
-    let platform = "web";
-    let contentType = "post";
-    const url = newUrl.toLowerCase();
+    const url = newUrl.trim();
+    const lowerUrl = url.toLowerCase();
     
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      platform = "youtube";
-      contentType = url.includes("shorts") ? "reel" : "video";
-    } else if (url.includes("instagram.com")) {
-      platform = "instagram";
-      // Si es un reel, es "reel", si no, es "photo" para que vaya al muro fotográfico.
-      contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "photo";
-    } else if (url.includes("tiktok.com")) {
-      platform = "tiktok";
-      contentType = "reel"; 
-    } else if (url.includes("facebook.com") || url.includes("fb.watch") || url.includes("fb.com")) {
-      platform = "facebook";
-      if (url.includes("/reel/")) contentType = "reel";
-      else if (url.includes("/video") || url.includes("watch") || url.includes("fb.watch")) contentType = "video";
-      else contentType = "post";
-    }
-    
-    const { error } = await supabase.from("social_content").insert({
+    let table = "social_content";
+    let payload: any = {
       id: crypto.randomUUID(),
       user_id: user.id,
-      content_url: newUrl.trim(),
-      title: newTitle.trim() || null,
-      platform: platform,
-      content_type: contentType,
       is_public: true
-    } as any);
+    };
+
+    let platform = "web";
+    let contentType = "post";
+
+    if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
+      platform = "youtube";
+      contentType = lowerUrl.includes("shorts") ? "reel" : "video";
+      payload.content_url = url;
+      payload.title = newTitle.trim() || null;
+      payload.platform = platform;
+      payload.content_type = contentType;
+    } else if (lowerUrl.includes("instagram.com")) {
+      if (lowerUrl.includes("/reel/") || lowerUrl.includes("/reels/")) {
+        platform = "instagram";
+        contentType = "reel";
+        payload.content_url = url;
+        payload.title = newTitle.trim() || null;
+        payload.platform = platform;
+        payload.content_type = contentType;
+      } else {
+        // 🔥 TRUCO: Es un post de Instagram, lo tratamos 100% como Foto (Va a la tabla photos) 🔥
+        table = "photos";
+        payload.image_url = url;
+        payload.caption = newTitle.trim() || null;
+        payload.is_apify = false; // El proxy extraerá la imagen automáticamente
+      }
+    } else if (lowerUrl.includes("tiktok.com")) {
+      platform = "tiktok";
+      contentType = "reel"; 
+      payload.content_url = url;
+      payload.title = newTitle.trim() || null;
+      payload.platform = platform;
+      payload.content_type = contentType;
+    } else if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.watch") || lowerUrl.includes("fb.com")) {
+      platform = "facebook";
+      if (lowerUrl.includes("/reel/")) contentType = "reel";
+      else if (lowerUrl.includes("/video") || lowerUrl.includes("watch") || lowerUrl.includes("fb.watch")) contentType = "video";
+      else contentType = "post";
+      payload.content_url = url;
+      payload.title = newTitle.trim() || null;
+      payload.platform = platform;
+      payload.content_type = contentType;
+    } else {
+       payload.content_url = url;
+       payload.title = newTitle.trim() || null;
+       payload.platform = platform;
+       payload.content_type = contentType;
+    }
+    
+    const { error } = await supabase.from(table).insert(payload);
     
     setAdding(false);
     
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` });
+      toast({ 
+        title: table === "photos" ? "Guardado como Imagen" : "Añadido al Social Hub", 
+        description: table === "photos" ? "Post de Instagram guardado exitosamente." : `Clasificado como ${platform} ${contentType}` 
+      });
       setNewUrl("");
       setNewTitle("");
       fetchContents();
