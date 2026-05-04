@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -116,11 +116,53 @@ function extractThumbnail(content: string): string | null {
   return null;
 }
 
-function renderContent(content: string) {
+type ContentPermissions = {
+  allowRichText: boolean;
+  allowImages: boolean;
+  allowLinks: boolean;
+  allowVideo: boolean;
+};
+
+const elevatedTiers = ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
+const staffRoleNames = ['master_web', 'admin', 'moderator', 'master web', 'moderador', 'staff'];
+
+function getContentPermissions(tier?: string | null, roles: string[] = []): ContentPermissions {
+  const normalizedTier = (tier || 'novato').toLowerCase();
+  const isAuthorStaff = roles.some(role => staffRoleNames.includes((role || '').toLowerCase())) || staffRoleNames.includes(normalizedTier);
+  return {
+    allowRichText: isAuthorStaff || normalizedTier !== 'novato',
+    allowImages: isAuthorStaff || normalizedTier !== 'novato',
+    allowLinks: isAuthorStaff || elevatedTiers.includes(normalizedTier),
+    allowVideo: isAuthorStaff || elevatedTiers.includes(normalizedTier),
+  };
+}
+
+function renderTextWithBreaks(text: string, keyPrefix: string) {
+  return text.split('\n').map((line, j) => <span key={`${keyPrefix}-${j}`}>{line}{j < text.split('\n').length - 1 && <br />}</span>);
+}
+
+function renderInlineFormatting(text: string, permissions: ContentPermissions, keyPrefix: string) {
+  if (!permissions.allowRichText) return renderTextWithBreaks(text, keyPrefix);
+  return text.split(/(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*|\[u\][\s\S]+?\[\/u\])/g).map((token, idx) => {
+    if (token.startsWith('**') && token.endsWith('**')) {
+      return <strong key={`${keyPrefix}-b-${idx}`} className="font-semibold text-foreground">{renderTextWithBreaks(token.slice(2, -2), `${keyPrefix}-bt-${idx}`)}</strong>;
+    }
+    if (token.startsWith('*') && token.endsWith('*')) {
+      return <em key={`${keyPrefix}-i-${idx}`} className="italic">{renderTextWithBreaks(token.slice(1, -1), `${keyPrefix}-it-${idx}`)}</em>;
+    }
+    if (token.startsWith('[u]') && token.endsWith('[/u]')) {
+      return <span key={`${keyPrefix}-u-${idx}`} className="underline underline-offset-2">{renderTextWithBreaks(token.slice(3, -4), `${keyPrefix}-ut-${idx}`)}</span>;
+    }
+    return <span key={`${keyPrefix}-t-${idx}`}>{renderTextWithBreaks(token, `${keyPrefix}-tt-${idx}`)}</span>;
+  });
+}
+
+function renderContent(content: string, permissions: ContentPermissions) {
   if (!content) return null;
-  const parts = content.split(/(\!\[.*?\]\(.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
+  const parts = content.split(/(\!\[.*?\]\(.*?\)|\[.*?\]\(https?:\/\/.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
+    if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
       <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })}>
         <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
@@ -129,8 +171,16 @@ function renderContent(content: string) {
         </div>
       </div>
     );
+    const linkMatch = part.match(/^\[(.*?)\]\((https?:\/\/.*?)\)$/);
+    if (linkMatch) {
+      if (!permissions.allowLinks) return <span key={i}>{renderInlineFormatting(part, permissions, `link-locked-${i}`)}</span>;
+      return <a key={i} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{renderInlineFormatting(linkMatch[1], permissions, `link-${i}`)}</a>;
+    }
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
     if (ytMatch) {
+      if (!permissions.allowVideo) {
+        return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
+      }
       const embedSrc = `https://www.youtube.com/embed/${ytMatch[1]}`;
       return (
         <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
@@ -144,6 +194,7 @@ function renderContent(content: string) {
     if (/^https?:\/\/[^\s]+$/.test(part)) {
       const isMedia = /\.(jpg|jpeg|png|gif|webp|mp4|webm)(\?.*)?$/i.test(part);
       if (isMedia && /\.(mp4|webm)(\?.*)?$/i.test(part)) {
+        if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
           <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
@@ -154,6 +205,7 @@ function renderContent(content: string) {
         );
       }
       if (isMedia) {
+        if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
           <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: part, type: "image" })}>
             <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
@@ -163,9 +215,9 @@ function renderContent(content: string) {
           </div>
         );
       }
-      return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>;
+      return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
     }
-    return part.split('\n').map((line, j) => <span key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</span>);
+    return <span key={i}>{renderInlineFormatting(part, permissions, `text-${i}`)}</span>;
   });
 }
 
@@ -517,6 +569,7 @@ export default function ForumPage() {
   const insertFormat = (format: string) => {
     if (format === "bold") setCommentText(prev => prev + "**texto**");
     else if (format === "italic") setCommentText(prev => prev + "*texto*");
+    else if (format === "underline") setCommentText(prev => prev + "[u]texto[/u]");
     else if (format === "image") setCommentText(prev => prev + "![descripción](URL_imagen)");
     else if (format === "link") setCommentText(prev => prev + "[texto](URL)");
     else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
@@ -605,6 +658,16 @@ export default function ForumPage() {
                 <Bold className="w-3 h-3" /> Negrita
               </button>
             )}
+            {canUseBoldItalic && (
+              <button onClick={() => setContent(prev => prev + "*texto*")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Itálica">
+                <Italic className="w-3 h-3" /> Itálica
+              </button>
+            )}
+            {canUseBoldItalic && (
+              <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Subrayado">
+                <Underline className="w-3 h-3" /> Subrayado
+              </button>
+            )}
             {canUseLinks && (
               <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Enlace">
                 <Link2 className="w-3 h-3" /> Enlace
@@ -647,6 +710,7 @@ export default function ForumPage() {
           {allPosts.map((post) => {
             const authorProfile = postProfiles[post.user_id];
             const authorRoles = postRoles[post.user_id] || [];
+            const postPermissions = getContentPermissions(authorProfile?.membership_tier, authorRoles);
             const myVote = userVotes[post.id] || null;
 
             return (
@@ -706,7 +770,7 @@ export default function ForumPage() {
                             {post.title}
                           </p>
                           {post.content && (
-                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content)}</div>
+                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content, postPermissions)}</div>
                           )}
                         </>
                       )}
@@ -785,7 +849,9 @@ export default function ForumPage() {
 
                 {expandedPost === post.id && (
                   <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
-                    {(comments[post.id] || []).map((comment) => (
+                    {(comments[post.id] || []).map((comment) => {
+                      const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
+                      return (
                       <div key={comment.id} id={`comment-${comment.id}`} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
@@ -805,7 +871,7 @@ export default function ForumPage() {
                               />
                               <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
-                            <div className="text-foreground leading-relaxed">{renderContent(comment.content)}</div>
+                            <div className="text-foreground leading-relaxed">{renderContent(comment.content, commentPermissions)}</div>
                             <div className="flex items-center gap-2 mt-1">
                               {user && (
                                 <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
@@ -826,7 +892,7 @@ export default function ForumPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    );})}
                     {user ? (
                       <div className="space-y-2 bg-card border border-border rounded p-3">
                         {replyTo && (
@@ -846,6 +912,7 @@ export default function ForumPage() {
                         <div className="flex items-center gap-1 flex-wrap">
                           {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
                           {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                          {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
                           {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
                           {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
                           {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
