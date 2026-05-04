@@ -26,7 +26,10 @@ export default function ConsejosPage() {
   const handleSubmit = async () => {
     if (!user || !tipTitle.trim() || !tipDesc.trim()) return;
     setSending(true);
+    
+    // 🔥 SOLUCIÓN: Generamos un ID único aquí mismo para evitar el error de "null value"
     const { error } = await supabase.from("tip_suggestions").insert({
+      id: crypto.randomUUID(), 
       user_id: user.id,
       title: tipTitle.trim(),
       description: tipDesc.trim(),
@@ -43,7 +46,6 @@ ${tipDesc}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/arcade/consejos]Ir a Consejos[/LINK]`;
       
-      // 🔥 SOLUCIÓN: Cambiado a send_system_staff_message 🔥
       await supabase.rpc("send_system_staff_message" as any, {
         p_title: `Sugerencia de consejo: ${tipTitle}`,
         p_content: content,
@@ -87,7 +89,6 @@ ${tipDesc}[/COLOR]
         ))}
       </div>
 
-      {/* Suggest a tip */}
       <div className="bg-card border border-neon-cyan/20 rounded p-4">
         {!showForm ? (
           <div className="flex items-center justify-between">

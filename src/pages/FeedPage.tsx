@@ -156,11 +156,22 @@ function SnapCard({
     return { w: 640, h: 360 };
   };
 
-  // 🔥 SOLUCIÓN: Pausar videos nativos al hacer scroll 🔥
+  // 🔥 LÓGICA DE AUTOPLAY MEJORADA CON INTENTO DE SONIDO 🔥
   useEffect(() => {
     if (nativeVideoRef.current && isDirectMp4) {
       if (isVisible) {
-        nativeVideoRef.current.play().catch(() => console.log("Autoplay bloqueado por el navegador"));
+        nativeVideoRef.current.muted = false; // Intentamos con sonido primero
+        const playPromise = nativeVideoRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("El navegador bloqueó el sonido automático. Mutando el video como fallback.");
+            if (nativeVideoRef.current) {
+              nativeVideoRef.current.muted = true; // Forzamos mute para que al menos inicie el video
+              nativeVideoRef.current.play().catch(e => console.error("Fallo total de autoplay", e));
+            }
+          });
+        }
         onPauseMusic();
       } else {
         nativeVideoRef.current.pause();
@@ -293,11 +304,22 @@ function SnapCard({
     }
   };
 
-  // 🔥 SOLUCIÓN IFRAMES: Cortar el SRC si no es visible para detener el audio
-  const finalEmbedUrl = isVisible && embedUrl
-    ? item.platform === 'youtube' ? `${embedUrl}?autoplay=1&mute=0`
-      : item.platform === 'tiktok' ? `${embedUrl}?autoplay=1` : embedUrl
-    : "";
+  // 🔥 LÓGICA DE INYECCIÓN DE AUTOPLAY PARA IFRAMES 🔥
+  let finalEmbedUrl = "";
+  if (isVisible && embedUrl) {
+    const connector = embedUrl.includes('?') ? '&' : '?';
+    if (item.platform === 'youtube') {
+      finalEmbedUrl = `${embedUrl}${connector}autoplay=1&mute=0&enablejsapi=1`; // mute=0 intenta sonido
+    } else if (item.platform === 'facebook') {
+      finalEmbedUrl = `${embedUrl}${connector}autoplay=1`;
+    } else if (item.platform === 'tiktok') {
+      finalEmbedUrl = `${embedUrl}${connector}autoplay=1`; 
+    } else if (item.platform === 'instagram') {
+      finalEmbedUrl = `${embedUrl}${connector}autoplay=1`;
+    } else {
+      finalEmbedUrl = embedUrl;
+    }
+  }
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
@@ -306,7 +328,6 @@ function SnapCard({
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       <div ref={videoContainerRef} className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0 flex items-center justify-center">
         
-        {/* 🔥 SOLUCIÓN LINKS ROTOS: Pantalla negra con aviso 🔥 */}
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
             <Ban className="w-12 h-12 text-destructive mb-3 animate-pulse" />
@@ -348,13 +369,22 @@ function SnapCard({
             src={item.content_url} 
             controls 
             loop
+            playsInline
             className="w-full h-full object-contain" 
             onError={() => setMediaError(true)}
           />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
-            <iframe src={finalEmbedUrl} className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} style={{ border: "none" }} scrolling="no" allowFullScreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            {/* 🔥 PERMISOS DE AUTOPLAY AÑADIDOS AL IFRAME 🔥 */}
+            <iframe 
+              src={finalEmbedUrl} 
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; clipboard-write; gyroscope" 
+              className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} 
+              style={{ border: "none" }} 
+              scrolling="no" 
+              allowFullScreen 
+            />
           </div>
         ) : (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center gap-4">
@@ -367,7 +397,6 @@ function SnapCard({
 
       </div>
 
-      {/* (El resto de la UI de feed se mantiene exactamente igual...) */}
       <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
         <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
@@ -554,7 +583,7 @@ function SnapCard({
   );
 }
 
-// RESTO DEL CÓDIGO INTACTO (export default function FeedPage... fetchContent... etc)
+// RESTO DEL CÓDIGO INTACTO...
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
