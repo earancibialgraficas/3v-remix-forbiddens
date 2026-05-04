@@ -31,7 +31,6 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
-// 🔥 Función Traductora Maestra y Cero-Errores 🔥
 const renderFormattedText = (content: string, navigate: ReturnType<typeof useNavigate>) => {
   const parts = content.split(/(\[COLOR:[^\]]+\]|\[\/COLOR\]|\[LINK:[^\]]+\]|\[\/LINK\]|\n)/g);
   let currentColor = "";
@@ -61,11 +60,10 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
           href={linkRaw} 
           className="text-[#3b82f6] hover:underline hover:brightness-125 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
           onClick={(e) => {
-            e.preventDefault(); // Bloquear la recarga de página al 100%
+            e.preventDefault();
             e.stopPropagation();
             
             try {
-              // Parseo infalible de URLs
               const url = new URL(linkRaw, window.location.origin);
               const targetPath = url.pathname + url.search;
               const focusId = url.searchParams.get('focus');
@@ -85,7 +83,6 @@ const renderFormattedText = (content: string, navigate: ReturnType<typeof useNav
                 }, 150);
               }
             } catch (err) {
-              // Fallback extremo
               navigate(linkRaw);
             }
           }}
@@ -120,6 +117,19 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // 🔥 Ref estable para el partner seleccionado (evita bugs en realtime)
+  const selectedPartnerRef = useRef<string | null>(null);
+  useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
+
+  // 🔥 FUNCIÓN DE ORDENAMIENTO CRONOLÓGICO MEJORADA (Antiguo arriba -> Nuevo abajo)
+  const sortMsgs = (arr: Message[]) =>
+    [...arr].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.id.localeCompare(b.id); // Estabilidad si coinciden milisegundos
+    });
+
   useEffect(() => {
     const p = searchParams.get("partner") || searchParams.get("to");
     if (p && user && !selectedPartner) loadMessages(p);
@@ -128,33 +138,35 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     loadConversations();
+    
+    // 🔥 CONFIGURACIÓN TIEMPO REAL OPTIMIZADA
     const channel = supabase.channel(`messages-sync-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, (payload) => {
-        const row: any = payload.new || payload.old;
-        if (!row) return;
-        if (row.sender_id !== user.id && row.receiver_id !== user.id) return;
-        loadConversations();
-        const partner = selectedPartnerRef.current;
-        if (partner && (row.sender_id === partner || row.receiver_id === partner)) {
-          loadMessages(partner);
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "inbox_messages" }, (payload) => {
+        const newMsg = payload.new as Message;
+        if (!newMsg) return;
+        
+        // Si el mensaje pertenece al usuario actual o al partner activo
+        if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
+          loadConversations(); // Actualiza la lista de la izquierda
+          
+          const activePartner = selectedPartnerRef.current;
+          if (activePartner && (newMsg.sender_id === activePartner || newMsg.receiver_id === activePartner)) {
+             // En lugar de re-fetch total, añadimos y ordenamos localmente para evitar saltos
+             setMessages(prev => {
+                // Evitar duplicados (si el mensaje ya se añadió optimísticamente)
+                if (prev.find(m => m.id === newMsg.id)) return prev;
+                return sortMsgs([...prev, newMsg]);
+             });
+          }
         }
       }).subscribe();
+      
     return () => { supabase.removeChannel(channel); };
   }, [user]);
-
-  // Ref siempre actualizada con el partner seleccionado para usarla dentro del canal
-  const selectedPartnerRef = useRef<string | null>(null);
-  useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const sortMsgs = (arr: Message[]) =>
-    [...arr].sort((a, b) => {
-      const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      return t !== 0 ? t : a.id.localeCompare(b.id);
-    });
 
   const loadConversations = async () => {
     if (!user) return;
@@ -203,7 +215,7 @@ export default function MessagesPage() {
     
     const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true }); // Base de datos ya trae orden ascendente
     
     if (data) setMessages(sortMsgs(data as Message[]));
 
@@ -222,21 +234,31 @@ export default function MessagesPage() {
       return;
     }
     setNewMessage("");
-    // UI optimista
+
+    // 🔥 UI OPTIMISTA CON FECHA ESTABLE
     const tempId = `temp-${Date.now()}`;
-    setMessages(prev => sortMsgs([...prev, {
-      id: tempId, sender_id: user.id, receiver_id: selectedPartner,
-      content, is_read: false, created_at: new Date().toISOString(),
-    }]));
-    const { error } = await supabase.from("inbox_messages").insert({
+    const optimisticMsg: Message = {
+      id: tempId, 
+      sender_id: user.id, 
+      receiver_id: selectedPartner,
+      content, 
+      is_read: false, 
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages(prev => sortMsgs([...prev, optimisticMsg]));
+
+    const { error, data } = await supabase.from("inbox_messages").insert({
       sender_id: user.id, receiver_id: selectedPartner, content, is_read: false
-    });
+    }).select().single();
+
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(content);
-    } else {
-      loadMessages(selectedPartner);
+    } else if (data) {
+      // Reemplazamos el optimista por el real para sincronizar la fecha exacta del servidor
+      setMessages(prev => sortMsgs(prev.map(m => m.id === tempId ? data : m)));
     }
   };
 
