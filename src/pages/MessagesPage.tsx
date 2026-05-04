@@ -117,17 +117,16 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Ref estable para el partner seleccionado (evita bugs en realtime)
   const selectedPartnerRef = useRef<string | null>(null);
   useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
 
-  // 🔥 FUNCIÓN DE ORDENAMIENTO CRONOLÓGICO MEJORADA (Antiguo arriba -> Nuevo abajo)
+  // 🔥 ORDENACIÓN CRONOLÓGICA ESTRICTA (Más antiguo arriba -> Más nuevo abajo)
   const sortMsgs = (arr: Message[]) =>
     [...arr].sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
       const timeB = new Date(b.created_at).getTime();
       if (timeA !== timeB) return timeA - timeB;
-      return a.id.localeCompare(b.id); // Estabilidad si coinciden milisegundos
+      return a.id.localeCompare(b.id);
     });
 
   useEffect(() => {
@@ -139,21 +138,24 @@ export default function MessagesPage() {
     if (!user) return;
     loadConversations();
     
-    // 🔥 CONFIGURACIÓN TIEMPO REAL OPTIMIZADA
     const channel = supabase.channel(`messages-sync-${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "inbox_messages" }, (payload) => {
         const newMsg = payload.new as Message;
         if (!newMsg) return;
         
-        // Si el mensaje pertenece al usuario actual o al partner activo
-        if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
-          loadConversations(); // Actualiza la lista de la izquierda
+        // 🔥 IMPORTANTE: Si yo soy el remitente, ignoro este evento porque ya lo manejé en handleSend
+        // Esto evita que el mensaje aparezca, desaparezca o se mueva durante la sincronización.
+        if (newMsg.sender_id === user.id) {
+           loadConversations(); // Solo actualizamos la barra lateral
+           return;
+        }
+
+        if (newMsg.receiver_id === user.id) {
+          loadConversations();
           
           const activePartner = selectedPartnerRef.current;
-          if (activePartner && (newMsg.sender_id === activePartner || newMsg.receiver_id === activePartner)) {
-             // En lugar de re-fetch total, añadimos y ordenamos localmente para evitar saltos
+          if (activePartner && newMsg.sender_id === activePartner) {
              setMessages(prev => {
-                // Evitar duplicados (si el mensaje ya se añadió optimísticamente)
                 if (prev.find(m => m.id === newMsg.id)) return prev;
                 return sortMsgs([...prev, newMsg]);
              });
@@ -215,7 +217,7 @@ export default function MessagesPage() {
     
     const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: true }); // Base de datos ya trae orden ascendente
+      .order("created_at", { ascending: true });
     
     if (data) setMessages(sortMsgs(data as Message[]));
 
@@ -235,7 +237,7 @@ export default function MessagesPage() {
     }
     setNewMessage("");
 
-    // 🔥 UI OPTIMISTA CON FECHA ESTABLE
+    // 🔥 MENSAJE OPTIMISTA (Para que la UI no se sienta lenta)
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: Message = {
       id: tempId, 
@@ -257,8 +259,15 @@ export default function MessagesPage() {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(content);
     } else if (data) {
-      // Reemplazamos el optimista por el real para sincronizar la fecha exacta del servidor
-      setMessages(prev => sortMsgs(prev.map(m => m.id === tempId ? data : m)));
+      // 🔥 REEMPLAZO ATÓMICO: Cambiamos el temporal por el real del servidor
+      // Esto previene que el mensaje cambie de posición si el reloj de tu PC está desincronizado
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== tempId);
+        // Si por alguna razón el realtime ya lo metió, no lo duplicamos
+        if (filtered.find(m => m.id === data.id)) return filtered;
+        return sortMsgs([...filtered, data]);
+      });
+      loadConversations();
     }
   };
 
