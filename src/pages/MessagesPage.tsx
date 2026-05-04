@@ -117,17 +117,20 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const selectedPartnerRef = useRef<string | null>(null);
-  useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
+  // 🔥 Ref para el partner actual para que el Realtime no se confunda
+  const activePartnerRef = useRef<string | null>(null);
+  useEffect(() => { activePartnerRef.current = selectedPartner; }, [selectedPartner]);
 
-  // 🔥 ORDENACIÓN CRONOLÓGICA ESTRICTA (Más antiguo arriba -> Más nuevo abajo)
-  const sortMsgs = (arr: Message[]) =>
-    [...arr].sort((a, b) => {
-      const timeA = new Date(a.created_at).getTime();
-      const timeB = new Date(b.created_at).getTime();
-      if (timeA !== timeB) return timeA - timeB;
-      return a.id.localeCompare(b.id);
+  // 🔥 Función de ordenación ultra-estable (Antiguo arriba, Nuevo abajo)
+  const sortMsgs = (arr: Message[]) => {
+    return [...arr].sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      // Si la fecha es igual, decidimos por ID para evitar que bailen
+      if (dateA === dateB) return a.id.localeCompare(b.id);
+      return dateA - dateB;
     });
+  };
 
   useEffect(() => {
     const p = searchParams.get("partner") || searchParams.get("to");
@@ -143,23 +146,19 @@ export default function MessagesPage() {
         const newMsg = payload.new as Message;
         if (!newMsg) return;
         
-        // 🔥 IMPORTANTE: Si yo soy el remitente, ignoro este evento porque ya lo manejé en handleSend
-        // Esto evita que el mensaje aparezca, desaparezca o se mueva durante la sincronización.
-        if (newMsg.sender_id === user.id) {
-           loadConversations(); // Solo actualizamos la barra lateral
-           return;
+        // Actualizamos lista de chats lateral
+        if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
+          loadConversations();
         }
 
-        if (newMsg.receiver_id === user.id) {
-          loadConversations();
-          
-          const activePartner = selectedPartnerRef.current;
-          if (activePartner && newMsg.sender_id === activePartner) {
-             setMessages(prev => {
-                if (prev.find(m => m.id === newMsg.id)) return prev;
-                return sortMsgs([...prev, newMsg]);
-             });
-          }
+        // Si el mensaje es para el chat que tengo abierto actualmente...
+        const currentPartner = activePartnerRef.current;
+        if (currentPartner && (newMsg.sender_id === currentPartner || newMsg.receiver_id === currentPartner)) {
+          setMessages(prev => {
+            // Evitar duplicar si el mensaje ya está (por el insert optimista)
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return sortMsgs([...prev, newMsg]);
+          });
         }
       }).subscribe();
       
@@ -167,7 +166,7 @@ export default function MessagesPage() {
   }, [user]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: "instant" });
   }, [messages]);
 
   const loadConversations = async () => {
@@ -217,7 +216,7 @@ export default function MessagesPage() {
     
     const { data } = await supabase.from("inbox_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true }); 
     
     if (data) setMessages(sortMsgs(data as Message[]));
 
@@ -232,12 +231,12 @@ export default function MessagesPage() {
     if (!user || !selectedPartner || !newMessage.trim()) return;
     let content = newMessage.trim();
     if (content.length > dmLimit) {
-      toast({ title: "Límite alcanzado", description: `Tu membresía permite ${dmLimit} caracteres por mensaje.`, variant: "destructive" });
+      toast({ title: "Límite alcanzado", description: `Tu membresía permite ${dmLimit} caracteres.`, variant: "destructive" });
       return;
     }
     setNewMessage("");
 
-    // 🔥 MENSAJE OPTIMISTA (Para que la UI no se sienta lenta)
+    // 🔥 Mensaje Optimista con ID temporal
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: Message = {
       id: tempId, 
@@ -248,6 +247,7 @@ export default function MessagesPage() {
       created_at: new Date().toISOString(),
     };
 
+    // Añadir a la lista inmediatamente
     setMessages(prev => sortMsgs([...prev, optimisticMsg]));
 
     const { error, data } = await supabase.from("inbox_messages").insert({
@@ -257,16 +257,9 @@ export default function MessagesPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setMessages(prev => prev.filter(m => m.id !== tempId));
-      setNewMessage(content);
     } else if (data) {
-      // 🔥 REEMPLAZO ATÓMICO: Cambiamos el temporal por el real del servidor
-      // Esto previene que el mensaje cambie de posición si el reloj de tu PC está desincronizado
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.id !== tempId);
-        // Si por alguna razón el realtime ya lo metió, no lo duplicamos
-        if (filtered.find(m => m.id === data.id)) return filtered;
-        return sortMsgs([...filtered, data]);
-      });
+      // 🔥 Reemplazar el temporal con el real de la base de datos
+      setMessages(prev => sortMsgs(prev.map(m => m.id === tempId ? data : m)));
       loadConversations();
     }
   };
@@ -285,6 +278,7 @@ export default function MessagesPage() {
       </div>
 
       <div className="flex gap-3 min-w-0 w-full" style={{ height: 'calc(100% - 70px)' }}>
+        {/* LISTA DE CONVERSACIONES (IZQUIERDA) */}
         <div className={cn("bg-card border border-border rounded flex flex-col min-w-0 overflow-hidden", selectedPartner ? "hidden md:flex w-64 shrink-0" : "flex-1")}>
           <div className="p-2 border-b border-border">
             <div className="flex gap-1">
@@ -320,28 +314,48 @@ export default function MessagesPage() {
           </div>
         </div>
 
+        {/* ÁREA DE CHAT (DERECHA) */}
         {selectedPartner && (
           <div className="flex-1 bg-card border border-border rounded flex flex-col min-w-0">
             <div className="p-2 border-b border-border flex items-center gap-2">
               <button onClick={() => setSelectedPartner(null)} className="md:hidden text-muted-foreground"><ArrowLeft className="w-4 h-4" /></button>
               <span className="text-xs font-medium truncate" style={getNameStyle(conversations.find(c => c.partnerId === selectedPartner)?.partnerColorName)}>{conversations.find(c => c.partnerId === selectedPartner)?.partnerName || "Chat"}</span>
             </div>
-            <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-2">
-              {messages.map(m => (
-                <div key={m.id} className={cn("flex", m.sender_id === user?.id ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[75%] rounded-lg px-3 py-2 text-xs break-words whitespace-pre-wrap", m.sender_id === user?.id ? "bg-primary/20 text-foreground" : "bg-muted text-foreground")}>
-                    {renderFormattedText(m.content, navigate)}
+            
+            <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-4">
+              {messages.map((m, idx) => {
+                const isMe = m.sender_id === user?.id;
+                return (
+                  <div key={m.id} className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
+                    {/* Header: Nombre y hora (opcional) */}
+                    <span className="text-[9px] text-muted-foreground mb-1 px-1">
+                      {isMe ? "Tú" : conversations.find(c => c.partnerId === selectedPartner)?.partnerName} • {new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                    
+                    {/* Cuerpo del mensaje estilo lista limpia */}
+                    <div className={cn(
+                      "max-w-[85%] px-3 py-2 rounded-lg text-xs font-body shadow-sm border",
+                      isMe 
+                        ? "bg-primary/10 border-primary/20 text-foreground" 
+                        : "bg-muted/50 border-border text-foreground"
+                    )}>
+                      {renderFormattedText(m.content, navigate)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={endRef} />
             </div>
+
             <div className="p-2 border-t border-border flex flex-col gap-1">
               <div className="flex gap-2">
-                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[80px] flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                <Button size="sm" onClick={handleSend} className="h-auto px-3"><Send className="w-3.5 h-3.5" /></Button>
+                <Textarea value={newMessage} onChange={e => setNewMessage(e.target.value.slice(0, dmLimit))} placeholder="Escribe un mensaje..." maxLength={dmLimit} className="bg-muted text-xs min-h-[40px] max-h-[100px] flex-1 resize-none" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <Button size="sm" onClick={handleSend} className="h-auto px-3 bg-neon-cyan text-black hover:bg-neon-cyan/80"><Send className="w-4 h-4" /></Button>
               </div>
-              <span className={cn("text-[9px] text-right font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
+              <div className="flex justify-between items-center px-1">
+                <span className="text-[9px] text-muted-foreground">Presiona Enter para enviar</span>
+                <span className={cn("text-[9px] font-pixel", newMessage.length >= dmLimit ? "text-destructive" : "text-muted-foreground")}>{newMessage.length}/{dmLimit}</span>
+              </div>
             </div>
           </div>
         )}
