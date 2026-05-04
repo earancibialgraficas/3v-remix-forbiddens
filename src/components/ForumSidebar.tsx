@@ -161,12 +161,24 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
           </button>
           <Link to="/" className="flex flex-col items-center w-full">
              {collapsed ? (
-               <div className="relative h-[28px] w-full overflow-hidden flex justify-center" aria-label="FORBIDDENS">
-                 <div className="flex flex-col items-center gap-[2px] animate-marquee-y">
-                   {[..."FORBIDDENS", ..."FORBIDDENS"].map((letter, i) => (
-                     <span key={i} className="font-pixel text-[11px] leading-none" style={{ color: '#de1839', textShadow: '0 0 5px rgba(222, 24, 57, 0.4)' }}>{letter}</span>
-                   ))}
-                 </div>
+               <div
+                 className="relative w-full flex items-center justify-center rounded-sm border border-[#de1839]/40 bg-background/40 px-0.5 py-1"
+                 aria-label="FORBIDDENS"
+                 style={{
+                   boxShadow: '0 0 6px rgba(222, 24, 57, 0.35), inset 0 0 4px rgba(222, 24, 57, 0.25)',
+                 }}
+               >
+                 <span
+                   className="font-pixel leading-none w-full text-center"
+                   style={{
+                     color: '#ff4d6d',
+                     fontSize: '6px',
+                     letterSpacing: '0.5px',
+                     textShadow: '0 0 3px rgba(222, 24, 57, 0.9), 0 0 6px rgba(222, 24, 57, 0.6)',
+                   }}
+                 >
+                   FORBIDDENS
+                 </span>
                </div>
              ) : (
                <span className="font-pixel text-[10px] xl:text-[12px] tracking-widest text-center" style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</span>
