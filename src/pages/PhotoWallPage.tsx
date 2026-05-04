@@ -17,14 +17,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 
 const APIFY_DAILY_LIMIT = 80;
 
-const getEmbedUrl = (url: string, platform: string) => {
-  if (platform === "instagram") {
-    const igMatch = url.match(/instagram\.com\/(p|reel|reels)\/([\w-]+)/);
-    if (igMatch) return `https://www.instagram.com/p/${igMatch[2]}/embed/?hidecaption=true`;
-  }
-  return null;
-};
-
 const isVideoItem = (item: any) => {
   const p = item.platform || '';
   const url = item.content_url || '';
@@ -36,10 +28,25 @@ const isVideoItem = (item: any) => {
   return false;
 };
 
+// 🔥 PROXY ESTANDARIZADO DESDE GUARDADOS 🔥
 const getProxyUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('wsrv.nl')) return url;
+  if (url.toLowerCase().includes('.gif')) return url;
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai') || url.includes('img.youtube.com') || url.includes('tiktokcdn.com')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
+// 🔥 TRUCO MAGISTRAL PARA EXTRAER IMAGEN DE INSTAGRAM (Sin Iframe, Sin Apify) 🔥
+const getDisplayImageUrl = (photo: any) => {
+  let origUrl = photo.thumbnail_url || photo.image_url || photo.content_url || '';
+  
+  if (origUrl.includes('instagram.com') && !origUrl.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+     const igMatch = origUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+     if (igMatch) {
+       return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
+     }
+  }
+  return getProxyUrl(origUrl);
 };
 
 const NEON_COLORS = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00', '#ff00aa', '#ff5500'];
@@ -59,11 +66,12 @@ const getPhotoNeonStyle = (photo: any) => {
 /* 🔥 COMPONENTE: TARJETA MINIATURA 🔥 */
 function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onSave, userReaction, isStaff, onReport }: any) {
   const { user } = useAuth();
-  const targetUrl = photo.thumbnail_url || photo.image_url;
   const neonStyle = getPhotoNeonStyle(photo);
   const hasNeon = Object.keys(neonStyle).length > 0;
-  
   const isOwner = user?.id === photo.user_id;
+
+  // Extraemos la URL final usando la nueva función
+  const finalImageUrl = getDisplayImageUrl(photo);
 
   return (
     <div 
@@ -75,16 +83,17 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
       onClick={onExpand}
     >
       <div className="relative w-full h-full overflow-hidden rounded-xl bg-transparent flex items-center justify-center min-h-[150px]">
-        {/* Como Apify ya funciona, usamos la imagen pura de la V1 (Carga rápida, sin iframes) */}
+        {/* Imagen cargada directamente con el proxy y la extracción limpia */}
         <img 
-          src={getProxyUrl(targetUrl)} 
+          src={finalImageUrl} 
           alt={photo.caption || "Foto"} 
           referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           className="w-full h-auto min-h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
           loading="lazy" 
           onError={(e) => {
             if (!e.currentTarget.src.includes('wsrv.nl')) return;
-            e.currentTarget.src = targetUrl;
+            e.currentTarget.src = photo.image_url || photo.content_url;
           }}
         />
         
@@ -95,7 +104,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
             {isStaff && !isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button onClick={e => e.stopPropagation()} className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/60 rounded-md backdrop-blur-sm transition-colors z-20">
+                  <button onClick={e => e.stopPropagation()} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-magenta bg-black/40 rounded-lg backdrop-blur-sm transition-colors z-20">
                     <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </DropdownMenuTrigger>
@@ -113,22 +122,22 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
             <div className={cn("flex items-center gap-1 sm:gap-1.5 z-20", (!isStaff || isOwner) && "ml-auto")}>
                {isOwner && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Editar">
-                      <Edit2 className="w-3.5 h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onExpand(); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-yellow bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Editar">
+                      <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Eliminar">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(photo.id, photo.target_type); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Eliminar">
+                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </>
                )}
                {user && !isOwner && (
-                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1.5 text-muted-foreground hover:text-destructive bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Reportar">
-                   <Flag className="w-3.5 h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onReport(); }} className="p-1 sm:p-1.5 text-white hover:text-destructive bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Reportar">
+                   <Flag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                  </button>
                )}
                {user && (
-                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/60 rounded-md backdrop-blur-sm transition-colors" title="Guardar">
-                   <Bookmark className="w-3.5 h-3.5" />
+                 <button onClick={(e) => { e.stopPropagation(); onSave(photo); }} className="p-1 sm:p-1.5 text-muted-foreground hover:text-neon-cyan bg-black/40 rounded-lg backdrop-blur-sm transition-colors" title="Guardar">
+                   <Bookmark className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                  </button>
                )}
             </div>
@@ -167,11 +176,12 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
-  const targetUrl = photo.thumbnail_url || photo.image_url;
-  const originalUrl = photo.content_url || targetUrl;
+  const originalUrl = photo.content_url || photo.image_url || photo.thumbnail_url;
   const neonStyle = getPhotoNeonStyle(photo);
   const isOwner = user?.id === photo.user_id;
 
+  // Usamos la nueva función para obtener la imagen directa sin Iframe
+  const finalImageUrl = getDisplayImageUrl(photo);
   const displayDate = photo.created_at ? new Date(photo.created_at).toLocaleDateString() : "Recientemente";
 
   useEffect(() => {
@@ -217,10 +227,6 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     } catch (e) { }
   };
 
-  // Respaldo de iframe solo para la vista expandida por si hay links antiguos rotos en la DB
-  const isEmbed = !photo.thumbnail_url && photo.target_type === 'social_content' && photo.platform === 'instagram' && !photo.content_url?.includes('.jpg') && !photo.content_url?.includes('.png');
-  const embedSrc = isEmbed ? getEmbedUrl(photo.content_url, photo.platform) : null;
-
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -238,15 +244,12 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
             <ExternalLink className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Ver original</span>
           </a>
 
-          {isEmbed && embedSrc ? (
-             <iframe src={embedSrc} className="w-full h-full object-contain rounded bg-white" allowFullScreen />
-          ) : (
-             <img 
-               src={getProxyUrl(targetUrl)} alt={photo.caption} referrerPolicy="no-referrer"
-               className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
-               onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = targetUrl; }}
-             />
-          )}
+          {/* 🔥 RENDEREIZAMOS COMO IMAGEN DIRECTA SIEMPRE 🔥 */}
+          <img 
+            src={finalImageUrl} alt={photo.caption} referrerPolicy="no-referrer" crossOrigin="anonymous"
+            className="w-auto h-full max-w-full object-contain rounded shadow-2xl" 
+            onError={(e) => { if (!e.currentTarget.src.includes('wsrv.nl')) return; e.currentTarget.src = photo.image_url || photo.content_url; }}
+          />
         </div>
 
         <div className="relative w-full md:w-[40%] flex flex-col bg-background/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-border h-[50vh] md:h-[85vh]">
@@ -500,13 +503,15 @@ export default function PhotoWallPage() {
 
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
-    if (!isStaff && userPhotoCount >= limits.maxPhotos) { toast({ title: "Límite de Membresía", variant: "destructive" }); return; }
+    if (!isStaff && userPhotoCount >= limits.maxPhotos) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
     if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) { toast({ title: "Servidor Lleno", variant: "destructive" }); return; }
 
     setUploading(true);
     let finalUrl = imageUrl.trim();
     let usedApify = false;
 
+    // Aquí simplemente llamamos la función, pero como hemos visto, si falla,
+    // el frontend usará el enlace raw directo con la función getDisplayImageUrl. ¡Magia!
     if (finalUrl.includes("instagram.com")) {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
@@ -706,12 +711,14 @@ export default function PhotoWallPage() {
         </>
       )}
 
+      {/* 🔥 MODAL EXPANDIDO MÁGICO 🔥 */}
       {expandedPhotoId && (() => {
         const photo = photos.find(p => p.id === expandedPhotoId);
         if (!photo) return null;
         return <ExpandedPhotoModal photo={photo} onClose={() => setExpandedPhotoId(null)} onReaction={handleReaction} onHide={handleHide} onEdit={handleEditPost} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} limits={limits} />;
       })()}
 
+      {/* Report Modal from Mini Card */}
       {reportingPhotoIdMini && (() => {
           const photo = photos.find(p => p.id === reportingPhotoIdMini);
           if (!photo) return null;
