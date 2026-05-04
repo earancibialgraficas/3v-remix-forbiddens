@@ -132,6 +132,7 @@ function SnapCard({
   
   const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const nativeVideoRef = useRef<HTMLVideoElement>(null);
   
   const [likes, setLikes] = useState(item.likes || 0);
   const [dislikes, setDislikes] = useState(item.dislikes || 0);
@@ -145,6 +146,7 @@ function SnapCard({
   
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(item.title || item.caption || "");
+  const [mediaError, setMediaError] = useState(false);
 
   const votingRef = useRef(false);
 
@@ -154,9 +156,20 @@ function SnapCard({
     return { w: 640, h: 360 };
   };
 
+  // 🔥 SOLUCIÓN: Pausar videos nativos al hacer scroll 🔥
   useEffect(() => {
-    if (isVisible && isVideo) onPauseMusic();
-  }, [isVisible, isVideo]);
+    if (nativeVideoRef.current && isDirectMp4) {
+      if (isVisible) {
+        nativeVideoRef.current.play().catch(() => console.log("Autoplay bloqueado por el navegador"));
+        onPauseMusic();
+      } else {
+        nativeVideoRef.current.pause();
+      }
+    }
+    if (isVisible && isVideo && !isDirectMp4) {
+      onPauseMusic();
+    }
+  }, [isVisible, isVideo, isDirectMp4]);
 
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
@@ -280,10 +293,11 @@ function SnapCard({
     }
   };
 
+  // 🔥 SOLUCIÓN IFRAMES: Cortar el SRC si no es visible para detener el audio
   const finalEmbedUrl = isVisible && embedUrl
     ? item.platform === 'youtube' ? `${embedUrl}?autoplay=1&mute=0`
       : item.platform === 'tiktok' ? `${embedUrl}?autoplay=1` : embedUrl
-    : embedUrl;
+    : "";
 
   const baseSize = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
@@ -292,6 +306,20 @@ function SnapCard({
     <div className="snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch md:gap-3 px-0 md:px-2 relative overflow-hidden group/card">
       <div ref={videoContainerRef} className="absolute inset-0 md:relative md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md min-h-0 overflow-hidden z-0 flex items-center justify-center">
         
+        {/* 🔥 SOLUCIÓN LINKS ROTOS: Pantalla negra con aviso 🔥 */}
+        {mediaError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
+            <Ban className="w-12 h-12 text-destructive mb-3 animate-pulse" />
+            <p className="text-white text-xs font-pixel text-center px-4 tracking-widest text-destructive">CONTENIDO NO DISPONIBLE</p>
+            <p className="text-muted-foreground text-[10px] font-body text-center mt-2 max-w-[80%]">El enlace original está roto, fue eliminado o es privado.</p>
+            {(isOwner || isStaff) && (
+              <Button size="sm" variant="destructive" className="mt-5 text-xs font-body" onClick={() => onDeletePost(item.id, targetType)}>
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Eliminar publicación
+              </Button>
+            )}
+          </div>
+        )}
+
         {isPhoto ? (
           <div className="relative w-full h-full flex items-center justify-center group/ig">
             <img 
@@ -302,6 +330,8 @@ function SnapCard({
               onError={(e) => {
                 if (e.currentTarget.src !== targetImgUrl) {
                   e.currentTarget.src = targetImgUrl;
+                } else {
+                  setMediaError(true);
                 }
               }}
             />
@@ -313,7 +343,14 @@ function SnapCard({
             )}
           </div>
         ) : isDirectMp4 ? (
-          <video src={item.content_url} controls autoPlay={isVisible} muted className="w-full h-full object-contain" />
+          <video 
+            ref={nativeVideoRef} 
+            src={item.content_url} 
+            controls 
+            loop
+            className="w-full h-full object-contain" 
+            onError={() => setMediaError(true)}
+          />
         ) : finalEmbedUrl ? (
           <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
@@ -330,6 +367,7 @@ function SnapCard({
 
       </div>
 
+      {/* (El resto de la UI de feed se mantiene exactamente igual...) */}
       <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
         <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
@@ -516,7 +554,7 @@ function SnapCard({
   );
 }
 
-// 🔥 COMPONENTE PRINCIPAL CON EFECTO DE SCROLL MÁGICO 🔥
+// RESTO DEL CÓDIGO INTACTO (export default function FeedPage... fetchContent... etc)
 export default function FeedPage() {
   const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
@@ -674,7 +712,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchContent(true, sort);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort]);
 
   const loadMore = () => {
@@ -755,7 +793,6 @@ export default function FeedPage() {
   const directPostId = searchParams.get("post") || searchParams.get("focus");
   const directCommentId = searchParams.get("comment");
 
-  // 🔥 EFECTO MÁGICO DE SCROLL Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && !hasScrolled && filteredItems.length > 0) {
       const index = filteredItems.findIndex(item => item.id === directPostId);
@@ -776,7 +813,6 @@ export default function FeedPage() {
                setTimeout(() => cardElement.classList.remove('arcade-report-highlight'), 3500);
             }
 
-            // Si hay comentario, scroll al comentario en el panel
             if (directCommentId) {
               let cAttempts = 0;
               const tryComment = () => {

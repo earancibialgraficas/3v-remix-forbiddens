@@ -31,6 +31,7 @@ export default function ConsejosPage() {
       title: tipTitle.trim(),
       description: tipDesc.trim(),
     } as any);
+    
     if (!error) {
       const content = `[COLOR:#ef4444]💡 [SISTEMA] NUEVA SUGERENCIA DE CONSEJO[/COLOR]
 
@@ -41,12 +42,15 @@ export default function ConsejosPage() {
 ${tipDesc}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/arcade/consejos]Ir a Consejos[/LINK]`;
-      await supabase.rpc("send_system_admin_message" as any, {
+      
+      // 🔥 SOLUCIÓN: Cambiado a send_system_staff_message 🔥
+      await supabase.rpc("send_system_staff_message" as any, {
         p_title: `Sugerencia de consejo: ${tipTitle}`,
         p_content: content,
         p_message_type: 'tip_suggestion',
       });
     }
+    
     setSending(false);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

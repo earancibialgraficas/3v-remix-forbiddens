@@ -48,6 +48,7 @@ export default function AyudaPage() {
 
   const toggleSection = (s: SectionId) => setOpenSection(openSection === s ? null : s);
 
+  // 🔥 SOLUCIÓN: Enviar directamente a la bandeja del staff (Bandeja Pública)
   const handleSend = async () => {
     if (!message.trim()) return;
     if (!user) {
@@ -59,22 +60,27 @@ export default function AyudaPage() {
     setSending(true);
 
     try {
-      await supabase.from("contact_messages").insert({
-        user_id: user.id, name, email, message,
-      } as any);
+      const content = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVO MENSAJE DE AYUDA / CONTACTO[/COLOR]
 
-      const { error: fnError } = await supabase.functions.invoke("send-contact-email", {
-        body: { name, email, message },
+[COLOR:#3b82f6]👤 Usuario: ${name}[/COLOR]
+[COLOR:#06b6d4]📧 Email: ${email}[/COLOR]
+
+[COLOR:#ffffff]💬 Mensaje:
+${message}[/COLOR]`;
+
+      const { error } = await supabase.rpc("send_system_staff_message" as any, {
+        p_title: `Ayuda / Contacto: ${name}`,
+        p_content: content,
+        p_message_type: 'help_request',
       });
 
-      if (fnError) throw fnError;
+      if (error) throw error;
 
       setSent(true);
-      toast({ title: "Enviado", description: "Tu consulta fue enviada exitosamente." });
+      toast({ title: "Enviado", description: "Tu mensaje fue recibido por el Staff." });
     } catch (e) {
       console.error("Error al enviar consulta:", e);
-      toast({ title: "Aviso", description: "El mensaje se guardó en el sistema, pero el correo falló.", variant: "destructive" });
-      setSent(true);
+      toast({ title: "Error", description: "Ocurrió un problema al enviar el mensaje.", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -106,7 +112,6 @@ export default function AyudaPage() {
         <p className="text-xs text-muted-foreground font-body">Ayuda, contacto y privacidad — todo en un solo lugar.</p>
       </div>
 
-      {/* SECCIÓN AYUDA / FAQ */}
       <div ref={ayudaRef} className="bg-card border border-neon-green/30 rounded overflow-hidden scroll-mt-4">
         <SectionHeader id="ayuda" icon={HelpCircle} title="AYUDA Y PREGUNTAS FRECUENTES" color="hsl(var(--neon-green))" />
         {openSection === "ayuda" && (
@@ -131,7 +136,6 @@ export default function AyudaPage() {
         )}
       </div>
 
-      {/* SECCIÓN CONTACTO */}
       <div ref={contactoRef} className="bg-card border border-neon-cyan/30 rounded overflow-hidden scroll-mt-4">
         <SectionHeader id="contacto" icon={Mail} title="CONTACTO" color="hsl(var(--neon-cyan))" />
         {openSection === "contacto" && (
@@ -175,7 +179,6 @@ export default function AyudaPage() {
         )}
       </div>
 
-      {/* SECCIÓN PRIVACIDAD */}
       <div ref={privacidadRef} className="bg-card border border-neon-magenta/30 rounded overflow-hidden scroll-mt-4">
         <SectionHeader id="privacidad" icon={Shield} title="POLÍTICA DE PRIVACIDAD" color="hsl(var(--neon-magenta))" />
         {openSection === "privacidad" && (
@@ -184,32 +187,26 @@ export default function AyudaPage() {
               <h3 className="font-pixel text-[10px] text-neon-magenta">1. DATOS QUE RECOPILAMOS</h3>
               <p>Cuando te registras y usas Forbiddens, almacenamos: tu correo electrónico, nombre de usuario, avatar, mensajes en el foro, puntuaciones del arcade y configuraciones de tu perfil.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">2. CÓMO USAMOS TUS DATOS</h3>
               <p>Tus datos se utilizan únicamente para hacer funcionar la comunidad: autenticarte, mostrar tu perfil, calcular rankings y permitirte interactuar con otros usuarios. <span className="text-foreground">No vendemos ni compartimos tu información con terceros</span>.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">3. COOKIES Y SESIÓN</h3>
               <p>Usamos cookies técnicas para mantener tu sesión iniciada. No usamos cookies publicitarias ni de rastreo de terceros.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">4. CONTENIDO QUE PUBLICAS</h3>
               <p>Eres responsable del contenido que subes (posts, fotos, ROMs). Nos reservamos el derecho de eliminar contenido que viole nuestras reglas o leyes vigentes.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">5. TUS DERECHOS</h3>
               <p>Puedes solicitar en cualquier momento: acceso a tus datos, corrección, eliminación de tu cuenta o exportación de tu información. Escríbenos desde la sección de Contacto.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">6. SEGURIDAD</h3>
               <p>Tus contraseñas se almacenan cifradas y la base de datos está protegida con políticas de acceso a nivel de fila (RLS). Aun así, ningún sistema es 100% invulnerable; te recomendamos usar contraseñas únicas.</p>
             </section>
-
             <section className="space-y-1">
               <h3 className="font-pixel text-[10px] text-neon-magenta">7. CAMBIOS A ESTA POLÍTICA</h3>
               <p>Si actualizamos esta política, te lo notificaremos en el sitio. La última actualización es del año en curso.</p>

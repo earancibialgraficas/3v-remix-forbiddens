@@ -40,7 +40,6 @@ export default function EventosPage() {
   const [filter, setFilter] = useState<EventType>("all");
   const [dbEvents, setDbEvents] = useState<any[]>([]);
 
-  // Sugerir evento
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [sgTitle, setSgTitle] = useState("");
   const [sgType, setSgType] = useState<EventType>("torneo");
@@ -50,7 +49,6 @@ export default function EventosPage() {
   const [sgDescription, setSgDescription] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Crear/Editar evento (staff)
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [crIcon, setCrIcon] = useState("🎮");
@@ -95,6 +93,7 @@ export default function EventosPage() {
     otro: Star
   };
 
+  // 🔥 SOLUCIÓN: Cambiado a send_system_staff_message 🔥
   const handleSuggest = async () => {
     if (!user) { toast({ title: "Inicia sesión para sugerir", variant: "destructive" }); return; }
     if (!sgTitle.trim()) { toast({ title: "Falta el título", variant: "destructive" }); return; }
@@ -119,7 +118,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
 
 [COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:/eventos]Ir a Eventos[/LINK]`;
 
-      const { error } = await supabase.rpc("send_system_admin_message" as any, {
+      const { error } = await supabase.rpc("send_system_staff_message" as any, {
         p_title: `Sugerencia de evento: ${sgTitle}`,
         p_content: content,
         p_message_type: 'event_suggestion',
@@ -225,7 +224,6 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
       </div>
 
       <div className="flex gap-2 flex-wrap items-center">
-        {/* 🔥 FILTRO DESPLEGABLE PARA AHORRAR ESPACIO 🔥 */}
         <div className="relative group">
           <select 
             value={filter} 
@@ -274,7 +272,6 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                     {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                   </div>
 
-                  {/* 🔥 BOTONES PARA STAFF (Solo en eventos reales de la DB) 🔥 */}
                   {isStaff && !event.id.startsWith("p") && (
                     <div className="flex gap-2 mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button 
@@ -302,7 +299,6 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         })}
       </div>
 
-      {/* MODAL: SUGERIR EVENTO */}
       <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-md shadow-[0_0_50px_rgba(34,211,238,0.15)]">
           <DialogHeader>
@@ -317,9 +313,10 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                  <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
+            {/* 🔥 SOLUCIÓN ICONOS OSCUROS: style={{ colorScheme: 'dark' }} 🔥 */}
             <div className="grid grid-cols-2 gap-2">
-              <Input type="date" value={sgDate} onChange={e => setSgDate(e.target.value)} className="bg-black/40 text-xs" />
-              <Input type="time" value={sgTime} onChange={e => setSgTime(e.target.value)} className="bg-black/40 text-xs" />
+              <Input type="date" style={{ colorScheme: 'dark' }} value={sgDate} onChange={e => setSgDate(e.target.value)} className="bg-black/40 text-xs" />
+              <Input type="time" style={{ colorScheme: 'dark' }} value={sgTime} onChange={e => setSgTime(e.target.value)} className="bg-black/40 text-xs" />
             </div>
             <Input placeholder="Lugar / plataforma" value={sgLocation} onChange={e => setSgLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
             <Textarea placeholder="Descripción / por qué es relevante..." value={sgDescription} onChange={e => setSgDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
@@ -333,7 +330,6 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: CREAR/EDITAR EVENTO (STAFF) */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="bg-card border-neon-magenta/30 max-w-lg shadow-[0_0_50px_rgba(236,72,153,0.15)]">
           <DialogHeader>
@@ -374,9 +370,10 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                  <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
+            {/* 🔥 SOLUCIÓN ICONOS OSCUROS: style={{ colorScheme: 'dark' }} 🔥 */}
             <div className="grid grid-cols-2 gap-2">
-              <Input type="date" value={crDate} onChange={e => setCrDate(e.target.value)} className="bg-black/40 text-xs" />
-              <Input type="time" value={crTime} onChange={e => setCrTime(e.target.value)} className="bg-black/40 text-xs" />
+              <Input type="date" style={{ colorScheme: 'dark' }} value={crDate} onChange={e => setCrDate(e.target.value)} className="bg-black/40 text-xs" />
+              <Input type="time" style={{ colorScheme: 'dark' }} value={crTime} onChange={e => setCrTime(e.target.value)} className="bg-black/40 text-xs" />
             </div>
             <Input placeholder="Lugar / plataforma" value={crLocation} onChange={e => setCrLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
             <Textarea placeholder="Descripción del evento..." value={crDescription} onChange={e => setCrDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
