@@ -106,6 +106,7 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "scale-in": "scale-in 0.3s ease-out",
         "marquee-y": "marquee-y 6s linear infinite",
+        "marquee-x": "marquee-x 8s linear infinite",
       },
     },
   },
