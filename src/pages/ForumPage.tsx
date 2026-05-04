@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -116,11 +116,53 @@ function extractThumbnail(content: string): string | null {
   return null;
 }
 
-function renderContent(content: string) {
+type ContentPermissions = {
+  allowRichText: boolean;
+  allowImages: boolean;
+  allowLinks: boolean;
+  allowVideo: boolean;
+};
+
+const elevatedTiers = ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
+const staffRoleNames = ['master_web', 'admin', 'moderator', 'master web', 'moderador', 'staff'];
+
+function getContentPermissions(tier?: string | null, roles: string[] = []): ContentPermissions {
+  const normalizedTier = (tier || 'novato').toLowerCase();
+  const isAuthorStaff = roles.some(role => staffRoleNames.includes((role || '').toLowerCase())) || staffRoleNames.includes(normalizedTier);
+  return {
+    allowRichText: isAuthorStaff || normalizedTier !== 'novato',
+    allowImages: isAuthorStaff || normalizedTier !== 'novato',
+    allowLinks: isAuthorStaff || elevatedTiers.includes(normalizedTier),
+    allowVideo: isAuthorStaff || elevatedTiers.includes(normalizedTier),
+  };
+}
+
+function renderTextWithBreaks(text: string, keyPrefix: string) {
+  return text.split('\n').map((line, j) => <span key={`${keyPrefix}-${j}`}>{line}{j < text.split('\n').length - 1 && <br />}</span>);
+}
+
+function renderInlineFormatting(text: string, permissions: ContentPermissions, keyPrefix: string) {
+  if (!permissions.allowRichText) return renderTextWithBreaks(text, keyPrefix);
+  return text.split(/(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*|\[u\][\s\S]+?\[\/u\])/g).map((token, idx) => {
+    if (token.startsWith('**') && token.endsWith('**')) {
+      return <strong key={`${keyPrefix}-b-${idx}`} className="font-semibold text-foreground">{renderTextWithBreaks(token.slice(2, -2), `${keyPrefix}-bt-${idx}`)}</strong>;
+    }
+    if (token.startsWith('*') && token.endsWith('*')) {
+      return <em key={`${keyPrefix}-i-${idx}`} className="italic">{renderTextWithBreaks(token.slice(1, -1), `${keyPrefix}-it-${idx}`)}</em>;
+    }
+    if (token.startsWith('[u]') && token.endsWith('[/u]')) {
+      return <span key={`${keyPrefix}-u-${idx}`} className="underline underline-offset-2">{renderTextWithBreaks(token.slice(3, -4), `${keyPrefix}-ut-${idx}`)}</span>;
+    }
+    return <span key={`${keyPrefix}-t-${idx}`}>{renderTextWithBreaks(token, `${keyPrefix}-tt-${idx}`)}</span>;
+  });
+}
+
+function renderContent(content: string, permissions: ContentPermissions) {
   if (!content) return null;
-  const parts = content.split(/(\!\[.*?\]\(.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
+  const parts = content.split(/(\!\[.*?\]\(.*?\)|\[.*?\]\(https?:\/\/.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
+    if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
       <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })}>
         <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
@@ -129,8 +171,16 @@ function renderContent(content: string) {
         </div>
       </div>
     );
+    const linkMatch = part.match(/^\[(.*?)\]\((https?:\/\/.*?)\)$/);
+    if (linkMatch) {
+      if (!permissions.allowLinks) return <span key={i}>{renderInlineFormatting(part, permissions, `link-locked-${i}`)}</span>;
+      return <a key={i} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{renderInlineFormatting(linkMatch[1], permissions, `link-${i}`)}</a>;
+    }
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
     if (ytMatch) {
+      if (!permissions.allowVideo) {
+        return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
+      }
       const embedSrc = `https://www.youtube.com/embed/${ytMatch[1]}`;
       return (
         <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
@@ -144,6 +194,7 @@ function renderContent(content: string) {
     if (/^https?:\/\/[^\s]+$/.test(part)) {
       const isMedia = /\.(jpg|jpeg|png|gif|webp|mp4|webm)(\?.*)?$/i.test(part);
       if (isMedia && /\.(mp4|webm)(\?.*)?$/i.test(part)) {
+        if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
           <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
@@ -154,6 +205,7 @@ function renderContent(content: string) {
         );
       }
       if (isMedia) {
+        if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
           <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: part, type: "image" })}>
             <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
@@ -163,9 +215,9 @@ function renderContent(content: string) {
           </div>
         );
       }
-      return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>;
+      return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
     }
-    return part.split('\n').map((line, j) => <span key={`${i}-${j}`}>{line}{j < part.split('\n').length - 1 && <br />}</span>);
+    return <span key={i}>{renderInlineFormatting(part, permissions, `text-${i}`)}</span>;
   });
 }
 
