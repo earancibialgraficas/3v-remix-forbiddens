@@ -31,18 +31,24 @@ interface Conversation {
   partnerColorAvatarBorder?: string | null;
 }
 
-// 🔥 Función para formatear fecha de forma inteligente 🔥
+// 🔥 Función para formatear fecha CLAVADA 100% EN HORA CHILENA 🔥
 const formatMsgDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const safeDateStr = dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
+  const date = new Date(safeDateStr);
   
-  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Opciones forzadas a Chile
+  const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' };
+  const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', timeZone: 'America/Santiago' };
   
-  if (isToday) return timeStr;
+  // Revisamos si "hoy" en Chile es el mismo "día" del mensaje en Chile
+  const todayChile = new Date().toLocaleDateString('en-US', { timeZone: 'America/Santiago' });
+  const msgDateChile = date.toLocaleDateString('en-US', { timeZone: 'America/Santiago' });
   
-  // Si no es hoy, mostramos día y mes para que se entienda el orden
-  const dayMonth = date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+  const timeStr = date.toLocaleTimeString('es-CL', timeOptions);
+  
+  if (todayChile === msgDateChile) return timeStr;
+  
+  const dayMonth = date.toLocaleDateString('es-CL', dateOptions);
   return `${dayMonth} ${timeStr}`;
 };
 
@@ -116,7 +122,7 @@ export default function MessagesPage() {
   const selectedPartnerRef = useRef<string | null>(null);
   useEffect(() => { selectedPartnerRef.current = selectedPartner; }, [selectedPartner]);
 
-  // 🔥 ORDENACIÓN CRONOLÓGICA ABSOLUTA (Fecha + Hora) 🔥
+  // 🔥 ORDENACIÓN CRONOLÓGICA ABSOLUTA 🔥
   const sortMsgs = (arr: Message[]) =>
     [...arr].sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
@@ -308,7 +314,6 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-y-auto retro-scrollbar p-3 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={cn("flex flex-col", m.sender_id === user?.id ? "items-end" : "items-start")}>
-                  {/* 🔥 AHORA MUESTRA FECHA SI NO ES HOY 🔥 */}
                   <span className="text-[9px] text-muted-foreground mb-1 px-1">
                     {m.sender_id === user?.id ? "Tú" : conversations.find(c => c.partnerId === selectedPartner)?.partnerName} • {formatMsgDate(m.created_at)}
                   </span>
