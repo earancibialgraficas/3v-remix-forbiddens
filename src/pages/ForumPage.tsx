@@ -569,6 +569,7 @@ export default function ForumPage() {
   const insertFormat = (format: string) => {
     if (format === "bold") setCommentText(prev => prev + "**texto**");
     else if (format === "italic") setCommentText(prev => prev + "*texto*");
+    else if (format === "underline") setCommentText(prev => prev + "[u]texto[/u]");
     else if (format === "image") setCommentText(prev => prev + "![descripción](URL_imagen)");
     else if (format === "link") setCommentText(prev => prev + "[texto](URL)");
     else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
@@ -655,6 +656,16 @@ export default function ForumPage() {
             {canUseBoldItalic && (
               <button onClick={() => setContent(prev => prev + "**texto**")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Negrita">
                 <Bold className="w-3 h-3" /> Negrita
+              </button>
+            )}
+            {canUseBoldItalic && (
+              <button onClick={() => setContent(prev => prev + "*texto*")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Itálica">
+                <Italic className="w-3 h-3" /> Itálica
+              </button>
+            )}
+            {canUseBoldItalic && (
+              <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Subrayado">
+                <Underline className="w-3 h-3" /> Subrayado
               </button>
             )}
             {canUseLinks && (
@@ -901,6 +912,7 @@ export default function ForumPage() {
                         <div className="flex items-center gap-1 flex-wrap">
                           {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
                           {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                          {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
                           {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
                           {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
                           {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
