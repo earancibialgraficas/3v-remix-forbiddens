@@ -230,6 +230,9 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         payload.image_url = url;
         payload.caption = newTitle.trim() || null;
         payload.is_apify = false; // El proxy extraerá la imagen automáticamente
+        
+        // 🔥 ARREGLO DEL ERROR: La tabla 'photos' no tiene columna 'is_public' 🔥
+        delete payload.is_public;
       }
     } else if (lowerUrl.includes("tiktok.com")) {
       platform = "tiktok";
