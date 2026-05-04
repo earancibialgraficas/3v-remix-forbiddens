@@ -254,7 +254,8 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
        payload.content_type = contentType;
     }
     
-    const { error } = await supabase.from(table).insert(payload);
+    // 🔥 SOLUCIÓN: as any para que TypeScript ignore el checkeo del nombre de la tabla 🔥
+    const { error } = await supabase.from(table as any).insert(payload);
     
     setAdding(false);
     
@@ -276,7 +277,8 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     setIsRemoving(true);
     try {
       const table = contentToRemove.targetType === 'photo' ? 'photos' : 'social_content';
-      const { error } = await supabase.from(table).delete().eq("id", contentToRemove.id);
+      // 🔥 SOLUCIÓN: as any aquí también 🔥
+      const { error } = await supabase.from(table as any).delete().eq("id", contentToRemove.id);
       if (error) throw error;
       toast({ title: "Publicación eliminada", description: `El contenido ha sido borrado exitosamente.` });
       fetchContents();
