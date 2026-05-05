@@ -39,6 +39,15 @@ interface Conversation {
 
 const FONT_SIZES = [10, 11, 12, 13, 14] as const;
 
+// 🔥 SOLUCIÓN DE ZONA HORARIA: Fuerza la conversión correcta desde UTC a la hora de Chile
+const getSafeDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  let safeStr = dateStr;
+  if (safeStr.includes(' ') && !safeStr.includes('T')) safeStr = safeStr.replace(' ', 'T');
+  if (safeStr.includes('T') && !safeStr.endsWith('Z') && !safeStr.includes('+') && !safeStr.includes('-0')) safeStr += 'Z';
+  return new Date(safeStr);
+};
+
 export default function FloatingChat() {
   const { user, profile, roles, isAdmin, isMasterWeb } = useAuth() as any;
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
@@ -60,8 +69,9 @@ export default function FloatingChat() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLength = useRef(0);
 
-  // 🔥 Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real)
+  // Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real)
   const activePartnerRef = useRef<string | null>(null);
 
   // Posicionamiento de la burbuja
@@ -172,7 +182,6 @@ export default function FloatingChat() {
       convMap[pid].msgs.push(m);
       
       if (m.receiver_id === user.id && !m.is_read) {
-        // Ignorar conteo si estamos hablando con esa persona justo ahora
         if (activePartnerRef.current !== pid) {
           convMap[pid].unread++;
           totalUnread++;
@@ -196,7 +205,7 @@ export default function FloatingChat() {
         lastDate: last?.created_at || "",
         unread: c.unread,
       };
-    }).sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+    }).sort((a, b) => getSafeDate(b.lastDate).getTime() - getSafeDate(a.lastDate).getTime());
 
     setConversations(convs);
   };
@@ -204,14 +213,14 @@ export default function FloatingChat() {
   useEffect(() => { loadFriends(); }, [user]);
   useEffect(() => { loadConversations(); }, [friends]);
 
-  // Actualización pasiva al navegar o interactuar
+  // Actualización pasiva normal
   useEffect(() => {
     const passiveRefresh = () => {
       const now = Date.now();
       if (now - lastFetch.current > 4000) {
         lastFetch.current = now;
         loadConversations();
-        if (activePartnerRef.current) loadMessages(activePartnerRef.current);
+        if (activePartnerRef.current) loadMessages(activePartnerRef.current, true);
       }
     };
     window.addEventListener("click", passiveRefresh);
@@ -223,44 +232,56 @@ export default function FloatingChat() {
     }
   }, [user, friends, location.pathname]);
 
-  // Scroll automático al fondo cuando hay mensajes nuevos
+  // 🔥 SOLUCIÓN DE TIEMPO REAL: Polling cada 3 segundos SOLO cuando el chat está abierto 🔥
   useEffect(() => {
-    if (messages.length > 0) {
+    let interval: NodeJS.Timeout;
+    if (isOpen && !minimized && activePartnerRef.current) {
+      interval = setInterval(() => {
+        loadMessages(activePartnerRef.current, true);
+        loadConversations();
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isOpen, minimized, partnerId]);
+
+  // Scroll automático inteligente (solo si hay más mensajes que antes)
+  useEffect(() => {
+    if (messages.length > prevMessagesLength.current) {
       endRef.current?.scrollIntoView({ behavior: "smooth" });
     }
+    prevMessagesLength.current = messages.length;
   }, [messages]);
 
-  const loadMessages = async (pid: string) => {
+  const loadMessages = async (pid: string, isSilent = false) => {
     if (!user) return;
 
-    // 🔥 1. FORZAMOS A LA BASE DE DATOS A MARCAR COMO LEÍDO ANTES DE CARGAR LOS MENSAJES 🔥
-    await supabase.from("private_messages")
-      .update({ is_read: true } as any)
-      .eq("receiver_id", user.id)
-      .eq("sender_id", pid)
-      .eq("is_read", false);
+    if (!isSilent) {
+      await supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
+    }
 
-    // 2. Pedimos los mensajes 
     const { data } = await supabase.from("private_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${pid}),and(sender_id.eq.${pid},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: false }).limit(50);
     
     if (data) {
-      // 🔥 3. ORDENAMIENTO ESTRICTO POR FECHA REAL (Imposible que se desordenen) 🔥
-      const chronological = [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const chronological = [...data].sort((a, b) => getSafeDate(a.created_at).getTime() - getSafeDate(b.created_at).getTime());
       setMessages(chronological as Message[]);
     }
     
-    // 4. Recargamos la lista silenciosamente para reflejar que ya no hay no leídos
-    loadConversations();
+    if (activePartnerRef.current === pid) {
+      await supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
+    }
+    
+    if (!isSilent) loadConversations();
   };
 
   const openConversation = (pid: string, name?: string) => {
-    activePartnerRef.current = pid; // Le decimos al sistema que tenemos este chat en pantalla
+    activePartnerRef.current = pid;
     setPartnerId(pid);
     if (name) setPartnerName(name);
     
-    // 🔥 ACTUALIZACIÓN OPTIMISTA: Eliminamos el punto rojo visual al instante 🔥
     setUnreadCount(prev => {
       const conv = conversations.find(c => c.partnerId === pid);
       return Math.max(0, prev - (conv?.unread || 0));
@@ -273,30 +294,50 @@ export default function FloatingChat() {
     loadMessages(pid);
   };
 
-  // 🔥 CIERRE DE CONVERSACIÓN: Último barrido por si llegó un mensaje mientras lo teníamos abierto 🔥
-  const closeConversation = async (e: React.MouseEvent) => {
+  // 🔥 SOLUCIÓN CARRERA DE DATOS: Asegura limpiar la BD antes de volver a listar 🔥
+  const closeConversation = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    if (partnerId && user) {
-      await supabase.from("private_messages").update({ is_read: true } as any)
-        .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
-    }
+    const pid = partnerId;
     activePartnerRef.current = null; 
     setPartnerId(null); 
     setMessages([]);
-    loadConversations();
+    if (pid && user) {
+      supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
+        .then(() => loadConversations());
+    } else {
+      loadConversations();
+    }
   };
 
-  const closeChatBubble = async (e: React.MouseEvent) => {
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMinimized(true);
+    const pid = partnerId;
+    activePartnerRef.current = null; 
+    if (pid && user) {
+      supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
+        .then(() => loadConversations());
+    } else {
+      loadConversations();
+    }
+  };
+
+  const closeChatBubble = (e: React.MouseEvent) => {
     e.stopPropagation(); 
     setIsOpen(false); 
-    if (partnerId && user) {
-      await supabase.from("private_messages").update({ is_read: true } as any)
-        .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
-    }
+    const pid = partnerId;
     activePartnerRef.current = null; 
     setPartnerId(null); 
     setMessages([]);
-    loadConversations();
+    if (pid && user) {
+      supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
+        .then(() => loadConversations());
+    } else {
+      loadConversations();
+    }
   };
 
   const handleSend = async () => {
@@ -308,7 +349,6 @@ export default function FloatingChat() {
     }
     setText("");
     
-    // UI optimista: añadimos al final (abajo)
     const optimisticMsg = {
       id: crypto.randomUUID(),
       sender_id: user.id,
@@ -342,7 +382,6 @@ export default function FloatingChat() {
 
   if (!user) return null;
 
-  // Burbuja cerrada
   if (!isOpen || minimized) {
     return (
       <div
@@ -357,7 +396,6 @@ export default function FloatingChat() {
           <div className="absolute inset-0 bg-neon-cyan/10 rounded-full pointer-events-none" />
           <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
           
-          {/* Globito rojo de mensajes sin leer */}
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 bg-destructive border border-card rounded-full text-[9px] text-white flex items-center justify-center font-bold px-1 shadow-sm">
                {unreadCount > 9 ? "9+" : unreadCount}
@@ -376,7 +414,6 @@ export default function FloatingChat() {
       style={{ left: windowX, top: windowY }}
       className="fixed z-[250] w-80 h-[28rem] bg-card border border-border rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden animate-scale-in"
     >
-      {/* Cabecera */}
       <div 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -401,7 +438,7 @@ export default function FloatingChat() {
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={handleMinimize} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
           <button onPointerDown={(e) => e.stopPropagation()} onClick={closeChatBubble} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Cerrar">
@@ -410,7 +447,6 @@ export default function FloatingChat() {
         </div>
       </div>
 
-      {/* Lista de Chats o Conversación Abierta */}
       {!partnerId ? (
         <div className="flex-1 overflow-y-auto retro-scrollbar bg-black/20">
           {friends.length === 0 ? (
@@ -434,7 +470,7 @@ export default function FloatingChat() {
                         <span className="text-[11px] font-body font-medium text-foreground truncate" style={getNameStyle(f.color_name)}>{f.display_name}</span>
                         {conv && conv.lastDate && (
                           <span className="text-[8px] text-muted-foreground font-body shrink-0">
-                            {new Date(conv.lastDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {getSafeDate(conv.lastDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </div>
@@ -468,7 +504,7 @@ export default function FloatingChat() {
                     style={{ fontSize: `${fontSize}px` }}>
                     <p className="break-words leading-relaxed">{m.content}</p>
                     <p className="text-[7px] text-muted-foreground mt-0.5 text-right opacity-70">
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {getSafeDate(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
