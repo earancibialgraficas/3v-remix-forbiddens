@@ -481,7 +481,7 @@ export default function ChillMusicPlayer() {
   // Diseño ultra-compacto: avance/retroceso, play/pausa, +/- volumen con indicador,
   // selector de playlist y botón para abrir/cerrar la lista de canciones.
   const compactContent = (
-    <div className="w-full">
+    <div className="w-full p-[5px]">
       {renderYT} {renderLocal}
       <div
         className={cn(
@@ -498,9 +498,8 @@ export default function ChillMusicPlayer() {
           <div className="relative flex-1 min-w-0 overflow-hidden">
             <p
               className="text-[8px] font-pixel text-neon-cyan whitespace-nowrap leading-tight drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate"
-              title={current?.title}
             >
-              {current?.title || "♪ NO SIGNAL ♫"}
+              FORBIDDENS PLAYER
             </p>
           </div>
           <span
@@ -511,14 +510,29 @@ export default function ChillMusicPlayer() {
           />
         </div>
 
-        {/* Visualizador */}
-        <div className="px-1.5 pt-1">
-          <canvas
-            ref={miniCanvasRef}
-            width={120}
-            height={16}
-            className="w-full h-3.5 rounded-sm bg-black/60 border border-neon-cyan/20"
-          />
+        {/* 🔥 EL NUEVO CARRUSEL NEÓN EN LUGAR DEL VISUALIZADOR 🔥 */}
+        <div className="px-1.5 pt-1.5 pb-0.5">
+          <div 
+            className="relative w-full overflow-hidden rounded-sm bg-black/60 border border-neon-cyan/20 h-5 flex items-center" 
+            style={{ boxShadow: 'inset 0 0 4px rgba(34,211,238,0.2)' }}
+          >
+            <div className="flex w-max animate-marquee-x whitespace-nowrap">
+              {[0, 1].map((k) => (
+                <span
+                  key={k}
+                  className="font-pixel leading-none px-2"
+                  style={{
+                    color: '#00f2fe',
+                    fontSize: '8px',
+                    letterSpacing: '1px',
+                    textShadow: '0 0 3px rgba(34, 211, 238, 0.9), 0 0 6px rgba(34, 211, 238, 0.6)',
+                  }}
+                >
+                  {current?.title ? `♪ ${current.title} ` : "♪ NO SIGNAL ♫ "} •&nbsp;
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Transport apilado verticalmente para que TODO se vea aunque el slot sea muy angosto */}
