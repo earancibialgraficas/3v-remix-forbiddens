@@ -1,438 +1,546 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { User, Trophy, Star, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, Clock, PlayCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useSearchParams } from "react-router-dom";
-import { cn, withImageVersion } from "@/lib/utils";
-import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
-import AvatarSelector from "@/components/AvatarSelector";
-import RoleIconSelector from "@/components/RoleIconSelector";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { useFriendIds } from "@/hooks/useFriendIds";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { getCategoryRoute } from "@/lib/categoryRoutes";
 
-import ConfiguracionTab from "@/components/profile/ConfiguracionTab";
-import AvisosTab from "@/components/profile/AvisosTab";
-import PostsTab from "@/components/profile/PostsTab";
-import StatsTab from "@/components/profile/StatsTab";
-import FriendsTab from "@/components/profile/FriendsTab";
-import SocialContentTab from "@/components/profile/SocialContentTab";
-import AlmacenamientoTab from "@/components/profile/AlmacenamientoTab";
-import GuardadosTab from "@/components/profile/GuardadosTab";
-import ModerationPanel from "@/components/profile/ModerationPanel";
+interface PublicProfile {
+  user_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  membership_tier: string;
+  total_score: number;
+  instagram_url: string | null;
+  youtube_url: string | null;
+  tiktok_url: string | null;
+  role_icon: string | null;
+  show_role_icon: boolean | null;
+  created_at: string;
+  color_avatar_border: string | null;
+  color_name: string | null;
+  color_role: string | null;
+  color_staff_role: string | null;
+}
 
-const safeStr = (val: any) => (val ? String(val) : "");
+const getSeedFromId = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return Math.abs(hash);
+};
 
-export default function ProfilePage() {
-  const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-  const [searchParams, setSearchParams] = useSearchParams();
+const getProxyUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai')) return url;
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
+const getPostThumbnail = (post: any) => {
+  const content = post.content || '';
+  const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
+  if (imgMatch && imgMatch[1]) return imgMatch[1];
   
-  const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
+  const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
+  if (rawImgMatch && rawImgMatch[0]) return rawImgMatch[0];
+  
+  const idSeed = getSeedFromId(post.id);
+  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+};
+
+const getSocialThumbnail = (item: any) => {
+  if (item.target_type === 'photo' || item.image_url) return getProxyUrl(item.image_url || item.thumbnail_url);
+  
+  let origContentUrl = item.content_url || '';
+  const isVideoExt = (url: string) => url && url.match(/\.(mp4|webm|ogg)/i);
+  const idSeed = getSeedFromId(item.id);
+  
+  const ytMatch = origContentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/i);
+  if (ytMatch && ytMatch[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  
+  if (item.tiktok_thumb) return getProxyUrl(item.tiktok_thumb);
+  if (item.facebook_thumb) return getProxyUrl(item.facebook_thumb);
+  if (origContentUrl.includes('instagram.com')) {
+     const igMatch = origContentUrl.match(/instagram\.com\/(?:p|reel|reels)\/([\w-]+)/);
+     if (igMatch) return getProxyUrl(`https://www.instagram.com/p/${igMatch[1]}/media/?size=l`);
+  }
+  
+  if (item.thumbnail_url && !isVideoExt(item.thumbnail_url)) return getProxyUrl(item.thumbnail_url);
+  
+  const title = (item.title || item.caption || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
+};
+
+const isVideoItem = (item: any) => {
+  const url = item.content_url || '';
+  return Boolean(url.match(/\.(mp4|webm|ogg)/i) || url.includes("youtube.com") || url.includes("youtu.be") || url.includes("tiktok.com") || url.includes("instagram.com") || url.includes("facebook.com") || url.includes("fb.watch"));
+};
+
+const getTimeAgo = (dateString: string) => {
+  if (!dateString) return "Recientemente";
+  const safeDateStr = dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') ? dateString + 'Z' : dateString;
+  const date = new Date(safeDateStr);
+  if (date.getFullYear() <= 1970) return "Recientemente";
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "hace un momento";
+  let interval = seconds / 31536000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "año" : "años"}`;
+  interval = seconds / 2592000;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "mes" : "meses"}`;
+  interval = seconds / 86400;
+  if (interval >= 1) { if (Math.floor(interval) === 1) return "ayer"; return `hace ${Math.floor(interval)} días`; }
+  interval = seconds / 3600;
+  if (interval >= 1) return `hace ${Math.floor(interval)} ${Math.floor(interval) === 1 ? "hr" : "hrs"}`;
+  interval = seconds / 60;
+  if (interval >= 1) return `hace ${Math.floor(interval)} min`;
+  return "hace un momento";
+};
+
+export default function PublicProfilePage() {
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  const { user, profile: currentUserProfile, roles: currentUserRoles, isMasterWeb, isAdmin } = useAuth();
+  const { friendIds } = useFriendIds(user?.id);
+  const { toast } = useToast();
+  
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [storageUsed, setStorageUsed] = useState(0);
-  const [socialContentCount, setSocialContentCount] = useState(0); 
-  const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [gameScores, setGameScores] = useState<{ game_name: string; console_type: string; score: number }[]>([]);
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [friendStatus, setFriendStatus] = useState<"none" | "pending_sent" | "pending_received" | "accepted">("none");
+  const [socialContentCount, setSocialContentCount] = useState(0);
+  const [totalForumPosts, setTotalForumPosts] = useState(0);
+  const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-  const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  
-  const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff" | "stat_points" | "stat_followers" | "stat_following" | "stat_posts_forum" | "stat_posts_social" | "stat_games">("border");
-  const [avatarBorderColor, setAvatarBorderColor] = useState("");
-  const [nameColor, setNameColor] = useState("");
-  const [roleColor, setRoleColor] = useState("");
-  const [staffRoleColor, setStaffRoleColor] = useState("");
-  const [statPointsColor, setStatPointsColor] = useState("");
-  const [statFollowersColor, setStatFollowersColor] = useState("");
-  const [statFollowingColor, setStatFollowingColor] = useState("");
-  const [statPostsForumColor, setStatPostsForumColor] = useState("");
-  const [statPostsSocialColor, setStatPostsSocialColor] = useState("");
-  const [statGamesColor, setStatGamesColor] = useState("");
-  const [savingColors, setSavingColors] = useState(false);
-  const [localColorCache, setLocalColorCache] = useState("#ffffff");
-
-  const tabFromUrl = searchParams.get("tab") as any;
-  const validTabs = ["avisos", "posts", "stats", "social", "storage", "moderation", "friends", "configuracion", "guardados"];
-  const [activeTab, setActiveTab] = useState<any>(validTabs.includes(tabFromUrl) ? tabFromUrl : "avisos");
-
-  const getValidHex = (val: string | null | undefined) => {
-    if (!val) return "#ffffff";
-    const hex = String(val).trim();
-    if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) return hex;
-    if (/^#[0-9A-Fa-f]{3}$/i.test(hex)) return '#' + hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3];
-    return "#ffffff"; 
-  };
+  const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
-    if (!showColorPicker) return;
-    const activeColor = colorTarget === "border" ? avatarBorderColor : colorTarget === "name" ? nameColor : colorTarget === "role" ? roleColor : colorTarget === "staff" ? staffRoleColor : colorTarget === "stat_points" ? statPointsColor : colorTarget === "stat_followers" ? statFollowersColor : colorTarget === "stat_following" ? statFollowingColor : colorTarget === "stat_posts_forum" ? statPostsForumColor : colorTarget === "stat_posts_social" ? statPostsSocialColor : statGamesColor;
-    setLocalColorCache(getValidHex(activeColor));
-  }, [colorTarget, showColorPicker, avatarBorderColor, nameColor, roleColor, staffRoleColor, statPointsColor, statFollowersColor, statFollowingColor, statPostsForumColor, statPostsSocialColor, statGamesColor]);
+    if (friendToRemove) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [friendToRemove]);
+
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
+  const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
+  const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
+  const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
 
   useEffect(() => {
-    if (searchParams.get("edit") === "true") {
-      handleTabChange("configuracion");
-    }
-  }, [searchParams]);
+    if (!userId) return;
+    const fetchProfile = async () => {
+      const [{ data: p }, { data: r }, { count: followers }, { count: following }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", userId),
+        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
+      ]);
+      if (p) setProfile(p as unknown as PublicProfile);
+      if (r) setRoles((r as any[]).map(x => x.role));
+      setFollowerCount(followers || 0);
+      setFollowingCount(following || 0);
 
-  useEffect(() => {
-    if (profile) {
-      setAvatarBorderColor((profile as any).color_avatar_border || "");
-      setNameColor((profile as any).color_name || "");
-      setRoleColor((profile as any).color_role || "");
-      setStaffRoleColor((profile as any).color_staff_role || "");
-      setStatPointsColor((profile as any).color_stat_points || "#39ff14");
-      setStatFollowersColor((profile as any).color_stat_followers || "#ffffff");
-      setStatFollowingColor((profile as any).color_stat_following || "#ffffff");
-      setStatPostsForumColor((profile as any).color_stat_posts_forum || "#00ffff");
-      setStatPostsSocialColor((profile as any).color_stat_posts_social || "#ffff00");
-      setStatGamesColor((profile as any).color_stat_games || "#ff8c00");
-    }
-  }, [profile]);
-
-  const handleTabChange = (tab: typeof activeTab) => {
-    setActiveTab(tab);
-    setSearchParams({ tab });
-  };
-
-  const fetchNotifs = async () => {
-    if (!user?.id) return;
-    try {
-      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
-      if (data) setNotifications(data);
-    } catch (e) {}
-  };
-
-  const fetchPendingRequests = async () => {
-    if (!user?.id) return;
-    try {
-      const { data } = await supabase.from("friend_requests").select("*").eq("receiver_id", user.id);
-      if (data && data.length > 0) {
-        const pending = data.filter((r: any) => r.status !== "accepted");
-        if (pending.length > 0) {
-          const uniqueSenders = Array.from(new Set(pending.map((r: any) => r.sender_id))).filter(Boolean) as string[];
-          if (uniqueSenders.length > 0) {
-            const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url, color_avatar_border, color_name").in("user_id", uniqueSenders);
-            setPendingRequests(uniqueSenders.map(senderId => {
-              const req = pending.find((r: any) => r.sender_id === senderId);
-              return { ...req, profile: (profs || []).find((p: any) => p.user_id === senderId) || {} };
-            }));
-          } else { setPendingRequests([]); }
-        } else { setPendingRequests([]); }
-      } else { setPendingRequests([]); }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    if (!user?.id) return;
-    fetchNotifs();
-    fetchPendingRequests();
-    const channel1 = supabase.channel("profile-notifs").on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifs()).subscribe();
-    const channel2 = supabase.channel("profile-reqs").on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchPendingRequests()).subscribe();
-    return () => { supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
-  }, [activeTab, user?.id]);
-
-  useEffect(() => {
-    if (!user) return;
-    const loadCoreData = async () => {
-      try {
-        const { data: posts } = await supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
-        if (posts) setUserPosts(posts);
-
-        const [socialRes, photosRes] = await Promise.all([
-          supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
-        ]);
-        setSocialContentCount((socialRes?.count || 0) + (photosRes?.count || 0));
-        
-        const { data: scores } = await supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false });
-        if (scores) setGameScores(scores as any);
-        
-        const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);
-        setFollowerCount(followers || 0);
-          
-        const { count: following } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id);
-        setFollowingCount(following || 0);
-      } catch (e) {}
-    };
-
-    const loadStorage = async () => {
-      try {
-        const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
-        
-        // 🔥 SOLO CARGAMOS PARTIDAS REALES DESDE EL NAVEGADOR 🔥
-        // Ya no consultamos la tabla leaderboard_scores porque ahí solo están los puntos.
-        try {
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('save_slots_')) {
-              const gameName = key.replace('save_slots_', '');
-              const slots = JSON.parse(localStorage.getItem(key) || '[]');
-              slots.forEach((slot: any) => {
-                const sizeMB = (slot.data?.length || 0) * 0.75 / 1024 / 1024;
-                items.push({
-                  type: "Partida guardada",
-                  name: `${gameName} - ${slot.name}`,
-                  size: sizeMB,
-                  id: `local|${key}|${slot.timestamp}`,
-                  created_at: new Date(slot.timestamp).toISOString()
-                });
-              });
-            }
-          });
-        } catch (e) {
-          console.error("Error leyendo LocalStorage:", e);
-        }
-        
-        const { data: avatarFiles } = await supabase.storage.from("avatars").list(user.id);
-        (avatarFiles || []).forEach(f => items.push({ type: "Avatar", name: f.name, size: Math.round((f.metadata?.size || 500000) / 1024 / 1024 * 100) / 100, created_at: f.created_at }));
-        
-        const { data: social } = await supabase.from("social_content").select("id, title, content_url, created_at").eq("user_id", user.id);
-        (social || []).forEach(s => items.push({ type: "Contenido social", name: s.title || s.content_url, size: 0.1, id: s.id, created_at: s.created_at }));
-        
-        const { data: photos } = await supabase.from("photos").select("id, caption, image_url, created_at").eq("user_id", user.id);
-        (photos || []).forEach(p => items.push({ type: "Foto", name: p.caption || "Foto", size: 1, id: p.id, created_at: p.created_at }));
-        
-        items.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-        setStorageItems(items);
-        setStorageUsed(items.reduce((sum, i) => sum + (i.size || 0), 0));
-      } catch(e) {
-        console.error("Error general en storage:", e);
+      if (user && user.id !== userId) {
+        const { data: f } = await supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", userId).maybeSingle();
+        setIsFollowing(!!f);
+        const { data: sentReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", user.id).eq("receiver_id", userId).maybeSingle();
+        const { data: recvReq } = await supabase.from("friend_requests").select("id, status").eq("sender_id", userId).eq("receiver_id", user.id).maybeSingle();
+        if (sentReq) setFriendStatus((sentReq as any).status === "accepted" ? "accepted" : "pending_sent");
+        else if (recvReq) setFriendStatus((recvReq as any).status === "accepted" ? "accepted" : "pending_received");
+        else setFriendStatus("none");
       }
+
+      const [
+        { data: scores }, { data: posts }, { count: socialCount }, { count: photosCount }, { count: forumPostsCount }, { data: rawSocialContent }, { data: rawPhotos }
+      ] = await Promise.all([
+        supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
+        supabase.from("posts").select("id, title, content, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(20),
+        supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("is_banned", true),
+        supabase.from("social_content").select("*").eq("user_id", userId).eq("is_public", true).neq("is_banned", true).order("created_at", { ascending: false }).limit(15),
+        supabase.from("photos").select("*").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(15)
+      ]);
+      
+      if (scores) setGameScores(scores as any);
+      if (posts) setUserPosts(posts);
+      setSocialContentCount((socialCount || 0) + (photosCount || 0));
+      setTotalForumPosts(forumPostsCount || 0);
+      
+      let combinedSocial = [];
+      if (rawSocialContent) combinedSocial.push(...rawSocialContent.map(s => ({...s, target_type: 'social_content'})));
+      if (rawPhotos) combinedSocial.push(...rawPhotos.map(p => ({...p, target_type: 'photo'})));
+      combinedSocial.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      const finalSocialData = await Promise.all(combinedSocial.map(async (item: any) => {
+         if (item.target_type === 'social_content') {
+            const url = item.content_url || '';
+            if (url.includes('tiktok.com')) {
+               try { const res = await fetch(`https://www.tiktok.com/oembed?url=${url}`); const json = await res.json(); if (json.thumbnail_url) item.tiktok_thumb = json.thumbnail_url; } catch(e) {}
+            } else if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
+               let fbThumbFound = false;
+               try { const res = await fetch(`https://www.facebook.com/plugins/video/oembed.json/?url=${encodeURIComponent(url)}`); if (res.ok) { const json = await res.json(); if (json.thumbnail_url) { item.facebook_thumb = json.thumbnail_url; fbThumbFound = true; } } } catch(e) {}
+               if (!fbThumbFound) { try { const fallbackRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`); if (fallbackRes.ok) { const fallbackJson = await fallbackRes.json(); if (fallbackJson.data?.image?.url) item.facebook_thumb = fallbackJson.data.image.url; } } catch(e) {} }
+            }
+         }
+         return item;
+      }));
+      setUserSocialMedia(finalSocialData);
+      setLoading(false);
     };
+    fetchProfile();
+  }, [userId, user]);
+
+  // 🔥 SOLUCIÓN DEL SEGUIMIENTO (Datos completos) 🔥
+  const handleFollow = async () => {
+    if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing);
+    setFollowerCount(p => wasFollowing ? p - 1 : p + 1);
+    if (wasFollowing) {
+      const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
+    } else {
+      const payload = {
+        id: crypto.randomUUID(),
+        follower_id: user.id,
+        following_id: userId,
+        created_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from("follows").insert(payload as any);
+      if (error) { 
+        setIsFollowing(wasFollowing); 
+        setFollowerCount(p => p - 1); 
+        toast({ title: "Error al seguir", description: error.message, variant: "destructive" }); 
+      } else {
+        supabase.from("notifications").insert({
+          user_id: userId,
+          sender_id: user.id,
+          type: 'follow',
+          content: 'Ha comenzado a seguirte',
+          is_read: false
+        }).then();
+      }
+    }
+  };
+
+  // 🔥 SOLUCIÓN DEL BAD REQUEST DE AMIGOS 🔥
+  const handleFriendRequest = async () => {
+    if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     
-    loadCoreData();
-    loadStorage();
-  }, [user?.id]);
-
-  const handleMarkAsRead = async (notifId: string) => {
-    if (!user) return;
-    try { await supabase.from("notifications").update({ is_read: true } as any).eq("id", notifId); setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n)); } catch(e) {}
+    if (friendStatus === "none") {
+      if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
+      
+      const payload = {
+        id: crypto.randomUUID(),
+        sender_id: user.id,
+        receiver_id: userId,
+        status: "pending",
+        created_at: new Date().toISOString()
+      };
+      
+      const { error } = await supabase.from("friend_requests").insert(payload as any);
+      if (!error) { 
+        setFriendStatus("pending_sent"); 
+        toast({ title: "Solicitud enviada" }); 
+        supabase.from("notifications").insert({
+          user_id: userId,
+          sender_id: user.id,
+          type: 'friend_request',
+          content: 'Te ha enviado una solicitud de amistad',
+          is_read: false
+        }).then();
+      } else {
+        toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
+      }
+    } else if (friendStatus === "pending_received") {
+      if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
+      const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
+      if (!error) { 
+        setFriendStatus("accepted"); 
+        toast({ title: "Amistad aceptada" }); 
+        supabase.from("notifications").insert({
+          user_id: userId,
+          sender_id: user.id,
+          type: 'friend_accepted',
+          content: 'Ha aceptado tu solicitud de amistad',
+          is_read: false
+        }).then();
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
+    } else if (friendStatus === "accepted") {
+      setFriendToRemove({ id: userId, name: profile?.display_name || "este usuario" });
+    } else if (friendStatus === "pending_sent") {
+      const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
+      if (!error) { setFriendStatus("none"); toast({ title: "Solicitud cancelada" }); }
+    }
   };
 
-  const handleClearNotifications = async () => {
-    if (!user) return;
-    if (!confirm("¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
-    try { await supabase.from("notifications").delete().eq("user_id", user.id); fetchNotifs(); toast({ title: "Historial limpiado correctamente." }); } catch(e) {}
-  };
-
-  const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
-    if (!user) return;
+  const confirmRemoveFriend = async () => {
+    if (!friendToRemove || !user) return;
+    setIsRemoving(true);
     try {
-      const { data, error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId).select();
-      if (error || !data || data.length === 0) { toast({ title: "Error", description: "No se pudo modificar.", variant: "destructive" }); return; }
-      toast({ title: "¡Solicitud aceptada!" });
-      setPendingRequests(prev => (prev || []).filter(r => r.id !== reqId));
-      await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id).neq("id", reqId);
-      if (senderId) { await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`, related_id: user.id } as any); }
-      await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: user.id, type: "general", title: "Amistad Aceptada", body: `Aceptaste la solicitud de amistad de ${senderName}.`, is_read: true } as any);
-      fetchNotifs(); if (activeTab === "friends") window.location.reload();
-    } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
+      const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendToRemove.id}),and(sender_id.eq.${friendToRemove.id},receiver_id.eq.${user.id})`);
+      if (error) throw error;
+      setFriendStatus("none");
+      toast({ title: "Amistad eliminada", description: `Has eliminado a ${friendToRemove.name}.` });
+    } catch(e) {
+      toast({ title: "Error", description: "No se pudo eliminar al amigo.", variant: "destructive" });
+    } finally {
+      setIsRemoving(false);
+      setFriendToRemove(null);
+    }
   };
 
-  const handleRejectRequest = async (reqId: string, senderId: string, senderName: string) => {
+  const handleSavePost = async (post: any) => {
     if (!user) return;
-    try {
-      const { error } = await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id);
-      if (!error) {
-        toast({ title: "Solicitud rechazada" }); setPendingRequests(prev => (prev || []).filter(r => r.sender_id !== senderId));
-        await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: user.id, type: "general", title: "Amistad Rechazada", body: `Rechazaste la solicitud de amistad de ${senderName}.`, is_read: true } as any); fetchNotifs();
-      } else { toast({ title: "Error al rechazar", variant: "destructive" }); }
-    } catch(e) {}
+    const thumb = getPostThumbnail(post);
+    try { 
+      const { error } = await supabase.from("saved_items" as any).insert({ 
+        user_id: user.id, item_type: 'post', original_id: post.id, title: post.title || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category, post.id)
+      }); 
+      if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
+      else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
+    } catch (e) { }
   };
 
-  const handleSaveColors = async () => {
-    if (!user) return;
-    setSavingColors(true);
-    const { error } = await supabase.from("profiles").update({
-        color_avatar_border: avatarBorderColor || null, color_name: nameColor || null, color_role: roleColor || null, color_staff_role: staffRoleColor || null,
-        color_stat_points: statPointsColor || null, color_stat_followers: statFollowersColor || null, color_stat_following: statFollowingColor || null,
-        color_stat_posts_forum: statPostsForumColor || null, color_stat_posts_social: statPostsSocialColor || null, color_stat_games: statGamesColor || null,
-      } as any).eq("user_id", user.id);
-    setSavingColors(false);
-    if (!error) { toast({ title: "Colores guardados" }); setShowColorPicker(false); await refreshProfile(); } else { toast({ title: "Error al guardar", description: error.message, variant: "destructive" }); }
+  const handleHidePost = async (postId: string) => {
+    const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
+    if (!error) { toast({ title: "Post ocultado." }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
   };
 
-  const handleAvatarSelect = async (url: string) => {
-    if (!user) return;
-    const nextAvatarUrl = withImageVersion(url, Date.now());
-    const { error } = await supabase.from("profiles").update({ avatar_url: nextAvatarUrl, updated_at: new Date().toISOString() }).eq("user_id", user.id);
-    if (!error) { toast({ title: "Avatar actualizado" }); setShowAvatarSelector(false); await refreshProfile(); }
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("¿Eliminar permanentemente?")) return;
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (!error) { toast({ title: "Post eliminado" }); setUserPosts(prev => prev.filter(p => p.id !== postId)); }
   };
 
-  const handleRoleIconSelect = async (icon: string) => {
-    if (!user) return;
-    await supabase.from("profiles").update({ role_icon: icon }).eq("user_id", user.id); toast({ title: "Icono actualizado" }); await refreshProfile();
+  if (loading) return <div className="p-8 text-center text-xs text-muted-foreground font-body animate-fade-in">Cargando perfil...</div>;
+  if (!profile) return <div className="p-8 text-center text-xs text-muted-foreground font-body">Perfil no encontrado</div>;
+
+  const isStaffVisual = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
+  const memberSince = profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Recientemente";
+  const bestScores = Object.values(gameScores.reduce<Record<string, any>>((acc, gs) => {
+    const key = `${gs.game_name}-${gs.console_type}`;
+    if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
+    return acc;
+  }, {}));
+  const totalScoreValue = bestScores.reduce((sum, gs) => sum + gs.score, 0);
+  const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
+
+  const getSafePostDate = (dateStr: string) => {
+    if (!dateStr) return "Recientemente";
+    const date = new Date(dateStr);
+    if (date.getFullYear() <= 1970) return "Recientemente";
+    return date.toLocaleString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
-
-  const toggleShowRoleIcon = async () => {
-    if (!user || !profile) return;
-    await supabase.from("profiles").update({ show_role_icon: !profile.show_role_icon }).eq("user_id", user.id); await refreshProfile();
-  };
-
-  const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long" }) : "Desconocido";
-  const safeRoles = roles || [];
-  const isMod = safeRoles.includes("moderator");
-  const isStaff = isAdmin || isMasterWeb || isMod;
-  const userTierStr = profile?.membership_tier ? String(profile.membership_tier).toLowerCase() : 'novato';
-  const userTier = userTierStr as MembershipTier;
-  const limits = isStaff ? MEMBERSHIP_LIMITS.staff : (MEMBERSHIP_LIMITS[userTier] || MEMBERSHIP_LIMITS.novato);
-
-  const maxFriends = limits.maxFriends;
-  const maxStorage = limits.storageMB;
-  const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
-  const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
-  const canUseSignature = isStaff || userTier !== 'novato';
-  const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
-
-  const bestScores = Object.values((gameScores || []).reduce<Record<string, { game_name: string; console_type: string; score: number }>>((acc, gs) => {
-      const key = `${gs.game_name}-${gs.console_type}`; if (!acc[key] || gs.score > acc[key].score) acc[key] = gs; return acc;
-    }, {}));
-
-  const tabs = [
-    { id: "avisos" as const, label: "Avisos", icon: Bell },
-    { id: "posts" as const, label: "Posts", icon: MessageSquare },
-    { id: "stats" as const, label: "Stats", icon: Trophy },
-    { id: "friends" as const, label: "Amigos", icon: UserPlus },
-    { id: "social" as const, label: "Redes", icon: Globe },
-    { id: "storage" as const, label: "Storage", icon: Gamepad2 },
-    { id: "guardados" as const, label: "Guardados", icon: Bookmark },
-    ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
-    { id: "configuracion" as const, label: "Config", icon: Settings },
-  ];
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 animate-fade-in">
-        <User className="w-12 h-12 text-muted-foreground" />
-        <p className="text-sm font-body text-muted-foreground">Inicia sesión para ver tu perfil</p>
-        <Button asChild><Link to="/login">Iniciar Sesión</Link></Button>
-      </div>
-    );
-  }
-
-  const unreadCount = notifications.filter(n => !n.is_read).length + pendingRequests.length;
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-4 animate-fade-in max-w-[1200px] mx-auto px-4 pb-20 relative">
       
-      {showAvatarSelector && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAvatarSelector(false)} />
-          <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto">
-            <button onClick={() => setShowAvatarSelector(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button>
-            <h3 className="font-pixel text-[11px] text-neon-cyan mb-4 uppercase text-center">Selecciona tu Avatar</h3>
-            <AvatarSelector currentAvatarUrl={profile?.avatar_url || null} onSelect={handleAvatarSelect} />
+      <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm" style={getAvatarBorderStyle(profile.color_avatar_border)}>
+            {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground" />}
+          </div>
+          <div className="flex-1 min-w-0 text-center md:text-left">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
+              <h2 className="font-pixel text-xl text-neon-cyan" style={getNameStyle(profile.color_name)}>{profile.display_name}</h2>
+              <RoleBadge roles={roles} roleIcon={profile.role_icon} showIcon={profile.show_role_icon !== false} colorStaffRole={profile.color_staff_role} />
+            </div>
+            <p className="text-sm text-muted-foreground font-body italic mb-3">"{profile.bio || "Este usuario prefiere mantener el misterio..."}"</p>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+               <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile.color_role)}><Star className="w-3.5 h-3.5" /> {displayTier}</span>
+               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> {Math.max(profile.total_score, totalScoreValue).toLocaleString()} pts</span>
+               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Miembro desde {memberSince}</span>
+            </div>
+            {user && user.id !== userId && (
+              <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
+                <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="h-8 text-[10px] font-pixel uppercase">{isFollowing ? "Dejar de seguir" : "Seguir"}</Button>
+                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} disabled={friendStatus === "none" && reachedFriendLimit} className="h-8 text-[10px] font-pixel uppercase">
+                  {friendStatus === "none" && (reachedFriendLimit ? "Límite Lleno" : "Añadir amigo")}
+                  {friendStatus === "pending_sent" && "Cancelar Solicitud"}
+                  {friendStatus === "pending_received" && "Aceptar Amigo"}
+                  {friendStatus === "accepted" && "Amigos ✓"}
+                </Button>
+                <Button size="sm" variant="outline" asChild className="h-8 text-[10px] font-pixel uppercase"><Link to={`/mensajes?to=${userId}`}>Mensaje</Link></Button>
+              </div>
+            )}
           </div>
         </div>
-      )}
-      
-      {showRoleIconSelector && <RoleIconSelector currentIcon={profile?.role_icon || "⭐"} onSelect={handleRoleIconSelect} onClose={() => setShowRoleIconSelector(false)} />}
+      </div>
 
-      {showColorPicker && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowColorPicker(false)} />
-          <div className="relative bg-card border border-border rounded-lg p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto retro-scrollbar shadow-2xl">
-            <div className="flex justify-between items-center mb-4"><h3 className="font-pixel text-[11px] text-primary">PALETA DE COLORES</h3><button onClick={() => setShowColorPicker(false)} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button></div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">¿Qué deseas pintar?</label>
-                <select value={colorTarget} onChange={(e) => setColorTarget(e.target.value as any)} className="w-full bg-muted border border-border rounded p-2 text-xs font-body">
-                  <option value="border">Borde de Avatar</option><option value="name">Nombre de Usuario</option>{isStaff ? <option value="staff">Rango de Staff</option> : <option value="role">Rango de Membresía</option>}<option disabled value="separator">──────────</option><option value="stat_points">Stat: Puntos</option><option value="stat_followers">Stat: Seguidores</option><option value="stat_following">Stat: Siguiendo</option><option value="stat_posts_forum">Stat: Posts Foro</option><option value="stat_posts_social">Stat: Posts Social</option><option value="stat_games">Stat: Juegos</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">Elige el color</label>
-                <div className="flex gap-2">
-                  <input type="color" value={localColorCache} onChange={(e) => { const newColor = e.target.value; setLocalColorCache(newColor); if ((window as any).__colorDebounce) clearTimeout((window as any).__colorDebounce); (window as any).__colorDebounce = setTimeout(() => { if (colorTarget === "border") setAvatarBorderColor(newColor); else if (colorTarget === "name") setNameColor(newColor); else if (colorTarget === "role") setRoleColor(newColor); else if (colorTarget === "staff") setStaffRoleColor(newColor); else if (colorTarget === "stat_points") setStatPointsColor(newColor); else if (colorTarget === "stat_followers") setStatFollowersColor(newColor); else if (colorTarget === "stat_following") setStatFollowingColor(newColor); else if (colorTarget === "stat_posts_forum") setStatPostsForumColor(newColor); else if (colorTarget === "stat_posts_social") setStatPostsSocialColor(newColor); else setStatGamesColor(newColor); }, 1000); }} className="h-10 flex-1 rounded border border-border cursor-pointer bg-muted" />
-                  <Button variant="outline" onClick={() => { if (colorTarget === "border") setAvatarBorderColor(""); else if (colorTarget === "name") setNameColor(""); else if (colorTarget === "role") setRoleColor(""); else if (colorTarget === "staff") setStaffRoleColor(""); else if (colorTarget === "stat_points") setStatPointsColor(""); else if (colorTarget === "stat_followers") setStatFollowersColor(""); else if (colorTarget === "stat_following") setStatFollowingColor(""); else if (colorTarget === "stat_posts_forum") setStatPostsForumColor(""); else if (colorTarget === "stat_posts_social") setStatPostsSocialColor(""); else setStatGamesColor(""); }} className="px-3">Reset</Button>
+      <div className="bg-card border border-border rounded p-4">
+        <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+          {[
+            { val: Math.max(profile.total_score, totalScoreValue).toLocaleString(), label: "Puntos", color: "text-neon-green" },
+            { val: followerCount, label: "Seguidores", color: "text-foreground" },
+            { val: followingCount, label: "Siguiendo", color: "text-foreground" },
+            { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
+            { val: socialContentCount, label: "Posts Social", color: "text-neon-yellow" },
+            { val: bestScores.length, label: "Juegos", color: "text-neon-orange" },
+            { 
+              val: displayTier, 
+              label: "Membresía", 
+              color: isStaffVisual ? "text-neon-green drop-shadow-[0_0_8px_rgba(57,255,20,0.8)] animate-pulse" : "text-muted-foreground" 
+            },
+          ].map((s, i) => (
+            <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full min-w-0 overflow-hidden">
+              <p className={cn("text-lg font-bold font-body truncate", s.color)}>{s.val}</p>
+              <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5 truncate leading-tight">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        
+        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
+          <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
+          <div className="space-y-1 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+            {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
+              bestScores.map((gs, i) => (
+                <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
+                  <span className={cn("font-pixel text-[8px] px-1.5 py-0.5 rounded shrink-0", gs.console_type === "nes" ? "bg-neon-green/10 text-neon-green" : gs.console_type === "snes" ? "bg-neon-cyan/10 text-neon-cyan" : "bg-neon-magenta/10 text-neon-magenta")}>{gs.console_type.toUpperCase()}</span>
+                  <span className="flex-1 text-foreground truncate font-medium">{gs.game_name}</span>
+                  <span className="text-neon-green font-bold drop-shadow-sm shrink-0">{gs.score.toLocaleString()}</span>
                 </div>
-              </div>
-              <div className="pt-4 border-t border-border flex gap-2"><Button onClick={handleSaveColors} disabled={savingColors} className="flex-1 text-xs">{savingColors ? "Guardando..." : "Guardar Paleta"}</Button><Button variant="outline" onClick={() => setShowColorPicker(false)} className="flex-1 text-xs">Cancelar</Button></div>
-            </div>
+              ))
+            }
           </div>
+        </div>
+
+        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
+          <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
+          <div className="space-y-2 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+            {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
+              userPosts.map((post) => {
+                const thumb = getPostThumbnail(post);
+                return (
+                  <div key={post.id} className="p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
+                    <div className="w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
+                       <img src={getProxyUrl(thumb)} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      <Link to={getCategoryRoute(post.category, post.id)} className="text-[11px] font-bold text-foreground hover:text-neon-cyan hover:underline line-clamp-2 leading-snug">{post.title}</Link>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[9px] text-muted-foreground">
+                        <span className="flex items-center gap-1" title={getSafePostDate(post.created_at)}><Clock className="w-3 h-3" /> {getTimeAgo(post.created_at)}</span>
+                        <span className="text-neon-green font-bold">▲ {post.upvotes || 0}</span>
+                        <span className="uppercase text-[8px] bg-muted/50 px-1 rounded border border-white/5">{post.category?.replace(/-/g, ' ') || "Foro"}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      {user && <button onClick={() => handleSavePost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 rounded transition-colors" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>}
+                      {isCurrentUserStaff && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><button className="p-1.5 text-muted-foreground hover:text-neon-magenta hover:bg-neon-magenta/10 rounded transition-colors"><Shield className="w-3.5 h-3.5" /></button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-border">
+                            <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer"><Ban className="w-3 h-3 mr-2" /> Ocultar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer"><Trash2 className="w-3 h-3 mr-2" /> Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      </div>
+
+      {userSocialMedia.length > 0 && (
+        <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
+           <div className="flex justify-between items-end mb-4">
+              <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-2 uppercase"><Globe className="w-4 h-4" /> Actividad Social Hub</h3>
+              <span className="text-[10px] font-body text-muted-foreground">Últimos {userSocialMedia.length} posts</span>
+           </div>
+           <div className="flex overflow-x-auto gap-3 pb-4 pt-1 px-1 custom-scrollbar snap-x snap-mandatory">
+              {userSocialMedia.map((item) => {
+                 const isVideo = isVideoItem(item);
+                 const borderStyle = isVideo ? "border-[#ff6b00]" : "border-[#00f0ff]";
+                 const destRoute = item.target_type === 'photo' ? `/social/fotos?post=${item.id}` : `/social/reels?post=${item.id}`;
+                 return (
+                   <div key={item.id} onClick={() => navigate(destRoute)} className={cn("relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02] w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] border", borderStyle)}>
+                     <img src={getSocialThumbnail(item)} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
+                     {isVideo && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" /></div>}
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20"><p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">{item.title || item.caption || "Ver post"}</p></div>
+                   </div>
+                 );
+              })}
+           </div>
         </div>
       )}
 
-      <div className="bg-card border border-neon-cyan/30 rounded p-6">
-        <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
-          <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
-            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
-              {profile?.avatar_url ? <img key={profile.avatar_url} src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <User className="w-10 h-10 text-muted-foreground" />}
+      {/* 🔥 MODAL DE CONFIRMACIÓN AL ELIMINAR AMIGO DESDE EL PERFIL PÚBLICO 🔥 */}
+      {friendToRemove && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-sm bg-card border border-destructive/40 rounded-xl p-5 shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-scale-in flex flex-col" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10 shrink-0">
+              <h3 className="font-pixel text-[11px] text-destructive flex items-center gap-2">
+                <UserMinus className="w-4 h-4" /> ELIMINAR AMIGO
+              </h3>
+              <button onClick={() => setFriendToRemove(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 className="w-4 h-4 text-foreground" /></div>
-          </button>
-          
-          <div className="flex-1 min-w-0 w-full">
-            <div className={cn("flex items-center gap-2 flex-wrap", isMobile ? "justify-center" : "")}>
-              <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</h2>
-              <RoleBadge roles={safeRoles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
+
+            <div className="py-6 text-center">
+              <p className="text-sm font-body text-muted-foreground">
+                ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
+              </p>
+              <p className="text-[10px] font-body text-destructive/80 mt-2 uppercase tracking-wide">
+                Esta acción es irreversible.
+              </p>
             </div>
-            
-            <p className={cn("text-xs text-muted-foreground font-body mt-1", isMobile ? "text-center" : "")}>{profile?.bio || "Sin descripción"}</p>
-            
-            <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
-              {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile?.color_role)}><Star className="w-3 h-3" /> {safeStr(userTier).toUpperCase()}</span>}
-              <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts</span>
-              <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
-              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} seguidores · {followingCount} siguiendo</span>
-            </div>
-            
-            {(profile?.instagram_url || profile?.youtube_url || profile?.tiktok_url) && (
-              <div className={cn("flex gap-3 mt-2", isMobile ? "justify-center" : "")}>
-                {profile?.instagram_url && <a href={profile.instagram_url} target="_blank" rel="noopener" className="text-neon-magenta hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Instagram className="w-3.5 h-3.5" /> Instagram</a>}
-                {profile?.youtube_url && <a href={profile.youtube_url} target="_blank" rel="noopener" className="text-destructive hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Youtube className="w-3.5 h-3.5" /> YouTube</a>}
-                {profile?.tiktok_url && <a href={profile.tiktok_url} target="_blank" rel="noopener" className="text-neon-cyan hover:opacity-80 text-[10px] font-body flex items-center gap-0.5"><Globe className="w-3.5 h-3.5" /> TikTok</a>}
-              </div>
-            )}
-            
-            <div className={cn("flex gap-2 mt-3 flex-wrap", isMobile ? "justify-center" : "")}>
-              <Button size="sm" variant="outline" onClick={() => handleTabChange("configuracion")} className={cn("text-xs gap-1", activeTab === "configuracion" && "bg-muted")}><Edit2 className="w-3 h-3" /> Configurar Perfil</Button>
-              {!isStaff && <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>}
-              {canUseColors && <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1"><Palette className="w-3 h-3" /> Colores</Button>}
-              {isStaff && !safeRoles.includes("moderator") && <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1"><span>{profile?.role_icon || "⭐"}</span> Icono Rol</Button>}
-              {isStaff && <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">{profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}{profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}</Button>}
+
+            <div className="grid grid-cols-2 gap-3 w-full pt-4 border-t border-white/10 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setFriendToRemove(null)} 
+                className="w-full text-xs font-body border-white/10 hover:bg-white/5 h-10"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmRemoveFriend} 
+                disabled={isRemoving} 
+                className="w-full text-xs font-pixel shadow-[0_0_15px_rgba(220,38,38,0.3)] h-10"
+              >
+                {isRemoving ? "Cargando..." : "Sí, Eliminar"}
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </div>,
+        document.body
+      )}
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
-      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
-        {tabs.map(tab => (
-          <button 
-            key={tab.id} 
-            onClick={() => handleTabChange(tab.id)}
-            className={cn(
-              "relative grow sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded text-[10px] sm:text-xs font-body transition-all min-w-[30%] sm:min-w-[80px]", 
-              activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
-              tab.id === "avisos" && unreadCount > 0 ? "text-destructive font-bold bg-destructive/10 border border-destructive/30" : ""
-            )}
-          >
-            <tab.icon className={cn("w-3.5 h-3.5", tab.id === "avisos" && unreadCount > 0 && "animate-pulse text-destructive")} /> 
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* CONTENIDO DE LAS PESTAÑAS */}
-      {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
-      {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
-      {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
-      {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
-      {activeTab === "friends" && <FriendsTab userId={user.id} limits={limits} isStaff={isStaff} />}
-      {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => handleTabChange("configuracion")} limits={limits} isStaff={isStaff} />}
-      {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}
-      {activeTab === "guardados" && <GuardadosTab />}
-      {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
-      
     </div>
   );
 }
