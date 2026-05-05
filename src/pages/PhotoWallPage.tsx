@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon, Flame, Sparkles, Edit2 } from "lucide-react";
+import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon, Flame, Sparkles, Edit2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,8 @@ import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const APIFY_DAILY_LIMIT = 80;
+// 🔥 Límite global diario de fotos (se reinicia a las 00:00 hrs Chile)
+const GLOBAL_DAILY_LIMIT = 80;
 
 const isVideoItem = (item: any) => {
   const p = item.platform || '';
@@ -400,7 +401,9 @@ export default function PhotoWallPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [userPhotoCount, setUserPhotoCount] = useState(0);
-  const [dailyApifyCount, setDailyApifyCount] = useState(0);
+  
+  // Renombrado a dailyGlobalCount para reflejar que cuenta TODAS las fotos del día
+  const [dailyGlobalCount, setDailyGlobalCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
@@ -425,6 +428,7 @@ export default function PhotoWallPage() {
 
       const orderCol = sortMode === "popular" ? "likes" : "created_at";
 
+      // LÓGICA DE MEDIANOCHE DE CHILE PARA CONTADOR DIARIO
       if (pageNum === 0) {
         const getChileMidnightISO = () => {
           const now = new Date();
@@ -439,9 +443,10 @@ export default function PhotoWallPage() {
           return `${year}-${month}-${day}T00:00:00${offsetStr}`;
         };
         const midnightChile = getChileMidnightISO();
-        const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_apify', true).gte('created_at', midnightChile);
         
-        setDailyApifyCount(count || 0);
+        // AHORA CUENTA TODAS LAS FOTOS DEL DÍA (sin importar si es apify o no)
+        const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).gte('created_at', midnightChile);
+        setDailyGlobalCount(count || 0);
       }
 
       const { data: photosRes } = await supabase.from("photos").select("*").neq("is_banned", true).order(orderCol, { ascending: false }).order('created_at', { ascending: false }).range(from, to);
@@ -504,14 +509,12 @@ export default function PhotoWallPage() {
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
     if (!isStaff && userPhotoCount >= limits.maxPhotos) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
-    if (!isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT) { toast({ title: "Servidor Lleno", variant: "destructive" }); return; }
+    if (!isStaff && dailyGlobalCount >= GLOBAL_DAILY_LIMIT) { toast({ title: "Servidor Lleno", variant: "destructive" }); return; }
 
     setUploading(true);
     let finalUrl = imageUrl.trim();
     let usedApify = false;
 
-    // Aquí simplemente llamamos la función, pero como hemos visto, si falla,
-    // el frontend usará el enlace raw directo con la función getDisplayImageUrl. ¡Magia!
     if (finalUrl.includes("instagram.com")) {
       try {
         const { data, error } = await supabase.functions.invoke('extract-instagram', { body: { url: finalUrl } });
@@ -639,12 +642,15 @@ export default function PhotoWallPage() {
     return () => observer.disconnect();
   }, [hasMore, isFetching, sort, photos.length]);
 
-  const uploadPercentage = Math.min(100, (dailyApifyCount / APIFY_DAILY_LIMIT) * 100);
+  const uploadPercentage = Math.min(100, (dailyGlobalCount / GLOBAL_DAILY_LIMIT) * 100);
   const reachedPhotoLimit = !isStaff && userPhotoCount >= limits.maxPhotos;
-  const reachedDailyLimit = !isStaff && dailyApifyCount >= APIFY_DAILY_LIMIT;
+  const reachedDailyLimit = !isStaff && dailyGlobalCount >= GLOBAL_DAILY_LIMIT;
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
+      
+      {/* Hide scrollbar styles injected for the horizontal filter container */}
+      <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
 
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0 relative overflow-hidden">
         {isFetching && page === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />}
@@ -656,27 +662,51 @@ export default function PhotoWallPage() {
         <div className="bg-black/60 border border-neon-cyan/40 rounded-xl p-3 shadow-neon-sm">
            <div className="flex justify-between items-end mb-1.5 font-pixel">
              <div className="flex items-center gap-1.5">
-               <Zap className={cn("w-3.5 h-3.5", dailyApifyCount >= APIFY_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} />
+               <Zap className={cn("w-3.5 h-3.5", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} />
                <span className="text-[9px] uppercase tracking-widest text-foreground">Capacidad Diaria del Servidor</span>
              </div>
-             <span className="text-[11px] text-neon-cyan">{dailyApifyCount} / {APIFY_DAILY_LIMIT}</span>
+             <span className="text-[11px] text-neon-cyan">{dailyGlobalCount} / {GLOBAL_DAILY_LIMIT}</span>
            </div>
            <div className="w-full h-2 bg-muted rounded-full overflow-hidden relative">
-             <div className={cn("h-full transition-all duration-1000", dailyApifyCount >= APIFY_DAILY_LIMIT ? "bg-destructive" : "bg-neon-cyan")} style={{ width: `${uploadPercentage}%` }} />
+             <div className={cn("h-full transition-all duration-1000", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "bg-destructive" : "bg-neon-cyan")} style={{ width: `${uploadPercentage}%` }} />
            </div>
         </div>
       </div>
 
-      <div className="flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50 mx-2 md:mx-0 flex-wrap gap-2">
-        <div className="flex gap-1 items-center">
-          <Button onClick={() => setSourceTab("all")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "all" ? "text-white" : "opacity-50")}><Globe className="w-3 h-3 mr-1 hidden sm:inline" /> Todos</Button>
-          <Button onClick={() => setSourceTab("friends")} variant="ghost" size="sm" className={cn("text-[10px] uppercase font-pixel px-2", sourceTab === "friends" ? "text-white" : "opacity-50")}><Users className="w-3 h-3 mr-1 hidden sm:inline" /> Amigos</Button>
-          <div className="w-px h-5 bg-border mx-1" />
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}><Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top</Button>
-          <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}><Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos</Button>
+      {/* 🔥 FILTROS COMPACTOS Y RESPONSIVOS (Una sola línea garantizada) 🔥 */}
+      <div className="flex justify-between items-center bg-card/30 p-2 rounded-lg border border-border/50 mx-2 md:mx-0 flex-nowrap gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1.5 items-center shrink-0">
+          
+          {/* Dropdown Todos/Amigos */}
+          <div className="relative group shrink-0 min-w-[85px]">
+            <select
+              value={sourceTab}
+              onChange={(e) => setSourceTab(e.target.value as "all" | "friends")}
+              className="w-full h-8 bg-black/40 border border-border rounded-lg text-[10px] font-body font-bold text-white outline-none appearance-none px-2 pr-6 cursor-pointer hover:bg-black/60 transition-colors"
+            >
+              <option value="all" className="text-black">Todos</option>
+              {user && <option value="friends" className="text-black">Amigos</option>}
+            </select>
+            <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
+          </div>
+
+          <div className="w-px h-5 bg-border mx-0.5" />
+          
+          {/* Botones Top/Nuevos */}
+          <div className="flex p-0.5 rounded border border-border/50 bg-black/20 shrink-0 gap-0.5">
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[9px] sm:text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+              <Flame className={cn("w-3 h-3 sm:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden sm:inline">Top</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[9px] sm:text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+              <Sparkles className={cn("w-3 h-3 sm:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden sm:inline">Nuevos</span>
+            </Button>
+          </div>
         </div>
         
-        <Button size="sm" className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[10px] uppercase font-pixel" onClick={() => setShowUpload(!showUpload)} disabled={reachedDailyLimit || reachedPhotoLimit}><Camera className="w-3 h-3 mr-1 hidden sm:inline" /> {reachedDailyLimit ? "Servidor Lleno" : reachedPhotoLimit ? "Límite Alcanzado" : "Subir Foto"}</Button>
+        {/* Botón Subir Foto */}
+        <Button size="sm" className="bg-neon-orange text-black hover:bg-neon-orange/80 h-8 text-[9px] sm:text-[10px] uppercase font-pixel px-2 sm:px-3 shrink-0" onClick={() => setShowUpload(!showUpload)} disabled={reachedDailyLimit || reachedPhotoLimit}>
+          <Camera className="w-3 h-3 sm:mr-1 hidden sm:inline" /> {reachedDailyLimit ? "Lleno" : reachedPhotoLimit ? "Límite" : "Subir"}
+        </Button>
       </div>
 
       {showUpload && (
