@@ -667,7 +667,7 @@ export default function PhotoWallPage() {
            <div className="flex justify-between items-end mb-1.5 font-pixel">
              <div className="flex items-center gap-1.5">
                <Zap className={cn("w-3.5 h-3.5", dailyGlobalCount >= GLOBAL_DAILY_LIMIT ? "text-destructive" : "text-neon-cyan")} />
-               <span className="text-[9px] uppercase tracking-widest text-foreground">Capacidad Diaria del Servidor</span>
+               <span className="text-[9px] uppercase tracking-widest text-foreground">Imágenes Diarias</span>
              </div>
              <span className="text-[11px] text-neon-cyan">{dailyGlobalCount} / {GLOBAL_DAILY_LIMIT}</span>
            </div>
