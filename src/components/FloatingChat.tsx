@@ -39,7 +39,7 @@ interface Conversation {
 
 const FONT_SIZES = [10, 11, 12, 13, 14] as const;
 
-// 🔥 SOLUCIÓN DE ZONA HORARIA: Fuerza la conversión correcta desde UTC a la hora de Chile
+// 🔥 SOLUCIÓN DE ZONA HORARIA
 const getSafeDate = (dateStr: string) => {
   if (!dateStr) return new Date();
   let safeStr = dateStr;
@@ -71,7 +71,7 @@ export default function FloatingChat() {
   const endRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef(0);
 
-  // Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real)
+  // Escudo anti-notificaciones fantasmas
   const activePartnerRef = useRef<string | null>(null);
 
   // Posicionamiento de la burbuja
@@ -139,11 +139,27 @@ export default function FloatingChat() {
     if (typeof window !== 'undefined') localStorage.setItem('floatingBubblePos', JSON.stringify(pos));
   };
 
+  // 🔥 SOLUCIÓN: RESTAURACIÓN DEL ESCUDO AL MAXIMIZAR 🔥
   const handleBubbleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!hasMoved.current) {
       setIsOpen(true);
       setMinimized(false);
+      
+      // Si la burbuja se abre y ya teníamos un chat seleccionado, volvemos a encender el escudo
+      if (partnerId) {
+        activePartnerRef.current = partnerId;
+        
+        // Limpieza visual inmediata
+        setUnreadCount(prev => {
+          const conv = conversations.find(c => c.partnerId === partnerId);
+          return Math.max(0, prev - (conv?.unread || 0));
+        });
+        setConversations(prev => prev.map(c => c.partnerId === partnerId ? { ...c, unread: 0 } : c));
+        
+        loadMessages(partnerId, true);
+      }
+      
       loadFriends();
       loadConversations();
     }
@@ -213,7 +229,6 @@ export default function FloatingChat() {
   useEffect(() => { loadFriends(); }, [user]);
   useEffect(() => { loadConversations(); }, [friends]);
 
-  // Actualización pasiva normal
   useEffect(() => {
     const passiveRefresh = () => {
       const now = Date.now();
@@ -232,19 +247,18 @@ export default function FloatingChat() {
     }
   }, [user, friends, location.pathname]);
 
-  // 🔥 SOLUCIÓN DE TIEMPO REAL: Polling cada 3 segundos SOLO cuando el chat está abierto 🔥
+  // Polling cada 3 segundos SOLO cuando el chat está abierto
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isOpen && !minimized && activePartnerRef.current) {
       interval = setInterval(() => {
-        loadMessages(activePartnerRef.current, true);
+        loadMessages(activePartnerRef.current!, true);
         loadConversations();
       }, 3000);
     }
     return () => clearInterval(interval);
   }, [isOpen, minimized, partnerId]);
 
-  // Scroll automático inteligente (solo si hay más mensajes que antes)
   useEffect(() => {
     if (messages.length > prevMessagesLength.current) {
       endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -294,50 +308,78 @@ export default function FloatingChat() {
     loadMessages(pid);
   };
 
-  // 🔥 SOLUCIÓN CARRERA DE DATOS: Asegura limpiar la BD antes de volver a listar 🔥
-  const closeConversation = (e: React.MouseEvent) => {
+  // 🔥 REGLA DE ORO 1: Al cerrar el chat y volver a la lista de amigos
+  const closeConversation = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     const pid = partnerId;
-    activePartnerRef.current = null; 
+    
+    // 1. Limpiamos interfaz
     setPartnerId(null); 
     setMessages([]);
+    setUnreadCount(prev => {
+      const conv = conversations.find(c => c.partnerId === pid);
+      return Math.max(0, prev - (conv?.unread || 0));
+    });
+    setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
+
+    // 2. Esperamos a que la Base de Datos termine
     if (pid && user) {
-      supabase.from("private_messages").update({ is_read: true } as any)
-        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
-        .then(() => loadConversations());
-    } else {
-      loadConversations();
+      await supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
     }
+
+    // 3. RECIÉN AHORA apagamos el escudo y recargamos
+    activePartnerRef.current = null; 
+    loadConversations();
   };
 
-  const handleMinimize = (e: React.MouseEvent) => {
+  // 🔥 REGLA DE ORO 2: Al minimizar la burbuja
+  const handleMinimize = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setMinimized(true);
     const pid = partnerId;
-    activePartnerRef.current = null; 
-    if (pid && user) {
-      supabase.from("private_messages").update({ is_read: true } as any)
-        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
-        .then(() => loadConversations());
-    } else {
-      loadConversations();
+
+    if (pid) {
+      setUnreadCount(prev => {
+        const conv = conversations.find(c => c.partnerId === pid);
+        return Math.max(0, prev - (conv?.unread || 0));
+      });
+      setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
+
+      if (user) {
+        await supabase.from("private_messages").update({ is_read: true } as any)
+          .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
+      }
     }
+
+    activePartnerRef.current = null; 
+    loadConversations();
   };
 
-  const closeChatBubble = (e: React.MouseEvent) => {
+  // 🔥 REGLA DE ORO 3: Al cerrar la burbuja por completo
+  const closeChatBubble = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     setIsOpen(false); 
     const pid = partnerId;
-    activePartnerRef.current = null; 
+
     setPartnerId(null); 
     setMessages([]);
-    if (pid && user) {
-      supabase.from("private_messages").update({ is_read: true } as any)
-        .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
-        .then(() => loadConversations());
-    } else {
-      loadConversations();
+
+    if (pid) {
+      setUnreadCount(prev => {
+        const conv = conversations.find(c => c.partnerId === pid);
+        return Math.max(0, prev - (conv?.unread || 0));
+      });
+      setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
+
+      if (user) {
+        await supabase.from("private_messages").update({ is_read: true } as any)
+          .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
+      }
     }
+
+    activePartnerRef.current = null; 
+    loadConversations();
   };
 
   const handleSend = async () => {
