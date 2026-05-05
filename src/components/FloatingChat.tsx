@@ -61,6 +61,9 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // 🔥 Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real sin redibujar)
+  const activePartnerRef = useRef<string | null>(null);
+
   // Posicionamiento de la burbuja
   const [pos, setPos] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -167,9 +170,13 @@ export default function FloatingChat() {
       if (!friendSet.has(pid)) return;
       if (!convMap[pid]) convMap[pid] = { msgs: [], unread: 0 };
       convMap[pid].msgs.push(m);
+      
       if (m.receiver_id === user.id && !m.is_read) {
-        convMap[pid].unread++;
-        totalUnread++;
+        // 🔥 Magia: Si el mensaje es de la persona con la que estamos hablando AHORA, no lo sumamos a los no leídos
+        if (activePartnerRef.current !== pid) {
+          convMap[pid].unread++;
+          totalUnread++;
+        }
       }
     });
 
@@ -204,7 +211,7 @@ export default function FloatingChat() {
       if (now - lastFetch.current > 4000) {
         lastFetch.current = now;
         loadConversations();
-        if (partnerId) loadMessages(partnerId);
+        if (activePartnerRef.current) loadMessages(activePartnerRef.current);
       }
     };
     window.addEventListener("click", passiveRefresh);
@@ -214,7 +221,7 @@ export default function FloatingChat() {
       window.removeEventListener("click", passiveRefresh);
       window.removeEventListener("focus", passiveRefresh);
     }
-  }, [user, partnerId, friends, location.pathname]);
+  }, [user, friends, location.pathname]);
 
   // Scroll automático al fondo cuando hay mensajes nuevos
   useEffect(() => {
@@ -225,7 +232,15 @@ export default function FloatingChat() {
 
   const loadMessages = async (pid: string) => {
     if (!user) return;
-    // 🔥 FIX DE ORDEN: Pedimos los 50 más nuevos (desc) y luego los invertimos para mostrarlos cronológicamente
+    
+    // 🔥 ACTUALIZACIÓN OPTIMISTA: Borramos el punto rojo instantáneamente en la interfaz
+    setUnreadCount(prev => {
+      const conv = conversations.find(c => c.partnerId === pid);
+      return Math.max(0, prev - (conv?.unread || 0));
+    });
+    setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
+
+    // Obtenemos los mensajes
     const { data } = await supabase.from("private_messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${pid}),and(sender_id.eq.${pid},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: false }).limit(50);
@@ -235,16 +250,37 @@ export default function FloatingChat() {
       setMessages(chronological as Message[]);
     }
     
+    // Le avisamos a la base de datos en segundo plano
     await supabase.from("private_messages").update({ is_read: true } as any).eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
+    
+    // Recargamos el estado oficial silenciosamente
     loadConversations();
   };
 
   const openConversation = (pid: string, name?: string) => {
+    activePartnerRef.current = pid; // Declaramos con quién hablamos
     setPartnerId(pid);
     if (name) setPartnerName(name);
     loadMessages(pid);
     setMinimized(false);
     setIsOpen(true);
+  };
+
+  const closeConversation = (e: React.MouseEvent) => {
+    e.stopPropagation(); 
+    activePartnerRef.current = null; // Soltamos al partner
+    setPartnerId(null); 
+    setMessages([]);
+    loadConversations();
+  };
+
+  const closeChatBubble = (e: React.MouseEvent) => {
+    e.stopPropagation(); 
+    setIsOpen(false); 
+    activePartnerRef.current = null; 
+    setPartnerId(null); 
+    setMessages([]);
+    loadConversations();
   };
 
   const handleSend = async () => {
@@ -334,7 +370,7 @@ export default function FloatingChat() {
       >
         <div className="flex items-center gap-2 pointer-events-none">
           {partnerId && (
-            <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setPartnerId(null); setMessages([]); }} className="text-muted-foreground hover:text-foreground pointer-events-auto">
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={closeConversation} className="text-muted-foreground hover:text-foreground pointer-events-auto">
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
           )}
@@ -349,10 +385,10 @@ export default function FloatingChat() {
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={closeChatBubble} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Cerrar">
             <X className="w-3 h-3" />
           </button>
         </div>
