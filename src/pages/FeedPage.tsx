@@ -460,32 +460,32 @@ function SnapCard({
              </div>
 
              {/* Acciones Rápidas (PC) */}
-             <div className="flex items-center gap-2 lg:gap-4 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row">
+             <div className={cn("flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row", cinemaMode && "lg:gap-2 bottom-3 lg:bottom-3")}>
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsUp className={cn("w-4 h-4 lg:w-5 lg:h-5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                      <ThumbsUp className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "like" ? "text-neon-green" : "text-white")} />
                    </div>
-                   <span className="text-white text-[9px] lg:text-[11px] font-bold drop-shadow-md">{likes}</span>
+                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{likes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsDown className={cn("w-4 h-4 lg:w-5 lg:h-5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                      <ThumbsDown className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "dislike" ? "text-destructive" : "text-white")} />
                    </div>
-                   <span className="text-white text-[9px] lg:text-[11px] font-bold drop-shadow-md">{dislikes}</span>
+                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{dislikes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                      <MessageSquare className="w-4 h-4 lg:w-5 lg:h-5 text-neon-cyan transition-transform group-active:scale-90" />
+                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                      <MessageSquare className={cn("text-neon-cyan transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5")} />
                    </div>
-                   <span className="text-white text-[9px] lg:text-[11px] font-bold drop-shadow-md">{comments.length}</span>
+                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{comments.length}</span>
                 </button>
 
                 {user && !isOwner && (
                    <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group">
-                      <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                         <Flag className="w-4 h-4 lg:w-5 lg:h-5 text-white transition-transform group-active:scale-90" />
+                      <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                         <Flag className={cn("text-white transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5")} />
                       </div>
                    </button>
                 )}
@@ -493,15 +493,14 @@ function SnapCard({
 
              {/* Subir / Bajar (PC) */}
              <div className="flex pointer-events-auto gap-2">
-                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronUp className="w-5 h-5 lg:w-6 lg:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                   <ChevronUp className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronDown className="w-5 h-5 lg:w-6 lg:h-6 text-white group-hover:text-neon-cyan transition-colors" />
+                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
+                   <ChevronDown className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
                 </button>
              </div>
         </div>
-      </div>
 
       {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL - Siempre visible, atenuada en Cine) 🔥 */}
       <div className={cn(
