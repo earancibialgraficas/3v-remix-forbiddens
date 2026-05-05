@@ -578,14 +578,14 @@ function SnapCard({
       </div>
 
       {/* OVERLAY TELA NEGRA PARA PANELES (Móvil y Cine, z-[60] detrás del panel) */}
-      <div className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
+      <div className={cn("fixed lg:absolute inset-0 bg-black/60 backdrop-blur-sm z-[300] lg:z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
       
-      {/* 📋 PANEL DERECHO (Detalles y Comentarios - z-[70] siempre al frente) 📋 */}
+      {/* 📋 PANEL DERECHO — z-[310] en móvil para superponer floating chat 📋 */}
       <div className={cn(
-        "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl z-[70]",
+        "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl z-[310] lg:z-[70]",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "absolute lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[50px]", // PC 40px para 4px de gap
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[50px]",
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full lg:translate-x-0" : "",
