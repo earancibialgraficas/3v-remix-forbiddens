@@ -584,9 +584,13 @@ export default function PhotoWallPage() {
     } catch (e) { }
   };
 
+  // 🔥 AQUÍ ESTÁ LA MAGIA: Eliminamos setPhotos([]) para que no colapse 🔥
   const handleSetSort = (newSort: 'new' | 'popular') => {
     if (newSort === sort || isFetching) return;
-    setPhotos([]); setPage(0); setHasMore(true); setSort(newSort); window.scrollTo({ top: 0, behavior: 'auto' });
+    setPage(0); 
+    setHasMore(true); 
+    setSort(newSort); 
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const displayPhotos = useMemo(() => {
@@ -722,6 +726,7 @@ export default function PhotoWallPage() {
         </div>
       )}
 
+      {/* 🔥 EFECTO PREMIUM AL CAMBIAR DE FILTRO: La cuadrícula reduce su opacidad y se difumina suavemente mientras carga 🔥 */}
       {displayPhotos.length === 0 && !isFetching ? (
         <div className="py-20 text-center opacity-30">
           <ImageIcon className="w-16 h-16 mx-auto mb-4" />
@@ -729,7 +734,10 @@ export default function PhotoWallPage() {
         </div>
       ) : (
         <>
-          <div className="columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative">
+          <div className={cn(
+            "columns-2 md:columns-3 lg:columns-3 gap-2 sm:gap-4 px-1 md:px-0 relative transition-all duration-300",
+            (isFetching && page === 0) ? "opacity-40 blur-[2px] pointer-events-none" : "opacity-100 blur-0"
+          )}>
             {displayPhotos.map(photo => (
               <div key={`${photo.target_type}-${photo.id}`} id={`photo-post-${photo.id}`} className="w-full mb-2 sm:mb-4 break-inside-avoid relative">
                 <PhotoCardMiniature photo={photo} onExpand={() => setExpandedPhotoId(photo.id)} onReaction={handleReaction} onHide={handleHide} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} onReport={() => setReportingPhotoIdMini(photo.id)} />
