@@ -417,14 +417,10 @@ function SnapCard({
           </div>
         )}
 
-        {/* 🔥 BOTÓN TOGGLE MODO CINE (Esquina Superior Derecha z-[100]) 🔥 */}
-        {/* En móvil solo si es video horizontal, en PC siempre visible */}
+        {/* 🔥 BOTÓN TOGGLE MODO CINE (SÓLO PC - en móvil/tablet se activa rotando) 🔥 */}
         <button 
           onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
-          className={cn(
-            "absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto",
-            !canShowCinemaBtnMobile ? "hidden lg:flex" : "flex"
-          )}
+          className="hidden lg:flex absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto"
           title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
         >
            {cinemaMode ? <Minimize className="w-4 h-4 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform"/>}
