@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, User, Minus, ArrowLeft, Type, Bell, Menu } from "lucide-react";
+import { MessageSquare, X, Send, User, Minus, ArrowLeft, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export default function FloatingChat() {
   const isStaff = isMasterWeb || isAdmin || (roles || []).includes("moderator");
   const tier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const dmLimit = (isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[tier])?.maxDmChars ?? 200;
-  const navigate = useNavigate();
+  
   const location = useLocation();
   const isMobile = useIsMobile();
   
@@ -58,9 +58,6 @@ export default function FloatingChat() {
   const [text, setText] = useState("");
   
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifUnread, setNotifUnread] = useState(0);
-  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
-  
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -103,44 +100,6 @@ export default function FloatingChat() {
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
 
-  // CARGA PASIVA DE NOTIFICACIONES (AVISOS + SOLICITUDES)
-  const fetchNotifs = async () => {
-    if (!user) return;
-    try {
-      const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-      const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
-      setNotifUnread((count || 0) + (reqCount || 0));
-    } catch (e) {}
-  };
-
-  // 🔥 TEMPORIZADOR DE 5 SEGUNDOS (5000ms) 🔥
-  useEffect(() => {
-    fetchNotifs();
-    
-    // Ahora revisa cada 5 segundos
-    const interval = setInterval(() => {
-      fetchNotifs();
-    }, 5000); 
-    
-    return () => clearInterval(interval);
-  }, [user, location.pathname]);
-
-  useEffect(() => {
-    const fetchNotifsThrottled = () => {
-      const now = Date.now();
-      if (now - lastFetch.current > 2000) { // Pequeño margen para no saturar al hacer muchos clicks
-        lastFetch.current = now;
-        fetchNotifs();
-      }
-    };
-    window.addEventListener("click", fetchNotifsThrottled);
-    window.addEventListener("focus", fetchNotifsThrottled);
-    return () => {
-      window.removeEventListener("click", fetchNotifsThrottled);
-      window.removeEventListener("focus", fetchNotifsThrottled);
-    }
-  }, [user]);
-
   const onPointerDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     isDragging.current = true;
@@ -177,13 +136,10 @@ export default function FloatingChat() {
   const handleBubbleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!hasMoved.current) {
-      if (isMobile) {
-        setIsMenuExpanded(!isMenuExpanded);
-      } else {
-        setIsOpen(true);
-        setMinimized(false);
-        loadFriends();
-      }
+      setIsOpen(true);
+      setMinimized(false);
+      loadFriends();
+      loadConversations();
     }
   };
 
@@ -251,20 +207,27 @@ export default function FloatingChat() {
   useEffect(() => { loadFriends(); }, [user]);
   useEffect(() => { loadConversations(); }, [friends]);
 
+  // 🔥 CARGA PASIVA (NO EN TIEMPO REAL) 🔥
+  // Actualiza silenciosamente los chats al navegar por la página o hacer clics espaciados
   useEffect(() => {
-    if (!user) return;
-    const channel = supabase.channel("floating-chat-rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "private_messages" }, (payload) => {
-        const msg = payload.new as any;
-        if (msg.sender_id === user.id || msg.receiver_id === user.id) {
-          loadConversations();
-          if (partnerId && (msg.sender_id === partnerId || msg.receiver_id === partnerId)) {
-            loadMessages(partnerId);
-          }
-        }
-      }).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, partnerId, friends]);
+    const passiveRefresh = () => {
+      const now = Date.now();
+      if (now - lastFetch.current > 3000) {
+        lastFetch.current = now;
+        loadConversations();
+        if (partnerId) loadMessages(partnerId);
+      }
+    };
+
+    window.addEventListener("click", passiveRefresh);
+    window.addEventListener("focus", passiveRefresh);
+    passiveRefresh(); // Llama al cambiar de ruta
+
+    return () => {
+      window.removeEventListener("click", passiveRefresh);
+      window.removeEventListener("focus", passiveRefresh);
+    }
+  }, [user, partnerId, friends, location.pathname]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -297,19 +260,26 @@ export default function FloatingChat() {
     }
     setText("");
     const tempId = `temp-${Date.now()}`;
+    
     // UI optimista para que se vea al instante
     setMessages(prev => [...prev, {
       id: tempId, sender_id: user.id, receiver_id: partnerId,
       content, is_read: false, created_at: new Date().toISOString(),
     }]);
+
+    // 🔥 SOLUCIÓN DEL ERROR SQL: Generando el ID en el Frontend 🔥
     const { error } = await supabase.from("private_messages").insert({
-      sender_id: user.id, receiver_id: partnerId, content,
+      id: crypto.randomUUID(), 
+      sender_id: user.id, 
+      receiver_id: partnerId, 
+      content,
     } as any);
+
     if (error) {
       console.error("FloatingChat send error:", error);
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setText(content);
-      alert(`No se pudo enviar el mensaje: ${error.message}`);
+      toast.error(`No se pudo enviar el mensaje: ${error.message}`);
       return;
     }
     loadMessages(partnerId);
@@ -324,8 +294,6 @@ export default function FloatingChat() {
   if (!user) return null;
 
   if (!isOpen || minimized) {
-    const totalUnread = unreadCount + (isMobile ? notifUnread : 0);
-
     return (
       <div
         onPointerDown={onPointerDown}
@@ -335,50 +303,16 @@ export default function FloatingChat() {
         style={{ left: pos.x, top: pos.y, touchAction: 'none' }}
         className="fixed z-[250] w-12 h-12 flex items-center justify-center cursor-grab active:cursor-grabbing"
       >
-        {isMobile && isMenuExpanded && (
-          <>
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMenuExpanded(false);
-                navigate('/perfil?tab=avisos');
-              }}
-              className="absolute -top-[115px] w-11 h-11 bg-card border border-neon-magenta/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
-            >
-              <Bell className="w-5 h-5 text-neon-magenta pointer-events-none" />
-              {notifUnread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{notifUnread > 9 ? "9+" : notifUnread}</span>}
-            </button>
-
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMenuExpanded(false);
-                setIsOpen(true);
-                setMinimized(false);
-                loadFriends();
-              }}
-              className="absolute -top-[55px] w-11 h-11 bg-card border border-neon-cyan/40 rounded-full flex items-center justify-center shadow-lg hover:bg-muted transition-all animate-in slide-in-from-bottom-5"
-            >
-              <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
-            </button>
-          </>
-        )}
-
         <button
-          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all pointer-events-none"
+          className="relative w-12 h-12 bg-card border border-border rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all pointer-events-none hover:bg-muted"
         >
           <div className="absolute inset-0 bg-neon-cyan/10 rounded-full pointer-events-none" />
-          {isMobile ? (
-            isMenuExpanded ? <X className="w-5 h-5 text-neon-cyan pointer-events-none" /> : <Menu className="w-5 h-5 text-neon-cyan pointer-events-none" />
-          ) : (
-            <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
-          )}
+          <MessageSquare className="w-5 h-5 text-neon-cyan pointer-events-none" />
           
-          {totalUnread > 0 && !isMenuExpanded && (
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-destructive border-2 border-card rounded-full animate-pulse shadow-sm pointer-events-none" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive border border-card rounded-full text-[9px] text-white flex items-center justify-center font-bold pointer-events-none shadow-sm">
+               {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           )}
         </button>
       </div>
@@ -417,10 +351,10 @@ export default function FloatingChat() {
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); setIsMenuExpanded(false); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
             <Minus className="w-3 h-3" />
           </button>
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); setIsMenuExpanded(false); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsOpen(false); setPartnerId(null); setMessages([]); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
             <X className="w-3 h-3" />
           </button>
         </div>
