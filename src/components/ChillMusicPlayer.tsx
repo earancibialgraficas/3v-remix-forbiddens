@@ -19,9 +19,7 @@ interface Song {
 
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
-// 🔥 Volumen guardado en caché del dispositivo
 const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
-// 🔥 NUEVO: Estado de reproducción guardado (para reanudar tras re-parenting de portal)
 const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
 
 export default function ChillMusicPlayer() {
@@ -29,13 +27,7 @@ export default function ChillMusicPlayer() {
   const isMobile = useIsMobile();
   const { activeGames, minimized: gameMinimized } = useGameBubble();
 
-  // 🎵 Slot activo donde renderizar el reproductor (vía portal).
-  // Importante: el componente NUNCA se desmonta; solo cambia su contenedor DOM.
-  // Esto evita que el <audio> o el <iframe> de YouTube se reinicien (sin doble audio).
   const inEmulator = activeGames.length > 0 && !gameMinimized;
-  // En móvil, el slot depende de si el footer está colapsado o expandido:
-  // - Colapsado → slot fijo arriba del footer (mini player visible).
-  // - Expandido → slot dentro del scroll del footer (sube/baja con el contenido).
   const [mobileFooterOpen, setMobileFooterOpen] = useState(false);
   const slotId = inEmulator
     ? "music-slot-emulator"
@@ -57,7 +49,6 @@ export default function ChillMusicPlayer() {
       return false;
     };
     if (!find()) {
-      // El slot puede tardar un tick en aparecer (p. ej. al abrir el emulador)
       const interval = setInterval(() => {
         if (find()) clearInterval(interval);
       }, 100);
@@ -77,7 +68,6 @@ export default function ChillMusicPlayer() {
   const [currentCategory, setCurrentCategory] = useState(getStoredCategory);
   const [currentIndex, setCurrentIndex] = useState(getStoredIndex);
   const [isPlaying, setIsPlaying] = useState(getStoredPlaying);
-  // 🔥 Inicia con el volumen guardado en caché del dispositivo
   const [volume, setVolume] = useState(getStoredVolume);
   const [expanded, setExpanded] = useState(false);
   const [minimized, setMinimized] = useState(false); 
@@ -89,7 +79,6 @@ export default function ChillMusicPlayer() {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const miniCanvasRef = useRef<HTMLCanvasElement>(null);
-  const animFrameRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const categoryBtnRef = useRef<HTMLButtonElement>(null);
@@ -99,15 +88,13 @@ export default function ChillMusicPlayer() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekDisplayValue, setSeekDisplayValue] = useState(0);
   
-  // CANDADO DE SEGURIDAD: Bloquea el guardado hasta aplicar el tiempo guardado
   const timeToRestoreRef = useRef<number | null>(null);
-  const actualTimeRef = useRef<number>(0); // Referencia silenciosa del tiempo actual
+  const actualTimeRef = useRef<number>(0); 
   
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
-  // 🔔 Notificación efímera de "ahora suena" dentro del emulador (3s, sin interrumpir el juego)
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -128,7 +115,6 @@ export default function ChillMusicPlayer() {
     actualTimeRef.current = currentTime;
   }, [currentTime]);
 
-  // 1. GUARDAR CANCIÓN Y PLAYLIST
   useEffect(() => {
     if (playlist.length > 0 && timeToRestoreRef.current === null) {
       localStorage.setItem('forbiddens_music_category', currentCategory);
@@ -136,7 +122,6 @@ export default function ChillMusicPlayer() {
     }
   }, [currentCategory, currentIndex, playlist.length]);
 
-  // 2. GUARDAR EL MINUTO ACTUAL
   useEffect(() => {
     const timer = setInterval(() => {
       if (timeToRestoreRef.current === null && actualTimeRef.current > 0) {
@@ -146,29 +131,23 @@ export default function ChillMusicPlayer() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 NUEVO: Persiste el estado de reproducción (play/pause) en caché del dispositivo
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('forbiddens_music_playing', isPlaying ? 'true' : 'false');
     }
   }, [isPlaying]);
 
-  // 🔥 NUEVO: Cuando el reproductor cambia de slot DOM (PC → móvil → emulador, etc.)
-  // el navegador puede pausar el <audio> al re-parentar. Aquí reanudamos exactamente
-  // donde estaba (mismo tiempo, mismo volumen) sin que el usuario lo note.
   useEffect(() => {
     if (!portalTarget) return;
     if (!isPlaying) return;
     const t = setTimeout(() => {
-      // Audio local: si quedó pausado tras el re-parent, reanudar
       if (current?.type === 'local' && audioRef.current) {
         audioRef.current.volume = volume / 100;
         if (audioRef.current.paused) {
-          // Restaurar tiempo silenciosamente si se perdió
           if (actualTimeRef.current > 0 && Math.abs(audioRef.current.currentTime - actualTimeRef.current) > 1) {
             audioRef.current.currentTime = actualTimeRef.current;
           }
-          audioRef.current.play().catch(() => { /* ignorar bloqueo de autoplay */ });
+          audioRef.current.play().catch(() => {});
         }
       } else if (current?.type === 'youtube' && iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
@@ -178,7 +157,7 @@ export default function ChillMusicPlayer() {
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
         );
       }
-    }, 150); // pequeño delay para que el DOM termine de re-parentar
+    }, 150);
     return () => clearTimeout(t);
   }, [portalTarget, current, isPlaying, volume]);
 
@@ -239,8 +218,6 @@ export default function ChillMusicPlayer() {
         setSeekDisplayValue(parsedTime);
         timeToRestoreRef.current = parsedTime; 
       }
-
-      // 🔥 Eliminado el setIsPlaying(true) para que no haga autoplay
     };
 
     fetchMusic();
@@ -316,7 +293,6 @@ export default function ChillMusicPlayer() {
     }
   }, [isPlaying, currentIndex, volume, current]);
 
-  // 🔥 NUEVO: Aplica y guarda el volumen en caché en tiempo real 🔥
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
     if (typeof window !== 'undefined') {
@@ -360,33 +336,41 @@ export default function ChillMusicPlayer() {
     onPauseMusic(() => setIsPlaying(false));
   }, [onPauseMusic]);
 
+  // 🔥 ARREGLO DEL VISUALIZADOR: Un loop maestro que renderiza dinámicamente el canvas activo 🔥
   useEffect(() => {
-    const canvas = minimized ? miniCanvasRef.current : canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const bars = minimized ? 10 : 16;
-    const barWidth = canvas.width / bars;
-    let heights = new Array(bars).fill(0);
+    let animationId: number;
+    let mainHeights = new Array(16).fill(0);
+    let miniHeights = new Array(10).fill(0);
+
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < bars; i++) {
-        if (isPlaying && volume > 0) {
-          const target = Math.random() * canvas.height * 0.8 + canvas.height * 0.1;
-          heights[i] += (target - heights[i]) * 0.15;
-        } else { heights[i] *= 0.92; }
-        const h = Math.max(2, heights[i]);
-        const gradient = ctx.createLinearGradient(0, canvas.height - h, 0, canvas.height);
-        gradient.addColorStop(0, "rgba(34, 211, 238, 0.9)");
-        gradient.addColorStop(1, "rgba(34, 211, 238, 0.2)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(i * barWidth + 1, canvas.height - h, barWidth - 2, h);
-      }
-      animFrameRef.current = requestAnimationFrame(animate);
+      const drawCanvas = (canvas: HTMLCanvasElement | null, hArray: number[], bars: number) => {
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const barWidth = canvas.width / bars;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < bars; i++) {
+          if (isPlaying && volume > 0) {
+            const target = Math.random() * canvas.height * 0.8 + canvas.height * 0.1;
+            hArray[i] += (target - hArray[i]) * 0.15;
+          } else { hArray[i] *= 0.92; }
+          const h = Math.max(2, hArray[i]);
+          const gradient = ctx.createLinearGradient(0, canvas.height - h, 0, canvas.height);
+          gradient.addColorStop(0, "rgba(34, 211, 238, 0.9)");
+          gradient.addColorStop(1, "rgba(34, 211, 238, 0.2)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(i * barWidth + 1, canvas.height - h, barWidth - 2, h);
+        }
+      };
+
+      drawCanvas(canvasRef.current, mainHeights, 16);
+      drawCanvas(miniCanvasRef.current, miniHeights, 10);
+      animationId = requestAnimationFrame(animate);
     };
+
     animate();
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [isPlaying, volume, minimized]);
+    return () => cancelAnimationFrame(animationId);
+  }, [isPlaying, volume]);
 
   const next = useCallback(() => {
     if (playlist.length === 0) return;
@@ -477,11 +461,10 @@ export default function ChillMusicPlayer() {
     />
   );
 
-  // 🎮 VISTA COMPACTA dentro del emulador (esquina inferior derecha de la barra en L)
-  // Diseño ultra-compacto: avance/retroceso, play/pausa, +/- volumen con indicador,
-  // selector de playlist y botón para abrir/cerrar la lista de canciones.
+  // 🎮 VISTA COMPACTA dentro del emulador
+  // 🔥 Sin padding, botones ultra-pequeños, no tocan los bordes 🔥
   const compactContent = (
-    <div className="w-full p-[5px]">
+    <div className="w-full">
       {renderYT} {renderLocal}
       <div
         className={cn(
@@ -492,13 +475,10 @@ export default function ChillMusicPlayer() {
           "backdrop-blur-sm"
         )}
       >
-        {/* Header neón con scanline */}
-        <div className="relative flex items-center gap-1 px-1.5 py-1 border-b border-neon-cyan/25 bg-neon-cyan/5">
-          <Music className="w-2.5 h-2.5 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
+        <div className="relative flex items-center gap-1 px-1 py-0.5 border-b border-neon-cyan/25 bg-neon-cyan/5">
+          <Music className="w-2 h-2 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
           <div className="relative flex-1 min-w-0 overflow-hidden">
-            <p
-              className="text-[8px] font-pixel text-neon-cyan whitespace-nowrap leading-tight drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate"
-            >
+            <p className="text-[7px] font-pixel text-neon-cyan whitespace-nowrap leading-none drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate mt-[1px]">
               FORBIDDENS PLAYER
             </p>
           </div>
@@ -510,10 +490,9 @@ export default function ChillMusicPlayer() {
           />
         </div>
 
-        {/* 🔥 EL NUEVO CARRUSEL NEÓN EN LUGAR DEL VISUALIZADOR 🔥 */}
-        <div className="px-1.5 pt-1.5 pb-0.5">
+        <div className="px-1 pt-1 pb-0.5">
           <div 
-            className="relative w-full overflow-hidden rounded-sm bg-black/60 border border-neon-cyan/20 h-5 flex items-center" 
+            className="relative w-full overflow-hidden rounded-sm bg-black/60 border border-neon-cyan/20 h-4 flex items-center" 
             style={{ boxShadow: 'inset 0 0 4px rgba(34,211,238,0.2)' }}
           >
             <div className="flex w-max animate-marquee-x whitespace-nowrap">
@@ -523,9 +502,9 @@ export default function ChillMusicPlayer() {
                   className="font-pixel leading-none px-2"
                   style={{
                     color: '#00f2fe',
-                    fontSize: '8px',
-                    letterSpacing: '1px',
-                    textShadow: '0 0 3px rgba(34, 211, 238, 0.9), 0 0 6px rgba(34, 211, 238, 0.6)',
+                    fontSize: '7px',
+                    letterSpacing: '0.5px',
+                    textShadow: '0 0 3px rgba(34, 211, 238, 0.9)',
                   }}
                 >
                   {current?.title ? `♪ ${current.title} ` : "♪ NO SIGNAL ♫ "} •&nbsp;
@@ -535,106 +514,64 @@ export default function ChillMusicPlayer() {
           </div>
         </div>
 
-        {/* Transport apilado verticalmente para que TODO se vea aunque el slot sea muy angosto */}
-        <div className="flex flex-col items-center gap-1 px-1.5 py-1.5">
-          {/* Play / Pause central arriba */}
+        <div className="flex flex-col items-center gap-0.5 px-1 py-1">
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className={cn(
-              "relative p-2 rounded-full border transition-all active:scale-90",
+              "relative p-1.5 rounded-full border transition-all active:scale-90",
               isPlaying
-                ? "bg-neon-magenta/20 border-neon-magenta/60 text-neon-magenta shadow-[0_0_10px_rgba(236,72,153,0.6)]"
-                : "bg-neon-green/20 border-neon-green/60 text-neon-green shadow-[0_0_10px_rgba(74,222,128,0.6)]"
+                ? "bg-neon-magenta/20 border-neon-magenta/60 text-neon-magenta shadow-[0_0_8px_rgba(236,72,153,0.6)]"
+                : "bg-neon-green/20 border-neon-green/60 text-neon-green shadow-[0_0_8px_rgba(74,222,128,0.6)]"
             )}
-            title={isPlaying ? "Pausar" : "Reproducir"}
           >
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-[1px]" />}
+            {isPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current ml-[1px]" />}
           </button>
 
-          {/* Fila prev / next — justo debajo del play */}
-          <div className="flex items-center justify-center gap-1">
-            <button
-              type="button"
-              onClick={prev}
-              className="w-7 h-5 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90"
-              title="Canción anterior"
-              aria-label="Canción anterior"
-            >
-              <SkipBack className="w-2.5 h-2.5 fill-current" />
+          <div className="flex items-center justify-center gap-0.5">
+            <button onClick={prev} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
+              <SkipBack className="w-2 h-2 fill-current" />
             </button>
-            <button
-              type="button"
-              onClick={next}
-              className="w-7 h-5 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90"
-              title="Canción siguiente"
-              aria-label="Canción siguiente"
-            >
-              <SkipForward className="w-2.5 h-2.5 fill-current" />
+            <button onClick={next} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
+              <SkipForward className="w-2 h-2 fill-current" />
             </button>
           </div>
 
-          {/* Fila volumen +/- — debajo de las canciones */}
-          <div className="flex items-center justify-center gap-1">
-            <button
-              type="button"
-              onClick={() => setVolume(v => Math.max(0, v - 10))}
-              className="w-7 h-5 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[12px] leading-none transition-all active:scale-90"
-              title="Bajar volumen"
-              aria-label="Bajar volumen"
-            >
+          <div className="flex items-center justify-center gap-0.5 mt-0.5">
+            <button onClick={() => setVolume(v => Math.max(0, v - 10))} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[10px] leading-none transition-all active:scale-90">
               −
             </button>
-            <button
-              type="button"
-              onClick={() => setVolume(v => Math.min(100, v + 10))}
-              className="w-7 h-5 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[11px] leading-none transition-all active:scale-90"
-              title="Subir volumen"
-              aria-label="Subir volumen"
-            >
+            <button onClick={() => setVolume(v => Math.min(100, v + 10))} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[9px] leading-none transition-all active:scale-90">
               +
             </button>
           </div>
 
-          {/* Indicador volumen (solo número) */}
-          <div className="flex items-center justify-center gap-1">
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-2.5 h-2.5 text-muted-foreground" />
-            ) : (
-              <Volume2 className="w-2.5 h-2.5 text-neon-cyan" />
-            )}
-            <span className="text-[8px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
+          <div className="flex items-center justify-center gap-0.5">
+            {isMuted || volume === 0 ? <VolumeX className="w-2 h-2 text-muted-foreground" /> : <Volume2 className="w-2 h-2 text-neon-cyan" />}
+            <span className="text-[7px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
           </div>
         </div>
 
-        {/* Selector de playlist (popover renderizado vía portal — ver abajo) */}
-        <div className="px-1.5 pb-1.5">
+        <div className="px-1 pb-1">
           <button
             ref={categoryBtnRef}
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowCategoryMenu(v => !v); }}
-            className="w-full flex items-center justify-between gap-1 bg-black/50 hover:bg-neon-cyan/10 border border-neon-cyan/30 hover:border-neon-cyan/60 rounded px-1.5 py-1 transition-all"
-            title="Cambiar playlist"
+            className="w-full flex items-center justify-between gap-0.5 bg-black/50 hover:bg-neon-cyan/10 border border-neon-cyan/30 hover:border-neon-cyan/60 rounded px-1 py-0.5 transition-all"
           >
-            <div className="flex items-center gap-1 min-w-0">
-              <ListFilter className="w-2.5 h-2.5 text-neon-magenta shrink-0" />
-              <span className="text-[8px] font-pixel text-neon-cyan truncate uppercase tracking-wider">
+            <div className="flex items-center gap-0.5 min-w-0">
+              <ListFilter className="w-2 h-2 text-neon-magenta shrink-0" />
+              <span className="text-[6px] font-pixel text-neon-cyan truncate uppercase tracking-wider mt-[1px]">
                 {currentCategory}
               </span>
             </div>
-            {showCategoryMenu
-              ? <ChevronUp className="w-2.5 h-2.5 text-neon-cyan shrink-0" />
-              : <ChevronDown className="w-2.5 h-2.5 text-neon-cyan shrink-0" />}
+            {showCategoryMenu ? <ChevronUp className="w-2 h-2 text-neon-cyan shrink-0" /> : <ChevronDown className="w-2 h-2 text-neon-cyan shrink-0" />}
           </button>
         </div>
       </div>
 
-      {/* Popover de playlist — En emulador se ancla al viewport del juego (igual que el toast),
-          en cualquier otro caso usa el body. En ambos casos hay un backdrop sin fondo que cierra
-          la burbuja al tocar fuera SIN propagar el click a botones detrás. */}
       {showCategoryMenu && categoryBtnRef.current && (() => {
         const emulatorViewport = inEmulator ? document.getElementById('game-bubble-viewport') : null;
         const portalHost = emulatorViewport || document.body;
-        // Posicionamiento: dentro del emulador usamos coords RELATIVAS al viewport.
         const btnRect = categoryBtnRef.current!.getBoundingClientRect();
         let right: number, bottom: number;
         if (emulatorViewport) {
@@ -647,10 +584,7 @@ export default function ChillMusicPlayer() {
         }
         return createPortal(
           <div
-            className={cn(
-              "z-[9999] animate-fade-in",
-              emulatorViewport ? "absolute inset-0" : "fixed inset-0"
-            )}
+            className={cn("z-[9999] animate-fade-in", emulatorViewport ? "absolute inset-0" : "fixed inset-0")}
             onClick={(e) => { e.stopPropagation(); setShowCategoryMenu(false); }}
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -659,28 +593,19 @@ export default function ChillMusicPlayer() {
               className="absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Cola de la burbuja apuntando al botón */}
               <div className="absolute -bottom-[7px] right-3 w-3 h-3 bg-black/95 border-r-2 border-b-2 border-neon-cyan/60 rotate-45" />
               <div className="relative">
                 <div className="px-2 py-1 border-b border-neon-cyan/30 bg-neon-cyan/10">
-                  <p className="text-[8px] font-pixel text-neon-cyan uppercase tracking-widest text-center">
-                    ♪ Playlist ♪
-                  </p>
+                  <p className="text-[8px] font-pixel text-neon-cyan uppercase tracking-widest text-center">♪ Playlist ♪</p>
                 </div>
                 {categories.map(cat => (
                   <button
                     key={cat}
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCategoryChange(cat);
-                      setShowCategoryMenu(false);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); handleCategoryChange(cat); setShowCategoryMenu(false); }}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[9px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
-                      currentCategory === cat
-                        ? "bg-neon-cyan/25 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]"
-                        : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
+                      currentCategory === cat ? "bg-neon-cyan/25 text-neon-cyan shadow-[inset_0_0_8px_rgba(34,211,238,0.3)]" : "text-muted-foreground hover:bg-neon-cyan/10 hover:text-neon-cyan"
                     )}
                   >
                     {cat === "Todos" ? "★ Todos" : cat}
@@ -693,15 +618,11 @@ export default function ChillMusicPlayer() {
         );
       })()}
 
-      {/* 🔔 Notificación "ahora suena" — anclada al viewport del emulador, no interactiva, 3s */}
       {songToast && inEmulator && typeof document !== 'undefined' && (() => {
         const viewport = document.getElementById('game-bubble-viewport');
         if (!viewport) return null;
         return createPortal(
-          <div
-            key={songToast.id}
-            className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-[80] animate-fade-in"
-          >
+          <div key={songToast.id} className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-[80] animate-fade-in">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/85 border border-neon-cyan/60 shadow-[0_0_14px_rgba(34,211,238,0.45),inset_0_0_8px_rgba(34,211,238,0.15)] backdrop-blur-md max-w-[80vw]">
               <Music className="w-3 h-3 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
               <span className="font-pixel text-[8px] text-neon-cyan uppercase tracking-wider drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate">
@@ -715,12 +636,13 @@ export default function ChillMusicPlayer() {
     </div>
   );
 
-  // 🔻 VISTA MINIMIZADA (solo móvil/tablet en footer cerrado, mantiene comportamiento original)
+  // 🔻 VISTA MINIMIZADA (celular con footer cerrado)
+  // 🔥 Mini visualizador + Marquesina Grande 🔥
   const minimizedContent = (
-    <div className="w-full relative shadow-lg">
+    <div className="w-full relative shadow-lg p-[5px]">
       {renderYT} {renderLocal}
-      <div className="bg-card border border-neon-cyan/30 rounded p-2">
-        <div className="flex items-center gap-1.5">
+      <div className="bg-card border border-neon-cyan/30 rounded p-1.5 sm:p-2">
+        <div className="flex items-center gap-1">
           <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground shrink-0 transition-colors">
             <SkipBack className="w-3 h-3" />
           </button>
@@ -731,16 +653,40 @@ export default function ChillMusicPlayer() {
             <SkipForward className="w-3 h-3" />
           </button>
 
-          <canvas ref={miniCanvasRef} width={60} height={16} className="h-4 flex-1 rounded bg-muted/30 ml-1" />
-          <span className="text-[9px] font-body text-neon-cyan truncate max-w-[60px] ml-1">{current?.title || "Cargando..."}</span>
+          {/* Mini Visualizador */}
+          <canvas ref={miniCanvasRef} width={30} height={16} className="h-4 w-8 rounded bg-muted/30 ml-1 shrink-0" />
+          
+          {/* Marquesina Grande */}
+          <div 
+            className="flex-1 overflow-hidden relative h-6 rounded bg-black/60 border border-neon-cyan/20 ml-1 flex items-center" 
+            style={{ boxShadow: 'inset 0 0 4px rgba(34,211,238,0.2)' }}
+          >
+            <div className="flex w-max animate-marquee-x whitespace-nowrap">
+              {[0, 1].map((k) => (
+                <span
+                  key={k}
+                  className="font-pixel leading-none px-2 mt-[1px]"
+                  style={{
+                    color: '#00f2fe',
+                    fontSize: '10px',
+                    letterSpacing: '1px',
+                    textShadow: '0 0 3px rgba(34, 211, 238, 0.9), 0 0 6px rgba(34, 211, 238, 0.6)',
+                  }}
+                >
+                  {current?.title ? `♪ ${current.title} ` : "♪ NO SIGNAL ♫ "} •&nbsp;
+                </span>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={() => {
               setMinimized(false);
               window.dispatchEvent(new Event("openMobilePanel"));
             }}
-            className="p-0.5 text-muted-foreground hover:text-foreground shrink-0 ml-1"
+            className="p-1 text-muted-foreground hover:text-foreground shrink-0 ml-1"
           >
-            <ChevronUp className="w-3 h-3" />
+            <ChevronUp className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -749,7 +695,7 @@ export default function ChillMusicPlayer() {
 
   // 🖥️ VISTA COMPLETA (desktop o móvil con footer abierto)
   const fullContent = (
-    <div className="w-full relative shadow-lg">
+    <div className="w-full relative shadow-lg p-[5px]">
       {renderYT} {renderLocal}
       <div className="bg-card border border-neon-cyan/30 rounded overflow-visible relative">
         <div className="flex flex-col border-b border-border/50">
@@ -782,11 +728,31 @@ export default function ChillMusicPlayer() {
           <canvas ref={canvasRef} width={200} height={32} className="w-full h-8 rounded bg-muted/30" />
         </div>
 
-        <div className="px-2.5 py-1.5 text-center">
-          <p className="text-[10px] font-body text-foreground truncate">{current?.title || (playlist.length === 0 ? "Sin canciones..." : "Cargando música...")}</p>
+        <div className="px-2.5 py-1.5 text-center flex justify-center">
+          <div 
+            className="relative w-full max-w-[90%] overflow-hidden rounded bg-black/60 border border-neon-cyan/30 h-6 flex items-center" 
+            style={{ boxShadow: 'inset 0 0 6px rgba(34,211,238,0.2)' }}
+          >
+            <div className="flex w-max animate-marquee-x whitespace-nowrap">
+              {[0, 1, 2].map((k) => (
+                <span
+                  key={k}
+                  className="font-pixel leading-none px-4 mt-[1px]"
+                  style={{
+                    color: '#00f2fe',
+                    fontSize: '9px',
+                    letterSpacing: '1px',
+                    textShadow: '0 0 4px rgba(34, 211, 238, 0.9), 0 0 8px rgba(34, 211, 238, 0.6)',
+                  }}
+                >
+                  {current?.title ? `♪ ${current.title} ` : "Cargando música... "} •&nbsp;
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-center gap-3 px-2.5 pb-1">
+        <div className="flex items-center justify-center gap-3 px-2.5 pb-1 pt-1">
           <button onClick={prev} className="p-1 text-muted-foreground hover:text-foreground"><SkipBack className="w-3.5 h-3.5" /></button>
           <button onClick={() => setIsPlaying(!isPlaying)} className="p-1.5 rounded-full bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/30 transition-colors">{isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}</button>
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
@@ -844,14 +810,8 @@ export default function ChillMusicPlayer() {
     </div>
   );
 
-  // 🎯 Selección de qué vista mostrar según el slot
-  // - emulator → vista compacta (siempre)
-  // - mobile (sin emulador) → respeta el flag `minimized` (footer cerrado)
-  // - desktop → vista completa
   const content = inEmulator ? compactContent : minimized ? minimizedContent : fullContent;
 
-  // Si todavía no encontramos el slot DOM, no renderizamos nada (el audio sigue intacto
-  // dentro del propio JSX porque está dentro de `content`, así que se montará en cuanto exista).
   if (!portalTarget) return null;
   return createPortal(content, portalTarget);
 }
