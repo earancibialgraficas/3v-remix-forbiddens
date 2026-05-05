@@ -342,10 +342,10 @@ function SnapCard({
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
-    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-2")}>
+    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
+      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 md:mt-[5px]", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -366,7 +366,7 @@ function SnapCard({
               src={getSafeUrl(targetImgUrl)} 
               alt={item.title || "Imagen"} 
               referrerPolicy="no-referrer"
-              className={cn("w-full h-full p-2 transition-transform duration-500", cinemaMode ? "object-contain scale-100" : "object-contain")} 
+              className={cn("w-full h-full p-2 transition-all duration-300", cinemaMode ? "object-contain scale-100" : "object-contain")} 
               onError={(e) => {
                 if (e.currentTarget.src !== targetImgUrl) {
                   e.currentTarget.src = targetImgUrl;
@@ -389,16 +389,16 @@ function SnapCard({
             controls 
             loop
             playsInline
-            className="w-full h-full object-contain z-10 transition-transform duration-500" 
+            className="w-full h-full object-contain z-10" 
             onError={() => setMediaError(true)}
           />
         ) : finalEmbedUrl ? (
-          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-500 origin-center z-10"
+          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center z-10"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
             <iframe 
               src={finalEmbedUrl} 
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; clipboard-write; gyroscope" 
-              className={cn("w-full h-full bg-transparent outline-none shadow-2xl transition-all duration-500", !cinemaMode && "md:rounded-xl", item.platform === 'instagram' ? "bg-white" : "")} 
+              className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} 
               style={{ border: "none" }} 
               scrolling="no" 
               allowFullScreen 
@@ -431,7 +431,7 @@ function SnapCard({
                : "bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 items-end justify-between bg-gradient-to-t from-black/90 via-black/40 to-transparent flex-row"
           )}>
              
-             {/* Avatar y Burbuja Glassmorphism */}
+             {/* Izquierda (Horizontal) / Arriba (Vertical): Avatar y Burbuja Glassmorphism */}
              <div className="relative pointer-events-auto group/bubble"
                   onMouseEnter={() => setShowBubble(true)}
                   onMouseLeave={() => setShowBubble(false)}>
@@ -458,7 +458,7 @@ function SnapCard({
                 </div>
              </div>
 
-             {/* Acciones Rápidas */}
+             {/* Centro (Horizontal) / Medio (Vertical): Acciones Rápidas (Iconos más pequeños) */}
              <div className={cn("flex items-center pointer-events-auto", isVerticalReel ? "flex-col gap-3" : "absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6 gap-2 md:gap-4")}>
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
                    <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
@@ -490,7 +490,7 @@ function SnapCard({
                 )}
              </div>
 
-             {/* Subir / Bajar */}
+             {/* Derecha (Horizontal) / Abajo (Vertical): Subir / Bajar */}
              <div className={cn("flex pointer-events-auto", isVerticalReel ? "flex-col gap-2 mt-2" : "gap-2")}>
                 <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
                    <ChevronUp className="w-4 h-4 text-white group-hover:text-neon-cyan transition-colors" />
@@ -535,7 +535,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t z-[70] p-4 md:p-4" 
-          : "absolute md:relative top-[44px] md:top-0 right-0 h-[calc(100%-44px)] md:h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[44px]", 
+          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[50px]", 
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full md:translate-x-0" : "",
