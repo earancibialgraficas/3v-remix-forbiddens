@@ -142,9 +142,9 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  // 🔥 MODO CINE PERSISTENTE 🔥
-  const canCinema = item.platform === 'youtube' || item.platform === 'facebook' || isDirectMp4 || isPhoto;
-  const cinemaMode = globalCinemaMode && canCinema;
+  // 🔥 MODO CINE UNIVERSAL Y DETECCIÓN DE REELS 🔥
+  const cinemaMode = globalCinemaMode; 
+  const isVerticalReel = item.content_type === 'reel' || ['tiktok', 'instagram', 'facebook'].includes(item.platform) || (item.content_url || '').toLowerCase().includes('shorts');
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -342,10 +342,10 @@ function SnapCard({
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
-    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-3")}>
+    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-2")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0 md:mb-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md md:mb-2")}>
+      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -366,7 +366,7 @@ function SnapCard({
               src={getSafeUrl(targetImgUrl)} 
               alt={item.title || "Imagen"} 
               referrerPolicy="no-referrer"
-              className={cn("w-full h-full p-2 transition-all duration-300", cinemaMode ? "object-contain scale-100" : "object-contain")} 
+              className={cn("w-full h-full p-2 transition-transform duration-500", cinemaMode ? "object-contain scale-100" : "object-contain")} 
               onError={(e) => {
                 if (e.currentTarget.src !== targetImgUrl) {
                   e.currentTarget.src = targetImgUrl;
@@ -389,16 +389,16 @@ function SnapCard({
             controls 
             loop
             playsInline
-            className="w-full h-full object-contain z-10" 
+            className="w-full h-full object-contain z-10 transition-transform duration-500" 
             onError={() => setMediaError(true)}
           />
         ) : finalEmbedUrl ? (
-          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center z-10"
+          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-500 origin-center z-10"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
             <iframe 
               src={finalEmbedUrl} 
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; clipboard-write; gyroscope" 
-              className={cn("w-full h-full bg-transparent outline-none md:rounded-xl shadow-2xl", item.platform === 'instagram' ? "bg-white" : "")} 
+              className={cn("w-full h-full bg-transparent outline-none shadow-2xl transition-all duration-500", !cinemaMode && "md:rounded-xl", item.platform === 'instagram' ? "bg-white" : "")} 
               style={{ border: "none" }} 
               scrolling="no" 
               allowFullScreen 
@@ -414,86 +414,96 @@ function SnapCard({
         )}
 
         {/* 🔥 BOTÓN TOGGLE MODO CINE (z-[100]) 🔥 */}
-        {canCinema && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
-            className="absolute top-4 right-4 z-[100] p-2.5 bg-black/60 hover:bg-black/90 rounded-full text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group"
-            title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
-          >
-             {cinemaMode ? <Minimize className="w-5 h-5 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-5 h-5 group-hover:scale-110 transition-transform"/>}
-          </button>
-        )}
+        <button 
+          onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
+          className="absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group"
+          title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
+        >
+           {cinemaMode ? <Minimize className="w-4 h-4 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform"/>}
+        </button>
 
-        {/* 🔥 BARRA INFERIOR ATENUADA EN MODO CINE 🔥 */}
+        {/* 🔥 BARRA INFERIOR / LATERAL ATENUADA EN MODO CINE 🔥 */}
         {cinemaMode && (
-          <div className="absolute bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 flex items-end justify-between z-[100] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none opacity-30 hover:opacity-100 transition-opacity duration-300">
+          <div className={cn(
+             "absolute z-[100] transition-opacity duration-300 opacity-30 hover:opacity-100 flex pointer-events-none",
+             isVerticalReel
+               ? "right-2 md:right-4 bottom-20 md:bottom-24 flex-col items-center gap-4"
+               : "bottom-0 left-0 w-full px-4 md:px-8 pb-4 md:pb-6 pt-24 items-end justify-between bg-gradient-to-t from-black/90 via-black/40 to-transparent flex-row"
+          )}>
              
-             {/* Izquierda: Avatar interactivo + Burbuja Glassmorphism */}
-             <div className="relative pointer-events-auto"
+             {/* Avatar y Burbuja Glassmorphism */}
+             <div className="relative pointer-events-auto group/bubble"
                   onMouseEnter={() => setShowBubble(true)}
-                  onMouseLeave={() => setShowBubble(false)}
-                  onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }}
-             >
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
+                  onMouseLeave={() => setShowBubble(false)}>
+                
+                <div onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }} 
+                     className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
                    {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-2 text-white" />}
                 </div>
 
                 {/* 💬 Burbuja Flotante de Detalles 💬 */}
-                <div className={cn("absolute bottom-full left-0 mb-3 w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl z-[120] transition-all duration-300 origin-bottom-left", showBubble ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none")}>
-                   <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-xs font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
-                   <div className="text-[9px] text-muted-foreground mb-2">{formatFeedDate(item.created_at)}</div>
-                   <p className="text-[10px] text-white/90 line-clamp-3 leading-snug mb-3">{item.caption || item.title || "Sin descripción."}</p>
-                   <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); setShowBubble(false); }} className="w-full text-[10px] text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 py-1.5 rounded-lg hover:bg-neon-cyan/20 transition-colors">LEER MÁS</button>
+                <div className={cn("absolute transition-all duration-300 z-[120]",
+                    showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
+                    isVerticalReel ? "right-full top-0 mr-4 origin-top-right" : "bottom-full left-0 mb-4 origin-bottom-left"
+                )}>
+                   {/* Puente invisible */}
+                   <div className={cn("absolute bg-transparent", isVerticalReel ? "-right-4 top-0 w-4 h-full" : "-bottom-4 left-0 w-full h-4")} />
+                   
+                   <div className="w-56 md:w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
+                      <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] md:text-xs font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
+                      <div className="text-[8px] md:text-[9px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
+                      <p className="text-[9px] md:text-[10px] text-white/90 line-clamp-3 leading-snug mb-2">{item.caption || item.title || "Sin descripción."}</p>
+                      <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); setShowBubble(false); }} className="w-full text-[9px] md:text-[10px] text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 py-1.5 rounded-lg hover:bg-neon-cyan/20 transition-colors">LEER MÁS</button>
+                   </div>
                 </div>
              </div>
 
-             {/* Centro: Acciones Rápidas (Iconos más pequeños) */}
-             <div className="flex items-center gap-2 md:gap-4 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6">
-                <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsUp className={cn("w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+             {/* Acciones Rápidas */}
+             <div className={cn("flex items-center pointer-events-auto", isVerticalReel ? "flex-col gap-3" : "absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6 gap-2 md:gap-4")}>
+                <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
+                   <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
                    </div>
-                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{likes}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
                 </button>
 
-                <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                      <ThumbsDown className={cn("w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+                <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
+                   <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsDown className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
                    </div>
-                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{dislikes}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
                 </button>
 
-                <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-1 group">
-                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                      <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4 text-neon-cyan transition-transform group-active:scale-90" />
+                <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
+                   <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                      <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
                    </div>
-                   <span className="text-white text-[9px] md:text-[10px] font-bold drop-shadow-md">{comments.length}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
                 </button>
 
                 {user && !isOwner && (
-                   <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-1 group">
-                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                         <Flag className="w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform group-active:scale-90" />
+                   <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group">
+                      <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                         <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
                       </div>
-                      <span className="text-white text-[9px] font-bold drop-shadow-md opacity-0">.</span>
                    </button>
                 )}
              </div>
 
-             {/* Derecha: Subir / Bajar */}
-             <div className="flex gap-2 pointer-events-auto">
-                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronUp className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:text-neon-cyan transition-colors" />
+             {/* Subir / Bajar */}
+             <div className={cn("flex pointer-events-auto", isVerticalReel ? "flex-col gap-2 mt-2" : "gap-2")}>
+                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronUp className="w-4 h-4 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
-                   <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:text-neon-cyan transition-colors" />
+                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronDown className="w-4 h-4 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
              </div>
           </div>
         )}
       </div>
 
-      {/* CONTROLES FLOTANTES MÓVIL (Ocultos en Modo Cine) */}
+      {/* CONTROLES FLOTANTES MÓVIL NORMAL (Ocultos en Modo Cine) */}
       {!cinemaMode && (
         <div className="md:hidden absolute right-3 bottom-24 z-20 flex flex-col items-center gap-5">
           <button onClick={() => handleReaction("like")} className="flex flex-col items-center gap-1 group">
@@ -525,7 +535,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t z-[70] p-4 md:p-4" 
-          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[50px]", // Espaciado perfecto de 8px entre Filtro y Panel en PC
+          : "absolute md:relative top-[44px] md:top-0 right-0 h-[calc(100%-44px)] md:h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] z-40 p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[44px]", 
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full md:translate-x-0" : "",
@@ -1047,18 +1057,16 @@ export default function FeedPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
-  // Chequeo global para atenuar o esconder filtros
+  // Variables para la barra de filtros dinámica del Modo Cine
   const currentItem = filteredItems[visibleIndex];
-  const isCurrentDirectMp4 = !!currentItem?.content_url?.toLowerCase().match(/\.(mp4|webm|ogg)$/);
-  const isCurrentPhoto = currentItem?.target_type === 'photo' || currentItem?.content_type === 'photo' || currentItem?.platform === 'upload' || (currentItem?.platform === 'instagram' && currentItem?.content_type !== 'reel') || !!currentItem?.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
-  const canCinemaCurrent = currentItem && (currentItem.platform === 'youtube' || currentItem.platform === 'facebook' || isCurrentDirectMp4 || isCurrentPhoto);
-  const isCinemaActive = globalCinemaMode && canCinemaCurrent;
+  const isCurrentVerticalReel = currentItem && (currentItem.content_type === 'reel' || ['tiktok', 'instagram', 'facebook'].includes(currentItem.platform) || (currentItem.content_url || '').toLowerCase().includes('shorts'));
+  const isCinemaActive = globalCinemaMode;
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden pb-1 md:pb-2">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden pb-1 md:pb-2 bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
-      <div className={cn("transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden shrink-0 mx-1 md:mx-2", showHeader ? "max-h-[100px] opacity-100 mt-1" : "max-h-0 opacity-0 mt-0")}>
+      <div className={cn("absolute top-0 left-0 w-full z-[150] transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] px-1 md:px-2 pt-1", showHeader ? "translate-y-0" : "-translate-y-full pointer-events-none")}>
         <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
@@ -1066,16 +1074,17 @@ export default function FeedPage() {
         </div>
       </div>
 
-      <div className="flex-1 w-full relative flex flex-col min-h-0 md:mt-[5px]">
+      {/* 🔥 CONTENEDOR PRINCIPAL QUE SUBE SIN EXPANDIRSE 🔥 */}
+      <div className={cn("absolute left-0 w-full h-[calc(100%-5px)] flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]", showHeader ? "translate-y-[76px] md:translate-y-[80px]" : "translate-y-[5px]")}>
         
-        {/* 🔥 FILTRO MÓVIL 🔥 */}
+        {/* 🔥 FILTRO UNIFICADO (Móvil y PC idénticos) 🔥 */}
         <div className={cn(
-          "md:hidden flex gap-2 items-center shrink-0 shadow-sm justify-between transition-all duration-300",
+          "flex items-center shadow-sm absolute transition-all duration-500 z-[100] origin-top-left",
           isCinemaActive 
-            ? "absolute left-2 top-2 right-2 z-[100] bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 opacity-30 hover:opacity-100"
-            : "relative bg-card border border-border rounded-xl p-1 mx-1 mb-1 z-10"
+            ? cn("bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90", isCurrentVerticalReel ? "flex-col left-4 top-4 gap-2" : "flex-row left-4 top-4 gap-1")
+            : "flex-row left-1 right-1 md:left-auto md:right-2 top-0 w-auto md:w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1 gap-1"
         )}>
-          <div className="relative group flex-1 min-w-[100px]">
+          <div className="relative group flex-1 min-w-[80px] w-full">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
@@ -1089,50 +1098,18 @@ export default function FeedPage() {
             </select>
             <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
           </div>
-
-          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
-               <Flame className={cn("w-3 h-3 mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> Top
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-3 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
-               <Sparkles className={cn("w-3 h-3 mr-1", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
-            </Button>
-          </div>
-        </div>
-
-        {/* 🔥 FILTRO DESKTOP 🔥 */}
-        <div className={cn(
-          "hidden md:flex gap-1 items-center shadow-sm absolute transition-all duration-500",
-          isCinemaActive
-            ? "left-4 top-4 z-[100] bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left"
-            : "right-2 top-0 z-20 w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1"
-        )}>
-          <div className="relative group flex-1 min-w-[80px]">
-            <select 
-              value={sourceTab === "friends" ? "friends" : filter} 
-              onChange={e => handleFilterChange(e.target.value)} 
-              className="w-full h-8 bg-muted/30 border border-border rounded-lg text-[10px] font-body text-foreground font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-muted/50 transition-colors"
-            >
-              <option value="all">Todos</option>
-              <option value="videos">Videos</option>
-              <option value="reels">Reels</option>
-              <option value="photos">Imágenes</option>
-              {user && <option value="friends">Amigos</option>}
-            </select>
-            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
-          </div>
-          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
+          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0 w-full md:w-auto justify-center">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors flex-1 md:flex-none", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
                <Flame className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors flex-1 md:flex-none", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
                <Sparkles className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
             </Button>
           </div>
         </div>
 
         {filteredItems.length === 0 && !isFetching ? (
-          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-2">
+          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-[44px]">
             <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
             <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
@@ -1140,7 +1117,7 @@ export default function FeedPage() {
             </Button>
           </div>
         ) : (
-          <div className="relative flex-1 min-h-0 w-full overflow-hidden">
+          <div className="relative flex-1 min-h-0 w-full overflow-hidden pt-[44px] md:pt-0">
             <div 
               ref={containerRef} 
               className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
