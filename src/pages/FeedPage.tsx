@@ -13,7 +13,6 @@ import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-
 const getSafeUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('supabase.co')) return url;
@@ -578,7 +577,7 @@ function SnapCard({
           </button>
 
           {user && !isOwner && (
-             <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group">
+             <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group mt-0.5">
                 <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
                    <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
                 </div>
@@ -607,7 +606,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]",
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "",
@@ -1163,7 +1162,7 @@ export default function FeedPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
+    <div className="animate-fade-in flex flex-col h-full w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
@@ -1175,15 +1174,7 @@ export default function FeedPage() {
       </div>
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
-      <div className={cn(
-        "w-full relative flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform",
-        "lg:flex-1 lg:relative", 
-        "h-[calc(100%-5px)]",
-        showHeader ? "translate-y-[76px] lg:translate-y-[80px]" : "translate-y-[5px] lg:translate-y-[5px]",
-        "mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
-      )}
-      style={{ transform: "translateZ(0)" }} // Hardware acceleration para evitar glitches en celular
-      >
+      <div className="w-full relative flex flex-col flex-1 min-h-0 lg:mt-[5px] transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform" style={{ transform: "translateZ(0)" }}>
         
         {/* 🔥 FILTRO MÓVIL+TABLET (Vertical, Esquina Superior Derecha, Ultra Compacto) 🔥 */}
         <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg transform-gpu scale-[0.80] origin-top-right"
@@ -1261,7 +1252,7 @@ export default function FeedPage() {
               <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               
               {filteredItems.map((item, i) => (
-                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always pb-2 lg:pb-0">
+                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always pb-1 lg:pb-0">
                   <SnapCard 
                     item={item} 
                     isVisible={i === visibleIndex} 
