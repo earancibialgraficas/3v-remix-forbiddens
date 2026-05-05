@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
@@ -92,48 +92,47 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const lastFetch = useRef(0);
 
+  // 🔥 SISTEMA DE CARGA PASIVA (REEMPLAZA AL TIEMPO REAL) 🔥
   useEffect(() => {
     if (!user?.id) return;
-    const fetchInboxCount = async () => {
-      try {
-        const { count } = await supabase.from("inbox_messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("is_read", false);
-        setUnreadPublic(count || 0);
-      } catch (e) {}
-    };
-    fetchInboxCount();
-    window.addEventListener("updateBadges", fetchInboxCount);
     
-    // 🔥 Si es celular, detenemos la suscripción en tiempo real para evitar pantallas negras 🔥
-    if (isMobile) {
-      return () => window.removeEventListener("updateBadges", fetchInboxCount);
-    }
-
-    const channel = supabase.channel(`sidebar-inbox-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `receiver_id=eq.${user.id}` }, () => fetchInboxCount()).subscribe();
-    return () => { window.removeEventListener("updateBadges", fetchInboxCount); supabase.removeChannel(channel); };
-  }, [user?.id, isMobile]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const fetchNotifsCount = async () => {
+    const fetchBadges = async () => {
       try {
-        const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false);
-        const { count: reqCount } = await supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending");
-        setUnreadNotifications((count || 0) + (reqCount || 0));
+        const [ { count: inboxCount }, { count: notifCount }, { count: reqCount } ] = await Promise.all([
+          supabase.from("inbox_messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("is_read", false),
+          supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
+          supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending")
+        ]);
+        setUnreadPublic(inboxCount || 0);
+        setUnreadNotifications((notifCount || 0) + (reqCount || 0));
       } catch (e) {}
     };
-    fetchNotifsCount();
-    window.addEventListener("updateBadges", fetchNotifsCount);
 
-    // 🔥 Si es celular, detenemos la suscripción en tiempo real para evitar pantallas negras 🔥
-    if (isMobile) {
-      return () => window.removeEventListener("updateBadges", fetchNotifsCount);
-    }
+    fetchBadges(); // Carga inicial
+    const interval = setInterval(fetchBadges, 5000); // Revisa cada 5s por si acaso
 
-    const channel1 = supabase.channel(`sidebar-notifs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
-    const channel2 = supabase.channel(`sidebar-reqs-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchNotifsCount()).subscribe();
-    return () => { window.removeEventListener("updateBadges", fetchNotifsCount); supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
-  }, [user?.id, isMobile]);
+    // Disparador pasivo: Se ejecuta en interacciones comunes sin saturar
+    const passiveRefresh = () => {
+      const now = Date.now();
+      if (now - lastFetch.current > 2000) { // Throttling: máximo 1 vez cada 2s
+        lastFetch.current = now;
+        fetchBadges();
+      }
+    };
+
+    window.addEventListener("click", passiveRefresh);
+    window.addEventListener("focus", passiveRefresh);
+    window.addEventListener("scroll", passiveRefresh, { passive: true });
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("click", passiveRefresh);
+      window.removeEventListener("focus", passiveRefresh);
+      window.removeEventListener("scroll", passiveRefresh);
+    };
+  }, [user?.id, location.pathname]); // Se actualiza también si cambias de página
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -194,15 +193,19 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         <div className={cn("p-2 border-b border-border flex flex-col bg-muted/5", collapsed ? "items-center gap-2 py-3" : "px-3 items-start gap-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-1.5" : "gap-2")}>
             <div className="relative">
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Perfil y Avisos">
-                <Link to="/perfil"><User className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
+              <Button variant="ghost" size="icon" className="h-8 w-8 relative" asChild title="Perfil y Avisos">
+                <Link to="/perfil">
+                  <User className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  
+                  {/* 🔥 EL PUNTO ROJO NEÓN SOBRE EL PERFIL 🔥 */}
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1 right-1 flex h-2.5 w-2.5 z-30 pointer-events-none">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive border border-background shadow-[0_0_8px_rgba(220,38,38,0.9)]"></span>
+                    </span>
+                  )}
+                </Link>
               </Button>
-              {/* 🔥 Se oculta la campana dentro del Sidebar en celular porque ahora vive afuera 🔥 */}
-              {!isMobile && unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-white h-4 w-4 flex items-center justify-center rounded-full animate-pulse shadow-sm pointer-events-none z-30">
-                  <Bell className="w-2.5 h-2.5" />
-                </span>
-              )}
             </div>
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Bandeja Pública">
