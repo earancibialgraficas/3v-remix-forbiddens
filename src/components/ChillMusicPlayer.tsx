@@ -336,7 +336,6 @@ export default function ChillMusicPlayer() {
     onPauseMusic(() => setIsPlaying(false));
   }, [onPauseMusic]);
 
-  // 🔥 ARREGLO DEL VISUALIZADOR: Un loop maestro que renderiza dinámicamente el canvas activo 🔥
   useEffect(() => {
     let animationId: number;
     let mainHeights = new Array(16).fill(0);
@@ -462,7 +461,6 @@ export default function ChillMusicPlayer() {
   );
 
   // 🎮 VISTA COMPACTA dentro del emulador
-  // 🔥 Sin padding, botones ultra-pequeños, no tocan los bordes 🔥
   const compactContent = (
     <div className="w-full">
       {renderYT} {renderLocal}
@@ -618,11 +616,12 @@ export default function ChillMusicPlayer() {
         );
       })()}
 
+      {/* 🔥 AVISO CENTRADO PERFECTAMENTE 🔥 */}
       {songToast && inEmulator && typeof document !== 'undefined' && (() => {
         const viewport = document.getElementById('game-bubble-viewport');
         if (!viewport) return null;
         return createPortal(
-          <div key={songToast.id} className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-[80] animate-fade-in">
+          <div key={songToast.id} className="pointer-events-none absolute top-4 left-0 w-full flex justify-center z-[80] animate-fade-in">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/85 border border-neon-cyan/60 shadow-[0_0_14px_rgba(34,211,238,0.45),inset_0_0_8px_rgba(34,211,238,0.15)] backdrop-blur-md max-w-[80vw]">
               <Music className="w-3 h-3 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
               <span className="font-pixel text-[8px] text-neon-cyan uppercase tracking-wider drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate">
@@ -636,8 +635,7 @@ export default function ChillMusicPlayer() {
     </div>
   );
 
-  // 🔻 VISTA MINIMIZADA (celular con footer cerrado)
-  // 🔥 Mini visualizador + Marquesina Grande 🔥
+  // 🔻 VISTA MINIMIZADA
   const minimizedContent = (
     <div className="w-full relative shadow-lg p-[5px]">
       {renderYT} {renderLocal}
@@ -653,10 +651,8 @@ export default function ChillMusicPlayer() {
             <SkipForward className="w-3 h-3" />
           </button>
 
-          {/* Mini Visualizador */}
           <canvas ref={miniCanvasRef} width={30} height={16} className="h-4 w-8 rounded bg-muted/30 ml-1 shrink-0" />
           
-          {/* Marquesina Grande */}
           <div 
             className="flex-1 overflow-hidden relative h-6 rounded bg-black/60 border border-neon-cyan/20 ml-1 flex items-center" 
             style={{ boxShadow: 'inset 0 0 4px rgba(34,211,238,0.2)' }}
@@ -693,7 +689,7 @@ export default function ChillMusicPlayer() {
     </div>
   );
 
-  // 🖥️ VISTA COMPLETA (desktop o móvil con footer abierto)
+  // 🖥️ VISTA COMPLETA
   const fullContent = (
     <div className="w-full relative shadow-lg p-[5px]">
       {renderYT} {renderLocal}
