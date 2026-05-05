@@ -501,8 +501,9 @@ function SnapCard({
                 </button>
              </div>
         </div>
+      </div>
 
-      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL - Siempre visible, atenuada en Cine) 🔥 */}
+      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - vertical compacta) 🔥 */}
       <div className={cn(
         "lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300",
         cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
