@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Minimize, RectangleHorizontal } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Minimize, RectangleHorizontal, Maximize2, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,7 +27,7 @@ const formatFeedDate = (dateStr: string) => {
   return `${d.toLocaleDateString()} a las ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
 };
 
-interface FeedItem {
+interface SocialItem {
   id: string;
   user_id: string;
   platform: string;
@@ -88,17 +89,57 @@ const getAdvancedEmbedUrl = (url: string, platform: string) => {
   return baseEmbed;
 };
 
-const isVideoItem = (item: FeedItem | any) => {
+const isVideoItem = (item: SocialItem | any) => {
   return item.content_type === 'video' || item.content_type === 'reel';
 };
 
-const isReelItem = (item: FeedItem) => {
+const isReelItem = (item: SocialItem) => {
   return item.content_type === 'reel';
 };
 
-const isHorizontalVideo = (item: FeedItem) => {
+const isHorizontalVideo = (item: SocialItem) => {
   return item.content_type === 'video';
 };
+
+// Modal opcional por si se llega a colar alguna imagen estática en los reels
+function MediaModalFeed({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
+  const isImage = type === "image";
+  
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-end mb-2 gap-2 w-full z-10">
+          {isImage && (
+            <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar">
+              <Download className="w-5 h-5 text-white" />
+            </a>
+          )}
+          <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative flex items-center justify-center">
+          {type === "video" ? (
+            <video src={src} controls autoPlay className="w-full max-h-[80vh] rounded-xl" />
+          ) : (
+            <img src={src} alt="" className="w-full max-h-[80vh] object-contain rounded-xl" />
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 function SnapCard({ 
   item, 
@@ -116,7 +157,7 @@ function SnapCard({
   onScrollUp,
   onScrollDown
 }: { 
-  item: FeedItem; 
+  item: SocialItem; 
   isVisible: boolean; 
   onPauseMusic: () => void;
   isStaff: boolean;
@@ -127,7 +168,7 @@ function SnapCard({
   onDeletePost: (id: string, targetType: string) => void;
   onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
-  onSavePost: (item: FeedItem) => void;
+  onSavePost: (item: SocialItem) => void;
   onScrollUp: () => void;
   onScrollDown: () => void;
 }) {
@@ -149,6 +190,10 @@ function SnapCard({
   // 🔥 MODO CINE AUTOMÁTICO EN MÓVIL POR ROTACIÓN 🔥
   const isCinemaActive = isMobileState ? isLandscape : globalCinemaMode;
   const cinemaMode = isCinemaActive;
+
+  // 📐 DETECCIÓN INTELIGENTE DE FORMATO (Para cambiar la botonera móvil a la parte de abajo)
+  const isVerticalReel = item.content_type === 'reel' || ['tiktok', 'instagram', 'facebook'].includes(item.platform) || (item.content_url || '').toLowerCase().includes('shorts');
+  const isFloatingBottom = !isVerticalReel;
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -174,6 +219,7 @@ function SnapCard({
   const [mediaError, setMediaError] = useState(false);
 
   const [showBubble, setShowBubble] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false);
 
   const votingRef = useRef(false);
 
@@ -204,8 +250,9 @@ function SnapCard({
     if (isVisible && isVideo && !isDirectMp4) {
       onPauseMusic();
     }
-  }, [isVisible, isVideo, isDirectMp4]);
+  }, [isVisible, isVideo, isDirectMp4, onPauseMusic]);
 
+  // 🔥 Optimización extrema: requestAnimationFrame para el ResizeObserver 🔥
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
     let animationFrameId: number;
@@ -373,7 +420,7 @@ function SnapCard({
         )}
 
         {isPhoto ? (
-          <div className="relative w-full h-full flex items-center justify-center group/ig z-10">
+          <div className="relative w-full h-full flex items-center justify-center group/ig z-10 cursor-pointer" onClick={() => setShowMediaModal(true)}>
             <img 
               src={getSafeUrl(targetImgUrl)} 
               alt={item.title || "Imagen"} 
@@ -388,11 +435,14 @@ function SnapCard({
               }}
             />
             {isInstagram && (
-              <a href={item.content_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover/ig:opacity-100 transition-opacity lg:rounded-xl">
+              <a href={item.content_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover/ig:opacity-100 transition-opacity lg:rounded-xl" onClick={e => e.stopPropagation()}>
                 <Instagram className="w-12 h-12 text-white mb-2" />
                 <span className="text-white font-pixel text-[10px] uppercase tracking-widest text-center px-4">Ver en Instagram</span>
               </a>
             )}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/ig:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-6 h-6 text-white" /></div>
+            </div>
           </div>
         ) : isDirectMp4 ? (
           <video 
@@ -515,14 +565,16 @@ function SnapCard({
         )}
       </div>
 
-      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - GPU Accelerated) 🔥 */}
+      {/* 🔥 BOTONERA INTELIGENTE MÓVIL+TABLET (Vertical para Reels, Abajo para Clásicos) 🔥 */}
       <div className={cn(
-        "lg:hidden absolute right-1 top-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300 transform-gpu",
-        cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
+        "lg:hidden absolute z-[90] flex pointer-events-auto transition-opacity duration-300 transform-gpu",
+        cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
+        isFloatingBottom 
+          ? "bottom-[20px] left-0 w-full px-3 flex-row items-end justify-between"
+          : "right-1 top-1/2 -translate-y-1/2 flex-col items-center justify-center gap-2.5 py-4 landscape:scale-90 landscape:origin-right"
       )}
-      style={{ transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      style={isFloatingBottom ? { transform: "translateZ(0)" } : { transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
-        
         {/* Avatar + Burbuja Movil */}
         <div className="relative pointer-events-auto group/bubble"
              onMouseEnter={() => setShowBubble(true)}
@@ -535,9 +587,9 @@ function SnapCard({
 
            <div className={cn("absolute transition-all duration-300 z-[120]",
                showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
-               "right-full top-0 mr-3 origin-top-right"
+               isFloatingBottom ? "bottom-full left-0 mb-3 origin-bottom-left" : "right-full top-0 mr-3 origin-top-right"
            )}>
-              <div className="absolute bg-transparent right-[-16px] top-0 w-4 h-full" />
+              <div className={cn("absolute bg-transparent", isFloatingBottom ? "bottom-[-16px] left-0 w-full h-4" : "right-[-16px] top-0 w-4 h-full")} />
               <div className="w-56 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
                  <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                  <div className="text-[8px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
@@ -547,41 +599,41 @@ function SnapCard({
            </div>
         </div>
 
-        {/* Likes */}
-        <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group mt-1">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-              <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
-        </button>
+        {/* Acciones */}
+        <div className={cn("flex items-center pointer-events-auto", isFloatingBottom ? "absolute left-1/2 -translate-x-1/2 flex-row gap-2.5" : "flex-col gap-0.5 mt-1")}>
+          <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
+          </button>
 
-        {/* Dislikes */}
-        <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-              <ThumbsDown className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
-        </button>
+          <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                <ThumbsDown className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
+          </button>
 
-        {/* Comments */}
-        <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:bg-black/80 transition-colors">
-              <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
-        </button>
+          <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:bg-black/80 transition-colors">
+                <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
+          </button>
 
-        {/* Report */}
-        {user && !isOwner && (
-           <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group mt-0.5">
-              <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                 <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
-              </div>
-           </button>
-        )}
+          {user && !isOwner && (
+             <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group mt-0.5">
+                <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                   <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
+                </div>
+                {isFloatingBottom && <span className="text-transparent text-[9px] select-none">0</span>}
+             </button>
+          )}
+        </div>
 
         {/* Flechas Subir/Bajar */}
-        <div className="flex flex-col gap-1 mt-1.5">
+        <div className={cn("flex pointer-events-auto", isFloatingBottom ? "flex-row gap-1.5" : "flex-col gap-1 mt-1.5")}>
            <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-95 transition-transform hover:bg-black/80 group">
               <ChevronUp className="w-4 h-4 text-white group-hover:text-neon-cyan" />
            </button>
@@ -599,7 +651,7 @@ function SnapCard({
         "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]",
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "",
@@ -672,6 +724,9 @@ function SnapCard({
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(item.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
                       <Copy className="w-3 h-3 mr-2" /> Copiar ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(item.content_url, '_blank')} className="cursor-pointer">
+                      <ExternalLink className="w-3 h-3 mr-2" /> Abrir enlace original
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -773,6 +828,16 @@ function SnapCard({
           )}
         </div>
       </div>
+      
+      {/* Modal para ampliar imágenes (por si un usuario subió fotos en la pestaña de reels) */}
+      {showMediaModal && (
+         <MediaModalFeed 
+            src={getSafeUrl(targetImgUrl)} 
+            type="image" 
+            onClose={() => setShowMediaModal(false)} 
+         />
+      )}
+
       {showReport && <ReportModal reportedUserId={item.user_id} reportedUserName={item.display_name || "Anónimo"} postId={item.id} onClose={() => setShowReport(false)} />}
       {reportingComment && <ReportModal reportedUserId={reportingComment.userId} reportedUserName={reportingComment.userName} postId={item.id} commentId={reportingComment.commentId} contentLabel="Comentario" onClose={() => setReportingComment(null)} />}
     </div>
@@ -780,7 +845,7 @@ function SnapCard({
 }
 
 export default function SocialReelsPage() {
-  const { user, profile, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
+  const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const location = useLocation();
@@ -859,7 +924,7 @@ export default function SocialReelsPage() {
         .select("*")
         .eq("is_public", true)
         .neq("is_banned", true)
-        .in('content_type', ['video', 'reel'])
+        .in('content_type', ['video', 'reel']) 
         .order(orderCol, { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -946,7 +1011,7 @@ export default function SocialReelsPage() {
 
   useEffect(() => {
     fetchContent(true, sort);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort]);
 
   const loadMore = () => {
@@ -1011,23 +1076,6 @@ export default function SocialReelsPage() {
       const height = containerRef.current.clientHeight;
       containerRef.current.scrollBy({ top: direction === 'down' ? height : -height, behavior: 'smooth' });
     }
-  };
-
-  const handleSetSort = (newSort: 'new' | 'popular') => {
-    if (sort === newSort || isFetching) return;
-    
-    setIsSnapping(false);
-    
-    setPage(0);
-    setHasMore(true);
-    setVisibleIndex(0);
-    setSort(newSort);
-
-    if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
-    }
-
-    setTimeout(() => setIsSnapping(true), 150);
   };
 
   const handleFilterChange = (val: string) => {
@@ -1180,10 +1228,10 @@ export default function SocialReelsPage() {
             <ChevronDown className="w-2.5 h-2.5 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
           <div className="flex flex-col gap-0.5 bg-black/40 p-0.5 rounded border border-white/10 w-full">
-            <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "popular" ? "bg-black/60 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/40")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "popular" ? "bg-black/60 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/40")}>
                <Flame className={cn("w-2.5 h-2.5", isFetching && sort === 'popular' && "animate-pulse")} /> Top
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "new" ? "bg-black/60 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/40")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "new" ? "bg-black/60 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/40")}>
                <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> New
             </Button>
           </div>
@@ -1210,10 +1258,10 @@ export default function SocialReelsPage() {
             <ChevronDown className={cn("w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none", globalCinemaMode ? "text-white/70" : "text-muted-foreground")} />
           </div>
           <div className={cn("flex p-0.5 rounded border shrink-0 gap-1", globalCinemaMode ? "bg-white/10 border-white/10" : "bg-muted/50 border-border/50")}>
-            <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
                <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
                <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
             </Button>
           </div>
