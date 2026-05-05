@@ -1136,39 +1136,44 @@ export default function FeedPage() {
         "flex-1 mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
       )}>
         
-        {/* 🔥 FILTRO MÓVIL (Centrado y Pequeño) 🔥 */}
-        <div className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 z-[100] flex flex-row items-center gap-1 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 scale-[0.85] origin-top shadow-lg">
-          <div className="relative group min-w-[80px]">
+        {/* 🔥 FILTRO MÓVIL+TABLET (Vertical compacto, arriba del avatar derecho) 🔥 */}
+        <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg w-[72px]">
+          <div className="relative">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className="w-full h-8 bg-muted/30 border border-transparent rounded-lg text-[10px] font-body text-white font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-full h-7 bg-muted/30 border border-transparent rounded text-[9px] font-body text-white font-bold outline-none appearance-none px-1.5 pr-5 cursor-pointer hover:bg-muted/50 transition-colors"
             >
               <option value="all">Todos</option>
               <option value="videos">Videos</option>
               <option value="reels">Reels</option>
-              <option value="photos">Imágenes</option>
+              <option value="photos">Fotos</option>
               {user && <option value="friends">Amigos</option>}
             </select>
-            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
+            <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
-          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-white/10 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange")}>
-               <Flame className={cn("w-3 h-3 lg:mr-0 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
+          <div className="flex flex-col gap-0.5 bg-muted/40 p-0.5 rounded border border-white/10">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange")}>
+               <Flame className={cn("w-2.5 h-2.5", isFetching && sort === 'popular' && "animate-pulse")} /> Top
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan")}>
-               <Sparkles className={cn("w-3 h-3 lg:mr-0 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
             </Button>
           </div>
         </div>
 
-        {/* 🔥 FILTRO DESKTOP (Intacto Original PC) 🔥 */}
-        <div className="hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute right-2 top-0 z-20 w-[240px] lg:w-[260px] justify-between">
+        {/* 🔥 FILTRO DESKTOP - 5px gap del card, en modo cine va arriba-izquierda atenuado 🔥 */}
+        <div className={cn(
+          "hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute z-20 w-[240px] lg:w-[260px] justify-between transition-all duration-300",
+          globalCinemaMode 
+            ? "left-2 top-2 opacity-40 hover:opacity-100 bg-black/50 border-white/10 backdrop-blur-md scale-90 origin-top-left" 
+            : "right-2 top-[5px]"
+        )}>
           <div className="relative group flex-1 min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className="w-full h-8 bg-muted/30 border border-border rounded-lg text-[10px] font-body text-foreground font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-muted/50 transition-colors"
+              className={cn("w-full h-8 border rounded-lg text-[10px] font-body font-bold outline-none appearance-none px-2 pr-7 cursor-pointer transition-colors", globalCinemaMode ? "bg-black/40 border-white/10 text-white hover:bg-black/60" : "bg-muted/30 border-border text-foreground hover:bg-muted/50")}
             >
               <option value="all">Todos</option>
               <option value="videos">Videos</option>
@@ -1176,14 +1181,14 @@ export default function FeedPage() {
               <option value="photos">Imágenes</option>
               {user && <option value="friends">Amigos</option>}
             </select>
-            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+            <ChevronDown className={cn("w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none", globalCinemaMode ? "text-white/70" : "text-muted-foreground")} />
           </div>
-          <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-muted-foreground hover:text-neon-orange")}>
-               <Flame className={cn("w-3 h-3 lg:mr-0 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
+          <div className={cn("flex gap-1 p-0.5 rounded border shrink-0", globalCinemaMode ? "bg-black/30 border-white/10" : "bg-muted/50 border-border/50")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-orange" : "text-muted-foreground hover:text-neon-orange")}>
+               <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span>Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-muted-foreground hover:text-neon-cyan")}>
-               <Sparkles className={cn("w-3 h-3 lg:mr-0 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-cyan" : "text-muted-foreground hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span>Nuevos</span>
             </Button>
           </div>
         </div>
