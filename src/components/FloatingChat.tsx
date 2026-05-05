@@ -61,7 +61,7 @@ export default function FloatingChat() {
   const [fontSize, setFontSize] = useState(11);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real sin redibujar)
+  // 🔥 Escudo anti-notificaciones fantasmas (sabe con quién hablamos en tiempo real)
   const activePartnerRef = useRef<string | null>(null);
 
   // Posicionamiento de la burbuja
@@ -172,7 +172,7 @@ export default function FloatingChat() {
       convMap[pid].msgs.push(m);
       
       if (m.receiver_id === user.id && !m.is_read) {
-        // 🔥 Magia: Si el mensaje es de la persona con la que estamos hablando AHORA, no lo sumamos a los no leídos
+        // Ignorar conteo si estamos hablando con esa persona justo ahora
         if (activePartnerRef.current !== pid) {
           convMap[pid].unread++;
           totalUnread++;
@@ -232,51 +232,67 @@ export default function FloatingChat() {
 
   const loadMessages = async (pid: string) => {
     if (!user) return;
+
+    // 🔥 1. FORZAMOS A LA BASE DE DATOS A MARCAR COMO LEÍDO ANTES DE CARGAR LOS MENSAJES 🔥
+    await supabase.from("private_messages")
+      .update({ is_read: true } as any)
+      .eq("receiver_id", user.id)
+      .eq("sender_id", pid)
+      .eq("is_read", false);
+
+    // 2. Pedimos los mensajes 
+    const { data } = await supabase.from("private_messages").select("*")
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${pid}),and(sender_id.eq.${pid},receiver_id.eq.${user.id})`)
+      .order("created_at", { ascending: false }).limit(50);
     
-    // 🔥 ACTUALIZACIÓN OPTIMISTA: Borramos el punto rojo instantáneamente en la interfaz
+    if (data) {
+      // 🔥 3. ORDENAMIENTO ESTRICTO POR FECHA REAL (Imposible que se desordenen) 🔥
+      const chronological = [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      setMessages(chronological as Message[]);
+    }
+    
+    // 4. Recargamos la lista silenciosamente para reflejar que ya no hay no leídos
+    loadConversations();
+  };
+
+  const openConversation = (pid: string, name?: string) => {
+    activePartnerRef.current = pid; // Le decimos al sistema que tenemos este chat en pantalla
+    setPartnerId(pid);
+    if (name) setPartnerName(name);
+    
+    // 🔥 ACTUALIZACIÓN OPTIMISTA: Eliminamos el punto rojo visual al instante 🔥
     setUnreadCount(prev => {
       const conv = conversations.find(c => c.partnerId === pid);
       return Math.max(0, prev - (conv?.unread || 0));
     });
     setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
 
-    // Obtenemos los mensajes
-    const { data } = await supabase.from("private_messages").select("*")
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${pid}),and(sender_id.eq.${pid},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: false }).limit(50);
-    
-    if (data) {
-      const chronological = [...data].reverse();
-      setMessages(chronological as Message[]);
-    }
-    
-    // Le avisamos a la base de datos en segundo plano
-    await supabase.from("private_messages").update({ is_read: true } as any).eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false);
-    
-    // Recargamos el estado oficial silenciosamente
-    loadConversations();
-  };
-
-  const openConversation = (pid: string, name?: string) => {
-    activePartnerRef.current = pid; // Declaramos con quién hablamos
-    setPartnerId(pid);
-    if (name) setPartnerName(name);
-    loadMessages(pid);
     setMinimized(false);
     setIsOpen(true);
+    
+    loadMessages(pid);
   };
 
-  const closeConversation = (e: React.MouseEvent) => {
+  // 🔥 CIERRE DE CONVERSACIÓN: Último barrido por si llegó un mensaje mientras lo teníamos abierto 🔥
+  const closeConversation = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    activePartnerRef.current = null; // Soltamos al partner
+    if (partnerId && user) {
+      await supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
+    }
+    activePartnerRef.current = null; 
     setPartnerId(null); 
     setMessages([]);
     loadConversations();
   };
 
-  const closeChatBubble = (e: React.MouseEvent) => {
+  const closeChatBubble = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     setIsOpen(false); 
+    if (partnerId && user) {
+      await supabase.from("private_messages").update({ is_read: true } as any)
+        .eq("receiver_id", user.id).eq("sender_id", partnerId).eq("is_read", false);
+    }
     activePartnerRef.current = null; 
     setPartnerId(null); 
     setMessages([]);
@@ -385,7 +401,7 @@ export default function FloatingChat() {
               <Type className="w-3 h-3" />
             </button>
           )}
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Minimizar">
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setMinimized(true); }} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto">
             <Minus className="w-3 h-3" />
           </button>
           <button onPointerDown={(e) => e.stopPropagation()} onClick={closeChatBubble} className="p-1 text-muted-foreground hover:text-foreground pointer-events-auto" title="Cerrar">
