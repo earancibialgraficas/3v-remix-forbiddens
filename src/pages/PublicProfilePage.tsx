@@ -211,7 +211,6 @@ export default function PublicProfilePage() {
     fetchProfile();
   }, [userId, user]);
 
-  // 🔥 SOLUCIÓN DEL SEGUIMIENTO (Datos completos) 🔥
   const handleFollow = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
     const wasFollowing = isFollowing;
@@ -221,13 +220,12 @@ export default function PublicProfilePage() {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
     } else {
-      const payload = {
-        id: crypto.randomUUID(),
+      // 🔥 RESTAURADO: Seguimiento limpio sin ID forzado 🔥
+      const { error } = await supabase.from("follows").insert({
         follower_id: user.id,
-        following_id: userId,
-        created_at: new Date().toISOString()
-      };
-      const { error } = await supabase.from("follows").insert(payload as any);
+        following_id: userId
+      } as any);
+      
       if (error) { 
         setIsFollowing(wasFollowing); 
         setFollowerCount(p => p - 1); 
@@ -244,22 +242,19 @@ export default function PublicProfilePage() {
     }
   };
 
-  // 🔥 SOLUCIÓN DEL BAD REQUEST DE AMIGOS 🔥
   const handleFriendRequest = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     
     if (friendStatus === "none") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       
-      const payload = {
-        id: crypto.randomUUID(),
+      // 🔥 RESTAURADO: Solicitud de amigos limpia sin ID ni fecha forzada 🔥
+      const { error } = await supabase.from("friend_requests").insert({
         sender_id: user.id,
         receiver_id: userId,
-        status: "pending",
-        created_at: new Date().toISOString()
-      };
+        status: "pending"
+      } as any);
       
-      const { error } = await supabase.from("friend_requests").insert(payload as any);
       if (!error) { 
         setFriendStatus("pending_sent"); 
         toast({ title: "Solicitud enviada" }); 

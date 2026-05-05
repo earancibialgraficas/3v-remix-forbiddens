@@ -146,7 +146,6 @@ export default function UserPopup({
                   <MessageSquare className="w-3 h-3" /> Enviar mensaje
                 </button>
                 
-                {/* 🔥 SOLUCIÓN DEL BAD REQUEST (Datos Completos) 🔥 */}
                 <button
                   onClick={async () => { 
                     if (reachedFriendLimit) {
@@ -155,15 +154,13 @@ export default function UserPopup({
                     }
                     setOpen(false); 
                     if (user && userId) {
-                       const payload = {
-                         id: crypto.randomUUID(),
+                       // 🔥 RESTAURADO A SU FORMA ORIGINAL (SIN ID NI FECHA MANUAL) 🔥
+                       const { error } = await supabase.from("friend_requests").insert({
                          sender_id: user.id,
                          receiver_id: userId,
-                         status: "pending",
-                         created_at: new Date().toISOString()
-                       };
+                         status: "pending"
+                       } as any);
                        
-                       const { error } = await supabase.from("friend_requests").insert(payload as any);
                        if (!error) {
                          toast({ title: "Solicitud enviada" });
                          // Enviar notificación a la campana
