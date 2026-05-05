@@ -209,6 +209,11 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     let platform = "web";
     let contentType = "post";
 
+    // 🔥 DETECCIÓN INTELIGENTE DE IMÁGENES 🔥
+    const isDirectImage = lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|avif)(?:\?.*)?$/i) || 
+                          lowerUrl.includes("imgur.com") || 
+                          lowerUrl.includes("image.pollinations.ai");
+
     if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
       platform = "youtube";
       contentType = lowerUrl.includes("shorts") ? "reel" : "video";
@@ -250,7 +255,15 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
       payload.title = newTitle.trim() || null;
       payload.platform = platform;
       payload.content_type = contentType;
+    } else if (isDirectImage) {
+      // 🔥 ENLACE DE IMAGEN DIRECTO (Cualquier web) -> Tabla Photos 🔥
+      table = "photos";
+      payload.image_url = url;
+      payload.caption = newTitle.trim() || null;
+      payload.is_apify = false;
+      delete payload.is_public;
     } else {
+       // Por defecto (Web genérica o Video no reconocido)
        payload.content_url = url;
        payload.title = newTitle.trim() || null;
        payload.platform = platform;
@@ -267,7 +280,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
     } else {
       toast({ 
         title: table === "photos" ? "Guardado como Imagen" : "Añadido al Social Hub", 
-        description: table === "photos" ? "Post de Instagram guardado exitosamente." : `Clasificado como ${platform} ${contentType}` 
+        description: table === "photos" ? "Se ha publicado exitosamente en tus fotos." : `Clasificado como ${platform} ${contentType}` 
       });
       setNewUrl("");
       setNewTitle("");
@@ -322,7 +335,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
         </div>
         
         <Input 
-          placeholder="URL (YouTube, Instagram, TikTok, Facebook...)" 
+          placeholder="URL (YouTube, Instagram, TikTok, Facebook, Imágenes...)" 
           value={newUrl} 
           onChange={e => setNewUrl(e.target.value)} 
           className="h-8 bg-muted text-xs w-full font-body"
