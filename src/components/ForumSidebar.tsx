@@ -94,29 +94,54 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const lastFetch = useRef(0);
 
-  // 🔥 SISTEMA DE CARGA PASIVA (REEMPLAZA AL TIEMPO REAL) 🔥
+  // 🔥 SISTEMA DE CARGA PASIVA RESILIENTE (Evita el efecto dominó) 🔥
   useEffect(() => {
     if (!user?.id) return;
     
     const fetchBadges = async () => {
+      let inboxCount = 0;
+      let notifCount = 0;
+      let reqCount = 0;
+
+      // 1. Mensajes Públicos
       try {
-        const [ { count: inboxCount }, { count: notifCount }, { count: reqCount } ] = await Promise.all([
-          supabase.from("inbox_messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("is_read", false),
-          supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_read", false),
-          supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).eq("status", "pending")
-        ]);
-        setUnreadPublic(inboxCount || 0);
-        setUnreadNotifications((notifCount || 0) + (reqCount || 0));
-      } catch (e) {}
+        const { count, error } = await supabase.from("inbox_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+        if (!error) inboxCount = count || 0;
+      } catch (e) { console.error("Error inbox:", e); }
+
+      // 2. Notificaciones de Comentarios
+      try {
+        const { count, error } = await supabase.from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+        if (!error) notifCount = count || 0;
+      } catch (e) { console.error("Error notifications:", e); }
+
+      // 3. Solicitudes de Amistad
+      try {
+        const { count, error } = await supabase.from("friend_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id)
+          .eq("status", "pending");
+        if (!error) reqCount = count || 0;
+      } catch (e) { console.error("Error friends:", e); }
+
+      // Actualizamos los estados visuales
+      setUnreadPublic(inboxCount);
+      setUnreadNotifications(notifCount + reqCount);
     };
 
     fetchBadges(); // Carga inicial
-    const interval = setInterval(fetchBadges, 5000); // Revisa cada 5s por si acaso
+    const interval = setInterval(fetchBadges, 5000); // Revisa cada 5s
 
-    // Disparador pasivo: Se ejecuta en interacciones comunes sin saturar
+    // Disparador pasivo
     const passiveRefresh = () => {
       const now = Date.now();
-      if (now - lastFetch.current > 2000) { // Throttling: máximo 1 vez cada 2s
+      if (now - lastFetch.current > 2000) { 
         lastFetch.current = now;
         fetchBadges();
       }
@@ -132,7 +157,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
       window.removeEventListener("focus", passiveRefresh);
       window.removeEventListener("scroll", passiveRefresh);
     };
-  }, [user?.id, location.pathname]); // Se actualiza también si cambias de página
+  }, [user?.id, location.pathname]); 
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
