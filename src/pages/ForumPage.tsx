@@ -378,14 +378,12 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        // Si hay comentario específico, priorizamos eso
         const commentEl = directCommentId ? document.getElementById(`comment-${directCommentId}`) : null;
         const targetEl = commentEl || document.getElementById(`post-${directPostId}`);
         if (targetEl) {
@@ -488,6 +486,7 @@ export default function ForumPage() {
     }
   };
 
+  // 🔥 CREACIÓN DE COMENTARIOS + NOTIFICACIONES 🔥
   const handleComment = async (postId: string) => {
     if (!user) {
       toast({ title: "Inicia sesión", description: "Debes registrarte para comentar", variant: "destructive" });
@@ -506,8 +505,45 @@ export default function ForumPage() {
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any);
     
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else { 
+      // 🔥 CREAR NOTIFICACIONES AL INSTANTE 🔥
+      try {
+        const post = posts.find(p => p.id === postId);
+        
+        if (replyTo) {
+          // Si es una respuesta a un comentario, notificar al dueño del comentario
+          const parentComment = comments[postId]?.find(c => c.id === replyTo);
+          if (parentComment && parentComment.user_id !== user.id) {
+            await supabase.from("notifications").insert({
+              user_id: parentComment.user_id,
+              sender_id: user.id,
+              type: 'reply',
+              post_id: postId,
+              content: 'Han respondido a tu comentario.',
+              is_read: false
+            } as any);
+          }
+        } else if (post && post.user_id !== user.id) {
+          // Si es un comentario directo al post, notificar al dueño del post
+          await supabase.from("notifications").insert({
+            user_id: post.user_id,
+            sender_id: user.id,
+            type: 'comment',
+            post_id: postId,
+            content: 'Han comentado en tu publicación.',
+            is_read: false
+          } as any);
+        }
+      } catch (e) {
+        console.error("Error creando notificación:", e);
+      }
+
+      setCommentText(""); 
+      setReplyTo(null); 
+      fetchComments(postId); 
+    }
   };
 
   const handleReport = (postId: string, postUserId: string) => {
