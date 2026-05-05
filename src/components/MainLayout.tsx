@@ -121,9 +121,6 @@ export default function MainLayout() {
   }, []);
 
   return (
-    /* 🔥 FIX MAESTRO: En móvil/tablet usamos h-[100dvh] (NO min-h-screen) para que el contenedor 
-        ocupe EXACTAMENTE el viewport y nunca haya scroll global. El scroll vive solo dentro de <main>.
-        En desktop volvemos a min-h-screen para permitir scroll normal de página completa. 🔥 */
     <div className="flex bg-background text-foreground w-full h-[100dvh] lg:h-auto lg:min-h-screen overflow-hidden lg:overflow-visible relative">
       {/* Sidebar de PC (Oculto en Tablet y Celular) */}
       <div className="hidden lg:block sticky top-0 h-screen">
@@ -161,13 +158,11 @@ export default function MainLayout() {
         </div>
       )}
 
-      {/* 🔥 FIX: En móvil, <main> ocupa el espacio restante (viewport - 104px del footer fijo) y 
-          es el ÚNICO scroll. Como el contenedor raíz es h-[100dvh] sin scroll global, no se 
-          genera scroll innecesario en páginas cortas y el contenido nunca queda tapado por el footer.
-          Añadimos pb-4 al contenedor interno para que el último contenido no toque la sombra del footer. 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 h-[calc(100dvh-104px)] overflow-y-auto lg:h-auto lg:overflow-visible">
-        <div className="flex-1 flex gap-4 xl:gap-8 p-4 xl:p-6 pb-6 lg:pb-6 max-w-[1800px] mx-auto w-full">
-          <div className="flex-1 min-w-0">
+      {/* 🔥 FIX MAESTRO: main en celular tiene exactamente 100dvh menos 104px del footer. 🔥 */}
+      <main className="flex-1 flex flex-col min-w-0 h-[calc(100dvh-104px)] overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible">
+        {/* 🔥 FIX SECUNDARIO: Removidos paddings en celular (p-0) para que el hijo ocupe el 100% exacto 🔥 */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-4 xl:gap-8 p-0 lg:p-4 xl:p-6 pb-0 lg:pb-6 max-w-[1800px] mx-auto w-full h-full">
+          <div className="flex-1 min-w-0 flex flex-col h-full">
             <Outlet />
           </div>
           
@@ -181,9 +176,7 @@ export default function MainLayout() {
         {isMobile && (
           <div className={cn(
             "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            /* 🔥 FIX MAESTRO: Cuando está cerrado, lo bajamos 5px con bottom-[-5px] 🔥 */
             mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]",
-            /* Auto-hide: se desliza hacia abajo cuando lBarVisible=false (y panel cerrado) */
             !lBarVisible && !mobileRightOpen
               ? "translate-y-full opacity-0 pointer-events-none"
               : "translate-y-0 opacity-100 pointer-events-auto"
