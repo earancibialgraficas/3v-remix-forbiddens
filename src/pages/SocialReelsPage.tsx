@@ -627,6 +627,7 @@ function SnapCard({
                 <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
                    <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
                 </div>
+                {/* Texto invisible para igualar alturas en bottom layout */}
                 {isFloatingBottom && <span className="text-transparent text-[9px] select-none">0</span>}
              </button>
           )}
@@ -845,7 +846,7 @@ function SnapCard({
 }
 
 export default function SocialReelsPage() {
-  const { user, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
+  const { user, profile, pauseMusic, roles, isMasterWeb, isAdmin } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const { toast } = useToast();
   const location = useLocation();
@@ -1189,7 +1190,7 @@ export default function SocialReelsPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
+    <div className="animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
@@ -1202,14 +1203,10 @@ export default function SocialReelsPage() {
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
       <div className={cn(
-        "w-full relative flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform",
-        "lg:flex-1 lg:relative", 
-        "h-[calc(100%-5px)]",
-        showHeader ? "translate-y-[76px] lg:translate-y-[80px]" : "translate-y-[5px] lg:translate-y-[5px]",
-        "mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
-      )}
-      style={{ transform: "translateZ(0)" }} // Hardware acceleration para evitar glitches en celular
-      >
+        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "lg:flex-1", 
+        "flex-1"
+      )}>
         
         {/* 🔥 FILTRO MÓVIL+TABLET (Vertical, Esquina Superior Derecha, Ultra Compacto) 🔥 */}
         <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg transform-gpu scale-[0.80] origin-top-right"
@@ -1228,10 +1225,10 @@ export default function SocialReelsPage() {
             <ChevronDown className="w-2.5 h-2.5 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
           <div className="flex flex-col gap-0.5 bg-black/40 p-0.5 rounded border border-white/10 w-full">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "popular" ? "bg-black/60 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/40")}>
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "popular" ? "bg-black/60 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/40")}>
                <Flame className={cn("w-2.5 h-2.5", isFetching && sort === 'popular' && "animate-pulse")} /> Top
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "new" ? "bg-black/60 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/40")}>
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "new" ? "bg-black/60 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/40")}>
                <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> New
             </Button>
           </div>
@@ -1258,10 +1255,10 @@ export default function SocialReelsPage() {
             <ChevronDown className={cn("w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none", globalCinemaMode ? "text-white/70" : "text-muted-foreground")} />
           </div>
           <div className={cn("flex p-0.5 rounded border shrink-0 gap-1", globalCinemaMode ? "bg-white/10 border-white/10" : "bg-muted/50 border-border/50")}>
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
                <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
+            <Button variant="ghost" size="sm" onClick={() => handleSetSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
                <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
             </Button>
           </div>
