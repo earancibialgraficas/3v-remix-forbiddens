@@ -107,6 +107,7 @@ function SnapCard({
   isStaff,
   globalCinemaMode,
   setGlobalCinemaMode,
+  isMobileState,
   onDeletePost,
   onEditPost,
   onHidePost,
@@ -120,6 +121,7 @@ function SnapCard({
   isStaff: boolean;
   globalCinemaMode: boolean;
   setGlobalCinemaMode: (val: boolean) => void;
+  isMobileState: boolean;
   onDeletePost: (id: string, targetType: string) => void;
   onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
@@ -142,11 +144,10 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  const canCinema = item.platform === 'youtube' || item.platform === 'facebook' || isDirectMp4 || isPhoto;
-  const cinemaMode = globalCinemaMode && canCinema;
-  
-  // 🔥 Control de botón cine exclusivo móvil 🔥
+  // 🔥 MODO CINE INTELIGENTE 🔥
+  // En PC se permite para TODO. En móvil solo si es Youtube o MP4.
   const canShowCinemaBtnMobile = item.platform === 'youtube' || (item.content_type === 'video' && isDirectMp4);
+  const cinemaMode = globalCinemaMode && (!isMobileState || canShowCinemaBtnMobile);
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -347,7 +348,7 @@ function SnapCard({
     <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 md:px-0 md:gap-0" : "px-0 md:px-2 md:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20 md:mt-0" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
+      <div ref={videoContainerRef} className={cn("absolute inset-0 md:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full md:w-full bg-black z-20" : "md:flex-1 bg-[#09090b] md:border border-border md:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -395,7 +396,7 @@ function SnapCard({
             onError={() => setMediaError(true)}
           />
         ) : finalEmbedUrl ? (
-          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-75 origin-center z-10"
+          <div className="absolute top-1/2 left-1/2 flex items-center justify-center transition-transform duration-500 origin-center z-10"
             style={{ width: `${baseSize.w}px`, height: `${baseSize.w === 640 ? 'auto' : baseSize.h + 'px'}`, aspectRatio: baseSize.w === 640 ? '16/9' : 'auto', transform: `translate(-50%, -50%) scale(${scale})` }}>
             <iframe 
               src={finalEmbedUrl} 
@@ -415,20 +416,20 @@ function SnapCard({
           </div>
         )}
 
-        {/* 🔥 BOTÓN TOGGLE MODO CINE (z-[100]) 🔥 */}
-        {/* Se muestra en PC siempre que sea compatible. En Móvil, SOLO si es video horizontal */}
+        {/* 🔥 BOTÓN TOGGLE MODO CINE (Esquina Superior Derecha z-[100]) 🔥 */}
+        {/* En móvil solo si es video horizontal, en PC siempre visible */}
         <button 
           onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
           className={cn(
-             "absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group",
-             !canShowCinemaBtnMobile ? "hidden md:flex" : "flex"
+            "absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto",
+            !canShowCinemaBtnMobile ? "hidden md:flex" : "flex"
           )}
           title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
         >
            {cinemaMode ? <Minimize className="w-4 h-4 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform"/>}
         </button>
 
-        {/* 🔥 BARRA INFERIOR / LATERAL ATENUADA EN MODO CINE (SOLO PC) 🔥 */}
+        {/* 🔥 BARRA INFERIOR ATENUADA EN MODO CINE (SÓLO PC) 🔥 */}
         <div className={cn(
              "hidden md:flex absolute z-[100] transition-opacity duration-300 pointer-events-none",
              cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
@@ -436,7 +437,7 @@ function SnapCard({
              !cinemaMode && "md:hidden"
         )}>
              
-             {/* 🔹 Avatar y Burbuja Glassmorphism (PC) */}
+             {/* Avatar y Burbuja Glassmorphism (PC) */}
              <div className="relative pointer-events-auto group/bubble"
                   onMouseEnter={() => setShowBubble(true)}
                   onMouseLeave={() => setShowBubble(false)}>
@@ -461,7 +462,7 @@ function SnapCard({
                 </div>
              </div>
 
-             {/* 🔹 Acciones Rápidas (PC) */}
+             {/* Acciones Rápidas (PC) */}
              <div className="flex items-center gap-2 md:gap-4 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6 flex-row">
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
@@ -493,7 +494,7 @@ function SnapCard({
                 )}
              </div>
 
-             {/* 🔹 Subir / Bajar (PC) */}
+             {/* Subir / Bajar (PC) */}
              <div className="flex pointer-events-auto gap-2">
                 <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
                    <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:text-neon-cyan transition-colors" />
@@ -505,10 +506,13 @@ function SnapCard({
         </div>
       </div>
 
-      {/* 🔥 CONTROLES VERTICALES MÓVIL (Derecha, Siempre presentes) 🔥 */}
-      <div className="md:hidden absolute right-1 top-1/2 -translate-y-1/2 z-[90] flex flex-col items-center gap-2 pointer-events-auto">
+      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL - Siempre visible, atenuada en Cine) 🔥 */}
+      <div className={cn(
+        "md:hidden absolute right-1 top-1/2 -translate-y-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300",
+        cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
+      )}>
         
-        {/* Avatar */}
+        {/* Avatar + Burbuja Movil */}
         <div className="relative pointer-events-auto group/bubble"
              onMouseEnter={() => setShowBubble(true)}
              onMouseLeave={() => setShowBubble(false)}>
@@ -518,7 +522,6 @@ function SnapCard({
               {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-1.5 text-white" />}
            </div>
 
-           {/* Burbuja Flotante Móvil */}
            <div className={cn("absolute transition-all duration-300 z-[120]",
                showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
                "right-full top-0 mr-3 origin-top-right"
@@ -528,7 +531,7 @@ function SnapCard({
                  <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                  <div className="text-[8px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
                  <p className="text-[9px] text-white/90 line-clamp-3 leading-snug mb-2">{item.caption || item.title || "Sin descripción."}</p>
-                 <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setShowBubble(false); }} className="w-full text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 py-1.5 rounded-lg hover:bg-neon-cyan/20 transition-colors">LEER MÁS</button>
+                 <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); setShowBubble(false); }} className="w-full text-[9px] text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 py-1.5 rounded-lg hover:bg-neon-cyan/20 transition-colors">LEER MÁS</button>
               </div>
            </div>
         </div>
@@ -550,7 +553,7 @@ function SnapCard({
         </button>
 
         {/* Comments */}
-        <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); }} className="flex flex-col items-center gap-0.5 group">
+        <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
            <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:bg-black/80 transition-colors">
               <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
            </div>
@@ -580,12 +583,12 @@ function SnapCard({
       {/* OVERLAY TELA NEGRA PARA PANELES (Móvil y Cine, z-[60] detrás del panel) */}
       <div className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
       
-      {/* 📋 PANEL DERECHO (Detalles y Comentarios - z-[70] para tapar la tela oscura) 📋 */}
+      {/* 📋 PANEL DERECHO (Detalles y Comentarios - z-[70] siempre al frente) 📋 */}
       <div className={cn(
         "flex flex-col gap-2 shrink-0 bg-background/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-border transition-transform duration-300 ease-out shadow-2xl z-[70]",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 md:p-4" 
-          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[50px]", 
+          : "absolute md:relative top-0 right-0 h-full w-[85%] max-w-[320px] md:w-[240px] lg:w-[260px] p-3 md:p-0 border-l md:border-none md:shadow-none md:pt-[40px]", // PC 40px para 4px de gap
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full md:translate-x-0" : "",
@@ -695,8 +698,8 @@ function SnapCard({
             <div className="shrink-0 px-2.5 py-2 border-b border-border text-[9px] font-pixel text-neon-cyan flex items-center gap-1 bg-muted/20">
               <MessageSquare className="w-2.5 h-2.5" /> COMENTARIOS ({comments.length})
             </div>
-            {/* 🔥 overscroll-contain para arreglar el bug en celular de arrastrar al video siguiente 🔥 */}
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain" style={{ scrollbarWidth: 'none' }}>
+            {/* 🔥 overscroll-contain para arreglar el bug de arrastrar al video siguiente 🔥 */}
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
                 <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
@@ -784,6 +787,15 @@ export default function FeedPage() {
   // 🔥 ESTADOS GLOBALES DE MODO CINE Y BANNER 🔥
   const [showHeader, setShowHeader] = useState(true);
   const [globalCinemaMode, setGlobalCinemaMode] = useState(false);
+
+  // Detector de Mobile para modo cine estricto
+  const [isMobileState, setIsMobileState] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobileState(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const ITEMS_PER_PAGE = 15; 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1109,12 +1121,11 @@ export default function FeedPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden pb-1 md:pb-2 bg-background">
+    <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
-      {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
-      <div className={cn("absolute top-0 left-0 w-full z-[150] transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] px-1 md:px-2 pt-1 md:relative md:translate-y-0", showHeader ? "translate-y-0" : "-translate-y-full pointer-events-none")}>
-        {/* En PC usamos max-h para ocultar elegantemente el div. En celular el div padre absolute sube solo */}
-        <div className={cn("bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shadow-sm relative transition-all duration-700 overflow-hidden", "md:max-h-[100px]", !showHeader && "md:max-h-0 md:opacity-0 md:border-transparent md:p-0")}>
+      {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG (SOLO CELULAR/MÓVIL AFECTA EL LAYOUT) 🔥 */}
+      <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 md:pt-2 px-1 md:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
+        <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 md:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
           <p className="text-[10px] text-muted-foreground font-body">Todo el contenido social de la comunidad en un solo lugar</p>
@@ -1123,12 +1134,9 @@ export default function FeedPage() {
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
       <div className={cn(
-        "w-full relative flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] md:mt-[5px]",
-        // PC conserva el comportamiento original de flex-1
-        "md:flex-1 md:translate-y-0",
-        // Celular usa altura estricta y se traslada hacia arriba para no expandirse
-        "h-[82dvh] md:h-auto",
-        !showHeader ? "-translate-y-[80px] md:translate-y-0" : "translate-y-[76px] md:translate-y-0"
+        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "md:flex-1", 
+        "flex-1 mb-[20vh] md:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
       )}>
         
         {/* 🔥 FILTRO MÓVIL (Centrado y Pequeño) 🔥 */}
@@ -1184,7 +1192,7 @@ export default function FeedPage() {
         </div>
 
         {filteredItems.length === 0 && !isFetching ? (
-          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-[44px]">
+          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 md:mx-2 mt-[44px] md:mt-[40px]">
             <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
             <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
@@ -1192,7 +1200,7 @@ export default function FeedPage() {
             </Button>
           </div>
         ) : (
-          <div className="relative flex-1 min-h-0 w-full overflow-hidden md:pt-[50px]">
+          <div className="relative flex-1 min-h-0 w-full overflow-hidden pt-0 md:pt-0">
             <div 
               ref={containerRef} 
               className={cn("h-full w-full relative z-0", isSnapping ? "snap-y snap-mandatory overflow-y-auto" : "overflow-hidden")} 
@@ -1209,6 +1217,7 @@ export default function FeedPage() {
                     isStaff={isStaff} 
                     globalCinemaMode={globalCinemaMode}
                     setGlobalCinemaMode={setGlobalCinemaMode}
+                    isMobileState={isMobileState}
                     onDeletePost={handleDeletePost} 
                     onEditPost={handleEditPost}
                     onHidePost={handleHidePost}
