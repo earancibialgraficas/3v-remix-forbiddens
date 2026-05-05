@@ -146,13 +146,13 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  // 🔥 MODO CINE DESBLOQUEADO (CERO RESTRICCIONES) 🔥
+  // 🔥 MODO CINE AUTOMÁTICO EN MÓVIL POR ROTACIÓN 🔥
   const cinemaMode = isMobileState ? isLandscape : globalCinemaMode;
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
 
-  // 📐 DETECCIÓN INTELIGENTE DE FORMATO (Para cambiar la botonera móvil a la parte de abajo)
+  // 📐 DETECCIÓN INTELIGENTE DE FORMATO
   const isVerticalReel = item.content_type === 'reel' || ['tiktok', 'instagram', 'facebook'].includes(item.platform) || (item.content_url || '').toLowerCase().includes('shorts');
   const isFloatingBottom = !isVerticalReel;
   
@@ -209,7 +209,6 @@ function SnapCard({
     }
   }, [isVisible, isVideo, isDirectMp4]);
 
-  // 🔥 Optimización extrema: requestAnimationFrame para el ResizeObserver 🔥
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
     let animationFrameId: number;
@@ -1162,7 +1161,7 @@ export default function FeedPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-full w-full relative overflow-hidden bg-background">
+    <div className="animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
@@ -1174,68 +1173,71 @@ export default function FeedPage() {
       </div>
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
-      <div className="w-full relative flex flex-col flex-1 min-h-0 lg:mt-[5px] transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform" style={{ transform: "translateZ(0)" }}>
+      <div className={cn(
+        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "lg:flex-1", 
+        "flex-1"
+      )}>
         
-        {/* 🔥 FILTRO MÓVIL+TABLET (Vertical, Esquina Superior Derecha, Ultra Compacto) 🔥 */}
-        <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg transform-gpu scale-[0.80] origin-top-right"
-             style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-          <div className="relative w-full">
+        {/* 🔥 FILTRO MÓVIL+TABLET (Vertical compacto, arriba del avatar derecho) 🔥 */}
+        <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg w-[72px]">
+          <div className="relative">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className="w-full h-7 bg-transparent border border-transparent rounded text-[9px] font-body text-white font-bold outline-none appearance-none px-1.5 pr-5 cursor-pointer hover:bg-white/10 transition-colors text-center"
+              className="w-full h-7 bg-muted/30 border border-transparent rounded text-[9px] font-body text-white font-bold outline-none appearance-none px-1.5 pr-5 cursor-pointer hover:bg-muted/50 transition-colors"
             >
-              <option value="all" className="text-black">Todos</option>
-              <option value="videos" className="text-black">Videos</option>
-              <option value="reels" className="text-black">Reels</option>
-              <option value="photos" className="text-black">Fotos</option>
-              {user && <option value="friends" className="text-black">Amigos</option>}
+              <option value="all">Todos</option>
+              <option value="videos">Videos</option>
+              <option value="reels">Reels</option>
+              <option value="photos">Fotos</option>
+              {user && <option value="friends">Amigos</option>}
             </select>
-            <ChevronDown className="w-2.5 h-2.5 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
+            <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
-          <div className="flex flex-col gap-0.5 bg-black/40 p-0.5 rounded border border-white/10 w-full">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "popular" ? "bg-black/60 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/40")}>
+          <div className="flex flex-col gap-0.5 bg-muted/40 p-0.5 rounded border border-white/10">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange")}>
                <Flame className={cn("w-2.5 h-2.5", isFetching && sort === 'popular' && "animate-pulse")} /> Top
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 flex justify-center items-center gap-1 transition-colors w-full", sort === "new" ? "bg-black/60 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/40")}>
-               <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> New
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
             </Button>
           </div>
         </div>
 
-        {/* 🔥 FILTRO DESKTOP (Intacto Original PC + Modo Cine Corner) 🔥 */}
+        {/* 🔥 FILTRO DESKTOP - 5px gap del card, en modo cine va arriba-izquierda atenuado 🔥 */}
         <div className={cn(
-          "hidden lg:flex gap-1 items-center shadow-sm absolute transition-all duration-500 z-[100]",
-          globalCinemaMode
-            ? "left-4 top-4 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left flex-row"
-            : "right-2 top-0 w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1 justify-between"
+          "hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute z-20 w-[240px] lg:w-[260px] justify-between transition-all duration-300",
+          globalCinemaMode 
+            ? "left-2 top-2 opacity-40 hover:opacity-100 bg-black/50 border-white/10 backdrop-blur-md scale-90 origin-top-left" 
+            : "right-2 top-[5px]"
         )}>
           <div className="relative group flex-1 min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className={cn("w-full h-8 border rounded-lg text-[10px] font-body font-bold outline-none appearance-none px-2 pr-7 cursor-pointer transition-colors", globalCinemaMode ? "bg-transparent border-transparent text-white hover:bg-white/10" : "bg-muted/30 border-border text-foreground hover:bg-muted/50")}
+              className={cn("w-full h-8 border rounded-lg text-[10px] font-body font-bold outline-none appearance-none px-2 pr-7 cursor-pointer transition-colors", globalCinemaMode ? "bg-black/40 border-white/10 text-white hover:bg-black/60" : "bg-muted/30 border-border text-foreground hover:bg-muted/50")}
             >
-              <option value="all" className="text-black">Todos</option>
-              <option value="videos" className="text-black">Videos</option>
-              <option value="reels" className="text-black">Reels</option>
-              <option value="photos" className="text-black">Imágenes</option>
-              {user && <option value="friends" className="text-black">Amigos</option>}
+              <option value="all">Todos</option>
+              <option value="videos">Videos</option>
+              <option value="reels">Reels</option>
+              <option value="photos">Imágenes</option>
+              {user && <option value="friends">Amigos</option>}
             </select>
             <ChevronDown className={cn("w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none", globalCinemaMode ? "text-white/70" : "text-muted-foreground")} />
           </div>
-          <div className={cn("flex p-0.5 rounded border shrink-0 gap-1", globalCinemaMode ? "bg-white/10 border-white/10" : "bg-muted/50 border-border/50")}>
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
-               <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
+          <div className={cn("flex gap-1 p-0.5 rounded border shrink-0", globalCinemaMode ? "bg-black/30 border-white/10" : "bg-muted/50 border-border/50")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-orange" : "text-muted-foreground hover:text-neon-orange")}>
+               <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span>Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
-               <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-cyan" : "text-muted-foreground hover:text-neon-cyan")}>
+               <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span>Nuevos</span>
             </Button>
           </div>
         </div>
 
         {filteredItems.length === 0 && !isFetching ? (
-          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 lg:mx-2 mt-[44px] lg:mt-[44px]">
+          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 lg:mx-2 mt-[44px] lg:mt-[50px]">
             <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
             <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
@@ -1252,7 +1254,7 @@ export default function FeedPage() {
               <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               
               {filteredItems.map((item, i) => (
-                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always pb-1 lg:pb-0">
+                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
                   <SnapCard 
                     item={item} 
                     isVisible={i === visibleIndex} 
