@@ -146,8 +146,9 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  // 🔥 MODO CINE DESBLOQUEADO (CERO RESTRICCIONES) 🔥
-  const cinemaMode = isMobileState ? isLandscape : globalCinemaMode;
+  // 🔥 MODO CINE AUTOMÁTICO EN MÓVIL POR ROTACIÓN 🔥
+  const isCinemaActive = isMobileState ? isLandscape : globalCinemaMode;
+  const cinemaMode = isCinemaActive;
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -205,7 +206,6 @@ function SnapCard({
     }
   }, [isVisible, isVideo, isDirectMp4]);
 
-  // 🔥 Optimización extrema: requestAnimationFrame para el ResizeObserver 🔥
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
     let animationFrameId: number;
@@ -451,7 +451,7 @@ function SnapCard({
                   onMouseLeave={() => setShowBubble(false)}>
                 
                 <div onClick={(e) => { e.stopPropagation(); setShowBubble(!showBubble); }} 
-                     className="w-10 h-10 lg:w-12 lg:h-12 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
+                     className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border-2 border-white/20 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer bg-muted hover:scale-105 transition-transform" style={getAvatarBorderStyle(item.color_avatar_border)}>
                    {item.avatar_url ? <img src={item.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-2 text-white" />}
                 </div>
 
@@ -470,33 +470,33 @@ function SnapCard({
                 </div>
              </div>
 
-             {/* Acciones Rápidas (PC) */}
-             <div className="flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row" style={{ bottom: cinemaMode ? "0.75rem" : undefined }}>
+             {/* Acciones Rápidas (PC - Iconos atenuados más pequeños) */}
+             <div className="flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row">
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                      <ThumbsUp className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "like" ? "text-neon-green" : "text-white")} />
+                   <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsUp className={cn("w-3.5 h-3.5 lg:w-4 lg:h-4 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
                    </div>
-                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{likes}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                      <ThumbsDown className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+                   <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                      <ThumbsDown className={cn("w-3.5 h-3.5 lg:w-4 lg:h-4 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
                    </div>
-                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{dislikes}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
                 </button>
 
                 <button onClick={(e) => { e.stopPropagation(); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
-                   <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                      <MessageSquare className={cn("text-neon-cyan transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5")} />
+                   <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center hover:bg-black/80 transition-colors shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                      <MessageSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-neon-cyan transition-transform group-active:scale-90" />
                    </div>
-                   <span className={cn("text-white font-bold drop-shadow-md", cinemaMode ? "text-[9px]" : "text-[9px] lg:text-[11px]")}>{comments.length}</span>
+                   <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
                 </button>
 
                 {user && !isOwner && (
                    <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group">
-                      <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                         <Flag className={cn("text-white transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5")} />
+                      <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                         <Flag className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-white transition-transform group-active:scale-90" />
                       </div>
                    </button>
                 )}
@@ -504,23 +504,23 @@ function SnapCard({
 
              {/* Subir / Bajar (PC) */}
              <div className="flex pointer-events-auto gap-2">
-                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                   <ChevronUp className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
+                <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronUp className="w-4 h-4 lg:w-5 lg:h-5 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
-                   <ChevronDown className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
+                <button onClick={(e) => { e.stopPropagation(); onScrollDown(); }} className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95 group">
+                   <ChevronDown className="w-4 h-4 lg:w-5 lg:h-5 text-white group-hover:text-neon-cyan transition-colors" />
                 </button>
              </div>
           </div>
         )}
       </div>
 
-      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - GPU Accelerated) 🔥 */}
+      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL - Siempre presente, atenuada en Cine) 🔥 */}
       <div className={cn(
-        "lg:hidden absolute right-1 top-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300 transform-gpu",
+        "lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-[90] flex flex-col items-center justify-center gap-1.5 sm:gap-2.5 pointer-events-auto py-4 transition-opacity duration-300 transform-gpu landscape:scale-90 landscape:origin-right",
         cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
       )}
-      style={{ transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
         
         {/* Avatar + Burbuja Movil */}
@@ -537,7 +537,9 @@ function SnapCard({
                showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
                "right-full top-0 mr-3 origin-top-right"
            )}>
+              {/* Puente Invisible (Móvil) para que no desaparezca */}
               <div className="absolute bg-transparent right-[-16px] top-0 w-4 h-full" />
+              
               <div className="w-56 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
                  <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                  <div className="text-[8px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
@@ -592,14 +594,14 @@ function SnapCard({
       </div>
 
       {/* OVERLAY TELA NEGRA PARA PANELES (Móvil y Cine, z-[200] detrás del panel) */}
-      <div className={cn("fixed lg:absolute inset-0 bg-black/60 backdrop-blur-sm z-[200] lg:z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
+      <div className={cn("fixed lg:absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 z-[200] pointer-events-auto" : "opacity-0 z-[-1] pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
       
       {/* 📋 PANEL DERECHO — z-[210] en móvil para estar siempre visible sobre la tela negra 📋 */}
       <div className={cn(
         "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]",
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
         !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "",
@@ -812,23 +814,6 @@ export default function FeedPage() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // 🎬 Auto-activar modo cine al rotar a landscape (sólo móvil/tablet)
-  useEffect(() => {
-    const handleOrientation = () => {
-      if (window.innerWidth >= 1024) return; // PC: no auto-cine
-      const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-      setGlobalCinemaMode(isLandscape);
-    };
-    handleOrientation();
-    const mql = window.matchMedia('(orientation: landscape)');
-    mql.addEventListener('change', handleOrientation);
-    window.addEventListener('resize', handleOrientation);
-    return () => {
-      mql.removeEventListener('change', handleOrientation);
-      window.removeEventListener('resize', handleOrientation);
-    };
   }, []);
 
   const ITEMS_PER_PAGE = 15; 
@@ -1158,7 +1143,7 @@ export default function FeedPage() {
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
-      <div className={cn("absolute top-0 left-0 w-full z-[150] transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] px-1 lg:px-2 pt-1 lg:pt-2", showHeader ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none")}>
+      <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
         <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 lg:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
@@ -1168,18 +1153,13 @@ export default function FeedPage() {
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
       <div className={cn(
-        "w-full absolute left-0 flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform",
-        "lg:flex-1 lg:relative", 
-        "h-[calc(100%-5px)]",
-        showHeader ? "translate-y-[76px] lg:translate-y-[80px]" : "translate-y-[5px] lg:translate-y-[5px]",
-        "mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
-      )}
-      style={{ transform: "translateZ(0)" }} // Hardware acceleration para evitar glitches en celular
-      >
+        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "lg:flex-1 lg:mt-[5px]", 
+        "flex-1 mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
+      )}>
         
-        {/* 🔥 FILTRO MÓVIL (Centrado en X, escalado, top-2) 🔥 */}
-        <div className="lg:hidden absolute top-2 left-1/2 z-[100] flex flex-row items-center gap-1 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 shadow-lg transform-gpu"
-             style={{ transform: "translate3d(-50%, 0, 0) scale(0.85)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+        {/* 🔥 FILTRO MÓVIL+TABLET (Centrado, compacto y escalado en TOP) 🔥 */}
+        <div className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 z-[100] flex flex-row items-center gap-1 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 shadow-lg transform-gpu scale-[0.85] origin-top">
           <div className="relative group min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
@@ -1204,11 +1184,11 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* 🔥 FILTRO DESKTOP (Intacto Original PC + Modo Cine Corner) 🔥 */}
+        {/* 🔥 FILTRO DESKTOP (Intacto Original PC + Modo Cine Top-Left) 🔥 */}
         <div className={cn(
           "hidden lg:flex gap-1 items-center shadow-sm absolute transition-all duration-500 z-[100]",
           globalCinemaMode
-            ? "left-2 top-2 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left flex-row"
+            ? "left-4 top-4 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left flex-row"
             : "right-2 top-0 w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1 justify-between"
         )}>
           <div className="relative group flex-1 min-w-[80px]">
@@ -1253,7 +1233,7 @@ export default function FeedPage() {
               <style>{`div::-webkit-scrollbar { display: none; }`}</style>
               
               {filteredItems.map((item, i) => (
-                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always">
+                <div key={item.id} id={`feed-post-${item.id}`} data-card-index={i} className="h-full w-full snap-center snap-always pb-2 lg:pb-0">
                   <SnapCard 
                     item={item} 
                     isVisible={i === visibleIndex} 
