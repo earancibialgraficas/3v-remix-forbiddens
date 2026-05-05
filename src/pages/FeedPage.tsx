@@ -788,10 +788,27 @@ export default function FeedPage() {
   // Detector de Mobile para modo cine estricto
   const [isMobileState, setIsMobileState] = useState(false);
   useEffect(() => {
-    const handleResize = () => setIsMobileState(window.innerWidth < 768);
+    const handleResize = () => setIsMobileState(window.innerWidth < 1024);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 🎬 Auto-activar modo cine al rotar a landscape (sólo móvil/tablet)
+  useEffect(() => {
+    const handleOrientation = () => {
+      if (window.innerWidth >= 1024) return; // PC: no auto-cine
+      const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+      setGlobalCinemaMode(isLandscape);
+    };
+    handleOrientation();
+    const mql = window.matchMedia('(orientation: landscape)');
+    mql.addEventListener('change', handleOrientation);
+    window.addEventListener('resize', handleOrientation);
+    return () => {
+      mql.removeEventListener('change', handleOrientation);
+      window.removeEventListener('resize', handleOrientation);
+    };
   }, []);
 
   const ITEMS_PER_PAGE = 15; 
