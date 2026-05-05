@@ -152,6 +152,10 @@ function SnapCard({
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
+
+  // 📐 DETECCIÓN INTELIGENTE DE FORMATO (Para cambiar la botonera móvil a la parte de abajo)
+  const isVerticalReel = item.content_type === 'reel' || ['tiktok', 'instagram', 'facebook'].includes(item.platform) || (item.content_url || '').toLowerCase().includes('shorts');
+  const isFloatingBottom = !isVerticalReel;
   
   const [scale, setScale] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -516,14 +520,16 @@ function SnapCard({
         )}
       </div>
 
-      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - GPU Accelerated) 🔥 */}
+      {/* 🔥 BOTONERA INTELIGENTE MÓVIL+TABLET (Vertical para Reels, Abajo para Clásicos) 🔥 */}
       <div className={cn(
-        "lg:hidden absolute right-1 top-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300 transform-gpu",
-        cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
+        "lg:hidden absolute z-[90] flex pointer-events-auto transition-opacity duration-300 transform-gpu",
+        cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
+        isFloatingBottom 
+          ? "bottom-[20px] left-0 w-full px-3 flex-row items-end justify-between"
+          : "right-1 top-1/2 -translate-y-1/2 flex-col items-center justify-center gap-2.5 py-4 landscape:scale-90 landscape:origin-right"
       )}
-      style={{ transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      style={isFloatingBottom ? { transform: "translateZ(0)" } : { transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
-        
         {/* Avatar + Burbuja Movil */}
         <div className="relative pointer-events-auto group/bubble"
              onMouseEnter={() => setShowBubble(true)}
@@ -536,9 +542,9 @@ function SnapCard({
 
            <div className={cn("absolute transition-all duration-300 z-[120]",
                showBubble ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none",
-               "right-full top-0 mr-3 origin-top-right"
+               isFloatingBottom ? "bottom-full left-0 mb-3 origin-bottom-left" : "right-full top-0 mr-3 origin-top-right"
            )}>
-              <div className="absolute bg-transparent right-[-16px] top-0 w-4 h-full" />
+              <div className={cn("absolute bg-transparent", isFloatingBottom ? "bottom-[-16px] left-0 w-full h-4" : "right-[-16px] top-0 w-4 h-full")} />
               <div className="w-56 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-1">
                  <Link to={`/usuario/${item.user_id}`} onClick={e => e.stopPropagation()} className="text-neon-cyan text-[11px] font-bold hover:underline block truncate" style={getNameStyle(item.color_name)}>{item.display_name}</Link>
                  <div className="text-[8px] text-muted-foreground mb-1">{formatFeedDate(item.created_at)}</div>
@@ -548,41 +554,42 @@ function SnapCard({
            </div>
         </div>
 
-        {/* Likes */}
-        <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group mt-1">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-              <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
-        </button>
+        {/* Acciones */}
+        <div className={cn("flex items-center pointer-events-auto", isFloatingBottom ? "absolute left-1/2 -translate-x-1/2 flex-row gap-2.5" : "flex-col gap-0.5 mt-1")}>
+          <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                <ThumbsUp className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "like" ? "text-neon-green" : "text-white")} />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{likes}</span>
+          </button>
 
-        {/* Dislikes */}
-        <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-              <ThumbsDown className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
-        </button>
+          <button onClick={(e) => { e.stopPropagation(); handleReaction("dislike"); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                <ThumbsDown className={cn("w-3.5 h-3.5 transition-transform group-active:scale-90", userReaction === "dislike" ? "text-destructive" : "text-white")} />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{dislikes}</span>
+          </button>
 
-        {/* Comments */}
-        <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
-           <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:bg-black/80 transition-colors">
-              <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
-           </div>
-           <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
-        </button>
+          <button onClick={(e) => { e.stopPropagation(); setShowMobilePanel(true); setCinemaPanelOpen(true); }} className="flex flex-col items-center gap-0.5 group">
+             <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-neon-cyan/50 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:bg-black/80 transition-colors">
+                <MessageSquare className="w-3.5 h-3.5 text-neon-cyan transition-transform group-active:scale-90" />
+             </div>
+             <span className="text-white text-[9px] font-bold drop-shadow-md">{comments.length}</span>
+          </button>
 
-        {/* Report */}
-        {user && !isOwner && (
-           <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group mt-0.5">
-              <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                 <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
-              </div>
-           </button>
-        )}
+          {user && !isOwner && (
+             <button onClick={(e) => { e.stopPropagation(); setShowReport(true); }} className="flex flex-col items-center gap-0.5 group">
+                <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
+                   <Flag className="w-3.5 h-3.5 text-white transition-transform group-active:scale-90" />
+                </div>
+                {/* Texto invisible para igualar alturas en bottom layout */}
+                {isFloatingBottom && <span className="text-transparent text-[9px] select-none">0</span>}
+             </button>
+          )}
+        </div>
 
         {/* Flechas Subir/Bajar */}
-        <div className="flex flex-col gap-1 mt-1.5">
+        <div className={cn("flex pointer-events-auto", isFloatingBottom ? "flex-row gap-1.5" : "flex-col gap-1 mt-1.5")}>
            <button onClick={(e) => { e.stopPropagation(); onScrollUp(); }} className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-95 transition-transform hover:bg-black/80 group">
               <ChevronUp className="w-4 h-4 text-white group-hover:text-neon-cyan" />
            </button>
@@ -1285,4 +1292,5 @@ export default function FeedPage() {
       </div>
     </div>
   );
+}
 }
