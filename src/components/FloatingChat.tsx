@@ -74,7 +74,7 @@ export default function FloatingChat() {
   // Escudo de chat activo
   const activePartnerRef = useRef<string | null>(null);
   
-  // 🔥 LA SOLUCIÓN MAESTRA: Caché de lectura optimista 🔥
+  // LA SOLUCIÓN MAESTRA: Caché de lectura optimista
   const pendingReadCache = useRef<Set<string>>(new Set());
 
   // Posicionamiento de la burbuja
@@ -159,25 +159,20 @@ export default function FloatingChat() {
     }
   };
 
-  // 🔥 Función auxiliar para marcar como leído en Caché + BD 🔥
   const markAsReadOptimistic = (pid: string) => {
     if (!user) return;
     
-    // 1. Guardar en Caché Local
     pendingReadCache.current.add(pid);
     
-    // 2. Limpieza Visual Inmediata
     setUnreadCount(prev => {
       const conv = conversations.find(c => c.partnerId === pid);
       return Math.max(0, prev - (conv?.unread || 0));
     });
     setConversations(prev => prev.map(c => c.partnerId === pid ? { ...c, unread: 0 } : c));
 
-    // 3. Petición a la Base de Datos en segundo plano
     supabase.from("private_messages").update({ is_read: true } as any)
       .eq("receiver_id", user.id).eq("sender_id", pid).eq("is_read", false)
       .then(() => {
-        // 4. Tras 3 segundos de gracia, borramos de la caché
         setTimeout(() => {
           pendingReadCache.current.delete(pid);
         }, 3000);
@@ -217,7 +212,6 @@ export default function FloatingChat() {
       convMap[pid].msgs.push(m);
       
       if (m.receiver_id === user.id && !m.is_read) {
-        // 🔥 Si está en el chat activo o en la CACHÉ, ignoramos la notificación
         if (activePartnerRef.current !== pid && !pendingReadCache.current.has(pid)) {
           convMap[pid].unread++;
           totalUnread++;
@@ -239,7 +233,7 @@ export default function FloatingChat() {
         partnerColorName: friend?.color_name || null,
         lastMessage: last?.content || "",
         lastDate: last?.created_at || "",
-        unread: pendingReadCache.current.has(pid) ? 0 : c.unread, // 🔥 Refuerzo extra visual
+        unread: pendingReadCache.current.has(pid) ? 0 : c.unread,
       };
     }).sort((a, b) => getSafeDate(b.lastDate).getTime() - getSafeDate(a.lastDate).getTime());
 
@@ -267,6 +261,7 @@ export default function FloatingChat() {
     }
   }, [user, friends, location.pathname]);
 
+  // Polling cada 3s para mensajes en vivo
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isOpen && !minimized && activePartnerRef.current) {
@@ -278,12 +273,22 @@ export default function FloatingChat() {
     return () => clearInterval(interval);
   }, [isOpen, minimized, partnerId]);
 
+  // 🔥 1. Scroll automático SOLO cuando entran mensajes nuevos 🔥
   useEffect(() => {
     if (messages.length > prevMessagesLength.current) {
       endRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     prevMessagesLength.current = messages.length;
   }, [messages]);
+
+  // 🔥 2. NUEVO: Scroll automático al abrir la burbuja o des-minimizar 🔥
+  useEffect(() => {
+    if (isOpen && !minimized && partnerId) {
+      setTimeout(() => {
+        endRef.current?.scrollIntoView({ behavior: "auto" });
+      }, 100);
+    }
+  }, [isOpen, minimized, partnerId]);
 
   const loadMessages = async (pid: string, isSilent = false) => {
     if (!user) return;
@@ -388,6 +393,8 @@ export default function FloatingChat() {
       sender_id: user.id,
       receiver_id: partnerId,
       content,
+      is_read: false, // Prevención extra de NULLs
+      created_at: optimisticMsg.created_at, // Prevención extra de NULLs
     } as any);
 
     if (error) {
