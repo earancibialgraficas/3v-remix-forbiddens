@@ -13,7 +13,6 @@ import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-
 const getSafeUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('supabase.co')) return url;
@@ -109,6 +108,7 @@ function SnapCard({
   globalCinemaMode,
   setGlobalCinemaMode,
   isMobileState,
+  isLandscape,
   onDeletePost,
   onEditPost,
   onHidePost,
@@ -123,6 +123,7 @@ function SnapCard({
   globalCinemaMode: boolean;
   setGlobalCinemaMode: (val: boolean) => void;
   isMobileState: boolean;
+  isLandscape: boolean;
   onDeletePost: (id: string, targetType: string) => void;
   onEditPost: (id: string, newTitle: string, targetType: string) => void;
   onHidePost: (id: string, targetType: string) => void;
@@ -145,10 +146,8 @@ function SnapCard({
   const isInstagramReel = isInstagram && item.content_type === 'reel';
   const isPhoto = item.target_type === 'photo' || item.content_type === 'photo' || item.platform === 'upload' || (isInstagram && !isInstagramReel) || item.content_url?.match(/\.(jpeg|jpg|gif|png|webp)/i);
   
-  // 🔥 MODO CINE INTELIGENTE 🔥
-  // En PC se permite para TODO. En móvil solo si es Youtube o MP4.
-  const canShowCinemaBtnMobile = item.platform === 'youtube' || (item.content_type === 'video' && isDirectMp4);
-  const cinemaMode = globalCinemaMode && (!isMobileState || canShowCinemaBtnMobile);
+  // 🔥 MODO CINE DESBLOQUEADO (CERO RESTRICCIONES) 🔥
+  const cinemaMode = isMobileState ? isLandscape : globalCinemaMode;
 
   const embedUrl = isVisible ? getAdvancedEmbedUrl(item.content_url, item.platform) : "";
   const targetType = item.target_type || "social_content";
@@ -165,13 +164,14 @@ function SnapCard({
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
+  
   const [showMobilePanel, setShowMobilePanel] = useState(false);
+  const [cinemaPanelOpen, setCinemaPanelOpen] = useState(false);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(item.title || item.caption || "");
   const [mediaError, setMediaError] = useState(false);
 
-  const [cinemaPanelOpen, setCinemaPanelOpen] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
 
   const votingRef = useRef(false);
@@ -187,7 +187,6 @@ function SnapCard({
       if (isVisible) {
         nativeVideoRef.current.muted = false;
         const playPromise = nativeVideoRef.current.play();
-        
         if (playPromise !== undefined) {
           playPromise.catch(() => {
             if (nativeVideoRef.current) {
@@ -206,23 +205,32 @@ function SnapCard({
     }
   }, [isVisible, isVideo, isDirectMp4]);
 
+  // 🔥 Optimización extrema: requestAnimationFrame para el ResizeObserver 🔥
   useEffect(() => {
     if (!videoContainerRef.current || !isVideo || isDirectMp4 || isPhoto) return;
+    let animationFrameId: number;
+
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        const base = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
-        const safeWidth = width - 16;
-        const safeHeight = height - 16;
-        const scaleX = safeWidth / base.w;
-        const scaleY = safeHeight / base.h;
-        let newScale = Math.min(scaleX, scaleY);
-        newScale = Math.min(newScale, 1.2);
-        setScale(newScale);
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(() => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          const base = getBaseSize(item.platform, item.content_type || '', item.content_url || '');
+          const safeWidth = width - 16;
+          const safeHeight = height - 16;
+          const scaleX = safeWidth / base.w;
+          const scaleY = safeHeight / base.h;
+          let newScale = Math.min(scaleX, scaleY);
+          newScale = Math.min(newScale, 1.2);
+          setScale(newScale);
+        }
+      });
     });
     observer.observe(videoContainerRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [item.platform, item.content_type, item.content_url, isVideo, isDirectMp4, isPhoto, cinemaMode]);
 
   useEffect(() => {
@@ -346,10 +354,10 @@ function SnapCard({
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
-    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
+    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300 transform-gpu", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
+      <div ref={videoContainerRef} className={cn("absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 transform-gpu", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -402,7 +410,7 @@ function SnapCard({
             <iframe 
               src={finalEmbedUrl} 
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; clipboard-write; gyroscope" 
-              className={cn("w-full h-full bg-transparent outline-none shadow-2xl transition-all duration-500", !cinemaMode && "lg:rounded-xl", item.platform === 'instagram' ? "bg-white" : "")} 
+              className={cn("w-full h-full bg-transparent outline-none shadow-2xl transition-all duration-500 transform-gpu", !cinemaMode && "lg:rounded-xl", item.platform === 'instagram' ? "bg-white" : "")} 
               style={{ border: "none" }} 
               scrolling="no" 
               allowFullScreen 
@@ -417,17 +425,20 @@ function SnapCard({
           </div>
         )}
 
-        {/* 🔥 BOTÓN TOGGLE MODO CINE (SÓLO PC - en móvil/tablet se activa rotando) 🔥 */}
+        {/* 🔥 BOTÓN TOGGLE MODO CINE (z-[100]) (SOLO PC - Siempre disponible) 🔥 */}
         <button 
           onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
-          className="hidden lg:flex absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto"
+          className={cn(
+             "hidden lg:flex absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto"
+          )}
           title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
         >
            {cinemaMode ? <Minimize className="w-4 h-4 group-hover:scale-90 transition-transform"/> : <RectangleHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform"/>}
         </button>
 
         {/* 🔥 BARRA INFERIOR ATENUADA EN MODO CINE (SÓLO PC) 🔥 */}
-        <div className={cn(
+        {cinemaMode && (
+          <div className={cn(
              "hidden lg:flex absolute z-[100] transition-opacity duration-300 pointer-events-none",
              cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
              "bottom-0 left-0 w-full px-4 lg:px-8 pb-4 lg:pb-6 pt-24 items-end justify-between bg-gradient-to-t from-black/90 via-black/40 to-transparent flex-row",
@@ -460,7 +471,7 @@ function SnapCard({
              </div>
 
              {/* Acciones Rápidas (PC) */}
-             <div className={cn("flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row", cinemaMode && "lg:gap-2 bottom-3 lg:bottom-3")}>
+             <div className="flex items-center gap-2 lg:gap-3 pointer-events-auto absolute left-1/2 -translate-x-1/2 bottom-4 lg:bottom-6 flex-row" style={{ bottom: cinemaMode ? "0.75rem" : undefined }}>
                 <button onClick={(e) => { e.stopPropagation(); handleReaction("like"); }} className="flex flex-col items-center gap-0.5 group">
                    <div className={cn("rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors", cinemaMode ? "w-8 h-8 lg:w-9 lg:h-9" : "w-10 h-10 lg:w-12 lg:h-12")}>
                       <ThumbsUp className={cn("transition-transform group-active:scale-90", cinemaMode ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5", userReaction === "like" ? "text-neon-green" : "text-white")} />
@@ -500,14 +511,17 @@ function SnapCard({
                    <ChevronDown className={cn("text-white group-hover:text-neon-cyan transition-colors", cinemaMode ? "w-4 h-4" : "w-5 h-5 lg:w-6 lg:h-6")} />
                 </button>
              </div>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - vertical compacta) 🔥 */}
+      {/* 🔥 BOTONERA VERTICAL DERECHA (MÓVIL+TABLET - GPU Accelerated) 🔥 */}
       <div className={cn(
-        "lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300",
+        "lg:hidden absolute right-1 top-1/2 z-[90] flex flex-col items-center justify-center gap-2.5 pointer-events-auto py-4 transition-opacity duration-300 transform-gpu",
         cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100"
-      )}>
+      )}
+      style={{ transform: "translate3d(0, -50%, 0)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      >
         
         {/* Avatar + Burbuja Movil */}
         <div className="relative pointer-events-auto group/bubble"
@@ -577,20 +591,22 @@ function SnapCard({
         </div>
       </div>
 
-      {/* OVERLAY TELA NEGRA PARA PANELES (Móvil y Cine, z-[60] detrás del panel) */}
-      <div className={cn("fixed lg:absolute inset-0 bg-black/60 backdrop-blur-sm z-[300] lg:z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
+      {/* OVERLAY TELA NEGRA PARA PANELES (Móvil y Cine, z-[200] detrás del panel) */}
+      <div className={cn("fixed lg:absolute inset-0 bg-black/60 backdrop-blur-sm z-[200] lg:z-[60] transition-opacity duration-300", (showMobilePanel || cinemaPanelOpen) ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={(e) => { e.stopPropagation(); setShowMobilePanel(false); setCinemaPanelOpen(false); }} />
       
-      {/* 📋 PANEL DERECHO — z-[310] en móvil para superponer floating chat 📋 */}
+      {/* 📋 PANEL DERECHO — z-[210] en móvil para estar siempre visible sobre la tela negra 📋 */}
       <div className={cn(
-        "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[310] lg:z-[70]",
+        "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
-          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[50px]",
+          : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]",
         cinemaMode && !cinemaPanelOpen ? "translate-y-full pointer-events-none" : "",
         cinemaMode && cinemaPanelOpen ? "translate-y-0" : "",
-        !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "", 
+        !cinemaMode && !showMobilePanel ? "translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto" : "",
         !cinemaMode && showMobilePanel ? "translate-x-0 opacity-100 pointer-events-auto" : ""
-      )}>
+      )}
+      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      >
         <div className="flex justify-between items-center mb-1 lg:hidden">
           <span className="font-pixel text-[11px] text-neon-cyan">{cinemaMode ? "DETALLES DEL POST" : "Detalles"}</span>
           <button onClick={() => {setShowMobilePanel(false); setCinemaPanelOpen(false);}} className="p-1.5 bg-muted/50 rounded-full text-muted-foreground hover:text-white transition-colors">
@@ -721,7 +737,7 @@ function SnapCard({
               {comments.length === 0 && <p className="text-[10px] text-muted-foreground font-body text-center py-4 opacity-70">Aún no hay comentarios.</p>}
             </div>
             {user && (
-              <div className="shrink-0 flex flex-col border-t border-border bg-card/90 lg:bg-card p-1.5 gap-1.5">
+              <div className="shrink-0 flex flex-col border-t border-border bg-card/90 md:bg-card p-1.5 gap-1.5">
                 {replyTo && (
                    <div className="flex items-center gap-1 text-[9px] text-neon-cyan font-body px-1">
                      <Reply className="w-3 h-3" /> Respondiendo a {replyTo.name}
@@ -785,10 +801,14 @@ export default function FeedPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [globalCinemaMode, setGlobalCinemaMode] = useState(false);
 
-  // Detector de Mobile para modo cine estricto
+  // Detector de Mobile y Rotación
   const [isMobileState, setIsMobileState] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
   useEffect(() => {
-    const handleResize = () => setIsMobileState(window.innerWidth < 1024);
+    const handleResize = () => {
+       setIsMobileState(window.innerWidth < 1024);
+       setIsLandscape(window.innerWidth > window.innerHeight);
+    };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -1137,8 +1157,8 @@ export default function FeedPage() {
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
-      {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG (SOLO CELULAR/MÓVIL AFECTA EL LAYOUT) 🔥 */}
-      <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>
+      {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
+      <div className={cn("absolute top-0 left-0 w-full z-[150] transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] px-1 lg:px-2 pt-1 lg:pt-2", showHeader ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none")}>
         <div className="bg-card border border-neon-cyan/30 rounded-xl p-2.5 lg:p-3 shadow-sm relative">
           {isFetching && items.length === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-cyan animate-pulse z-50" />}
           <h1 className="font-pixel text-sm text-neon-cyan mb-1 flex items-center gap-2"><Globe className="w-4 h-4" /> FEED GLOBAL</h1>
@@ -1148,70 +1168,75 @@ export default function FeedPage() {
 
       {/* 🔥 CONTENEDOR PRINCIPAL 🔥 */}
       <div className={cn(
-        "w-full relative flex flex-col min-h-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
-        "lg:flex-1", 
-        "flex-1 mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
-      )}>
+        "w-full absolute left-0 flex flex-col min-h-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform",
+        "lg:flex-1 lg:relative", 
+        "h-[calc(100%-5px)]",
+        showHeader ? "translate-y-[76px] lg:translate-y-[80px]" : "translate-y-[5px] lg:translate-y-[5px]",
+        "mb-[20vh] lg:mb-0 landscape:mb-[5vh]" // Móvil: Deja 20% de margen abajo sin afectar al PC
+      )}
+      style={{ transform: "translateZ(0)" }} // Hardware acceleration para evitar glitches en celular
+      >
         
-        {/* 🔥 FILTRO MÓVIL+TABLET (Vertical compacto, arriba del avatar derecho) 🔥 */}
-        <div className="lg:hidden absolute top-2 right-1 z-[100] flex flex-col items-stretch gap-1 bg-black/50 border border-white/10 backdrop-blur-md rounded-lg p-1 shadow-lg w-[72px]">
-          <div className="relative">
+        {/* 🔥 FILTRO MÓVIL (Centrado en X, escalado, top-2) 🔥 */}
+        <div className="lg:hidden absolute top-2 left-1/2 z-[100] flex flex-row items-center gap-1 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1 shadow-lg transform-gpu"
+             style={{ transform: "translate3d(-50%, 0, 0) scale(0.85)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+          <div className="relative group min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className="w-full h-7 bg-muted/30 border border-transparent rounded text-[9px] font-body text-white font-bold outline-none appearance-none px-1.5 pr-5 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="w-full h-8 bg-transparent border border-transparent rounded-lg text-[10px] font-body text-white font-bold outline-none appearance-none px-2 pr-7 cursor-pointer hover:bg-white/10 transition-colors"
             >
-              <option value="all">Todos</option>
-              <option value="videos">Videos</option>
-              <option value="reels">Reels</option>
-              <option value="photos">Fotos</option>
-              {user && <option value="friends">Amigos</option>}
+              <option value="all" className="text-black">Todos</option>
+              <option value="videos" className="text-black">Videos</option>
+              <option value="reels" className="text-black">Reels</option>
+              <option value="photos" className="text-black">Imágenes</option>
+              {user && <option value="friends" className="text-black">Amigos</option>}
             </select>
-            <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
+            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
           </div>
-          <div className="flex flex-col gap-0.5 bg-muted/40 p-0.5 rounded border border-white/10">
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange")}>
-               <Flame className={cn("w-2.5 h-2.5", isFetching && sort === 'popular' && "animate-pulse")} /> Top
+          <div className="flex gap-1 bg-white/10 p-0.5 rounded border border-white/10 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-black/50 text-neon-orange shadow-sm" : "text-white/70 hover:text-neon-orange hover:bg-black/30")}>
+               <Flame className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[9px] font-body h-6 px-1 justify-center gap-1 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan")}>
-               <Sparkles className={cn("w-2.5 h-2.5", isFetching && sort === 'new' && "animate-pulse")} /> Nuevos
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-black/50 text-neon-cyan shadow-sm" : "text-white/70 hover:text-neon-cyan hover:bg-black/30")}>
+               <Sparkles className={cn("w-3 h-3 md:mr-0 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
             </Button>
           </div>
         </div>
 
-        {/* 🔥 FILTRO DESKTOP - 5px gap del card, en modo cine va arriba-izquierda atenuado 🔥 */}
+        {/* 🔥 FILTRO DESKTOP (Intacto Original PC + Modo Cine Corner) 🔥 */}
         <div className={cn(
-          "hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute z-20 w-[240px] lg:w-[260px] justify-between transition-all duration-300",
-          globalCinemaMode 
-            ? "left-2 top-2 opacity-40 hover:opacity-100 bg-black/50 border-white/10 backdrop-blur-md scale-90 origin-top-left" 
-            : "right-2 top-[5px]"
+          "hidden lg:flex gap-1 items-center shadow-sm absolute transition-all duration-500 z-[100]",
+          globalCinemaMode
+            ? "left-2 top-2 bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-1.5 opacity-30 hover:opacity-100 scale-90 origin-top-left flex-row"
+            : "right-2 top-0 w-[240px] lg:w-[260px] bg-card border border-border rounded-xl p-1 justify-between"
         )}>
           <div className="relative group flex-1 min-w-[80px]">
             <select 
               value={sourceTab === "friends" ? "friends" : filter} 
               onChange={e => handleFilterChange(e.target.value)} 
-              className={cn("w-full h-8 border rounded-lg text-[10px] font-body font-bold outline-none appearance-none px-2 pr-7 cursor-pointer transition-colors", globalCinemaMode ? "bg-black/40 border-white/10 text-white hover:bg-black/60" : "bg-muted/30 border-border text-foreground hover:bg-muted/50")}
+              className={cn("w-full h-8 border rounded-lg text-[10px] font-body font-bold outline-none appearance-none px-2 pr-7 cursor-pointer transition-colors", globalCinemaMode ? "bg-transparent border-transparent text-white hover:bg-white/10" : "bg-muted/30 border-border text-foreground hover:bg-muted/50")}
             >
-              <option value="all">Todos</option>
-              <option value="videos">Videos</option>
-              <option value="reels">Reels</option>
-              <option value="photos">Imágenes</option>
-              {user && <option value="friends">Amigos</option>}
+              <option value="all" className="text-black">Todos</option>
+              <option value="videos" className="text-black">Videos</option>
+              <option value="reels" className="text-black">Reels</option>
+              <option value="photos" className="text-black">Imágenes</option>
+              {user && <option value="friends" className="text-black">Amigos</option>}
             </select>
             <ChevronDown className={cn("w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none", globalCinemaMode ? "text-white/70" : "text-muted-foreground")} />
           </div>
-          <div className={cn("flex gap-1 p-0.5 rounded border shrink-0", globalCinemaMode ? "bg-black/30 border-white/10" : "bg-muted/50 border-border/50")}>
-            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? "bg-background text-neon-orange shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-orange" : "text-muted-foreground hover:text-neon-orange")}>
-               <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span>Top</span>
+          <div className={cn("flex p-0.5 rounded border shrink-0 gap-1", globalCinemaMode ? "bg-white/10 border-white/10" : "bg-muted/50 border-border/50")}>
+            <Button variant="ghost" size="sm" onClick={() => setSort('popular')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "popular" ? (globalCinemaMode ? "bg-black/50 text-neon-orange" : "bg-background text-neon-orange shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-orange hover:bg-black/30" : "text-muted-foreground hover:text-neon-orange"))}>
+               <Flame className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'popular' && "animate-pulse")} /> <span className="hidden lg:inline">Top</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? "bg-background text-neon-cyan shadow-sm" : globalCinemaMode ? "text-white/70 hover:text-neon-cyan" : "text-muted-foreground hover:text-neon-cyan")}>
-               <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span>Nuevos</span>
+            <Button variant="ghost" size="sm" onClick={() => setSort('new')} className={cn("text-[10px] font-body h-7 px-2 transition-colors", sort === "new" ? (globalCinemaMode ? "bg-black/50 text-neon-cyan" : "bg-background text-neon-cyan shadow-sm") : (globalCinemaMode ? "text-white/70 hover:text-neon-cyan hover:bg-black/30" : "text-muted-foreground hover:text-neon-cyan"))}>
+               <Sparkles className={cn("w-3 h-3 lg:mr-1", isFetching && sort === 'new' && "animate-pulse")} /> <span className="hidden lg:inline">Nuevos</span>
             </Button>
           </div>
         </div>
 
         {filteredItems.length === 0 && !isFetching ? (
-          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 lg:mx-2 mt-[44px] lg:mt-[50px]">
+          <div className="bg-card border border-border rounded-xl p-6 text-center shrink-0 shadow-sm mx-1 lg:mx-2 mt-[44px]">
             <Ghost className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-xs text-muted-foreground font-body">No hay contenido en esta categoría. ¡Sé el primero!</p>
             <Button size="sm" asChild className="mt-3 text-xs rounded-lg">
@@ -1237,6 +1262,7 @@ export default function FeedPage() {
                     globalCinemaMode={globalCinemaMode}
                     setGlobalCinemaMode={setGlobalCinemaMode}
                     isMobileState={isMobileState}
+                    isLandscape={isLandscape}
                     onDeletePost={handleDeletePost} 
                     onEditPost={handleEditPost}
                     onHidePost={handleHidePost}
