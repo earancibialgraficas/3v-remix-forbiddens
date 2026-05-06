@@ -378,14 +378,12 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 EFECTO MEJORADO: SCROLL AUTOMÁTICO Y BORDE NEÓN ARCADE 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       setExpandedPost(directPostId);
       fetchComments(directPostId);
       
       setTimeout(() => {
-        // Si hay comentario específico, priorizamos eso
         const commentEl = directCommentId ? document.getElementById(`comment-${directCommentId}`) : null;
         const targetEl = commentEl || document.getElementById(`post-${directPostId}`);
         if (targetEl) {
@@ -506,8 +504,42 @@ export default function ForumPage() {
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any);
     
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setCommentText(""); setReplyTo(null); fetchComments(postId); }
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else { 
+      
+      // 🔥 LA SOLUCIÓN USANDO TUS COLUMNAS (title, body, related_id) 🔥
+      try {
+        const post = posts.find(p => p.id === postId);
+        
+        if (replyTo) {
+          const parentComment = comments[postId]?.find(c => c.id === replyTo);
+          if (parentComment && parentComment.user_id !== user.id) {
+            await supabase.from("notifications").insert({
+              user_id: parentComment.user_id,
+              type: 'reply_post',
+              title: 'Nueva Respuesta',
+              body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`,
+              related_id: postId
+            } as any);
+          }
+        } else if (post && post.user_id !== user.id) {
+          await supabase.from("notifications").insert({
+            user_id: post.user_id,
+            type: 'comment_post',
+            title: 'Nuevo Comentario',
+            body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`,
+            related_id: postId
+          } as any);
+        }
+      } catch (e) {
+        console.error("Error creando notificación:", e);
+      }
+
+      setCommentText(""); 
+      setReplyTo(null); 
+      fetchComments(postId); 
+    }
   };
 
   const handleReport = (postId: string, postUserId: string) => {

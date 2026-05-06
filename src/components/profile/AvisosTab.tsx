@@ -13,8 +13,9 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_accepted: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-green" },
   follow: { icon: <Heart className="w-3.5 h-3.5" />, color: "text-neon-magenta" },
   comment: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" },
-  reply: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" }, // 🔥 Nuevo: Para respuestas
   comment_reel: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
+  comment_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" }, // Foro
+  reply_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" }, // Foro
   mention: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-orange" },
   achievement: { icon: <Trophy className="w-3.5 h-3.5" />, color: "text-neon-yellow" },
   general: { icon: <Star className="w-3.5 h-3.5" />, color: "text-muted-foreground" },
@@ -63,20 +64,16 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
   const handleNotificationClick = (notif: any) => {
     handleMarkAsRead(notif.id);
 
-    // 🔥 Soporte para ambos nombres de columna (el nuevo y el viejo)
-    const targetId = notif.related_id || notif.post_id;
-    if (!targetId && notif.type !== "friend_accepted" && notif.type !== "follow") return; 
+    if (!notif.related_id) return; 
 
     if (notif.type === "comment_reel") {
-      navigate(`/social/reels?post=${targetId}`);
-    } else if (notif.type === "comment_photo") {
-      navigate(`/muro?post=${targetId}`);
-    } else if (notif.type === "comment" || notif.type === "reply" || notif.type === "comment_post") {
-      // 🔥 Te lleva al post del foro
-      navigate(`/?post=${targetId}`);
-    } else if (notif.type === "friend_accepted" || notif.type === "follow") {
-      // Soporte por si usa sender_id en lugar de related_id
-      navigate(`/usuario/${notif.related_id || notif.sender_id}`);
+      navigate(`/social/reels?post=${notif.related_id}`);
+    } else if (notif.type === "comment_photo" || notif.type === "comment") {
+      navigate(`/muro?post=${notif.related_id}`);
+    } else if (notif.type === "comment_post" || notif.type === "reply_post") {
+      navigate(`/?post=${notif.related_id}`);
+    } else if (notif.type === "friend_accepted" || notif.type === "follow" || notif.type === "friend_request") {
+      navigate(`/usuario/${notif.related_id}`);
     }
   };
 
@@ -140,10 +137,6 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
             const safeDateStr = notif.created_at?.includes('T') && !notif.created_at.endsWith('Z') && !notif.created_at.includes('+') ? notif.created_at + 'Z' : notif.created_at;
             const fullDate = notif.created_at ? new Date(safeDateStr).toLocaleString() : "";
 
-            // 🔥 Títulos y Cuerpos Resilientes (Aceptan tu BD antigua y la nueva)
-            const displayTitle = notif.title || (notif.type === 'reply' ? 'Nueva Respuesta' : notif.type === 'comment' ? 'Nuevo Comentario' : 'Nuevo Aviso');
-            const displayBody = notif.body || notif.content;
-
             return (
               <div 
                 key={notif.id} 
@@ -152,8 +145,8 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
               >
                 <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>{c.icon}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-body font-medium text-foreground leading-snug">{displayTitle}</p>
-                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{displayBody}</p>
+                  <p className="text-xs font-body font-medium text-foreground leading-snug">{notif.title}</p>
+                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
                   <div className="flex items-center gap-2 mt-1.5">
                     
                     <span 
@@ -164,10 +157,10 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
                       {getTimeAgo(notif.created_at)}
                     </span>
                     
-                    {notif.type === "friend_request" && (notif.related_id || notif.sender_id) && (
+                    {notif.type === "friend_request" && notif.related_id && (
                       <>
                         <span className="text-muted-foreground/30 text-[8px]">•</span>
-                        <Link to={`/usuario/${notif.related_id || notif.sender_id}`} onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }} className="text-[9px] text-primary hover:underline font-body">Ver perfil</Link>
+                        <Link to={`/usuario/${notif.related_id}`} onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }} className="text-[9px] text-primary hover:underline font-body">Ver perfil</Link>
                       </>
                     )}
                     
