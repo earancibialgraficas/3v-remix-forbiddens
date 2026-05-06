@@ -405,17 +405,83 @@ export default function ForumPage() {
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      // 🔥 Usamos RPC atómico (igual que el Social Hub) para evitar votos duplicados al recargar 🔥
+      // Primero intentamos el RPC atómico. Si la otra copia no lo tiene compatible,
+      // hacemos fallback directo sobre post_votes con ids como string/text.
       const { data: rpcData, error: rpcErr } = await supabase.rpc("toggle_post_vote", {
         p_post_id: postId, p_user_id: user.id, p_vote_type: voteType,
       });
-      if (rpcErr) throw rpcErr;
-      if (rpcData) {
+
+      let savedVote = newVote;
+      let savedUpvotes = Math.max(0, newUp);
+      let savedDownvotes = Math.max(0, newDown);
+
+      if (rpcErr) {
+        const { data: existingVote, error: existingErr } = await supabase
+          .from("post_votes")
+          .select("id, vote_type")
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingErr) throw existingErr;
+
+        if (existingVote) {
+          if (existingVote.vote_type === voteType) {
+            const { error: deleteErr } = await supabase
+              .from("post_votes")
+              .delete()
+              .eq("id", existingVote.id);
+            if (deleteErr) throw deleteErr;
+            savedVote = null;
+          } else {
+            const { error: updateErr } = await supabase
+              .from("post_votes")
+              .update({ vote_type: voteType })
+              .eq("id", existingVote.id);
+            if (updateErr) throw updateErr;
+            savedVote = voteType;
+          }
+        } else {
+          const { error: insertErr } = await supabase
+            .from("post_votes")
+            .insert({ id: crypto.randomUUID(), post_id: postId, user_id: user.id, vote_type: voteType, created_at: new Date().toISOString() } as any);
+          if (insertErr) throw insertErr;
+          savedVote = voteType;
+        }
+
+        const { count: upCount, error: upCountErr } = await supabase
+          .from("post_votes")
+          .select("id", { count: "exact", head: true })
+          .eq("post_id", postId)
+          .eq("vote_type", "up");
+        if (upCountErr) throw upCountErr;
+
+        const { count: downCount, error: downCountErr } = await supabase
+          .from("post_votes")
+          .select("id", { count: "exact", head: true })
+          .eq("post_id", postId)
+          .eq("vote_type", "down");
+        if (downCountErr) throw downCountErr;
+
+        savedUpvotes = upCount ?? 0;
+        savedDownvotes = downCount ?? 0;
+
+        const { error: postUpdateErr } = await supabase
+          .from("posts")
+          .update({ upvotes: savedUpvotes, downvotes: savedDownvotes })
+          .eq("id", postId);
+        if (postUpdateErr) throw postUpdateErr;
+      } else if (rpcData) {
         const r: any = rpcData;
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: r.upvotes ?? p.upvotes, downvotes: r.downvotes ?? p.downvotes } : p));
-        setUserVotes(prev => ({ ...prev, [postId]: r.user_vote ?? null }));
+        savedUpvotes = r.upvotes ?? savedUpvotes;
+        savedDownvotes = r.downvotes ?? savedDownvotes;
+        savedVote = r.user_vote ?? null;
       }
+
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: savedUpvotes, downvotes: savedDownvotes } : p));
+      setUserVotes(prev => ({ ...prev, [postId]: savedVote }));
     } catch (error) {
+      console.error("Vote save failed", error);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
       toast({ title: "Error", description: "No se pudo guardar tu voto.", variant: "destructive" });
