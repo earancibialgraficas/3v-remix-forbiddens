@@ -382,6 +382,43 @@ export default function ForumPage() {
     return () => clearInterval(scrollInterval);
   }, [selectedPostId, directCommentId, posts, comments]);
 
+  // Cargar estadísticas del autor del post abierto
+  useEffect(() => {
+    if (!selectedPostId) { setAuthorStats(null); return; }
+    const post = posts.find(p => p.id === selectedPostId);
+    if (!post?.user_id) { setAuthorStats(null); return; }
+    const uid = post.user_id;
+    let cancel = false;
+    (async () => {
+      try {
+        const [profRes, followersRes, followingRes, forumRes, socialRes, scoresRes] = await Promise.all([
+          supabase.from("profiles").select("total_score, color_stat_points, color_stat_followers, color_stat_following, color_stat_posts_forum, color_stat_posts_social, color_stat_games").eq("user_id", uid).maybeSingle(),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", uid),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", uid),
+          supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", uid).neq("is_banned", true),
+          supabase.from("social_content" as any).select("*", { count: "exact", head: true }).eq("user_id", uid),
+          supabase.from("leaderboard_scores").select("game_name, console_type").eq("user_id", uid),
+        ]);
+        if (cancel) return;
+        const games = new Set((scoresRes.data || []).map((g: any) => `${g.game_name}|${g.console_type}`)).size;
+        const p: any = profRes.data || {};
+        setAuthorStats({
+          totalScore: p.total_score || 0,
+          followers: followersRes.count || 0,
+          following: followingRes.count || 0,
+          forum: forumRes.count || 0,
+          social: socialRes.count || 0,
+          games,
+        });
+        setAuthorStatColors({
+          points: p.color_stat_points, followers: p.color_stat_followers, following: p.color_stat_following,
+          forum: p.color_stat_posts_forum, social: p.color_stat_posts_social, games: p.color_stat_games,
+        });
+      } catch { if (!cancel) setAuthorStats(null); }
+    })();
+    return () => { cancel = true; };
+  }, [selectedPostId, posts]);
+
   const openPost = (postId: string) => {
     setSelectedPostId(postId);
     fetchComments(postId);
