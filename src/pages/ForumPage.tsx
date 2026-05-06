@@ -555,7 +555,7 @@ export default function ForumPage() {
                         </span>
                         {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
                           <div className="flex flex-col items-center gap-1">
-                            <span className="inline-flex items-center text-sm font-pixel px-2 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
+                            <span className="inline-flex items-center text-xs font-pixel px-1.5 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
                               STAFF
                             </span>
                             <span
@@ -577,7 +577,7 @@ export default function ForumPage() {
                           </div>
                         ) : (
                           <span
-                            className="inline-flex items-center text-sm font-pixel px-2 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                            className="inline-flex items-center text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
                             style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
                           >
                             {(authorProfile.membership_tier || "novato").toUpperCase()}
