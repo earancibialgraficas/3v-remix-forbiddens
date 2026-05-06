@@ -49,11 +49,13 @@ export default function UserPopup({
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // 🔥 Extraemos los datos del usuario actual para el límite de amigos 🔥
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
 
   const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
 
+  // 🔥 Lógica de límites 🔥
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
@@ -69,6 +71,7 @@ export default function UserPopup({
     setOpen(!open);
   };
 
+  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -110,6 +113,7 @@ export default function UserPopup({
           className="fixed z-[600] bg-card border border-border rounded-lg shadow-xl p-3 w-52 animate-scale-in"
           style={{ top: popupPos.top, left: popupPos.left }}
         >
+          {/* Header */}
           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border">
             <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)}>
               {avatarUrl ? (
@@ -130,6 +134,7 @@ export default function UserPopup({
             </div>
           </div>
 
+          {/* Actions */}
           <div className="space-y-0.5">
             <button
               onClick={() => { setOpen(false); navigate(`/usuario/${userId}`); }}
@@ -146,6 +151,7 @@ export default function UserPopup({
                   <MessageSquare className="w-3 h-3" /> Enviar mensaje
                 </button>
                 
+                {/* 🔥 BOTÓN FUNCIONAL AÑADIR AMIGO CON BLOQUEO POR LÍMITE 🔥 */}
                 <button
                   onClick={async () => { 
                     if (reachedFriendLimit) {
@@ -154,24 +160,9 @@ export default function UserPopup({
                     }
                     setOpen(false); 
                     if (user && userId) {
-                       const { error } = await supabase.from("friend_requests").insert({
-                         sender_id: user.id,
-                         receiver_id: userId,
-                         status: "pending"
-                       } as any);
-                       
-                       if (!error) {
-                         toast({ title: "Solicitud enviada" });
-                         supabase.from("notifications").insert({
-                            user_id: userId,
-                            sender_id: user.id,
-                            type: 'friend_request',
-                            content: 'Te ha enviado una solicitud de amistad',
-                            is_read: false
-                         }).then();
-                       }
+                       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+                       if (!error) toast({ title: "Solicitud enviada" });
                        else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
-                       else toast({ title: "Error", description: error.message, variant: "destructive" });
                     }
                   }}
                   disabled={reachedFriendLimit}
@@ -181,7 +172,7 @@ export default function UserPopup({
                 </button>
 
                 <button
-                  onClick={() => { setOpen(false); }}
+                  onClick={() => { setOpen(false); /* TODO: report */ }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <Flag className="w-3 h-3" /> Reportar perfil
@@ -189,6 +180,7 @@ export default function UserPopup({
               </>
             )}
 
+            {/* Staff controls */}
             {(isAdmin || isMasterWeb) && user?.id !== userId && (
               <>
                 <div className="border-t border-border mt-1 pt-1">
@@ -201,14 +193,14 @@ export default function UserPopup({
                   <Eye className="w-3 h-3" /> Ver perfil completo
                 </button>
                 <button
-                  onClick={() => { setOpen(false); }}
+                  onClick={() => { setOpen(false); /* TODO: ban from profile */ }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <Ban className="w-3 h-3" /> Banear usuario
                 </button>
                 {isMasterWeb && (
                   <button
-                    onClick={() => { setOpen(false); }}
+                    onClick={() => { setOpen(false); /* TODO: assign role */ }}
                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-neon-green hover:bg-neon-green/10 transition-colors"
                   >
                     <Shield className="w-3 h-3" /> Gestionar roles

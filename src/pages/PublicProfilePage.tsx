@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { User, Trophy, Star, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, Clock, PlayCircle, X } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +45,7 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
+// 🔥 GENERADOR DE IMÁGENES ESTANDARIZADO 🔥
 const getPostThumbnail = (post: any) => {
   const content = post.content || '';
   const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
@@ -126,6 +127,7 @@ export default function PublicProfilePage() {
   const [totalForumPosts, setTotalForumPosts] = useState(0);
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
+  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR AMIGO 🔥
   const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -220,68 +222,21 @@ export default function PublicProfilePage() {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
     } else {
-      const { error } = await supabase.from("follows").insert({
-        follower_id: user.id,
-        following_id: userId
-      } as any);
-      
-      if (error) { 
-        setIsFollowing(wasFollowing); 
-        setFollowerCount(p => p - 1); 
-        toast({ title: "Error al seguir", description: error.message, variant: "destructive" }); 
-      } else {
-        supabase.from("notifications").insert({
-          user_id: userId,
-          sender_id: user.id,
-          type: 'follow',
-          content: 'Ha comenzado a seguirte',
-          is_read: false
-        }).then();
-      }
+      const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: userId });
+      if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p - 1); toast({ title: "Error" }); }
     }
   };
 
   const handleFriendRequest = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    
     if (friendStatus === "none") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
-      
-      const { error } = await supabase.from("friend_requests").insert({
-        sender_id: user.id,
-        receiver_id: userId,
-        status: "pending"
-      } as any);
-      
-      if (!error) { 
-        setFriendStatus("pending_sent"); 
-        toast({ title: "Solicitud enviada" }); 
-        supabase.from("notifications").insert({
-          user_id: userId,
-          sender_id: user.id,
-          type: 'friend_request',
-          content: 'Te ha enviado una solicitud de amistad',
-          is_read: false
-        }).then();
-      } else {
-        toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
-      }
+      const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+      if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
     } else if (friendStatus === "pending_received") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
-      if (!error) { 
-        setFriendStatus("accepted"); 
-        toast({ title: "Amistad aceptada" }); 
-        supabase.from("notifications").insert({
-          user_id: userId,
-          sender_id: user.id,
-          type: 'friend_accepted',
-          content: 'Ha aceptado tu solicitud de amistad',
-          is_read: false
-        }).then();
-      } else {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      }
+      if (!error) { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
     } else if (friendStatus === "accepted") {
       setFriendToRemove({ id: userId, name: profile?.display_name || "este usuario" });
     } else if (friendStatus === "pending_sent") {
@@ -507,6 +462,7 @@ export default function PublicProfilePage() {
               <p className="text-sm font-body text-muted-foreground">
                 ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
               </p>
+              {/* 🔥 AVISO DE IRREVERSIBLE 🔥 */}
               <p className="text-[10px] font-body text-destructive/80 mt-2 uppercase tracking-wide">
                 Esta acción es irreversible.
               </p>
