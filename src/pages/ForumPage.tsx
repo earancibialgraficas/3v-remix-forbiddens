@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
@@ -64,18 +64,23 @@ const mockPostsByCategory: Record<string, Array<any>> = {
 
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
-  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => { document.body.style.overflow = 'auto'; window.removeEventListener('keydown', handleKeyDown); };
+  }, [onClose]);
   if (typeof document === "undefined") return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-5xl max-h-[92vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-end mb-2 gap-2 w-full z-10">
           {isImage && <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar"><Download className="w-5 h-5 text-white" /></a>}
           <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative flex items-center justify-center">
-          {type === "video" ? <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="max-w-full max-h-[80vh] object-contain rounded-xl" />}
+        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-fit max-w-full relative flex items-center justify-center">
+          {type === "video" ? <div className="aspect-video w-[min(90vw,960px)]"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="block max-w-full max-h-[82vh] object-contain rounded-xl" />}
         </div>
       </div>
     </div>, document.body
@@ -129,8 +134,8 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
-      <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
-        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+      <div key={i} className="relative group mt-3 mb-2 cursor-zoom-in w-fit max-w-full bg-black/40 rounded border border-border overflow-hidden mx-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="block max-w-full max-h-[70vh] w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
       </div>
     );
@@ -164,8 +169,8 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
       if (isMedia) {
         if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
-          <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
-            <img src={part} alt="" className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          <div key={i} className="relative group mt-3 mb-2 cursor-zoom-in w-fit max-w-full bg-black/40 rounded border border-border overflow-hidden mx-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
+            <img src={part} alt="" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
           </div>
         );
@@ -181,6 +186,7 @@ interface PostProfile { display_name: string; avatar_url: string | null; role_ic
 
 export default function ForumPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
   const { user, profile, isAdmin, isMasterWeb, roles } = useAuth();
   const { toast } = useToast();
@@ -300,8 +306,13 @@ export default function ForumPage() {
         setSelectedPostId(directPostId);
         fetchComments(directPostId);
       }
+    } else if (!directPostId && selectedPostId) {
+      setSelectedPostId(null);
+      setReplyTo(null);
+      setCommentText("");
+      setEditingPost(null);
     }
-  }, [directPostId, posts]);
+  }, [directPostId, posts, selectedPostId]);
 
   useEffect(() => {
     if (!selectedPostId || posts.length === 0) return;
@@ -334,7 +345,7 @@ export default function ForumPage() {
   const openPost = (postId: string) => {
     setSelectedPostId(postId);
     fetchComments(postId);
-    window.history.pushState({}, '', `${location.pathname}?post=${postId}`);
+    navigate(`${location.pathname}?post=${postId}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -343,7 +354,7 @@ export default function ForumPage() {
     setReplyTo(null);
     setCommentText("");
     setEditingPost(null);
-    window.history.pushState({}, '', location.pathname);
+    navigate(location.pathname, { replace: true });
   };
 
   const handleNewPostClick = () => {
@@ -518,172 +529,190 @@ export default function ForumPage() {
           <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
         </Button>
 
-        <div className="flex flex-col md:grid md:grid-cols-[30%_70%] gap-4 items-start">
-          
-          <div className="bg-card border border-border rounded-lg p-5 md:sticky md:top-4 flex flex-col items-center text-center w-full shadow-sm">
-            {post.user_id && authorProfile ? (
-              <>
-                <div className="w-24 h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden mb-3 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
-                  {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
+        <div className="space-y-4">
+          <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm" id={`post-${post.id}`}>
+            <div className="grid lg:grid-cols-[260px_minmax(0,1fr)]">
+              <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 flex flex-col sm:flex-row lg:flex-col items-center sm:items-start lg:items-center text-center sm:text-left lg:text-center gap-4 lg:gap-0 min-w-0">
+                {post.user_id && authorProfile ? (
+                  <>
+                    <div className="w-24 h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                      {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
+                    </div>
+                    <div className="min-w-0 w-full flex flex-col items-center sm:items-start lg:items-center">
+                      <UserPopup
+                        userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                        roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
+                        membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
+                        colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
+                        className="text-base justify-center sm:justify-start lg:justify-center"
+                      />
+                      {(authorProfile.signature || authorProfile.signature_image_url) && (
+                        <div className="w-full mt-4 pt-4 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
+                          <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-4 text-xs text-muted-foreground">Sistema</div>
+                )}
+              </aside>
+
+              <section className="min-w-0 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 bg-muted/30 px-2 py-1.5 rounded border border-white/5 shadow-inner">
+                      <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                      <span className="text-xs font-bold w-6 text-center">{(post.upvotes||0)-(post.downvotes||0)}</span>
+                      <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-body flex items-center gap-1 bg-muted/50 px-2 py-1.5 rounded">
+                      <Clock className="w-3 h-3" /> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {isTrending && post.category && <span className="uppercase text-[10px] font-body font-bold text-neon-cyan ml-1 hidden sm:inline-block">{post.category.replace(/-/g, ' ')}</span>}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {user && user.id === post.user_id && !editingPost && (
+                      <>
+                        <button onClick={() => startEditPost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeletePost(post.id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </>
+                    )}
+                    {user && <button onClick={() => handleSaveToProfile(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>}
+                    {post.user_id && <button onClick={() => handleReport(post.id, post.user_id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
+                    {isStaff && post.user_id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><button className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-muted/20 rounded transition-colors" title="Moderación"><Shield className="w-3.5 h-3.5" /></button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                          <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer"><Ban className="w-3 h-3 mr-2" /> Ocultar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer"><Trash2 className="w-3 h-3 mr-2" /> Eliminar</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer"><UserIcon className="w-3 h-3 mr-2" /> Ver Perfil</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer"><Copy className="w-3 h-3 mr-2" /> Copiar ID</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
-                <UserPopup
-                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
-                  roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
-                  membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
-                  colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                  className="text-base"
-                />
-                
-                {(authorProfile.signature || authorProfile.signature_image_url) && (
-                  <div className="w-full mt-5 pt-5 border-t border-border/50">
-                    <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
-                    <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
+
+                {editingPost === post.id ? (
+                  <div className="space-y-3 animate-fade-in">
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
+                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-8">Cancelar</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
+                    <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
+                      {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
+                    </div>
+                  </>
+                )}
+              </section>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-5 w-full">
+            <div className="flex items-center justify-between mb-5 border-b border-border/50 pb-3">
+              <h3 className="font-body font-bold text-sm text-neon-cyan">COMENTARIOS ({postComments.length})</h3>
+              <select value={commentsSort} onChange={e => setCommentsSort(e.target.value as any)} className="bg-muted border border-border text-[10px] font-body rounded px-2 py-1 outline-none">
+                <option value="old">Más antiguos</option>
+                <option value="new">Más recientes</option>
+              </select>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {sortedComments.map(comment => {
+                const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
+                const commentRoles = comment.roles || [];
+                const commentIsStaff = commentRoles.some(role => staffRoleNames.includes((role || '').toLowerCase()));
+                return (
+                  <div key={comment.id} id={`comment-${comment.id}`} className={cn("p-4 rounded bg-muted/20 border border-white/5", comment.parent_id && "ml-4 sm:ml-10 border-l-2 border-l-neon-cyan/50")}>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                      <UserPopup
+                        userId={comment.user_id} displayName={comment.profile?.display_name || "Anónimo"} avatarUrl={comment.profile?.avatar_url}
+                        roles={commentRoles} roleIcon={comment.profile?.role_icon} showRoleIcon={comment.profile?.show_role_icon !== false}
+                        membershipTier={comment.profile?.membership_tier || comment.membership_tier} colorAvatarBorder={comment.profile?.color_avatar_border}
+                        colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
+                        className="flex items-center gap-3 text-left hover:no-underline min-w-0"
+                      >
+                        <div className="w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(comment.profile?.color_avatar_border)}>
+                          {comment.profile?.avatar_url ? <img src={comment.profile.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-muted-foreground" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-sm font-body font-semibold truncate" style={getNameStyle(comment.profile?.color_name)}>{comment.profile?.display_name || "Anónimo"}</span>
+                            {commentIsStaff ? (
+                              <RoleBadge roles={commentRoles} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} colorStaffRole={comment.profile?.color_staff_role} />
+                            ) : (
+                              <span className="text-[9px] font-pixel" style={getRoleStyle(comment.profile?.color_role)}>[{(comment.profile?.membership_tier || comment.membership_tier || 'novato').toUpperCase()}]</span>
+                            )}
+                          </div>
+                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 mt-1"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      </UserPopup>
+                      <div className="flex items-center gap-2 sm:pt-1 sm:ml-auto">
+                        {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span>Responder</span></button>}
+                        {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
+                      </div>
+                    </div>
+                    <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
+                      {renderContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                    </div>
+                  </div>
+                );
+              })}
+              {sortedComments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 italic">No hay comentarios aún. ¡Sé el primero!</p>}
+            </div>
+
+            {user ? (
+              <div className="space-y-3 bg-muted/10 border border-border/50 rounded-lg p-4 w-full">
+                {replyTo && (
+                  <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body mb-2">
+                    <Reply className="w-3 h-3" /> Respondiendo al comentario
+                    <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/10 rounded p-0.5"><X className="w-3 h-3" /></button>
                   </div>
                 )}
-              </>
+                
+                <Textarea placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`} value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted/50 text-sm font-body min-h-[90px] resize-y" />
+                
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-1">
+                    {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
+                    {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                    {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
+                    {canUseImages && <button onClick={() => insertFormat("image")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
+                    {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
+                    {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
+                    <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>{commentText.length}/{limits.maxForumChars}</span>
+                </div>
+
+                <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/30">
+                  <p className="text-[9px] text-muted-foreground font-body italic truncate max-w-[60%]">
+                    {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma automática"}
+                  </p>
+                  <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-8 text-xs px-4 gap-1.5 shadow-sm">
+                    <Send className="w-3.5 h-3.5" /> Enviar
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <div className="py-4 text-xs text-muted-foreground">Sistema</div>
+              <div className="py-6 text-center border border-border/50 rounded-lg bg-muted/10">
+                <p className="text-xs text-muted-foreground font-body">Debes iniciar sesión para participar en la discusión.</p>
+              </div>
             )}
           </div>
-
-          <div className="flex flex-col gap-4 min-w-0 w-full" id={`post-${post.id}`}>
-            <div className="bg-card border border-border rounded-lg p-5">
-              
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 bg-muted/30 px-2 py-1.5 rounded border border-white/5 shadow-inner">
-                    <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
-                    <span className="text-xs font-bold w-6 text-center">{(post.upvotes||0)-(post.downvotes||0)}</span>
-                    <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground font-body flex items-center gap-1 bg-muted/50 px-2 py-1.5 rounded">
-                    <Clock className="w-3 h-3" /> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  {isTrending && post.category && <span className="uppercase text-[10px] font-body font-bold text-neon-cyan ml-1 hidden sm:inline-block">{post.category.replace(/-/g, ' ')}</span>}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {user && user.id === post.user_id && !editingPost && (
-                    <>
-                      <button onClick={() => startEditPost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDeletePost(post.id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </>
-                  )}
-                  {user && <button onClick={() => handleSaveToProfile(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>}
-                  {post.user_id && <button onClick={() => handleReport(post.id, post.user_id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
-                  {isStaff && post.user_id && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild><button className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-muted/20 rounded transition-colors" title="Moderación"><Shield className="w-3.5 h-3.5" /></button></DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
-                        <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer"><Ban className="w-3 h-3 mr-2" /> Ocultar</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer"><Trash2 className="w-3 h-3 mr-2" /> Eliminar</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer"><UserIcon className="w-3 h-3 mr-2" /> Ver Perfil</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer"><Copy className="w-3 h-3 mr-2" /> Copiar ID</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-
-              {editingPost === post.id ? (
-                <div className="space-y-3 animate-fade-in">
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
-                  <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-8">Cancelar</Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
-                  <div className="text-sm text-foreground leading-relaxed font-body mt-4">
-                    {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="bg-card border border-border rounded-lg p-5">
-              <div className="flex items-center justify-between mb-5 border-b border-border/50 pb-3">
-                <h3 className="font-body font-bold text-sm text-neon-cyan">COMENTARIOS ({postComments.length})</h3>
-                <select value={commentsSort} onChange={e => setCommentsSort(e.target.value as any)} className="bg-muted border border-border text-[10px] font-body rounded px-2 py-1 outline-none">
-                  <option value="old">Más antiguos</option>
-                  <option value="new">Más recientes</option>
-                </select>
-              </div>
-
-              <div className="space-y-3 mb-6">
-                {sortedComments.map(comment => {
-                  const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
-                  return (
-                    <div key={comment.id} id={`comment-${comment.id}`} className={cn("p-3.5 rounded bg-muted/20 border border-white/5", comment.parent_id && "ml-6 sm:ml-10 border-l-2 border-l-neon-cyan/50")}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <UserPopup
-                            userId={comment.user_id} displayName={comment.profile?.display_name || "Anónimo"} avatarUrl={comment.profile?.avatar_url}
-                            roles={comment.roles || []} roleIcon={comment.profile?.role_icon} showRoleIcon={comment.profile?.show_role_icon !== false}
-                            membershipTier={comment.profile?.membership_tier || comment.membership_tier} colorAvatarBorder={comment.profile?.color_avatar_border}
-                            colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
-                          />
-                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span className="hidden sm:inline">Responder</span></button>}
-                          {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
-                        </div>
-                      </div>
-                      <div className="text-foreground text-xs leading-relaxed font-body pl-1">
-                        {renderContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
-                      </div>
-                    </div>
-                  );
-                })}
-                {sortedComments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 italic">No hay comentarios aún. ¡Sé el primero!</p>}
-              </div>
-
-              {user ? (
-                <div className="space-y-3 bg-muted/10 border border-border/50 rounded-lg p-4">
-                  {replyTo && (
-                    <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body mb-2">
-                      <Reply className="w-3 h-3" /> Respondiendo al comentario
-                      <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/10 rounded p-0.5"><X className="w-3 h-3" /></button>
-                    </div>
-                  )}
-                  
-                  <Textarea placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`} value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted/50 text-sm font-body min-h-[90px] resize-y" />
-                  
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-1">
-                      {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
-                      {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
-                      {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
-                      {canUseImages && <button onClick={() => insertFormat("image")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
-                      {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
-                      {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
-                      <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
-                    </div>
-                    <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>{commentText.length}/{limits.maxForumChars}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/30">
-                    <p className="text-[9px] text-muted-foreground font-body italic truncate max-w-[60%]">
-                      {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma automática"}
-                    </p>
-                    <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-8 text-xs px-4 gap-1.5 shadow-sm">
-                      <Send className="w-3.5 h-3.5" /> Enviar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-6 text-center border border-border/50 rounded-lg bg-muted/10">
-                  <p className="text-xs text-muted-foreground font-body">Debes iniciar sesión para participar en la discusión.</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
+        {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
+        {reportTarget && <ReportModal reportedUserId={reportTarget.userId} reportedUserName={reportTarget.userName} postId={reportTarget.postId} commentId={reportTarget.commentId} contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"} onClose={() => setReportTarget(null)} />}
       </div>
     );
   }
@@ -802,7 +831,9 @@ export default function ForumPage() {
                             membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                             colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
                             className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors truncate max-w-full text-right"
-                          />
+                          >
+                            <span className="text-xs font-body font-semibold truncate" style={getNameStyle(authorProfile.color_name)}>{authorProfile.display_name}</span>
+                          </UserPopup>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                           {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-4 h-4 text-muted-foreground"/>}
@@ -842,7 +873,6 @@ export default function ForumPage() {
         </div>, document.body
       )}
 
-      {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
       {reportTarget && <ReportModal reportedUserId={reportTarget.userId} reportedUserName={reportTarget.userName} postId={reportTarget.postId} commentId={reportTarget.commentId} contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"} onClose={() => setReportTarget(null)} />}
     </div>
   );

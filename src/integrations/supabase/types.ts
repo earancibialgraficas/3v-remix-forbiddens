@@ -806,6 +806,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      extract_system_link: { Args: { p_content: string }; Returns: string }
+      forum_post_route: {
+        Args: { p_comment_id?: string; p_post_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

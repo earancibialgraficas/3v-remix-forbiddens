@@ -212,10 +212,19 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
       return;
     }
     try {
-      const { error } = await supabase.from("social_comments").insert({ 
+      const { data: newComment, error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: photo.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
-      } as any);
+      } as any).select().single();
       if (error) throw error;
+      const targetUserId = replyTo ? comments.find((c: any) => c.id === replyTo.id)?.user_id : photo.user_id;
+      if (targetUserId && targetUserId !== user.id && newComment?.id) {
+        await supabase.from("notifications").insert({
+          id: crypto.randomUUID(), user_id: targetUserId, type: "comment_photo",
+          title: replyTo ? "Nueva respuesta" : "Nuevo comentario",
+          body: `${user.email || "Alguien"} ${replyTo ? "respondió un comentario" : "comentó tu imagen"}.`,
+          related_id: `${photo.id}|${newComment.id}`,
+        } as any);
+      }
       setCommentText(""); setReplyTo(null); fetchComments();
     } catch (e) { toast({ title: "Error al comentar", variant: "destructive" }); }
   };

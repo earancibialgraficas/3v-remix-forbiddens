@@ -68,10 +68,18 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
 
     if (!notif.related_id) return; 
 
+    if (typeof notif.related_id === "string" && (notif.related_id.startsWith("/") || notif.related_id.startsWith(window.location.origin))) {
+      const url = new URL(notif.related_id, window.location.origin);
+      navigate(url.pathname + url.search);
+      return;
+    }
+
     if (notif.type === "comment_reel") {
-      navigate(`/social/reels?post=${notif.related_id}`);
+      const [postId, commentId] = String(notif.related_id).split("|");
+      navigate(`/social/reels?post=${postId}${commentId ? `&comment=${commentId}` : ""}`);
     } else if (notif.type === "comment_photo" || notif.type === "comment") {
-      navigate(`/muro?post=${notif.related_id}`);
+      const [postId, commentId] = String(notif.related_id).split("|");
+      navigate(`/social/fotos?post=${postId}${commentId ? `&comment=${commentId}` : ""}`);
     } else if (notif.type === "comment_post" || notif.type === "reply_post") {
       
       let pId = notif.related_id;

@@ -358,10 +358,21 @@ function SnapCard({
     }
     
     try {
-      const { error } = await supabase.from("social_comments").insert({ 
+      const { data: newComment, error } = await supabase.from("social_comments").insert({ 
         user_id: user.id, content_id: item.id, content: replyTo ? `@${replyTo.name} ${commentText.trim()}` : commentText.trim(), parent_id: replyTo?.id || null 
-      });
+      }).select().single();
       if (error) throw error;
+      const targetUserId = replyTo ? comments.find(c => c.id === replyTo.id)?.user_id : item.user_id;
+      if (targetUserId && targetUserId !== user.id && newComment?.id) {
+        await supabase.from("notifications").insert({
+          id: crypto.randomUUID(),
+          user_id: targetUserId,
+          type: "comment_reel",
+          title: replyTo ? "Nueva respuesta" : "Nuevo comentario",
+          body: `${profile?.display_name || "Alguien"} ${replyTo ? "respondió un comentario" : "comentó tu video"}.`,
+          related_id: `${item.id}|${newComment.id}`,
+        } as any);
+      }
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
