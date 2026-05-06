@@ -560,7 +560,7 @@ export default function ForumPage() {
                             </span>
                             <span
                               className={cn(
-                                "inline-flex items-center gap-1 text-sm font-pixel px-2 py-0.5 rounded border",
+                                "inline-flex items-center gap-1 text-xs font-pixel px-1.5 py-0.5 rounded border",
                                 authorRoles.includes("master_web")
                                   ? "bg-neon-magenta/15 text-neon-magenta border-neon-magenta/30"
                                   : authorRoles.includes("admin")
@@ -570,7 +570,7 @@ export default function ForumPage() {
                               style={getStaffRoleStyle(authorProfile.color_staff_role)}
                             >
                               {authorProfile.show_role_icon !== false && authorProfile.role_icon && !authorRoles.includes("moderator") && (
-                                <span className="text-base">{authorProfile.role_icon}</span>
+                                <span className="text-sm">{authorProfile.role_icon}</span>
                               )}
                               {authorRoles.includes("master_web") ? "WebMaster" : authorRoles.includes("admin") ? "Admin" : "MOD"}
                             </span>
