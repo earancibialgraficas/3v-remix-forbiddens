@@ -663,6 +663,7 @@ export default function ForumPage() {
                       <div className="flex items-center gap-2 sm:pt-1 sm:ml-auto">
                         {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span>Responder</span></button>}
                         {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
+                        <CommentModMenu commentId={comment.id} authorId={comment.user_id} authorName={comment.profile?.display_name} table="comments" onDeleted={(id) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).filter(c => c.id !== id) }))} />
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
