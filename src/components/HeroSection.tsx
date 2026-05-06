@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import heroBanner from "@/assets/hero-banner.jpg";
 import logo from "@/assets/forbiddens_logo.svg";
 import { useAuth } from "@/hooks/useAuth";
+import InstallAppButton from "@/components/InstallAppButton";
 
 export default function HeroSection() {
   const { user } = useAuth();
@@ -69,6 +70,9 @@ export default function HeroSection() {
           <Button asChild variant="outline" size="sm" className="border-neon-yellow text-neon-yellow hover:bg-neon-yellow/10 font-pixel text-[10px] px-5 py-2.5 transition-all duration-200">
             <Link to="/reglas">REGLAS</Link>
           </Button>
+        </div>
+        <div className="mt-2 lg:hidden">
+          <InstallAppButton />
         </div>
       </div>
     </section>
