@@ -83,33 +83,45 @@ export default function ResetPasswordPage() {
           <Lock className="w-8 h-8 text-neon-cyan mx-auto mb-2" />
           <h1 className="font-pixel text-sm text-neon-cyan text-glow-cyan">NUEVA CONTRASEÑA</h1>
         </div>
-        <form onSubmit={handleReset} className="space-y-4">
-          <div>
-            <label className="text-xs font-body text-muted-foreground mb-1 block">Nueva contraseña</label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required minLength={6}
-                className="h-9 bg-muted border-border font-body text-sm pr-9"
-              />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+
+        {linkError ? (
+          <div className="text-center space-y-3">
+            <p className="text-xs font-body text-destructive">{linkError}</p>
+            <Button onClick={() => navigate("/forgot-password")} className="w-full font-body text-sm h-9">
+              Pedir nuevo enlace
+            </Button>
+          </div>
+        ) : !ready ? (
+          <p className="text-xs font-body text-muted-foreground text-center">Validando enlace...</p>
+        ) : (
+          <form onSubmit={handleReset} className="space-y-4">
+            <div>
+              <label className="text-xs font-body text-muted-foreground mb-1 block">Nueva contraseña</label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required minLength={6}
+                  className="h-9 bg-muted border-border font-body text-sm pr-9"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-body text-muted-foreground mb-1 block">Confirmar contraseña</label>
-            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-9 bg-muted border-border font-body text-sm" />
-            {confirmPassword && password !== confirmPassword && (
-              <p className="text-[10px] text-destructive font-body mt-1">Las contraseñas no coinciden</p>
-            )}
-          </div>
-          <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-sm h-9">
-            {loading ? "Actualizando..." : "Actualizar contraseña"}
-          </Button>
-        </form>
+            <div>
+              <label className="text-xs font-body text-muted-foreground mb-1 block">Confirmar contraseña</label>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-9 bg-muted border-border font-body text-sm" />
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-[10px] text-destructive font-body mt-1">Las contraseñas no coinciden</p>
+              )}
+            </div>
+            <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-body text-sm h-9">
+              {loading ? "Actualizando..." : "Actualizar contraseña"}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );
