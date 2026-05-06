@@ -606,6 +606,9 @@ export default function ForumPage() {
     else if (format === "image") setCommentText(prev => prev + "![descripción](URL_imagen)");
     else if (format === "link") setCommentText(prev => prev + "[texto](URL)");
     else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
+    else if (format === "align-left") setCommentText(prev => prev + "\n[align=left]texto[/align]\n");
+    else if (format === "align-center") setCommentText(prev => prev + "\n[align=center]texto[/align]\n");
+    else if (format === "align-right") setCommentText(prev => prev + "\n[align=right]texto[/align]\n");
   };
 
   const mockThreads = posts.length > 0 ? [] : (
