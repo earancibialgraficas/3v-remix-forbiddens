@@ -182,6 +182,33 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
   });
 }
 
+function renderAlignedContent(content: string, permissions: ContentPermissions, onOpenMedia: (src: string, type: "image"|"video") => void) {
+  if (!content) return null;
+  // Divide en bloques por [align=left|center|right]...[/align]. El resto queda como left por defecto.
+  const regex = /\[align=(left|center|right)\]([\s\S]*?)\[\/align\]/g;
+  const blocks: { align: "left"|"center"|"right"; text: string }[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      const before = content.slice(lastIndex, match.index);
+      if (before.trim()) blocks.push({ align: "left", text: before });
+    }
+    blocks.push({ align: match[1] as any, text: match[2] });
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    const tail = content.slice(lastIndex);
+    if (tail.trim()) blocks.push({ align: "left", text: tail });
+  }
+  if (blocks.length === 0) blocks.push({ align: "left", text: content });
+
+  return blocks.map((b, idx) => (
+    <div key={`align-${idx}`} style={{ textAlign: b.align }} className="w-full">
+      {renderContent(b.text, permissions, onOpenMedia)}
+    </div>
+  ));
+
 interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; }
 interface PostProfile { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier: string; color_avatar_border: string | null; color_name: string | null; color_role: string | null; color_staff_role: string | null; signature: string | null; signature_image_url: string | null; }
 
