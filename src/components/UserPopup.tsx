@@ -169,20 +169,20 @@ export default function UserPopup({
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={popupRef}
-          className="fixed z-[600] bg-card border border-border rounded-lg shadow-xl p-3 w-52 animate-scale-in"
+          className="fixed z-[600] bg-card border border-border rounded-lg shadow-xl p-3 w-[min(260px,calc(100vw-16px))] max-w-[260px] animate-scale-in"
           style={{ top: popupPos.top, left: popupPos.left }}
         >
-          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border">
+          <div className="flex items-start gap-2 mb-2 pb-2 border-b border-border">
             <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)}>
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-body font-semibold text-foreground truncate" style={getNameStyle(colorName)}>{displayName}</p>
-              <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-body font-semibold text-foreground break-words leading-tight" style={getNameStyle(colorName)}>{displayName}</p>
+              <div className="flex flex-wrap items-center gap-1 mt-1">
                 {isStaff ? (
                   <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
                 ) : (
-                  <span className="text-[9px] text-neon-yellow font-pixel" style={getRoleStyle(colorRole)}>{membershipTier.toUpperCase()}</span>
+                  <span className="text-[9px] text-neon-yellow font-pixel break-all" style={getRoleStyle(colorRole)}>{membershipTier.toUpperCase()}</span>
                 )}
               </div>
             </div>
