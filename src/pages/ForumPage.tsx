@@ -186,6 +186,7 @@ interface PostProfile { display_name: string; avatar_url: string | null; role_ic
 
 export default function ForumPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
   const { user, profile, isAdmin, isMasterWeb, roles } = useAuth();
   const { toast } = useToast();
@@ -305,8 +306,13 @@ export default function ForumPage() {
         setSelectedPostId(directPostId);
         fetchComments(directPostId);
       }
+    } else if (!directPostId && selectedPostId) {
+      setSelectedPostId(null);
+      setReplyTo(null);
+      setCommentText("");
+      setEditingPost(null);
     }
-  }, [directPostId, posts]);
+  }, [directPostId, posts, selectedPostId]);
 
   useEffect(() => {
     if (!selectedPostId || posts.length === 0) return;
@@ -339,7 +345,7 @@ export default function ForumPage() {
   const openPost = (postId: string) => {
     setSelectedPostId(postId);
     fetchComments(postId);
-    window.history.pushState({}, '', `${location.pathname}?post=${postId}`);
+    navigate(`${location.pathname}?post=${postId}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -348,7 +354,7 @@ export default function ForumPage() {
     setReplyTo(null);
     setCommentText("");
     setEditingPost(null);
-    window.history.pushState({}, '', location.pathname);
+    navigate(location.pathname, { replace: true });
   };
 
   const handleNewPostClick = () => {
