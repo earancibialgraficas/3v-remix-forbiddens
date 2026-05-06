@@ -48,16 +48,28 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("display_name, total_score, color_name").order("total_score", { ascending: false }).limit(5);
-      if (data) setTopUsers(data as unknown as TopUser[]);
+      const { data } = await supabase.from("profiles").select("id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
+      if (data) {
+        const ids = (data as any[]).map(d => d.id);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const rolesMap: Record<string, string[]> = {};
+        (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
+        setTopUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as TopUser[]);
+      }
     };
     fetchTop();
   }, []);
 
   useEffect(() => {
     const fetchPremium = async () => {
-      const { data } = await supabase.from("profiles").select("display_name, membership_tier, created_at, color_name, color_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
-      if (data) setPremiumUsers(data as unknown as PremiumUser[]);
+      const { data } = await supabase.from("profiles").select("id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
+      if (data) {
+        const ids = (data as any[]).map(d => d.id);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const rolesMap: Record<string, string[]> = {};
+        (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
+        setPremiumUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as PremiumUser[]);
+      }
     };
     fetchPremium();
   }, []);
