@@ -220,7 +220,14 @@ export default function ProfilePage() {
   const handleClearNotifications = async () => {
     if (!user) return;
     if (!confirm("¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
-    try { await supabase.from("notifications").delete().eq("user_id", user.id); fetchNotifs(); toast({ title: "Historial limpiado correctamente." }); } catch(e) {}
+    const { error } = await supabase.from("notifications").delete().eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Error al limpiar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNotifications([]);
+    fetchNotifs();
+    toast({ title: "Historial limpiado correctamente." });
   };
 
   const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
