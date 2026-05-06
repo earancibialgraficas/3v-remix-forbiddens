@@ -306,7 +306,6 @@ export default function ForumPage() {
   const canUseLinks = canUseVideo; 
   const canUseSignature = isStaff || userTier !== 'novato';
 
-  // 🔥 ESTE ES TU EFECTO VISUAL DE ILUMINACIÓN Y SCROLL EXACTO AL DEL BUZÓN 🔥
   useEffect(() => {
     if (showRulesPopup) {
       document.body.style.overflow = 'hidden';
@@ -501,35 +500,40 @@ export default function ForumPage() {
 
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
     
-    const { error } = await supabase.from("comments").insert({
+    // 🔥 AQUÍ ESTÁ EL TRUCO: Le decimos .select().single() a Supabase para que nos devuelva la ID del comentario que acabas de crear 🔥
+    const { data: newCommentData, error } = await supabase.from("comments").insert({
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
-    } as any);
+    } as any).select().single();
     
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else { 
-      // 🔥 AQUI SE GUARDAN LAS NOTIFICACIONES PERFECTAMENTE EN TU ESQUEMA 🔥
       try {
         const post = posts.find(p => p.id === postId);
+        
+        // Creamos nuestro "código secreto" uniendo el postId y el commentId separados por |
+        const compositeId = `${postId}|${newCommentData.id}`;
 
         if (replyTo) {
           const parentComment = comments[postId]?.find(c => c.id === replyTo);
           if (parentComment && parentComment.user_id !== user.id) {
             await supabase.from("notifications").insert({
+              id: crypto.randomUUID(),
               user_id: parentComment.user_id,
               type: 'reply_post',
               title: 'Nueva Respuesta',
               body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`,
-              related_id: postId
+              related_id: compositeId
             } as any);
           }
         } else if (post && post.user_id !== user.id) {
           await supabase.from("notifications").insert({
+            id: crypto.randomUUID(),
             user_id: post.user_id,
             type: 'comment_post',
             title: 'Nuevo Comentario',
             body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`,
-            related_id: postId
+            related_id: compositeId
           } as any);
         }
       } catch (e) {
