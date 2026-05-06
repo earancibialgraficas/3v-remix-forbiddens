@@ -299,6 +299,8 @@ export default function ForumPage() {
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
 
+  const processedDeepLinkRef = useRef<string | null>(null);
+
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory, user?.id]);
 
   // Si cambia la categoría (ruta) mientras hay un post abierto, lo cerramos
@@ -309,10 +311,8 @@ export default function ForumPage() {
     setCommentText("");
     setEditingPost(null);
     processedDeepLinkRef.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const processedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
     if (directPostId && posts.length > 0 && processedDeepLinkRef.current !== directPostId) {
       processedDeepLinkRef.current = directPostId;
