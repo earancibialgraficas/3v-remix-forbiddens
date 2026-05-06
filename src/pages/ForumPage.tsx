@@ -340,7 +340,6 @@ export default function ForumPage() {
     if (data) {
       let finalData = [...data];
       
-      // 🔥 TRUCO MAESTRO: Si la campana te mandó a un post viejo que ya no está entre los primeros 20, lo carga a la fuerza 🔥
       if (directPostId && !finalData.find(p => p.id === directPostId)) {
         const { data: extraPost } = await supabase.from("posts").select("*").eq("id", directPostId).maybeSingle();
         if (extraPost && !extraPost.is_banned) {
@@ -388,7 +387,7 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
-  // 🔥 1. ABRIR COMENTARIOS (Si la URL lo pide)
+  // 🔥 1. ABRIR COMENTARIOS AUTOMÁTICAMENTE 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       if (expandedPost !== directPostId) {
@@ -398,36 +397,51 @@ export default function ForumPage() {
     }
   }, [directPostId, posts]);
 
-  // 🔥 2. EL EFECTO DE SCROLL INTELIGENTE (Espera a que React termine de dibujar)
+  // 🔥 2. EL EFECTO DE SCROLL INTELIGENTE Y BLINDADO 🔥
   useEffect(() => {
     if (!directPostId || posts.length === 0) return;
 
-    if (directCommentId) {
-      // Si hay un comentario, verificamos que el sistema ya lo haya traído de la base de datos
-      if (comments[directPostId] && comments[directPostId].length > 0) {
-        setTimeout(() => {
-          const commentEl = document.getElementById(`comment-${directCommentId}`);
-          if (commentEl) {
-            commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
-            commentEl.classList.add('arcade-report-highlight'); // Efecto neón
-            setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
+    let attempts = 0;
+    const scrollInterval = setInterval(() => {
+      attempts++;
+
+      if (directCommentId) {
+        // Buscamos el comentario específico sin rendirnos
+        const commentEl = document.getElementById(`comment-${directCommentId}`);
+        if (commentEl) {
+          clearInterval(scrollInterval);
+          commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          commentEl.classList.add('arcade-report-highlight');
+          setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
+          window.history.replaceState({}, '', location.pathname); // Limpiamos URL solo al terminar
+        } else if (attempts > 30) {
+          // Si después de 3 segundos no cargó el comentario, entonces sí bajamos al post
+          clearInterval(scrollInterval);
+          const postEl = document.getElementById(`post-${directPostId}`);
+          if (postEl) {
+            postEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            postEl.classList.add('arcade-report-highlight');
+            setTimeout(() => postEl.classList.remove('arcade-report-highlight'), 3500);
             window.history.replaceState({}, '', location.pathname);
           }
-        }, 300); // 300ms solo para darle tiempo a React de dibujar el DOM
-      }
-    } else {
-      // Si es solo el post
-      setTimeout(() => {
-        const targetEl = document.getElementById(`post-${directPostId}`);
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          targetEl.classList.add('arcade-report-highlight');
-          setTimeout(() => targetEl.classList.remove('arcade-report-highlight'), 3500);
-          window.history.replaceState({}, '', location.pathname);
         }
-      }, 500);
-    }
-  }, [directPostId, directCommentId, posts, comments, location.pathname]);
+      } else {
+        // Si no hay comentario, buscamos solo la publicación
+        const postEl = document.getElementById(`post-${directPostId}`);
+        if (postEl) {
+          clearInterval(scrollInterval);
+          postEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          postEl.classList.add('arcade-report-highlight');
+          setTimeout(() => postEl.classList.remove('arcade-report-highlight'), 3500);
+          window.history.replaceState({}, '', location.pathname);
+        } else if (attempts > 30) {
+          clearInterval(scrollInterval);
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(scrollInterval);
+  }, [directPostId, directCommentId, posts, comments]);
 
   const handleNewPostClick = () => {
     const rulesKey = `rules_accepted_${user?.id}`;
@@ -533,7 +547,6 @@ export default function ForumPage() {
 
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
     
-    // Obtenemos el ID del comentario recién creado
     const { data: newCommentData, error } = await supabase.from("comments").insert({
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any).select().single();
@@ -543,8 +556,6 @@ export default function ForumPage() {
     } else { 
       try {
         const post = posts.find(p => p.id === postId);
-
-        // Armamos el código secreto para el GPS: "postId|commentId"
         const compositeId = `${postId}|${newCommentData.id}`;
 
         if (replyTo) {
@@ -556,7 +567,7 @@ export default function ForumPage() {
               type: 'reply_post',
               title: 'Nueva Respuesta',
               body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`,
-              related_id: compositeId // Guardamos el GPS aquí
+              related_id: compositeId 
             } as any);
           }
         } else if (post && post.user_id !== user.id) {
@@ -566,7 +577,7 @@ export default function ForumPage() {
             type: 'comment_post',
             title: 'Nuevo Comentario',
             body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`,
-            related_id: compositeId // Y aquí también
+            related_id: compositeId 
           } as any);
         }
       } catch (e) {
