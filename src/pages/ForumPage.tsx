@@ -554,14 +554,32 @@ export default function ForumPage() {
                           {authorProfile.display_name}
                         </span>
                         {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
-                          <>
-                            <span className="text-sm font-body font-semibold text-destructive">Staff</span>
-                            <span className="text-sm font-body font-semibold" style={getRoleStyle(authorProfile.color_staff_role || authorProfile.color_role)}>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="inline-flex items-center text-sm font-pixel px-2 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
+                              STAFF
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 text-sm font-pixel px-2 py-0.5 rounded border",
+                                authorRoles.includes("master_web")
+                                  ? "bg-neon-magenta/15 text-neon-magenta border-neon-magenta/30"
+                                  : authorRoles.includes("admin")
+                                  ? "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                                  : "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30"
+                              )}
+                              style={getStaffRoleStyle(authorProfile.color_staff_role)}
+                            >
+                              {authorProfile.show_role_icon !== false && authorProfile.role_icon && !authorRoles.includes("moderator") && (
+                                <span className="text-base">{authorProfile.role_icon}</span>
+                              )}
                               {authorRoles.includes("master_web") ? "WebMaster" : authorRoles.includes("admin") ? "Admin" : "MOD"}
                             </span>
-                          </>
+                          </div>
                         ) : (
-                          <span className="text-sm font-body font-semibold" style={getRoleStyle(authorProfile.color_role)}>
+                          <span
+                            className="inline-flex items-center text-sm font-pixel px-2 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                            style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
+                          >
                             {(authorProfile.membership_tier || "novato").toUpperCase()}
                           </span>
                         )}
