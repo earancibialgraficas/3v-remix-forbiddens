@@ -597,7 +597,7 @@ export default function ForumPage() {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{post.title}</h1>
+                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
                   <div className="text-sm text-foreground leading-relaxed font-body mt-4">
                     {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                   </div>
@@ -691,7 +691,7 @@ export default function ForumPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
-        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{page.title}</h1>
+        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{page.title}</h1>
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
@@ -775,7 +775,7 @@ export default function ForumPage() {
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>
+                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
                     {post.title}
                   </h3>
