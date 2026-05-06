@@ -242,6 +242,8 @@ export default function ForumPage() {
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
+  const [authorStats, setAuthorStats] = useState<{ totalScore: number; followers: number; following: number; forum: number; social: number; games: number } | null>(null);
+  const [authorStatColors, setAuthorStatColors] = useState<{ points?: string; followers?: string; following?: string; forum?: string; social?: string; games?: string }>({});
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
