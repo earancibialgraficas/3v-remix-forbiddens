@@ -129,22 +129,22 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
-      <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border flex items-center justify-center overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
-        <img src={imgMatch[2]} alt={imgMatch[1]} className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+      <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
       </div>
     );
     const linkMatch = part.match(/^\[(.*?)\]\((https?:\/\/.*?)\)$/);
     if (linkMatch) {
       if (!permissions.allowLinks) return <span key={i}>{renderInlineFormatting(part, permissions, `link-locked-${i}`)}</span>;
-      return <a key={i} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all" onClick={e => e.stopPropagation()}>{renderInlineFormatting(linkMatch[1], permissions, `link-${i}`)}</a>;
+      return <a key={i} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{renderInlineFormatting(linkMatch[1], permissions, `link-${i}`)}</a>;
     }
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
     if (ytMatch) {
-      if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all" onClick={e => e.stopPropagation()}>{part}</a> : <span key={i}>{part}</span>;
+      if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
       const embedSrc = `https://www.youtube.com/embed/${ytMatch[1]}`;
       return (
-        <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group" onClick={e => e.stopPropagation()}>
+        <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
           <iframe src={embedSrc} className="w-full h-full" allowFullScreen title="Video" />
           <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(embedSrc, "video"); }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
         </div>
@@ -153,24 +153,24 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
     if (/^https?:\/\/[^\s]+$/.test(part)) {
       const isMedia = /\.(jpg|jpeg|png|gif|webp|mp4|webm)(\?.*)?$/i.test(part);
       if (isMedia && /\.(mp4|webm)(\?.*)?$/i.test(part)) {
-        if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all" onClick={e => e.stopPropagation()}>{part}</a> : <span key={i}>{part}</span>;
+        if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
-          <div key={i} className="relative group mt-2 mb-1" onClick={e => e.stopPropagation()}>
+          <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "video"); }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
           </div>
         );
       }
       if (isMedia) {
-        if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all" onClick={e => e.stopPropagation()}>{part}</a> : <span key={i}>{part}</span>;
+        if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
-          <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border flex items-center justify-center overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
-            <img src={part} alt="" className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
+            <img src={part} alt="" className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
           </div>
         );
       }
-      return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all" onClick={e => e.stopPropagation()}>{part}</a> : <span key={i}>{part}</span>;
+      return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
     }
     return <span key={i}>{renderInlineFormatting(part, permissions, `text-${i}`)}</span>;
   });
@@ -202,10 +202,7 @@ export default function ForumPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [showRulesPopup, setShowRulesPopup] = useState(false);
-  
   const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
-  _setForumModal = setForumModal; // Enlaza el ref global
-
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
@@ -530,7 +527,7 @@ export default function ForumPage() {
                   {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                 </div>
                 <UserPopup
-                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={undefined}
+                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                   roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                   membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                   colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
@@ -600,7 +597,7 @@ export default function ForumPage() {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{post.title}</h1>
+                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
                   <div className="text-sm text-foreground leading-relaxed font-body mt-4">
                     {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                   </div>
@@ -694,7 +691,7 @@ export default function ForumPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
-        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{page.title}</h1>
+        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{page.title}</h1>
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
@@ -778,7 +775,7 @@ export default function ForumPage() {
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>
+                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
                     {post.title}
                   </h3>
@@ -795,12 +792,12 @@ export default function ForumPage() {
                     <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
                   </div>
                   
-                  <div className="flex items-center justify-end w-[160px] gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-end w-[130px] gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                     {authorProfile ? (
                       <>
                         <div className="min-w-0 flex-1 flex justify-end">
                           <UserPopup
-                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={undefined}
+                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                             roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                             membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                             colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
