@@ -73,7 +73,7 @@ export default function UserPopup({
   const updatePos = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const popupW = 220;
+    const popupW = popupRef.current?.offsetWidth || 240;
     const left = Math.max(8, Math.min(rect.left, window.innerWidth - popupW - 8));
     const top = rect.bottom + 4;
     setPopupPos({ top, left });
