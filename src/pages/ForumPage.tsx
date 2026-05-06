@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock, AlignLeft, AlignCenter, AlignRight, Trophy, Users, UserPlus, Gamepad2, Star } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -182,6 +182,34 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
   });
 }
 
+function renderAlignedContent(content: string, permissions: ContentPermissions, onOpenMedia: (src: string, type: "image"|"video") => void) {
+  if (!content) return null;
+  // Divide en bloques por [align=left|center|right]...[/align]. El resto queda como left por defecto.
+  const regex = /\[align=(left|center|right)\]([\s\S]*?)\[\/align\]/g;
+  const blocks: { align: "left"|"center"|"right"; text: string }[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      const before = content.slice(lastIndex, match.index);
+      if (before.trim()) blocks.push({ align: "left", text: before });
+    }
+    blocks.push({ align: match[1] as any, text: match[2] });
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    const tail = content.slice(lastIndex);
+    if (tail.trim()) blocks.push({ align: "left", text: tail });
+  }
+  if (blocks.length === 0) blocks.push({ align: "left", text: content });
+
+  return blocks.map((b, idx) => (
+    <div key={`align-${idx}`} style={{ textAlign: b.align }} className="w-full">
+      {renderContent(b.text, permissions, onOpenMedia)}
+    </div>
+  ));
+}
+
 interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; }
 interface PostProfile { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier: string; color_avatar_border: string | null; color_name: string | null; color_role: string | null; color_staff_role: string | null; signature: string | null; signature_image_url: string | null; }
 
@@ -214,6 +242,8 @@ export default function ForumPage() {
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
+  const [authorStats, setAuthorStats] = useState<{ totalScore: number; followers: number; following: number; forum: number; social: number; games: number } | null>(null);
+  const [authorStatColors, setAuthorStatColors] = useState<{ points?: string; followers?: string; following?: string; forum?: string; social?: string; games?: string }>({});
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -299,9 +329,20 @@ export default function ForumPage() {
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
 
+  const processedDeepLinkRef = useRef<string | null>(null);
+
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory, user?.id]);
 
-  const processedDeepLinkRef = useRef<string | null>(null);
+  // Si cambia la categoría (ruta) mientras hay un post abierto, lo cerramos
+  // para evitar que se quede "cargando" un post que no pertenece a esta sección.
+  useEffect(() => {
+    setSelectedPostId(null);
+    setReplyTo(null);
+    setCommentText("");
+    setEditingPost(null);
+    processedDeepLinkRef.current = null;
+  }, [location.pathname]);
+
   useEffect(() => {
     if (directPostId && posts.length > 0 && processedDeepLinkRef.current !== directPostId) {
       processedDeepLinkRef.current = directPostId;
@@ -340,6 +381,43 @@ export default function ForumPage() {
 
     return () => clearInterval(scrollInterval);
   }, [selectedPostId, directCommentId, posts, comments]);
+
+  // Cargar estadísticas del autor del post abierto
+  useEffect(() => {
+    if (!selectedPostId) { setAuthorStats(null); return; }
+    const post = posts.find(p => p.id === selectedPostId);
+    if (!post?.user_id) { setAuthorStats(null); return; }
+    const uid = post.user_id;
+    let cancel = false;
+    (async () => {
+      try {
+        const [profRes, followersRes, followingRes, forumRes, socialRes, scoresRes] = await Promise.all([
+          supabase.from("profiles").select("total_score, color_stat_points, color_stat_followers, color_stat_following, color_stat_posts_forum, color_stat_posts_social, color_stat_games").eq("user_id", uid).maybeSingle(),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", uid),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", uid),
+          supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", uid).neq("is_banned", true),
+          supabase.from("social_content" as any).select("*", { count: "exact", head: true }).eq("user_id", uid),
+          supabase.from("leaderboard_scores").select("game_name, console_type").eq("user_id", uid),
+        ]);
+        if (cancel) return;
+        const games = new Set((scoresRes.data || []).map((g: any) => `${g.game_name}|${g.console_type}`)).size;
+        const p: any = profRes.data || {};
+        setAuthorStats({
+          totalScore: p.total_score || 0,
+          followers: followersRes.count || 0,
+          following: followingRes.count || 0,
+          forum: forumRes.count || 0,
+          social: socialRes.count || 0,
+          games,
+        });
+        setAuthorStatColors({
+          points: p.color_stat_points, followers: p.color_stat_followers, following: p.color_stat_following,
+          forum: p.color_stat_posts_forum, social: p.color_stat_posts_social, games: p.color_stat_games,
+        });
+      } catch { if (!cancel) setAuthorStats(null); }
+    })();
+    return () => { cancel = true; };
+  }, [selectedPostId, posts]);
 
   const openPost = (postId: string) => {
     setSelectedPostId(postId);
@@ -567,6 +645,9 @@ export default function ForumPage() {
     else if (format === "image") setCommentText(prev => prev + "![descripción](URL_imagen)");
     else if (format === "link") setCommentText(prev => prev + "[texto](URL)");
     else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
+    else if (format === "align-left") setCommentText(prev => prev + "\n[align=left]texto[/align]\n");
+    else if (format === "align-center") setCommentText(prev => prev + "\n[align=center]texto[/align]\n");
+    else if (format === "align-right") setCommentText(prev => prev + "\n[align=right]texto[/align]\n");
   };
 
   const mockThreads = posts.length > 0 ? [] : (
@@ -656,6 +737,38 @@ export default function ForumPage() {
                           <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
                         </div>
                       )}
+                      {authorStats && (
+                        <div className="w-full mt-4 pt-4 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground font-body font-bold mb-3 uppercase text-left tracking-wider flex items-center gap-1.5">
+                            <Star className="w-3 h-3 text-neon-yellow" /> Estadísticas
+                          </p>
+                          <ul className="space-y-1.5">
+                            {[
+                              { icon: Trophy, label: "Puntos", value: authorStats.totalScore.toLocaleString(), color: authorStatColors.points || "#39ff14", glow: "rgba(57,255,20,0.55)" },
+                              { icon: Users, label: "Seguidores", value: authorStats.followers.toLocaleString(), color: authorStatColors.followers || "#00ffff", glow: "rgba(0,255,255,0.55)" },
+                              { icon: UserPlus, label: "Siguiendo", value: authorStats.following.toLocaleString(), color: authorStatColors.following || "#ff00ff", glow: "rgba(255,0,255,0.55)" },
+                              { icon: MessageSquare, label: "Posts Foro", value: authorStats.forum.toLocaleString(), color: authorStatColors.forum || "#ffff00", glow: "rgba(255,255,0,0.55)" },
+                              { icon: Image, label: "Posts Social", value: authorStats.social.toLocaleString(), color: authorStatColors.social || "#ff8c00", glow: "rgba(255,140,0,0.55)" },
+                              { icon: Gamepad2, label: "Juegos", value: authorStats.games.toLocaleString(), color: authorStatColors.games || "#ff3366", glow: "rgba(255,51,102,0.55)" },
+                            ]
+                              .sort((a, b) => Number(String(b.value).replace(/[^\d-]/g, '')) - Number(String(a.value).replace(/[^\d-]/g, '')))
+                              .map(({ icon: Icon, label, value, color, glow }) => (
+                                <li
+                                  key={label}
+                                  className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded border bg-black/30 backdrop-blur-sm"
+                                  style={{ borderColor: `${color}55`, boxShadow: `0 0 10px ${glow}, inset 0 0 8px rgba(0,0,0,0.5)` }}
+                                >
+                                  <span className="flex items-center gap-1.5 text-[10px] font-pixel tracking-wider" style={{ color, textShadow: `0 0 6px ${glow}` }}>
+                                    <Icon className="w-3 h-3" /> {label.toUpperCase()}
+                                  </span>
+                                  <span className="font-pixel text-[11px] tabular-nums" style={{ color, textShadow: `0 0 8px ${glow}` }}>
+                                    {value}
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -714,7 +827,7 @@ export default function ForumPage() {
                   <>
                     <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
-                      {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
+                      {renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </>
                 )}
@@ -768,7 +881,7 @@ export default function ForumPage() {
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
-                      {renderContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                      {renderAlignedContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </div>
                 );
@@ -796,6 +909,10 @@ export default function ForumPage() {
                     {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
                     {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
                     <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    <button onClick={() => insertFormat("align-left")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => insertFormat("align-center")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => insertFormat("align-right")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-3.5 h-3.5" /></button>
                   </div>
                   <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>{commentText.length}/{limits.maxForumChars}</span>
                 </div>
@@ -882,6 +999,10 @@ export default function ForumPage() {
             {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
             {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
             {canUseLinks && <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
+            <div className="w-px h-5 bg-border mx-1" />
+            <button onClick={() => setContent(prev => prev + "\n[align=left]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-4 h-4" /></button>
+            <button onClick={() => setContent(prev => prev + "\n[align=center]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
+            <button onClick={() => setContent(prev => prev + "\n[align=right]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-4 h-4" /></button>
           </div>
           
           <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs w-full sm:w-auto mt-2">
