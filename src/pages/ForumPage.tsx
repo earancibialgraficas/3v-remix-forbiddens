@@ -299,7 +299,7 @@ export default function ForumPage() {
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
 
-  useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory]);
+  useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory, user?.id]);
 
   const processedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
