@@ -798,7 +798,7 @@ function SnapCard({
                       </button>
                     )}
                     {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
-                    <CommentModMenu commentId={c.id} authorId={c.user_id} authorName={c.display_name} table="social_comments" onDeleted={() => handleDeleteComment(c.id)} />
+                    <CommentModMenu commentId={c.id} authorId={c.user_id} authorName={c.display_name} table="social_comments" onDeleted={(id) => setComments(prev => prev.filter(cc => cc.id !== id))} />
                   </div>
                 </div>
               ))}
