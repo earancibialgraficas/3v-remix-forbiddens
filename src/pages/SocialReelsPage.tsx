@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
+import CommentModMenu from "@/components/CommentModMenu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -797,6 +798,7 @@ function SnapCard({
                       </button>
                     )}
                     {(isStaff || user?.id === c.user_id) && <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar"><Trash2 className="w-2.5 h-2.5" /></button>}
+                    <CommentModMenu commentId={c.id} authorId={c.user_id} authorName={c.display_name} table="social_comments" onDeleted={(id) => setComments(prev => prev.filter(cc => cc.id !== id))} />
                   </div>
                 </div>
               ))}

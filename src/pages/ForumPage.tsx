@@ -17,6 +17,7 @@ import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import CommentModMenu from "@/components/CommentModMenu";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -300,19 +301,17 @@ export default function ForumPage() {
 
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory]);
 
+  const processedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
-    if (directPostId && posts.length > 0) {
-      if (selectedPostId !== directPostId) {
-        setSelectedPostId(directPostId);
-        fetchComments(directPostId);
-      }
-    } else if (!directPostId && selectedPostId) {
-      setSelectedPostId(null);
-      setReplyTo(null);
-      setCommentText("");
-      setEditingPost(null);
+    if (directPostId && posts.length > 0 && processedDeepLinkRef.current !== directPostId) {
+      processedDeepLinkRef.current = directPostId;
+      setSelectedPostId(directPostId);
+      fetchComments(directPostId);
+      // Limpiar la URL para que no se reabra solo al hacer otros clicks
+      const cleanUrl = location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
     }
-  }, [directPostId, posts, selectedPostId]);
+  }, [directPostId, posts]);
 
   useEffect(() => {
     if (!selectedPostId || posts.length === 0) return;
@@ -665,6 +664,7 @@ export default function ForumPage() {
                       <div className="flex items-center gap-2 sm:pt-1 sm:ml-auto">
                         {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span>Responder</span></button>}
                         {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
+                        <CommentModMenu commentId={comment.id} authorId={comment.user_id} authorName={comment.profile?.display_name} table="comments" onDeleted={(id) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).filter(c => c.id !== id) }))} />
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">

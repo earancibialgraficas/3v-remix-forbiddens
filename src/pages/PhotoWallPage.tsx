@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
+import CommentModMenu from "@/components/CommentModMenu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -314,6 +315,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                           </button>
                         )}
                         {isStaff && <button onClick={() => handleDeleteComment(c.id)} className="text-[8px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>}
+                        <CommentModMenu commentId={c.id} authorId={c.user_id} authorName={c.display_name} table="social_comments" onDeleted={(id) => setComments(prev => prev.filter(cc => cc.id !== id))} />
                       </div>
                     </div>
                   </div>
