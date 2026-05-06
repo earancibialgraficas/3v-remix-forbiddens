@@ -168,7 +168,16 @@ export default function RightPanel() {
                 {topUsers.map((u, i) => (
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-muted-foreground w-3 text-right">{i+1}</span>
-                    <span className="truncate flex-1" style={u.color_name ? getNameStyle(u.color_name) : {}}>{badges[i] || "🎯"} {u.display_name}</span>
+                    <UserPopup
+                      userId={u.id} displayName={u.display_name} avatarUrl={u.avatar_url}
+                      roles={u.roles || []} roleIcon={u.role_icon} showRoleIcon={u.show_role_icon !== false}
+                      membershipTier={u.membership_tier || "novato"}
+                      colorAvatarBorder={u.color_avatar_border} colorName={u.color_name}
+                      colorRole={u.color_role} colorStaffRole={u.color_staff_role}
+                      className="truncate flex-1 min-w-0 text-left"
+                    >
+                      <span className="truncate" style={u.color_name ? getNameStyle(u.color_name) : {}}>{badges[i] || "🎯"} {u.display_name}</span>
+                    </UserPopup>
                     <span className="text-neon-green font-bold">{u.total_score}</span>
                   </div>
                 ))}
@@ -181,7 +190,16 @@ export default function RightPanel() {
                 {premiumUsers.map((pu, i) => (
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-neon-yellow">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
-                    <span className="truncate flex-1" style={pu.color_name ? getNameStyle(pu.color_name) : {}}>{pu.display_name}</span>
+                    <UserPopup
+                      userId={pu.id} displayName={pu.display_name} avatarUrl={pu.avatar_url}
+                      roles={pu.roles || []} roleIcon={pu.role_icon} showRoleIcon={pu.show_role_icon !== false}
+                      membershipTier={pu.membership_tier}
+                      colorAvatarBorder={pu.color_avatar_border} colorName={pu.color_name}
+                      colorRole={pu.color_role} colorStaffRole={pu.color_staff_role}
+                      className="truncate flex-1 min-w-0 text-left"
+                    >
+                      <span className="truncate" style={pu.color_name ? getNameStyle(pu.color_name) : {}}>{pu.display_name}</span>
+                    </UserPopup>
                     <span className={cn("font-pixel text-neon-yellow text-[8px]")} style={pu.color_role ? getRoleStyle(pu.color_role) : {}}>{pu.membership_tier.toUpperCase()}</span>
                   </div>
                 ))}
