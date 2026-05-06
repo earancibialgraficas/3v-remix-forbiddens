@@ -10,6 +10,7 @@ import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
 // ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
+import UserPopup from "@/components/UserPopup";
 
 interface TopUser { id: string; display_name: string; total_score: number; avatar_url?: string | null; membership_tier?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
 interface PremiumUser { id: string; display_name: string; membership_tier: string; created_at: string; avatar_url?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
