@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
@@ -64,18 +64,23 @@ const mockPostsByCategory: Record<string, Array<any>> = {
 
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
-  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => { document.body.style.overflow = 'auto'; window.removeEventListener('keydown', handleKeyDown); };
+  }, [onClose]);
   if (typeof document === "undefined") return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-5xl max-h-[92vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-end mb-2 gap-2 w-full z-10">
           {isImage && <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar"><Download className="w-5 h-5 text-white" /></a>}
           <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative flex items-center justify-center">
-          {type === "video" ? <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="max-w-full max-h-[80vh] object-contain rounded-xl" />}
+        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-fit max-w-full relative flex items-center justify-center">
+          {type === "video" ? <div className="aspect-video w-[min(90vw,960px)]"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="block max-w-full max-h-[82vh] object-contain rounded-xl" />}
         </div>
       </div>
     </div>, document.body
@@ -129,8 +134,8 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
-      <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
-        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+      <div key={i} className="relative group mt-3 mb-2 cursor-zoom-in w-fit max-w-full bg-black/40 rounded border border-border overflow-hidden mx-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="block max-w-full max-h-[70vh] w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
       </div>
     );
@@ -164,8 +169,8 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
       if (isMedia) {
         if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
-          <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
-            <img src={part} alt="" className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          <div key={i} className="relative group mt-3 mb-2 cursor-zoom-in w-fit max-w-full bg-black/40 rounded border border-border overflow-hidden mx-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
+            <img src={part} alt="" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
           </div>
         );
