@@ -737,6 +737,38 @@ export default function ForumPage() {
                           <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
                         </div>
                       )}
+                      {authorStats && (
+                        <div className="w-full mt-4 pt-4 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground font-body font-bold mb-3 uppercase text-left tracking-wider flex items-center gap-1.5">
+                            <Star className="w-3 h-3 text-neon-yellow" /> Estadísticas
+                          </p>
+                          <ul className="space-y-1.5">
+                            {[
+                              { icon: Trophy, label: "Puntos", value: authorStats.totalScore.toLocaleString(), color: authorStatColors.points || "#39ff14", glow: "rgba(57,255,20,0.55)" },
+                              { icon: Users, label: "Seguidores", value: authorStats.followers.toLocaleString(), color: authorStatColors.followers || "#00ffff", glow: "rgba(0,255,255,0.55)" },
+                              { icon: UserPlus, label: "Siguiendo", value: authorStats.following.toLocaleString(), color: authorStatColors.following || "#ff00ff", glow: "rgba(255,0,255,0.55)" },
+                              { icon: MessageSquare, label: "Posts Foro", value: authorStats.forum.toLocaleString(), color: authorStatColors.forum || "#ffff00", glow: "rgba(255,255,0,0.55)" },
+                              { icon: Image, label: "Posts Social", value: authorStats.social.toLocaleString(), color: authorStatColors.social || "#ff8c00", glow: "rgba(255,140,0,0.55)" },
+                              { icon: Gamepad2, label: "Juegos", value: authorStats.games.toLocaleString(), color: authorStatColors.games || "#ff3366", glow: "rgba(255,51,102,0.55)" },
+                            ]
+                              .sort((a, b) => Number(String(b.value).replace(/[^\d-]/g, '')) - Number(String(a.value).replace(/[^\d-]/g, '')))
+                              .map(({ icon: Icon, label, value, color, glow }) => (
+                                <li
+                                  key={label}
+                                  className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded border bg-black/30 backdrop-blur-sm"
+                                  style={{ borderColor: `${color}55`, boxShadow: `0 0 10px ${glow}, inset 0 0 8px rgba(0,0,0,0.5)` }}
+                                >
+                                  <span className="flex items-center gap-1.5 text-[10px] font-pixel tracking-wider" style={{ color, textShadow: `0 0 6px ${glow}` }}>
+                                    <Icon className="w-3 h-3" /> {label.toUpperCase()}
+                                  </span>
+                                  <span className="font-pixel text-[11px] tabular-nums" style={{ color, textShadow: `0 0 8px ${glow}` }}>
+                                    {value}
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
