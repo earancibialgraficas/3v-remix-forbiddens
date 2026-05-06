@@ -71,7 +71,8 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
     } else if (notif.type === "comment_photo" || notif.type === "comment") {
       navigate(`/muro?post=${notif.related_id}`);
     } else if (notif.type === "comment_post" || notif.type === "reply_post") {
-      navigate(`/?post=${notif.related_id}`);
+      // 🔥 AQUÍ ARREGLÉ EL GPS: Ahora manda al foro, no al inicio 🔥
+      navigate(`/gaming-anime/foro?post=${notif.related_id}`);
     } else if (notif.type === "friend_accepted" || notif.type === "follow" || notif.type === "friend_request") {
       navigate(`/usuario/${notif.related_id}`);
     }

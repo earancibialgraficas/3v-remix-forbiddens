@@ -306,6 +306,7 @@ export default function ForumPage() {
   const canUseLinks = canUseVideo; 
   const canUseSignature = isStaff || userTier !== 'novato';
 
+  // 🔥 ESTE ES TU EFECTO VISUAL DE ILUMINACIÓN Y SCROLL EXACTO AL DEL BUZÓN 🔥
   useEffect(() => {
     if (showRulesPopup) {
       document.body.style.overflow = 'hidden';
@@ -507,11 +508,10 @@ export default function ForumPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else { 
-      
-      // 🔥 LA SOLUCIÓN USANDO TUS COLUMNAS (title, body, related_id) 🔥
+      // 🔥 AQUI SE GUARDAN LAS NOTIFICACIONES PERFECTAMENTE EN TU ESQUEMA 🔥
       try {
         const post = posts.find(p => p.id === postId);
-        
+
         if (replyTo) {
           const parentComment = comments[postId]?.find(c => c.id === replyTo);
           if (parentComment && parentComment.user_id !== user.id) {
