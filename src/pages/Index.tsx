@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import ForumCategories from "@/components/ForumCategories";
 import HomeCarousel from "@/components/HomeCarousel";
-import SignatureDisplay from "@/components/SignatureDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
@@ -40,7 +39,6 @@ const categoryLabels: Record<string, { label: string; color: string }> = {
 export default function Index() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [postProfiles, setPostProfiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -51,16 +49,6 @@ export default function Index() {
         .limit(100);
       if (data) {
         setPosts(data as any);
-        const userIds = [...new Set(data.map((p: any) => p.user_id).filter(Boolean))];
-        if (userIds.length > 0) {
-          const { data: profs } = await supabase
-            .from("profiles")
-            .select("user_id, signature, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_font, signature_font_family, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, color_staff_role, signature_font_size")
-            .in("user_id", userIds);
-          const map: Record<string, any> = {};
-          profs?.forEach((p: any) => { map[p.user_id] = p; });
-          setPostProfiles(map);
-        }
       }
       setLoading(false);
     };
@@ -113,15 +101,6 @@ export default function Index() {
                       </p>
                       {post.content && (
                         <p className="text-[10px] text-muted-foreground font-body mt-0.5 line-clamp-1">{post.content.replace(/!\[.*?\]\(.*?\)/g, "[imagen]")}</p>
-                      )}
-                      {(post.signature || postProfiles[post.user_id || ""]?.signature_image_url) && (
-                        <div className="mt-1.5 w-full">
-                          <SignatureDisplay
-                            text={postProfiles[post.user_id || ""]?.signature || post.signature}
-                            profile={postProfiles[post.user_id || ""]}
-                            fontSize={10}
-                          />
-                        </div>
                       )}
                     </div>
                   </div>
