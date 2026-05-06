@@ -61,26 +61,35 @@ export default function UserPopup({
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
   const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
 
-  const handleToggle = () => {
+  const updatePos = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    setPopupPos({
-      top: rect.bottom + 4,
-      left: Math.min(rect.left, window.innerWidth - 220),
-    });
-    setOpen(!open);
+    const popupW = 220;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - popupW - 8));
+    const top = rect.bottom + 4;
+    setPopupPos({ top, left });
   };
 
-  // Close on outside click
+  const handleToggle = () => { updatePos(); setOpen(!open); };
+
+  // Re-posicionar el popup junto al nombre en scroll/resize y cerrar al hacer click fuera
   useEffect(() => {
     if (!open) return;
+    updatePos();
+    const onMove = () => updatePos();
+    window.addEventListener("scroll", onMove, true);
+    window.addEventListener("resize", onMove);
     const handler = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node) && triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    return () => {
+      window.removeEventListener("scroll", onMove, true);
+      window.removeEventListener("resize", onMove);
+      document.removeEventListener("mousedown", handler);
+    };
   }, [open]);
 
   return (

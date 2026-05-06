@@ -406,11 +406,16 @@ export default function ForumPage() {
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      const { data: existingVote } = await supabase.from("post_votes").select("id, vote_type").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
-      if (!existingVote) { await supabase.from("post_votes").insert({ id: crypto.randomUUID(), post_id: postId, user_id: user.id, vote_type: voteType }); } 
-      else if (existingVote.vote_type === voteType) { await supabase.from("post_votes").delete().eq("id", existingVote.id); } 
-      else { await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id); }
-      await supabase.from("posts").update({ upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) }).eq("id", postId);
+      // 🔥 Usamos RPC atómico (igual que el Social Hub) para evitar votos duplicados al recargar 🔥
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("toggle_post_vote", {
+        p_post_id: postId, p_user_id: user.id, p_vote_type: voteType,
+      });
+      if (rpcErr) throw rpcErr;
+      if (rpcData) {
+        const r: any = rpcData;
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: r.upvotes ?? p.upvotes, downvotes: r.downvotes ?? p.downvotes } : p));
+        setUserVotes(prev => ({ ...prev, [postId]: r.user_vote ?? null }));
+      }
     } catch (error) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
