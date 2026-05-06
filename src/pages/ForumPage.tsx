@@ -838,6 +838,10 @@ export default function ForumPage() {
                     {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
                     {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
                     <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    <button onClick={() => insertFormat("align-left")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => insertFormat("align-center")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => insertFormat("align-right")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-3.5 h-3.5" /></button>
                   </div>
                   <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>{commentText.length}/{limits.maxForumChars}</span>
                 </div>
