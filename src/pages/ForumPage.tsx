@@ -542,14 +542,30 @@ export default function ForumPage() {
                     <div className="w-24 h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                       {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                     </div>
-                    <div className="min-w-0 w-full flex flex-col items-center sm:items-start lg:items-center">
+                    <div className="min-w-0 w-full flex flex-col items-center">
                       <UserPopup
                         userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                         roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                         membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                         colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                        className="text-base justify-center sm:justify-start lg:justify-center"
-                      />
+                        className="flex flex-col items-center gap-1 text-center hover:no-underline w-full"
+                      >
+                        <span className="text-sm font-body font-semibold break-words text-center" style={getNameStyle(authorProfile.color_name)}>
+                          {authorProfile.display_name}
+                        </span>
+                        {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
+                          <>
+                            <span className="text-sm font-body font-semibold text-destructive">Staff</span>
+                            <span className="text-sm font-body font-semibold" style={getRoleStyle(authorProfile.color_staff_role || authorProfile.color_role)}>
+                              {authorRoles.includes("master_web") ? "WebMaster" : authorRoles.includes("admin") ? "Admin" : "MOD"}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-body font-semibold" style={getRoleStyle(authorProfile.color_role)}>
+                            {(authorProfile.membership_tier || "novato").toUpperCase()}
+                          </span>
+                        )}
+                      </UserPopup>
                       {(authorProfile.signature || authorProfile.signature_image_url) && (
                         <div className="w-full mt-4 pt-4 border-t border-border/50">
                           <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
