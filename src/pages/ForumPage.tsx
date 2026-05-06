@@ -203,9 +203,9 @@ export default function ForumPage() {
   const [editContent, setEditContent] = useState("");
   const [showRulesPopup, setShowRulesPopup] = useState(false);
   
-  // Tipado correcto para el modal
   const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
-  
+  _setForumModal = setForumModal; // Enlaza el ref global
+
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
@@ -530,7 +530,7 @@ export default function ForumPage() {
                   {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                 </div>
                 <UserPopup
-                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={undefined}
                   roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                   membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                   colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
@@ -800,7 +800,7 @@ export default function ForumPage() {
                       <>
                         <div className="min-w-0 flex-1 flex justify-end">
                           <UserPopup
-                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={undefined}
                             roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                             membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                             colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
