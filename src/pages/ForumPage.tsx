@@ -300,19 +300,17 @@ export default function ForumPage() {
 
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory]);
 
+  const processedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
-    if (directPostId && posts.length > 0) {
-      if (selectedPostId !== directPostId) {
-        setSelectedPostId(directPostId);
-        fetchComments(directPostId);
-      }
-    } else if (!directPostId && selectedPostId) {
-      setSelectedPostId(null);
-      setReplyTo(null);
-      setCommentText("");
-      setEditingPost(null);
+    if (directPostId && posts.length > 0 && processedDeepLinkRef.current !== directPostId) {
+      processedDeepLinkRef.current = directPostId;
+      setSelectedPostId(directPostId);
+      fetchComments(directPostId);
+      // Limpiar la URL para que no se reabra solo al hacer otros clicks
+      const cleanUrl = location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
     }
-  }, [directPostId, posts, selectedPostId]);
+  }, [directPostId, posts]);
 
   useEffect(() => {
     if (!selectedPostId || posts.length === 0) return;
