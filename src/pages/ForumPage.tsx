@@ -301,6 +301,17 @@ export default function ForumPage() {
 
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory, user?.id]);
 
+  // Si cambia la categoría (ruta) mientras hay un post abierto, lo cerramos
+  // para evitar que se quede "cargando" un post que no pertenece a esta sección.
+  useEffect(() => {
+    setSelectedPostId(null);
+    setReplyTo(null);
+    setCommentText("");
+    setEditingPost(null);
+    processedDeepLinkRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   const processedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
     if (directPostId && posts.length > 0 && processedDeepLinkRef.current !== directPostId) {
