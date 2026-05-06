@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, Filter } from "lucide-react";
+import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import ReportModal from "@/components/ReportModal";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits"; 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -55,48 +56,23 @@ const forumCategories = [
   { id: "mercado-motor", label: "Mercado Motor" },
 ];
 
-const mockPostsByCategory: Record<string, Array<any>> = {
-  "gaming-anime": [
-    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
-  ],
-};
-
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
-  
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'auto'; };
-  }, []);
-
+  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
   if (typeof document === "undefined") return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl max-h-[90vh] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-end mb-2 gap-2 w-full z-10">
-          {isImage && (
-            <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar">
-              <Download className="w-5 h-5 text-white" />
-            </a>
-          )}
-          <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white">
-            <X className="w-5 h-5" />
-          </button>
+          {isImage && <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar"><Download className="w-5 h-5 text-white" /></a>}
+          <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative">
-          {type === "video" ? (
-            <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div>
-          ) : (
-            <img src={src} alt="" className="w-full max-h-[80vh] object-contain rounded-xl" />
-          )}
+          {type === "video" ? <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="w-full max-h-[80vh] object-contain rounded-xl" />}
         </div>
       </div>
-    </div>,
-    document.body
+    </div>, document.body
   );
 }
 
@@ -106,23 +82,14 @@ function extractThumbnail(content: string): string | null {
   if (!content) return null;
   const imgMatch = content.match(/\!\[.*?\]\((.*?)\)/);
   if (imgMatch) return imgMatch[1];
-  
   const ytMatch = content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
-  
   const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
   if (rawImgMatch) return rawImgMatch[0];
-
   return null;
 }
 
-type ContentPermissions = {
-  allowRichText: boolean;
-  allowImages: boolean;
-  allowLinks: boolean;
-  allowVideo: boolean;
-};
-
+type ContentPermissions = { allowRichText: boolean; allowImages: boolean; allowLinks: boolean; allowVideo: boolean; };
 const elevatedTiers = ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
 const staffRoleNames = ['master_web', 'admin', 'moderator', 'master web', 'moderador', 'staff'];
 
@@ -144,15 +111,9 @@ function renderTextWithBreaks(text: string, keyPrefix: string) {
 function renderInlineFormatting(text: string, permissions: ContentPermissions, keyPrefix: string) {
   if (!permissions.allowRichText) return renderTextWithBreaks(text, keyPrefix);
   return text.split(/(\*\*[\s\S]+?\*\*|\*[^*\n]+?\*|\[u\][\s\S]+?\[\/u\])/g).map((token, idx) => {
-    if (token.startsWith('**') && token.endsWith('**')) {
-      return <strong key={`${keyPrefix}-b-${idx}`} className="font-semibold text-foreground">{renderTextWithBreaks(token.slice(2, -2), `${keyPrefix}-bt-${idx}`)}</strong>;
-    }
-    if (token.startsWith('*') && token.endsWith('*')) {
-      return <em key={`${keyPrefix}-i-${idx}`} className="italic">{renderTextWithBreaks(token.slice(1, -1), `${keyPrefix}-it-${idx}`)}</em>;
-    }
-    if (token.startsWith('[u]') && token.endsWith('[/u]')) {
-      return <span key={`${keyPrefix}-u-${idx}`} className="underline underline-offset-2">{renderTextWithBreaks(token.slice(3, -4), `${keyPrefix}-ut-${idx}`)}</span>;
-    }
+    if (token.startsWith('**') && token.endsWith('**')) return <strong key={`${keyPrefix}-b-${idx}`} className="font-semibold text-foreground">{renderTextWithBreaks(token.slice(2, -2), `${keyPrefix}-bt-${idx}`)}</strong>;
+    if (token.startsWith('*') && token.endsWith('*')) return <em key={`${keyPrefix}-i-${idx}`} className="italic">{renderTextWithBreaks(token.slice(1, -1), `${keyPrefix}-it-${idx}`)}</em>;
+    if (token.startsWith('[u]') && token.endsWith('[/u]')) return <span key={`${keyPrefix}-u-${idx}`} className="underline underline-offset-2">{renderTextWithBreaks(token.slice(3, -4), `${keyPrefix}-ut-${idx}`)}</span>;
     return <span key={`${keyPrefix}-t-${idx}`}>{renderTextWithBreaks(token, `${keyPrefix}-tt-${idx}`)}</span>;
   });
 }
@@ -166,9 +127,7 @@ function renderContent(content: string, permissions: ContentPermissions) {
     if (imgMatch) return (
       <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })}>
         <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div>
-        </div>
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
       </div>
     );
     const linkMatch = part.match(/^\[(.*?)\]\((https?:\/\/.*?)\)$/);
@@ -178,16 +137,12 @@ function renderContent(content: string, permissions: ContentPermissions) {
     }
     const ytMatch = part.match(/youtube\.com\/watch\?v=([\w-]+)/) || part.match(/youtu\.be\/([\w-]+)/);
     if (ytMatch) {
-      if (!permissions.allowVideo) {
-        return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
-      }
+      if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
       const embedSrc = `https://www.youtube.com/embed/${ytMatch[1]}`;
       return (
         <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
           <iframe src={embedSrc} className="w-full h-full" allowFullScreen title="Video" />
-          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar">
-            <Maximize2 className="w-4 h-4 text-white" />
-          </button>
+          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
         </div>
       );
     }
@@ -198,9 +153,7 @@ function renderContent(content: string, permissions: ContentPermissions) {
         return (
           <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
-            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar">
-              <Maximize2 className="w-4 h-4 text-white" />
-            </button>
+            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
           </div>
         );
       }
@@ -209,9 +162,7 @@ function renderContent(content: string, permissions: ContentPermissions) {
         return (
           <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: part, type: "image" })}>
             <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div>
-            </div>
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
           </div>
         );
       }
@@ -221,54 +172,25 @@ function renderContent(content: string, permissions: ContentPermissions) {
   });
 }
 
-interface Comment {
-  id: string;
-  post_id: string;
-  user_id: string;
-  content: string;
-  membership_tier: string;
-  created_at: string;
-  parent_id: string | null;
-  profile?: { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier?: string; color_avatar_border?: string | null; color_name?: string | null; color_role?: string | null; color_staff_role?: string | null } | null;
-  roles?: string[];
-}
-
-interface PostProfile {
-  display_name: string;
-  avatar_url: string | null;
-  role_icon: string | null;
-  show_role_icon: boolean;
-  membership_tier: string;
-  color_avatar_border: string | null;
-  color_name: string | null;
-  color_role: string | null;
-  color_staff_role: string | null;
-  signature: string | null;
-  signature_font: string | null;
-  signature_font_family: string | null;
-  signature_color: string | null;
-  signature_stroke_color: string | null;
-  signature_stroke_width: number | null;
-  signature_stroke_position: string | null;
-  signature_text_align: string | null;
-  signature_image_url: string | null;
-  signature_image_align: string | null;
-  signature_image_width: number | null;
-  signature_text_over_image: boolean | null;
-  signature_font_size: number | null;
-}
+interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; }
+interface PostProfile { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier: string; color_avatar_border: string | null; color_name: string | null; color_role: string | null; color_staff_role: string | null; signature: string | null; signature_image_url: string | null; }
 
 export default function ForumPage() {
   const location = useLocation();
   const page = pageTitles[location.pathname] || { title: "PÁGINA", description: "Sección del foro", color: "text-foreground" };
   const { user, profile, isAdmin, isMasterWeb, roles } = useAuth();
   const { toast } = useToast();
+  
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  
+  // 🔥 NUEVO ESTADO PARA EL POST SELECCIONADO 🔥
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [commentsSort, setCommentsSort] = useState<"old" | "new">("old");
+
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -291,12 +213,6 @@ export default function ForumPage() {
   const isTrending = category === "trending";
   
   const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
-  const hasUnlimited = isAdmin || isMasterWeb;
-
-  const searchParams = new URLSearchParams(location.search);
-  const directPostId = searchParams.get("post") || searchParams.get("focus");
-  const directCommentId = searchParams.get("comment");
-
   const userTier = (profile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const limits = isStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[userTier];
 
@@ -306,45 +222,36 @@ export default function ForumPage() {
   const canUseLinks = canUseVideo; 
   const canUseSignature = isStaff || userTier !== 'novato';
 
+  const searchParams = new URLSearchParams(location.search);
+  const directPostId = searchParams.get("post") || searchParams.get("focus");
+  const directCommentId = searchParams.get("comment");
+
   useEffect(() => {
-    if (showRulesPopup) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
+    if (showRulesPopup) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
   }, [showRulesPopup]);
 
   const fetchPosts = async () => {
     let query = supabase.from("posts").select("*").neq("is_banned", true);
-
     if (!isTrending) {
       if (filterCategory !== "all") query = query.eq("category", filterCategory);
       else query = query.eq("category", category);
     } else {
       if (filterCategory !== "all") query = query.eq("category", filterCategory);
     }
+    if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
 
-    if (searchQuery.trim()) {
-      query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
-    }
-
-    if (sortBy === "popular") {
-      query = query.order("upvotes", { ascending: false });
-    } else {
-      query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
-    }
+    if (sortBy === "popular") query = query.order("upvotes", { ascending: false });
+    else query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
 
     const { data } = await query.limit(20);
     
     if (data) {
       let finalData = [...data];
-      
       if (directPostId && !finalData.find(p => p.id === directPostId)) {
         const { data: extraPost } = await supabase.from("posts").select("*").eq("id", directPostId).maybeSingle();
-        if (extraPost && !extraPost.is_banned) {
-          finalData.unshift(extraPost);
-        }
+        if (extraPost && !extraPost.is_banned) finalData.unshift(extraPost);
       }
 
       setPosts(finalData);
@@ -383,97 +290,79 @@ export default function ForumPage() {
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, [category, sortBy, filterCategory]);
+  useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory]);
 
-  // 🔥 1. ABRIR COMENTARIOS AUTOMÁTICAMENTE 🔥
+  // 🔥 DETECCIÓN AUTOMÁTICA DEL POST DESDE LA URL 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
-      if (expandedPost !== directPostId) {
-        setExpandedPost(directPostId);
+      if (selectedPostId !== directPostId) {
+        setSelectedPostId(directPostId);
         fetchComments(directPostId);
       }
     }
   }, [directPostId, posts]);
 
-  // 🔥 2. EL EFECTO DE SCROLL INTELIGENTE Y BLINDADO 🔥
+  // 🔥 SCROLL INTELIGENTE DE PRECISIÓN MILIMÉTRICA 🔥
   useEffect(() => {
-    if (!directPostId || posts.length === 0) return;
+    if (!selectedPostId || posts.length === 0) return;
 
     let attempts = 0;
     const scrollInterval = setInterval(() => {
       attempts++;
 
       if (directCommentId) {
-        // Buscamos el comentario específico sin rendirnos
         const commentEl = document.getElementById(`comment-${directCommentId}`);
         if (commentEl) {
           clearInterval(scrollInterval);
           commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
           commentEl.classList.add('arcade-report-highlight');
           setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
-          window.history.replaceState({}, '', location.pathname); // Limpiamos URL solo al terminar
+          window.history.replaceState({}, '', location.pathname); 
         } else if (attempts > 30) {
-          // Si después de 3 segundos no cargó el comentario, entonces sí bajamos al post
           clearInterval(scrollInterval);
-          const postEl = document.getElementById(`post-${directPostId}`);
-          if (postEl) {
-            postEl.scrollIntoView({ behavior: "smooth", block: "center" });
-            postEl.classList.add('arcade-report-highlight');
-            setTimeout(() => postEl.classList.remove('arcade-report-highlight'), 3500);
-            window.history.replaceState({}, '', location.pathname);
-          }
+          window.history.replaceState({}, '', location.pathname);
         }
       } else {
-        // Si no hay comentario, buscamos solo la publicación
-        const postEl = document.getElementById(`post-${directPostId}`);
-        if (postEl) {
-          clearInterval(scrollInterval);
-          postEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          postEl.classList.add('arcade-report-highlight');
-          setTimeout(() => postEl.classList.remove('arcade-report-highlight'), 3500);
-          window.history.replaceState({}, '', location.pathname);
-        } else if (attempts > 30) {
-          clearInterval(scrollInterval);
-        }
+        if (attempts === 1) window.scrollTo({ top: 0, behavior: 'smooth' });
+        clearInterval(scrollInterval);
       }
     }, 100);
 
     return () => clearInterval(scrollInterval);
-  }, [directPostId, directCommentId, posts, comments]);
+  }, [selectedPostId, directCommentId, posts, comments]);
+
+  const openPost = (postId: string) => {
+    setSelectedPostId(postId);
+    fetchComments(postId);
+    window.history.pushState({}, '', `${location.pathname}?post=${postId}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const closePost = () => {
+    setSelectedPostId(null);
+    setReplyTo(null);
+    setCommentText("");
+    setEditingPost(null);
+    window.history.pushState({}, '', location.pathname);
+  };
 
   const handleNewPostClick = () => {
     const rulesKey = `rules_accepted_${user?.id}`;
-    if (user && !localStorage.getItem(rulesKey)) {
-      setShowRulesPopup(true);
-      return;
-    }
+    if (user && !localStorage.getItem(rulesKey)) { setShowRulesPopup(true); return; }
     setShowNewPost(!showNewPost);
   };
 
-  const acceptRules = () => {
-    if (user) localStorage.setItem(`rules_accepted_${user.id}`, "true");
-    setShowRulesPopup(false);
-    setShowNewPost(true);
-  };
+  const acceptRules = () => { if (user) localStorage.setItem(`rules_accepted_${user.id}`, "true"); setShowRulesPopup(false); setShowNewPost(true); };
 
   const handlePost = async () => {
-    if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes registrarte para publicar", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
     if (!title.trim()) return;
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
-    const signature = canUseSignature 
-      ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff ? `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : null))
-      : null;
+    const signature = canUseSignature ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff ? `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : null)) : null;
 
-    const { error } = await supabase.from("posts").insert({
-      user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature,
-    } as any);
+    const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature } as any);
     setPosting(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
@@ -495,17 +384,11 @@ export default function ForumPage() {
     let newVote: string | null;
 
     if (currentVote === voteType) {
-      if (voteType === "up") newUp--;
-      else newDown--;
-      newVote = null;
+      if (voteType === "up") newUp--; else newDown--; newVote = null;
     } else if (currentVote) {
-      if (currentVote === "up") { newUp--; newDown++; }
-      else { newDown--; newUp++; }
-      newVote = voteType;
+      if (currentVote === "up") { newUp--; newDown++; } else { newDown--; newUp++; } newVote = voteType;
     } else {
-      if (voteType === "up") newUp++;
-      else newDown++;
-      newVote = voteType;
+      if (voteType === "up") newUp++; else newDown++; newVote = voteType;
     }
 
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) } : p));
@@ -513,46 +396,26 @@ export default function ForumPage() {
 
     try {
       const { data: existingVote } = await supabase.from("post_votes").select("id, vote_type").eq("post_id", postId).eq("user_id", user.id).maybeSingle();
-
-      if (!existingVote) {
-        await supabase.from("post_votes").insert({ id: crypto.randomUUID(), post_id: postId, user_id: user.id, vote_type: voteType });
-      } else if (existingVote.vote_type === voteType) {
-        await supabase.from("post_votes").delete().eq("id", existingVote.id);
-      } else {
-        await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id);
-      }
-
+      if (!existingVote) { await supabase.from("post_votes").insert({ id: crypto.randomUUID(), post_id: postId, user_id: user.id, vote_type: voteType }); } 
+      else if (existingVote.vote_type === voteType) { await supabase.from("post_votes").delete().eq("id", existingVote.id); } 
+      else { await supabase.from("post_votes").update({ vote_type: voteType }).eq("id", existingVote.id); }
       await supabase.from("posts").update({ upvotes: Math.max(0, newUp), downvotes: Math.max(0, newDown) }).eq("id", postId);
-
     } catch (error) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, upvotes: post.upvotes, downvotes: post.downvotes } : p));
       setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
       toast({ title: "Error", description: "No se pudo guardar tu voto.", variant: "destructive" });
-    } finally {
-      votingRef.current[postId] = false;
-    }
+    } finally { votingRef.current[postId] = false; }
   };
 
   const handleComment = async (postId: string) => {
-    if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes registrarte para comentar", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
     if (!commentText.trim()) return;
-
-    if (commentText.length > limits.maxForumChars) {
-      toast({ title: "Comentario muy largo", description: `Tu membresía permite un máximo de ${limits.maxForumChars} caracteres.`, variant: "destructive" });
-      return;
-    }
+    if (commentText.length > limits.maxForumChars) { toast({ title: "Comentario muy largo", description: `Máx ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
 
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
+    const { data: newCommentData, error } = await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo } as any).select().single();
     
-    const { data: newCommentData, error } = await supabase.from("comments").insert({
-      post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
-    } as any).select().single();
-    
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" });
     } else { 
       try {
         const post = posts.find(p => p.id === postId);
@@ -562,50 +425,38 @@ export default function ForumPage() {
           const parentComment = comments[postId]?.find(c => c.id === replyTo);
           if (parentComment && parentComment.user_id !== user.id) {
             await supabase.from("notifications").insert({
-              id: crypto.randomUUID(),
-              user_id: parentComment.user_id,
-              type: 'reply_post',
-              title: 'Nueva Respuesta',
-              body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`,
-              related_id: compositeId 
+              id: crypto.randomUUID(), user_id: parentComment.user_id, type: 'reply_post', title: 'Nueva Respuesta',
+              body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`, related_id: compositeId 
             } as any);
           }
         } else if (post && post.user_id !== user.id) {
           await supabase.from("notifications").insert({
-            id: crypto.randomUUID(),
-            user_id: post.user_id,
-            type: 'comment_post',
-            title: 'Nuevo Comentario',
-            body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`,
-            related_id: compositeId 
+            id: crypto.randomUUID(), user_id: post.user_id, type: 'comment_post', title: 'Nuevo Comentario',
+            body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`, related_id: compositeId 
           } as any);
         }
-      } catch (e) {
-        console.error("Error creando notificación:", e);
-      }
+      } catch (e) {}
 
-      setCommentText(""); 
-      setReplyTo(null); 
-      fetchComments(postId); 
+      setCommentText(""); setReplyTo(null); fetchComments(postId); 
     }
   };
 
   const handleReport = (postId: string, postUserId: string) => {
-    if (!user) { toast({ title: "Inicia sesión para reportar", variant: "destructive" }); return; }
+    if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
     const targetName = postProfiles[postUserId]?.display_name || "Usuario";
     setReportTarget({ userId: postUserId, userName: targetName, postId });
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm("¿Seguro que quieres eliminar esta publicación permanentemente?")) return;
+    if (!confirm("¿Eliminar permanentemente?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
-    if (!error) { toast({ title: "Post eliminado" }); fetchPosts(); }
+    if (!error) { toast({ title: "Post eliminado" }); fetchPosts(); if (selectedPostId === postId) closePost(); }
     else { toast({ title: "Error", variant: "destructive" }); }
   };
 
   const handleHidePost = async (postId: string) => {
     const { error } = await supabase.from("posts").update({ is_banned: true } as any).eq("id", postId);
-    if (!error) { toast({ title: "Post ocultado." }); fetchPosts(); }
+    if (!error) { toast({ title: "Post ocultado." }); fetchPosts(); if (selectedPostId === postId) closePost(); }
     else { toast({ title: "Error", variant: "destructive" }); }
   };
 
@@ -613,37 +464,19 @@ export default function ForumPage() {
     if (!user) return;
     try { 
       const thumb = extractThumbnail(post.content);
-      const { error } = await supabase.from("saved_items" as any).insert({ 
-        user_id: user.id, 
-        item_type: 'post',
-        original_id: post.id,
-        title: post.title || 'Post del Foro',
-        thumbnail_url: thumb,
-        redirect_url: getCategoryRoute(post.category || "gaming-anime-foro", post.id)
-      }); 
+      const { error } = await supabase.from("saved_items" as any).insert({ user_id: user.id, item_type: 'post', original_id: post.id, title: post.title || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category || "gaming-anime-foro", post.id) }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
     } catch (e) { }
   };
 
-  const startEditPost = (post: any) => {
-    setEditingPost(post.id);
-    setEditTitle(post.title);
-    setEditContent(post.content || "");
-  };
+  const startEditPost = (post: any) => { setEditingPost(post.id); setEditTitle(post.title); setEditContent(post.content || ""); };
 
   const handleEditPost = async (postId: string) => {
     if (!editTitle.trim()) return;
-    const { error } = await supabase.from("posts").update({
-      title: editTitle.trim(), content: editContent.trim(),
-    } as any).eq("id", postId);
+    const { error } = await supabase.from("posts").update({ title: editTitle.trim(), content: editContent.trim() } as any).eq("id", postId);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Post editado" }); setEditingPost(null); fetchPosts(); }
-  };
-
-  const toggleComments = (postId: string) => {
-    if (expandedPost === postId) setExpandedPost(null);
-    else { setExpandedPost(postId); fetchComments(postId); }
   };
 
   const insertFormat = (format: string) => {
@@ -663,6 +496,204 @@ export default function ForumPage() {
 
   const allPosts = [...posts, ...mockThreads];
 
+  // 🔥 RENDER: VISTA DE UN SOLO POST (2 Columnas y Comentarios Abajo) 🔥
+  if (selectedPostId) {
+    const post = allPosts.find(p => p.id === selectedPostId);
+    if (!post) return <div className="p-8 text-center text-muted-foreground">Cargando publicación...</div>;
+
+    const authorProfile = postProfiles[post.user_id];
+    const authorRoles = postRoles[post.user_id] || [];
+    const postPermissions = getContentPermissions(authorProfile?.membership_tier, authorRoles);
+    const myVote = userVotes[post.id] || null;
+
+    const postComments = comments[selectedPostId] || [];
+    const sortedComments = [...postComments].sort((a, b) => {
+      const tA = new Date(a.created_at).getTime();
+      const tB = new Date(b.created_at).getTime();
+      return commentsSort === "old" ? tA - tB : tB - tA;
+    });
+
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground -ml-2 mb-2 font-pixel text-[10px] uppercase">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
+        </Button>
+
+        <div className="flex flex-col md:grid md:grid-cols-[30%_70%] gap-4 items-start">
+          
+          {/* COLUMNA IZQUIERDA: PERFIL DEL AUTOR */}
+          <div className="bg-card border border-border rounded-lg p-5 md:sticky md:top-4 flex flex-col items-center text-center w-full shadow-sm">
+            {post.user_id && authorProfile ? (
+              <>
+                <div className="w-24 h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden mb-3 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                  {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
+                </div>
+                <UserPopup
+                  userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                  roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
+                  membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
+                  colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
+                  className="text-base"
+                />
+                
+                {(authorProfile.signature || authorProfile.signature_image_url) && (
+                  <div className="w-full mt-5 pt-5 border-t border-border/50">
+                    <p className="text-[9px] text-muted-foreground font-pixel mb-2 uppercase text-left">Firma</p>
+                    <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="py-4 text-xs text-muted-foreground">Sistema</div>
+            )}
+          </div>
+
+          {/* COLUMNA DERECHA: CONTENIDO DEL POST */}
+          <div className="flex flex-col gap-4 min-w-0 w-full" id={`post-${post.id}`}>
+            <div className="bg-card border border-border rounded-lg p-5">
+              
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 bg-muted/30 px-2 py-1.5 rounded border border-white/5 shadow-inner">
+                    <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                    <span className="text-xs font-bold w-6 text-center">{(post.upvotes||0)-(post.downvotes||0)}</span>
+                    <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-body flex items-center gap-1 bg-muted/50 px-2 py-1.5 rounded">
+                    <Clock className="w-3 h-3" /> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {isTrending && post.category && <span className="uppercase text-[9px] font-pixel text-neon-cyan ml-1 hidden sm:inline-block">{post.category.replace(/-/g, ' ')}</span>}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {user && user.id === post.user_id && !editingPost && (
+                    <>
+                      <button onClick={() => startEditPost(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDeletePost(post.id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </>
+                  )}
+                  {user && <button onClick={() => handleSaveToProfile(post)} className="p-1.5 text-muted-foreground hover:text-neon-cyan bg-muted/20 rounded transition-colors" title="Guardar"><Bookmark className="w-3.5 h-3.5" /></button>}
+                  {post.user_id && <button onClick={() => handleReport(post.id, post.user_id)} className="p-1.5 text-muted-foreground hover:text-destructive bg-muted/20 rounded transition-colors" title="Reportar"><Flag className="w-3.5 h-3.5" /></button>}
+                  {isStaff && post.user_id && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><button className="p-1.5 text-muted-foreground hover:text-neon-magenta bg-muted/20 rounded transition-colors" title="Moderación"><Shield className="w-3.5 h-3.5" /></button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
+                        <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer"><Ban className="w-3 h-3 mr-2" /> Ocultar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer"><Trash2 className="w-3 h-3 mr-2" /> Eliminar</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer"><UserIcon className="w-3 h-3 mr-2" /> Ver Perfil</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer"><Copy className="w-3 h-3 mr-2" /> Copiar ID</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </div>
+
+              {editingPost === post.id ? (
+                <div className="space-y-3 animate-fade-in">
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
+                  <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-8">Cancelar</Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-foreground mb-4 break-words">{post.title}</h1>
+                  <div className="text-sm text-foreground leading-relaxed font-body">
+                    {renderContent(post.content, postPermissions)}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* MODAL / CAJA DE COMENTARIOS ABAJO */}
+            <div className="bg-card border border-border rounded-lg p-5">
+              <div className="flex items-center justify-between mb-5 border-b border-border/50 pb-3">
+                <h3 className="font-pixel text-[11px] text-neon-cyan">COMENTARIOS ({postComments.length})</h3>
+                <select value={commentsSort} onChange={e => setCommentsSort(e.target.value as any)} className="bg-muted border border-border text-[10px] font-body rounded px-2 py-1 outline-none">
+                  <option value="old">Más antiguos</option>
+                  <option value="new">Más recientes</option>
+                </select>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {sortedComments.map(comment => {
+                  const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
+                  return (
+                    <div key={comment.id} id={`comment-${comment.id}`} className={cn("p-3.5 rounded bg-muted/20 border border-white/5", comment.parent_id && "ml-6 sm:ml-10 border-l-2 border-l-neon-cyan/50")}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <UserPopup
+                            userId={comment.user_id} displayName={comment.profile?.display_name || "Anónimo"} avatarUrl={comment.profile?.avatar_url}
+                            roles={comment.roles || []} roleIcon={comment.profile?.role_icon} showRoleIcon={comment.profile?.show_role_icon !== false}
+                            membershipTier={comment.profile?.membership_tier || comment.membership_tier} colorAvatarBorder={comment.profile?.color_avatar_border}
+                            colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
+                          />
+                          <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span className="hidden sm:inline">Responder</span></button>}
+                          {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
+                        </div>
+                      </div>
+                      <div className="text-foreground text-xs leading-relaxed font-body pl-1">
+                        {renderContent(comment.content, commentPermissions)}
+                      </div>
+                    </div>
+                  );
+                })}
+                {sortedComments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 italic">No hay comentarios aún. ¡Sé el primero!</p>}
+              </div>
+
+              {/* CAJA PARA ESCRIBIR COMENTARIO */}
+              {user ? (
+                <div className="space-y-3 bg-muted/10 border border-border/50 rounded-lg p-4">
+                  {replyTo && (
+                    <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body mb-2">
+                      <Reply className="w-3 h-3" /> Respondiendo al comentario
+                      <button onClick={() => setReplyTo(null)} className="text-destructive ml-1 hover:bg-destructive/10 rounded p-0.5"><X className="w-3 h-3" /></button>
+                    </div>
+                  )}
+                  
+                  <Textarea placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`} value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted/50 text-sm font-body min-h-[90px] resize-y" />
+                  
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-1">
+                      {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
+                      {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
+                      {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
+                      {canUseImages && <button onClick={() => insertFormat("image")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
+                      {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
+                      {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
+                      <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>{commentText.length}/{limits.maxForumChars}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/30">
+                    <p className="text-[9px] text-muted-foreground font-body italic truncate max-w-[60%]">
+                      {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma automática"}
+                    </p>
+                    <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-8 text-xs px-4 gap-1.5 shadow-sm">
+                      <Send className="w-3.5 h-3.5" /> Enviar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 text-center border border-border/50 rounded-lg bg-muted/10">
+                  <p className="text-xs text-muted-foreground font-body">Debes iniciar sesión para participar en la discusión.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 RENDER: VISTA DE LISTA HORIZONTAL (SENCILLA) 🔥
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
@@ -691,17 +722,11 @@ export default function ForumPage() {
                  className="pl-8 h-8 text-xs bg-muted border-border font-body w-full" 
                />
              </div>
-             
              {isTrending && (
-               <select 
-                 value={filterCategory} 
-                 onChange={e => setFilterCategory(e.target.value)} 
-                 className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 w-28 sm:w-40 text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
-               >
+               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="h-8 rounded border border-border bg-muted text-xs font-body px-2 text-muted-foreground focus:outline-none flex-shrink-0 w-28 sm:w-40 text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer">
                   {forumCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                </select>
              )}
-             
            </div>
            
            <div className="flex items-center justify-between w-full lg:w-auto gap-2 shrink-0 mt-1 lg:mt-0">
@@ -714,68 +739,25 @@ export default function ForumPage() {
       </div>
 
       {showNewPost && (
-        <div className="bg-card border border-neon-green/30 rounded p-4 space-y-3 animate-fade-in">
+        <div className="bg-card border border-neon-green/30 rounded p-4 space-y-3 animate-fade-in shadow-lg">
           <div className="flex items-center justify-between">
             <h3 className="font-pixel text-[10px] text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
-          <Textarea id="post-content-area" placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[80px]" />
+          <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
+          <Textarea placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
           
           <div className="flex items-center gap-1 flex-wrap">
-            {canUseImages && (
-              <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar imagen">
-                <Image className="w-3 h-3" /> Imagen
-              </button>
-            )}
-            {canUseVideo && (
-              <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Insertar video">
-                <Video className="w-3 h-3" /> Video
-              </button>
-            )}
-            {canUseBoldItalic && (
-              <button onClick={() => setContent(prev => prev + "**texto**")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Negrita">
-                <Bold className="w-3 h-3" /> Negrita
-              </button>
-            )}
-            {canUseBoldItalic && (
-              <button onClick={() => setContent(prev => prev + "*texto*")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Itálica">
-                <Italic className="w-3 h-3" /> Itálica
-              </button>
-            )}
-            {canUseBoldItalic && (
-              <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Subrayado">
-                <Underline className="w-3 h-3" /> Subrayado
-              </button>
-            )}
-            {canUseLinks && (
-              <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors border border-border" title="Enlace">
-                <Link2 className="w-3 h-3" /> Enlace
-              </button>
-            )}
+            {canUseImages && <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
+            {canUseVideo && <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar video"><Video className="w-4 h-4" /></button>}
+            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "**texto**")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>}
+            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
+            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
+            {canUseLinks && <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
           </div>
           
-          {(canUseImages || canUseVideo) && (
-            <div className="bg-muted/50 rounded p-2 text-[9px] text-muted-foreground font-body space-y-0.5 border border-border/50">
-              {canUseImages && <p className="flex items-center gap-1"><Image className="w-3 h-3" /> <strong>Imágenes:</strong> <code className="bg-muted px-0.5 rounded">![descripción](URL_de_imagen)</code></p>}
-              {canUseVideo && <p className="flex items-center gap-1"><Video className="w-3 h-3" /> <strong>Videos:</strong> Pega un enlace de YouTube directamente</p>}
-            </div>
-          )}
-          
-          {canUseSignature ? (
-            ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff) ? (
-              <p className="text-[9px] text-muted-foreground font-body italic">
-                Tu firma: {(profile as any)?.signature || `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]`}
-              </p>
-            ) : null
-          ) : (
-            <p className="text-[9px] text-destructive/80 font-body italic">
-              Las firmas automáticas están desactivadas en el plan Novato.
-            </p>
-          )}
-
-          <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs">
-            {posting ? "Publicando..." : "Publicar"}
+          <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs w-full sm:w-auto mt-2">
+            {posting ? "Publicando..." : "Publicar Ahora"}
           </Button>
         </div>
       )}
@@ -790,233 +772,51 @@ export default function ForumPage() {
           {allPosts.map((post) => {
             const authorProfile = postProfiles[post.user_id];
             const authorRoles = postRoles[post.user_id] || [];
-            const postPermissions = getContentPermissions(authorProfile?.membership_tier, authorRoles);
             const myVote = userVotes[post.id] || null;
 
             return (
-              <div key={post.id} id={`post-${post.id}`}>
-                <div className={cn("bg-card border rounded p-3 hover:bg-muted/30 transition-all duration-200 group", post.is_pinned ? "border-neon-green/30" : "border-border")}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex flex-col items-center gap-0.5 shrink-0">
-                      <button
-                        onClick={() => handleVote(post.id, "up")}
-                        className={cn("transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground hover:text-primary")}
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </button>
-                      <span className="text-xs font-body font-semibold text-foreground">{(post.upvotes || 0) - (post.downvotes || 0)}</span>
-                      <button
-                        onClick={() => handleVote(post.id, "down")}
-                        className={cn("transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground hover:text-destructive")}
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <div className="min-w-0 flex-1" id={`post-core-${post.id}`}>
-                      {post.user_id && authorProfile && (
-                        <div className="mb-1 flex items-center gap-2">
-                          <UserPopup
-                            userId={post.user_id}
-                            displayName={authorProfile.display_name}
-                            avatarUrl={authorProfile.avatar_url}
-                            roles={authorRoles}
-                            roleIcon={authorProfile.role_icon}
-                            showRoleIcon={authorProfile.show_role_icon}
-                            membershipTier={authorProfile.membership_tier}
-                            colorAvatarBorder={authorProfile.color_avatar_border}
-                            colorName={authorProfile.color_name}
-                            colorRole={authorProfile.color_role}
-                            colorStaffRole={authorProfile.color_staff_role}
-                          />
-                          {isTrending && post.category && (
-                             <span className="text-[8px] bg-muted/50 px-1.5 py-0.5 rounded uppercase font-body text-muted-foreground ml-auto">{post.category.replace(/-/g, ' ')}</span>
-                          )}
-                        </div>
-                      )}
-                      {editingPost === post.id ? (
-                        <div className="space-y-2 animate-fade-in">
-                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 bg-muted text-sm font-body" />
-                          <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-xs font-body min-h-[60px]" />
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-6"><Check className="w-3 h-3" /> Guardar</Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-6">Cancelar</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug cursor-pointer" onClick={() => toggleComments(post.id)}>
-                            {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                            {post.title}
-                          </p>
-                          {post.content && (
-                            <div className="text-xs text-muted-foreground font-body mt-1">{renderContent(post.content, postPermissions)}</div>
-                          )}
-                        </>
-                      )}
-                      
-                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground font-body">
-                        <span>{new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                        
-                        {user && user.id === post.user_id && !editingPost && (
-                          <div className="flex items-center gap-3 ml-2">
-                            <button onClick={() => startEditPost(post)} className="flex items-center gap-0.5 hover:text-neon-cyan transition-colors">
-                              <Edit2 className="w-3 h-3" /> Editar
-                            </button>
-                            <button onClick={() => handleDeletePost(post.id)} className="flex items-center gap-0.5 hover:text-destructive transition-colors">
-                              <Trash2 className="w-3 h-3" /> Eliminar
-                            </button>
-                          </div>
-                        )}
-                        
-                        <div className="ml-auto flex items-center gap-2">
-                          {user && (
-                            <button onClick={() => handleSaveToProfile(post)} className="hover:text-neon-cyan transition-colors" title="Guardar Post">
-                              <Bookmark className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          {post.user_id && (
-                            <button onClick={() => handleReport(post.id, post.user_id)} className="hover:text-destructive transition-colors" title="Reportar">
-                              <Flag className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          
-                          {isStaff && post.user_id && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className="text-muted-foreground hover:text-neon-magenta transition-colors">
-                                  <Shield className="w-3.5 h-3.5" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="z-[200] bg-card border-border">
-                                <DropdownMenuItem onClick={() => handleHidePost(post.id)} className="text-neon-orange cursor-pointer focus:bg-neon-orange/10">
-                                  <Ban className="w-3 h-3 mr-2" /> Ocultar / Banear
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive cursor-pointer focus:bg-destructive/10">
-                                  <Trash2 className="w-3 h-3 mr-2" /> Eliminar Permanente
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => window.location.href = `/usuario/${post.user_id}`} className="cursor-pointer">
-                                  <UserIcon className="w-3 h-3 mr-2" /> Ver Perfil
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(post.id); toast({title:"ID Copiado"}); }} className="cursor-pointer">
-                                  <Copy className="w-3 h-3 mr-2" /> Copiar ID
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </div>
-
-                      {((post as any).signature || postProfiles[post.user_id]?.signature || postProfiles[post.user_id]?.signature_image_url) && (
-                        <div className="mt-1.5 w-full">
-                          <SignatureDisplay
-                            text={postProfiles[post.user_id]?.signature || (post as any).signature}
-                            profile={postProfiles[post.user_id]}
-                            fontSize={11}
-                          />
-                        </div>
-                      )}
-                      <button
-                        onClick={() => toggleComments(post.id)}
-                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all text-[11px] font-body font-medium"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" /> Comentar {(comments[post.id]?.length || 0) > 0 ? `(${comments[post.id].length})` : ""}
-                      </button>
-                    </div>
+              <div 
+                key={post.id} 
+                onClick={() => openPost(post.id)}
+                className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
+              >
+                {/* LADO IZQUIERDO: Título y Fecha */}
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="text-sm font-bold text-foreground truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5">
+                    {post.is_pinned && <span className="text-neon-green text-[10px]">📌</span>}
+                    {post.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground font-body">
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    {isTrending && post.category && <span className="uppercase bg-muted/50 px-1.5 py-0.5 rounded text-[8px] text-neon-cyan font-pixel border border-white/5">{post.category.replace(/-/g, ' ')}</span>}
                   </div>
                 </div>
-
-                {expandedPost === post.id && (
-                  <div className="ml-4 border-l-2 border-border pl-3 mt-1 space-y-2 animate-fade-in">
-                    {(comments[post.id] || []).map((comment) => {
-                      const commentPermissions = getContentPermissions(comment.profile?.membership_tier || comment.membership_tier, comment.roles || []);
-                      return (
-                      <div key={comment.id} id={`comment-${comment.id}`} className={cn("bg-muted/30 rounded p-3 text-xs font-body", comment.parent_id && "ml-4")}>
-                        <div className="flex items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <UserPopup
-                                userId={comment.user_id}
-                                displayName={comment.profile?.display_name || "Anónimo"}
-                                avatarUrl={comment.profile?.avatar_url}
-                                roles={comment.roles || []}
-                                roleIcon={comment.profile?.role_icon}
-                                showRoleIcon={comment.profile?.show_role_icon !== false}
-                                membershipTier={comment.profile?.membership_tier || comment.membership_tier}
-                                colorAvatarBorder={comment.profile?.color_avatar_border}
-                                colorName={comment.profile?.color_name}
-                                colorRole={comment.profile?.color_role}
-                                colorStaffRole={comment.profile?.color_staff_role}
-                              />
-                              <span className="text-[9px] text-muted-foreground">{new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-                            </div>
-                            <div className="text-foreground leading-relaxed">{renderContent(comment.content, commentPermissions)}</div>
-                            <div className="flex items-center gap-2 mt-1">
-                              {user && (
-                                <button onClick={() => setReplyTo(comment.id)} className="hover:text-primary transition-colors text-[10px] text-muted-foreground">
-                                  <Reply className="w-3 h-3 inline mr-0.5" /> Responder
-                                </button>
-                              )}
-                              {user && comment.user_id !== user.id && (
-                                <button onClick={() => setReportTarget({
-                                  userId: comment.user_id,
-                                  userName: comment.profile?.display_name || "Anónimo",
-                                  postId: comment.post_id,
-                                  commentId: comment.id,
-                                })} className="hover:text-destructive transition-colors text-[10px] text-muted-foreground">
-                                  <Flag className="w-3 h-3 inline mr-0.5" /> Reportar
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );})}
-                    {user ? (
-                      <div className="space-y-2 bg-card border border-border rounded p-3">
-                        {replyTo && (
-                          <div className="flex items-center gap-1 text-[10px] text-neon-cyan font-body">
-                            <Reply className="w-3 h-3" /> Respondiendo
-                            <button onClick={() => setReplyTo(null)} className="text-destructive ml-1"><X className="w-3 h-3" /></button>
-                          </div>
-                        )}
-                        
-                        <Textarea
-                          placeholder={`Escribe tu comentario... (Máx ${limits.maxForumChars} carac.)`}
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          maxLength={limits.maxForumChars}
-                          className="bg-muted text-xs font-body min-h-[80px] resize-y"
-                        />
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {canUseBoldItalic && <button onClick={() => insertFormat("bold")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-3.5 h-3.5" /></button>}
-                          {canUseBoldItalic && <button onClick={() => insertFormat("italic")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-3.5 h-3.5" /></button>}
-                          {canUseBoldItalic && <button onClick={() => insertFormat("underline")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-3.5 h-3.5" /></button>}
-                          {canUseImages && <button onClick={() => insertFormat("image")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Imagen"><Image className="w-3.5 h-3.5" /></button>}
-                          {canUseLinks && <button onClick={() => insertFormat("link")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-3.5 h-3.5" /></button>}
-                          {canUseVideo && <button onClick={() => insertFormat("video")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Video"><Video className="w-3.5 h-3.5" /></button>}
-                          
-                          <button onClick={() => setCommentText(prev => prev + "😊")} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Emoji"><Smile className="w-3.5 h-3.5" /></button>
-                          <div className="flex-1" />
-                          <span className={cn("text-[9px] font-body", commentText.length >= limits.maxForumChars ? "text-destructive font-bold" : "text-muted-foreground")}>
-                            {commentText.length}/{limits.maxForumChars}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[9px] text-muted-foreground font-body italic">
-                            {canUseSignature ? (isStaff ? `Firma: — ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : "") : "Sin firma (Requiere plan superior)"}
-                          </p>
-                          <Button size="sm" onClick={() => handleComment(post.id)} disabled={!commentText.trim()} className="h-7 text-xs px-3 gap-1">
-                            <Send className="w-3 h-3" /> Comentar
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-muted-foreground font-body">Inicia sesión para comentar</p>
-                    )}
+                
+                {/* LADO DERECHO: Likes y Usuario */}
+                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                  <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                    <span className="text-xs font-bold w-5 text-center text-foreground">{(post.upvotes||0)-(post.downvotes||0)}</span>
+                    <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
                   </div>
-                )}
+                  
+                  {authorProfile ? (
+                    <div className="flex items-center gap-2 max-w-[140px]" onClick={e => e.stopPropagation()}>
+                      <UserPopup
+                        userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                        roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
+                        membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
+                        colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
+                        className="truncate text-right w-full block"
+                      />
+                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                        {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-3.5 h-3.5 text-muted-foreground"/>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-muted-foreground w-7 h-7 bg-muted rounded-full flex items-center justify-center"><UserIcon className="w-3.5 h-3.5"/></div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -1025,13 +825,8 @@ export default function ForumPage() {
 
       {showRulesPopup && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[4000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setShowRulesPopup(false)}>
-          <div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-neon-green/30 rounded-lg p-5 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.9)]" 
-            onClick={e => e.stopPropagation()}
-          >
-            <button onClick={() => setShowRulesPopup(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-              <X className="w-5 h-5" />
-            </button>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-neon-green/30 rounded-lg p-5 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowRulesPopup(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
             <h3 className="font-pixel text-[11px] text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
             <div className="text-xs font-body text-muted-foreground space-y-2">
               <p>Antes de publicar, acepta las reglas de la comunidad:</p>
@@ -1046,26 +841,13 @@ export default function ForumPage() {
               </ul>
               <p className="text-[10px] italic">El incumplimiento puede resultar en suspensión temporal o permanente.</p>
             </div>
-            <Button size="sm" onClick={acceptRules} className="w-full text-xs shadow-[0_0_15px_rgba(57,255,20,0.4)]">
-              Acepto las reglas — Continuar
-            </Button>
+            <Button size="sm" onClick={acceptRules} className="w-full text-xs shadow-[0_0_15px_rgba(57,255,20,0.4)]">Acepto las reglas — Continuar</Button>
           </div>
-        </div>,
-        document.body
+        </div>, document.body
       )}
 
       {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
-
-      {reportTarget && (
-        <ReportModal
-          reportedUserId={reportTarget.userId}
-          reportedUserName={reportTarget.userName}
-          postId={reportTarget.postId}
-          commentId={reportTarget.commentId}
-          contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"}
-          onClose={() => setReportTarget(null)}
-        />
-      )}
+      {reportTarget && <ReportModal reportedUserId={reportTarget.userId} reportedUserName={reportTarget.userName} postId={reportTarget.postId} commentId={reportTarget.commentId} contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"} onClose={() => setReportTarget(null)} />}
     </div>
   );
 }
