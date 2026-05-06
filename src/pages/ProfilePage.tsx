@@ -220,14 +220,28 @@ export default function ProfilePage() {
   const handleClearNotifications = async () => {
     if (!user) return;
     if (!confirm("¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
-    const { error } = await supabase.from("notifications").delete().eq("user_id", user.id);
+    // Pedimos los IDs borrados para confirmar que la base de datos realmente eliminó algo
+    const { data: deleted, error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id)
+      .select("id");
     if (error) {
       toast({ title: "Error al limpiar", description: error.message, variant: "destructive" });
       return;
     }
+    if (!deleted || deleted.length === 0) {
+      toast({
+        title: "No se eliminó nada",
+        description: "La base de datos no permitió borrar (posible RLS faltante de DELETE). Avisa al admin.",
+        variant: "destructive",
+      });
+      fetchNotifs();
+      return;
+    }
     setNotifications([]);
     fetchNotifs();
-    toast({ title: "Historial limpiado correctamente." });
+    toast({ title: `Historial limpiado (${deleted.length} avisos).` });
   };
 
   const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
