@@ -56,6 +56,12 @@ const forumCategories = [
   { id: "mercado-motor", label: "Mercado Motor" },
 ];
 
+const mockPostsByCategory: Record<string, Array<any>> = {
+  "gaming-anime": [
+    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
+  ],
+};
+
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
   useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
@@ -771,7 +777,6 @@ export default function ForumPage() {
                 onClick={() => openPost(post.id)}
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
-                {/* LADO IZQUIERDO: Título y Fecha */}
                 <div className="flex-1 min-w-0 pr-2">
                   <h3 className="text-sm font-bold text-foreground truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5">
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
@@ -783,7 +788,6 @@ export default function ForumPage() {
                   </div>
                 </div>
                 
-                {/* LADO DERECHO: Likes y Usuario - AHORA AL LADO, NO DEBAJO */}
                 <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
                   <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
