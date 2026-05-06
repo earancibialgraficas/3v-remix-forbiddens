@@ -711,6 +711,8 @@ export default function ForumPage() {
             )}
           </div>
         </div>
+        {forumModal && <MediaModalForum src={forumModal.src} type={forumModal.type} onClose={() => setForumModal(null)} />}
+        {reportTarget && <ReportModal reportedUserId={reportTarget.userId} reportedUserName={reportTarget.userName} postId={reportTarget.postId} commentId={reportTarget.commentId} contentLabel={reportTarget.commentId ? "Comentario" : "Publicación"} onClose={() => setReportTarget(null)} />}
       </div>
     );
   }
@@ -829,7 +831,9 @@ export default function ForumPage() {
                             membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                             colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
                             className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors truncate max-w-full text-right"
-                          />
+                          >
+                            <span className="text-xs font-body font-semibold truncate" style={getNameStyle(authorProfile.color_name)}>{authorProfile.display_name}</span>
+                          </UserPopup>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                           {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-4 h-4 text-muted-foreground"/>}
