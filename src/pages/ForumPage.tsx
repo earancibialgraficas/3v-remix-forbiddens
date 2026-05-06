@@ -187,7 +187,6 @@ export default function ForumPage() {
   const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   
-  // 🔥 NUEVO ESTADO PARA EL POST SELECCIONADO 🔥
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [commentsSort, setCommentsSort] = useState<"old" | "new">("old");
 
@@ -292,7 +291,6 @@ export default function ForumPage() {
 
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory]);
 
-  // 🔥 DETECCIÓN AUTOMÁTICA DEL POST DESDE LA URL 🔥
   useEffect(() => {
     if (directPostId && posts.length > 0) {
       if (selectedPostId !== directPostId) {
@@ -302,7 +300,6 @@ export default function ForumPage() {
     }
   }, [directPostId, posts]);
 
-  // 🔥 SCROLL INTELIGENTE DE PRECISIÓN MILIMÉTRICA 🔥
   useEffect(() => {
     if (!selectedPostId || posts.length === 0) return;
 
@@ -496,7 +493,6 @@ export default function ForumPage() {
 
   const allPosts = [...posts, ...mockThreads];
 
-  // 🔥 RENDER: VISTA DE UN SOLO POST (2 Columnas y Comentarios Abajo) 🔥
   if (selectedPostId) {
     const post = allPosts.find(p => p.id === selectedPostId);
     if (!post) return <div className="p-8 text-center text-muted-foreground">Cargando publicación...</div>;
@@ -515,13 +511,12 @@ export default function ForumPage() {
 
     return (
       <div className="space-y-4 animate-fade-in">
-        <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground -ml-2 mb-2 font-pixel text-[10px] uppercase">
+        <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground -ml-2 mb-2 font-body font-bold text-xs uppercase">
           <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
         </Button>
 
         <div className="flex flex-col md:grid md:grid-cols-[30%_70%] gap-4 items-start">
           
-          {/* COLUMNA IZQUIERDA: PERFIL DEL AUTOR */}
           <div className="bg-card border border-border rounded-lg p-5 md:sticky md:top-4 flex flex-col items-center text-center w-full shadow-sm">
             {post.user_id && authorProfile ? (
               <>
@@ -538,7 +533,7 @@ export default function ForumPage() {
                 
                 {(authorProfile.signature || authorProfile.signature_image_url) && (
                   <div className="w-full mt-5 pt-5 border-t border-border/50">
-                    <p className="text-[9px] text-muted-foreground font-pixel mb-2 uppercase text-left">Firma</p>
+                    <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
                     <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
                   </div>
                 )}
@@ -548,7 +543,6 @@ export default function ForumPage() {
             )}
           </div>
 
-          {/* COLUMNA DERECHA: CONTENIDO DEL POST */}
           <div className="flex flex-col gap-4 min-w-0 w-full" id={`post-${post.id}`}>
             <div className="bg-card border border-border rounded-lg p-5">
               
@@ -562,7 +556,7 @@ export default function ForumPage() {
                   <span className="text-[10px] text-muted-foreground font-body flex items-center gap-1 bg-muted/50 px-2 py-1.5 rounded">
                     <Clock className="w-3 h-3" /> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
-                  {isTrending && post.category && <span className="uppercase text-[9px] font-pixel text-neon-cyan ml-1 hidden sm:inline-block">{post.category.replace(/-/g, ' ')}</span>}
+                  {isTrending && post.category && <span className="uppercase text-[10px] font-body font-bold text-neon-cyan ml-1 hidden sm:inline-block">{post.category.replace(/-/g, ' ')}</span>}
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -608,10 +602,9 @@ export default function ForumPage() {
               )}
             </div>
 
-            {/* MODAL / CAJA DE COMENTARIOS ABAJO */}
             <div className="bg-card border border-border rounded-lg p-5">
               <div className="flex items-center justify-between mb-5 border-b border-border/50 pb-3">
-                <h3 className="font-pixel text-[11px] text-neon-cyan">COMENTARIOS ({postComments.length})</h3>
+                <h3 className="font-body font-bold text-sm text-neon-cyan">COMENTARIOS ({postComments.length})</h3>
                 <select value={commentsSort} onChange={e => setCommentsSort(e.target.value as any)} className="bg-muted border border-border text-[10px] font-body rounded px-2 py-1 outline-none">
                   <option value="old">Más antiguos</option>
                   <option value="new">Más recientes</option>
@@ -647,7 +640,6 @@ export default function ForumPage() {
                 {sortedComments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 italic">No hay comentarios aún. ¡Sé el primero!</p>}
               </div>
 
-              {/* CAJA PARA ESCRIBIR COMENTARIO */}
               {user ? (
                 <div className="space-y-3 bg-muted/10 border border-border/50 rounded-lg p-4">
                   {replyTo && (
@@ -693,7 +685,6 @@ export default function ForumPage() {
     );
   }
 
-  // 🔥 RENDER: VISTA DE LISTA HORIZONTAL (SENCILLA) 🔥
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
@@ -731,8 +722,8 @@ export default function ForumPage() {
            
            <div className="flex items-center justify-between w-full lg:w-auto gap-2 shrink-0 mt-1 lg:mt-0">
              <div className="flex gap-1 bg-muted/50 p-0.5 rounded border border-border/50 w-full sm:w-auto">
-                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body h-7 px-3", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
-                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body h-7 px-3", sortBy === "new" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("new")}>Nuevos</Button>
+                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body font-bold h-7 px-3", sortBy === "popular" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("popular")}><Flame className="w-3 h-3 mr-1" /> Populares</Button>
+                <Button variant="ghost" size="sm" className={cn("flex-1 sm:flex-none text-[10px] font-body font-bold h-7 px-3", sortBy === "new" ? "bg-background text-neon-green shadow-sm" : "text-muted-foreground")} onClick={() => setSortBy("new")}>Nuevos</Button>
              </div>
            </div>
         </div>
@@ -741,7 +732,7 @@ export default function ForumPage() {
       {showNewPost && (
         <div className="bg-card border border-neon-green/30 rounded p-4 space-y-3 animate-fade-in shadow-lg">
           <div className="flex items-center justify-between">
-            <h3 className="font-pixel text-[10px] text-neon-green">NUEVO POST</h3>
+            <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
           <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
@@ -765,7 +756,7 @@ export default function ForumPage() {
       {allPosts.length === 0 ? (
         <div className="py-20 text-center opacity-50">
            <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-           <p className="font-pixel text-[10px] uppercase">No se encontraron resultados</p>
+           <p className="font-body font-bold text-xs uppercase">No se encontraron resultados</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -783,16 +774,16 @@ export default function ForumPage() {
                 {/* LADO IZQUIERDO: Título y Fecha */}
                 <div className="flex-1 min-w-0 pr-2">
                   <h3 className="text-sm font-bold text-foreground truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5">
-                    {post.is_pinned && <span className="text-neon-green text-[10px]">📌</span>}
+                    {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
                     {post.title}
                   </h3>
                   <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground font-body">
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                    {isTrending && post.category && <span className="uppercase bg-muted/50 px-1.5 py-0.5 rounded text-[8px] text-neon-cyan font-pixel border border-white/5">{post.category.replace(/-/g, ' ')}</span>}
+                    {isTrending && post.category && <span className="uppercase bg-muted/50 px-1.5 py-0.5 rounded text-[10px] font-body font-bold text-neon-cyan border border-white/5">{post.category.replace(/-/g, ' ')}</span>}
                   </div>
                 </div>
                 
-                {/* LADO DERECHO: Likes y Usuario */}
+                {/* LADO DERECHO: Likes y Usuario - AHORA AL LADO, NO DEBAJO */}
                 <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
                   <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
@@ -801,17 +792,14 @@ export default function ForumPage() {
                   </div>
                   
                   {authorProfile ? (
-                    <div className="flex items-center gap-2 max-w-[140px]" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center" onClick={e => e.stopPropagation()}>
                       <UserPopup
                         userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                         roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                         membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                         colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                        className="truncate text-right w-full block"
+                        className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors"
                       />
-                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
-                        {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-3.5 h-3.5 text-muted-foreground"/>}
-                      </div>
                     </div>
                   ) : (
                     <div className="text-[10px] text-muted-foreground w-7 h-7 bg-muted rounded-full flex items-center justify-center"><UserIcon className="w-3.5 h-3.5"/></div>
@@ -827,7 +815,7 @@ export default function ForumPage() {
         <div className="fixed inset-0 z-[4000] bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setShowRulesPopup(false)}>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-card border border-neon-green/30 rounded-lg p-5 animate-scale-in space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-[0_0_50px_rgba(0,0,0,0.9)]" onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowRulesPopup(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
-            <h3 className="font-pixel text-[11px] text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
+            <h3 className="font-body font-bold text-sm text-neon-green text-center">📜 REGLAS DE CONVIVENCIA</h3>
             <div className="text-xs font-body text-muted-foreground space-y-2">
               <p>Antes de publicar, acepta las reglas de la comunidad:</p>
               <ul className="list-disc pl-4 space-y-1">
