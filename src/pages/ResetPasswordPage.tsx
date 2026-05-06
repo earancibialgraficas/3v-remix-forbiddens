@@ -12,15 +12,49 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for recovery token in URL hash
-    const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
-      // No recovery token
-    }
+    // Soporta los dos formatos: PKCE (?code=...) y el viejo (#access_token=...&type=recovery)
+    const init = async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const hash = window.location.hash || "";
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            setLinkError("El enlace ya no es válido o expiró. Pide uno nuevo.");
+            return;
+          }
+          // Limpiamos el ?code= de la URL
+          window.history.replaceState({}, "", "/reset-password");
+          setReady(true);
+          return;
+        }
+
+        if (hash.includes("type=recovery")) {
+          // Supabase JS ya procesa el hash automáticamente al cargar
+          setReady(true);
+          return;
+        }
+
+        // Si ya hay sesión activa de recovery (por ejemplo recargó la página)
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setReady(true);
+        } else {
+          setLinkError("Abre esta página solo desde el enlace que recibiste por correo.");
+        }
+      } catch (err: any) {
+        setLinkError(err?.message || "No se pudo validar el enlace.");
+      }
+    };
+    init();
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -36,6 +70,7 @@ export default function ResetPasswordPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "¡Contraseña actualizada!", description: "Ya puedes iniciar sesión" });
+      await supabase.auth.signOut();
       navigate("/login");
     }
   };
