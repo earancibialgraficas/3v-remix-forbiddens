@@ -56,12 +56,6 @@ const forumCategories = [
   { id: "mercado-motor", label: "Mercado Motor" },
 ];
 
-const mockPostsByCategory: Record<string, Array<any>> = {
-  "gaming-anime": [
-    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
-  ],
-};
-
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
   useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
@@ -74,15 +68,13 @@ function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | 
           {isImage && <a href={src} download target="_blank" rel="noopener" className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/20 backdrop-blur-sm" title="Descargar"><Download className="w-5 h-5 text-white" /></a>}
           <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-destructive/80 transition-colors border border-white/20 backdrop-blur-sm text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative">
-          {type === "video" ? <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="w-full max-h-[80vh] object-contain rounded-xl" />}
+        <div className="bg-black border border-white/10 rounded-xl overflow-hidden w-full relative flex items-center justify-center">
+          {type === "video" ? <div className="aspect-video w-full"><iframe src={src} className="w-full h-full" allowFullScreen /></div> : <img src={src} alt="" className="max-w-full max-h-[80vh] object-contain rounded-xl" />}
         </div>
       </div>
     </div>, document.body
   );
 }
-
-let _setForumModal: ((v: { src: string; type: "image" | "video" } | null) => void) | null = null;
 
 function extractThumbnail(content: string): string | null {
   if (!content) return null;
@@ -124,15 +116,15 @@ function renderInlineFormatting(text: string, permissions: ContentPermissions, k
   });
 }
 
-function renderContent(content: string, permissions: ContentPermissions) {
+function renderContent(content: string, permissions: ContentPermissions, onOpenMedia: (src: string, type: "image"|"video") => void) {
   if (!content) return null;
   const parts = content.split(/(\!\[.*?\]\(.*?\)|\[.*?\]\(https?:\/\/.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
   return parts.map((part, i) => {
     const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch && !permissions.allowImages) return <span key={i}>{renderInlineFormatting(part, permissions, `img-locked-${i}`)}</span>;
     if (imgMatch) return (
-      <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: imgMatch[2], type: "image" })}>
-        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
+      <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(imgMatch[2], "image"); }}>
+        <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
       </div>
     );
@@ -148,7 +140,7 @@ function renderContent(content: string, permissions: ContentPermissions) {
       return (
         <div key={i} className="relative w-full aspect-video mt-2 mb-1 rounded overflow-hidden border border-border group">
           <iframe src={embedSrc} className="w-full h-full" allowFullScreen title="Video" />
-          <button onClick={() => _setForumModal?.({ src: embedSrc, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(embedSrc, "video"); }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
         </div>
       );
     }
@@ -159,15 +151,15 @@ function renderContent(content: string, permissions: ContentPermissions) {
         return (
           <div key={i} className="relative group mt-2 mb-1">
             <video src={part} controls className="w-full max-h-64 rounded border border-border" />
-            <button onClick={() => _setForumModal?.({ src: part, type: "video" })} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "video"); }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
           </div>
         );
       }
       if (isMedia) {
         if (!permissions.allowImages) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
         return (
-          <div key={i} className="relative group mt-2 mb-1 cursor-pointer" onClick={() => _setForumModal?.({ src: part, type: "image" })}>
-            <img src={part} alt="" className="w-full max-h-64 object-cover rounded border border-border transition-transform group-hover:brightness-75" loading="lazy" />
+          <div key={i} className="relative group mt-2 mb-1 cursor-pointer w-full h-[250px] bg-black/40 rounded border border-border overflow-hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(part, "image"); }}>
+            <img src={part} alt="" className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><div className="bg-black/60 p-2 rounded-full backdrop-blur-sm border border-white/20"><Maximize2 className="w-5 h-5 text-white" /></div></div>
           </div>
         );
@@ -205,7 +197,6 @@ export default function ForumPage() {
   const [editContent, setEditContent] = useState("");
   const [showRulesPopup, setShowRulesPopup] = useState(false);
   const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
-  _setForumModal = setForumModal;
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
@@ -600,9 +591,9 @@ export default function ForumPage() {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-xl font-bold text-foreground mb-4 break-words">{post.title}</h1>
-                  <div className="text-sm text-foreground leading-relaxed font-body">
-                    {renderContent(post.content, postPermissions)}
+                  <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{post.title}</h1>
+                  <div className="text-sm text-foreground leading-relaxed font-body mt-4">
+                    {renderContent(post.content, postPermissions, setForumModal)}
                   </div>
                 </>
               )}
@@ -638,7 +629,7 @@ export default function ForumPage() {
                         </div>
                       </div>
                       <div className="text-foreground text-xs leading-relaxed font-body pl-1">
-                        {renderContent(comment.content, commentPermissions)}
+                        {renderContent(comment.content, commentPermissions, setForumModal)}
                       </div>
                     </div>
                   );
@@ -694,7 +685,7 @@ export default function ForumPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
-        <h1 className={cn("font-pixel text-sm mb-1", page.color)}>{page.title}</h1>
+        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{page.title}</h1>
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 
@@ -778,7 +769,7 @@ export default function ForumPage() {
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-sm font-bold text-foreground truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5">
+                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
                     {post.title}
                   </h3>
@@ -788,26 +779,33 @@ export default function ForumPage() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto">
                   <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
                     <span className="text-xs font-bold w-5 text-center text-foreground">{(post.upvotes||0)-(post.downvotes||0)}</span>
                     <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
                   </div>
                   
-                  {authorProfile ? (
-                    <div className="flex items-center" onClick={e => e.stopPropagation()}>
-                      <UserPopup
-                        userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
-                        roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
-                        membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
-                        colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                        className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors"
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-muted-foreground w-7 h-7 bg-muted rounded-full flex items-center justify-center"><UserIcon className="w-3.5 h-3.5"/></div>
-                  )}
+                  <div className="flex items-center justify-end w-[130px] gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    {authorProfile ? (
+                      <>
+                        <div className="min-w-0 flex-1 flex justify-end">
+                          <UserPopup
+                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                            roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
+                            membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
+                            colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
+                            className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors truncate max-w-full text-right"
+                          />
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                          {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-4 h-4 text-muted-foreground"/>}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-muted-foreground w-8 h-8 bg-muted rounded-full flex items-center justify-center"><UserIcon className="w-4 h-4"/></div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
