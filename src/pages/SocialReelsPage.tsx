@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
+import CommentModMenu from "@/components/CommentModMenu";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
