@@ -56,6 +56,12 @@ const forumCategories = [
   { id: "mercado-motor", label: "Mercado Motor" },
 ];
 
+const mockPostsByCategory: Record<string, Array<any>> = {
+  "gaming-anime": [
+    { id: "ga1", title: "🎮 Los 10 mejores RPGs de la historia", content: "Después de una encuesta con más de 500 votos, aquí están los resultados.", upvotes: 245, downvotes: 12, is_pinned: true, user_id: "", created_at: new Date(Date.now() - 86400000).toISOString(), category: "gaming-anime" },
+  ],
+};
+
 function MediaModalForum({ src, type, onClose }: { src: string; type: "image" | "video"; onClose: () => void }) {
   const isImage = type === "image";
   useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = 'auto'; }; }, []);
@@ -593,7 +599,7 @@ export default function ForumPage() {
                 <>
                   <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 900 }}>{post.title}</h1>
                   <div className="text-sm text-foreground leading-relaxed font-body mt-4">
-                    {renderContent(post.content, postPermissions, setForumModal)}
+                    {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                   </div>
                 </>
               )}
@@ -629,7 +635,7 @@ export default function ForumPage() {
                         </div>
                       </div>
                       <div className="text-foreground text-xs leading-relaxed font-body pl-1">
-                        {renderContent(comment.content, commentPermissions, setForumModal)}
+                        {renderContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
                       </div>
                     </div>
                   );
