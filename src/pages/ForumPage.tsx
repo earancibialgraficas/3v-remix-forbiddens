@@ -753,7 +753,7 @@ export default function ForumPage() {
                   <>
                     <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
-                      {renderContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
+                      {renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </>
                 )}
@@ -807,7 +807,7 @@ export default function ForumPage() {
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
-                      {renderContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                      {renderAlignedContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </div>
                 );
