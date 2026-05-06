@@ -7,6 +7,7 @@ import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { supabase } from "@/integrations/supabase/client"; // 🔥 Agregado para el GPS
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   friend_request: { icon: <UserPlus className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
@@ -14,8 +15,8 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   follow: { icon: <Heart className="w-3.5 h-3.5" />, color: "text-neon-magenta" },
   comment: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" },
   comment_reel: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
-  comment_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" }, // Foro
-  reply_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" }, // Foro
+  comment_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
+  reply_post: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" },
   mention: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-orange" },
   achievement: { icon: <Trophy className="w-3.5 h-3.5" />, color: "text-neon-yellow" },
   general: { icon: <Star className="w-3.5 h-3.5" />, color: "text-muted-foreground" },
@@ -61,7 +62,8 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
   const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
 
-  const handleNotificationClick = (notif: any) => {
+  // 🔥 Ahora esta función es asíncrona para poder averiguar la ruta exacta 🔥
+  const handleNotificationClick = async (notif: any) => {
     handleMarkAsRead(notif.id);
 
     if (!notif.related_id) return; 
@@ -71,13 +73,37 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
     } else if (notif.type === "comment_photo" || notif.type === "comment") {
       navigate(`/muro?post=${notif.related_id}`);
     } else if (notif.type === "comment_post" || notif.type === "reply_post") {
-      // 🔥 LA MAGIA OCURRE AQUÍ: Separamos postId y commentId 🔥
+      
+      let pId = notif.related_id;
+      let cId = null;
       if (notif.related_id.includes("|")) {
-        const [pId, cId] = notif.related_id.split("|");
-        navigate(`/gaming-anime/foro?post=${pId}&comment=${cId}`);
-      } else {
-        navigate(`/gaming-anime/foro?post=${notif.related_id}`);
+        const parts = notif.related_id.split("|");
+        pId = parts[0];
+        cId = parts[1];
       }
+      
+      // GPS: Le preguntamos a la base de datos en qué categoría está este post
+      const { data } = await supabase.from("posts").select("category").eq("id", pId).maybeSingle();
+      let basePath = "/gaming-anime/foro"; // Por defecto
+      
+      if (data?.category) {
+        const cat = data.category;
+        if (cat === "gaming-anime-foro") basePath = "/gaming-anime/foro";
+        else if (cat === "gaming-anime-anime") basePath = "/gaming-anime/anime";
+        else if (cat === "gaming-anime-gaming") basePath = "/gaming-anime/gaming";
+        else if (cat === "arcade-consejos") basePath = "/arcade/consejos";
+        else if (cat === "gaming-anime-creador") basePath = "/gaming-anime/creador";
+        else if (cat === "motociclismo-riders") basePath = "/motociclismo/riders";
+        else if (cat === "motociclismo-taller") basePath = "/motociclismo/taller";
+        else if (cat === "motociclismo-rutas") basePath = "/motociclismo/rutas";
+        else if (cat === "mercado-gaming") basePath = "/mercado/gaming";
+        else if (cat === "mercado-motor") basePath = "/mercado/motor";
+      }
+
+      // Te enviamos a la URL milimétricamente exacta
+      if (cId) navigate(`${basePath}?post=${pId}&comment=${cId}`);
+      else navigate(`${basePath}?post=${pId}`);
+      
     } else if (notif.type === "friend_accepted" || notif.type === "follow" || notif.type === "friend_request") {
       navigate(`/usuario/${notif.related_id}`);
     }

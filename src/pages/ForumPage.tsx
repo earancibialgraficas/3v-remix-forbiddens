@@ -338,8 +338,18 @@ export default function ForumPage() {
     const { data } = await query.limit(20);
     
     if (data) {
-      setPosts(data);
-      const userIds = [...new Set((data as any[]).map(p => p.user_id).filter(Boolean))];
+      let finalData = [...data];
+      
+      // 🔥 TRUCO MAESTRO: Si la campana te mandó a un post viejo que ya no está entre los primeros 20, lo carga a la fuerza 🔥
+      if (directPostId && !finalData.find(p => p.id === directPostId)) {
+        const { data: extraPost } = await supabase.from("posts").select("*").eq("id", directPostId).maybeSingle();
+        if (extraPost && !extraPost.is_banned) {
+          finalData.unshift(extraPost);
+        }
+      }
+
+      setPosts(finalData);
+      const userIds = [...new Set((finalData as any[]).map(p => p.user_id).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, signature_font_size").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
@@ -350,8 +360,8 @@ export default function ForumPage() {
         setPostProfiles(pMap);
         setPostRoles(rMap);
       }
-      if (user && data.length > 0) {
-        const postIds = data.map((p: any) => p.id);
+      if (user && finalData.length > 0) {
+        const postIds = finalData.map((p: any) => p.id);
         const { data: votes } = await supabase.from("post_votes").select("post_id, vote_type").eq("user_id", user.id).in("post_id", postIds);
         const vMap: Record<string, string | null> = {};
         votes?.forEach((v: any) => { vMap[v.post_id] = v.vote_type; });
@@ -378,23 +388,46 @@ export default function ForumPage() {
     fetchPosts();
   }, [category, sortBy, filterCategory]);
 
+  // 🔥 1. ABRIR COMENTARIOS (Si la URL lo pide)
   useEffect(() => {
     if (directPostId && posts.length > 0) {
-      setExpandedPost(directPostId);
-      fetchComments(directPostId);
-      
+      if (expandedPost !== directPostId) {
+        setExpandedPost(directPostId);
+        fetchComments(directPostId);
+      }
+    }
+  }, [directPostId, posts]);
+
+  // 🔥 2. EL EFECTO DE SCROLL INTELIGENTE (Espera a que React termine de dibujar)
+  useEffect(() => {
+    if (!directPostId || posts.length === 0) return;
+
+    if (directCommentId) {
+      // Si hay un comentario, verificamos que el sistema ya lo haya traído de la base de datos
+      if (comments[directPostId] && comments[directPostId].length > 0) {
+        setTimeout(() => {
+          const commentEl = document.getElementById(`comment-${directCommentId}`);
+          if (commentEl) {
+            commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            commentEl.classList.add('arcade-report-highlight'); // Efecto neón
+            setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
+            window.history.replaceState({}, '', location.pathname);
+          }
+        }, 300); // 300ms solo para darle tiempo a React de dibujar el DOM
+      }
+    } else {
+      // Si es solo el post
       setTimeout(() => {
-        const commentEl = directCommentId ? document.getElementById(`comment-${directCommentId}`) : null;
-        const targetEl = commentEl || document.getElementById(`post-${directPostId}`);
+        const targetEl = document.getElementById(`post-${directPostId}`);
         if (targetEl) {
           targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
           targetEl.classList.add('arcade-report-highlight');
           setTimeout(() => targetEl.classList.remove('arcade-report-highlight'), 3500);
           window.history.replaceState({}, '', location.pathname);
         }
-      }, directCommentId ? 900 : 500);
+      }, 500);
     }
-  }, [directPostId, directCommentId, posts, location.pathname]);
+  }, [directPostId, directCommentId, posts, comments, location.pathname]);
 
   const handleNewPostClick = () => {
     const rulesKey = `rules_accepted_${user?.id}`;
@@ -500,7 +533,7 @@ export default function ForumPage() {
 
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
     
-    // 🔥 AQUÍ ESTÁ EL TRUCO: Le decimos .select().single() a Supabase para que nos devuelva la ID del comentario que acabas de crear 🔥
+    // Obtenemos el ID del comentario recién creado
     const { data: newCommentData, error } = await supabase.from("comments").insert({
       post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo,
     } as any).select().single();
@@ -510,8 +543,8 @@ export default function ForumPage() {
     } else { 
       try {
         const post = posts.find(p => p.id === postId);
-        
-        // Creamos nuestro "código secreto" uniendo el postId y el commentId separados por |
+
+        // Armamos el código secreto para el GPS: "postId|commentId"
         const compositeId = `${postId}|${newCommentData.id}`;
 
         if (replyTo) {
@@ -523,7 +556,7 @@ export default function ForumPage() {
               type: 'reply_post',
               title: 'Nueva Respuesta',
               body: `${profile?.display_name || 'Alguien'} respondió a tu comentario en el foro.`,
-              related_id: compositeId
+              related_id: compositeId // Guardamos el GPS aquí
             } as any);
           }
         } else if (post && post.user_id !== user.id) {
@@ -533,7 +566,7 @@ export default function ForumPage() {
             type: 'comment_post',
             title: 'Nuevo Comentario',
             body: `${profile?.display_name || 'Alguien'} comentó tu publicación en el foro.`,
-            related_id: compositeId
+            related_id: compositeId // Y aquí también
           } as any);
         }
       } catch (e) {
