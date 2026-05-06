@@ -168,8 +168,6 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 SOLO CARGAMOS PARTIDAS REALES DESDE EL NAVEGADOR 🔥
-        // Ya no consultamos la tabla leaderboard_scores porque ahí solo están los puntos.
         try {
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('save_slots_')) {
@@ -223,6 +221,7 @@ export default function ProfilePage() {
     try { await supabase.from("notifications").delete().eq("user_id", user.id); fetchNotifs(); toast({ title: "Historial limpiado correctamente." }); } catch(e) {}
   };
 
+  // 🔥 SOLUCIÓN: Limpiamos los inserts de notificaciones 🔥
   const handleAcceptRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
@@ -231,19 +230,45 @@ export default function ProfilePage() {
       toast({ title: "¡Solicitud aceptada!" });
       setPendingRequests(prev => (prev || []).filter(r => r.id !== reqId));
       await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id).neq("id", reqId);
-      if (senderId) { await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`, related_id: user.id } as any); }
-      await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: user.id, type: "general", title: "Amistad Aceptada", body: `Aceptaste la solicitud de amistad de ${senderName}.`, is_read: true } as any);
-      fetchNotifs(); if (activeTab === "friends") window.location.reload();
+      
+      if (senderId) { 
+        await supabase.from("notifications").insert({ 
+          user_id: senderId, 
+          sender_id: user.id,
+          type: "friend_accepted", 
+          content: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`, 
+          is_read: false 
+        } as any); 
+      }
+      await supabase.from("notifications").insert({ 
+        user_id: user.id, 
+        sender_id: senderId,
+        type: "general", 
+        content: `Aceptaste la solicitud de amistad de ${senderName}.`, 
+        is_read: true 
+      } as any);
+      
+      fetchNotifs(); 
+      if (activeTab === "friends") window.location.reload();
     } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
   };
 
+  // 🔥 SOLUCIÓN: Limpiamos los inserts de notificaciones 🔥
   const handleRejectRequest = async (reqId: string, senderId: string, senderName: string) => {
     if (!user) return;
     try {
       const { error } = await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id);
       if (!error) {
-        toast({ title: "Solicitud rechazada" }); setPendingRequests(prev => (prev || []).filter(r => r.sender_id !== senderId));
-        await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: user.id, type: "general", title: "Amistad Rechazada", body: `Rechazaste la solicitud de amistad de ${senderName}.`, is_read: true } as any); fetchNotifs();
+        toast({ title: "Solicitud rechazada" }); 
+        setPendingRequests(prev => (prev || []).filter(r => r.sender_id !== senderId));
+        await supabase.from("notifications").insert({ 
+          user_id: user.id, 
+          sender_id: senderId,
+          type: "general", 
+          content: `Rechazaste la solicitud de amistad de ${senderName}.`, 
+          is_read: true 
+        } as any); 
+        fetchNotifs();
       } else { toast({ title: "Error al rechazar", variant: "destructive" }); }
     } catch(e) {}
   };
@@ -404,7 +429,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -422,7 +446,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}

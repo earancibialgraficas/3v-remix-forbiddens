@@ -154,7 +154,6 @@ export default function UserPopup({
                     }
                     setOpen(false); 
                     if (user && userId) {
-                       // 🔥 RESTAURADO A SU FORMA ORIGINAL (SIN ID NI FECHA MANUAL) 🔥
                        const { error } = await supabase.from("friend_requests").insert({
                          sender_id: user.id,
                          receiver_id: userId,
@@ -163,7 +162,6 @@ export default function UserPopup({
                        
                        if (!error) {
                          toast({ title: "Solicitud enviada" });
-                         // Enviar notificación a la campana
                          supabase.from("notifications").insert({
                             user_id: userId,
                             sender_id: user.id,

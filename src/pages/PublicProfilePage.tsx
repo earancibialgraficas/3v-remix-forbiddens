@@ -220,7 +220,6 @@ export default function PublicProfilePage() {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
       if (error) { setIsFollowing(wasFollowing); setFollowerCount(p => p + 1); toast({ title: "Error" }); }
     } else {
-      // 🔥 RESTAURADO: Seguimiento limpio sin ID forzado 🔥
       const { error } = await supabase.from("follows").insert({
         follower_id: user.id,
         following_id: userId
@@ -248,7 +247,6 @@ export default function PublicProfilePage() {
     if (friendStatus === "none") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       
-      // 🔥 RESTAURADO: Solicitud de amigos limpia sin ID ni fecha forzada 🔥
       const { error } = await supabase.from("friend_requests").insert({
         sender_id: user.id,
         receiver_id: userId,
