@@ -8,7 +8,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
-import MembershipBadge from "@/components/MembershipBadge";
 // ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
 import UserPopup from "@/components/UserPopup";
@@ -207,7 +206,7 @@ export default function RightPanel() {
                     >
                       <span className="truncate" style={pu.color_name ? getNameStyle(pu.color_name) : {}}>{pu.display_name}</span>
                     </UserPopup>
-                    <MembershipBadge tier={pu.membership_tier} size="xs" showLabel={false} colorRole={pu.color_role} />
+                    <span className={cn("font-pixel text-neon-yellow text-[8px]")} style={pu.color_role ? getRoleStyle(pu.color_role) : {}}>{pu.membership_tier.toUpperCase()}</span>
                   </div>
                 ))}
               </div>

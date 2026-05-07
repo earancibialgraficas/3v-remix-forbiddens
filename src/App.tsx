@@ -30,7 +30,6 @@ import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
 import { Navigate } from "react-router-dom";
-import { UpgradeProvider } from "@/components/UpgradeModal";
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
@@ -66,7 +65,6 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <PasswordRecoveryRedirect />
-              <UpgradeProvider>
               <Routes>
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<Index />} />
@@ -112,7 +110,6 @@ const App = () => {
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              </UpgradeProvider>
             </BrowserRouter>
           </GameBubbleProvider>
         </AuthProvider>

@@ -1,10 +1,8 @@
-import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock, AlignLeft, AlignCenter, AlignRight, Trophy, Users, UserPlus, Gamepad2, Star } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
-import MembershipBadge from "@/components/MembershipBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -480,8 +478,6 @@ export default function ForumPage() {
   const handlePost = async () => {
     if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
     if (!title.trim()) return;
-    if (title.trim().length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
-    if (content.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
@@ -489,7 +485,7 @@ export default function ForumPage() {
 
     const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature } as any);
     setPosting(false);
-    if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); }
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
   };
 
@@ -611,7 +607,7 @@ export default function ForumPage() {
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
     const { data: newCommentData, error } = await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo } as any).select().single();
     
-    if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" });
     } else { 
       try {
         const post = posts.find(p => p.id === postId);
@@ -763,7 +759,12 @@ export default function ForumPage() {
                               </span>
                             </>
                           ) : (
-                            <MembershipBadge tier={authorProfile.membership_tier || "novato"} size="sm" colorRole={authorProfile.color_role} />
+                            <span
+                              className="inline-flex items-center text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                              style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
+                            >
+                              {(authorProfile.membership_tier || "novato").toUpperCase()}
+                            </span>
                           )}
                         </UserPopup>
                         {(authorProfile.signature || authorProfile.signature_image_url) && (
@@ -858,24 +859,8 @@ export default function ForumPage() {
 
                 {editingPost === post.id ? (
                   <div className="space-y-3 animate-fade-in">
-                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
-                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[140px]" />
-                    <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
-                      <span>Título: {editTitle.length}/150</span>
-                      <span className={cn(editContent.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{editContent.length}/{limits.maxForumChars}</span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {canUseImages && <button onClick={() => setEditContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
-                      {canUseVideo && <button onClick={() => setEditContent(prev => prev + "https://youtube.com/watch?v=")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar video"><Video className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "**texto**")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
-                      {canUseLinks && <button onClick={() => setEditContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
-                      <div className="w-px h-5 bg-border mx-1" />
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=left]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-4 h-4" /></button>
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=center]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=right]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-4 h-4" /></button>
-                    </div>
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
+                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-8">Cancelar</Button>
@@ -926,7 +911,7 @@ export default function ForumPage() {
                             {commentIsStaff ? (
                               <RoleBadge roles={commentRoles} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} colorStaffRole={comment.profile?.color_staff_role} />
                             ) : (
-                              <MembershipBadge tier={comment.profile?.membership_tier || comment.membership_tier || 'novato'} size="xs" colorRole={comment.profile?.color_role} />
+                              <span className="text-[9px] font-pixel" style={getRoleStyle(comment.profile?.color_role)}>[{(comment.profile?.membership_tier || comment.membership_tier || 'novato').toUpperCase()}]</span>
                             )}
                           </div>
                           <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 mt-1"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
@@ -1043,12 +1028,8 @@ export default function ForumPage() {
             <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
-          <Textarea placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`} value={content} onChange={(e) => setContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[120px]" />
-          <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
-            <span>Título: {title.length}/150</span>
-            <span className={cn(content.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{content.length}/{limits.maxForumChars}</span>
-          </div>
+          <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
+          <Textarea placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
           
           <div className="flex items-center gap-1 flex-wrap">
             {canUseImages && <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}

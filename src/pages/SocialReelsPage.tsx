@@ -1,4 +1,3 @@
-import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -378,7 +377,7 @@ function SnapCard({
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
-      if (!handleMembershipError(e)) toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
   };
 

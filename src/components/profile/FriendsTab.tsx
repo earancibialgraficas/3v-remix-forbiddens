@@ -1,4 +1,3 @@
-import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -9,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getNameStyle, getAvatarBorderStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { cn } from "@/lib/utils";
-import MembershipBadge from "@/components/MembershipBadge";
 
 export default function FriendsTab({ userId, limits, isStaff }: any) {
   const { toast } = useToast();
@@ -184,7 +182,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                       <div className="flex items-center gap-1 mt-0.5">
                          {isResStaff ? 
                            <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(r.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : 
-                           <MembershipBadge tier={r.membership_tier || 'novato'} size="xs" colorRole={r.color_role} />
+                           <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(r.color_role)}><Star className="w-2.5 h-2.5" /> {r.membership_tier?.toUpperCase() || 'NOVATO'}</span>
                          }
                       </div>
                     </div>
@@ -198,7 +196,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                         if (error) throw error;
                         await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud", body: `Alguien quiere ser tu amigo.`, related_id: userId } as any);
                         toast({ title: "Solicitud enviada" }); setRes([]); setSearch("");
-                      } catch(e: any) { if (!handleMembershipError(e)) toast({ title: "Error", variant: "destructive" }); }
+                      } catch(e: any) { toast({ title: "Error", variant: "destructive" }); }
                    }} className="h-6 text-[9px] uppercase font-pixel tracking-tighter">Añadir</Button>
                 </div>
               );
@@ -225,7 +223,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                      </div>
                      <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1 group-hover:text-neon-cyan transition-colors" style={getNameStyle(f.color_name)}>{f.display_name}</h4>
                      <div className="flex justify-center items-center h-4">
-                       {isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : <MembershipBadge tier={f.membership_tier || 'novato'} size="xs" colorRole={f.color_role} />}
+                       {isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(f.color_role)}><Star className="w-2.5 h-2.5" /> {f.membership_tier?.toUpperCase() || 'NOVATO'}</span>}
                      </div>
                    </div>
                    <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">

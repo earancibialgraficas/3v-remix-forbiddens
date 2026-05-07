@@ -1,4 +1,3 @@
-import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, User, Search, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -249,7 +248,7 @@ export default function MessagesPage() {
     }).select().single();
 
     if (error) {
-      if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(content);
     } else if (data) {

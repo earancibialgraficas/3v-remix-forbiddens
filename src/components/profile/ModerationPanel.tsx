@@ -143,19 +143,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     setConfirmAction({ title, message, btnText, action, variant });
   };
 
-  const handleRoleChange = async (targetUserId: string, role: "admin" | "moderator", action: "grant" | "revoke") => {
-    const { error } = await (supabase.rpc as any)("manage_user_role", {
-      p_target_user_id: targetUserId,
-      p_role: role,
-      p_action: action,
-    });
-    if (error) {
-      toast({ title: "Error de roles", description: error.message, variant: "destructive" });
-      return false;
-    }
-    return true;
-  };
-
   return (
     <div className="space-y-4 animate-in fade-in relative">
       
@@ -213,10 +200,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
 
               <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
                 {canManageMods && !foundUser.isTargetMod && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "moderator", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
                 )}
                 {canManageAdmins && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "admin", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "admin" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
                 )}
               </div>
             </div>
@@ -300,7 +287,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                   <span className="text-xs text-white font-body">{m.name || "..."}</span>
                   {/* 🔥 SÓLO ADMINS O MASTER WEB PUEDEN REVOCAR MODERADORES 🔥 */}
                   {canManageMods && (
-                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(m.user_id, "moderator", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
@@ -327,7 +314,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                   <span className="text-xs text-white font-body">{a.name || "..."}</span>
                   {/* 🔥 SÓLO MASTER WEB PUEDE REVOCAR ADMINISTRADORES 🔥 */}
                   {canManageAdmins && (
-                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(a.user_id, "admin", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
