@@ -207,7 +207,7 @@ export default function RightPanel() {
                     >
                       <span className="truncate" style={pu.color_name ? getNameStyle(pu.color_name) : {}}>{pu.display_name}</span>
                     </UserPopup>
-                    <span className={cn("font-pixel text-neon-yellow text-[8px]")} style={pu.color_role ? getRoleStyle(pu.color_role) : {}}>{pu.membership_tier.toUpperCase()}</span>
+                    <MembershipBadge tier={pu.membership_tier} size="xs" showLabel={false} colorRole={pu.color_role} />
                   </div>
                 ))}
               </div>
