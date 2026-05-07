@@ -143,6 +143,19 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     setConfirmAction({ title, message, btnText, action, variant });
   };
 
+  const handleRoleChange = async (targetUserId: string, role: "admin" | "moderator", action: "grant" | "revoke") => {
+    const { error } = await (supabase.rpc as any)("manage_user_role", {
+      p_target_user_id: targetUserId,
+      p_role: role,
+      p_action: action,
+    });
+    if (error) {
+      toast({ title: "Error de roles", description: error.message, variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4 animate-in fade-in relative">
       
@@ -200,10 +213,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
 
               <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
                 {canManageMods && !foundUser.isTargetMod && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "moderator" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "moderator", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
                 )}
                 {canManageAdmins && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { await supabase.from("user_roles").insert({ id: crypto.randomUUID(), user_id: foundUser.user_id, role: "admin" } as any); handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "admin", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
                 )}
               </div>
             </div>
