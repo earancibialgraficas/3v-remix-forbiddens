@@ -223,7 +223,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         if (error) throw error;
         toast({ title: "Evento actualizado" });
       } else {
-        const { error } = await supabase.from("events").insert({ ...payload, created_by: user.id } as any);
+        const { error } = await supabase.from("events").insert({ id: crypto.randomUUID(), ...payload, created_by: user.id } as any);
         if (error) throw error;
         toast({ title: "Evento creado" });
       }
