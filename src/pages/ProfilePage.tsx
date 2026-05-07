@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
+import MembershipBadge from "@/components/MembershipBadge";
+import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
