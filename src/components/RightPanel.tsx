@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
+import MembershipBadge from "@/components/MembershipBadge";
 // ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
 import UserPopup from "@/components/UserPopup";
