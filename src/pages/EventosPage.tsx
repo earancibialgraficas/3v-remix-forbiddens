@@ -406,6 +406,24 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
             </div>
             <Input placeholder="Lugar / plataforma" value={crLocation} onChange={e => setCrLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
             <Textarea placeholder="Descripción del evento..." value={crDescription} onChange={e => setCrDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
+
+            <div>
+              <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Imagen del evento (opcional)</label>
+              {crImageUrl ? (
+                <div className="relative rounded border border-border overflow-hidden bg-black/40">
+                  <img src={crImageUrl} alt="" className="w-full max-h-48 object-cover" />
+                  <button type="button" onClick={() => setCrImageUrl("")} className="absolute top-1 right-1 p-1 rounded bg-black/70 hover:bg-black border border-white/20 text-white">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-20 rounded border border-dashed border-border bg-black/20 cursor-pointer hover:border-neon-magenta/50 hover:bg-black/40 transition text-[11px] font-body text-muted-foreground">
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingImg}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ""; }} />
+                  {uploadingImg ? "Subiendo..." : "📷 Subir imagen del evento"}
+                </label>
+              )}
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
             <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="text-xs">Cancelar</Button>
