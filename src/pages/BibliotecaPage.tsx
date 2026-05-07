@@ -212,7 +212,14 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
           <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
         </h2>
         
-        {currentGames.length === 0 ? (
+        {isLocked(selectedConsole) ? (
+          <div className="bg-card border border-dashed border-neon-yellow/40 rounded-lg p-8 text-center space-y-3">
+            <Lock className="w-8 h-8 mx-auto text-neon-yellow" />
+            <p className="text-xs font-body text-foreground">La biblioteca <span className="text-neon-yellow font-bold">N64</span> está bloqueada para miembros <span className="font-bold">Novato</span>.</p>
+            <p className="text-[10px] text-muted-foreground font-body">Mejora tu membresía a <b>Lite</b> o superior para desbloquear N64, PS1 y PS2.</p>
+            <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
+          </div>
+        ) : currentGames.length === 0 ? (
           <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center text-[10px] text-muted-foreground font-body">
              No se encontraron juegos para esta búsqueda.
           </div>
