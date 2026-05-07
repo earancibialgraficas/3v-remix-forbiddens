@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getNameStyle, getAvatarBorderStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { cn } from "@/lib/utils";
+import MembershipBadge from "@/components/MembershipBadge";
 
 export default function FriendsTab({ userId, limits, isStaff }: any) {
   const { toast } = useToast();
