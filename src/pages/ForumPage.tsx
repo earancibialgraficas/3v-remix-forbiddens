@@ -716,13 +716,13 @@ export default function ForumPage() {
         <div className="space-y-4">
           <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm" id={`post-${post.id}`}>
             <div className="grid lg:grid-cols-[260px_minmax(0,1fr)]">
-              <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 flex flex-col sm:flex-row lg:flex-col items-center sm:items-start lg:items-center text-center sm:text-left lg:text-center gap-4 lg:gap-0 min-w-0">
+              <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 flex justify-center lg:block min-w-0">
                 {post.user_id && authorProfile ? (
-                  <>
-                    <div className="w-24 h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                  <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-4 lg:gap-0 w-full md:w-1/2 lg:w-full mx-auto">
+                    <div className="aspect-square self-stretch lg:self-auto lg:w-24 lg:h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                       {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                     </div>
-                    <div className="min-w-0 w-full flex flex-col items-center">
+                    <div className="min-w-0 flex-1 lg:w-full flex flex-col items-center justify-center text-center">
                       <UserPopup
                         userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                         roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
