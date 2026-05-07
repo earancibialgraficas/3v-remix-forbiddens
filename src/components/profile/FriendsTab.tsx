@@ -183,7 +183,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                       <div className="flex items-center gap-1 mt-0.5">
                          {isResStaff ? 
                            <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(r.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : 
-                           <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(r.color_role)}><Star className="w-2.5 h-2.5" /> {r.membership_tier?.toUpperCase() || 'NOVATO'}</span>
+                           <MembershipBadge tier={r.membership_tier || 'novato'} size="xs" colorRole={r.color_role} />
                          }
                       </div>
                     </div>
