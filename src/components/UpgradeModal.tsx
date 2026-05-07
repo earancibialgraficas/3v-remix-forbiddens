@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Crown, Zap, AlertTriangle } from "lucide-react";
 import {
@@ -19,7 +19,6 @@ interface UpgradePayload {
 
 interface UpgradeContextType {
   openUpgrade: (payload: UpgradePayload) => void;
-  /** Devuelve true si se mostró el modal (era un error de límite). */
   handleLimitError: (error: unknown, fallback?: string) => boolean;
 }
 
@@ -36,6 +35,27 @@ const LIMIT_KEYWORDS = [
   "Has alcanzado",
   "no puede superar",
 ];
+
+export function isMembershipLimitError(error: unknown): string | null {
+  const msg =
+    (error as any)?.message ||
+    (typeof error === "string" ? error : "") ||
+    "";
+  return LIMIT_KEYWORDS.some((k) => msg.includes(k)) ? msg : null;
+}
+
+/** Helper global: dispara el modal desde cualquier sitio (sin hooks). */
+export function showUpgradeModal(payload: UpgradePayload) {
+  window.dispatchEvent(new CustomEvent("upgrade:open", { detail: payload }));
+}
+
+/** Si el error es por límite de membresía, abre el modal y devuelve true. */
+export function handleMembershipError(error: unknown): boolean {
+  const msg = isMembershipLimitError(error);
+  if (!msg) return false;
+  showUpgradeModal({ title: "Límite de tu membresía alcanzado", message: msg });
+  return true;
+}
 
 export function UpgradeProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
