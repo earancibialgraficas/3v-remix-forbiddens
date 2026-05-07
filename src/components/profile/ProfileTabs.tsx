@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -216,7 +217,7 @@ export function FriendsTab({ userId, limits, isStaff }: any) {
                     if (existing && existing.length > 0) { toast({ title: "Aviso", description: "Ya existe una solicitud o amistad con este usuario.", variant: "destructive" }); return; }
                     const reqId = crypto.randomUUID();
                     const { error } = await supabase.from("friend_requests").insert({ id: reqId, sender_id: userId, receiver_id: r.user_id, status: 'pending' } as any); 
-                    if (error) { toast({ title: "Error al enviar", description: error.message, variant: "destructive" }); return; }
+                    if (error) { if (!handleMembershipError(error)) toast({ title: "Error al enviar", description: error.message, variant: "destructive" }); return; }
                     await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud de amistad", body: `Alguien te ha enviado una solicitud de amistad.`, related_id: userId } as any);
                     toast({ title: "Solicitud enviada" }); setRes([]); setSearch("");
                   } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
@@ -268,7 +269,7 @@ export function SocialContentTab({ profile, user, onEditNetworks, limits, isStaf
     else if (url.includes("facebook.com") || url.includes("fb.watch")) { platform = "facebook"; contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post"; }
     const { error } = await supabase.from("social_content").insert({ id: crypto.randomUUID(), user_id: user.id, content_url: newUrl.trim(), title: newTitle.trim() || null, platform: platform, content_type: contentType, is_public: true } as any);
     setAdding(false);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); } 
+    if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); } 
     else { toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` }); setNewUrl(""); setNewTitle(""); fetchContents(); }
   };
 

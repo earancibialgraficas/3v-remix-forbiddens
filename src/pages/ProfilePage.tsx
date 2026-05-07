@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
+import MembershipBadge from "@/components/MembershipBadge";
+import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +38,10 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
-  const [socialContentCount, setSocialContentCount] = useState(0); 
+  const [socialContentCount, setSocialContentCount] = useState(0);
+  const [photosCount, setPhotosCount] = useState(0);
+  const [socialOnlyCount, setSocialOnlyCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -147,11 +152,17 @@ export default function ProfilePage() {
         const { data: posts } = await supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
         if (posts) setUserPosts(posts);
 
-        const [socialRes, photosRes] = await Promise.all([
+        const [socialRes, photosRes, friendsRes] = await Promise.all([
           supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         ]);
-        setSocialContentCount((socialRes?.count || 0) + (photosRes?.count || 0));
+        const sc = socialRes?.count || 0;
+        const pc = photosRes?.count || 0;
+        setSocialOnlyCount(sc);
+        setPhotosCount(pc);
+        setSocialContentCount(sc + pc);
+        setFriendsCount(friendsRes?.count || 0);
         
         const { data: scores } = await supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false });
         if (scores) setGameScores(scores as any);
@@ -400,7 +411,7 @@ export default function ProfilePage() {
             <p className={cn("text-xs text-muted-foreground font-body mt-1", isMobile ? "text-center" : "")}>{profile?.bio || "Sin descripción"}</p>
             
             <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
-              {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <span className="text-[10px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(profile?.color_role)}><Star className="w-3 h-3" /> {safeStr(userTier).toUpperCase()}</span>}
+              {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
               <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} seguidores · {followingCount} siguiendo</span>
@@ -435,6 +446,17 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <UsageIndicators
+        limits={limits}
+        isStaff={isStaff}
+        usage={{
+          photos: photosCount,
+          socialContent: socialOnlyCount,
+          friends: friendsCount,
+          storageMB: storageUsed,
+        }}
+      />
 
       {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">

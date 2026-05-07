@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquare, UserPlus, Flag, Shield, Ban, Eye, X, User } from "lucide-react";
@@ -28,7 +29,7 @@ interface UserPopupProps {
   colorStaffRole?: string | null;
 }
 
-const ROLE_OPTIONS = ["user", "moderator", "admin", "master_web"] as const;
+const ROLE_OPTIONS = ["user", "moderator", "admin"] as const;
 
 export default function UserPopup({
   userId,
@@ -130,14 +131,19 @@ export default function UserPopup({
   const handleSaveRoles = async () => {
     if (!user) return;
     setSavingRoles(true);
-    // Borra todos los roles existentes y reinserta los seleccionados
-    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (delErr) { setSavingRoles(false); toast({ title: "Error", description: delErr.message, variant: "destructive" }); return; }
-    const finalRoles = targetRoles.length > 0 ? targetRoles : ["user"];
-    const inserts = finalRoles.map(role => ({ user_id: userId, role: role as any }));
-    const { error: insErr } = await supabase.from("user_roles").insert(inserts as any);
+
+    const changes = ["moderator", "admin"].map(role =>
+      (supabase.rpc as any)("manage_user_role", {
+        p_target_user_id: userId,
+        p_role: role,
+        p_action: targetRoles.includes(role) ? "grant" : "revoke",
+      })
+    );
+
+    const results = await Promise.all(changes);
+    const firstError = results.find((res: any) => res.error)?.error;
     setSavingRoles(false);
-    if (insErr) { toast({ title: "Error", description: insErr.message, variant: "destructive" }); return; }
+    if (firstError) { toast({ title: "Error", description: firstError.message, variant: "destructive" }); return; }
     toast({ title: "Roles actualizados" });
     setShowRolesModal(false);
   };
@@ -215,7 +221,7 @@ export default function UserPopup({
                        const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
                        if (!error) toast({ title: "Solicitud enviada" });
                        else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
-                       else toast({ title: "Error", description: error.message, variant: "destructive" });
+                       else if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
                     }
                   }}
                   disabled={reachedFriendLimit}
@@ -308,7 +314,7 @@ export default function UserPopup({
             <p className="text-[10px] font-body text-muted-foreground mb-3">Marca los roles a asignar. Si quitas todos, se asignará "user" automáticamente.</p>
             <div className="space-y-1 mb-4">
               {ROLE_OPTIONS.map(r => {
-                const disabled = r === "master_web" && !isMasterWeb;
+                const disabled = r === "user";
                 return (
                   <label key={r} className={cn("flex items-center gap-2 p-2 rounded border border-border cursor-pointer hover:bg-muted/30", disabled && "opacity-40 cursor-not-allowed")}>
                     <input
