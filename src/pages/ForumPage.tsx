@@ -709,67 +709,72 @@ export default function ForumPage() {
 
     return (
       <div className="space-y-4 animate-fade-in">
-        <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground -ml-2 mb-2 font-body font-bold text-xs uppercase">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
-        </Button>
+        <div className="flex justify-end mb-2">
+          <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground font-body font-bold text-xs uppercase">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
+          </Button>
+        </div>
 
         <div className="space-y-4">
           <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm" id={`post-${post.id}`}>
             <div className="grid lg:grid-cols-[260px_minmax(0,1fr)]">
-              <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 flex justify-center lg:block min-w-0">
+              <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 min-w-0">
                 {post.user_id && authorProfile ? (
-                  <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-4 lg:gap-0 w-full md:w-1/2 lg:w-full mx-auto">
-                    <div className="aspect-square self-stretch lg:self-auto w-32 sm:w-40 lg:w-24 lg:h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
-                      {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
-                    </div>
-                    <div className="min-w-0 flex-1 lg:w-full flex flex-col items-start lg:items-center text-left lg:text-center gap-2 lg:gap-0">
-                      <UserPopup
-                        userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
-                        roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
-                        membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
-                        colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                        className="flex flex-col items-start lg:items-center gap-1 text-left lg:text-center hover:no-underline w-full"
-                      >
-                        <span className="text-sm font-body font-semibold break-words text-left lg:text-center" style={getNameStyle(authorProfile.color_name)}>
-                          {authorProfile.display_name}
-                        </span>
-                        {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
-                          <div className="flex flex-col items-start lg:items-center gap-1">
-                            <span className="inline-flex items-center text-xs font-pixel px-1.5 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
-                              STAFF
-                            </span>
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 text-xs font-pixel px-1.5 py-0.5 rounded border",
-                                authorRoles.includes("master_web")
-                                  ? "bg-neon-magenta/15 text-neon-magenta border-neon-magenta/30"
-                                  : authorRoles.includes("admin")
-                                  ? "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
-                                  : "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30"
-                              )}
-                              style={getStaffRoleStyle(authorProfile.color_staff_role)}
-                            >
-                              {authorProfile.show_role_icon !== false && authorProfile.role_icon && !authorRoles.includes("moderator") && (
-                                <span className="text-sm">{authorProfile.role_icon}</span>
-                              )}
-                              {authorRoles.includes("master_web") ? "WebMaster" : authorRoles.includes("admin") ? "Admin" : "MOD"}
-                            </span>
-                          </div>
-                        ) : (
-                          <span
-                            className="inline-flex items-center text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
-                            style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
-                          >
-                            {(authorProfile.membership_tier || "novato").toUpperCase()}
+                  <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
+                    <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
+                      <div className="aspect-square w-24 sm:w-32 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                        {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
+                      </div>
+                      <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-1.5 lg:gap-1">
+                        <UserPopup
+                          userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
+                          roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
+                          membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
+                          colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
+                          className="flex flex-row lg:flex-col flex-wrap items-center gap-1.5 lg:gap-1 hover:no-underline w-full"
+                        >
+                          <span className="text-[11px] sm:text-sm font-body font-semibold break-words" style={getNameStyle(authorProfile.color_name)}>
+                            {authorProfile.display_name}
                           </span>
-                        )}
-                      </UserPopup>
-                      {(authorProfile.signature || authorProfile.signature_image_url) && (
-                        <div className="w-full mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-border/50">
-                          <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
-                          <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
-                        </div>
-                      )}
+                          {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
+                            <>
+                              <span className="inline-flex items-center text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
+                                STAFF
+                              </span>
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border",
+                                  authorRoles.includes("master_web")
+                                    ? "bg-neon-magenta/15 text-neon-magenta border-neon-magenta/30"
+                                    : authorRoles.includes("admin")
+                                    ? "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                                    : "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30"
+                                )}
+                                style={getStaffRoleStyle(authorProfile.color_staff_role)}
+                              >
+                                {authorProfile.show_role_icon !== false && authorProfile.role_icon && !authorRoles.includes("moderator") && (
+                                  <span className="text-xs sm:text-sm">{authorProfile.role_icon}</span>
+                                )}
+                                {authorRoles.includes("master_web") ? "WebMaster" : authorRoles.includes("admin") ? "Admin" : "MOD"}
+                              </span>
+                            </>
+                          ) : (
+                            <span
+                              className="inline-flex items-center text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
+                              style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
+                            >
+                              {(authorProfile.membership_tier || "novato").toUpperCase()}
+                            </span>
+                          )}
+                        </UserPopup>
+                      </div>
+                    </div>
+                    {(authorProfile.signature || authorProfile.signature_image_url) && (
+                      <div className="w-full mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-border/50">
+                        <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
+                        <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
+                      </div>
+                    )}
                       {authorStats && (
                         <div className="hidden lg:block w-full mt-4 pt-4 border-t border-border/50">
                           <p className="text-[10px] text-muted-foreground font-body font-bold mb-3 uppercase text-left tracking-wider flex items-center gap-1.5">
@@ -802,7 +807,6 @@ export default function ForumPage() {
                           </ul>
                         </div>
                       )}
-                    </div>
                   </div>
                 ) : (
                   <div className="py-4 text-xs text-muted-foreground">Sistema</div>
