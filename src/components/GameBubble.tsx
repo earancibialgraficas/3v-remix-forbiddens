@@ -1711,6 +1711,48 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             </button>
           )}
 
+          {isExpanded && !expandedControlsOpen && (
+            <div className="absolute top-3 right-3 z-[63] flex gap-1 rounded-lg border border-white/20 bg-black/70 p-1 backdrop-blur-md shadow-[0_0_12px_rgba(0,0,0,0.6)]">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                  setForceFloating(true);
+                }}
+                className="h-8 w-8 text-white hover:bg-white/20"
+                title="Restaurar a ventana"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  minimizeGame();
+                }}
+                className="h-8 w-8 text-neon-cyan hover:bg-neon-cyan/10"
+                title="Enviar a GameBubble"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClose(currentGameIndex);
+                }}
+                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                title="Cerrar juego"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+
           {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" - desplegable cuando hay juego maximizado 🔥 */}
           <div
             className={cn(
