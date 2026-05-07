@@ -66,6 +66,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <PasswordRecoveryRedirect />
+              <UpgradeProvider>
               <Routes>
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<Index />} />
