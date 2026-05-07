@@ -858,8 +858,24 @@ export default function ForumPage() {
 
                 {editingPost === post.id ? (
                   <div className="space-y-3 animate-fade-in">
-                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
-                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
+                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[140px]" />
+                    <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
+                      <span>Título: {editTitle.length}/150</span>
+                      <span className={cn(editContent.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{editContent.length}/{limits.maxForumChars}</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {canUseImages && <button onClick={() => setEditContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
+                      {canUseVideo && <button onClick={() => setEditContent(prev => prev + "https://youtube.com/watch?v=")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar video"><Video className="w-4 h-4" /></button>}
+                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "**texto**")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>}
+                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
+                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
+                      {canUseLinks && <button onClick={() => setEditContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
+                      <div className="w-px h-5 bg-border mx-1" />
+                      <button onClick={() => setEditContent(prev => prev + "\n[align=left]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-4 h-4" /></button>
+                      <button onClick={() => setEditContent(prev => prev + "\n[align=center]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
+                      <button onClick={() => setEditContent(prev => prev + "\n[align=right]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-4 h-4" /></button>
+                    </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingPost(null)} className="text-xs h-8">Cancelar</Button>
