@@ -814,6 +814,17 @@ export type Database = {
         Args: { p_comment_id?: string; p_post_id: string }
         Returns: string
       }
+      get_membership_limits: {
+        Args: { _user_id: string }
+        Returns: {
+          is_staff: boolean
+          max_dm_chars: number
+          max_forum_chars: number
+          max_friends: number
+          max_photos: number
+          max_social_content: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
