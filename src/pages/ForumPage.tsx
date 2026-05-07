@@ -909,7 +909,7 @@ export default function ForumPage() {
                             {commentIsStaff ? (
                               <RoleBadge roles={commentRoles} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} colorStaffRole={comment.profile?.color_staff_role} />
                             ) : (
-                              <span className="text-[9px] font-pixel" style={getRoleStyle(comment.profile?.color_role)}>[{(comment.profile?.membership_tier || comment.membership_tier || 'novato').toUpperCase()}]</span>
+                              <MembershipBadge tier={comment.profile?.membership_tier || comment.membership_tier || 'novato'} size="xs" colorRole={comment.profile?.color_role} />
                             )}
                           </div>
                           <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 mt-1"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
