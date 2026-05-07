@@ -13,7 +13,6 @@ export const nesGames: GameEntry[] = [
   { id: "darkman", name: "Darkman", console: "nes", romUrl: "/roms/nes/Darkman_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Darkman%20(USA).png" },
   { id: "godzilla", name: "Godzilla", console: "nes", romUrl: "/roms/nes/Godzilla_-_Monster_of_Monsters!_(USA).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Godzilla%20-%20Monster%20of%20Monsters!%20(USA).png" },
   { id: "metalstorm", name: "Metal Storm", console: "nes", romUrl: "/roms/nes/Gravity_Armor_Metal_Storm_(Tr).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Metal%20Storm%20(USA).png" },
-  { id: "kof99", name: "King of Fighters 99", console: "nes", romUrl: "/roms/nes/King_of_Fighters_99.nes", coverUrl: "https://static.wikia.nocookie.net/snk/images/d/d9/Kof99_arcade_flyer.jpg/revision/latest?cb=20191026044732&path-prefix=es" },
   { id: "kirby", name: "Kirby's Adventure", console: "nes", romUrl: "/roms/nes/Kirby's_Adventure_(USA)_(Rev_1).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Kirby's%20Adventure%20(USA).png" },
   { id: "metalmech", name: "MetalMech", console: "nes", romUrl: "/roms/nes/MetalMech_-_Man_%26_Machine_(USA).nes", coverUrl: "https://storage.googleapis.com/images.pricecharting.com/ea411bb41a16933763e22b5fd5050abc816a7c3404a36d854554804c40000213/1600.jpg" },
   { id: "metroid", name: "Metroid", console: "nes", romUrl: "/roms/nes/Metroid_(U).nes", coverUrl: "https://thumbnails.libretro.com/Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/Metroid%20(USA).png" },
@@ -59,7 +58,6 @@ export const gbaGames: GameEntry[] = [
   { id: "gba-pokemon-esmeralda", name: "Pokémon Edición Esmeralda", console: "gba", romUrl: "/roms/gba/Pokemon%20-%20Edicion%20Esmeralda%20(Spain).gba", coverUrl: `${GBA_THUMB}/Pokemon%20-%20Emerald%20Version%20(USA%2C%20Europe).png` },
   { id: "gba-pokemon-rojofuego", name: "Pokémon Rojo Fuego", console: "gba", romUrl: "/roms/gba/Pokemon%20-%20Edicion%20Rojo%20Fuego%20(Spain).gba", coverUrl: `${GBA_THUMB}/Pokemon%20-%20FireRed%20Version%20(USA).png` },
   { id: "gba-sonic-advance3", name: "Sonic Advance 3", console: "gba", romUrl: "/roms/gba/Sonic%20Advance%203%20(USA)%20(En%2CJa%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: "https://static.wikia.nocookie.net/sonic/images/c/cd/Sonic_Advance_3_Coverart.png/revision/latest?cb=20111025044837&path-prefix=es" },
-  { id: "gba-zelda-minish", name: "Zelda: The Minish Cap", console: "gba", romUrl: "/roms/gba/The%20Legend%20of%20Zelda-%20The%20Minish%20Cap%20-%2079577.zip", coverUrl: `${GBA_THUMB}/Legend%20of%20Zelda%2C%20The%20-%20The%20Minish%20Cap%20(USA).png` },
 ];
 
 export const n64Games: GameEntry[] = [
