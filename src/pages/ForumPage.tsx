@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Flame, MessageSquare, ArrowUp, ArrowDown, Plus, Flag, X, Send, Reply, Image, Video, Bold, Italic, Underline, Link2, Smile, Maximize2, Download, Bookmark, Shield, Ban, Copy, User as UserIcon, Check, Edit2, Trash2, Search, ArrowLeft, Clock, AlignLeft, AlignCenter, AlignRight, Trophy, Users, UserPlus, Gamepad2, Star } from "lucide-react";
 import RoleBadge from "@/components/RoleBadge";
+import MembershipBadge from "@/components/MembershipBadge";
 import UserPopup from "@/components/UserPopup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -761,12 +762,7 @@ export default function ForumPage() {
                               </span>
                             </>
                           ) : (
-                            <span
-                              className="inline-flex items-center text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
-                              style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
-                            >
-                              {(authorProfile.membership_tier || "novato").toUpperCase()}
-                            </span>
+                            <MembershipBadge tier={authorProfile.membership_tier || "novato"} size="sm" colorRole={authorProfile.color_role} />
                           )}
                         </UserPopup>
                         {(authorProfile.signature || authorProfile.signature_image_url) && (
@@ -913,7 +909,7 @@ export default function ForumPage() {
                             {commentIsStaff ? (
                               <RoleBadge roles={commentRoles} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} colorStaffRole={comment.profile?.color_staff_role} />
                             ) : (
-                              <span className="text-[9px] font-pixel" style={getRoleStyle(comment.profile?.color_role)}>[{(comment.profile?.membership_tier || comment.membership_tier || 'novato').toUpperCase()}]</span>
+                              <MembershipBadge tier={comment.profile?.membership_tier || comment.membership_tier || 'novato'} size="xs" colorRole={comment.profile?.color_role} />
                             )}
                           </div>
                           <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 mt-1"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
