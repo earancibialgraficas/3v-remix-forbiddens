@@ -651,6 +651,39 @@ export type Database = {
           },
         ]
       }
+      saved_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          original_id: string | null
+          redirect_url: string | null
+          thumbnail_url: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type: string
+          original_id?: string | null
+          redirect_url?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          original_id?: string | null
+          redirect_url?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_comments: {
         Row: {
           content: string
