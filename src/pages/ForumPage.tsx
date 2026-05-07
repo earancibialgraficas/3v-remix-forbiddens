@@ -478,6 +478,8 @@ export default function ForumPage() {
   const handlePost = async () => {
     if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
     if (!title.trim()) return;
+    if (title.trim().length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
+    if (content.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
