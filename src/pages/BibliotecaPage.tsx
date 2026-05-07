@@ -192,7 +192,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
             onClick={() => { setSelectedConsole(c.id); setSearchQuery(""); }}
             className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
           >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label}
+            <Monitor className="w-3 h-3 mr-1" /> {c.label} {isLocked(c.id) && <Lock className="w-3 h-3 ml-1 text-neon-yellow" />}
           </Button>
         ))}
       </div>
