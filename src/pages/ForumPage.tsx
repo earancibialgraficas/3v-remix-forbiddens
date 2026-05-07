@@ -761,12 +761,7 @@ export default function ForumPage() {
                               </span>
                             </>
                           ) : (
-                            <span
-                              className="inline-flex items-center text-[9px] sm:text-xs font-pixel px-1.5 py-0.5 rounded border bg-neon-yellow/15 text-neon-yellow border-neon-yellow/30"
-                              style={authorProfile.color_role ? { color: authorProfile.color_role, borderColor: `${authorProfile.color_role}50` } : undefined}
-                            >
-                              {(authorProfile.membership_tier || "novato").toUpperCase()}
-                            </span>
+                            <MembershipBadge tier={authorProfile.membership_tier || "novato"} size="sm" colorRole={authorProfile.color_role} />
                           )}
                         </UserPopup>
                         {(authorProfile.signature || authorProfile.signature_image_url) && (
