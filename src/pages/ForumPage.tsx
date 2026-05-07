@@ -719,22 +719,22 @@ export default function ForumPage() {
               <aside className="border-b lg:border-b-0 lg:border-r border-border/70 p-5 flex justify-center lg:block min-w-0">
                 {post.user_id && authorProfile ? (
                   <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-4 lg:gap-0 w-full md:w-1/2 lg:w-full mx-auto">
-                    <div className="aspect-square self-stretch lg:self-auto lg:w-24 lg:h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                    <div className="aspect-square self-stretch lg:self-auto w-32 sm:w-40 lg:w-24 lg:h-24 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                       {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                     </div>
-                    <div className="min-w-0 flex-1 lg:w-full flex flex-col items-center justify-center text-center">
+                    <div className="min-w-0 flex-1 lg:w-full flex flex-col items-start lg:items-center text-left lg:text-center gap-2 lg:gap-0">
                       <UserPopup
                         userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                         roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
                         membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
                         colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                        className="flex flex-col items-center gap-1 text-center hover:no-underline w-full"
+                        className="flex flex-col items-start lg:items-center gap-1 text-left lg:text-center hover:no-underline w-full"
                       >
-                        <span className="text-sm font-body font-semibold break-words text-center" style={getNameStyle(authorProfile.color_name)}>
+                        <span className="text-sm font-body font-semibold break-words text-left lg:text-center" style={getNameStyle(authorProfile.color_name)}>
                           {authorProfile.display_name}
                         </span>
                         {authorRoles.some(r => ["master_web","admin","moderator"].includes((r||"").toLowerCase())) ? (
-                          <div className="flex flex-col items-center gap-1">
+                          <div className="flex flex-col items-start lg:items-center gap-1">
                             <span className="inline-flex items-center text-xs font-pixel px-1.5 py-0.5 rounded border bg-destructive/15 text-destructive border-destructive/30">
                               STAFF
                             </span>
@@ -765,7 +765,7 @@ export default function ForumPage() {
                         )}
                       </UserPopup>
                       {(authorProfile.signature || authorProfile.signature_image_url) && (
-                        <div className="w-full mt-4 pt-4 border-t border-border/50">
+                        <div className="w-full mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-border/50">
                           <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
                           <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
                         </div>
