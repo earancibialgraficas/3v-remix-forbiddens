@@ -314,7 +314,7 @@ export default function UserPopup({
             <p className="text-[10px] font-body text-muted-foreground mb-3">Marca los roles a asignar. Si quitas todos, se asignará "user" automáticamente.</p>
             <div className="space-y-1 mb-4">
               {ROLE_OPTIONS.map(r => {
-                const disabled = r === "master_web" && !isMasterWeb;
+                const disabled = r === "user";
                 return (
                   <label key={r} className={cn("flex items-center gap-2 p-2 rounded border border-border cursor-pointer hover:bg-muted/30", disabled && "opacity-40 cursor-not-allowed")}>
                     <input
