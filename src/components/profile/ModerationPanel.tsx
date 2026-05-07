@@ -104,27 +104,37 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       if (activeSubTab === "baneados") {
         const { data } = await supabase.from("banned_users").select("id, user_id, reason, ban_type, created_at");
         if (data && data.length > 0) {
-          const ids = data.map(b => b.user_id);
-          const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
-          setBannedUsers(data.map(b => ({ ...b, display_name: profs?.find(p => p.user_id === b.user_id)?.display_name || "Desconocido" })));
+          const ids = data.map(b => b.user_id).filter(Boolean); // 🔥 Filtrar fantasmas
+          let profs: any[] = [];
+          if (ids.length > 0) {
+            const { data: pData } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+            profs = pData || [];
+          }
+          setBannedUsers(data.map(b => ({ ...b, display_name: profs.find(p => String(p.user_id).toLowerCase() === String(b.user_id).toLowerCase())?.display_name || "Usuario Eliminado" })));
         } else { 
           setBannedUsers([]); 
         }
       }
 
       if (activeSubTab === "ocultos") {
-        // Función "ocultos" desactivada: la base de datos no tiene la columna is_banned
         setBannedContent([]);
       }
 
       if (activeSubTab === "mods" || activeSubTab === "admins") {
         const { data: r } = await supabase.from("user_roles").select("id, user_id, role");
         if (r && r.length > 0) {
-          const ids = r.map(x => x.user_id);
-          const { data: p } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+          // 🔥 FILTRAMOS LOS ROLES FANTASMAS (null) PARA NO ROMPER LA BÚSQUEDA 🔥
+          const validIds = [...new Set(r.map(x => x.user_id).filter(Boolean))];
+          let p: any[] = [];
+          
+          if (validIds.length > 0) {
+            const { data: pData } = await supabase.from("profiles").select("user_id, display_name").in("user_id", validIds);
+            p = pData || [];
+          }
+          
           setStaffList({
-            mods: r.filter(x => x.role === 'moderator').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name })),
-            admins: r.filter(x => x.role === 'admin').map(x => ({ ...x, name: p?.find(z => z.user_id === x.user_id)?.display_name }))
+            mods: r.filter(x => x.role === 'moderator').map(x => ({ ...x, name: p.find(z => String(z.user_id).toLowerCase() === String(x.user_id).toLowerCase())?.display_name })),
+            admins: r.filter(x => x.role === 'admin').map(x => ({ ...x, name: p.find(z => String(z.user_id).toLowerCase() === String(x.user_id).toLowerCase())?.display_name }))
           });
         } else {
           setStaffList({ mods: [], admins: [] });
@@ -143,12 +153,26 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
     setConfirmAction({ title, message, btnText, action, variant });
   };
 
-  const handleRoleChange = async (targetUserId: string, role: "admin" | "moderator", action: "grant" | "revoke") => {
+  // 🔥 NUEVA FUNCIÓN A PRUEBA DE BALAS PARA REVOCAR Y CAZAR FANTASMAS 🔥
+  const handleRoleChange = async (targetUserId: string | null, roleId: string, role: "admin" | "moderator", action: "grant" | "revoke") => {
+    
+    // Si el usuario es un fantasma (no tiene ID), lo borramos a la fuerza por la ID de la fila.
+    if (!targetUserId && action === "revoke") {
+        await supabase.from("user_roles").delete().eq("id", roleId);
+        return true;
+    }
+
     const { error } = await (supabase.rpc as any)("manage_user_role", {
       p_target_user_id: targetUserId,
       p_role: role,
       p_action: action,
     });
+    
+    // Por precaución extra, si es revocar, hacemos un delete directo también
+    if (action === "revoke" && roleId) {
+        await supabase.from("user_roles").delete().eq("id", roleId);
+    }
+
     if (error) {
       toast({ title: "Error de roles", description: error.message, variant: "destructive" });
       return false;
@@ -164,7 +188,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
         <button onClick={() => setActiveSubTab("gestion")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "gestion" ? "bg-neon-cyan text-black" : "text-muted-foreground hover:text-white")}><Search className="w-3 h-3" /> GESTIÓN</button>
         <button onClick={() => setActiveSubTab("baneados")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "baneados" ? "bg-neon-orange text-black" : "text-muted-foreground hover:text-white")}><UserMinus className="w-3 h-3" /> BANEADOS</button>
         <button onClick={() => setActiveSubTab("ocultos")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "ocultos" ? "bg-destructive text-white" : "text-muted-foreground hover:text-white")}><ImageIcon className="w-3 h-3" /> OCULTOS</button>
-        {/* 🔥 VISIBLE PARA TODO EL STAFF 🔥 */}
         {isStaff && (
           <button onClick={() => setActiveSubTab("mods")} className={cn("px-3 py-2 rounded text-[9px] font-pixel flex items-center gap-2 transition-all shrink-0", activeSubTab === "mods" ? "bg-neon-magenta text-white" : "text-muted-foreground hover:text-white")}><Users className="w-3 h-3" /> MODS</button>
         )}
@@ -213,10 +236,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
 
               <div className="mt-4 pt-3 border-t border-white/5 flex gap-2">
                 {canManageMods && !foundUser.isTargetMod && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "moderator", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel text-neon-magenta hover:bg-neon-magenta/10 hover:text-neon-magenta border-neon-magenta/30 transition-colors" onClick={() => openConfirm("ASIGNAR MOD", `¿Hacer a ${foundUser.display_name} Moderador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "", "moderator", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER MODERADOR</Button>
                 )}
                 {canManageAdmins && !foundUser.isTargetAdmin && (
-                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "admin", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
+                  <Button variant="outline" className="flex-1 h-8 text-[8px] font-pixel border-white text-white hover:bg-white/10 hover:text-white transition-colors" onClick={() => openConfirm("ASIGNAR ADMIN", `¿Hacer a ${foundUser.display_name} Administrador?`, "PROMOVER", async () => { const ok = await handleRoleChange(foundUser.user_id, "", "admin", "grant"); if (!ok) return; handleSearchUser(); setConfirmAction(null); toast({title:"Rol asignado"}); })}>HACER ADMIN</Button>
                 )}
               </div>
             </div>
@@ -297,10 +320,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
             <div className="space-y-2">
               {staffList.mods.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay moderadores.</p> : staffList.mods.map(m => (
                 <div key={m.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
-                  <span className="text-xs text-white font-body">{m.name || "..."}</span>
+                  <span className="text-xs text-white font-body">{m.name || "Usuario Eliminado (Rol Fantasma)"}</span>
                   {/* 🔥 SÓLO ADMINS O MASTER WEB PUEDEN REVOCAR MODERADORES 🔥 */}
                   {canManageMods && (
-                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(m.user_id, "moderator", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name || 'este fantasma'}?`, "REVOCAR", async () => { const ok = await handleRoleChange(m.user_id, m.id, "moderator", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
@@ -310,7 +333,6 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       )}
 
       {/* --- PESTAÑA 5: ADMINS --- */}
-      {/* 🔥 AHORA VISIBLE PARA TODOS LOS QUE ABRAN LA PESTAÑA 🔥 */}
       {activeSubTab === "admins" && (
         <div className="bg-card border border-white/30 rounded-lg p-4 space-y-3 min-h-[150px]">
           <h3 className="font-pixel text-[10px] text-white uppercase">Administradores Activos</h3>
@@ -324,10 +346,10 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
             <div className="space-y-2">
               {staffList.admins.length === 0 ? <p className="text-[10px] text-muted-foreground text-center">No hay admins.</p> : staffList.admins.map(a => (
                 <div key={a.id} className="flex justify-between items-center bg-muted/20 p-2 rounded">
-                  <span className="text-xs text-white font-body">{a.name || "..."}</span>
+                  <span className="text-xs text-white font-body">{a.name || "Usuario Eliminado (Rol Fantasma)"}</span>
                   {/* 🔥 SÓLO MASTER WEB PUEDE REVOCAR ADMINISTRADORES 🔥 */}
                   {canManageAdmins && (
-                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(a.user_id, "admin", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name || 'este fantasma'}?`, "REVOCAR", async () => { const ok = await handleRoleChange(a.user_id, a.id, "admin", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
