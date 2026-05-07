@@ -229,9 +229,8 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
       }
       setCommentText(""); setReplyTo(null); fetchComments();
     } catch (e: any) {
-      if (!handleMembershipError(e)) toast({ title: "Error", description: e?.message, variant: "destructive" });
-      return;
-    } catch (e) { toast({ title: "Error al comentar", variant: "destructive" }); }
+      if (!handleMembershipError(e)) toast({ title: "Error", description: e?.message || "Error al comentar", variant: "destructive" });
+    }
   };
 
   const handleDeleteComment = async (commentId: string) => {
