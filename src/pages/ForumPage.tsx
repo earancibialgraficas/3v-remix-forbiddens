@@ -722,7 +722,7 @@ export default function ForumPage() {
                 {post.user_id && authorProfile ? (
                   <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
                     <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
-                      <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                      <div className="w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                         {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                       </div>
                       <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-2 lg:gap-1">
