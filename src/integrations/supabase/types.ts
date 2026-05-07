@@ -131,6 +131,7 @@ export type Database = {
           event_time: string | null
           event_type: string
           id: string
+          image_storage_url: string | null
           image_url: string | null
           location: string | null
           title: string
@@ -144,6 +145,7 @@ export type Database = {
           event_time?: string | null
           event_type: string
           id?: string
+          image_storage_url?: string | null
           image_url?: string | null
           location?: string | null
           title: string
@@ -157,6 +159,7 @@ export type Database = {
           event_time?: string | null
           event_type?: string
           id?: string
+          image_storage_url?: string | null
           image_url?: string | null
           location?: string | null
           title?: string
