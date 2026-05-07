@@ -215,6 +215,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         event_time: crTime || null,
         location: crLocation || null,
         image_url: crColor,
+        image_storage_url: crImageUrl || null,
       };
 
       if (editingId) {
