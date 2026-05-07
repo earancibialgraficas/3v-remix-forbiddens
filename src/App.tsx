@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +34,27 @@ import { Navigate } from "react-router-dom";
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
 
+function PasswordRecoveryRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === "/reset-password") return;
+
+    const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const searchParams = new URLSearchParams(location.search);
+    const isRecoveryHash = hashParams.get("type") === "recovery" || location.hash.includes("type=recovery");
+    const isRecoverySearch = searchParams.get("type") === "recovery";
+    const isRootPkceRecovery = location.pathname === "/" && searchParams.has("code") && !searchParams.has("error");
+
+    if (isRecoveryHash || isRecoverySearch || isRootPkceRecovery) {
+      navigate(`/reset-password${location.search}${location.hash}`, { replace: true });
+    }
+  }, [location, navigate]);
+
+  return null;
+}
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -42,6 +64,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <PasswordRecoveryRedirect />
               <Routes>
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<Index />} />
