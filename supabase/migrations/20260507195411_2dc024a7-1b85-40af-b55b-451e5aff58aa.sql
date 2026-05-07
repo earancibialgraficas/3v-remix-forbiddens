@@ -1,0 +1,2 @@
+ALTER TABLE public.social_comments
+DROP CONSTRAINT IF EXISTS social_comments_content_id_social_content_fkey;

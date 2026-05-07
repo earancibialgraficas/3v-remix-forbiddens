@@ -90,13 +90,21 @@ export function GameBubbleProvider({ children }: { children: React.ReactNode }) 
     setMinimized(false);
   }, []);
   const closeGame = useCallback((index?: number) => {
-    const idx = index ?? currentGameIndex;
     setActiveGames(prev => {
+      const idx = Math.min(Math.max(index ?? currentGameIndex, 0), prev.length - 1);
       const newGames = prev.filter((_, i) => i !== idx);
-      if (newGames.length === 0) setMinimized(false);
+      if (newGames.length === 0) {
+        setMinimized(false);
+        setCurrentGameIndex(0);
+      } else {
+        setCurrentGameIndex(current => {
+          if (idx < current) return current - 1;
+          if (idx === current) return Math.min(current, newGames.length - 1);
+          return current;
+        });
+      }
       return newGames;
     });
-    setCurrentGameIndex(prev => Math.max(0, prev - 1));
   }, [currentGameIndex]);
   
   const updateScore = useCallback((score: number, playTime: number) => {
