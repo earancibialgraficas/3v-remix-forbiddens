@@ -63,7 +63,8 @@ export default function UserPopup({
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
 
-  const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
+  // 🔥 CIRUGÍA: Hacemos la detección de Staff a prueba de balas 🔥
+  const isStaff = roles.some(r => ["master_web", "master web", "admin", "administrador", "moderator", "moderador", "staff"].includes((r || "").toLowerCase()));
 
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
