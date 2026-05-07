@@ -150,11 +150,17 @@ export default function ProfilePage() {
         const { data: posts } = await supabase.from("posts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
         if (posts) setUserPosts(posts);
 
-        const [socialRes, photosRes] = await Promise.all([
+        const [socialRes, photosRes, friendsRes] = await Promise.all([
           supabase.from("social_content").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+          supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("friend_requests").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         ]);
-        setSocialContentCount((socialRes?.count || 0) + (photosRes?.count || 0));
+        const sc = socialRes?.count || 0;
+        const pc = photosRes?.count || 0;
+        setSocialOnlyCount(sc);
+        setPhotosCount(pc);
+        setSocialContentCount(sc + pc);
+        setFriendsCount(friendsRes?.count || 0);
         
         const { data: scores } = await supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false });
         if (scores) setGameScores(scores as any);
