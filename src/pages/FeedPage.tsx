@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Instagram, Globe, Video, Image as ImageIcon, Users, ThumbsUp, ThumbsDown, Flag, MessageSquare, Send, Trash2, ChevronUp, ChevronDown, Reply, X, PlayCircle, Ghost, Bookmark, Shield, Ban, Copy, User as UserIcon, Flame, Sparkles, Edit2, Loader2, Minimize, RectangleHorizontal } from "lucide-react";
@@ -322,7 +323,7 @@ function SnapCard({
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
-      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+      if (!handleMembershipError(e)) toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
   };
 

@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -234,6 +235,7 @@ export default function PublicProfilePage() {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
       if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
+      else handleMembershipError(error);
     } else if (friendStatus === "pending_received") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);

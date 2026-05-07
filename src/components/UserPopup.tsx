@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquare, UserPlus, Flag, Shield, Ban, Eye, X, User } from "lucide-react";
@@ -215,7 +216,7 @@ export default function UserPopup({
                        const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
                        if (!error) toast({ title: "Solicitud enviada" });
                        else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
-                       else toast({ title: "Error", description: error.message, variant: "destructive" });
+                       else if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
                     }
                   }}
                   disabled={reachedFriendLimit}

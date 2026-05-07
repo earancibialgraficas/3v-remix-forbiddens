@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User, Minus, ArrowLeft, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -400,7 +401,7 @@ export default function FloatingChat() {
     if (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       setText(content);
-      toast.error(`Error: ${error.message}`);
+      if (!handleMembershipError(error)) toast.error(`Error: ${error.message}`);
     }
   };
 

@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon, Flame, Sparkles, Edit2, ChevronDown } from "lucide-react";
@@ -227,7 +228,9 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
         } as any);
       }
       setCommentText(""); setReplyTo(null); fetchComments();
-    } catch (e) { toast({ title: "Error al comentar", variant: "destructive" }); }
+    } catch (e: any) {
+      if (!handleMembershipError(e)) toast({ title: "Error", description: e?.message || "Error al comentar", variant: "destructive" });
+    }
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -536,7 +539,7 @@ export default function PhotoWallPage() {
     const { error } = await supabase.from("photos").insert({ id: crypto.randomUUID(), user_id: user.id, image_url: finalUrl, caption: caption.trim(), is_apify: usedApify } as any);
 
     if (!error) { setCaption(""); setImageUrl(""); setShowUpload(false); fetchContent(true, sort); toast({ title: "Foto subida con éxito" }); } 
-    else { toast({ title: "Error al publicar", variant: "destructive" }); }
+    else if (!handleMembershipError(error)) { toast({ title: "Error al publicar", description: error.message, variant: "destructive" }); }
     
     setUploading(false);
   };
