@@ -478,6 +478,8 @@ export default function ForumPage() {
   const handlePost = async () => {
     if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
     if (!title.trim()) return;
+    if (title.trim().length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
+    if (content.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
@@ -1028,8 +1030,12 @@ export default function ForumPage() {
             <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 bg-muted text-sm font-body font-bold" />
-          <Textarea placeholder="Escribe tu contenido..." value={content} onChange={(e) => setContent(e.target.value)} className="bg-muted text-sm font-body min-h-[120px]" />
+          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
+          <Textarea placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`} value={content} onChange={(e) => setContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[120px]" />
+          <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
+            <span>Título: {title.length}/150</span>
+            <span className={cn(content.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{content.length}/{limits.maxForumChars}</span>
+          </div>
           
           <div className="flex items-center gap-1 flex-wrap">
             {canUseImages && <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
