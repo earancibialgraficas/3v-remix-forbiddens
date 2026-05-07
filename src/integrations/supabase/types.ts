@@ -709,15 +709,7 @@ export type Database = {
           parent_id?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "social_comments_content_id_social_content_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "social_content"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       social_content: {
         Row: {
