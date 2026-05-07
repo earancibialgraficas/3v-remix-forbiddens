@@ -224,7 +224,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                      </div>
                      <h4 className="text-xs font-bold font-body line-clamp-1 w-full px-1 mb-1 group-hover:text-neon-cyan transition-colors" style={getNameStyle(f.color_name)}>{f.display_name}</h4>
                      <div className="flex justify-center items-center h-4">
-                       {isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : <span className="text-[8px] font-pixel text-neon-yellow flex items-center gap-1" style={getRoleStyle(f.color_role)}><Star className="w-2.5 h-2.5" /> {f.membership_tier?.toUpperCase() || 'NOVATO'}</span>}
+                       {isFStaff ? <span className="text-[8px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(f.color_staff_role)}><Shield className="w-2.5 h-2.5" /> STAFF</span> : <MembershipBadge tier={f.membership_tier || 'novato'} size="xs" colorRole={f.color_role} />}
                      </div>
                    </div>
                    <div className="grid grid-cols-3 border-t border-border/50 bg-black/20 mt-auto">
