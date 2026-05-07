@@ -1468,13 +1468,13 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               </Button>
 
               {/* 🔥 BOTÓN DE RESTAURAR OCULTO SI ESTÁS EN MODO TEATRO 🔥 */}
-              {isExpanded && !isTheaterActive && (
+              {isExpanded && (
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => {
-                    if (isFullscreen) document.exitFullscreen();
-                    else setForceFloating(true);
+                    if (isFullscreen) document.exitFullscreen().catch(() => {});
+                    setForceFloating(true);
                   }}
                   className="h-7 w-7 text-white hover:bg-white/20"
                   title="Restaurar a Ventana Flotante"
