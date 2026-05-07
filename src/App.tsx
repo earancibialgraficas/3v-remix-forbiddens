@@ -112,6 +112,7 @@ const App = () => {
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </UpgradeProvider>
             </BrowserRouter>
           </GameBubbleProvider>
         </AuthProvider>
