@@ -25,7 +25,7 @@ export const nesGames: GameEntry[] = [
 
 export const snesGames: GameEntry[] = [
   { id: "chrono", name: "Chrono Trigger", console: "snes", romUrl: "/roms/snes/Chrono_Trigger_(USA).sfc", coverUrl: "/roms/covers/snes/chrono_trigger.jpg" },
-  { id: "contra3", name: "Contra III", console: "snes", romUrl: "/roms/snes/Contra_III_(USA).sfc", coverUrl: "/roms/covers/snes/contra_iii.png" },
+  
   { id: "dkc3", name: "Donkey Kong Country 3", console: "snes", romUrl: "/roms/snes/Donkey_Kong_Country_3_(EUR).sfc", coverUrl: "/roms/covers/snes/donkey_kong.png" },
   { id: "doom", name: "Doom", console: "snes", romUrl: "/roms/snes/Doom_(USA).sfc", coverUrl: "/roms/covers/snes/doom.png" },
   { id: "fzero", name: "F-Zero", console: "snes", romUrl: "/roms/snes/F-Zero_(EUR).sfc", coverUrl: "/roms/covers/snes/fzero.jpg" },
@@ -49,7 +49,7 @@ export const gbaGames: GameEntry[] = [
   { id: "gba-metal-slug", name: "Metal Slug Advance", console: "gba", romUrl: "/roms/gba/1840%20-%20Metal%20Slug%20Advance%20(E)(TRSI).gba", coverUrl: `${GBA_THUMB}/Metal%20Slug%20Advance%20(USA).png` },
   { id: "gba-nfs", name: "Need for Speed: Most Wanted", console: "gba", romUrl: "/roms/gba/Need%20for%20Speed%20-%20Most%20Wanted%20(USA%2C%20Europe)%20(En%2CFr%2CDe%2CIt).gba", coverUrl: "https://cl2.buscafs.com/www.levelup.com/public/uploads/images/49029/49029_256x257.jpg" },
   { id: "gba-mario-luigi", name: "Mario & Luigi: Superstar Saga", console: "gba", romUrl: "/roms/gba/1246%20-%20Mario%20And%20Luigi%20Superstar%20Saga%20(E)(Menace).gba", coverUrl: "https://static.wikia.nocookie.net/mario/images/3/3e/Superstarsagacover.PNG/revision/latest?cb=20100206151930&path-prefix=es" },
-  { id: "gba-castlevania-aria", name: "Castlevania: Aria of Sorrow", console: "gba", romUrl: "/roms/gba/Castlevania-%20Aria%20of%20Sorrow%20-%2075759.zip", coverUrl: `${GBA_THUMB}/Castlevania%20-%20Aria%20of%20Sorrow%20(USA).png` },
+  
   { id: "gba-ff-dawn", name: "Final Fantasy I & II: Dawn of Souls", console: "gba", romUrl: "/roms/gba/Final%20Fantasy%20I%20%26%20II%20-%20Dawn%20of%20Souls%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVNMqzxry-f4N6DUqyAps5y3hqqE8Q_YrvMQ&s" },
   { id: "gba-kirby-mirror", name: "Kirby & The Amazing Mirror", console: "gba", romUrl: "/roms/gba/Kirby%20%26%20The%20Amazing%20Mirror%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: "https://upload.wikimedia.org/wikipedia/en/0/0b/Kirby_%26_the_Amazing_Mirror.jpg" },
   { id: "gba-kirby-nightmare", name: "Kirby: Nightmare in Dream Land", console: "gba", romUrl: "/roms/gba/Kirby%20-%20Nightmare%20in%20Dream%20Land%20(Europe)%20(En%2CFr%2CDe%2CEs%2CIt).gba", coverUrl: `${GBA_THUMB}/Kirby%20-%20Nightmare%20in%20Dream%20Land%20(USA).png` },

@@ -8,9 +8,11 @@ import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
+import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
@@ -30,9 +32,11 @@ interface LeaderboardScore {
 }
 
 export default function BibliotecaPage() {
-  const { user } = useAuth();
+  const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
+  const isLocked = (c: ConsoleType) => c === "n64" && !canExtra;
   
   const [searchParams] = useSearchParams();
   
@@ -188,7 +192,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
             onClick={() => { setSelectedConsole(c.id); setSearchQuery(""); }}
             className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
           >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label}
+            <Monitor className="w-3 h-3 mr-1" /> {c.label} {isLocked(c.id) && <Lock className="w-3 h-3 ml-1 text-neon-yellow" />}
           </Button>
         ))}
       </div>
@@ -208,7 +212,14 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
           <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
         </h2>
         
-        {currentGames.length === 0 ? (
+        {isLocked(selectedConsole) ? (
+          <div className="bg-card border border-dashed border-neon-yellow/40 rounded-lg p-8 text-center space-y-3">
+            <Lock className="w-8 h-8 mx-auto text-neon-yellow" />
+            <p className="text-xs font-body text-foreground">La biblioteca <span className="text-neon-yellow font-bold">N64</span> está bloqueada para miembros <span className="font-bold">Novato</span>.</p>
+            <p className="text-[10px] text-muted-foreground font-body">Mejora tu membresía a <b>Lite</b> o superior para desbloquear N64, PS1 y PS2.</p>
+            <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
+          </div>
+        ) : currentGames.length === 0 ? (
           <div className="bg-card border border-dashed border-border rounded-lg p-10 text-center text-[10px] text-muted-foreground font-body">
              No se encontraron juegos para esta búsqueda.
           </div>
