@@ -190,6 +190,15 @@ export default function MembershipsPage() {
         </div>
       </div>
 
+      {isStaff && (
+        <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center">
+          <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MEMBRESÍA STAFF</h2>
+          <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
+            Tu plan actual es <span className="font-bold text-neon-magenta">STAFF</span> — la membresía más poderosa del sitio. Acceso total a todas las funciones, sin límites. No es comprable ni transferible.
+          </p>
+        </div>
+      )}
+
       <div 
         className="grid gap-4 sm:gap-6 mt-8"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
