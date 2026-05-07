@@ -807,7 +807,6 @@ export default function ForumPage() {
                           </ul>
                         </div>
                       )}
-                    </div>
                   </div>
                 ) : (
                   <div className="py-4 text-xs text-muted-foreground">Sistema</div>
