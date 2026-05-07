@@ -49,13 +49,13 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
+      const { data } = await supabase.from("profiles").select("id, user_id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
       if (data) {
-        const ids = (data as any[]).map(d => d.id);
-        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const rolesMap: Record<string, string[]> = {};
         (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
-        setTopUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as TopUser[]);
+        setTopUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.user_id] || [] })) as TopUser[]);
       }
     };
     fetchTop();
@@ -63,13 +63,19 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchPremium = async () => {
-      const { data } = await supabase.from("profiles").select("id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
+      // Traemos más para poder filtrar staff y aún mostrar 3
+      const { data } = await supabase.from("profiles").select("id, user_id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(20);
       if (data) {
-        const ids = (data as any[]).map(d => d.id);
-        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const rolesMap: Record<string, string[]> = {};
         (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
-        setPremiumUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as PremiumUser[]);
+        const STAFF = new Set(["master_web", "admin", "moderator"]);
+        const filtered = (data as any[])
+          .map(d => ({ ...d, roles: rolesMap[d.user_id] || [] }))
+          .filter(d => !d.roles.some((r: string) => STAFF.has(r)))
+          .slice(0, 3);
+        setPremiumUsers(filtered as PremiumUser[]);
       }
     };
     fetchPremium();
