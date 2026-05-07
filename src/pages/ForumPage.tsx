@@ -803,7 +803,7 @@ export default function ForumPage() {
                         </div>
                       )}
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="py-4 text-xs text-muted-foreground">Sistema</div>
                 )}
