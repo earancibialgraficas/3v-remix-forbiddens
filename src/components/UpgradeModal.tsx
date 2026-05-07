@@ -88,6 +88,18 @@ export function UpgradeProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<UpgradePayload>).detail;
+      if (detail?.message) {
+        setPayload(detail);
+        setOpen(true);
+      }
+    };
+    window.addEventListener("upgrade:open", handler);
+    return () => window.removeEventListener("upgrade:open", handler);
+  }, []);
+
   return (
     <UpgradeContext.Provider value={{ openUpgrade, handleLimitError }}>
       {children}
