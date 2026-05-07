@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquare, UserPlus, Flag, Shield, Ban, Eye, X, User } from "lucide-react";

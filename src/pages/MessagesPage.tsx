@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, User, Search, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";

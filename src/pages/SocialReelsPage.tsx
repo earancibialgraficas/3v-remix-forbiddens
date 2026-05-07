@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { createPortal } from "react-dom";

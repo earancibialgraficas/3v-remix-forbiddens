@@ -1,3 +1,4 @@
+import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User, Minus, ArrowLeft, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
