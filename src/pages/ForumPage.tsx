@@ -722,10 +722,10 @@ export default function ForumPage() {
                 {post.user_id && authorProfile ? (
                   <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
                     <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
-                      <div className="aspect-square w-24 sm:w-32 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                      <div className="w-24 sm:w-32 lg:w-24 lg:h-24 self-stretch lg:self-auto aspect-auto lg:aspect-square rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                         {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                       </div>
-                      <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-1.5 lg:gap-1">
+                      <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-2 lg:gap-1">
                         <UserPopup
                           userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
                           roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
@@ -767,10 +767,16 @@ export default function ForumPage() {
                             </span>
                           )}
                         </UserPopup>
+                        {(authorProfile.signature || authorProfile.signature_image_url) && (
+                          <div className="lg:hidden w-full mt-1 pt-2 border-t border-border/50">
+                            <p className="text-[10px] text-muted-foreground font-body font-bold mb-1 uppercase text-left">Firma</p>
+                            <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
+                          </div>
+                        )}
                       </div>
                     </div>
                     {(authorProfile.signature || authorProfile.signature_image_url) && (
-                      <div className="w-full mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-border/50">
+                      <div className="hidden lg:block w-full mt-4 pt-4 border-t border-border/50">
                         <p className="text-[10px] text-muted-foreground font-body font-bold mb-2 uppercase text-left">Firma</p>
                         <SignatureDisplay text={authorProfile.signature} profile={authorProfile as any} fontSize={11} />
                       </div>
