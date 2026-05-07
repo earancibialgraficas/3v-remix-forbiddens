@@ -36,7 +36,10 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
-  const [socialContentCount, setSocialContentCount] = useState(0); 
+  const [socialContentCount, setSocialContentCount] = useState(0);
+  const [photosCount, setPhotosCount] = useState(0);
+  const [socialOnlyCount, setSocialOnlyCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
