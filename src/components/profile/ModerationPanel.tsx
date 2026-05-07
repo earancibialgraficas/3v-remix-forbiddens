@@ -300,7 +300,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                   <span className="text-xs text-white font-body">{m.name || "..."}</span>
                   {/* 🔥 SÓLO ADMINS O MASTER WEB PUEDEN REVOCAR MODERADORES 🔥 */}
                   {canManageMods && (
-                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", m.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR MOD", `¿Quitar rol de Moderador a ${m.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(m.user_id, "moderator", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
@@ -327,7 +327,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                   <span className="text-xs text-white font-body">{a.name || "..."}</span>
                   {/* 🔥 SÓLO MASTER WEB PUEDE REVOCAR ADMINISTRADORES 🔥 */}
                   {canManageAdmins && (
-                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { await supabase.from("user_roles").delete().eq("id", a.id); loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
+                    <button onClick={() => openConfirm("REVOCAR ADMIN", `¿Quitar rol de Admin a ${a.name}?`, "REVOCAR", async () => { const ok = await handleRoleChange(a.user_id, "admin", "revoke"); if (!ok) return; loadModerationData(); setConfirmAction(null); toast({title:"Rol revocado"}); }, "destructive")} className="text-destructive text-[9px] font-pixel hover:underline">REVOCAR ROL</button>
                   )}
                 </div>
               ))}
