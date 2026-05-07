@@ -738,7 +738,7 @@ export default function ForumPage() {
                         </div>
                       )}
                       {authorStats && (
-                        <div className="w-full mt-4 pt-4 border-t border-border/50">
+                        <div className="hidden lg:block w-full mt-4 pt-4 border-t border-border/50">
                           <p className="text-[10px] text-muted-foreground font-body font-bold mb-3 uppercase text-left tracking-wider flex items-center gap-1.5">
                             <Star className="w-3 h-3 text-neon-yellow" /> Estadísticas
                           </p>
