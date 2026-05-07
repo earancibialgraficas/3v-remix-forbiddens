@@ -238,6 +238,7 @@ export default function MembershipsPage() {
               </div>
 
               <Button 
+                disabled={currentTier === tier.name.toLowerCase()}
                 className={cn(
                   "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300",
                   tier.isVIP 
@@ -245,7 +246,7 @@ export default function MembershipsPage() {
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
-                {tier.basePrice === 0 ? "Plan Actual" : "Obtener Rango"}
+                {currentTier === tier.name.toLowerCase() ? "Plan Actual" : tier.basePrice === 0 ? "Plan Gratuito" : "Obtener Rango"}
               </Button>
             </div>
           </div>
