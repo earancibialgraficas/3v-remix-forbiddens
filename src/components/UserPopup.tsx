@@ -63,8 +63,11 @@ export default function UserPopup({
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
 
-  // 🔥 CIRUGÍA: Hacemos la detección de Staff a prueba de balas 🔥
-  const isStaff = roles.some(r => ["master_web", "master web", "admin", "administrador", "moderator", "moderador", "staff"].includes((r || "").toLowerCase()));
+  // Detecta si es del staff sin importar cómo esté escrito en la base de datos
+  const isStaff = roles.some(r => ["master_web", "master web", "webmaster", "admin", "administrador", "moderator", "moderador", "staff"].includes((r || "").toLowerCase()));
+  
+  // 🔥 CIRUGÍA: Obligamos a que RoleBadge reconozca el rango supremo inyectándole todas las variaciones posibles 🔥
+  const finalRolesForBadge = (isMasterWeb || roles.includes("master_web")) ? [...roles, "webmaster", "master web", "admin"] : roles;
 
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
@@ -101,7 +104,6 @@ export default function UserPopup({
     };
   }, [open]);
 
-  // Cargar roles actuales al abrir el modal de gestión
   const openRolesModal = async () => {
     setOpen(false);
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -131,7 +133,6 @@ export default function UserPopup({
   const handleSaveRoles = async () => {
     if (!user) return;
     setSavingRoles(true);
-    // Borra todos los roles existentes y reinserta los seleccionados
     const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
     if (delErr) { setSavingRoles(false); toast({ title: "Error", description: delErr.message, variant: "destructive" }); return; }
     const finalRoles = targetRoles.length > 0 ? targetRoles : ["user"];
@@ -148,21 +149,28 @@ export default function UserPopup({
       <button
         ref={triggerRef}
         onClick={handleToggle}
-        className={cn("inline-flex items-center gap-1 hover:underline cursor-pointer", className)}
+        className={cn("inline-flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer", className)}
       >
         {children || (
           <>
+            {/* 🔥 CIRUGÍA 2: Reestructuramos a Avatar Izquierda, Nombre Arriba, Medalla Abajo 🔥 */}
             {avatarUrl && (
-              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)} />
+              <img src={avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)} />
             )}
-            <span className="text-xs font-body font-semibold hover:text-primary transition-colors" style={getNameStyle(colorName)}>
-              {displayName}
-            </span>
-            {isStaff ? (
-              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
-            ) : membershipTier !== "novato" ? (
-              <span className="text-[9px] font-pixel" style={getRoleStyle(colorRole)}>[{membershipTier.toUpperCase()}]</span>
-            ) : null}
+            <div className="flex flex-col items-start justify-center min-w-0 flex-1">
+              <span className="text-xs font-body font-bold hover:text-primary transition-colors truncate max-w-full" style={getNameStyle(colorName)}>
+                {displayName}
+              </span>
+              <div className="flex items-center mt-[1px]">
+                {isStaff ? (
+                  <div className="scale-90 origin-left">
+                    <RoleBadge roles={finalRolesForBadge} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
+                  </div>
+                ) : membershipTier && membershipTier !== "novato" ? (
+                  <span className="text-[9px] font-pixel" style={getRoleStyle(colorRole)}>[{membershipTier.toUpperCase()}]</span>
+                ) : null}
+              </div>
+            </div>
           </>
         )}
       </button>
@@ -181,7 +189,7 @@ export default function UserPopup({
               <p className="text-sm font-body font-semibold text-foreground break-words leading-tight" style={getNameStyle(colorName)}>{displayName}</p>
               <div className="flex flex-wrap items-center gap-1 mt-1">
                 {isStaff ? (
-                  <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
+                  <RoleBadge roles={finalRolesForBadge} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
                 ) : (
                   <span className="text-[9px] text-neon-yellow font-pixel break-all" style={getRoleStyle(colorRole)}>{membershipTier.toUpperCase()}</span>
                 )}
