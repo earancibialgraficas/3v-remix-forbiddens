@@ -63,12 +63,7 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchPremium = async () => {
-      const { data } = await supabase.from("profiles")
-        .select("id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role")
-        .neq("membership_tier", "novato")
-        .neq("membership_tier", "STAFF") // 🔥 CIRUGÍA: Esto saca a los Admins/Mods/Webmaster del Top Premium 🔥
-        .order("created_at", { ascending: true })
-        .limit(3);
+      const { data } = await supabase.from("profiles").select("id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
       if (data) {
         const ids = (data as any[]).map(d => d.id);
         const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
