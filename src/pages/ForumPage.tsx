@@ -348,9 +348,14 @@ export default function ForumPage() {
       processedDeepLinkRef.current = directPostId;
       setSelectedPostId(directPostId);
       fetchComments(directPostId);
-      // Limpiar la URL para que no se reabra solo al hacer otros clicks
-      const cleanUrl = location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
+    }
+    // Si la URL ya no tiene ?post (back del navegador), cerramos el post abierto
+    if (!directPostId && selectedPostId) {
+      setSelectedPostId(null);
+      setReplyTo(null);
+      setCommentText("");
+      setEditingPost(null);
+      processedDeepLinkRef.current = null;
     }
   }, [directPostId, posts]);
 
@@ -368,10 +373,8 @@ export default function ForumPage() {
           commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
           commentEl.classList.add('arcade-report-highlight');
           setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
-          window.history.replaceState({}, '', location.pathname); 
         } else if (attempts > 30) {
           clearInterval(scrollInterval);
-          window.history.replaceState({}, '', location.pathname);
         }
       } else {
         if (attempts === 1) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -431,7 +434,8 @@ export default function ForumPage() {
     setReplyTo(null);
     setCommentText("");
     setEditingPost(null);
-    navigate(location.pathname, { replace: true });
+    // Push (no replace) para que el botón "atrás" del navegador pueda volver al post
+    navigate(location.pathname);
   };
 
   const handleNewPostClick = () => {
