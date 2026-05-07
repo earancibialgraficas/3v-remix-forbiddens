@@ -197,7 +197,7 @@ export default function RightPanel() {
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-neon-yellow">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
                     <UserPopup
-                      userId={pu.id} displayName={pu.display_name} avatarUrl={pu.avatar_url}
+                      userId={pu.user_id} displayName={pu.display_name} avatarUrl={pu.avatar_url}
                       roles={pu.roles || []} roleIcon={pu.role_icon} showRoleIcon={pu.show_role_icon !== false}
                       membershipTier={pu.membership_tier}
                       colorAvatarBorder={pu.color_avatar_border} colorName={pu.color_name}
