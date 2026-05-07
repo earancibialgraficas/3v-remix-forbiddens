@@ -32,9 +32,11 @@ interface LeaderboardScore {
 }
 
 export default function BibliotecaPage() {
-  const { user } = useAuth();
+  const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
+  const isLocked = (c: ConsoleType) => c === "n64" && !canExtra;
   
   const [searchParams] = useSearchParams();
   
