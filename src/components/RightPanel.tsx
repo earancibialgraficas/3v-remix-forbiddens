@@ -175,7 +175,7 @@ export default function RightPanel() {
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-muted-foreground w-3 text-right">{i+1}</span>
                     <UserPopup
-                      userId={u.id} displayName={u.display_name} avatarUrl={u.avatar_url}
+                      userId={u.user_id} displayName={u.display_name} avatarUrl={u.avatar_url}
                       roles={u.roles || []} roleIcon={u.role_icon} showRoleIcon={u.show_role_icon !== false}
                       membershipTier={u.membership_tier || "novato"}
                       colorAvatarBorder={u.color_avatar_border} colorName={u.color_name}
