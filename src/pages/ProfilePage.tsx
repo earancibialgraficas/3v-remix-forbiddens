@@ -417,6 +417,17 @@ export default function ProfilePage() {
             <div className={cn("flex gap-2 mt-3 flex-wrap", isMobile ? "justify-center" : "")}>
               <Button size="sm" variant="outline" onClick={() => handleTabChange("configuracion")} className={cn("text-xs gap-1", activeTab === "configuracion" && "bg-muted")}><Edit2 className="w-3 h-3" /> Configurar Perfil</Button>
               {!isStaff && <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>}
+              {!isStaff && userTierStr !== "novato" && (
+                <Button size="sm" variant="outline" onClick={async () => {
+                  if (!confirm("¿Seguro que quieres cancelar tu membresía? Volverás a Novato y perderás los beneficios.")) return;
+                  const { error } = await supabase.from("profiles").update({ membership_tier: "novato" } as any).eq("user_id", user.id);
+                  if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+                  toast({ title: "Membresía cancelada", description: "Tu plan ahora es Novato." });
+                  refreshProfile();
+                }} className="text-xs gap-1 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive">
+                  <X className="w-3 h-3" /> Cancelar Membresía
+                </Button>
+              )}
               {canUseColors && <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1"><Palette className="w-3 h-3" /> Colores</Button>}
               {isStaff && !safeRoles.includes("moderator") && <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1"><span>{profile?.role_icon || "⭐"}</span> Icono Rol</Button>}
               {isStaff && <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">{profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}{profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}</Button>}

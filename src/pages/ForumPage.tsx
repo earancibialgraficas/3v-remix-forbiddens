@@ -128,6 +128,24 @@ function renderInlineFormatting(text: string, permissions: ContentPermissions, k
   });
 }
 
+function getSocialEmbed(url: string): { src: string; aspect: string } | null {
+  // TikTok
+  const tiktokMatch = url.match(/tiktok\.com\/(?:@[\w.-]+\/video|v)\/(\d+)/) || url.match(/vm\.tiktok\.com\/([\w]+)/);
+  if (tiktokMatch) {
+    return { src: `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`, aspect: "aspect-[9/16] max-w-[360px] mx-auto" };
+  }
+  // Instagram (reel / p / tv)
+  const igMatch = url.match(/instagram\.com\/(?:reel|p|tv)\/([\w-]+)/);
+  if (igMatch) {
+    return { src: `https://www.instagram.com/p/${igMatch[1]}/embed`, aspect: "aspect-[9/14] max-w-[420px] mx-auto" };
+  }
+  // Facebook (videos / watch / reels)
+  if (/facebook\.com\/.+\/videos?\//.test(url) || /facebook\.com\/watch\/?\?v=/.test(url) || /facebook\.com\/reel\//.test(url) || /fb\.watch\//.test(url)) {
+    return { src: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false`, aspect: "aspect-video" };
+  }
+  return null;
+}
+
 function renderContent(content: string, permissions: ContentPermissions, onOpenMedia: (src: string, type: "image"|"video") => void) {
   if (!content) return null;
   const parts = content.split(/(\!\[.*?\]\(.*?\)|\[.*?\]\(https?:\/\/.*?\)|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+|https?:\/\/[^\s]+)/g);
@@ -157,6 +175,17 @@ function renderContent(content: string, permissions: ContentPermissions, onOpenM
       );
     }
     if (/^https?:\/\/[^\s]+$/.test(part)) {
+      // Embeds sociales (TikTok, Instagram, Facebook)
+      const social = getSocialEmbed(part);
+      if (social) {
+        if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
+        return (
+          <div key={i} className={cn("relative w-full mt-2 mb-1 rounded overflow-hidden border border-border group", social.aspect)}>
+            <iframe src={social.src} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media; picture-in-picture" title="Embed" />
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenMedia(social.src, "video"); }} className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 hover:bg-black border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm" title="Maximizar"><Maximize2 className="w-4 h-4 text-white" /></button>
+          </div>
+        );
+      }
       const isMedia = /\.(jpg|jpeg|png|gif|webp|mp4|webm)(\?.*)?$/i.test(part);
       if (isMedia && /\.(mp4|webm)(\?.*)?$/i.test(part)) {
         if (!permissions.allowVideo) return permissions.allowLinks ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a> : <span key={i}>{part}</span>;
@@ -348,9 +377,14 @@ export default function ForumPage() {
       processedDeepLinkRef.current = directPostId;
       setSelectedPostId(directPostId);
       fetchComments(directPostId);
-      // Limpiar la URL para que no se reabra solo al hacer otros clicks
-      const cleanUrl = location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
+    }
+    // Si la URL ya no tiene ?post (back del navegador), cerramos el post abierto
+    if (!directPostId && selectedPostId) {
+      setSelectedPostId(null);
+      setReplyTo(null);
+      setCommentText("");
+      setEditingPost(null);
+      processedDeepLinkRef.current = null;
     }
   }, [directPostId, posts]);
 
@@ -368,10 +402,8 @@ export default function ForumPage() {
           commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
           commentEl.classList.add('arcade-report-highlight');
           setTimeout(() => commentEl.classList.remove('arcade-report-highlight'), 3500);
-          window.history.replaceState({}, '', location.pathname); 
         } else if (attempts > 30) {
           clearInterval(scrollInterval);
-          window.history.replaceState({}, '', location.pathname);
         }
       } else {
         if (attempts === 1) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -431,7 +463,8 @@ export default function ForumPage() {
     setReplyTo(null);
     setCommentText("");
     setEditingPost(null);
-    navigate(location.pathname, { replace: true });
+    // Push (no replace) para que el botón "atrás" del navegador pueda volver al post
+    navigate(location.pathname);
   };
 
   const handleNewPostClick = () => {
