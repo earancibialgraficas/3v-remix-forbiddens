@@ -280,39 +280,47 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
           const Icon = typeIcons[event.event_type] || Calendar;
           const titleColor = (event.image_url && event.image_url.startsWith("text-")) ? event.image_url : null;
           return (
-            <div key={event.id} className="bg-card border border-border rounded p-4 hover:border-neon-cyan/30 transition-all duration-300 group relative">
-              <div className="flex items-start gap-3">
-                <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", typeColors[event.event_type] || "text-foreground")} />
-                <div className="min-w-0 flex-1">
-                  <span className={cn("text-[9px] font-pixel", typeColors[event.event_type])}>{event.event_type?.toUpperCase()}</span>
-                  <h3 className={cn("text-sm font-body font-medium mt-0.5", titleColor || "text-foreground")}>{event.title}</h3>
-                  <p className="text-xs text-muted-foreground font-body mt-1">{event.description}</p>
-                  <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-body text-muted-foreground">
-                    {event.event_date && <span>📅 {event.event_date}</span>}
-                    {event.event_time && <span>🕐 {event.event_time}</span>}
-                    {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
+            <div key={event.id} className="bg-card border border-border rounded hover:border-neon-cyan/30 transition-all duration-300 group relative overflow-hidden">
+              {/* Imagen: arriba en mobile/tablet, derecha con degradado en PC */}
+              {event.image_storage_url && (
+                <>
+                  {/* MOBILE/TABLET: imagen arriba, texto abajo */}
+                  <div className="lg:hidden w-full aspect-video relative">
+                    <img src={event.image_storage_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                   </div>
+                  {/* DESKTOP: imagen pegada al borde derecho con degradado a la izquierda */}
+                  <div className="hidden lg:block absolute top-0 right-0 h-full w-1/2 pointer-events-none">
+                    <img src={event.image_storage_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
+                  </div>
+                </>
+              )}
 
-                  {isStaff && !event.id.startsWith("p") && (
-                    <div className="flex gap-2 mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleEditClick(event)} 
-                        className="h-7 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan"
-                      >
-                        <Edit className="w-3.5 h-3.5 mr-1" /> Editar
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDelete(event.id)} 
-                        className="h-7 text-[10px] font-body px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar
-                      </Button>
+              <div className={cn("p-4 relative z-10", event.image_storage_url && "lg:max-w-[60%]")}>
+                <div className="flex items-start gap-3">
+                  <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", typeColors[event.event_type] || "text-foreground")} />
+                  <div className="min-w-0 flex-1">
+                    <span className={cn("text-[9px] font-pixel", typeColors[event.event_type])}>{event.event_type?.toUpperCase()}</span>
+                    <h3 className={cn("text-sm font-body font-medium mt-0.5", titleColor || "text-foreground")}>{event.title}</h3>
+                    <p className="text-xs text-muted-foreground font-body mt-1">{event.description}</p>
+                    <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-body text-muted-foreground">
+                      {event.event_date && <span>📅 {event.event_date}</span>}
+                      {event.event_time && <span>🕐 {event.event_time}</span>}
+                      {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                     </div>
-                  )}
+
+                    {isStaff && !event.id.startsWith("p") && (
+                      <div className="flex gap-2 mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(event)} className="h-7 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan">
+                          <Edit className="w-3.5 h-3.5 mr-1" /> Editar
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(event.id)} className="h-7 text-[10px] font-body px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
