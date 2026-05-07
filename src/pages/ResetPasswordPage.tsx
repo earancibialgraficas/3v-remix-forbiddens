@@ -33,7 +33,23 @@ export default function ResetPasswordPage() {
           window.history.replaceState({}, "", "/reset-password");
           setReady(true); return;
         }
-        if (hash.includes("type=recovery")) { setReady(true); return; }
+        if (hash.includes("type=recovery")) {
+          const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+
+          if (!accessToken || !refreshToken) {
+            setLinkError("El enlace de recuperación está incompleto. Pide uno nuevo."); return;
+          }
+
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) { setLinkError("El enlace ya no es válido o expiró. Pide uno nuevo."); return; }
+          window.history.replaceState({}, "", "/reset-password");
+          setReady(true); return;
+        }
         const { data } = await supabase.auth.getSession();
         if (data.session) setReady(true);
         else setLinkError("Abre esta página solo desde el enlace que recibiste por correo.");
