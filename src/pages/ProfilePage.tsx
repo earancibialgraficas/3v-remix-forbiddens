@@ -447,6 +447,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <UsageIndicators
+        limits={limits}
+        isStaff={isStaff}
+        usage={{
+          photos: photosCount,
+          socialContent: socialOnlyCount,
+          friends: friendsCount,
+          storageMB: storageUsed,
+        }}
+      />
+
       {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
