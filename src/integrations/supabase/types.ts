@@ -709,7 +709,15 @@ export type Database = {
           parent_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_comments_content_id_social_content_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "social_content"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       social_content: {
         Row: {
@@ -842,6 +850,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_role: {
+        Args: {
+          _actor_id: string
+          _target_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       extract_system_link: { Args: { p_content: string }; Returns: string }
       forum_post_route: {
         Args: { p_comment_id?: string; p_post_id: string }
@@ -867,6 +882,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       manage_user_role: {
         Args: {
           p_action: string
