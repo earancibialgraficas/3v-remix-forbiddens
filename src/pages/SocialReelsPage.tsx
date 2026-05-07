@@ -378,6 +378,7 @@ function SnapCard({
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
+      if (!handleMembershipError(e)) toast({ title: "Error", description: e?.message, variant: "destructive" });
       toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
   };

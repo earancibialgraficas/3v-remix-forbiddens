@@ -323,7 +323,7 @@ function SnapCard({
       setCommentText(""); setReplyTo(null);
       fetchComments();
     } catch (e: any) {
-      toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
+      if (!handleMembershipError(e)) toast({ title: "Error", description: "No se pudo publicar tu comentario.", variant: "destructive" });
     }
   };
 

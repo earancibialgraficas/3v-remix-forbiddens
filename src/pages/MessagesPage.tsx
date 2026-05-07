@@ -249,7 +249,7 @@ export default function MessagesPage() {
     }).select().single();
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setNewMessage(content);
     } else if (data) {

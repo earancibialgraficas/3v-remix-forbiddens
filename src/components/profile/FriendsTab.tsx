@@ -198,7 +198,7 @@ export default function FriendsTab({ userId, limits, isStaff }: any) {
                         if (error) throw error;
                         await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: r.user_id, type: "friend_request", title: "Nueva solicitud", body: `Alguien quiere ser tu amigo.`, related_id: userId } as any);
                         toast({ title: "Solicitud enviada" }); setRes([]); setSearch("");
-                      } catch(e: any) { toast({ title: "Error", variant: "destructive" }); }
+                      } catch(e: any) { if (!handleMembershipError(e)) toast({ title: "Error", variant: "destructive" }); }
                    }} className="h-6 text-[9px] uppercase font-pixel tracking-tighter">Añadir</Button>
                 </div>
               );

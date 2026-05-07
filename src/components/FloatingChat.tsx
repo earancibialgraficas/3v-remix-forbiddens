@@ -401,7 +401,7 @@ export default function FloatingChat() {
     if (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       setText(content);
-      toast.error(`Error: ${error.message}`);
+      if (!handleMembershipError(error)) toast.error(`Error: ${error.message}`);
     }
   };
 

@@ -489,7 +489,7 @@ export default function ForumPage() {
 
     const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature } as any);
     setPosting(false);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); }
     else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
   };
 
@@ -611,7 +611,7 @@ export default function ForumPage() {
     const tier = isStaff ? (isMasterWeb ? 'Master Web' : isAdmin ? 'Admin' : 'Moderador') : (profile?.membership_tier || "novato");
     const { data: newCommentData, error } = await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText.trim(), membership_tier: tier, parent_id: replyTo } as any).select().single();
     
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
     } else { 
       try {
         const post = posts.find(p => p.id === postId);
