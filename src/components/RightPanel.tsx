@@ -12,8 +12,8 @@ import Footer from "@/components/Footer";
 import MiniCarousel from "@/components/MiniCarousel";
 import UserPopup from "@/components/UserPopup";
 
-interface TopUser { id: string; display_name: string; total_score: number; avatar_url?: string | null; membership_tier?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
-interface PremiumUser { id: string; display_name: string; membership_tier: string; created_at: string; avatar_url?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
+interface TopUser { id: string; user_id: string; display_name: string; total_score: number; avatar_url?: string | null; membership_tier?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
+interface PremiumUser { id: string; user_id: string; display_name: string; membership_tier: string; created_at: string; avatar_url?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
 
 type TextSize = "sm" | "md" | "lg";
 const textSizeMap: Record<TextSize, { body: string; title: string; stat: string }> = {
@@ -49,13 +49,13 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
+      const { data } = await supabase.from("profiles").select("id, user_id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
       if (data) {
-        const ids = (data as any[]).map(d => d.id);
-        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const rolesMap: Record<string, string[]> = {};
         (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
-        setTopUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as TopUser[]);
+        setTopUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.user_id] || [] })) as TopUser[]);
       }
     };
     fetchTop();
@@ -63,13 +63,19 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchPremium = async () => {
-      const { data } = await supabase.from("profiles").select("id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(3);
+      // Traemos más para poder filtrar staff y aún mostrar 3
+      const { data } = await supabase.from("profiles").select("id, user_id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(20);
       if (data) {
-        const ids = (data as any[]).map(d => d.id);
-        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+        const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
+        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
         const rolesMap: Record<string, string[]> = {};
         (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
-        setPremiumUsers((data as any[]).map(d => ({ ...d, roles: rolesMap[d.id] || [] })) as PremiumUser[]);
+        const STAFF = new Set(["master_web", "admin", "moderator"]);
+        const filtered = (data as any[])
+          .map(d => ({ ...d, roles: rolesMap[d.user_id] || [] }))
+          .filter(d => !d.roles.some((r: string) => STAFF.has(r)))
+          .slice(0, 3);
+        setPremiumUsers(filtered as PremiumUser[]);
       }
     };
     fetchPremium();
@@ -169,7 +175,7 @@ export default function RightPanel() {
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-muted-foreground w-3 text-right">{i+1}</span>
                     <UserPopup
-                      userId={u.id} displayName={u.display_name} avatarUrl={u.avatar_url}
+                      userId={u.user_id} displayName={u.display_name} avatarUrl={u.avatar_url}
                       roles={u.roles || []} roleIcon={u.role_icon} showRoleIcon={u.show_role_icon !== false}
                       membershipTier={u.membership_tier || "novato"}
                       colorAvatarBorder={u.color_avatar_border} colorName={u.color_name}
@@ -191,7 +197,7 @@ export default function RightPanel() {
                   <div key={i} className={cn("flex items-center gap-2", sizes.body)}>
                     <span className="text-neon-yellow">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
                     <UserPopup
-                      userId={pu.id} displayName={pu.display_name} avatarUrl={pu.avatar_url}
+                      userId={pu.user_id} displayName={pu.display_name} avatarUrl={pu.avatar_url}
                       roles={pu.roles || []} roleIcon={pu.role_icon} showRoleIcon={pu.show_role_icon !== false}
                       membershipTier={pu.membership_tier}
                       colorAvatarBorder={pu.color_avatar_border} colorName={pu.color_name}

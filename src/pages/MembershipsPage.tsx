@@ -140,6 +140,9 @@ const tiers = [
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
+  const { profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
+  const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
+  const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -186,6 +189,15 @@ export default function MembershipsPage() {
           </span>
         </div>
       </div>
+
+      {isStaff && (
+        <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center">
+          <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MEMBRESÍA STAFF</h2>
+          <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
+            Tu plan actual es <span className="font-bold text-neon-magenta">STAFF</span> — la membresía más poderosa del sitio. Acceso total a todas las funciones, sin límites. No es comprable ni transferible.
+          </p>
+        </div>
+      )}
 
       <div 
         className="grid gap-4 sm:gap-6 mt-8"
@@ -235,6 +247,7 @@ export default function MembershipsPage() {
               </div>
 
               <Button 
+                disabled={currentTier === tier.name.toLowerCase()}
                 className={cn(
                   "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300",
                   tier.isVIP 
@@ -242,7 +255,7 @@ export default function MembershipsPage() {
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
-                {tier.basePrice === 0 ? "Plan Actual" : "Obtener Rango"}
+                {currentTier === tier.name.toLowerCase() ? "Plan Actual" : tier.basePrice === 0 ? "Plan Gratuito" : "Obtener Rango"}
               </Button>
             </div>
           </div>
