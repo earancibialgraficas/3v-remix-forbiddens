@@ -8,9 +8,11 @@ import { getNameStyle } from "@/lib/profileAppearance";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { allGames } from "@/lib/gameLibrary";
+import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 type ConsoleType = "nes" | "snes" | "gba" | "n64";
 
