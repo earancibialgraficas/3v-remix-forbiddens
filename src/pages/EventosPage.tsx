@@ -59,6 +59,8 @@ export default function EventosPage() {
   const [crTime, setCrTime] = useState("");
   const [crLocation, setCrLocation] = useState("");
   const [crDescription, setCrDescription] = useState("");
+  const [crImageUrl, setCrImageUrl] = useState<string>("");
+  const [uploadingImg, setUploadingImg] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const fetchEvents = async () => {
@@ -142,6 +144,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrLocation("");
     setCrDescription("");
     setCrColor(COLOR_OPTIONS[0].value);
+    setCrImageUrl("");
     setCreateOpen(true);
   };
 
@@ -166,7 +169,24 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrLocation(ev.location || "");
     setCrDescription(ev.description || "");
     setCrColor(ev.image_url || COLOR_OPTIONS[0].value);
+    setCrImageUrl(ev.image_storage_url || "");
     setCreateOpen(true);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+    setUploadingImg(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("event-images").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("event-images").getPublicUrl(path);
+      setCrImageUrl(data.publicUrl);
+      toast({ title: "Imagen subida" });
+    } catch (e: any) {
+      toast({ title: "Error al subir", description: e.message, variant: "destructive" });
+    } finally { setUploadingImg(false); }
   };
 
   const handleDelete = async (id: string) => {
