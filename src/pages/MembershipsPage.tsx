@@ -140,6 +140,9 @@ const tiers = [
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
+  const { profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
+  const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
+  const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
   useEffect(() => {
     const detectCountry = async () => {
