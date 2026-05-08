@@ -13,6 +13,66 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
 
+// --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
+const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string }) => {
+  const [stage, setStage] = useState(isCloud ? 0 : -1);
+  const [imgSrc, setImgSrc] = useState(defaultCover || "/placeholder.svg");
+
+  useEffect(() => {
+    if (!isCloud) {
+      setImgSrc(defaultCover || "/placeholder.svg");
+      return;
+    }
+
+    const systems: Record<string, string> = {
+      nes: "Nintendo_-_Nintendo_Entertainment_System",
+      snes: "Nintendo_-_Super_Nintendo_Entertainment_System",
+      gba: "Nintendo_-_Game_Boy_Advance",
+      n64: "Nintendo_-_Nintendo_64",
+      ps1: "Sony_-_PlayStation",
+      arcade: "MAME"
+    };
+    
+    const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
+    const formattedName = gameName.trim().replace(/\s+/g, '_');
+    
+    // Hash matemático: Convierte letras en un número fijo. Asegura que la IA no cambie de imagen al recargar
+    let hash = 0;
+    for (let i = 0; i < gameName.length; i++) hash = gameName.charCodeAt(i) + ((hash << 5) - hash);
+    const fixedSeed = Math.abs(hash);
+    
+    const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
+    const consoleName = consoleId.toUpperCase();
+    
+    // Lista de intentos (Cascada)
+    const urls = [
+      `https://thumbnails.libretro.com/${system}/Named_Boxarts/${formattedName}.png`, // 0: Portada CDN
+      `https://thumbnails.libretro.com/${system}/Named_Titles/${formattedName}.png`,  // 1: Pantalla de Título CDN (Plan B)
+      `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}?width=300&height=400&nologo=true&seed=${fixedSeed}`, // 2: IA fija
+      "/placeholder.svg" // 3: Fallback final
+    ];
+
+    setImgSrc(urls[stage]);
+  }, [gameName, consoleId, isCloud, defaultCover, stage]);
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={gameName} 
+      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+      loading="lazy"
+      onError={() => {
+        if (isCloud && stage < 3) {
+          setStage(prev => prev + 1); // Si falla, pasa al siguiente intento
+        } else if (!isCloud || stage >= 3) {
+          setImgSrc("/placeholder.svg"); // Seguro de vida final
+        }
+      }}
+    />
+  );
+};
+// ---------------------------------------------------
+
 const baseConsoles = [
   { id: "nes", label: "NES", color: "text-neon-green" },
   { id: "snes", label: "SNES", color: "text-neon-cyan" },
@@ -60,36 +120,7 @@ export default function BibliotecaPage() {
       document.body.appendChild(script);
     }
   }, []);
-  
-  // --- GENERADORES DE CARÁTULAS (CORREGIDOS) ---
-  const getCdnCoverUrl = (gameName: string, consoleId: string) => {
-    const systems: Record<string, string> = {
-      nes: "Nintendo_-_Nintendo_Entertainment_System",
-      snes: "Nintendo_-_Super_Nintendo_Entertainment_System",
-      gba: "Nintendo_-_Game_Boy_Advance",
-      n64: "Nintendo_-_Nintendo_64",
-      ps1: "Sony_-_PlayStation",
-      arcade: "MAME"
-    };
-    const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
-    
-    // Libretro necesita el nombre EXACTO tal cual lo subió el usuario (respetando espacios y paréntesis)
-    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encodeURIComponent(gameName.trim())}.png`;
-  };
 
-  const getPollinationsUrl = (gameName: string, consoleId: string) => {
-    const consoleNames: Record<string, string> = { nes: "NES", snes: "Super Nintendo", gba: "Game Boy Advance", n64: "Nintendo 64", ps1: "PlayStation", arcade: "Arcade" };
-    const consoleName = consoleNames[consoleId] || consoleId;
-    
-    // Para la IA sí limpiamos el nombre, porque no entiende los códigos como (USA) o [!]
-    const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
-    
-    // Agregamos un seed aleatorio para evitar caché y que la IA regenere la imagen si falló antes
-    const randomSeed = Math.floor(Math.random() * 100000);
-    return `https://image.pollinations.ai/prompt/Box%20art%20cover%20for%20${cleanName}%20on%20${consoleName}%20game?width=300&height=400&nologo=true&seed=${randomSeed}`;
-  };
-
-  // --- CARGA DE JUEGOS DE DRIVE ---
   const fetchDriveGames = useCallback(async (showToast = false) => {
     if (!user) return;
     if (showToast) setIsRefreshing(true);
@@ -154,7 +185,6 @@ export default function BibliotecaPage() {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
 
-  // --- LÓGICA DE GOOGLE DRIVE (EMULADOR) ---
   const requestGoogleToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
       const cachedToken = sessionStorage.getItem('drive_access_token');
@@ -237,7 +267,6 @@ export default function BibliotecaPage() {
     return premiumConsoles.includes(consoleId) && !canExtra;
   };
 
-  // --- FILTRADO DE JUEGOS ---
   const currentGames = useMemo(() => {
     const official = allGames.filter(g => g.console === selectedConsole && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
@@ -256,7 +285,7 @@ export default function BibliotecaPage() {
         id: g.drive_file_id,
         name: rawName,
         console: selectedConsole,
-        coverUrl: getCdnCoverUrl(rawName, selectedConsole), // Intento 1: Nombre original a la CDN
+        coverUrl: "/placeholder.svg", // Ahora el componente GameCover se encarga de esto
         isCloud: true
       };
     });
@@ -264,7 +293,6 @@ export default function BibliotecaPage() {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
-  // --- LEADERBOARD Y SUGERENCIAS ---
   useEffect(() => {
     const fetchLeaderboard = async () => {
       const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(10);
@@ -364,27 +392,14 @@ export default function BibliotecaPage() {
                   </div>
                 )}
                 <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
-                  {isLaunchingCloud ? (
+                  {isLaunchingCloud && game.isCloud ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   ) : (
-                    <img 
-                      src={game.coverUrl} 
-                      alt={game.name} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        // Intento 2: Si Libretro falla, pedir a la IA
-                        if (!target.dataset.triedAi && game.isCloud) {
-                           target.dataset.triedAi = 'true';
-                           target.src = getPollinationsUrl(game.name, game.console);
-                        } 
-                        // Intento 3: Si la IA falla, usar placeholder
-                        else if (!target.dataset.triedFallback) {
-                           target.dataset.triedFallback = 'true';
-                           target.src = "/placeholder.svg";
-                        }
-                      }}
+                    <GameCover 
+                      gameName={game.name} 
+                      consoleId={game.console} 
+                      isCloud={game.isCloud} 
+                      defaultCover={game.coverUrl} 
                     />
                   )}
                 </div>
