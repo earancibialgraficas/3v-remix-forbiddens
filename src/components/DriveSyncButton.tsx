@@ -59,7 +59,8 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   const fetchAndSaveRoms = async (token: string) => {
     try {
       // Buscamos extensiones específicas de emuladores
-      const query = "name contains '.sfc' or name contains '.smc' or name contains '.nes' or name contains '.gba' or name contains '.z64' or name contains '.n64' or name contains '.bin' or name contains '.iso'";
+     // Buscamos extensiones y le decimos EXPLÍCITAMENTE a Google que ignore las carpetas
+      const query = "mimeType != 'application/vnd.google-apps.folder' and (name contains '.sfc' or name contains '.smc' or name contains '.nes' or name contains '.gba' or name contains '.z64' or name contains '.n64' or name contains '.bin' or name contains '.iso')";
       const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id, name)`, {
         headers: { Authorization: `Bearer ${token}` }
       });
