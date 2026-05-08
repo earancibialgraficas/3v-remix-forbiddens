@@ -61,14 +61,7 @@ export default function BibliotecaPage() {
     }
   }, []);
   
-  // --- LIMPIADOR INTELIGENTE DE NOMBRES PARA CDN ---
-  const formatNameForCdn = (rawName: string) => {
-    // Quita etiquetas como (USA), [!], etc. y cambia guiones bajos por espacios
-    let clean = rawName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/_/g, ' ').trim();
-    // Reemplaza espacios por guiones bajos (Formato estricto de Libretro)
-    return clean.replace(/\s+/g, '_');
-  };
-
+  // --- GENERADORES DE CARÁTULAS (CORREGIDOS) ---
   const getCdnCoverUrl = (gameName: string, consoleId: string) => {
     const systems: Record<string, string> = {
       nes: "Nintendo_-_Nintendo_Entertainment_System",
@@ -79,15 +72,21 @@ export default function BibliotecaPage() {
       arcade: "MAME"
     };
     const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
-    const formattedName = formatNameForCdn(gameName);
-    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${formattedName}.png`;
+    
+    // Libretro necesita el nombre EXACTO tal cual lo subió el usuario (respetando espacios y paréntesis)
+    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encodeURIComponent(gameName.trim())}.png`;
   };
 
   const getPollinationsUrl = (gameName: string, consoleId: string) => {
-    const consoleNames: Record<string, string> = { nes: "NES", snes: "Super Nintendo", gba: "Game Boy Advance", n64: "Nintendo 64", ps1: "PlayStation 1", arcade: "Arcade" };
+    const consoleNames: Record<string, string> = { nes: "NES", snes: "Super Nintendo", gba: "Game Boy Advance", n64: "Nintendo 64", ps1: "PlayStation", arcade: "Arcade" };
     const consoleName = consoleNames[consoleId] || consoleId;
+    
+    // Para la IA sí limpiamos el nombre, porque no entiende los códigos como (USA) o [!]
     const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
-    return `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}%20high%20quality%20official?width=300&height=400&nologo=true`;
+    
+    // Agregamos un seed aleatorio para evitar caché y que la IA regenere la imagen si falló antes
+    const randomSeed = Math.floor(Math.random() * 100000);
+    return `https://image.pollinations.ai/prompt/Box%20art%20cover%20for%20${cleanName}%20on%20${consoleName}%20game?width=300&height=400&nologo=true&seed=${randomSeed}`;
   };
 
   // --- CARGA DE JUEGOS DE DRIVE ---
@@ -257,7 +256,7 @@ export default function BibliotecaPage() {
         id: g.drive_file_id,
         name: rawName,
         console: selectedConsole,
-        coverUrl: getCdnCoverUrl(rawName, selectedConsole),
+        coverUrl: getCdnCoverUrl(rawName, selectedConsole), // Intento 1: Nombre original a la CDN
         isCloud: true
       };
     });
@@ -375,11 +374,13 @@ export default function BibliotecaPage() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        // SECUENCIA EXACTA DE FALLBACK: CDN -> Pollinations IA -> Placeholder gris
+                        // Intento 2: Si Libretro falla, pedir a la IA
                         if (!target.dataset.triedAi && game.isCloud) {
                            target.dataset.triedAi = 'true';
                            target.src = getPollinationsUrl(game.name, game.console);
-                        } else if (!target.dataset.triedFallback) {
+                        } 
+                        // Intento 3: Si la IA falla, usar placeholder
+                        else if (!target.dataset.triedFallback) {
                            target.dataset.triedFallback = 'true';
                            target.src = "/placeholder.svg";
                         }
