@@ -61,7 +61,14 @@ export default function BibliotecaPage() {
     }
   }, []);
   
-  // --- FUNCIONES DE CARÁTULAS EN CASCADA ---
+  // --- LIMPIADOR INTELIGENTE DE NOMBRES PARA CDN ---
+  const formatNameForCdn = (rawName: string) => {
+    // Quita etiquetas como (USA), [!], etc. y cambia guiones bajos por espacios
+    let clean = rawName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').replace(/_/g, ' ').trim();
+    // Reemplaza espacios por guiones bajos (Formato estricto de Libretro)
+    return clean.replace(/\s+/g, '_');
+  };
+
   const getCdnCoverUrl = (gameName: string, consoleId: string) => {
     const systems: Record<string, string> = {
       nes: "Nintendo_-_Nintendo_Entertainment_System",
@@ -72,7 +79,8 @@ export default function BibliotecaPage() {
       arcade: "MAME"
     };
     const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
-    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encodeURIComponent(gameName)}.png`;
+    const formattedName = formatNameForCdn(gameName);
+    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${formattedName}.png`;
   };
 
   const getPollinationsUrl = (gameName: string, consoleId: string) => {
@@ -367,6 +375,7 @@ export default function BibliotecaPage() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
+                        // SECUENCIA EXACTA DE FALLBACK: CDN -> Pollinations IA -> Placeholder gris
                         if (!target.dataset.triedAi && game.isCloud) {
                            target.dataset.triedAi = 'true';
                            target.src = getPollinationsUrl(game.name, game.console);
