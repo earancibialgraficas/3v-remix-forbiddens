@@ -61,6 +61,13 @@ export default function BibliotecaPage() {
     }
   }, []);
 
+  // Función para obtener portadas generadas por IA de Pollinations
+  const getCoverUrl = (gameName: string, consoleName: string) => {
+    const cleanName = encodeURIComponent(gameName.trim());
+    const cleanConsole = encodeURIComponent(consoleName.trim());
+    return `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${cleanConsole}%20high%20quality%20official?width=300&height=400&nologo=true`;
+  };
+
   // Función para cargar los juegos de la base de datos (puente de Drive)
   const fetchDriveGames = useCallback(async (showToast = false) => {
     if (!user) return;
@@ -131,58 +138,78 @@ export default function BibliotecaPage() {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
 
-  const handlePlayCloudGame = (game: any) => {
-    if (isLaunchingCloud) return;
-    
-    const google = (window as any).google;
-    if (!google) {
-      toast({ title: "Error", description: "Google Services no disponibles.", variant: "destructive" });
-      return;
-    }
+  // Manejo Inteligente del Token de Google (Evita logins repetitivos)
+  const requestGoogleToken = (): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // 1. Verificamos si ya tenemos una llave válida en memoria
+      const cachedToken = sessionStorage.getItem('drive_access_token');
+      const tokenExpiry = sessionStorage.getItem('drive_token_expiry');
 
-    setIsLaunchingCloud(true);
-    toast({ title: "Iniciando...", description: "Obteniendo datos de Drive." });
+      if (cachedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
+        resolve(cachedToken);
+        return;
+      }
 
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
-      callback: async (tokenResponse: any) => {
-        if (tokenResponse.error) {
-          setIsLaunchingCloud(false);
-          return;
+      // 2. Si no hay llave o expiró, la pedimos a Google
+      const google = (window as any).google;
+      if (!google) {
+        reject(new Error("Google Identity no está cargado."));
+        return;
+      }
+
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: (response: any) => {
+          if (response.error) {
+            reject(response.error);
+          } else {
+            // Guardamos el token por 55 minutos para no tener que pedirlo de nuevo pronto
+            sessionStorage.setItem('drive_access_token', response.access_token);
+            sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
+            resolve(response.access_token);
+          }
         }
-        
-        try {
-          const response = await fetch(`https://www.googleapis.com/drive/v3/files/${game.id}?alt=media`, {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-          });
-          
-          if (!response.ok) throw new Error();
-          
-          const blob = await response.blob();
-          const file = new File([blob], game.name, { type: blob.type });
-          
-          if (!(window as any).__localRoms) (window as any).__localRoms = {};
-          (window as any).__localRoms[game.id] = file;
-
-          launchGame({
-            romUrl: `local:${game.id}`,
-            consoleName: game.console,
-            gameName: game.name,
-            consoleCore: getCoreForConsole(game.console),
-            score: 0,
-            playTime: 0
-          });
-
-        } catch (e) {
-          toast({ title: "Error", description: "Error al descargar la ROM.", variant: "destructive" });
-        } finally {
-          setIsLaunchingCloud(false);
-        }
-      },
+      });
+      client.requestAccessToken();
     });
+  };
 
-    client.requestAccessToken();
+  const handlePlayCloudGame = async (game: any) => {
+    if (isLaunchingCloud) return;
+    setIsLaunchingCloud(true);
+    toast({ title: "Iniciando...", description: "Conectando al servidor en la nube." });
+
+    try {
+      const accessToken = await requestGoogleToken();
+
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files/${game.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      if (!response.ok) throw new Error();
+      
+      const blob = await response.blob();
+      const file = new File([blob], game.name, { type: blob.type });
+      
+      if (!(window as any).__localRoms) (window as any).__localRoms = {};
+      (window as any).__localRoms[game.id] = file;
+
+      launchGame({
+        romUrl: `local:${game.id}`,
+        consoleName: game.console,
+        gameName: game.name,
+        consoleCore: getCoreForConsole(game.console),
+        score: 0,
+        playTime: 0
+      });
+
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Acceso denegado", description: "Hubo un error al leer la ROM desde tu Drive.", variant: "destructive" });
+    } finally {
+      setIsLaunchingCloud(false);
+    }
   };
 
   const getCoreForConsole = (consoleId: string) => {
@@ -199,6 +226,7 @@ export default function BibliotecaPage() {
 
   const currentGames = useMemo(() => {
     const official = allGames.filter(g => g.console === selectedConsole && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    
     const cloud = driveGames.filter(g => {
       let mId = g.console_type.toLowerCase().replace(/\s+/g, '');
       if (g.console_type === 'Super Nintendo') mId = 'snes';
@@ -208,13 +236,17 @@ export default function BibliotecaPage() {
       if (g.console_type === 'PlayStation 1') mId = 'ps1';
       if (g.console_type === 'Arcade') mId = 'arcade';
       return mId === selectedConsole && g.file_name.toLowerCase().includes(searchQuery.toLowerCase());
-    }).map(g => ({
-      id: g.drive_file_id,
-      name: g.file_name.replace(/\.[^/.]+$/, ""),
-      console: selectedConsole,
-      coverUrl: "/placeholder.svg",
-      isCloud: true
-    }));
+    }).map(g => {
+      const cleanName = g.file_name.replace(/\.[^/.]+$/, "");
+      return {
+        id: g.drive_file_id,
+        name: cleanName,
+        console: selectedConsole,
+        coverUrl: getCoverUrl(cleanName, g.console_type), // Uso de IA para la carátula
+        isCloud: true
+      };
+    });
+    
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
@@ -270,7 +302,6 @@ export default function BibliotecaPage() {
         ))}
       </div>
 
-      {/* FILA DE BÚSQUEDA + BOTÓN REFRESCAR */}
       <div className="flex items-center gap-2 mt-2">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -317,11 +348,20 @@ export default function BibliotecaPage() {
                     <Cloud className="w-3 h-3 text-[#4285F4]" />
                   </div>
                 )}
-                <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center">
+                <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
                   {isLaunchingCloud ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   ) : (
-                    <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                    <img 
+                      src={game.coverUrl} 
+                      alt={game.name} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      loading="lazy"
+                      onError={(e) => {
+                        // Respaldo de seguridad si la IA de Pollinations falla o demora
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                    />
                   )}
                 </div>
                 <div className="p-1.5 flex items-center gap-1">
