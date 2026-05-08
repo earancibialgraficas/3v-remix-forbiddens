@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search } from "lucide-react";
+import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,9 +14,8 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
 import { Lock } from "lucide-react";
 
-type ConsoleType = "nes" | "snes" | "gba" | "n64";
-
-const consoles: { id: ConsoleType; label: string; color: string }[] = [
+// Las consolas base oficiales de la web
+const baseConsoles = [
   { id: "nes", label: "NES", color: "text-neon-green" },
   { id: "snes", label: "SNES", color: "text-neon-cyan" },
   { id: "gba", label: "Game Boy Advance", color: "text-neon-magenta" },
@@ -36,42 +35,111 @@ export default function BibliotecaPage() {
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
   const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
-  const isLocked = (c: ConsoleType) => c === "n64" && !canExtra;
   
-  const [searchParams] = useSearchParams();
-  
-  const initialConsoleParam = searchParams.get("console") as ConsoleType;
-  const initialConsole = consoles.some(c => c.id === initialConsoleParam) ? initialConsoleParam : "snes";
+  // Lista dinámica de consolas (Base + Las de Google Drive)
+  const [activeConsoles, setActiveConsoles] = useState(baseConsoles);
+  const [driveGames, setDriveGames] = useState<any[]>([]);
 
-  const [selectedConsole, setSelectedConsole] = useState<ConsoleType>(initialConsole);
+  const [searchParams] = useSearchParams();
+  const initialConsoleParam = searchParams.get("console") || "snes";
+
+  const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
   const [searchQuery, setSearchQuery] = useState("");
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
 
   const [gameName, setGameName] = useState("");
-  const [suggestConsole, setSuggestConsole] = useState<ConsoleType>("snes");
+  const [suggestConsole, setSuggestConsole] = useState<string>("snes");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Reglas de bloqueo por consola
+  const isLocked = (consoleId: string) => {
+    const premiumConsoles = ["n64", "ps1", "ps2", "arcade"];
+    return premiumConsoles.includes(consoleId) && !canExtra;
+  };
+
+  // Cargar juegos de Google Drive y crear pestañas dinámicas
   useEffect(() => {
-    const consoleParam = searchParams.get("console") as ConsoleType;
-    if (consoleParam && consoles.some(c => c.id === consoleParam)) {
+    const fetchDriveGames = async () => {
+      if (!user) return;
+      const { data } = await supabase.from("user_drive_games" as any).select("*").eq("user_id", user.id);
+      
+      if (data && data.length > 0) {
+        setDriveGames(data);
+        
+        const newConsolesList = [...baseConsoles];
+        const uniqueDriveConsoles = [...new Set(data.map((g: any) => g.console_type))];
+        
+        uniqueDriveConsoles.forEach((consoleName: any) => {
+          let id = consoleName.toLowerCase().replace(/\s+/g, '');
+          let color = "text-white";
+
+          // Mapeos automáticos para que los juegos del Drive encajen en las pestañas correctas
+          if (consoleName === 'Super Nintendo') id = 'snes';
+          if (consoleName === 'Nintendo Entertainment System') id = 'nes';
+          if (consoleName === 'Game Boy Advance') id = 'gba';
+          if (consoleName === 'Nintendo 64') id = 'n64';
+          
+          if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
+          if (consoleName === 'Arcade') { id = 'arcade'; color = 'text-neon-orange'; }
+
+          // Si la pestaña no existe, la creamos mágicamente
+          if (!newConsolesList.some(c => c.id === id)) {
+            newConsolesList.push({ id, label: consoleName, color });
+          }
+        });
+        setActiveConsoles(newConsolesList);
+      }
+    };
+    fetchDriveGames();
+  }, [user]);
+
+  useEffect(() => {
+    const consoleParam = searchParams.get("console");
+    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) {
       setSelectedConsole(consoleParam);
     }
-  }, [searchParams]);
+  }, [searchParams, activeConsoles]);
 
   useEffect(() => {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
 
   const currentGames = useMemo(() => {
-    return allGames.filter((game) => {
+    // 1. Juegos oficiales de tu web
+    const officialGames = allGames.filter((game) => {
       const matchesSearch = game.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesConsole = game.console === selectedConsole;
       return matchesSearch && matchesConsole;
     });
-  }, [searchQuery, selectedConsole]);
+
+    // 2. Juegos personales de la nube del usuario
+    const userCloudGames = driveGames.filter((game) => {
+      const matchesSearch = game.file_name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      let mappedId = game.console_type.toLowerCase().replace(/\s+/g, '');
+      if (game.console_type === 'Super Nintendo') mappedId = 'snes';
+      if (game.console_type === 'Nintendo Entertainment System') mappedId = 'nes';
+      if (game.console_type === 'Game Boy Advance') mappedId = 'gba';
+      if (game.console_type === 'Nintendo 64') mappedId = 'n64';
+      if (game.console_type === 'PlayStation 1') mappedId = 'ps1';
+      if (game.console_type === 'Arcade') mappedId = 'arcade';
+      
+      const matchesConsole = mappedId === selectedConsole;
+      return matchesSearch && matchesConsole;
+    }).map(game => ({
+      id: game.drive_file_id,
+      name: game.file_name.replace(/\.[^/.]+$/, ""),
+      console: selectedConsole,
+      coverUrl: "/placeholder.svg", // Por ahora, placeholder. Luego le meteremos la API.
+      romUrl: `DRIVE_FILE:${game.drive_file_id}`, // Etiqueta especial para que el emulador sepa que viene de Drive
+      isCloud: true
+    }));
+
+    return [...officialGames, ...userCloudGames];
+  }, [searchQuery, selectedConsole, driveGames]);
 
   const getCoreForConsole = (consoleId: string) => {
     const cores: Record<string, string> = {
@@ -119,7 +187,7 @@ export default function BibliotecaPage() {
     fetchLeaderboard();
   }, [selectedConsole]);
 
-  const consoleInfo = consoles.find((c) => c.id === selectedConsole)!;
+  const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   const handleSuggestSubmit = async () => {
     if (!user) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
@@ -127,7 +195,6 @@ export default function BibliotecaPage() {
     setSending(true);
 
     try {
-      // Usamos 'as any' para evitar bloqueos por caché de esquema
       const { error } = await supabase.from("game_suggestions" as any).insert({
         user_id: user.id, 
         console_type: suggestConsole, 
@@ -137,26 +204,9 @@ export default function BibliotecaPage() {
 
       if (error) throw error;
 
-      const targetUrl = typeof window !== 'undefined' 
-        ? `${window.location.pathname}?console=${suggestConsole}` 
-        : `/?console=${suggestConsole}`;
+      const targetUrl = typeof window !== 'undefined' ? `${window.location.pathname}?console=${suggestConsole}` : `/?console=${suggestConsole}`;
+      const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]\n[COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]\n[COLOR:#eab308]🎮 Juego: ${gameName}[/COLOR]\n[COLOR:#ffffff]🕹️ Consola elegida: ${suggestConsole.toUpperCase()}[/COLOR]\n[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ir a la consola sugerida[/LINK]`;
 
-      const messageContent = `[COLOR:#ef4444]🤖 [SISTEMA] NUEVA SUGERENCIA DE JUEGO[/COLOR]
-
-[COLOR:#3b82f6]👤 Usuario: ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]
-[COLOR:#06b6d4]📧 Email: ${user.email || 'desconocido'}[/COLOR]
-
-[COLOR:#eab308]🎮 Juego: ${gameName}[/COLOR]
-[COLOR:#ffffff]🕹️ Consola elegida: ${suggestConsole.toUpperCase()}[/COLOR]
-
-[COLOR:#ffffff]💬 Motivo / Descripción:
-${description || 'Sin comentario adicional.'}[/COLOR]
-
-[COLOR:#3b82f6]🔗 ENLACE:[/COLOR] [LINK:${targetUrl}]Ir a la consola sugerida[/LINK]`;
-
-      // 🔥 CORRECCIÓN CRÍTICA: Llamamos a la función correcta send_system_staff_message
-      // Como enviamos 'game_suggestion' (que es distinto a 'report'),
-      // el SQL enviará el mensaje SOLO a Admin y Master Web.
       await supabase.rpc("send_system_staff_message" as any, {
         p_title: `Sugerencia de juego: ${gameName}`,
         p_content: messageContent,
@@ -164,8 +214,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
       });
 
       toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto" }); 
-      setGameName(""); 
-      setDescription("");
+      setGameName(""); setDescription("");
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Hubo un error.", variant: "destructive" });
     } finally {
@@ -183,8 +232,9 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
         <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
       </div>
 
+      {/* --- PESTAÑAS DINÁMICAS --- */}
       <div className="flex gap-2 flex-wrap">
-        {consoles.map((c) => (
+        {activeConsoles.map((c) => (
           <Button
             key={c.id}
             variant={selectedConsole === c.id ? "default" : "outline"}
@@ -200,7 +250,7 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
       <div className="relative w-full max-w-sm mt-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input 
-          placeholder={`Buscar en ${consoleInfo.label}...`} 
+          placeholder={`Buscar en ${consoleInfo?.label}...`} 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 h-8 bg-card border-border font-body text-xs focus:border-primary transition-colors"
@@ -208,15 +258,15 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
       </div>
 
       <div>
-        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo.color)}>
-          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo.label.toUpperCase()}
+        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo?.color)}>
+          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo?.label.toUpperCase()}
         </h2>
         
         {isLocked(selectedConsole) ? (
           <div className="bg-card border border-dashed border-neon-yellow/40 rounded-lg p-8 text-center space-y-3">
             <Lock className="w-8 h-8 mx-auto text-neon-yellow" />
-            <p className="text-xs font-body text-foreground">La biblioteca <span className="text-neon-yellow font-bold">N64</span> está bloqueada para miembros <span className="font-bold">Novato</span>.</p>
-            <p className="text-[10px] text-muted-foreground font-body">Mejora tu membresía a <b>Lite</b> o superior para desbloquear N64, PS1 y PS2.</p>
+            <p className="text-xs font-body text-foreground">Esta consola está bloqueada para miembros <span className="font-bold">Novato</span>.</p>
+            <p className="text-[10px] text-muted-foreground font-body">Mejora tu membresía a <b>Lite</b> o superior para desbloquear N64, PS1 y Arcade.</p>
             <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
           </div>
         ) : currentGames.length === 0 ? (
@@ -225,19 +275,33 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {currentGames.map((game) => (
+            {currentGames.map((game: any) => (
               <div
                 key={game.id}
-                onClick={() => launchGame({
-                  romUrl: game.romUrl,
-                  consoleName: selectedConsole,
-                  gameName: game.name,
-                  consoleCore: getCoreForConsole(selectedConsole),
-                  score: 0,
-                  playTime: 0
-                })}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col cursor-pointer"
+                onClick={() => {
+                  if (game.isCloud) {
+                    toast({ title: 'Cargando de la Nube', description: 'Conectando con Google Drive...' });
+                    // En el futuro paso conectaremos esto al emulador para leer Google Drive
+                  } else {
+                    launchGame({
+                      romUrl: game.romUrl,
+                      consoleName: selectedConsole,
+                      gameName: game.name,
+                      consoleCore: getCoreForConsole(selectedConsole),
+                      score: 0,
+                      playTime: 0
+                    });
+                  }
+                }}
+                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left flex flex-col cursor-pointer relative"
               >
+                {/* Etiqueta de la nube */}
+                {game.isCloud && (
+                  <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
+                    <Cloud className="w-3 h-3 text-[#4285F4]" />
+                  </div>
+                )}
+                
                 <div className="aspect-square overflow-hidden bg-muted">
                   <img src={game.coverUrl} alt={game.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                 </div>
@@ -251,12 +315,13 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
         )}
       </div>
 
+      {/* --- RESTO DEL CÓDIGO INTACTO (LEADERBOARD Y SUGERENCIAS) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
         
         <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden h-fit">
           <div className="px-3 py-2 border-b border-border flex items-center gap-2">
             <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
-            <h2 className="font-pixel text-[10px] text-neon-yellow">LEADERBOARD — {consoleInfo.label.toUpperCase()}</h2>
+            <h2 className="font-pixel text-[10px] text-neon-yellow">LEADERBOARD — {consoleInfo?.label.toUpperCase()}</h2>
           </div>
           {leaderboard.length === 0 ? (
             <div className="p-4 text-center text-[10px] text-muted-foreground font-body">Sin puntuaciones aún. ¡Sé el primero!</div>
@@ -281,34 +346,15 @@ ${description || 'Sin comentario adicional.'}[/COLOR]
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Input 
-              placeholder="Nombre del juego" 
-              value={gameName} 
-              onChange={e => setGameName(e.target.value)} 
-              className="h-8 bg-muted text-xs font-body" 
-            />
-            <select
-              value={suggestConsole}
-              onChange={(e) => setSuggestConsole(e.target.value as ConsoleType)}
-              className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none focus:border-neon-cyan/50 transition-colors"
-            >
-              {consoles.map(c => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
+            <Input placeholder="Nombre del juego" value={gameName} onChange={e => setGameName(e.target.value)} className="h-8 bg-muted text-xs font-body" />
+            <select value={suggestConsole} onChange={(e) => setSuggestConsole(e.target.value)} className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none focus:border-neon-cyan/50 transition-colors">
+              {activeConsoles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
           
           <div className="space-y-1">
-            <Textarea 
-              placeholder="¿Por qué lo recomiendas? (opcional)" 
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              maxLength={500}
-              className="bg-muted text-xs font-body min-h-[60px]" 
-            />
-            <div className="text-[9px] text-muted-foreground text-right">
-              {description.length}/500 caracteres
-            </div>
+            <Textarea placeholder="¿Por qué lo recomiendas? (opcional)" value={description} onChange={e => setDescription(e.target.value)} maxLength={500} className="bg-muted text-xs font-body min-h-[60px]" />
+            <div className="text-[9px] text-muted-foreground text-right">{description.length}/500 caracteres</div>
           </div>
 
           <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs gap-1 h-8 w-full">
