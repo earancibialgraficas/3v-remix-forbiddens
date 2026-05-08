@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import DriveSyncButton from '@/components/DriveSyncButton';
 
 export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, storageItems, setStorageItems, setStorageUsed }: any) {
   const { toast } = useToast();
@@ -144,7 +145,7 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           </div>
         </div>
       </div>
-
+<DriveSyncButton />
       {/* SECCIÓN DE RESUMEN */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
          <div className="bg-muted/10 border border-border/50 rounded p-3 flex items-center gap-3">

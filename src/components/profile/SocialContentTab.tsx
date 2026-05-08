@@ -7,7 +7,7 @@ import { Trash2, Youtube, Instagram, Globe, Facebook, Link as LinkIcon, X, PlayC
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import DriveSyncButton from '@/components/DriveSyncButton';
+
 
 // 🔥 ICONO PERSONALIZADO DE TIKTOK 🔥
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -328,7 +328,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
           Editar Vínculos de Perfil
         </Button>
       </div>
-<DriveSyncButton />
+
       <div className="bg-card border border-neon-cyan/30 rounded p-4 space-y-3">
         <div className="flex justify-between items-center text-[10px] text-muted-foreground font-body">
            <h3 className="font-pixel text-neon-cyan uppercase">Publicar en Social Hub</h3>
