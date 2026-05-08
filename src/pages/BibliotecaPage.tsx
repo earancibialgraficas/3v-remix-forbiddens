@@ -61,12 +61,33 @@ export default function BibliotecaPage() {
     }
   }, []);
 
-  // Función para obtener portadas generadas por IA de Pollinations
-  const getCoverUrl = (gameName: string, consoleName: string) => {
-    const cleanName = encodeURIComponent(gameName.trim());
-    const cleanConsole = encodeURIComponent(consoleName.trim());
-    return `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${cleanConsole}%20high%20quality%20official?width=300&height=400&nologo=true`;
+  // --- SISTEMA DE PORTADAS EN CASCADA (CDN -> IA -> PLACEHOLDER) ---
+  
+  // 1. Obtener de CDN gratuita (Libretro)
+  const getCdnCoverUrl = (gameName: string, consoleId: string) => {
+    const systems: Record<string, string> = {
+      nes: "Nintendo_-_Nintendo_Entertainment_System",
+      snes: "Nintendo_-_Super_Nintendo_Entertainment_System",
+      gba: "Nintendo_-_Game_Boy_Advance",
+      n64: "Nintendo_-_Nintendo_64",
+      ps1: "Sony_-_PlayStation",
+      arcade: "MAME"
+    };
+    const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
+    return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encodeURIComponent(gameName)}.png`;
   };
+
+  // 2. Fallback con IA (Pollinations)
+  const getPollinationsUrl = (gameName: string, consoleId: string) => {
+    const consoleNames: Record<string, string> = { nes: "NES", snes: "Super Nintendo", gba: "Game Boy Advance", n64: "Nintendo 64", ps1: "PlayStation 1", arcade: "Arcade" };
+    const consoleName = consoleNames[consoleId] || consoleId;
+    
+    // Limpiamos el nombre para que la IA entienda mejor (quitamos tags como [!] o (USA))
+    const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
+    return `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}%20high%20quality%20official?width=300&height=400&nologo=true`;
+  };
+
+  // ----------------------------------------------------------------
 
   // Función para cargar los juegos de la base de datos (puente de Drive)
   const fetchDriveGames = useCallback(async (showToast = false) => {
@@ -141,7 +162,6 @@ export default function BibliotecaPage() {
   // Manejo Inteligente del Token de Google (Evita logins repetitivos)
   const requestGoogleToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // 1. Verificamos si ya tenemos una llave válida en memoria
       const cachedToken = sessionStorage.getItem('drive_access_token');
       const tokenExpiry = sessionStorage.getItem('drive_token_expiry');
 
@@ -150,7 +170,6 @@ export default function BibliotecaPage() {
         return;
       }
 
-      // 2. Si no hay llave o expiró, la pedimos a Google
       const google = (window as any).google;
       if (!google) {
         reject(new Error("Google Identity no está cargado."));
@@ -164,7 +183,6 @@ export default function BibliotecaPage() {
           if (response.error) {
             reject(response.error);
           } else {
-            // Guardamos el token por 55 minutos para no tener que pedirlo de nuevo pronto
             sessionStorage.setItem('drive_access_token', response.access_token);
             sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
             resolve(response.access_token);
@@ -237,12 +255,12 @@ export default function BibliotecaPage() {
       if (g.console_type === 'Arcade') mId = 'arcade';
       return mId === selectedConsole && g.file_name.toLowerCase().includes(searchQuery.toLowerCase());
     }).map(g => {
-      const cleanName = g.file_name.replace(/\.[^/.]+$/, "");
+      const rawName = g.file_name.replace(/\.[^/.]+$/, "");
       return {
         id: g.drive_file_id,
-        name: cleanName,
+        name: rawName,
         console: selectedConsole,
-        coverUrl: getCoverUrl(cleanName, g.console_type), // Uso de IA para la carátula
+        coverUrl: getCdnCoverUrl(rawName, selectedConsole), // Intento 1: CDN Gratuita
         isCloud: true
       };
     });
@@ -358,8 +376,15 @@ export default function BibliotecaPage() {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                       loading="lazy"
                       onError={(e) => {
-                        // Respaldo de seguridad si la IA de Pollinations falla o demora
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        const target = e.target as HTMLImageElement;
+                        // Si falla la CDN de Libretro, pasamos a Pollinations AI
+                        if (game.isCloud && !target.src.includes('pollinations.ai') && !target.src.includes('placeholder')) {
+                          target.src = getPollinationsUrl(game.name, game.console);
+                        } 
+                        // Si Pollinations también falla (o es un juego oficial sin portada), mostramos el placeholder
+                        else if (!target.src.includes('placeholder')) {
+                          target.src = "/placeholder.svg";
+                        }
                       }}
                     />
                   )}
