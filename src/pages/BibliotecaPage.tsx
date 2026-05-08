@@ -60,10 +60,8 @@ export default function BibliotecaPage() {
       document.body.appendChild(script);
     }
   }, []);
-
-  // --- SISTEMA DE PORTADAS EN CASCADA (CDN -> IA -> PLACEHOLDER) ---
   
-  // 1. Obtener de CDN gratuita (Libretro)
+  // --- FUNCIONES DE CARÁTULAS EN CASCADA ---
   const getCdnCoverUrl = (gameName: string, consoleId: string) => {
     const systems: Record<string, string> = {
       nes: "Nintendo_-_Nintendo_Entertainment_System",
@@ -77,19 +75,14 @@ export default function BibliotecaPage() {
     return `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encodeURIComponent(gameName)}.png`;
   };
 
-  // 2. Fallback con IA (Pollinations)
   const getPollinationsUrl = (gameName: string, consoleId: string) => {
     const consoleNames: Record<string, string> = { nes: "NES", snes: "Super Nintendo", gba: "Game Boy Advance", n64: "Nintendo 64", ps1: "PlayStation 1", arcade: "Arcade" };
     const consoleName = consoleNames[consoleId] || consoleId;
-    
-    // Limpiamos el nombre para que la IA entienda mejor (quitamos tags como [!] o (USA))
     const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
     return `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}%20high%20quality%20official?width=300&height=400&nologo=true`;
   };
 
-  // ----------------------------------------------------------------
-
-  // Función para cargar los juegos de la base de datos (puente de Drive)
+  // --- CARGA DE JUEGOS DE DRIVE ---
   const fetchDriveGames = useCallback(async (showToast = false) => {
     if (!user) return;
     if (showToast) setIsRefreshing(true);
@@ -107,7 +100,7 @@ export default function BibliotecaPage() {
           const name = g.file_name.toLowerCase();
           return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
                  name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso');
+                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
         });
 
         setDriveGames(validGames);
@@ -133,9 +126,7 @@ export default function BibliotecaPage() {
         setActiveConsoles(newConsolesList);
       }
 
-      if (showToast) {
-        toast({ title: "Biblioteca actualizada", description: "Se han cargado tus juegos de la nube." });
-      }
+      if (showToast) toast({ title: "Biblioteca actualizada", description: "Se han cargado tus juegos de la nube." });
     } catch (e) {
       console.error(e);
     } finally {
@@ -143,23 +134,20 @@ export default function BibliotecaPage() {
     }
   }, [user, toast]);
 
-  // Carga inicial
   useEffect(() => {
     fetchDriveGames();
   }, [fetchDriveGames]);
 
   useEffect(() => {
     const consoleParam = searchParams.get("console");
-    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) {
-      setSelectedConsole(consoleParam);
-    }
+    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) setSelectedConsole(consoleParam);
   }, [searchParams, activeConsoles]);
 
   useEffect(() => {
     setSuggestConsole(selectedConsole);
   }, [selectedConsole]);
 
-  // Manejo Inteligente del Token de Google (Evita logins repetitivos)
+  // --- LÓGICA DE GOOGLE DRIVE (EMULADOR) ---
   const requestGoogleToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
       const cachedToken = sessionStorage.getItem('drive_access_token');
@@ -242,6 +230,7 @@ export default function BibliotecaPage() {
     return premiumConsoles.includes(consoleId) && !canExtra;
   };
 
+  // --- FILTRADO DE JUEGOS ---
   const currentGames = useMemo(() => {
     const official = allGames.filter(g => g.console === selectedConsole && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
@@ -260,7 +249,7 @@ export default function BibliotecaPage() {
         id: g.drive_file_id,
         name: rawName,
         console: selectedConsole,
-        coverUrl: getCdnCoverUrl(rawName, selectedConsole), // Intento 1: CDN Gratuita
+        coverUrl: getCdnCoverUrl(rawName, selectedConsole),
         isCloud: true
       };
     });
@@ -268,6 +257,7 @@ export default function BibliotecaPage() {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
+  // --- LEADERBOARD Y SUGERENCIAS ---
   useEffect(() => {
     const fetchLeaderboard = async () => {
       const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(10);
@@ -377,13 +367,12 @@ export default function BibliotecaPage() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        // Si falla la CDN de Libretro, pasamos a Pollinations AI
-                        if (game.isCloud && !target.src.includes('pollinations.ai') && !target.src.includes('placeholder')) {
-                          target.src = getPollinationsUrl(game.name, game.console);
-                        } 
-                        // Si Pollinations también falla (o es un juego oficial sin portada), mostramos el placeholder
-                        else if (!target.src.includes('placeholder')) {
-                          target.src = "/placeholder.svg";
+                        if (!target.dataset.triedAi && game.isCloud) {
+                           target.dataset.triedAi = 'true';
+                           target.src = getPollinationsUrl(game.name, game.console);
+                        } else if (!target.dataset.triedFallback) {
+                           target.dataset.triedFallback = 'true';
+                           target.src = "/placeholder.svg";
                         }
                       }}
                     />

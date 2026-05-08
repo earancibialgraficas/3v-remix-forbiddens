@@ -14,7 +14,6 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   const [isLinked, setIsLinked] = useState(false);
   const [isLoadingState, setIsLoadingState] = useState(true);
 
-  // 1. Cargar Google y verificar si el usuario ya tiene juegos guardados
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -29,7 +28,6 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     if (!user) return;
     setIsLoadingState(true);
     try {
-      // Verificamos si hay al menos 1 juego en su cuenta
       const { count } = await supabase
         .from('user_drive_games' as any)
         .select('*', { count: 'exact', head: true })
@@ -43,15 +41,11 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }
   };
 
-  // 2. Función para DESVINCULAR y LIMPIAR la base de datos
   const handleDisconnect = async () => {
     if (!user) return;
     setIsSyncing(true);
     try {
-      // Borramos todos los juegos de la base de datos
       await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id);
-      
-      // Limpiamos las llaves temporales del navegador
       sessionStorage.removeItem('drive_access_token');
       sessionStorage.removeItem('drive_token_expiry');
       
@@ -72,11 +66,11 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     if (['nes'].includes(ext || '')) return 'Nintendo Entertainment System';
     if (['gba'].includes(ext || '')) return 'Game Boy Advance';
     if (['z64', 'n64', 'v64'].includes(ext || '')) return 'Nintendo 64';
-    if (['bin', 'iso', 'cue'].includes(ext || '')) return 'PlayStation 1';
+    // Se agregan extensiones de PS1 más modernas como chd y cue
+    if (['bin', 'iso', 'cue', 'chd'].includes(ext || '')) return 'PlayStation 1';
     return 'Arcade';
   };
 
-  // 3. Función para VINCULAR cuenta nueva
   const handleSync = () => {
     if (!user) {
       toast({ title: 'Error', description: 'Debes iniciar sesión primero.', variant: 'destructive' });
@@ -98,7 +92,6 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           return;
         }
         
-        // Guardar llave en el navegador para jugar sin reiniciar sesión
         sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
         sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
 
@@ -111,32 +104,51 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
   const fetchAndSaveRoms = async (token: string) => {
     try {
-      const query = "mimeType != 'application/vnd.google-apps.folder' and (name contains '.sfc' or name contains '.smc' or name contains '.nes' or name contains '.gba' or name contains '.z64' or name contains '.n64' or name contains '.bin' or name contains '.iso')";
-      const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id, name)&pageSize=1000`, {
+      // 1. BUSCAMOS LA CARPETA "RetroRoms"
+      const folderQuery = "mimeType = 'application/vnd.google-apps.folder' and name = 'RetroRoms' and trashed = false";
+      const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id, name)`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const data = await response.json();
+      const folderData = await folderRes.json();
+      
+      if (!folderData.files || folderData.files.length === 0) {
+        toast({ 
+          title: 'Carpeta no encontrada 📁', 
+          description: 'Crea una carpeta llamada "RetroRoms" en tu Drive y coloca tus juegos dentro para sincronizarlos.', 
+          variant: 'destructive',
+          duration: 7000
+        });
+        setIsSyncing(false);
+        return;
+      }
+
+      const folderId = folderData.files[0].id;
+
+      // 2. BUSCAMOS JUEGOS SOLO DENTRO DE ESA CARPETA
+      const filesQuery = `'${folderId}' in parents and trashed = false`;
+      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id, name)&pageSize=1000`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = await filesRes.json();
       
       if (data.files && data.files.length > 0) {
-        // 🔥 FILTRO ESTRICTO ANTI-BIOS Y BASURA 🔥
+        // Filtramos por si el usuario metió un PDF por error en la carpeta
         const validFiles = data.files.filter((file: any) => {
           const name = file.name.toLowerCase();
-          // Ignoramos las BIOS conocidas (scph = PlayStation, gba_bios) y archivos no jugables
-          if (name.includes('bios') || name.includes('scph') || name.includes('track') || name === 'gba_bios.bin') return false;
-          
           return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
                  name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso');
+                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
         });
 
         if (validFiles.length === 0) {
-          toast({ title: 'Solo se detectaron BIOS', description: 'Asegúrate de subir ROMs de juegos válidos a tu Drive.' });
+          toast({ title: 'Carpeta vacía', description: 'Tu carpeta RetroRoms no tiene juegos compatibles.' });
           setIsSyncing(false);
           return;
         }
 
-        toast({ title: 'Detectando juegos...', description: `Guardando ${validFiles.length} juegos en tu biblioteca...` });
+        toast({ title: 'Detectando juegos...', description: `Guardando ${validFiles.length} juegos de tu carpeta RetroRoms...` });
         
         const gamesToSave = validFiles.map((file: any) => ({
           user_id: user?.id,
@@ -156,29 +168,23 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         if (onSyncComplete) onSyncComplete();
 
       } else {
-        toast({ title: 'Carpeta Vacía', description: 'No se encontraron juegos compatibles en tu Google Drive.' });
+        toast({ title: 'Carpeta Vacía', description: 'Tu carpeta "RetroRoms" está vacía.' });
       }
     } catch (error: any) {
       console.error(error);
-      toast({ title: 'Error de red', description: 'Hubo un problema guardando tus juegos.', variant: 'destructive' });
+      toast({ title: 'Error de red', description: 'Hubo un problema leyendo tu Drive.', variant: 'destructive' });
     } finally {
       setIsSyncing(false);
     }
   };
 
-  // Renderizados dinámicos
   if (isLoadingState) {
-    return <Button disabled variant="outline" className="h-8 text-[10px]"><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Cargando estado...</Button>
+    return <Button disabled variant="outline" className="h-8 text-[10px]"><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Verificando...</Button>
   }
 
   if (isLinked) {
     return (
-      <Button 
-        onClick={handleDisconnect} 
-        disabled={isSyncing} 
-        variant="destructive"
-        className="font-pixel text-[10px] h-8"
-      >
+      <Button onClick={handleDisconnect} disabled={isSyncing} variant="destructive" className="font-pixel text-[10px] h-8">
         {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudOff className="w-4 h-4 mr-2" />}
         {isSyncing ? 'DESVINCULANDO...' : 'DESVINCULAR DRIVE'}
       </Button>
@@ -186,11 +192,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   }
 
   return (
-    <Button 
-      onClick={handleSync} 
-      disabled={isSyncing || !isGoogleLoaded} 
-      className="bg-[#4285F4] hover:bg-[#3367D6] text-white font-pixel text-[10px] h-8"
-    >
+    <Button onClick={handleSync} disabled={isSyncing || !isGoogleLoaded} className="bg-[#4285F4] hover:bg-[#3367D6] text-white font-pixel text-[10px] h-8">
       {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
       {isSyncing ? 'SINCRONIZANDO...' : 'VINCULAR DRIVE'}
     </Button>
