@@ -139,6 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // 🧹 Limpiar saves locales para que la siguiente cuenta no vea las partidas de la anterior
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("save_slots_"))
+        .forEach((k) => localStorage.removeItem(k));
+      sessionStorage.removeItem("drive_access_token");
+      sessionStorage.removeItem("drive_token_expiry");
+    } catch {}
     setUser(null);
     setSession(null);
     setProfile(null);

@@ -34,25 +34,37 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: s
     };
     
     const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
-    const formattedName = gameName.trim().replace(/\s+/g, '_');
-    
-    // Hash matemático: Convierte letras en un número fijo. Asegura que la IA no cambie de imagen al recargar
+
+    // libretro-thumbnails usa convención No-Intro: respeta espacios, paréntesis y caracteres
+    // especiales reemplazando ciertos chars problemáticos (& % por _) y URL-encoding del resto.
+    // Quitamos extensión y normalizamos.
+    const noExt = gameName.replace(/\.[^/.]+$/, "").trim();
+    const libretroName = noExt
+      .replace(/&/g, "_")
+      .replace(/\*/g, "_")
+      .replace(/\//g, "_")
+      .replace(/:/g, "_")
+      .replace(/\?/g, "_");
+    const encoded = encodeURIComponent(libretroName).replace(/%20/g, "%20");
+
+    // Hash matemático: la IA usará la misma seed siempre para no cambiar de imagen al recargar
     let hash = 0;
     for (let i = 0; i < gameName.length; i++) hash = gameName.charCodeAt(i) + ((hash << 5) - hash);
     const fixedSeed = Math.abs(hash);
-    
-    const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
+
+    const cleanName = encodeURIComponent(noExt.replace(/\[.*?\]|\(.*?\)/g, '').trim());
     const consoleName = consoleId.toUpperCase();
-    
-    // Lista de intentos (Cascada)
+
+    // Cascada de intentos: portada → título → IA → placeholder
     const urls = [
-      `https://thumbnails.libretro.com/${system}/Named_Boxarts/${formattedName}.png`, // 0: Portada CDN
-      `https://thumbnails.libretro.com/${system}/Named_Titles/${formattedName}.png`,  // 1: Pantalla de Título CDN (Plan B)
-      `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}?width=300&height=400&nologo=true&seed=${fixedSeed}`, // 2: IA fija
-      "/placeholder.svg" // 3: Fallback final
+      `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encoded}.png`,
+      `https://thumbnails.libretro.com/${system}/Named_Titles/${encoded}.png`,
+      `https://thumbnails.libretro.com/${system}/Named_Snaps/${encoded}.png`,
+      `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}?width=300&height=400&nologo=true&seed=${fixedSeed}`,
+      "/placeholder.svg"
     ];
 
-    setImgSrc(urls[stage]);
+    setImgSrc(urls[stage] || "/placeholder.svg");
   }, [gameName, consoleId, isCloud, defaultCover, stage]);
 
   return (
@@ -62,9 +74,9 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: s
       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
       loading="lazy"
       onError={() => {
-        if (isCloud && stage < 3) {
+        if (isCloud && stage < 4) {
           setStage(prev => prev + 1); // Si falla, pasa al siguiente intento
-        } else if (!isCloud || stage >= 3) {
+        } else if (!isCloud || stage >= 4) {
           setImgSrc("/placeholder.svg"); // Seguro de vida final
         }
       }}
@@ -121,31 +133,75 @@ export default function BibliotecaPage() {
     }
   }, []);
 
-  const fetchDriveGames = useCallback(async (showToast = false) => {
+  const getConsoleType = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    if (['smc', 'sfc'].includes(ext)) return 'Super Nintendo';
+    if (['nes'].includes(ext)) return 'Nintendo Entertainment System';
+    if (['gba'].includes(ext)) return 'Game Boy Advance';
+    if (['z64', 'n64', 'v64'].includes(ext)) return 'Nintendo 64';
+    if (['bin', 'iso', 'cue', 'chd'].includes(ext)) return 'PlayStation 1';
+    return 'Arcade';
+  };
+
+  const fetchDriveGames = useCallback(async (rescan = false) => {
     if (!user) return;
-    if (showToast) setIsRefreshing(true);
+    if (rescan) setIsRefreshing(true);
 
     try {
+      // 🔄 Si rescan = true, re-escaneamos la carpeta de Drive y upserteamos los nuevos juegos
+      if (rescan) {
+        try {
+          const token = await requestGoogleToken();
+          const folderQuery = "mimeType = 'application/vnd.google-apps.folder' and name = 'RetroRoms' and trashed = false";
+          const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name)`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const folderData = await folderRes.json();
+
+          if (folderData.files && folderData.files.length > 0) {
+            const folderId = folderData.files[0].id;
+            const filesQuery = `'${folderId}' in parents and trashed = false`;
+            const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name)&pageSize=1000`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const filesData = await filesRes.json();
+            const validFiles = (filesData.files || []).filter((f: any) => /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(f.name));
+            if (validFiles.length > 0) {
+              const gamesToSave = validFiles.map((f: any) => ({
+                user_id: user.id,
+                drive_file_id: f.id,
+                file_name: f.name,
+                console_type: getConsoleType(f.name)
+              }));
+              await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
+            }
+          } else {
+            toast({ title: 'Carpeta no encontrada', description: 'Crea una carpeta llamada "RetroRoms" en tu Drive.', variant: 'destructive' });
+          }
+        } catch (e: any) {
+          console.error('Drive rescan error', e);
+          toast({ title: 'Error sincronizando Drive', description: 'No se pudo leer tu carpeta. Verifica permisos.', variant: 'destructive' });
+        }
+      }
+
       const { data, error } = await supabase
         .from("user_drive_games" as any)
         .select("*")
         .eq("user_id", user.id);
-      
+
       if (error) throw error;
 
       if (data) {
         const validGames = data.filter((g: any) => {
           const name = g.file_name.toLowerCase();
-          return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
-                 name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
+          return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
         });
 
         setDriveGames(validGames);
-        
+
         const newConsolesList = [...baseConsoles];
         const uniqueDriveConsoles = [...new Set(validGames.map((g: any) => g.console_type))];
-        
+
         uniqueDriveConsoles.forEach((consoleName: any) => {
           let id = consoleName.toLowerCase().replace(/\s+/g, '');
           let color = "text-white";
@@ -164,7 +220,7 @@ export default function BibliotecaPage() {
         setActiveConsoles(newConsolesList);
       }
 
-      if (showToast) toast({ title: "Biblioteca actualizada", description: "Se han cargado tus juegos de la nube." });
+      if (rescan) toast({ title: "Biblioteca actualizada", description: "Se han re-escaneado tus juegos de Drive." });
     } catch (e) {
       console.error(e);
     } finally {

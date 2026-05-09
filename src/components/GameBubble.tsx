@@ -135,6 +135,12 @@ export default function GameBubble() {
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
   const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2"].includes(activeGame.consoleName);
 
+  // 🔐 Namespace por usuario para que las partidas no se filtren entre cuentas en el mismo navegador
+  const getSaveKey = useCallback((gameName: string) => {
+    const uid = user?.id || "anon";
+    return `save_slots_${uid}_${gameName}`;
+  }, [user?.id]);
+
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     emulatorObjectUrlsRef.current = [];
@@ -359,7 +365,7 @@ export default function GameBubble() {
 
   useEffect(() => {
     if (activeGame) {
-      const key = `save_slots_${activeGame.gameName}`;
+      const key = getSaveKey(activeGame.gameName);
 
       const syncAndLoadSaves = async () => {
         let localSlots: SaveSlot[] = [];
@@ -1219,7 +1225,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       const name = `Auto-save ${new Date().toLocaleString()}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
 
-      const key = `save_slots_${activeGame.gameName}`;
+      const key = getSaveKey(activeGame.gameName);
       const stored = localStorage.getItem(key);
       let slots: SaveSlot[] = [];
       try {
@@ -1245,7 +1251,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       const updated = [newSlot, ...saveSlots].slice(0, 5);
       setSaveSlots(updated);
-      localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+      localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
       await syncCloudSaves(updated);
 
       toast({ title: "Partida guardada y subida a la nube", description: `"${name}"` });
@@ -1284,7 +1290,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     if (!activeGame) return;
     const updated = saveSlots.filter((_, i) => i !== index);
     setSaveSlots(updated);
-    localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+    localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
     await syncCloudSaves(updated);
     toast({ title: "Slot eliminado de tu PC y de la Nube" });
   };

@@ -783,9 +783,12 @@ function SnapCard({
             <div className="flex-1 overflow-y-auto p-2.5 space-y-3 min-h-0 bg-background/50 overscroll-contain touch-pan-y" style={{ scrollbarWidth: 'none' }}>
               {comments.map(c => (
                 <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
-                  <div className="flex-1">
-                    <span className="text-primary font-medium">{c.display_name}: </span>
-                    <span className="text-foreground/90">{c.content}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-primary font-medium">{c.display_name}</span>
+                      <span className="text-[8px] text-muted-foreground/70 font-body">{formatFeedDate(c.created_at)}</span>
+                    </div>
+                    <span className="text-foreground/90 break-words">{c.content}</span>
                     {user && (
                       <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
                         <Reply className="w-2.5 h-2.5" /> Responder
