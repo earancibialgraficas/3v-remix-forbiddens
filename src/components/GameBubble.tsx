@@ -135,6 +135,12 @@ export default function GameBubble() {
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
   const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2"].includes(activeGame.consoleName);
 
+  // 🔐 Namespace por usuario para que las partidas no se filtren entre cuentas en el mismo navegador
+  const getSaveKey = useCallback((gameName: string) => {
+    const uid = user?.id || "anon";
+    return `save_slots_${uid}_${gameName}`;
+  }, [user?.id]);
+
   const revokeEmulatorObjectUrls = useCallback(() => {
     emulatorObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     emulatorObjectUrlsRef.current = [];
