@@ -74,9 +74,9 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: s
       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
       loading="lazy"
       onError={() => {
-        if (isCloud && stage < 3) {
+        if (isCloud && stage < 4) {
           setStage(prev => prev + 1); // Si falla, pasa al siguiente intento
-        } else if (!isCloud || stage >= 3) {
+        } else if (!isCloud || stage >= 4) {
           setImgSrc("/placeholder.svg"); // Seguro de vida final
         }
       }}
