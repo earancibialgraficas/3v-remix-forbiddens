@@ -50,7 +50,7 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchTop = async () => {
-      const { data } = await supabase.from("profiles").select("id, user_id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").order("total_score", { ascending: false }).limit(5);
+      const { data } = await supabase.from("profiles").select("id, user_id, display_name, total_score, avatar_url, membership_tier, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").gt("total_score", 0).order("total_score", { ascending: false }).limit(5);
       if (data) {
         const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
         const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
