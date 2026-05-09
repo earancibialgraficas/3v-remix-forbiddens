@@ -365,7 +365,7 @@ export default function GameBubble() {
 
   useEffect(() => {
     if (activeGame) {
-      const key = `save_slots_${activeGame.gameName}`;
+      const key = getSaveKey(activeGame.gameName);
 
       const syncAndLoadSaves = async () => {
         let localSlots: SaveSlot[] = [];
@@ -1225,7 +1225,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       const name = `Auto-save ${new Date().toLocaleString()}`;
       const newSlot: SaveSlot = { name, data: b64, timestamp: Date.now() };
 
-      const key = `save_slots_${activeGame.gameName}`;
+      const key = getSaveKey(activeGame.gameName);
       const stored = localStorage.getItem(key);
       let slots: SaveSlot[] = [];
       try {
@@ -1251,7 +1251,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       const updated = [newSlot, ...saveSlots].slice(0, 5);
       setSaveSlots(updated);
-      localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+      localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
       await syncCloudSaves(updated);
 
       toast({ title: "Partida guardada y subida a la nube", description: `"${name}"` });
@@ -1290,7 +1290,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     if (!activeGame) return;
     const updated = saveSlots.filter((_, i) => i !== index);
     setSaveSlots(updated);
-    localStorage.setItem(`save_slots_${activeGame.gameName}`, JSON.stringify(updated));
+    localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
     await syncCloudSaves(updated);
     toast({ title: "Slot eliminado de tu PC y de la Nube" });
   };
