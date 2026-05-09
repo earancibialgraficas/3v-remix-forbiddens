@@ -34,25 +34,37 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: s
     };
     
     const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
-    const formattedName = gameName.trim().replace(/\s+/g, '_');
-    
-    // Hash matemático: Convierte letras en un número fijo. Asegura que la IA no cambie de imagen al recargar
+
+    // libretro-thumbnails usa convención No-Intro: respeta espacios, paréntesis y caracteres
+    // especiales reemplazando ciertos chars problemáticos (& % por _) y URL-encoding del resto.
+    // Quitamos extensión y normalizamos.
+    const noExt = gameName.replace(/\.[^/.]+$/, "").trim();
+    const libretroName = noExt
+      .replace(/&/g, "_")
+      .replace(/\*/g, "_")
+      .replace(/\//g, "_")
+      .replace(/:/g, "_")
+      .replace(/\?/g, "_");
+    const encoded = encodeURIComponent(libretroName).replace(/%20/g, "%20");
+
+    // Hash matemático: la IA usará la misma seed siempre para no cambiar de imagen al recargar
     let hash = 0;
     for (let i = 0; i < gameName.length; i++) hash = gameName.charCodeAt(i) + ((hash << 5) - hash);
     const fixedSeed = Math.abs(hash);
-    
-    const cleanName = encodeURIComponent(gameName.replace(/\[.*?\]|\(.*?\)/g, '').replace(/_/g, ' ').trim());
+
+    const cleanName = encodeURIComponent(noExt.replace(/\[.*?\]|\(.*?\)/g, '').trim());
     const consoleName = consoleId.toUpperCase();
-    
-    // Lista de intentos (Cascada)
+
+    // Cascada de intentos: portada → título → IA → placeholder
     const urls = [
-      `https://thumbnails.libretro.com/${system}/Named_Boxarts/${formattedName}.png`, // 0: Portada CDN
-      `https://thumbnails.libretro.com/${system}/Named_Titles/${formattedName}.png`,  // 1: Pantalla de Título CDN (Plan B)
-      `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}?width=300&height=400&nologo=true&seed=${fixedSeed}`, // 2: IA fija
-      "/placeholder.svg" // 3: Fallback final
+      `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encoded}.png`,
+      `https://thumbnails.libretro.com/${system}/Named_Titles/${encoded}.png`,
+      `https://thumbnails.libretro.com/${system}/Named_Snaps/${encoded}.png`,
+      `https://image.pollinations.ai/prompt/Retro%20box%20art%20cover%20for%20the%20game%20${cleanName}%20on%20${consoleName}?width=300&height=400&nologo=true&seed=${fixedSeed}`,
+      "/placeholder.svg"
     ];
 
-    setImgSrc(urls[stage]);
+    setImgSrc(urls[stage] || "/placeholder.svg");
   }, [gameName, consoleId, isCloud, defaultCover, stage]);
 
   return (
