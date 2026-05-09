@@ -133,31 +133,75 @@ export default function BibliotecaPage() {
     }
   }, []);
 
-  const fetchDriveGames = useCallback(async (showToast = false) => {
+  const getConsoleType = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    if (['smc', 'sfc'].includes(ext)) return 'Super Nintendo';
+    if (['nes'].includes(ext)) return 'Nintendo Entertainment System';
+    if (['gba'].includes(ext)) return 'Game Boy Advance';
+    if (['z64', 'n64', 'v64'].includes(ext)) return 'Nintendo 64';
+    if (['bin', 'iso', 'cue', 'chd'].includes(ext)) return 'PlayStation 1';
+    return 'Arcade';
+  };
+
+  const fetchDriveGames = useCallback(async (rescan = false) => {
     if (!user) return;
-    if (showToast) setIsRefreshing(true);
+    if (rescan) setIsRefreshing(true);
 
     try {
+      // 🔄 Si rescan = true, re-escaneamos la carpeta de Drive y upserteamos los nuevos juegos
+      if (rescan) {
+        try {
+          const token = await requestGoogleToken();
+          const folderQuery = "mimeType = 'application/vnd.google-apps.folder' and name = 'RetroRoms' and trashed = false";
+          const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name)`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const folderData = await folderRes.json();
+
+          if (folderData.files && folderData.files.length > 0) {
+            const folderId = folderData.files[0].id;
+            const filesQuery = `'${folderId}' in parents and trashed = false`;
+            const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name)&pageSize=1000`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const filesData = await filesRes.json();
+            const validFiles = (filesData.files || []).filter((f: any) => /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(f.name));
+            if (validFiles.length > 0) {
+              const gamesToSave = validFiles.map((f: any) => ({
+                user_id: user.id,
+                drive_file_id: f.id,
+                file_name: f.name,
+                console_type: getConsoleType(f.name)
+              }));
+              await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
+            }
+          } else {
+            toast({ title: 'Carpeta no encontrada', description: 'Crea una carpeta llamada "RetroRoms" en tu Drive.', variant: 'destructive' });
+          }
+        } catch (e: any) {
+          console.error('Drive rescan error', e);
+          toast({ title: 'Error sincronizando Drive', description: 'No se pudo leer tu carpeta. Verifica permisos.', variant: 'destructive' });
+        }
+      }
+
       const { data, error } = await supabase
         .from("user_drive_games" as any)
         .select("*")
         .eq("user_id", user.id);
-      
+
       if (error) throw error;
 
       if (data) {
         const validGames = data.filter((g: any) => {
           const name = g.file_name.toLowerCase();
-          return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
-                 name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
+          return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
         });
 
         setDriveGames(validGames);
-        
+
         const newConsolesList = [...baseConsoles];
         const uniqueDriveConsoles = [...new Set(validGames.map((g: any) => g.console_type))];
-        
+
         uniqueDriveConsoles.forEach((consoleName: any) => {
           let id = consoleName.toLowerCase().replace(/\s+/g, '');
           let color = "text-white";
@@ -176,7 +220,7 @@ export default function BibliotecaPage() {
         setActiveConsoles(newConsolesList);
       }
 
-      if (showToast) toast({ title: "Biblioteca actualizada", description: "Se han cargado tus juegos de la nube." });
+      if (rescan) toast({ title: "Biblioteca actualizada", description: "Se han re-escaneado tus juegos de Drive." });
     } catch (e) {
       console.error(e);
     } finally {
