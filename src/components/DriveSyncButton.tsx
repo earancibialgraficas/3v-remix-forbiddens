@@ -48,6 +48,9 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id);
       sessionStorage.removeItem('drive_access_token');
       sessionStorage.removeItem('drive_token_expiry');
+      localStorage.removeItem('drive_access_token');
+      localStorage.removeItem('drive_token_expiry');
+      localStorage.removeItem('drive_linked_until');
       
       setIsLinked(false);
       toast({ title: 'Cuenta desvinculada', description: 'Se han borrado los juegos de tu biblioteca.' });
