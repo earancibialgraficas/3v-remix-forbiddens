@@ -243,8 +243,10 @@ export default function BibliotecaPage() {
 
   const requestGoogleToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const cachedToken = sessionStorage.getItem('drive_access_token');
-      const tokenExpiry = sessionStorage.getItem('drive_token_expiry');
+      // Persistencia entre tabs/recargas (localStorage). Google emite tokens de ~1h;
+      // intentamos refrescar silenciosamente con prompt:'' antes de pedir login.
+      const cachedToken = localStorage.getItem('drive_access_token');
+      const tokenExpiry = localStorage.getItem('drive_token_expiry');
 
       if (cachedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
         resolve(cachedToken);
@@ -259,13 +261,17 @@ export default function BibliotecaPage() {
 
       const client = google.accounts.oauth2.initTokenClient({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        prompt: '', // intenta refresco silencioso primero
         callback: (response: any) => {
           if (response.error) {
             reject(response.error);
           } else {
-            sessionStorage.setItem('drive_access_token', response.access_token);
-            sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
+            const ttlMs = (response.expires_in ? response.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
+            localStorage.setItem('drive_access_token', response.access_token);
+            localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+            // marca de "vinculación" 24h (UI sigue mostrando linked aunque token caduque)
+            localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
             resolve(response.access_token);
           }
         }
