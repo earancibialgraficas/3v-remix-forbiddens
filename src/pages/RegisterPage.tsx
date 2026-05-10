@@ -21,6 +21,29 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validación de caracteres para el nombre de usuario (sin ñ, tildes ni espacios)
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!usernameRegex.test(username)) {
+      toast({ 
+        title: "Error", 
+        description: "El nombre de usuario no debe contener la letra 'ñ', tildes ni espacios.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validación de caracteres para la contraseña (caracteres estándar permitidos, sin ñ ni tildes)
+    const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
+    if (!passwordRegex.test(password)) {
+      toast({ 
+        title: "Error", 
+        description: "La contraseña no debe contener la letra 'ñ' ni tildes.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
       return;
