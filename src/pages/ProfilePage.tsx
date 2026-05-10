@@ -440,7 +440,7 @@ export default function ProfilePage() {
                 </Button>
               )}
               {canUseColors && <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1"><Palette className="w-3 h-3" /> Colores</Button>}
-              {isStaff && !safeRoles.includes("moderator") && <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1"><span>{profile?.role_icon || "⭐"}</span> Icono Rol</Button>}
+              {isStaff && <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1"><span>{profile?.role_icon || "⭐"}</span> Icono Rol</Button>}
               {isStaff && <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">{profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}{profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}</Button>}
             </div>
           </div>

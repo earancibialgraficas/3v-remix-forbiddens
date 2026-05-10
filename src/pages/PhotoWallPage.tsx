@@ -520,6 +520,28 @@ export default function PhotoWallPage() {
 
   useEffect(() => { fetchContent(true, sort); }, [sort]);
 
+  // 🔥 Realtime: cualquier foto/post social que se suba (desde el muro o el perfil) sube el contador diario
+  useEffect(() => {
+    const getChileMidnight = () => {
+      const now = new Date();
+      const sa = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+      sa.setHours(0, 0, 0, 0);
+      return sa.getTime();
+    };
+    const ch = supabase
+      .channel('photowall-daily-counter')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload: any) => {
+        const ts = new Date(payload.new?.created_at || Date.now()).getTime();
+        if (ts >= getChileMidnight()) setDailyGlobalCount((c) => c + 1);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_content' }, (payload: any) => {
+        const ts = new Date(payload.new?.created_at || Date.now()).getTime();
+        if (ts >= getChileMidnight()) setDailyGlobalCount((c) => c + 1);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
   const handleUpload = async () => {
     if (!user || !imageUrl.trim()) return;
     if (!isStaff && userPhotoCount >= limits.maxPhotos) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }

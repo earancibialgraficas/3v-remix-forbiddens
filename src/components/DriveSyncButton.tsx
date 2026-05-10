@@ -48,6 +48,9 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id);
       sessionStorage.removeItem('drive_access_token');
       sessionStorage.removeItem('drive_token_expiry');
+      localStorage.removeItem('drive_access_token');
+      localStorage.removeItem('drive_token_expiry');
+      localStorage.removeItem('drive_linked_until');
       
       setIsLinked(false);
       toast({ title: 'Cuenta desvinculada', description: 'Se han borrado los juegos de tu biblioteca.' });
@@ -92,8 +95,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           return;
         }
         
+        const ttlMs = (tokenResponse.expires_in ? tokenResponse.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
+        localStorage.setItem('drive_access_token', tokenResponse.access_token);
+        localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+        localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
         sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
-        sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
+        sessionStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
 
         await fetchAndSaveRoms(tokenResponse.access_token);
       },

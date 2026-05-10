@@ -48,8 +48,10 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          edited: boolean
           id: string
           membership_tier: string
+          original_content: string | null
           parent_id: string | null
           post_id: string
           updated_at: string
@@ -58,8 +60,10 @@ export type Database = {
         Insert: {
           content?: string
           created_at?: string
+          edited?: boolean
           id?: string
           membership_tier?: string
+          original_content?: string | null
           parent_id?: string | null
           post_id: string
           updated_at?: string
@@ -68,8 +72,10 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          edited?: boolean
           id?: string
           membership_tier?: string
+          original_content?: string | null
           parent_id?: string | null
           post_id?: string
           updated_at?: string
@@ -432,6 +438,7 @@ export type Database = {
           is_pinned: boolean
           signature: string | null
           title: string
+          title_align: string
           updated_at: string
           upvotes: number
           user_id: string
@@ -446,6 +453,7 @@ export type Database = {
           is_pinned?: boolean
           signature?: string | null
           title: string
+          title_align?: string
           updated_at?: string
           upvotes?: number
           user_id: string
@@ -460,6 +468,7 @@ export type Database = {
           is_pinned?: boolean
           signature?: string | null
           title?: string
+          title_align?: string
           updated_at?: string
           upvotes?: number
           user_id?: string
@@ -689,24 +698,33 @@ export type Database = {
           content: string
           content_id: string
           created_at: string
+          edited: boolean
           id: string
+          original_content: string | null
           parent_id: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           content?: string
           content_id: string
           created_at?: string
+          edited?: boolean
           id?: string
+          original_content?: string | null
           parent_id?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           content?: string
           content_id?: string
           created_at?: string
+          edited?: boolean
           id?: string
+          original_content?: string | null
           parent_id?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
