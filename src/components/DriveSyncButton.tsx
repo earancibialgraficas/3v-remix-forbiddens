@@ -95,8 +95,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           return;
         }
         
+        const ttlMs = (tokenResponse.expires_in ? tokenResponse.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
+        localStorage.setItem('drive_access_token', tokenResponse.access_token);
+        localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+        localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
         sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
-        sessionStorage.setItem('drive_token_expiry', (Date.now() + 55 * 60 * 1000).toString());
+        sessionStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
 
         await fetchAndSaveRoms(tokenResponse.access_token);
       },
