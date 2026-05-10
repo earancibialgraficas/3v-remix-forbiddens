@@ -38,7 +38,7 @@ export default function RegisterPage() {
     if (!passwordRegex.test(password)) {
       toast({ 
         title: "Error", 
-        description: "La contraseña no debe contener la letra 'ñ' ni tildes.", 
+        description: "Formato de contraseña no válido. La contraseña solo debe contener: letras del alfabeto inglés (A-Z, a-z), números (0-9) y símbolos especiales. NO incluyas espacios en blanco, la letra 'ñ' o 'Ñ', letras con tildes (á, é, í...) ni caracteres internacionales.", 
         variant: "destructive" 
       });
       return;
