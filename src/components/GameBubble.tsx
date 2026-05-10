@@ -1454,8 +1454,16 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                     <Trophy className="w-2.5 h-2.5" /> {activeGame.score || 0}
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <Clock className="w-2.5 h-2.5" /> {Math.floor((activeGame.playTime || 0) / 60)}:
-                    {((activeGame.playTime || 0) % 60).toString().padStart(2, "0")}
+                    <Clock className="w-2.5 h-2.5" />{" "}
+                    {(() => {
+                      const t = activeGame.playTime || 0;
+                      const h = Math.floor(t / 3600);
+                      const m = Math.floor((t % 3600) / 60);
+                      const s = t % 60;
+                      const mm = m.toString().padStart(2, "0");
+                      const ss = s.toString().padStart(2, "0");
+                      return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+                    })()}
                   </span>
                   {afkRef.current && <span className="text-neon-yellow font-pixel animate-pulse">AFK</span>}
                 </div>
