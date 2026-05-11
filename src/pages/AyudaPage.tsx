@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 const faqs = [
   { q: "¿Cómo juego en los emuladores?", a: "Ve a Salas de Juego en el menú lateral, escoge un juego de la Biblioteca o sube tu propia ROM. El emulador se abrirá automáticamente en el navegador." },
-  { q: "¿Cómo subo de clasificación?", a: "Acumula puntos jugando en los emuladores o en la pagina de biblioteca. Los puntos se actualizan en tiempo real en el Leaderboard." },
+  { q: "¿Cómo subo de clasificación?", a: "Acumula puntos de varias formas: 1) Jugando en los emuladores y en la Biblioteca (cada partida y récord suma). 2) Subiendo y compartiendo videos de al menos 30 segundos en el Social Hub. 3) Publicando fotos en el muro y obteniendo interacciones (likes y comentarios). 4) Participando activamente en el Foro (posts, respuestas y votos positivos). 5) Asistiendo a Eventos y completando retos especiales. Los puntos se actualizan en tiempo real en el Leaderboard." },
   { q: "¿Qué incluye cada membresía?", a: "Cada plan ofrece diferentes beneficios como avatares animados, más espacio de subida, acceso VIP y más. Revisa la sección de Membresías para ver los detalles." },
   { q: "¿Cómo linkeo mis redes sociales?", a: "Ve a tu perfil, Configuración > Redes Sociales y agrega tus URLs de Instagram, YouTube y TikTok." },
   { q: "¿Cómo reporto a un usuario?", a: "En cualquier post, haz clic en el botón de reporte (bandera). Los administradores revisarán tu reporte." },
