@@ -104,6 +104,72 @@ ${tipDesc}[/COLOR]
         ))}
       </div>
 
+      {/* Tutorial RetroRoms (Drive sync) */}
+      <div
+        id="retroroms-tutorial"
+        ref={tutorialRef}
+        className={cn(
+          "bg-card border border-neon-yellow/40 rounded-lg p-5 space-y-4 transition-all",
+          highlightTutorial && "fire-highlight"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-400" />
+          <h2 className="font-pixel text-xs text-neon-yellow">CÓMO SINCRONIZAR TUS ROMS CON GOOGLE DRIVE</h2>
+        </div>
+        <p className="text-xs text-muted-foreground font-body leading-relaxed">
+          Lleva tu propia colección de ROMs y juégala desde cualquier dispositivo vinculando tu Google Drive a tu cuenta arcade.
+        </p>
+        <ol className="space-y-3 text-xs font-body text-foreground">
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">1.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <FolderOpen className="w-4 h-4 text-neon-cyan" /> Crea una carpeta llamada <code className="bg-muted px-1.5 py-0.5 rounded text-neon-yellow">RetroRoms</code> en tu Google Drive
+              </div>
+              <p className="text-muted-foreground mt-1">El nombre debe ser exactamente <strong>RetroRoms</strong> (sin espacios, respeta mayúsculas).</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">2.</span>
+            <div>
+              <div className="font-medium">Organiza tus ROMs por consola dentro de subcarpetas</div>
+              <p className="text-muted-foreground mt-1">
+                Subcarpetas recomendadas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
+              </p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">3.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta de Google desde la Biblioteca
+              </div>
+              <p className="text-muted-foreground mt-1">Pulsa el botón <strong>Vincular Google Drive</strong> arriba de la biblioteca y autoriza solo lectura.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">4.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Cloud className="w-4 h-4 text-neon-magenta" /> Pulsa el botón <strong>Actualizar</strong> al lado de la barra buscadora
+              </div>
+              <p className="text-muted-foreground mt-1">Cada vez que añadas nuevas ROMs a Drive, vuelve aquí y pulsa actualizar para sincronizarlas.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">5.</span>
+            <div>
+              <div className="font-medium">Formatos soportados</div>
+              <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue (PS1), .zip (Arcade). Tamaño máx por ROM: 64 MB.</p>
+            </div>
+          </li>
+        </ol>
+        <p className="text-[10px] text-muted-foreground font-body italic border-t border-border pt-3">
+          ⚠️ Tus ROMs nunca se suben a nuestros servidores. Solo se leen directamente desde tu Drive cuando juegas.
+        </p>
+      </div>
+
       <div className="bg-card border border-neon-cyan/20 rounded p-4">
         {!showForm ? (
           <div className="flex items-center justify-between">
