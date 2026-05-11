@@ -903,6 +903,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_drive_saves: {
+        Row: {
+          console_type: string
+          created_at: string
+          drive_file_id: string
+          file_name: string
+          game_name: string
+          id: string
+          size_bytes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          console_type: string
+          created_at?: string
+          drive_file_id: string
+          file_name: string
+          game_name: string
+          id?: string
+          size_bytes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          console_type?: string
+          created_at?: string
+          drive_file_id?: string
+          file_name?: string
+          game_name?: string
+          id?: string
+          size_bytes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
