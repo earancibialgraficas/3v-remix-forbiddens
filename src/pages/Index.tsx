@@ -7,6 +7,7 @@ import HomeCarousel from "@/components/HomeCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 interface PostItem {
   id: string;
