@@ -328,6 +328,9 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         )}
       </div>
 
+      {/* PARTIDAS EN GOOGLE DRIVE (N64/PS1/Arcade) */}
+      <DriveSavesSection userId={userId} />
+
       {/* MODAL DE CONFIRMACIÓN */}
       {itemsToRemove.length > 0 && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setItemsToRemove([])}>
