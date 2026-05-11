@@ -1707,7 +1707,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       {!minimized && (
         <>
-          {/* 🎯 Botón pequeño tipo "pestaña" para mostrar/ocultar el menú L cuando el juego está maximizado */}
+          {/* 🔺 Botón TRIÁNGULO en esquina superior derecha — abre/cierra el menú L cuando el juego está maximizado */}
           {isExpanded && (
             <button
               type="button"
@@ -1715,58 +1715,19 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                 e.stopPropagation();
                 setExpandedControlsOpen((v) => !v);
               }}
-              className={cn(
-                "absolute top-1/2 -translate-y-1/2 z-[62] h-16 w-7 flex items-center justify-center",
-                "bg-black/70 border border-white/20 backdrop-blur-md text-white/90 hover:text-white hover:bg-black/90 transition-all",
-                "rounded-l-lg shadow-[0_0_12px_rgba(0,0,0,0.6)]",
-                expandedControlsOpen ? "right-14" : "right-0",
-              )}
+              aria-label={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
-            >
-              {expandedControlsOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-          )}
-
-          {isExpanded && !expandedControlsOpen && (
-            <div className="absolute top-3 right-3 z-[63] flex gap-1 rounded-lg border border-white/20 bg-black/70 p-1 backdrop-blur-md shadow-[0_0_12px_rgba(0,0,0,0.6)]">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-                  setForceFloating(true);
-                }}
-                className="h-8 w-8 text-white hover:bg-white/20"
-                title="Restaurar a ventana"
-              >
-                <Copy className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  minimizeGame();
-                }}
-                className="h-8 w-8 text-neon-cyan hover:bg-neon-cyan/10"
-                title="Enviar a GameBubble"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClose(currentGameIndex);
-                }}
-                className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                title="Cerrar juego"
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+              className={cn(
+                "absolute top-0 z-[63] h-0 w-0 transition-all duration-200 cursor-pointer",
+                "border-solid border-transparent",
+                // Triángulo rectángulo apuntando a la esquina superior derecha
+                expandedControlsOpen
+                  ? "right-14 border-t-[44px] border-l-[44px] border-t-neon-cyan/80 hover:border-t-neon-cyan border-l-transparent"
+                  : "right-0 border-t-[44px] border-l-[44px] border-t-neon-magenta/80 hover:border-t-neon-magenta border-l-transparent",
+                "drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]",
+              )}
+              style={{ filter: "drop-shadow(0 0 6px rgba(0,0,0,0.6))" }}
+            />
           )}
 
           {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" - desplegable cuando hay juego maximizado 🔥 */}
