@@ -18,7 +18,7 @@ const faqs = [
   { q: "¿Puedo cambiar mi nombre de usuario?", a: "Sí, depende de tu membresía. Los usuarios gratuitos no pueden cambiarlo, mientras que miembros de pago pueden hacerlo según su plan." },
 ];
 
-type SectionId = "ayuda" | "contacto" | "privacidad";
+type SectionId = "ayuda" | "drive" | "contacto" | "privacidad";
 
 export default function AyudaPage() {
   const { user, profile } = useAuth();
