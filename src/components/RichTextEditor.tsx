@@ -15,27 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-// Extensión personalizada para tamaño de texto
-const FontSize = Mark.create({
-  name: "fontSize",
-  addAttributes() {
-    return {
-      size: {
-        default: null,
-        parseHTML: (el: any) => el.style.fontSize?.replace(/['"]+/g, "") || null,
-        renderHTML: (attrs: any) => (attrs.size ? { style: `font-size: ${attrs.size}` } : {}),
-      },
-    };
-  },
-  parseHTML() { return [{ style: "font-size" }]; },
-  renderHTML({ HTMLAttributes }) { return ["span", mergeAttributes(HTMLAttributes), 0]; },
-  addCommands(): any {
-    return {
-      setFontSize: (size: string) => ({ chain }: any) => chain().setMark("fontSize", { size }).run(),
-      unsetFontSize: () => ({ chain }: any) => chain().unsetMark("fontSize").run(),
-    };
-  },
-});
+// FontSize viene de @tiptap/extension-text-style en TipTap v3
 
 const FONT_FAMILIES = [
   { label: "Montserrat", value: "Montserrat, sans-serif" },
