@@ -21,6 +21,8 @@ import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } from "@/lib/profileAppearance";
 import CommentModMenu from "@/components/CommentModMenu";
 import { EditableCommentContent } from "@/components/EditableCommentContent";
+import RichTextEditor, { RichTextRender } from "@/components/RichTextEditor";
+import { isHtml, stripHtmlToText } from "@/lib/htmlContent";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -1054,30 +1056,35 @@ export default function ForumPage() {
             <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" style={{ textAlign: titleAlign }} />
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <span className="font-body">Alinear título:</span>
-            <button type="button" onClick={() => setTitleAlign("left")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "left" && "bg-neon-cyan/20 text-neon-cyan")} title="Izquierda"><AlignLeft className="w-3.5 h-3.5" /></button>
-            <button type="button" onClick={() => setTitleAlign("center")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "center" && "bg-neon-cyan/20 text-neon-cyan")} title="Centro"><AlignCenter className="w-3.5 h-3.5" /></button>
-            <button type="button" onClick={() => setTitleAlign("right")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "right" && "bg-neon-cyan/20 text-neon-cyan")} title="Derecha"><AlignRight className="w-3.5 h-3.5" /></button>
+          <div className="space-y-2">
+            <p className="text-[10px] font-body text-muted-foreground">Título (selecciona texto para formato avanzado)</p>
+            <RichTextEditor
+              value={title}
+              onChange={setTitle}
+              placeholder="Título del post (máx 150)"
+              minHeight={50}
+              singleLine
+              showToolbar={false}
+              allowImages={false}
+              allowVideo={false}
+              allowLinks={false}
+            />
           </div>
-          <Textarea placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`} value={content} onChange={(e) => setContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[120px]" />
+          <div className="space-y-2">
+            <p className="text-[10px] font-body text-muted-foreground">Contenido</p>
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`}
+              minHeight={140}
+              allowImages={canUseImages}
+              allowVideo={canUseVideo}
+              allowLinks={canUseLinks}
+            />
+          </div>
           <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
-            <span>Título: {title.length}/150</span>
-            <span className={cn(content.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{content.length}/{limits.maxForumChars}</span>
-          </div>
-          
-          <div className="flex items-center gap-1 flex-wrap">
-            {canUseImages && <button onClick={() => setContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
-            {canUseVideo && <button onClick={() => setContent(prev => prev + "https://youtube.com/watch?v=")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar video"><Video className="w-4 h-4" /></button>}
-            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "**texto**")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>}
-            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
-            {canUseBoldItalic && <button onClick={() => setContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
-            {canUseLinks && <button onClick={() => setContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
-            <div className="w-px h-5 bg-border mx-1" />
-            <button onClick={() => setContent(prev => prev + "\n[align=left]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-4 h-4" /></button>
-            <button onClick={() => setContent(prev => prev + "\n[align=center]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
-            <button onClick={() => setContent(prev => prev + "\n[align=right]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-4 h-4" /></button>
+            <span>Título: {stripHtmlToText(title).length}/150</span>
+            <span className={cn(stripHtmlToText(content).length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{stripHtmlToText(content).length}/{limits.maxForumChars}</span>
           </div>
           
           <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs w-full sm:w-auto mt-2">

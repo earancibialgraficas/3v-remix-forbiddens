@@ -327,11 +327,37 @@ export default function GameBubble() {
 
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
-    // ☁️ Cloud saves activados para todos los cores incluyendo N64/PS1/Arcade.
-    try {
-      const safeSlots = slotsToSync.slice(0, 5);
-      const slotsJson = JSON.stringify(safeSlots);
+    const safeSlots = slotsToSync.slice(0, 5);
+    const slotsJson = JSON.stringify(safeSlots);
 
+    // ☁️ Para EmulatorJS cores (N64/PS1/Arcade): subir a Google Drive en lugar de DB.
+    const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+    if (useDrive) {
+      try {
+        const { isDriveLinked, uploadSaveSlotsToDrive } = await import("@/lib/driveSaves");
+        if (!isDriveLinked()) {
+          toast({
+            title: "Vincula Google Drive",
+            description: "Para guardar partidas de N64/PS1/Arcade vincula tu Drive desde Perfil → Almacenamiento.",
+            variant: "destructive",
+          });
+          return;
+        }
+        await uploadSaveSlotsToDrive({
+          userId: user.id,
+          gameName: activeGame.gameName,
+          consoleType: activeGame.consoleName,
+          slotsJson,
+        });
+      } catch (e: any) {
+        console.error("Drive save error:", e);
+        toast({ title: "Error subiendo a Drive", description: e?.message || "Reintenta", variant: "destructive" });
+      }
+      return;
+    }
+
+    // 🟦 Cores Nostalgist (NES/SNES/GBA): cache + DB como hasta ahora.
+    try {
       const { data: existing } = await supabase
         .from("leaderboard_scores")
         .select("id")
@@ -378,19 +404,30 @@ export default function GameBubble() {
         }
 
         if (user) {
+          const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
           try {
-            const { data } = await supabase
-              .from("leaderboard_scores")
-              .select("game_state")
-              .eq("user_id", user.id)
-              .eq("game_name", activeGame.gameName)
-              .eq("console_type", activeGame.consoleName)
-              .limit(1)
-              .maybeSingle();
+            let cloudJson: string | null = null;
+            if (useDrive) {
+              const { downloadSaveSlotsFromDrive } = await import("@/lib/driveSaves");
+              cloudJson = await downloadSaveSlotsFromDrive({
+                userId: user.id,
+                gameName: activeGame.gameName,
+                consoleType: activeGame.consoleName,
+              });
+            } else {
+              const { data } = await supabase
+                .from("leaderboard_scores")
+                .select("game_state")
+                .eq("user_id", user.id)
+                .eq("game_name", activeGame.gameName)
+                .eq("console_type", activeGame.consoleName)
+                .limit(1)
+                .maybeSingle();
+              if (data && data.game_state) cloudJson = typeof data.game_state === "string" ? data.game_state : JSON.stringify(data.game_state);
+            }
 
-            if (data && data.game_state) {
-              let cloudSlots: SaveSlot[] =
-                typeof data.game_state === "string" ? JSON.parse(data.game_state) : data.game_state;
+            if (cloudJson) {
+              let cloudSlots: SaveSlot[] = JSON.parse(cloudJson);
               const mergedMap = new Map();
               localSlots.forEach((s) => mergedMap.set(s.timestamp, s));
               (cloudSlots || []).forEach((s: any) => mergedMap.set(s.timestamp, s));

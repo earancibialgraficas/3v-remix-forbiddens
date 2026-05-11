@@ -90,7 +90,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
     const client = google.accounts.oauth2.initTokenClient({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
       callback: async (tokenResponse: any) => {
         if (tokenResponse.error) {
           setIsSyncing(false);

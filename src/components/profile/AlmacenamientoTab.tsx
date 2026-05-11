@@ -328,6 +328,9 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         )}
       </div>
 
+      {/* PARTIDAS EN GOOGLE DRIVE (N64/PS1/Arcade) */}
+      <DriveSavesSection userId={userId} />
+
       {/* MODAL DE CONFIRMACIÓN */}
       {itemsToRemove.length > 0 && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setItemsToRemove([])}>
@@ -367,6 +370,88 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
         document.body
       )}
 
+    </div>
+  );
+}
+
+// ☁️ Sección de partidas guardadas en Google Drive (N64/PS1/Arcade)
+function DriveSavesSection({ userId }: { userId: string }) {
+  const { toast } = useToast();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    if (!userId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("user_drive_saves" as any)
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+    setItems((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [userId]);
+
+  const handleDelete = async (item: any) => {
+    if (!confirm(`¿Borrar partida de "${item.game_name}" en Drive?`)) return;
+    try {
+      const { deleteSaveFromDrive } = await import("@/lib/driveSaves");
+      await deleteSaveFromDrive({ userId, driveFileId: item.drive_file_id, recordId: item.id });
+      toast({ title: "Partida eliminada de Drive" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="bg-card border border-neon-cyan/30 rounded p-4">
+      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+        <h4 className="font-pixel text-[10px] text-neon-cyan uppercase flex items-center gap-2">
+          <Cloud className="w-4 h-4" /> Partidas en Google Drive
+          <span className="text-[9px] text-muted-foreground normal-case">(N64 · PS1 · Arcade)</span>
+        </h4>
+        <button onClick={load} className="text-[9px] font-body text-muted-foreground hover:text-neon-cyan flex items-center gap-1">
+          <RefreshCw className="w-3 h-3" /> Actualizar
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">Cargando...</p>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-muted-foreground font-body text-center py-6 italic opacity-50">
+          Aún no tienes partidas guardadas en Drive. Vincula tu cuenta y guarda una partida en N64/PS1/Arcade para verlas aquí.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item: any) => (
+            <div key={item.id} className="flex items-center gap-3 p-2 rounded border border-neon-cyan/20 bg-neon-cyan/5 hover:bg-neon-cyan/10 transition-colors group">
+              <div className="p-1.5 rounded bg-neon-cyan/20 border border-neon-cyan/40 shrink-0">
+                <Cloud className="w-3.5 h-3.5 text-neon-cyan" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-body font-medium text-foreground truncate">{item.game_name}</p>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                  <span className="uppercase font-pixel text-[9px] text-neon-cyan">{item.console_type}</span>
+                  <Clock className="w-3 h-3 opacity-50" />
+                  {new Date(item.updated_at).toLocaleString()}
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+                {item.size_bytes < 1024 ? `${item.size_bytes} B` : `${(item.size_bytes / 1024).toFixed(1)} KB`}
+              </span>
+              <button
+                onClick={() => handleDelete(item)}
+                className="text-muted-foreground hover:text-destructive transition-all p-1 opacity-0 group-hover:opacity-100"
+                title="Borrar de Drive"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
