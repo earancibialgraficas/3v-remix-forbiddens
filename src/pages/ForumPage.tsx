@@ -884,7 +884,7 @@ export default function ForumPage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
+                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
                       {renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
