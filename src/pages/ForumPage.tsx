@@ -489,10 +489,10 @@ export default function ForumPage() {
     const customSig = (profile as any)?.signature;
     const signature = canUseSignature ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff ? `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : null)) : null;
 
-    const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature } as any);
+    const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature, title_align: titleAlign } as any);
     setPosting(false);
     if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); }
-    else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
+    else { setTitle(""); setContent(""); setTitleAlign("left"); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
   };
 
   const votingRef = useRef<Record<string, boolean>>({});
