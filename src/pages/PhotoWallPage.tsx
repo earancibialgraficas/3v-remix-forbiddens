@@ -800,7 +800,7 @@ export default function PhotoWallPage() {
           )}>
             {displayPhotos.map(photo => (
               <div key={`${photo.target_type}-${photo.id}`} id={`photo-post-${photo.id}`} className="w-full mb-2 sm:mb-4 break-inside-avoid relative">
-                <PhotoCardMiniature photo={photo} onExpand={() => setExpandedPhotoId(photo.id)} onReaction={handleReaction} onHide={handleHide} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} onReport={() => setReportingPhotoIdMini(photo.id)} />
+                <PhotoCardMiniature photo={photo} onExpand={() => handleExpandPhoto(photo.id)} onReaction={handleReaction} onHide={handleHide} onDelete={handleDeletePost} onSave={handleSaveToProfile} userReaction={userReactions[photo.id]} isStaff={isStaff} onReport={() => setReportingPhotoIdMini(photo.id)} />
               </div>
             ))}
           </div>
