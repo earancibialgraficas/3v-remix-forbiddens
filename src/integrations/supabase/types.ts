@@ -837,6 +837,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_drive_games: {
+        Row: {
+          console_type: string
+          created_at: string
+          custom_cover_url: string | null
+          custom_name: string | null
+          drive_file_id: string
+          file_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          console_type: string
+          created_at?: string
+          custom_cover_url?: string | null
+          custom_name?: string | null
+          drive_file_id: string
+          file_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          console_type?: string
+          created_at?: string
+          custom_cover_url?: string | null
+          custom_name?: string | null
+          drive_file_id?: string
+          file_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
