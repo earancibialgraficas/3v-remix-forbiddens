@@ -35,12 +35,14 @@ const K = {
   ArrowDown:  { code: "ArrowDown",  key: "ArrowDown",  keyCode: 40 },
   ArrowLeft:  { code: "ArrowLeft",  key: "ArrowLeft",  keyCode: 37 },
   ArrowRight: { code: "ArrowRight", key: "ArrowRight", keyCode: 39 },
-  X:          { code: "KeyX",       key: "x",          keyCode: 88 }, // A
-  Z:          { code: "KeyZ",       key: "z",          keyCode: 90 }, // B
-  S:          { code: "KeyS",       key: "s",          keyCode: 83 }, // X
-  A:          { code: "KeyA",       key: "a",          keyCode: 65 }, // Y
-  Q:          { code: "KeyQ",       key: "q",          keyCode: 81 }, // L
-  W:          { code: "KeyW",       key: "w",          keyCode: 87 }, // R
+  X:          { code: "KeyX",       key: "x",          keyCode: 88 }, // A / Cross
+  Z:          { code: "KeyZ",       key: "z",          keyCode: 90 }, // B / Circle
+  S:          { code: "KeyS",       key: "s",          keyCode: 83 }, // X / Triangle
+  A:          { code: "KeyA",       key: "a",          keyCode: 65 }, // Y / Square
+  Q:          { code: "KeyQ",       key: "q",          keyCode: 81 }, // L1
+  W:          { code: "KeyW",       key: "w",          keyCode: 87 }, // R1
+  E:          { code: "KeyE",       key: "e",          keyCode: 69 }, // L2
+  R:          { code: "KeyR",       key: "r",          keyCode: 82 }, // R2
   Enter:      { code: "Enter",      key: "Enter",      keyCode: 13 }, // Start
   ShiftRight: { code: "ShiftRight", key: "Shift",      keyCode: 16 }, // Select
 } satisfies Record<string, KeyMap>;
