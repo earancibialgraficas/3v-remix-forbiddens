@@ -1994,11 +1994,16 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           minimized ? "bottom-4 right-4 flex flex-col items-end gap-2" : "inset-0 pointer-events-none",
         )}
       >
-        {!minimized ? (
-          <div className="pointer-events-auto w-full h-full flex justify-center items-center">{bubbleContent}</div>
-        ) : (
-          <div className="pointer-events-auto">{bubbleContent}</div>
-        )}
+        {/* 🔧 Wrapper ESTABLE: NO cambiamos el árbol DOM al minimizar/maximizar
+            para que el <canvas> del emulador no se desmonte y reinicie el juego. */}
+        <div
+          className={cn(
+            "pointer-events-auto",
+            !minimized && "w-full h-full flex justify-center items-center"
+          )}
+        >
+          {bubbleContent}
+        </div>
 
         {/* Burbujas Inactivas Minimizadas */}
         {minimized && inactiveGames.length > 0 && (
