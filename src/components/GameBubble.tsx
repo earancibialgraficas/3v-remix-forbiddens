@@ -840,33 +840,46 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               const gm = ejs.gameManager;
               const bytes = new Uint8Array(await blob.arrayBuffer());
 
-              // 1) API directa
-              if (typeof ejs.loadState === "function") {
-                try {
-                  await ejs.loadState(bytes);
-                  return;
-                } catch {}
-              }
+              let loaded = false;
+
+              // 1) PREFERIDO: gameManager.loadState(uint8array) — síncrono y fiable
               if (gm && typeof gm.loadState === "function") {
-                try {
-                  gm.loadState(bytes);
-                  return;
-                } catch {}
-                try {
-                  gm.loadState("/save.state", bytes);
-                  return;
-                } catch {}
+                try { gm.loadState(bytes); loaded = true; } catch {}
+                if (!loaded) {
+                  try { gm.loadState("/save.state", bytes); loaded = true; } catch {}
+                }
               }
-              // Fallback: escribir al FS y quickLoad
-              if (gm && typeof gm.quickLoad === "function") {
+
+              // 2) Fallback: escribir al FS y quickLoad
+              if (!loaded && gm && typeof gm.quickLoad === "function") {
                 try {
                   const FS = gm.FS || (frame.contentWindow as any).FS;
                   if (FS) FS.writeFile("/save.state", bytes);
                   gm.quickLoad("/save.state");
-                  return;
+                  loaded = true;
                 } catch {}
               }
-              throw new Error("Carga no disponible");
+
+              // 3) Último recurso: API directa (puede abrir un picker en algunas versiones)
+              if (!loaded && typeof ejs.loadState === "function") {
+                try {
+                  const r = ejs.loadState(bytes);
+                  if (r && typeof r.then === "function") {
+                    await Promise.race([r, new Promise((res) => setTimeout(res, 1500))]);
+                  }
+                  loaded = true;
+                } catch {}
+              }
+
+              if (!loaded) throw new Error("Carga no disponible");
+
+              // 🔥 Forzar reanudar tras cargar (algunos cores quedan pausados)
+              try { ejs.play?.(); } catch {}
+              try { ejs.elements?.menu?.classList?.add("hidden"); } catch {}
+              try {
+                const cv = frame.contentDocument?.querySelector("canvas") as HTMLCanvasElement | null;
+                cv?.focus();
+              } catch {}
             },
             openMenu: () => (frame.contentWindow as any)?.EJS_emulator?.menu?.open?.(),
           };
