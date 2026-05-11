@@ -15,9 +15,9 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
-const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string }) => {
+const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
   const [stage, setStage] = useState(isCloud ? 0 : -1);
-  const [imgSrc, setImgSrc] = useState(defaultCover || "/placeholder.svg");
+  const [imgSrc, setImgSrc] = useState(customCover || defaultCover || "/placeholder.svg");
 
   useEffect(() => {
     if (!isCloud) {
