@@ -346,15 +346,19 @@ export default function BibliotecaPage() {
       if (g.console_type === 'Nintendo 64') mId = 'n64';
       if (g.console_type === 'PlayStation 1') mId = 'ps1';
       if (g.console_type === 'Arcade') mId = 'arcade';
-      return mId === selectedConsole && g.file_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
+      return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
     }).map(g => {
       const rawName = g.file_name.replace(/\.[^/.]+$/, "");
       return {
         id: g.drive_file_id,
-        name: rawName,
+        name: g.custom_name || rawName,
+        originalName: rawName,
         console: selectedConsole,
-        coverUrl: "/placeholder.svg", // Ahora el componente GameCover se encarga de esto
-        isCloud: true
+        coverUrl: "/placeholder.svg",
+        customCover: g.custom_cover_url || null,
+        driveRowId: g.id,
+        isCloud: true,
       };
     });
     
