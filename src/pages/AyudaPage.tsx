@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield } from "lucide-react";
+import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield, Flame, FolderOpen, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
 
 const faqs = [
   { q: "¿Cómo juego en los emuladores?", a: "Ve a Salas de Juego en el menú lateral, escoge un juego de la Biblioteca o sube tu propia ROM. El emulador se abrirá automáticamente en el navegador." },
-  { q: "¿Cómo subo de clasificación?", a: "Acumula puntos jugando en los emuladores o en la pagina de biblioteca. Los puntos se actualizan en tiempo real en el Leaderboard." },
+  { q: "¿Cómo subo de clasificación?", a: "Acumula puntos de varias formas: 1) Jugando en los emuladores y en la Biblioteca (cada partida y récord suma). 2) Subiendo y compartiendo videos de al menos 30 segundos en el Social Hub. 3) Publicando fotos en el muro y obteniendo interacciones (likes y comentarios). 4) Participando activamente en el Foro (posts, respuestas y votos positivos). 5) Asistiendo a Eventos y completando retos especiales. Los puntos se actualizan en tiempo real en el Leaderboard." },
   { q: "¿Qué incluye cada membresía?", a: "Cada plan ofrece diferentes beneficios como avatares animados, más espacio de subida, acceso VIP y más. Revisa la sección de Membresías para ver los detalles." },
   { q: "¿Cómo linkeo mis redes sociales?", a: "Ve a tu perfil, Configuración > Redes Sociales y agrega tus URLs de Instagram, YouTube y TikTok." },
   { q: "¿Cómo reporto a un usuario?", a: "En cualquier post, haz clic en el botón de reporte (bandera). Los administradores revisarán tu reporte." },
   { q: "¿Puedo cambiar mi nombre de usuario?", a: "Sí, depende de tu membresía. Los usuarios gratuitos no pueden cambiarlo, mientras que miembros de pago pueden hacerlo según su plan." },
 ];
 
-type SectionId = "ayuda" | "contacto" | "privacidad";
+type SectionId = "ayuda" | "drive" | "contacto" | "privacidad";
 
 export default function AyudaPage() {
   const { user, profile } = useAuth();
@@ -32,15 +32,16 @@ export default function AyudaPage() {
   const [sending, setSending] = useState(false);
 
   const ayudaRef = useRef<HTMLDivElement>(null);
+  const driveRef = useRef<HTMLDivElement>(null);
   const contactoRef = useRef<HTMLDivElement>(null);
   const privacidadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const seccion = searchParams.get("seccion") as SectionId | null;
-    if (seccion && ["ayuda", "contacto", "privacidad"].includes(seccion)) {
+    if (seccion && ["ayuda", "drive", "contacto", "privacidad"].includes(seccion)) {
       setOpenSection(seccion);
       setTimeout(() => {
-        const ref = seccion === "ayuda" ? ayudaRef : seccion === "contacto" ? contactoRef : privacidadRef;
+        const ref = seccion === "ayuda" ? ayudaRef : seccion === "drive" ? driveRef : seccion === "contacto" ? contactoRef : privacidadRef;
         ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
     }
@@ -132,6 +133,67 @@ ${message}[/COLOR]`;
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div ref={driveRef} className="bg-card border border-neon-yellow/30 rounded overflow-hidden scroll-mt-4">
+        <SectionHeader id="drive" icon={Flame} title="CÓMO SINCRONIZAR ROMS CON GOOGLE DRIVE" color="hsl(var(--neon-yellow))" />
+        {openSection === "drive" && (
+          <div className="p-4 space-y-3 border-t border-border animate-fade-in">
+            <p className="text-xs text-muted-foreground font-body leading-relaxed">
+              Lleva tu propia colección de ROMs y juégala desde cualquier dispositivo vinculando tu Google Drive a tu cuenta arcade.
+            </p>
+            <ol className="space-y-3 text-xs font-body text-foreground">
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">1.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium flex-wrap">
+                    <FolderOpen className="w-4 h-4 text-neon-cyan" /> Crea una carpeta llamada <code className="bg-muted px-1.5 py-0.5 rounded text-neon-yellow">RetroRoms</code> en tu Google Drive
+                  </div>
+                  <p className="text-muted-foreground mt-1">El nombre debe ser exactamente <strong>RetroRoms</strong> (sin espacios, respeta mayúsculas).</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">2.</span>
+                <div>
+                  <div className="font-medium">Organización opcional por consola</div>
+                  <p className="text-muted-foreground mt-1">
+                    No es necesario organizar tus ROMs por consola en subcarpetas, pero <strong>se recomienda para mayor orden</strong>. Sugeridas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">3.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta desde el Perfil
+                  </div>
+                  <p className="text-muted-foreground mt-1">
+                    Para vincular ve a tu <strong>Perfil → sección Storage</strong> y pulsa el botón <strong>Vincular Google Drive</strong>. Verás una barra que indica cuántas ROMs tienes vinculadas.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">4.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <RefreshCw className="w-4 h-4 text-neon-magenta" /> Pulsa <strong>Actualizar</strong> en la Biblioteca cuando añadas nuevas ROMs
+                  </div>
+                  <p className="text-muted-foreground mt-1">Cada vez que sumes ROMs a Drive, ve a la biblioteca y pulsa actualizar para sincronizarlas.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">5.</span>
+                <div>
+                  <div className="font-medium">Formatos soportados</div>
+                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd (PS1), .zip (Arcade).</p>
+                </div>
+              </li>
+            </ol>
+            <p className="text-[10px] text-muted-foreground font-body italic border-t border-border pt-3">
+              ⚠️ Tus ROMs nunca se suben a nuestros servidores. Solo se leen directamente desde tu Drive cuando juegas.
+            </p>
           </div>
         )}
       </div>

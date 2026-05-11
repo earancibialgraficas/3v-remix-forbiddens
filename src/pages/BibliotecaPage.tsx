@@ -465,11 +465,12 @@ export default function BibliotecaPage() {
         </Button>
         <Link
           to="/arcade/consejos#retroroms-tutorial"
-          className="fire-button inline-flex items-center gap-1 h-8 px-2.5 rounded-md text-[10px] font-pixel uppercase tracking-wider shrink-0"
+          className="group relative overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 h-8 inline-flex items-center gap-2 shrink-0 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
           title="Cómo sincronizar tus ROMs con Google Drive"
         >
-          <Flame className="w-3.5 h-3.5" />
-          IMPORTANTE
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <Flame className="relative w-3.5 h-3.5 text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]" />
+          <span className="relative font-pixel text-[10px] uppercase tracking-wider text-destructive">IMPORTANTE</span>
         </Link>
       </div>
 
