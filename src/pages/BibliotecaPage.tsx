@@ -391,6 +391,32 @@ export default function BibliotecaPage() {
     } finally { setSending(false); }
   };
 
+  const openEdit = (game: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingGame(game);
+    setEditName(game.name);
+    setEditCover(game.customCover || "");
+  };
+
+  const saveGameEdit = async () => {
+    if (!editingGame || !user) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase.from("user_drive_games" as any).update({
+        custom_name: editName.trim() || null,
+        custom_cover_url: editCover.trim() || null,
+      }).eq("id", editingGame.driveRowId).eq("user_id", user.id);
+      if (error) throw error;
+      setDriveGames(prev => prev.map(g => g.id === editingGame.driveRowId ? { ...g, custom_name: editName.trim() || null, custom_cover_url: editCover.trim() || null } : g));
+      toast({ title: "Juego actualizado" });
+      setEditingGame(null);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
