@@ -254,6 +254,7 @@ export default function ForumPage() {
   
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
+  const [titleAlign, setTitleAlign] = useState<"left" | "center" | "right">("left");
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
