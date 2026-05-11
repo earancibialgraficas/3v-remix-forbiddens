@@ -189,22 +189,61 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   };
 
   if (isLoadingState) {
-    return <Button disabled variant="outline" className="h-8 text-[10px]"><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Verificando...</Button>
+    return <Button disabled variant="outline" className="h-9 text-[10px]"><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Verificando...</Button>
   }
+
+  const pct = Math.min(100, (linkedCount / MAX_RECOMMENDED) * 100);
 
   if (isLinked) {
     return (
-      <Button onClick={handleDisconnect} disabled={isSyncing} variant="destructive" className="font-pixel text-[10px] h-8">
-        {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudOff className="w-4 h-4 mr-2" />}
-        {isSyncing ? 'DESVINCULANDO...' : 'DESVINCULAR DRIVE'}
-      </Button>
+      <div className="relative w-full sm:w-auto rounded-lg border border-neon-green/40 bg-gradient-to-br from-neon-green/10 via-card to-neon-cyan/5 p-3 shadow-[0_0_20px_-8px_hsl(var(--neon-green))] overflow-hidden">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 rounded bg-neon-green/15 border border-neon-green/30 shrink-0">
+              <CloudUpload className="w-3.5 h-3.5 text-neon-green" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-pixel text-[9px] text-neon-green uppercase leading-tight">Drive vinculado</p>
+              <p className="text-[10px] text-muted-foreground font-body truncate">
+                <span className="text-foreground font-bold">{linkedCount}</span> ROMs sincronizadas
+              </p>
+            </div>
+          </div>
+          <Button onClick={handleDisconnect} disabled={isSyncing} variant="outline" size="sm" className="h-7 text-[9px] font-pixel border-destructive/40 text-destructive hover:bg-destructive/10 shrink-0">
+            {isSyncing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CloudOff className="w-3 h-3 mr-1" />}
+            {isSyncing ? '...' : 'DESVINCULAR'}
+          </Button>
+        </div>
+        <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
+          <div
+            className="h-full bg-gradient-to-r from-neon-green via-neon-cyan to-neon-magenta transition-all duration-700"
+            style={{ width: `${Math.max(4, pct)}%` }}
+          />
+        </div>
+      </div>
     );
   }
 
   return (
-    <Button onClick={handleSync} disabled={isSyncing || !isGoogleLoaded} className="bg-[#4285F4] hover:bg-[#3367D6] text-white font-pixel text-[10px] h-8">
-      {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
-      {isSyncing ? 'SINCRONIZANDO...' : 'VINCULAR DRIVE'}
-    </Button>
+    <button
+      onClick={handleSync}
+      disabled={isSyncing || !isGoogleLoaded}
+      className="group relative w-full sm:w-auto overflow-hidden rounded-lg border border-neon-cyan/40 bg-gradient-to-br from-[#4285F4]/20 via-card to-neon-magenta/10 p-3 text-left transition-all hover:border-neon-cyan hover:shadow-[0_0_24px_-6px_hsl(var(--neon-cyan))] disabled:opacity-50"
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+      <div className="relative flex items-center gap-3">
+        <div className="p-2 rounded bg-[#4285F4]/20 border border-[#4285F4]/40 shrink-0">
+          {isSyncing ? <Loader2 className="w-4 h-4 text-neon-cyan animate-spin" /> : <CloudUpload className="w-4 h-4 text-neon-cyan" />}
+        </div>
+        <div className="min-w-0">
+          <p className="font-pixel text-[10px] text-neon-cyan uppercase leading-tight">
+            {isSyncing ? 'Sincronizando...' : 'Vincular Google Drive'}
+          </p>
+          <p className="text-[10px] text-muted-foreground font-body mt-0.5">
+            Trae tus ROMs desde la nube a tu biblioteca arcade
+          </p>
+        </div>
+      </div>
+    </button>
   );
 }
