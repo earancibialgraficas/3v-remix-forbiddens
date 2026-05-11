@@ -210,24 +210,34 @@ export default function TouchGamepad({ canvasRef, consoleName, visible, landscap
   const showShoulders =
     consoleName === "snes" || consoleName === "gba" || consoleName === "n64" ||
     consoleName === "ps1" || consoleName === "arcade";
+  const showTriggers = consoleName === "ps1" || consoleName === "n64";
 
   return (
     <div
       className="absolute inset-0 z-[55] pointer-events-none transition-opacity duration-300"
       style={{ opacity }}
     >
-      {/* L / R (shoulder buttons) - arriba a los lados */}
+      {/* L1/L2 - arriba izquierda apilados */}
       {showShoulders && (
-        <>
-          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 left-28" : "top-2 left-2")}>
-            <Btn label="L" onPress={press(K.Q)} onRelease={release(K.Q)}
-              className="w-14 h-9 !rounded-lg" small />
-          </div>
-          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 right-28" : "top-2 right-2")}>
-            <Btn label="R" onPress={press(K.W)} onRelease={release(K.W)}
-              className="w-14 h-9 !rounded-lg" small />
-          </div>
-        </>
+        <div className={cn("absolute pointer-events-auto flex flex-col gap-1", landscape ? "top-4 left-28" : "top-2 left-2")}>
+          {showTriggers && (
+            <Btn label="L2" onPress={press(K.E)} onRelease={release(K.E)}
+              className="w-14 h-8 !rounded-lg" small />
+          )}
+          <Btn label={showTriggers ? "L1" : "L"} onPress={press(K.Q)} onRelease={release(K.Q)}
+            className="w-14 h-9 !rounded-lg" small />
+        </div>
+      )}
+      {/* R1/R2 - arriba derecha apilados */}
+      {showShoulders && (
+        <div className={cn("absolute pointer-events-auto flex flex-col gap-1 items-end", landscape ? "top-4 right-28" : "top-2 right-2")}>
+          {showTriggers && (
+            <Btn label="R2" onPress={press(K.R)} onRelease={release(K.R)}
+              className="w-14 h-8 !rounded-lg" small />
+          )}
+          <Btn label={showTriggers ? "R1" : "R"} onPress={press(K.W)} onRelease={release(K.W)}
+            className="w-14 h-9 !rounded-lg" small />
+        </div>
       )}
 
       {/* D-Pad - abajo izquierda */}
