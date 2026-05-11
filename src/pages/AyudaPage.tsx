@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield } from "lucide-react";
+import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield, Flame, FolderOpen, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
