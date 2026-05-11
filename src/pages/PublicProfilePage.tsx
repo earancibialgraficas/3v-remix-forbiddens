@@ -396,7 +396,7 @@ export default function PublicProfilePage() {
                        <img src={getProxyUrl(thumb)} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                      <Link to={getCategoryRoute(post.category, post.id)} className="text-[11px] font-bold text-foreground hover:text-neon-cyan hover:underline line-clamp-2 leading-snug">{post.title}</Link>
+                      <Link to={getCategoryRoute(post.category, post.id)} className="text-[11px] font-bold text-foreground hover:text-neon-cyan hover:underline line-clamp-2 leading-snug">{stripHtmlToText(post.title)}</Link>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[9px] text-muted-foreground">
                         <span className="flex items-center gap-1" title={getSafePostDate(post.created_at)}><Clock className="w-3 h-3" /> {getTimeAgo(post.created_at)}</span>
                         <span className="text-neon-green font-bold">▲ {post.upvotes || 0}</span>
