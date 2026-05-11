@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { HardDrive, Trash2, Gamepad2, X, Clock, FileText } from "lucide-react";
+import { HardDrive, Trash2, Gamepad2, X, Clock, FileText, Flame, FolderOpen, Link2, Cloud, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -145,7 +145,75 @@ export default function AlmacenamientoTab({ userId, maxStorage, storageUsed, sto
           </div>
         </div>
       </div>
-<DriveSyncButton />
+      {/* SECCIÓN GOOGLE DRIVE */}
+      <div className="space-y-3">
+        <DriveSyncButton />
+
+        {/* Tutorial RetroRoms editado */}
+        <details className="group bg-card border border-neon-yellow/30 rounded-lg overflow-hidden">
+          <summary className="flex items-center gap-2 p-3 cursor-pointer hover:bg-white/5 transition-colors list-none">
+            <Flame className="w-4 h-4 text-orange-400" />
+            <h2 className="font-pixel text-[10px] text-neon-yellow uppercase flex-1">Cómo sincronizar tus ROMs con Google Drive</h2>
+            <span className="text-[10px] text-muted-foreground font-body group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div className="p-4 pt-0 space-y-3 border-t border-white/5">
+            <p className="text-xs text-muted-foreground font-body leading-relaxed pt-3">
+              Lleva tu propia colección de ROMs y juégala desde cualquier dispositivo vinculando tu Google Drive a tu cuenta arcade.
+            </p>
+            <ol className="space-y-3 text-xs font-body text-foreground">
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">1.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium flex-wrap">
+                    <FolderOpen className="w-4 h-4 text-neon-cyan" /> Crea una carpeta llamada <code className="bg-muted px-1.5 py-0.5 rounded text-neon-yellow">RetroRoms</code> en tu Google Drive
+                  </div>
+                  <p className="text-muted-foreground mt-1">El nombre debe ser exactamente <strong>RetroRoms</strong> (sin espacios, respeta mayúsculas).</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">2.</span>
+                <div>
+                  <div className="font-medium">Organización opcional por consola</div>
+                  <p className="text-muted-foreground mt-1">
+                    No es necesario organizar tus ROMs por consola en subcarpetas, pero <strong>se recomienda para mayor orden</strong>. Sugeridas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">3.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta desde el Perfil
+                  </div>
+                  <p className="text-muted-foreground mt-1">
+                    Para vincular se hace desde tu <strong>Perfil → sección Storage</strong>. Pulsa el botón <strong>Vincular Google Drive</strong> de arriba y autoriza solo lectura.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">4.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <RefreshCw className="w-4 h-4 text-neon-magenta" /> Pulsa <strong>Actualizar</strong> en la Biblioteca cuando añadas nuevas ROMs
+                  </div>
+                  <p className="text-muted-foreground mt-1">Cada vez que sumes ROMs a Drive, ve a la biblioteca y pulsa actualizar para sincronizarlas.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">5.</span>
+                <div>
+                  <div className="font-medium">Formatos soportados</div>
+                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd (PS1), .zip (Arcade).</p>
+                </div>
+              </li>
+            </ol>
+            <p className="text-[10px] text-muted-foreground font-body italic border-t border-border pt-3">
+              ⚠️ Tus ROMs nunca se suben a nuestros servidores. Solo se leen directamente desde tu Drive cuando juegas.
+            </p>
+          </div>
+        </details>
+      </div>
+
       {/* SECCIÓN DE RESUMEN */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
          <div className="bg-muted/10 border border-border/50 rounded p-3 flex items-center gap-3">
