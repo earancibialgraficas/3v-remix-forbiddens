@@ -67,7 +67,7 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
     ];
 
     setImgSrc(urls[stage] || "/placeholder.svg");
-  }, [gameName, consoleId, isCloud, defaultCover, stage]);
+  }, [gameName, consoleId, isCloud, defaultCover, customCover, stage]);
 
   return (
     <img 
