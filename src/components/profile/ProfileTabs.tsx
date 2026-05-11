@@ -267,10 +267,23 @@ export function SocialContentTab({ profile, user, onEditNetworks, limits, isStaf
     else if (url.includes("instagram.com")) { platform = "instagram"; contentType = (url.includes("/reel/") || url.includes("/reels/")) ? "reel" : "post"; }
     else if (url.includes("tiktok.com")) { platform = "tiktok"; contentType = "reel"; }
     else if (url.includes("facebook.com") || url.includes("fb.watch")) { platform = "facebook"; contentType = (url.includes("/video") || url.includes("watch")) ? "video" : "post"; }
-    const { error } = await supabase.from("social_content").insert({ id: crypto.randomUUID(), user_id: user.id, content_url: newUrl.trim(), title: newTitle.trim() || null, platform: platform, content_type: contentType, is_public: true } as any);
+    const newId = crypto.randomUUID();
+    const { error } = await supabase.from("social_content").insert({ id: newId, user_id: user.id, content_url: newUrl.trim(), title: newTitle.trim() || null, platform: platform, content_type: contentType, is_public: true } as any);
     setAdding(false);
     if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); } 
-    else { toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` }); setNewUrl(""); setNewTitle(""); fetchContents(); }
+    else {
+      // 🎯 PUNTOS BONUS: publicar video/reel = +20 pts
+      if (contentType === "video" || contentType === "reel") {
+        try {
+          const { awardBonusPoints } = await import("@/lib/awardPoints");
+          const result = await awardBonusPoints(user.id, null, "video_upload", newId, 20);
+          if (result?.awarded && result.awarded > 0) {
+            toast({ title: `+${result.awarded} pts`, description: "Bonus por publicar video" });
+          }
+        } catch {}
+      }
+      toast({ title: "Añadido al Social Hub", description: `Clasificado como ${platform} ${contentType}` }); setNewUrl(""); setNewTitle(""); fetchContents();
+    }
   };
 
   return (
