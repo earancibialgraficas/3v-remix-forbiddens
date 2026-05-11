@@ -35,12 +35,14 @@ const K = {
   ArrowDown:  { code: "ArrowDown",  key: "ArrowDown",  keyCode: 40 },
   ArrowLeft:  { code: "ArrowLeft",  key: "ArrowLeft",  keyCode: 37 },
   ArrowRight: { code: "ArrowRight", key: "ArrowRight", keyCode: 39 },
-  X:          { code: "KeyX",       key: "x",          keyCode: 88 }, // A
-  Z:          { code: "KeyZ",       key: "z",          keyCode: 90 }, // B
-  S:          { code: "KeyS",       key: "s",          keyCode: 83 }, // X
-  A:          { code: "KeyA",       key: "a",          keyCode: 65 }, // Y
-  Q:          { code: "KeyQ",       key: "q",          keyCode: 81 }, // L
-  W:          { code: "KeyW",       key: "w",          keyCode: 87 }, // R
+  X:          { code: "KeyX",       key: "x",          keyCode: 88 }, // A / Cross
+  Z:          { code: "KeyZ",       key: "z",          keyCode: 90 }, // B / Circle
+  S:          { code: "KeyS",       key: "s",          keyCode: 83 }, // X / Triangle
+  A:          { code: "KeyA",       key: "a",          keyCode: 65 }, // Y / Square
+  Q:          { code: "KeyQ",       key: "q",          keyCode: 81 }, // L1
+  W:          { code: "KeyW",       key: "w",          keyCode: 87 }, // R1
+  E:          { code: "KeyE",       key: "e",          keyCode: 69 }, // L2
+  R:          { code: "KeyR",       key: "r",          keyCode: 82 }, // R2
   Enter:      { code: "Enter",      key: "Enter",      keyCode: 13 }, // Start
   ShiftRight: { code: "ShiftRight", key: "Shift",      keyCode: 16 }, // Select
 } satisfies Record<string, KeyMap>;
@@ -150,7 +152,23 @@ function ActionCluster({
     );
   }
 
-  // SNES, GBA, GBC, MegaDrive, Arcade: A B X Y en diamante
+  // PS1: Triangle/Circle/Cross/Square en posición correcta
+  if (consoleName === "ps1") {
+    return (
+      <div className="relative w-[140px] h-[140px]">
+        <Btn label="△" onPress={press(K.S)} onRelease={release(K.S)}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 text-emerald-300" />
+        <Btn label="✕" onPress={press(K.X)} onRelease={release(K.X)}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 text-sky-300" />
+        <Btn label="□" onPress={press(K.A)} onRelease={release(K.A)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 text-pink-300" />
+        <Btn label="○" onPress={press(K.Z)} onRelease={release(K.Z)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 text-red-300" />
+      </div>
+    );
+  }
+
+  // SNES, GBA, GBC, MegaDrive, Arcade, N64: A B X Y en diamante
   return (
     <div className="relative w-[140px] h-[140px]">
       <Btn label="X" onPress={press(K.S)} onRelease={release(K.S)}
@@ -192,24 +210,34 @@ export default function TouchGamepad({ canvasRef, consoleName, visible, landscap
   const showShoulders =
     consoleName === "snes" || consoleName === "gba" || consoleName === "n64" ||
     consoleName === "ps1" || consoleName === "arcade";
+  const showTriggers = consoleName === "ps1" || consoleName === "n64";
 
   return (
     <div
       className="absolute inset-0 z-[55] pointer-events-none transition-opacity duration-300"
       style={{ opacity }}
     >
-      {/* L / R (shoulder buttons) - arriba a los lados */}
+      {/* L1/L2 - arriba izquierda apilados */}
       {showShoulders && (
-        <>
-          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 left-28" : "top-2 left-2")}>
-            <Btn label="L" onPress={press(K.Q)} onRelease={release(K.Q)}
-              className="w-14 h-9 !rounded-lg" small />
-          </div>
-          <div className={cn("absolute pointer-events-auto", landscape ? "top-4 right-28" : "top-2 right-2")}>
-            <Btn label="R" onPress={press(K.W)} onRelease={release(K.W)}
-              className="w-14 h-9 !rounded-lg" small />
-          </div>
-        </>
+        <div className={cn("absolute pointer-events-auto flex flex-col gap-1", landscape ? "top-4 left-28" : "top-2 left-2")}>
+          {showTriggers && (
+            <Btn label="L2" onPress={press(K.E)} onRelease={release(K.E)}
+              className="w-14 h-8 !rounded-lg" small />
+          )}
+          <Btn label={showTriggers ? "L1" : "L"} onPress={press(K.Q)} onRelease={release(K.Q)}
+            className="w-14 h-9 !rounded-lg" small />
+        </div>
+      )}
+      {/* R1/R2 - arriba derecha apilados */}
+      {showShoulders && (
+        <div className={cn("absolute pointer-events-auto flex flex-col gap-1 items-end", landscape ? "top-4 right-28" : "top-2 right-2")}>
+          {showTriggers && (
+            <Btn label="R2" onPress={press(K.R)} onRelease={release(K.R)}
+              className="w-14 h-8 !rounded-lg" small />
+          )}
+          <Btn label={showTriggers ? "R1" : "R"} onPress={press(K.W)} onRelease={release(K.W)}
+            className="w-14 h-9 !rounded-lg" small />
+        </div>
       )}
 
       {/* D-Pad - abajo izquierda */}

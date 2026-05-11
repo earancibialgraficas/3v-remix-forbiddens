@@ -26,6 +26,20 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const location = useLocation();
 
+  // 📱 Detectar orientación landscape en móvil/tablet → footer pasa a ser rightbar
+  const [isLandscape, setIsLandscape] = useState(false);
+  useEffect(() => {
+    if (!isMobile) { setIsLandscape(false); return; }
+    const check = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    check();
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
@@ -159,7 +173,12 @@ export default function MainLayout() {
       )}
 
       {/* 🔥 FIX MAESTRO: main en celular tiene exactamente 100dvh menos 104px del footer. 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 h-[calc(100dvh-104px)] overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible">
+      <main
+        className={cn(
+          "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible",
+          isLandscape ? "h-[100dvh] pr-[56px]" : "h-[calc(100dvh-104px)]"
+        )}
+      >
         {/* 🔥 FIX SECUNDARIO: Removidos paddings en celular (p-0) para que el hijo ocupe el 100% exacto 🔥 */}
         <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-4 xl:gap-8 p-0 lg:p-4 xl:p-6 pb-0 lg:pb-6 max-w-[1800px] mx-auto w-full h-full">
           <div className="flex-1 min-w-0 flex flex-col h-full">
@@ -172,24 +191,39 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* Footer (Visible en Tablet y Celular) */}
+        {/* Footer (Visible en Tablet y Celular). En landscape se convierte en rightbar */}
         {isMobile && (
           <div className={cn(
-            "lg:hidden fixed left-0 right-0 bg-card border-t border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
-            mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]",
+            "lg:hidden fixed bg-card border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
+            isLandscape
+              ? cn(
+                  "top-0 bottom-0 right-0 border-l",
+                  mobileRightOpen ? "w-[60vw] max-w-[380px]" : "w-[56px]"
+                )
+              : cn(
+                  "left-0 right-0 border-t",
+                  mobileRightOpen ? "h-[80vh] bottom-0" : "h-[110px] bottom-[-6px]"
+                ),
             !lBarVisible && !mobileRightOpen
-              ? "translate-y-full opacity-0 pointer-events-none"
-              : "translate-y-0 opacity-100 pointer-events-auto"
+              ? (isLandscape ? "translate-x-full opacity-0 pointer-events-none" : "translate-y-full opacity-0 pointer-events-none")
+              : "translate-x-0 translate-y-0 opacity-100 pointer-events-auto"
           )}>
             <button 
               onClick={toggleMobileRight}
-              className="w-full h-10 flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground border-b border-border/30 shrink-0"
+              className={cn(
+                "flex items-center justify-center gap-2 font-pixel text-[10px] text-muted-foreground border-border/30 shrink-0",
+                isLandscape ? "w-full h-12 border-b writing-mode-vertical" : "w-full h-10 border-b"
+              )}
             >
-              {mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-              INFO & COMUNIDAD
+              {isLandscape ? (
+                mobileRightOpen ? <ChevronUp className="w-4 h-4 rotate-90" /> : <ChevronDown className="w-4 h-4 rotate-90" />
+              ) : (
+                mobileRightOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+              )}
+              {!isLandscape && "INFO & COMUNIDAD"}
             </button>
             {/* Slot fijo del reproductor SOLO visible cuando el footer está colapsado (mini player). */}
-            {!mobileRightOpen && (
+            {!mobileRightOpen && !isLandscape && (
               <div className="shrink-0 px-3 pt-1 pb-1 pointer-events-auto">
                 <div id="music-slot-mobile-collapsed" className="w-full" />
               </div>
@@ -203,7 +237,6 @@ export default function MainLayout() {
               )}
             >
               <div className="pointer-events-auto">
-                {/* Slot scrolleable del reproductor: forma parte del contenido cuando el footer está abierto. */}
                 <div id="music-slot-mobile" className="w-full mb-3" />
                 <RightPanel />
               </div>
