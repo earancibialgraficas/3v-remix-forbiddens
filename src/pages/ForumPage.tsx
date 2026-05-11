@@ -104,27 +104,37 @@ function extractThumbnail(content: string): string | null {
   return null;
 }
 
-// NUEVO: Función para pre-procesar HTML y rescatar Markdown/URLs crudas en el RichTextRender
+// --------------------------------------------------------------------------------------
+// FUNCION MEJORADA: Rescata URLs crudas, Markdown e iframes desde el código HTML
+// --------------------------------------------------------------------------------------
 function preprocessHtmlForRender(html: string): string {
   if (!html) return "";
   let processed = html;
   
-  // 1. Convertir Markdown de imágenes: ![alt](url) -> <img ... />
-  processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" class="w-fit max-w-full rounded border border-border" style="margin: 0.5rem 0;" />');
-  
-  // 2. Convertir URLs crudas de imágenes y videos (evita romper enlaces href="..." ya existentes)
-  processed = processed.replace(/(^|[^"'])(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[\w=&-]+)?)([^"']|$)/ig, (match, p1, url, p3) => {
-     if (url.match(/\.(mp4|webm)/i)) {
-       return `${p1}<video src="${url}" controls class="w-full max-h-64 rounded border border-border" style="margin: 0.5rem 0;"></video>${p3}`;
-     }
-     return `${p1}<img src="${url}" class="w-fit max-w-full rounded border border-border" style="margin: 0.5rem 0;" />${p3}`;
-  });
+  // 1. Rescatar Markdown auto-linkeado: ![alt](<a href="url">url</a>) -> ![alt](url)
+  processed = processed.replace(/\!\[([^\]]*)\]\(\s*<a[^>]*href="([^"]+)"[^>]*>.*?<\/a>\s*\)/g, '![$1]($2)');
 
-  // 3. Convertir URLs crudas de YouTube
-  processed = processed.replace(/(^|[^"'])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)([^"']|$)/g, (match, p1, url, p3) => {
+  // 2. Convertir Markdown puro de imágenes: ![alt](url) -> <img ... />
+  processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />');
+  
+  // 3. Convertir URLs crudas de imágenes que el editor haya convertido en enlaces
+  processed = processed.replace(/<a[^>]*href="(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[\w=&-]+)?)"[^>]*>.*?<\/a>/ig, '<img src="$1" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />');
+
+  // 4. Convertir URLs crudas de imágenes sueltas (sin enlace)
+  processed = processed.replace(/(^|[^"'>])(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[\w=&-]+)?)([^"'<]|$)/ig, '$1<img src="$2" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />$3');
+
+  // 5. Convertir enlaces de YouTube a iframes embebidos
+  processed = processed.replace(/<a[^>]*href="(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)"[^>]*>.*?<\/a>/ig, (match, url) => {
      const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
      const id = idMatch ? idMatch[1] : '';
-     return `${p1}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border" style="margin: 0.5rem 0;" allowfullscreen></iframe>${p3}`;
+     return `<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>`;
+  });
+
+  // 6. Convertir YouTube crudo suelto a iframes embebidos
+  processed = processed.replace(/(^|[^"'>])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)([^"'<]|$)/g, (match, p1, url, p3) => {
+     const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
+     const id = idMatch ? idMatch[1] : '';
+     return `${p1}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>${p3}`;
   });
 
   return processed;
@@ -709,7 +719,7 @@ export default function ForumPage() {
     else if (format === "underline") setCommentText(prev => prev + "[u]texto[/u]");
     else if (format === "image") setCommentText(prev => prev + "![descripción](URL_imagen)");
     else if (format === "link") setCommentText(prev => prev + "[texto](URL)");
-    else if (format === "video") setCommentText(prev => prev + "https://youtube.com/watch?v=");
+    else if (format === "video") setCommentText(prev => prev + "https://www.youtube.com/watch?v=INGRESA_AQUI_LA_ID_DEL_VIDEO");
     else if (format === "align-left") setCommentText(prev => prev + "\n[align=left]texto[/align]\n");
     else if (format === "align-center") setCommentText(prev => prev + "\n[align=center]texto[/align]\n");
     else if (format === "align-right") setCommentText(prev => prev + "\n[align=right]texto[/align]\n");
@@ -926,7 +936,21 @@ export default function ForumPage() {
                     )}
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
                       {isHtml(post.content)
-                        ? <RichTextRender html={preprocessHtmlForRender(post.content)} />
+                        ? (
+                          <div 
+                            className="rich-text-wrapper"
+                            onClick={(e) => {
+                              const target = e.target as HTMLElement;
+                              if (target.tagName === 'IMG') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setForumModal({ src: (target as HTMLImageElement).src, type: "image" });
+                              }
+                            }}
+                          >
+                            <RichTextRender html={preprocessHtmlForRender(post.content)} />
+                          </div>
+                        )
                         : renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </>
