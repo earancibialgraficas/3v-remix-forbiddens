@@ -493,19 +493,29 @@ export default function BibliotecaPage() {
                 className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
               >
                 {game.isCloud && (
-                  <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
-                    <Cloud className="w-3 h-3 text-[#4285F4]" />
-                  </div>
+                  <>
+                    <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
+                      <Cloud className="w-3 h-3 text-[#4285F4]" />
+                    </div>
+                    <button
+                      onClick={(e) => openEdit(game, e)}
+                      className="absolute top-1 left-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10 hover:bg-neon-cyan/30 transition-colors"
+                      title="Editar nombre o portada"
+                    >
+                      <Pencil className="w-3 h-3 text-neon-cyan" />
+                    </button>
+                  </>
                 )}
                 <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
                   {isLaunchingCloud && game.isCloud ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   ) : (
                     <GameCover 
-                      gameName={game.name} 
+                      gameName={game.originalName || game.name} 
                       consoleId={game.console} 
                       isCloud={game.isCloud} 
                       defaultCover={game.coverUrl} 
+                      customCover={game.customCover}
                     />
                   )}
                 </div>
