@@ -60,6 +60,8 @@ interface SocialComment {
   parent_id?: string | null;
   display_name?: string;
   avatar_url?: string | null;
+  original_content?: string | null;
+  edited?: boolean;
 }
 
 const getAdvancedEmbedUrl = (url: string, platform: string) => {
