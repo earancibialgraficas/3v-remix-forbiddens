@@ -152,7 +152,23 @@ function ActionCluster({
     );
   }
 
-  // SNES, GBA, GBC, MegaDrive, Arcade: A B X Y en diamante
+  // PS1: Triangle/Circle/Cross/Square en posición correcta
+  if (consoleName === "ps1") {
+    return (
+      <div className="relative w-[140px] h-[140px]">
+        <Btn label="△" onPress={press(K.S)} onRelease={release(K.S)}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 text-emerald-300" />
+        <Btn label="✕" onPress={press(K.X)} onRelease={release(K.X)}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 text-sky-300" />
+        <Btn label="□" onPress={press(K.A)} onRelease={release(K.A)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 text-pink-300" />
+        <Btn label="○" onPress={press(K.Z)} onRelease={release(K.Z)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 text-red-300" />
+      </div>
+    );
+  }
+
+  // SNES, GBA, GBC, MegaDrive, Arcade, N64: A B X Y en diamante
   return (
     <div className="relative w-[140px] h-[140px]">
       <Btn label="X" onPress={press(K.S)} onRelease={release(K.S)}
