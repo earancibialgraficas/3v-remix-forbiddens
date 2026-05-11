@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { BookOpen, Lightbulb, Gamepad2, Shield, Zap, Send, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BookOpen, Lightbulb, Gamepad2, Shield, Zap, Send, X, Cloud, FolderOpen, Link2, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const tips = [
   { icon: Gamepad2, title: "Configura tu gamepad", desc: "Conecta un mando USB o Bluetooth y el emulador lo detectará automáticamente. Puedes remapear los botones desde el menú del emulador.", color: "text-neon-green" },
@@ -18,10 +20,23 @@ const tips = [
 export default function ConsejosPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const tutorialRef = useRef<HTMLDivElement>(null);
+  const [highlightTutorial, setHighlightTutorial] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [tipTitle, setTipTitle] = useState("");
   const [tipDesc, setTipDesc] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (location.hash === "#retroroms-tutorial") {
+      setTimeout(() => {
+        tutorialRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightTutorial(true);
+        setTimeout(() => setHighlightTutorial(false), 6000);
+      }, 200);
+    }
+  }, [location.hash]);
 
   const handleSubmit = async () => {
     if (!user || !tipTitle.trim() || !tipDesc.trim()) return;
@@ -87,6 +102,72 @@ ${tipDesc}[/COLOR]
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Tutorial RetroRoms (Drive sync) */}
+      <div
+        id="retroroms-tutorial"
+        ref={tutorialRef}
+        className={cn(
+          "bg-card border border-neon-yellow/40 rounded-lg p-5 space-y-4 transition-all",
+          highlightTutorial && "fire-highlight"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-400" />
+          <h2 className="font-pixel text-xs text-neon-yellow">CÓMO SINCRONIZAR TUS ROMS CON GOOGLE DRIVE</h2>
+        </div>
+        <p className="text-xs text-muted-foreground font-body leading-relaxed">
+          Lleva tu propia colección de ROMs y juégala desde cualquier dispositivo vinculando tu Google Drive a tu cuenta arcade.
+        </p>
+        <ol className="space-y-3 text-xs font-body text-foreground">
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">1.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <FolderOpen className="w-4 h-4 text-neon-cyan" /> Crea una carpeta llamada <code className="bg-muted px-1.5 py-0.5 rounded text-neon-yellow">RetroRoms</code> en tu Google Drive
+              </div>
+              <p className="text-muted-foreground mt-1">El nombre debe ser exactamente <strong>RetroRoms</strong> (sin espacios, respeta mayúsculas).</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">2.</span>
+            <div>
+              <div className="font-medium">Organiza tus ROMs por consola dentro de subcarpetas</div>
+              <p className="text-muted-foreground mt-1">
+                Subcarpetas recomendadas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
+              </p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">3.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta de Google desde la Biblioteca
+              </div>
+              <p className="text-muted-foreground mt-1">Pulsa el botón <strong>Vincular Google Drive</strong> arriba de la biblioteca y autoriza solo lectura.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">4.</span>
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Cloud className="w-4 h-4 text-neon-magenta" /> Pulsa el botón <strong>Actualizar</strong> al lado de la barra buscadora
+              </div>
+              <p className="text-muted-foreground mt-1">Cada vez que añadas nuevas ROMs a Drive, vuelve aquí y pulsa actualizar para sincronizarlas.</p>
+            </div>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="font-pixel text-neon-cyan shrink-0">5.</span>
+            <div>
+              <div className="font-medium">Formatos soportados</div>
+              <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue (PS1), .zip (Arcade). Tamaño máx por ROM: 64 MB.</p>
+            </div>
+          </li>
+        </ol>
+        <p className="text-[10px] text-muted-foreground font-body italic border-t border-border pt-3">
+          ⚠️ Tus ROMs nunca se suben a nuestros servidores. Solo se leen directamente desde tu Drive cuando juegas.
+        </p>
       </div>
 
       <div className="bg-card border border-neon-cyan/20 rounded p-4">

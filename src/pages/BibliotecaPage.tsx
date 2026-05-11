@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw } from "lucide-react";
+import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -427,6 +427,14 @@ export default function BibliotecaPage() {
         >
           <RefreshCw className={cn("w-4 h-4 text-muted-foreground", isRefreshing && "animate-spin")} />
         </Button>
+        <Link
+          to="/arcade/consejos#retroroms-tutorial"
+          className="fire-button inline-flex items-center gap-1 h-8 px-2.5 rounded-md text-[10px] font-pixel uppercase tracking-wider shrink-0"
+          title="Cómo sincronizar tus ROMs con Google Drive"
+        >
+          <Flame className="w-3.5 h-3.5" />
+          IMPORTANTE
+        </Link>
       </div>
 
       <div>
