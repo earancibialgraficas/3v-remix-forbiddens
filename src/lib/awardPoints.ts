@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 export async function awardBonusPoints(
   recipient: string,
   actor: string | null,
-  sourceType: "video_upload" | "video_watch_30s" | "photo_view",
+  sourceType: "video_upload" | "video_watch_30s" | "photo_view" | "photo_view_actor" | "like_received",
   sourceId: string,
   points: number,
 ): Promise<{ awarded: number; reason: string } | null> {
