@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.award_bonus_points(uuid, uuid, text, uuid, integer) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.award_bonus_points(uuid, uuid, text, uuid, integer) TO authenticated;
