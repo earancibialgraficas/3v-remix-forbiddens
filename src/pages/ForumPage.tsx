@@ -1106,7 +1106,7 @@ export default function ForumPage() {
             <span className={cn(stripHtmlToText(content).length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{stripHtmlToText(content).length}/{limits.maxForumChars}</span>
           </div>
           
-          <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs w-full sm:w-auto mt-2">
+          <Button size="sm" onClick={handlePost} disabled={posting || !stripHtmlToText(title).trim()} className="text-xs w-full sm:w-auto mt-2">
             {posting ? "Publicando..." : "Publicar Ahora"}
           </Button>
         </div>
