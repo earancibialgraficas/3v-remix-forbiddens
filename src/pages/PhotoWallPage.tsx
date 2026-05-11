@@ -434,6 +434,16 @@ export default function PhotoWallPage() {
   const [dailyGlobalCount, setDailyGlobalCount] = useState(0);
   const [sourceTab, setSourceTab] = useState<"all" | "friends">("all");
   const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null);
+  // 🎯 PUNTOS BONUS: expandir foto = +2 pts al autor (anti-self + dedupe vía BD)
+  const handleExpandPhoto = (photoId: string) => {
+    setExpandedPhotoId(photoId);
+    if (!user) return;
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo || !photo.user_id || photo.user_id === user.id) return;
+    import("@/lib/awardPoints").then(({ awardBonusPoints }) => {
+      awardBonusPoints(photo.user_id, user.id, "photo_view", photoId, 2);
+    });
+  };
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [hasScrolled, setHasScrolled] = useState(false);
   const [reportingPhotoIdMini, setReportingPhotoIdMini] = useState<string | null>(null);
