@@ -21,6 +21,8 @@ import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } from "@/lib/profileAppearance";
 import CommentModMenu from "@/components/CommentModMenu";
 import { EditableCommentContent } from "@/components/EditableCommentContent";
+import RichTextEditor, { RichTextRender } from "@/components/RichTextEditor";
+import { isHtml, stripHtmlToText } from "@/lib/htmlContent";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
