@@ -483,9 +483,11 @@ export default function ForumPage() {
 
   const handlePost = async () => {
     if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
-    if (!title.trim()) return;
-    if (title.trim().length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
-    if (content.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
+    const titleText = stripHtmlToText(title).trim();
+    const contentText = stripHtmlToText(content);
+    if (!titleText) return;
+    if (titleText.length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
+    if (contentText.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
@@ -673,7 +675,10 @@ export default function ForumPage() {
   const startEditPost = (post: any) => { setEditingPost(post.id); setEditTitle(post.title); setEditContent(post.content || ""); };
 
   const handleEditPost = async (postId: string) => {
-    if (!editTitle.trim()) return;
+    const titleText = stripHtmlToText(editTitle).trim();
+    if (!titleText) return;
+    if (titleText.length > 150) { toast({ title: "Título muy largo", variant: "destructive" }); return; }
+    if (stripHtmlToText(editContent).length > limits.maxForumChars) { toast({ title: "Contenido muy largo", variant: "destructive" }); return; }
     const { error } = await supabase.from("posts").update({ title: editTitle.trim(), content: editContent.trim() } as any).eq("id", postId);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Post editado" }); setEditingPost(null); fetchPosts(); }
@@ -862,23 +867,31 @@ export default function ForumPage() {
 
                 {editingPost === post.id ? (
                   <div className="space-y-3 animate-fade-in">
-                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
-                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[140px]" />
+                    <p className="text-[10px] font-body text-muted-foreground">Título</p>
+                    <RichTextEditor
+                      value={editTitle}
+                      onChange={setEditTitle}
+                      placeholder="Título del post (máx 150)"
+                      minHeight={50}
+                      singleLine
+                      showToolbar={false}
+                      allowImages={false}
+                      allowVideo={false}
+                      allowLinks={false}
+                    />
+                    <p className="text-[10px] font-body text-muted-foreground">Contenido</p>
+                    <RichTextEditor
+                      value={editContent}
+                      onChange={setEditContent}
+                      placeholder="Edita el contenido..."
+                      minHeight={140}
+                      allowImages={canUseImages}
+                      allowVideo={canUseVideo}
+                      allowLinks={canUseLinks}
+                    />
                     <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
-                      <span>Título: {editTitle.length}/150</span>
-                      <span className={cn(editContent.length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{editContent.length}/{limits.maxForumChars}</span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {canUseImages && <button onClick={() => setEditContent(prev => prev + "![descripción](URL_de_imagen)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar imagen"><Image className="w-4 h-4" /></button>}
-                      {canUseVideo && <button onClick={() => setEditContent(prev => prev + "https://youtube.com/watch?v=")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Insertar video"><Video className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "**texto**")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "*texto*")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Itálica"><Italic className="w-4 h-4" /></button>}
-                      {canUseBoldItalic && <button onClick={() => setEditContent(prev => prev + "[u]texto[/u]")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>}
-                      {canUseLinks && <button onClick={() => setEditContent(prev => prev + "[texto](URL)")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Enlace"><Link2 className="w-4 h-4" /></button>}
-                      <div className="w-px h-5 bg-border mx-1" />
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=left]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear izquierda"><AlignLeft className="w-4 h-4" /></button>
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=center]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
-                      <button onClick={() => setEditContent(prev => prev + "\n[align=right]texto[/align]\n")} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-neon-cyan transition-colors" title="Alinear derecha"><AlignRight className="w-4 h-4" /></button>
+                      <span>Título: {stripHtmlToText(editTitle).length}/150</span>
+                      <span className={cn(stripHtmlToText(editContent).length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{stripHtmlToText(editContent).length}/{limits.maxForumChars}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEditPost(post.id)} className="text-xs gap-1 h-8"><Check className="w-3 h-3" /> Guardar</Button>
@@ -887,9 +900,15 @@ export default function ForumPage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>
+                    {isHtml(post.title) ? (
+                      <RichTextRender html={post.title} className="text-2xl break-words font-body font-bold" />
+                    ) : (
+                      <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>
+                    )}
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
-                      {renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
+                      {isHtml(post.content)
+                        ? <RichTextRender html={post.content} />
+                        : renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </>
                 )}
@@ -1087,7 +1106,7 @@ export default function ForumPage() {
             <span className={cn(stripHtmlToText(content).length >= limits.maxForumChars ? "text-destructive font-bold" : "")}>{stripHtmlToText(content).length}/{limits.maxForumChars}</span>
           </div>
           
-          <Button size="sm" onClick={handlePost} disabled={posting || !title.trim()} className="text-xs w-full sm:w-auto mt-2">
+          <Button size="sm" onClick={handlePost} disabled={posting || !stripHtmlToText(title).trim()} className="text-xs w-full sm:w-auto mt-2">
             {posting ? "Publicando..." : "Publicar Ahora"}
           </Button>
         </div>
@@ -1112,9 +1131,9 @@ export default function ForumPage() {
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left', justifyContent: post.title_align === 'center' ? 'center' : post.title_align === 'right' ? 'flex-end' : 'flex-start' }}>
+                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: 'left' }}>
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
-                    {post.title}
+                    {stripHtmlToText(post.title)}
                   </h3>
                   <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground font-body">
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>

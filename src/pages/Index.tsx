@@ -7,6 +7,7 @@ import HomeCarousel from "@/components/HomeCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 interface PostItem {
   id: string;
@@ -97,10 +98,10 @@ export default function Index() {
                       </div>
                       <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug">
                         {post.is_pinned && <span className="text-neon-green text-[10px] mr-1">📌</span>}
-                        {post.title}
+                        {stripHtmlToText(post.title)}
                       </p>
                       {post.content && (
-                        <p className="text-[10px] text-muted-foreground font-body mt-0.5 line-clamp-1">{post.content.replace(/!\[.*?\]\(.*?\)/g, "[imagen]")}</p>
+                        <p className="text-[10px] text-muted-foreground font-body mt-0.5 line-clamp-1">{stripHtmlToText(post.content).replace(/!\[.*?\]\(.*?\)/g, "[imagen]")}</p>
                       )}
                     </div>
                   </div>

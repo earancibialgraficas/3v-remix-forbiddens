@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MessageSquare, Clock, Calendar } from "lucide-react";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 // 🔥 UTILIDADES PARA MINIATURAS (Igual que en PublicProfilePage) 🔥
 const getSeedFromId = (str: string) => {
@@ -107,7 +108,7 @@ export default function PostsTab({ userPosts }: { userPosts: any[] }) {
 
                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                    <Link to={getCategoryRoute(post.category || "gaming-anime-foro", post.id)} className="text-[11px] font-bold text-foreground hover:text-neon-cyan hover:underline line-clamp-2 leading-snug">
-                     {post.title}
+                     {stripHtmlToText(post.title)}
                    </Link>
                    
                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[9px] text-muted-foreground">
