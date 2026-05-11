@@ -675,7 +675,10 @@ export default function ForumPage() {
   const startEditPost = (post: any) => { setEditingPost(post.id); setEditTitle(post.title); setEditContent(post.content || ""); };
 
   const handleEditPost = async (postId: string) => {
-    if (!editTitle.trim()) return;
+    const titleText = stripHtmlToText(editTitle).trim();
+    if (!titleText) return;
+    if (titleText.length > 150) { toast({ title: "Título muy largo", variant: "destructive" }); return; }
+    if (stripHtmlToText(editContent).length > limits.maxForumChars) { toast({ title: "Contenido muy largo", variant: "destructive" }); return; }
     const { error } = await supabase.from("posts").update({ title: editTitle.trim(), content: editContent.trim() } as any).eq("id", postId);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Post editado" }); setEditingPost(null); fetchPosts(); }
