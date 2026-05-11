@@ -14,6 +14,8 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 import CommentModMenu from "@/components/CommentModMenu";
+import { EditableCommentContent } from "@/components/EditableCommentContent";
+import { formatRelativeDate } from "@/lib/relativeDate";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -307,8 +309,20 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                     <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
-                        <span className="text-primary font-bold block text-[9px] mb-0.5">{c.display_name}</span>
-                        <span className="text-foreground/90 break-words">{c.content}</span>
+                        <div className="flex items-baseline gap-1.5 mb-0.5 flex-wrap">
+                          <span className="text-primary font-bold text-[9px]">{c.display_name}</span>
+                          <span className="text-[8px] text-muted-foreground/70">{formatRelativeDate(c.created_at)}</span>
+                        </div>
+                        <EditableCommentContent
+                          commentId={c.id}
+                          content={c.content}
+                          originalContent={(c as any).original_content}
+                          edited={(c as any).edited}
+                          isOwner={!!user && user.id === c.user_id}
+                          table="social_comments"
+                          renderContent={(text) => <span className="text-foreground/90 break-words">{text}</span>}
+                          onUpdated={(newContent) => setComments(prev => prev.map(cc => cc.id === c.id ? { ...cc, content: newContent, edited: true, original_content: (cc as any).original_content || cc.content } as any : cc))}
+                        />
                       </div>
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="text-[8px] text-muted-foreground hover:text-primary font-bold transition-colors">Responder</button>

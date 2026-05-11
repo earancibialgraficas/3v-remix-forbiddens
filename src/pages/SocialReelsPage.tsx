@@ -13,6 +13,8 @@ import { getAvatarBorderStyle, getNameStyle } from "@/lib/profileAppearance";
 import { useToast } from "@/hooks/use-toast";
 import ReportModal from "@/components/ReportModal";
 import CommentModMenu from "@/components/CommentModMenu";
+import { EditableCommentContent } from "@/components/EditableCommentContent";
+import { formatRelativeDate } from "@/lib/relativeDate";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -58,6 +60,8 @@ interface SocialComment {
   parent_id?: string | null;
   display_name?: string;
   avatar_url?: string | null;
+  original_content?: string | null;
+  edited?: boolean;
 }
 
 const getAdvancedEmbedUrl = (url: string, platform: string) => {
@@ -786,9 +790,18 @@ function SnapCard({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-primary font-medium">{c.display_name}</span>
-                      <span className="text-[8px] text-muted-foreground/70 font-body">{formatFeedDate(c.created_at)}</span>
+                      <span className="text-[8px] text-muted-foreground/70 font-body">{formatRelativeDate(c.created_at)}</span>
                     </div>
-                    <span className="text-foreground/90 break-words">{c.content}</span>
+                    <EditableCommentContent
+                      commentId={c.id}
+                      content={c.content}
+                      originalContent={c.original_content}
+                      edited={c.edited}
+                      isOwner={!!user && user.id === c.user_id}
+                      table="social_comments"
+                      renderContent={(text) => <span className="text-foreground/90 break-words">{text}</span>}
+                      onUpdated={(newContent) => setComments(prev => prev.map(cc => cc.id === c.id ? { ...cc, content: newContent, edited: true, original_content: cc.original_content || cc.content } : cc))}
+                    />
                     {user && (
                       <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
                         <Reply className="w-2.5 h-2.5" /> Responder

@@ -254,6 +254,7 @@ export default function ForumPage() {
   
   const [showNewPost, setShowNewPost] = useState(false);
   const [title, setTitle] = useState("");
+  const [titleAlign, setTitleAlign] = useState<"left" | "center" | "right">("left");
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
@@ -488,10 +489,10 @@ export default function ForumPage() {
     const customSig = (profile as any)?.signature;
     const signature = canUseSignature ? (customSig ? customSig : ((profile?.membership_tier && profile.membership_tier !== "novato") || isStaff ? `— ${profile?.display_name} [${isMasterWeb ? "MASTER WEB" : isAdmin ? "ADMIN" : "STAFF"}]` : null)) : null;
 
-    const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature } as any);
+    const { error } = await supabase.from("posts").insert({ user_id: user.id, title: title.trim(), content: content.trim(), category: category === "trending" ? "gaming-anime-foro" : category, signature, title_align: titleAlign } as any);
     setPosting(false);
     if (error) { if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" }); }
-    else { setTitle(""); setContent(""); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
+    else { setTitle(""); setContent(""); setTitleAlign("left"); setShowNewPost(false); toast({ title: "Post publicado" }); fetchPosts(); }
   };
 
   const votingRef = useRef<Record<string, boolean>>({});
@@ -884,7 +885,7 @@ export default function ForumPage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{post.title}</h1>
+                    <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
                       {renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
@@ -1053,7 +1054,13 @@ export default function ForumPage() {
             <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
+          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" style={{ textAlign: titleAlign }} />
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="font-body">Alinear título:</span>
+            <button type="button" onClick={() => setTitleAlign("left")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "left" && "bg-neon-cyan/20 text-neon-cyan")} title="Izquierda"><AlignLeft className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setTitleAlign("center")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "center" && "bg-neon-cyan/20 text-neon-cyan")} title="Centro"><AlignCenter className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setTitleAlign("right")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "right" && "bg-neon-cyan/20 text-neon-cyan")} title="Derecha"><AlignRight className="w-3.5 h-3.5" /></button>
+          </div>
           <Textarea placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`} value={content} onChange={(e) => setContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[120px]" />
           <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
             <span>Título: {title.length}/150</span>
@@ -1098,7 +1105,7 @@ export default function ForumPage() {
                 className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left', justifyContent: post.title_align === 'center' ? 'center' : post.title_align === 'right' ? 'flex-end' : 'flex-start' }}>
                     {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
                     {post.title}
                   </h3>
