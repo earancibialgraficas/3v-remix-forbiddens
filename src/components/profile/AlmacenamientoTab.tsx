@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { HardDrive, Trash2, Gamepad2, X, Clock, FileText } from "lucide-react";
+import { HardDrive, Trash2, Gamepad2, X, Clock, FileText, Flame, FolderOpen, Link2, Cloud, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
