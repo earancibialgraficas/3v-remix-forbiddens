@@ -36,6 +36,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         .eq('user_id', user.id);
       
       setIsLinked((count && count > 0) ? true : false);
+      setLinkedCount(count || 0);
     } catch (error) {
       console.error("Error verificando estado de Drive", error);
     } finally {
