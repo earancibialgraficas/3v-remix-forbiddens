@@ -1471,15 +1471,17 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             </div>
 
             <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={minimizeGame}
-                className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10"
-                title="Minimizar (Enviar a esquina)"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </Button>
+              {!isExpanded && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={minimizeGame}
+                  className="h-7 w-7 text-neon-cyan hover:bg-neon-cyan/10"
+                  title="Minimizar (Enviar a esquina)"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </Button>
+              )}
 
               {/* 🔥 BOTÓN DE RESTAURAR OCULTO SI ESTÁS EN MODO TEATRO 🔥 */}
               {isExpanded && (
