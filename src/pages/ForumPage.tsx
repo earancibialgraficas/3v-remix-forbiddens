@@ -105,47 +105,42 @@ function extractThumbnail(content: string): string | null {
 }
 
 // --------------------------------------------------------------------------------------
-// FUNCION MEJORADA: Rescata URLs crudas, Markdown e iframes desde el código HTML
+// FUNCION ROBUSTA: Transforma el HTML respetando los estilos para que el navegador lo dibuje directo
 // --------------------------------------------------------------------------------------
 function preprocessHtmlForRender(html: string): string {
   if (!html) return "";
   let processed = html;
   
-  // 1. Limpiar Markdown malformado si el editor convirtió la URL en un link azul: ![alt](<a href="...">url</a>)
+  // 1. Limpiar Markdown envuelto en un link (pasa mucho cuando el editor auto-linkea la URL)
   processed = processed.replace(/\!\[([^\]]*)\]\(\s*<a[^>]*href=["']([^"']+)["'][^>]*>.*?<\/a>\s*\)/g, '![$1]($2)');
 
-  // 2. Convertir Markdown puro: ![alt](url) -> <img ... />
-  processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />');
+  // 2. Convertir Markdown puro de imagen a un tag <img /> con fallback (cartel de error)
+  processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, 
+    '<img src="$2" alt="$1" class="w-full max-w-2xl h-auto object-contain mx-auto block my-4 rounded-lg border border-border/50 cursor-zoom-in bg-black/20" style="max-height: 60vh; min-height: 100px;" onerror="this.onerror=null;this.src=\'https://placehold.co/600x400/1a1a1a/4285F4?text=Enlace+Roto\';" />'
+  );
   
-  // 3. Convertir <a> tags (links) que apuntan directo a imágenes/videos a etiquetas visuales
-  processed = processed.replace(/<a[^>]*href=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[^"']*)?)["'][^>]*>.*?<\/a>/ig, (match, url) => {
-     if (url.match(/\.(mp4|webm)/i)) {
-         return `<video src="${url}" controls class="w-full max-h-64 rounded border border-border my-2"></video>`;
-     }
-     return `<img src="${url}" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />`;
-  });
+  // 3. Convertir enlaces de imágenes crudos (<a href="...jpg">) a tags <img />
+  processed = processed.replace(/<a[^>]*href=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^"']*)?)["'][^>]*>.*?<\/a>/ig, 
+    '<img src="$1" class="w-full max-w-2xl h-auto object-contain mx-auto block my-4 rounded-lg border border-border/50 cursor-zoom-in bg-black/20" style="max-height: 60vh; min-height: 100px;" onerror="this.onerror=null;this.src=\'https://placehold.co/600x400/1a1a1a/4285F4?text=Enlace+Roto\';" />'
+  );
 
-  // 4. Convertir URLs crudas flotando como texto simple
-  // (usamos [^"'\w=] para no romper atributos HTML internos del editor como src="" o href="")
-  processed = processed.replace(/(^|[^"'\w=])(https?:\/\/[^\s<>"']+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[^\s<>"']*)?)/ig, (match, prefix, url) => {
-     if (url.match(/\.(mp4|webm)/i)) {
-         return `${prefix}<video src="${url}" controls class="w-full max-h-64 rounded border border-border my-2"></video>`;
-     }
-     return `${prefix}<img src="${url}" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />`;
-  });
+  // 4. Convertir texto plano de imágenes sueltas a tags <img />
+  processed = processed.replace(/(^|[^"'\w=])(https?:\/\/[^\s<>"']+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<>"']*)?)/ig, 
+    '$1<img src="$2" class="w-full max-w-2xl h-auto object-contain mx-auto block my-4 rounded-lg border border-border/50 cursor-zoom-in bg-black/20" style="max-height: 60vh; min-height: 100px;" onerror="this.onerror=null;this.src=\'https://placehold.co/600x400/1a1a1a/4285F4?text=Enlace+Roto\';" />'
+  );
 
-  // 5. Convertir <a> tags de YouTube a iframes
+  // 5. Convertir enlaces de YouTube a iframes
   processed = processed.replace(/<a[^>]*href=["'](https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)["'][^>]*>.*?<\/a>/ig, (match, url) => {
      const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
      const id = idMatch ? idMatch[1] : '';
-     return `<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>`;
+     return `<div class="w-full max-w-3xl mx-auto aspect-video rounded-lg overflow-hidden border border-border/50 my-4 shadow-md"><iframe src="https://www.youtube.com/embed/${id}" class="w-full h-full" allowfullscreen></iframe></div>`;
   });
 
   // 6. Convertir YouTube crudo suelto a iframes
   processed = processed.replace(/(^|[^"'\w=])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)/ig, (match, prefix, url) => {
      const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
      const id = idMatch ? idMatch[1] : '';
-     return `${prefix}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>`;
+     return `${prefix}<div class="w-full max-w-3xl mx-auto aspect-video rounded-lg overflow-hidden border border-border/50 my-4 shadow-md"><iframe src="https://www.youtube.com/embed/${id}" class="w-full h-full" allowfullscreen></iframe></div>`;
   });
 
   return processed;
@@ -941,7 +936,10 @@ export default function ForumPage() {
                 ) : (
                   <>
                     {isHtml(post.title) ? (
-                      <RichTextRender html={post.title} className="text-2xl break-words font-body font-bold" />
+                      <div 
+                        className="text-2xl break-words font-body font-bold"
+                        dangerouslySetInnerHTML={{ __html: post.title }}
+                      />
                     ) : (
                       <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>
                     )}
@@ -949,7 +947,7 @@ export default function ForumPage() {
                       {isHtml(post.content)
                         ? (
                           <div 
-                            className="rich-text-wrapper"
+                            className="rich-text-wrapper prose prose-invert max-w-none"
                             onClick={(e) => {
                               const target = e.target as HTMLElement;
                               if (target.tagName === 'IMG') {
@@ -958,9 +956,8 @@ export default function ForumPage() {
                                 setForumModal({ src: (target as HTMLImageElement).src, type: "image" });
                               }
                             }}
-                          >
-                            <RichTextRender html={preprocessHtmlForRender(post.content)} />
-                          </div>
+                            dangerouslySetInnerHTML={{ __html: preprocessHtmlForRender(post.content) }}
+                          />
                         )
                         : renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
