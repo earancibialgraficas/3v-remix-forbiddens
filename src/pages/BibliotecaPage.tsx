@@ -20,6 +20,7 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
   const [imgSrc, setImgSrc] = useState(customCover || defaultCover || "/placeholder.svg");
 
   useEffect(() => {
+    if (customCover) { setImgSrc(customCover); return; }
     if (!isCloud) {
       setImgSrc(defaultCover || "/placeholder.svg");
       return;
