@@ -557,6 +557,37 @@ export default function BibliotecaPage() {
         </div>
       </div>
 
+      <Dialog open={!!editingGame} onOpenChange={(o) => !o && setEditingGame(null)}>
+        <DialogContent className="bg-card border-neon-cyan/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-xs text-neon-cyan flex items-center gap-2">
+              <Pencil className="w-4 h-4" /> EDITAR JUEGO
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-[10px] font-body text-muted-foreground uppercase tracking-wider">Nombre personalizado</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder={editingGame?.originalName} className="bg-muted text-sm mt-1" />
+            </div>
+            <div>
+              <label className="text-[10px] font-body text-muted-foreground uppercase tracking-wider">URL de portada</label>
+              <Input value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." className="bg-muted text-sm mt-1" />
+              {editCover && (
+                <div className="mt-2 aspect-square w-32 bg-muted rounded overflow-hidden border border-border">
+                  <img src={editCover} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setEditingGame(null)}>Cancelar</Button>
+            <Button size="sm" onClick={saveGameEdit} disabled={savingEdit} className="bg-neon-cyan/80 text-black hover:bg-neon-cyan">
+              {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
