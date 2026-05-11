@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { BookOpen, Lightbulb, Gamepad2, Shield, Zap, Send, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BookOpen, Lightbulb, Gamepad2, Shield, Zap, Send, X, Cloud, FolderOpen, Link2, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const tips = [
   { icon: Gamepad2, title: "Configura tu gamepad", desc: "Conecta un mando USB o Bluetooth y el emulador lo detectará automáticamente. Puedes remapear los botones desde el menú del emulador.", color: "text-neon-green" },
