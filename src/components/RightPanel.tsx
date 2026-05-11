@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import Footer from "@/components/Footer";
 import MembershipBadge from "@/components/MembershipBadge";
-// ChillMusicPlayer ahora se monta una sola vez en MainLayout y se portalea a los slots
 import MiniCarousel from "@/components/MiniCarousel";
 import UserPopup from "@/components/UserPopup";
 
@@ -64,18 +63,48 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchPremium = async () => {
-      // Traemos más para poder filtrar staff y aún mostrar 3
-      const { data } = await supabase.from("profiles").select("id, user_id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role").neq("membership_tier", "novato").order("created_at", { ascending: true }).limit(20);
+      // Traemos más usuarios para poder filtrar de manera segura.
+      // EXCLUSIÓN DIRECTA: Filtramos "novato" y cualquier tier que uses internamente para staff
+      // si es que en membership_tier guardan algo especial.
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, user_id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role")
+        .neq("membership_tier", "novato")
+        .order("created_at", { ascending: true })
+        .limit(30);
+
       if (data) {
         const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
-        const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+        
+        // Intentamos buscar roles (esto puede fallar si no hay sesión y el RLS bloquea)
+        const { data: rolesData, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds);
+
         const rolesMap: Record<string, string[]> = {};
-        (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
+        if (!rolesError && rolesData) {
+            (rolesData || []).forEach((r: any) => { (rolesMap[r.user_id] = rolesMap[r.user_id] || []).push(r.role); });
+        }
+
         const STAFF = new Set(["master_web", "admin", "moderator"]);
+        
         const filtered = (data as any[])
           .map(d => ({ ...d, roles: rolesMap[d.user_id] || [] }))
-          .filter(d => !d.roles.some((r: string) => STAFF.has(r)))
+          .filter(d => {
+             // Si logramos cargar roles, filtramos usando eso.
+             if (!rolesError && rolesData) {
+                 return !d.roles.some((r: string) => STAFF.has(r));
+             }
+             // RESPALDO SI NO HAY SESIÓN: Ocultamos usuarios si tienen color_staff_role asignado,
+             // o si su display_name es un nombre conocido de staff (ajusta esto si tienes nombres fijos)
+             // Esto evita que salgan en el top premium cuando no estás logueado.
+             return !d.color_staff_role && 
+                    !d.display_name.toLowerCase().includes("admin") &&
+                    !d.display_name.toLowerCase().includes("master");
+          })
           .slice(0, 3);
+          
         setPremiumUsers(filtered as PremiumUser[]);
       }
     };
@@ -93,14 +122,9 @@ export default function RightPanel() {
     fetchStats();
   }, []);
 
-// 🔥 FIX: Añadimos un temporizador para recalcular el scroll una vez que cargue el carrusel y reproductor
   useEffect(() => {
-    // Calculamos el scroll inmediatamente
     handleScroll();
-    
-    // Y volvemos a calcularlo medio segundo después por si algo tardó en cargar
     const timer = setTimeout(() => handleScroll(), 500); 
-    
     window.addEventListener("resize", handleScroll);
     return () => {
       clearTimeout(timer);
@@ -108,7 +132,6 @@ export default function RightPanel() {
     };
   }, [topUsers, premiumUsers]);
 
-  // EVENTO PARA RESETEAR EL SCROLL SI SE MINIMIZA EL PANEL
   useEffect(() => {
     const handleSync = (e: any) => {
       if (!e.detail.open && scrollRef.current) {
@@ -215,7 +238,6 @@ export default function RightPanel() {
           </div>
 
           <div className="mt-6 pt-4 border-t border-border space-y-4">
-            {/* 🎵 Slot escritorio — el ChillMusicPlayer se portaleará aquí cuando NO hay juego abierto */}
             {!isMobile && <div id="music-slot-desktop" className="w-full" />}
             <Footer />
           </div>

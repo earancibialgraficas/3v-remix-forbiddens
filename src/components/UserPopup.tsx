@@ -64,7 +64,9 @@ export default function UserPopup({
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
 
-  const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator");
+  // Consideramos Staff a cualquiera con un rol oficial O a quien le pasen un color_staff_role
+  // Esto ayuda a que el perfil se vea igual de bien sin estar logueados.
+  const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator") || Boolean(colorStaffRole);
 
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
@@ -101,7 +103,6 @@ export default function UserPopup({
     };
   }, [open]);
 
-  // Cargar roles actuales al abrir el modal de gestión
   const openRolesModal = async () => {
     setOpen(false);
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -201,6 +202,8 @@ export default function UserPopup({
             >
               <Eye className="w-3 h-3" /> Ver perfil
             </button>
+            
+            {/* Solo mostrar opciones sociales si ESTÁ logueado Y no es él mismo */}
             {user && user.id !== userId && (
               <>
                 <button
@@ -239,7 +242,8 @@ export default function UserPopup({
               </>
             )}
 
-            {isCurrentUserStaff && user?.id !== userId && (
+            {/* Opciones exclusivas del Staff logueado */}
+            {user && isCurrentUserStaff && user.id !== userId && (
               <>
                 <div className="border-t border-border mt-1 pt-1">
                   <p className="text-[8px] font-pixel text-neon-magenta mb-1 px-2">MODERACIÓN</p>
@@ -267,6 +271,13 @@ export default function UserPopup({
                   </button>
                 )}
               </>
+            )}
+
+            {/* Si NO está logueado, mostrar un pequeño aviso sutil */}
+            {!user && (
+              <div className="text-center pt-2 mt-2 border-t border-border/50">
+                 <p className="text-[9px] text-muted-foreground/60 italic font-body">Inicia sesión para interactuar</p>
+              </div>
             )}
           </div>
         </div>,
