@@ -723,8 +723,20 @@ function SnapCard({
               {comments.map(c => (
                 <div key={c.id} id={`comment-${c.id}`} className={cn("group text-[10px] font-body flex items-start justify-between gap-2", c.parent_id && "ml-4 border-l border-border pl-2")}>
                   <div className="flex-1">
-                    <span className="text-primary font-medium">{c.display_name}: </span>
-                    <span className="text-foreground/90">{c.content}</span>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-primary font-medium">{c.display_name}</span>
+                      <span className="text-[8px] text-muted-foreground/70">{formatRelativeDate(c.created_at)}</span>
+                    </div>
+                    <EditableCommentContent
+                      commentId={c.id}
+                      content={c.content}
+                      originalContent={(c as any).original_content}
+                      edited={(c as any).edited}
+                      isOwner={!!user && user.id === c.user_id}
+                      table="social_comments"
+                      renderContent={(text) => <span className="text-foreground/90">{text}</span>}
+                      onUpdated={(newContent) => setComments(prev => prev.map(cc => cc.id === c.id ? { ...cc, content: newContent, edited: true, original_content: (cc as any).original_content || cc.content } as any : cc))}
+                    />
                     {user && (
                       <button onClick={() => setReplyTo({id: c.id, name: c.display_name || "Usuario"})} className="flex items-center gap-0.5 mt-1 text-[9px] text-muted-foreground hover:text-primary transition-colors">
                         <Reply className="w-2.5 h-2.5" /> Responder
