@@ -14,6 +14,8 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReportModal from "@/components/ReportModal";
 import CommentModMenu from "@/components/CommentModMenu";
+import { EditableCommentContent } from "@/components/EditableCommentContent";
+import { formatRelativeDate } from "@/lib/relativeDate";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
