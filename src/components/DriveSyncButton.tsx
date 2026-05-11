@@ -13,6 +13,8 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [isLinked, setIsLinked] = useState(false);
   const [isLoadingState, setIsLoadingState] = useState(true);
+  const [linkedCount, setLinkedCount] = useState(0);
+  const MAX_RECOMMENDED = 200;
 
   useEffect(() => {
     const script = document.createElement('script');
