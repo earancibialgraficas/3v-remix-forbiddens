@@ -1054,7 +1054,13 @@ export default function ForumPage() {
             <h3 className="font-body font-bold text-sm text-neon-green">NUEVO POST</h3>
             <button onClick={() => setShowNewPost(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
-          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" />
+          <Input placeholder="Título del post (máx 150)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} className="h-9 bg-muted text-sm font-body font-bold" style={{ textAlign: titleAlign }} />
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="font-body">Alinear título:</span>
+            <button type="button" onClick={() => setTitleAlign("left")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "left" && "bg-neon-cyan/20 text-neon-cyan")} title="Izquierda"><AlignLeft className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setTitleAlign("center")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "center" && "bg-neon-cyan/20 text-neon-cyan")} title="Centro"><AlignCenter className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setTitleAlign("right")} className={cn("p-1 rounded hover:bg-muted", titleAlign === "right" && "bg-neon-cyan/20 text-neon-cyan")} title="Derecha"><AlignRight className="w-3.5 h-3.5" /></button>
+          </div>
           <Textarea placeholder={`Escribe tu contenido... (Máx ${limits.maxForumChars} carac.)`} value={content} onChange={(e) => setContent(e.target.value)} maxLength={limits.maxForumChars} className="bg-muted text-sm font-body min-h-[120px]" />
           <div className="flex justify-between text-[9px] font-body text-muted-foreground -mt-1">
             <span>Título: {title.length}/150</span>
