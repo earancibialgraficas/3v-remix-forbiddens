@@ -149,7 +149,6 @@ export default function RichTextEditor({
 
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ duration: 100, placement: "top" }}
         className="flex items-center gap-0.5 bg-card border border-neon-cyan/40 rounded-md shadow-[0_0_20px_rgba(0,255,255,0.25)] p-1 flex-wrap max-w-[95vw]"
       >
         <Btn active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="Negrita"><Bold className="w-3.5 h-3.5" /></Btn>
