@@ -124,7 +124,7 @@ export default function TrendingPosts() {
                   
                   <div className="min-w-0 flex-1 pr-6">
                     <p className="text-sm font-body text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
-                      {post.title}
+                      {stripHtmlToText(post.title)}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground font-body">
                       <span className={cn("font-medium", catColor)}>{post.category.replace(/-/g, ' ').toUpperCase()}</span>
