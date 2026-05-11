@@ -104,6 +104,32 @@ function extractThumbnail(content: string): string | null {
   return null;
 }
 
+// NUEVO: Función para pre-procesar HTML y rescatar Markdown/URLs crudas en el RichTextRender
+function preprocessHtmlForRender(html: string): string {
+  if (!html) return "";
+  let processed = html;
+  
+  // 1. Convertir Markdown de imágenes: ![alt](url) -> <img ... />
+  processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" class="w-fit max-w-full rounded border border-border" style="margin: 0.5rem 0;" />');
+  
+  // 2. Convertir URLs crudas de imágenes y videos (evita romper enlaces href="..." ya existentes)
+  processed = processed.replace(/(^|[^"'])(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[\w=&-]+)?)([^"']|$)/ig, (match, p1, url, p3) => {
+     if (url.match(/\.(mp4|webm)/i)) {
+       return `${p1}<video src="${url}" controls class="w-full max-h-64 rounded border border-border" style="margin: 0.5rem 0;"></video>${p3}`;
+     }
+     return `${p1}<img src="${url}" class="w-fit max-w-full rounded border border-border" style="margin: 0.5rem 0;" />${p3}`;
+  });
+
+  // 3. Convertir URLs crudas de YouTube
+  processed = processed.replace(/(^|[^"'])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)([^"']|$)/g, (match, p1, url, p3) => {
+     const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
+     const id = idMatch ? idMatch[1] : '';
+     return `${p1}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border" style="margin: 0.5rem 0;" allowfullscreen></iframe>${p3}`;
+  });
+
+  return processed;
+}
+
 type ContentPermissions = { allowRichText: boolean; allowImages: boolean; allowLinks: boolean; allowVideo: boolean; };
 const elevatedTiers = ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
 const staffRoleNames = ['master_web', 'admin', 'moderator', 'master web', 'moderador', 'staff'];
@@ -368,8 +394,6 @@ export default function ForumPage() {
 
   useEffect(() => { fetchPosts(); }, [category, sortBy, filterCategory, user?.id]);
 
-  // Si cambia la categoría (ruta) mientras hay un post abierto, lo cerramos
-  // para evitar que se quede "cargando" un post que no pertenece a esta sección.
   useEffect(() => {
     setSelectedPostId(null);
     setReplyTo(null);
@@ -384,7 +408,6 @@ export default function ForumPage() {
       setSelectedPostId(directPostId);
       fetchComments(directPostId);
     }
-    // Si la URL ya no tiene ?post (back del navegador), cerramos el post abierto
     if (!directPostId && selectedPostId) {
       setSelectedPostId(null);
       setReplyTo(null);
@@ -420,7 +443,6 @@ export default function ForumPage() {
     return () => clearInterval(scrollInterval);
   }, [selectedPostId, directCommentId, posts, comments]);
 
-  // Cargar estadísticas del autor del post abierto
   useEffect(() => {
     if (!selectedPostId) { setAuthorStats(null); return; }
     const post = posts.find(p => p.id === selectedPostId);
@@ -469,7 +491,6 @@ export default function ForumPage() {
     setReplyTo(null);
     setCommentText("");
     setEditingPost(null);
-    // Push (no replace) para que el botón "atrás" del navegador pueda volver al post
     navigate(location.pathname);
   };
 
@@ -526,8 +547,6 @@ export default function ForumPage() {
     setUserVotes(prev => ({ ...prev, [postId]: newVote }));
 
     try {
-      // Primero intentamos el RPC atómico. Si la otra copia no lo tiene compatible,
-      // hacemos fallback directo sobre post_votes con ids como string/text.
       const { data: rpcData, error: rpcErr } = await supabase.rpc("toggle_post_vote", {
         p_post_id: postId, p_user_id: user.id, p_vote_type: voteType,
       });
@@ -907,7 +926,7 @@ export default function ForumPage() {
                     )}
                     <div className="text-sm text-foreground leading-relaxed font-body mt-4 min-w-0">
                       {isHtml(post.content)
-                        ? <RichTextRender html={post.content} />
+                        ? <RichTextRender html={preprocessHtmlForRender(post.content)} />
                         : renderAlignedContent(post.content, postPermissions, (src, type) => setForumModal({ src, type }))}
                     </div>
                   </>
