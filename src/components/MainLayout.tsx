@@ -26,6 +26,20 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const location = useLocation();
 
+  // 📱 Detectar orientación landscape en móvil/tablet → footer pasa a ser rightbar
+  const [isLandscape, setIsLandscape] = useState(false);
+  useEffect(() => {
+    if (!isMobile) { setIsLandscape(false); return; }
+    const check = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    check();
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
