@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MessageSquare, Clock, Calendar } from "lucide-react";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 // 🔥 UTILIDADES PARA MINIATURAS (Igual que en PublicProfilePage) 🔥
 const getSeedFromId = (str: string) => {
