@@ -173,7 +173,12 @@ export default function MainLayout() {
       )}
 
       {/* 🔥 FIX MAESTRO: main en celular tiene exactamente 100dvh menos 104px del footer. 🔥 */}
-      <main className="flex-1 flex flex-col min-w-0 h-[calc(100dvh-104px)] overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible">
+      <main
+        className={cn(
+          "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible",
+          isLandscape ? "h-[100dvh] pr-[56px]" : "h-[calc(100dvh-104px)]"
+        )}
+      >
         {/* 🔥 FIX SECUNDARIO: Removidos paddings en celular (p-0) para que el hijo ocupe el 100% exacto 🔥 */}
         <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-4 xl:gap-8 p-0 lg:p-4 xl:p-6 pb-0 lg:pb-6 max-w-[1800px] mx-auto w-full h-full">
           <div className="flex-1 min-w-0 flex flex-col h-full">
