@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Flame } from "lucide-react";
+import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Flame, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,11 +15,12 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
-const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string }) => {
+const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
   const [stage, setStage] = useState(isCloud ? 0 : -1);
-  const [imgSrc, setImgSrc] = useState(defaultCover || "/placeholder.svg");
+  const [imgSrc, setImgSrc] = useState(customCover || defaultCover || "/placeholder.svg");
 
   useEffect(() => {
+    if (customCover) { setImgSrc(customCover); return; }
     if (!isCloud) {
       setImgSrc(defaultCover || "/placeholder.svg");
       return;
@@ -65,7 +67,7 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover }: { gameName: s
     ];
 
     setImgSrc(urls[stage] || "/placeholder.svg");
-  }, [gameName, consoleId, isCloud, defaultCover, stage]);
+  }, [gameName, consoleId, isCloud, defaultCover, customCover, stage]);
 
   return (
     <img 
@@ -110,6 +112,10 @@ export default function BibliotecaPage() {
   const [driveGames, setDriveGames] = useState<any[]>([]);
   const [isLaunchingCloud, setIsLaunchingCloud] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [editingGame, setEditingGame] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCover, setEditCover] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [searchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || "snes";
@@ -340,15 +346,19 @@ export default function BibliotecaPage() {
       if (g.console_type === 'Nintendo 64') mId = 'n64';
       if (g.console_type === 'PlayStation 1') mId = 'ps1';
       if (g.console_type === 'Arcade') mId = 'arcade';
-      return mId === selectedConsole && g.file_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
+      return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
     }).map(g => {
       const rawName = g.file_name.replace(/\.[^/.]+$/, "");
       return {
         id: g.drive_file_id,
-        name: rawName,
+        name: g.custom_name || rawName,
+        originalName: rawName,
         console: selectedConsole,
-        coverUrl: "/placeholder.svg", // Ahora el componente GameCover se encarga de esto
-        isCloud: true
+        coverUrl: "/placeholder.svg",
+        customCover: g.custom_cover_url || null,
+        driveRowId: g.id,
+        isCloud: true,
       };
     });
     
@@ -379,6 +389,32 @@ export default function BibliotecaPage() {
       toast({ title: "Sugerencia enviada" });
       setGameName(""); setDescription("");
     } finally { setSending(false); }
+  };
+
+  const openEdit = (game: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingGame(game);
+    setEditName(game.name);
+    setEditCover(game.customCover || "");
+  };
+
+  const saveGameEdit = async () => {
+    if (!editingGame || !user) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase.from("user_drive_games" as any).update({
+        custom_name: editName.trim() || null,
+        custom_cover_url: editCover.trim() || null,
+      }).eq("id", editingGame.driveRowId).eq("user_id", user.id);
+      if (error) throw error;
+      setDriveGames(prev => prev.map(g => g.id === editingGame.driveRowId ? { ...g, custom_name: editName.trim() || null, custom_cover_url: editCover.trim() || null } : g));
+      toast({ title: "Juego actualizado" });
+      setEditingGame(null);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
@@ -457,19 +493,29 @@ export default function BibliotecaPage() {
                 className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
               >
                 {game.isCloud && (
-                  <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
-                    <Cloud className="w-3 h-3 text-[#4285F4]" />
-                  </div>
+                  <>
+                    <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
+                      <Cloud className="w-3 h-3 text-[#4285F4]" />
+                    </div>
+                    <button
+                      onClick={(e) => openEdit(game, e)}
+                      className="absolute top-1 left-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10 hover:bg-neon-cyan/30 transition-colors"
+                      title="Editar nombre o portada"
+                    >
+                      <Pencil className="w-3 h-3 text-neon-cyan" />
+                    </button>
+                  </>
                 )}
                 <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
                   {isLaunchingCloud && game.isCloud ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   ) : (
                     <GameCover 
-                      gameName={game.name} 
+                      gameName={game.originalName || game.name} 
                       consoleId={game.console} 
                       isCloud={game.isCloud} 
                       defaultCover={game.coverUrl} 
+                      customCover={game.customCover}
                     />
                   )}
                 </div>
@@ -510,6 +556,37 @@ export default function BibliotecaPage() {
           <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs h-8 w-full"><Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}</Button>
         </div>
       </div>
+
+      <Dialog open={!!editingGame} onOpenChange={(o) => !o && setEditingGame(null)}>
+        <DialogContent className="bg-card border-neon-cyan/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-xs text-neon-cyan flex items-center gap-2">
+              <Pencil className="w-4 h-4" /> EDITAR JUEGO
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-[10px] font-body text-muted-foreground uppercase tracking-wider">Nombre personalizado</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder={editingGame?.originalName} className="bg-muted text-sm mt-1" />
+            </div>
+            <div>
+              <label className="text-[10px] font-body text-muted-foreground uppercase tracking-wider">URL de portada</label>
+              <Input value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." className="bg-muted text-sm mt-1" />
+              {editCover && (
+                <div className="mt-2 aspect-square w-32 bg-muted rounded overflow-hidden border border-border">
+                  <img src={editCover} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setEditingGame(null)}>Cancelar</Button>
+            <Button size="sm" onClick={saveGameEdit} disabled={savingEdit} className="bg-neon-cyan/80 text-black hover:bg-neon-cyan">
+              {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

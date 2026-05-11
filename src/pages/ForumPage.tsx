@@ -20,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } from "@/lib/profileAppearance";
 import CommentModMenu from "@/components/CommentModMenu";
+import { EditableCommentContent } from "@/components/EditableCommentContent";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -241,7 +242,7 @@ function renderAlignedContent(content: string, permissions: ContentPermissions, 
   ));
 }
 
-interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; }
+interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; original_content?: string | null; edited?: boolean; }
 interface PostProfile { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier: string; color_avatar_border: string | null; color_name: string | null; color_role: string | null; color_staff_role: string | null; signature: string | null; signature_image_url: string | null; }
 
 export default function ForumPage() {
@@ -939,7 +940,16 @@ export default function ForumPage() {
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
-                      {renderAlignedContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                      <EditableCommentContent
+                        commentId={comment.id}
+                        content={comment.content}
+                        originalContent={comment.original_content}
+                        edited={comment.edited}
+                        isOwner={!!user && comment.user_id === user.id}
+                        table="comments"
+                        renderContent={(c) => renderAlignedContent(c, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                        onUpdated={(newContent) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).map(c => c.id === comment.id ? { ...c, content: newContent, edited: true, original_content: c.original_content || c.content } : c) }))}
+                      />
                     </div>
                   </div>
                 );
