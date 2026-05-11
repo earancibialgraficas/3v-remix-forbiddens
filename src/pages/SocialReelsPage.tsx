@@ -291,6 +291,34 @@ function SnapCard({
       .then(({ data }) => { if (data) setUserReaction(data.reaction_type); });
   }, [user, item.id, targetType]);
 
+  // 🎯 PUNTOS BONUS: ver video ≥30s seguidos otorga +10 pts al autor (1 vez por viewer+video)
+  useEffect(() => {
+    if (!user || !isVideo || isPhoto) return;
+    if (user.id === item.user_id) return; // anti self-points (también validado en BD)
+    if (!videoContainerRef.current) return;
+    let timer: number | null = null;
+    let awarded = false;
+    const tryAward = async () => {
+      if (awarded) return;
+      awarded = true;
+      const { awardBonusPoints } = await import("@/lib/awardPoints");
+      await awardBonusPoints(item.user_id, user.id, "video_watch_30s", item.id, 10);
+    };
+    const obs = new IntersectionObserver((entries) => {
+      const e = entries[0];
+      if (!e) return;
+      if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+        if (timer == null && !awarded) {
+          timer = window.setTimeout(tryAward, 30000);
+        }
+      } else {
+        if (timer != null) { clearTimeout(timer); timer = null; }
+      }
+    }, { threshold: [0, 0.5, 1] });
+    obs.observe(videoContainerRef.current);
+    return () => { obs.disconnect(); if (timer != null) clearTimeout(timer); };
+  }, [user, isVideo, isPhoto, item.id, item.user_id]);
+
   const fetchComments = async () => {
     const { data } = await supabase.from("social_comments").select("*").eq("content_id", item.id).order("created_at", { ascending: true }).limit(50);
     if (!data || data.length === 0) { setComments([]); return; }

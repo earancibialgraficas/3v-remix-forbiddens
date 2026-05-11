@@ -395,6 +395,36 @@ export type Database = {
         }
         Relationships: []
       }
+      point_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          points: number
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          points?: number
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          points?: number
+          source_id?: string
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_votes: {
         Row: {
           created_at: string
@@ -896,6 +926,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_bonus_points: {
+        Args: {
+          p_actor: string
+          p_points: number
+          p_recipient: string
+          p_source_id: string
+          p_source_type: string
+        }
+        Returns: Json
+      }
       can_manage_role: {
         Args: {
           _actor_id: string
