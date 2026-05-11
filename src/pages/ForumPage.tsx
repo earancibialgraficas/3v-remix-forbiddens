@@ -939,7 +939,16 @@ export default function ForumPage() {
                       </div>
                     </div>
                     <div className="text-foreground text-xs leading-relaxed font-body pl-0 sm:pl-[62px] min-w-0">
-                      {renderAlignedContent(comment.content, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                      <EditableCommentContent
+                        commentId={comment.id}
+                        content={comment.content}
+                        originalContent={comment.original_content}
+                        edited={comment.edited}
+                        isOwner={!!user && comment.user_id === user.id}
+                        table="comments"
+                        renderContent={(c) => renderAlignedContent(c, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                        onUpdated={(newContent) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).map(c => c.id === comment.id ? { ...c, content: newContent, edited: true, original_content: c.original_content || c.content } : c) }))}
+                      />
                     </div>
                   </div>
                 );
