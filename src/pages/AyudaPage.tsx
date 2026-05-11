@@ -32,15 +32,16 @@ export default function AyudaPage() {
   const [sending, setSending] = useState(false);
 
   const ayudaRef = useRef<HTMLDivElement>(null);
+  const driveRef = useRef<HTMLDivElement>(null);
   const contactoRef = useRef<HTMLDivElement>(null);
   const privacidadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const seccion = searchParams.get("seccion") as SectionId | null;
-    if (seccion && ["ayuda", "contacto", "privacidad"].includes(seccion)) {
+    if (seccion && ["ayuda", "drive", "contacto", "privacidad"].includes(seccion)) {
       setOpenSection(seccion);
       setTimeout(() => {
-        const ref = seccion === "ayuda" ? ayudaRef : seccion === "contacto" ? contactoRef : privacidadRef;
+        const ref = seccion === "ayuda" ? ayudaRef : seccion === "drive" ? driveRef : seccion === "contacto" ? contactoRef : privacidadRef;
         ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
     }
