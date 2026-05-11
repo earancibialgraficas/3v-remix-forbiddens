@@ -111,30 +111,41 @@ function preprocessHtmlForRender(html: string): string {
   if (!html) return "";
   let processed = html;
   
-  // 1. Rescatar Markdown auto-linkeado: ![alt](<a href="url">url</a>) -> ![alt](url)
-  processed = processed.replace(/\!\[([^\]]*)\]\(\s*<a[^>]*href="([^"]+)"[^>]*>.*?<\/a>\s*\)/g, '![$1]($2)');
+  // 1. Limpiar Markdown malformado si el editor convirtió la URL en un link azul: ![alt](<a href="...">url</a>)
+  processed = processed.replace(/\!\[([^\]]*)\]\(\s*<a[^>]*href=["']([^"']+)["'][^>]*>.*?<\/a>\s*\)/g, '![$1]($2)');
 
-  // 2. Convertir Markdown puro de imágenes: ![alt](url) -> <img ... />
+  // 2. Convertir Markdown puro: ![alt](url) -> <img ... />
   processed = processed.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />');
   
-  // 3. Convertir URLs crudas de imágenes que el editor haya convertido en enlaces
-  processed = processed.replace(/<a[^>]*href="(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[\w=&-]+)?)"[^>]*>.*?<\/a>/ig, '<img src="$1" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />');
+  // 3. Convertir <a> tags (links) que apuntan directo a imágenes/videos a etiquetas visuales
+  processed = processed.replace(/<a[^>]*href=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[^"']*)?)["'][^>]*>.*?<\/a>/ig, (match, url) => {
+     if (url.match(/\.(mp4|webm)/i)) {
+         return `<video src="${url}" controls class="w-full max-h-64 rounded border border-border my-2"></video>`;
+     }
+     return `<img src="${url}" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />`;
+  });
 
-  // 4. Convertir URLs crudas de imágenes sueltas (sin enlace)
-  processed = processed.replace(/(^|[^"'>])(https?:\/\/[^\s<>]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[\w=&-]+)?)([^"'<]|$)/ig, '$1<img src="$2" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />$3');
+  // 4. Convertir URLs crudas flotando como texto simple
+  // (usamos [^"'\w=] para no romper atributos HTML internos del editor como src="" o href="")
+  processed = processed.replace(/(^|[^"'\w=])(https?:\/\/[^\s<>"']+\.(?:jpg|jpeg|png|gif|webp|mp4|webm)(?:\?[^\s<>"']*)?)/ig, (match, prefix, url) => {
+     if (url.match(/\.(mp4|webm)/i)) {
+         return `${prefix}<video src="${url}" controls class="w-full max-h-64 rounded border border-border my-2"></video>`;
+     }
+     return `${prefix}<img src="${url}" class="w-fit max-w-full rounded border border-border my-2 cursor-zoom-in" loading="lazy" />`;
+  });
 
-  // 5. Convertir enlaces de YouTube a iframes embebidos
-  processed = processed.replace(/<a[^>]*href="(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)"[^>]*>.*?<\/a>/ig, (match, url) => {
+  // 5. Convertir <a> tags de YouTube a iframes
+  processed = processed.replace(/<a[^>]*href=["'](https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)["'][^>]*>.*?<\/a>/ig, (match, url) => {
      const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
      const id = idMatch ? idMatch[1] : '';
      return `<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>`;
   });
 
-  // 6. Convertir YouTube crudo suelto a iframes embebidos
-  processed = processed.replace(/(^|[^"'>])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)([^"'<]|$)/g, (match, p1, url, p3) => {
+  // 6. Convertir YouTube crudo suelto a iframes
+  processed = processed.replace(/(^|[^"'\w=])(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/(?:www\.)?youtu\.be\/[\w-]+)/ig, (match, prefix, url) => {
      const idMatch = url.match(/v=([\w-]+)/) || url.match(/youtu\.be\/([\w-]+)/);
      const id = idMatch ? idMatch[1] : '';
-     return `${p1}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>${p3}`;
+     return `${prefix}<iframe src="https://www.youtube.com/embed/${id}" class="w-full aspect-video rounded border border-border my-2" allowfullscreen></iframe>`;
   });
 
   return processed;
