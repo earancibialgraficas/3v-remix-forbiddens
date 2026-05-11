@@ -112,6 +112,10 @@ export default function BibliotecaPage() {
   const [driveGames, setDriveGames] = useState<any[]>([]);
   const [isLaunchingCloud, setIsLaunchingCloud] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [editingGame, setEditingGame] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCover, setEditCover] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [searchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || "snes";
