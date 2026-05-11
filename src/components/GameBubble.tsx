@@ -404,19 +404,30 @@ export default function GameBubble() {
         }
 
         if (user) {
+          const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
           try {
-            const { data } = await supabase
-              .from("leaderboard_scores")
-              .select("game_state")
-              .eq("user_id", user.id)
-              .eq("game_name", activeGame.gameName)
-              .eq("console_type", activeGame.consoleName)
-              .limit(1)
-              .maybeSingle();
+            let cloudJson: string | null = null;
+            if (useDrive) {
+              const { downloadSaveSlotsFromDrive } = await import("@/lib/driveSaves");
+              cloudJson = await downloadSaveSlotsFromDrive({
+                userId: user.id,
+                gameName: activeGame.gameName,
+                consoleType: activeGame.consoleName,
+              });
+            } else {
+              const { data } = await supabase
+                .from("leaderboard_scores")
+                .select("game_state")
+                .eq("user_id", user.id)
+                .eq("game_name", activeGame.gameName)
+                .eq("console_type", activeGame.consoleName)
+                .limit(1)
+                .maybeSingle();
+              if (data && data.game_state) cloudJson = typeof data.game_state === "string" ? data.game_state : JSON.stringify(data.game_state);
+            }
 
-            if (data && data.game_state) {
-              let cloudSlots: SaveSlot[] =
-                typeof data.game_state === "string" ? JSON.parse(data.game_state) : data.game_state;
+            if (cloudJson) {
+              let cloudSlots: SaveSlot[] = JSON.parse(cloudJson);
               const mergedMap = new Map();
               localSlots.forEach((s) => mergedMap.set(s.timestamp, s));
               (cloudSlots || []).forEach((s: any) => mergedMap.set(s.timestamp, s));
