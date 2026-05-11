@@ -327,11 +327,37 @@ export default function GameBubble() {
 
   const syncCloudSaves = async (slotsToSync: SaveSlot[]) => {
     if (!user || !activeGame) return;
-    // ☁️ Cloud saves activados para todos los cores incluyendo N64/PS1/Arcade.
-    try {
-      const safeSlots = slotsToSync.slice(0, 5);
-      const slotsJson = JSON.stringify(safeSlots);
+    const safeSlots = slotsToSync.slice(0, 5);
+    const slotsJson = JSON.stringify(safeSlots);
 
+    // ☁️ Para EmulatorJS cores (N64/PS1/Arcade): subir a Google Drive en lugar de DB.
+    const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+    if (useDrive) {
+      try {
+        const { isDriveLinked, uploadSaveSlotsToDrive } = await import("@/lib/driveSaves");
+        if (!isDriveLinked()) {
+          toast({
+            title: "Vincula Google Drive",
+            description: "Para guardar partidas de N64/PS1/Arcade vincula tu Drive desde Perfil → Almacenamiento.",
+            variant: "destructive",
+          });
+          return;
+        }
+        await uploadSaveSlotsToDrive({
+          userId: user.id,
+          gameName: activeGame.gameName,
+          consoleType: activeGame.consoleName,
+          slotsJson,
+        });
+      } catch (e: any) {
+        console.error("Drive save error:", e);
+        toast({ title: "Error subiendo a Drive", description: e?.message || "Reintenta", variant: "destructive" });
+      }
+      return;
+    }
+
+    // 🟦 Cores Nostalgist (NES/SNES/GBA): cache + DB como hasta ahora.
+    try {
       const { data: existing } = await supabase
         .from("leaderboard_scores")
         .select("id")
