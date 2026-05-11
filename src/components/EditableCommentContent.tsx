@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Check, X, History } from "lucide-react";
+import { Pencil, Check, X, History, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,10 +15,11 @@ interface Props {
   table: "comments" | "social_comments";
   renderContent: (content: string) => React.ReactNode;
   onUpdated?: (newContent: string) => void;
+  onDelete?: () => void; // <-- Nueva propiedad agregada
 }
 
 export function EditableCommentContent({
-  commentId, content, originalContent, edited, isOwner, table, renderContent, onUpdated,
+  commentId, content, originalContent, edited, isOwner, table, renderContent, onUpdated, onDelete
 }: Props) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
@@ -61,7 +62,7 @@ export function EditableCommentContent({
   return (
     <div className="space-y-1">
       {renderContent(content)}
-      <div className="flex items-center gap-2 mt-1">
+      <div className="flex items-center gap-3 mt-1">
         {edited && originalContent && (
           <Popover>
             <PopoverTrigger asChild>
@@ -76,9 +77,16 @@ export function EditableCommentContent({
           </Popover>
         )}
         {isOwner && (
-          <button onClick={() => setEditing(true)} className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-0.5">
-            <Pencil className="w-3 h-3" /> Editar
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setEditing(true)} className="text-[10px] text-muted-foreground hover:text-neon-cyan transition-colors flex items-center gap-1">
+              <Pencil className="w-3 h-3" /> Editar
+            </button>
+            {onDelete && (
+              <button onClick={onDelete} className="text-[10px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1" title="Eliminar">
+                <Trash2 className="w-3 h-3" /> Eliminar
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -697,6 +697,23 @@ export default function ForumPage() {
     else { toast({ title: "Error", variant: "destructive" }); }
   };
 
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    if (!confirm("¿Seguro que quieres eliminar este comentario? (Si tiene respuestas, también se borrarán)")) return;
+    
+    const { error } = await supabase.from("comments").delete().eq("id", commentId);
+    
+    if (!error) { 
+      toast({ title: "Comentario eliminado correctamente" }); 
+      // Esta línea borra el comentario principal Y cualquier respuesta asociada visualmente
+      setComments(prev => ({ 
+        ...prev, 
+        [postId]: (prev[postId] || []).filter(c => c.id !== commentId && c.parent_id !== commentId) 
+      }));
+    } else { 
+      toast({ title: "Error", description: error.message, variant: "destructive" }); 
+    }
+  };
+
   const handleSaveToProfile = async (post: any) => {
     if (!user) return;
     try { 
@@ -1008,6 +1025,9 @@ export default function ForumPage() {
                       </UserPopup>
                       <div className="flex items-center gap-2 sm:pt-1 sm:ml-auto">
                         {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span>Responder</span></button>}
+                        
+
+                        
                         {user && comment.user_id !== user.id && <button onClick={() => setReportTarget({ userId: comment.user_id, userName: comment.profile?.display_name || "Anónimo", postId: comment.post_id, commentId: comment.id })} className="text-muted-foreground hover:text-destructive transition-colors text-[10px] flex items-center gap-0.5"><Flag className="w-3 h-3" /></button>}
                         <CommentModMenu commentId={comment.id} authorId={comment.user_id} authorName={comment.profile?.display_name} table="comments" onDeleted={(id) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).filter(c => c.id !== id) }))} />
                       </div>
@@ -1022,6 +1042,7 @@ export default function ForumPage() {
                         table="comments"
                         renderContent={(c) => renderAlignedContent(c, commentPermissions, (src, type) => setForumModal({ src, type }))}
                         onUpdated={(newContent) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).map(c => c.id === comment.id ? { ...c, content: newContent, edited: true, original_content: c.original_content || c.content } : c) }))}
+                        onDelete={() => handleDeleteComment(post.id, comment.id)}
                       />
                     </div>
                   </div>
