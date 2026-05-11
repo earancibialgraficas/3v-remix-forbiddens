@@ -13,6 +13,7 @@ import MembershipBadge from "@/components/MembershipBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { stripHtmlToText } from "@/lib/htmlContent";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 
