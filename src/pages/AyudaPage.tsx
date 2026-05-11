@@ -157,10 +157,9 @@ ${message}[/COLOR]`;
               <li className="flex items-start gap-3">
                 <span className="font-pixel text-neon-cyan shrink-0">2.</span>
                 <div>
-                  <div className="font-medium">Organización opcional por consola</div>
+                  <div className="font-medium">Organización por consola</div>
                   <p className="text-muted-foreground mt-1">
-                    No es necesario organizar tus ROMs por consola en subcarpetas, pero <strong>se recomienda para mayor orden</strong>. Sugeridas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
-                  </p>
+                    No organices tus ROMs por consola en subcarpetas </p>
                 </div>
               </li>
               <li className="flex items-start gap-3">

@@ -133,20 +133,20 @@ ${tipDesc}[/COLOR]
           <li className="flex items-start gap-3">
             <span className="font-pixel text-neon-cyan shrink-0">2.</span>
             <div>
-              <div className="font-medium">Organiza tus ROMs por consola dentro de subcarpetas</div>
-              <p className="text-muted-foreground mt-1">
-                Subcarpetas recomendadas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
-              </p>
+              <div className="font-medium">Organización por consola</div>
+                  <p className="text-muted-foreground mt-1">
+                    No organices tus ROMs por consola en subcarpetas </p>
             </div>
           </li>
           <li className="flex items-start gap-3">
             <span className="font-pixel text-neon-cyan shrink-0">3.</span>
             <div>
               <div className="flex items-center gap-2 font-medium">
-                <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta de Google desde la Biblioteca
+                <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta desde el Perfil
               </div>
-              <p className="text-muted-foreground mt-1">Pulsa el botón <strong>Vincular Google Drive</strong> arriba de la biblioteca y autoriza solo lectura.</p>
-            </div>
+                  <p className="text-muted-foreground mt-1">
+                    Para vincular ve a tu <strong>Perfil → sección Storage</strong> y pulsa el botón <strong>Vincular Google Drive</strong>. Verás una barra que indica cuántas ROMs tienes vinculadas.
+                  </p>            </div>
           </li>
           <li className="flex items-start gap-3">
             <span className="font-pixel text-neon-cyan shrink-0">4.</span>
@@ -161,7 +161,7 @@ ${tipDesc}[/COLOR]
             <span className="font-pixel text-neon-cyan shrink-0">5.</span>
             <div>
               <div className="font-medium">Formatos soportados</div>
-              <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue (PS1), .zip (Arcade). Tamaño máx por ROM: 64 MB.</p>
+                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd (PS1), .zip (Arcade).</p>
             </div>
           </li>
         </ol>
