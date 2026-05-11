@@ -64,9 +64,10 @@ export default function UserPopup({
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
 
-  // Consideramos Staff a cualquiera con un rol oficial O a quien le pasen un color_staff_role
-  // Esto ayuda a que el perfil se vea igual de bien sin estar logueados.
-  const isStaff = roles.includes("master_web") || roles.includes("admin") || roles.includes("moderator") || Boolean(colorStaffRole);
+  // TRUCO MAGICO: Si no estamos logueados, la DB nos bloquea ver los roles reales.
+  // Recreamos un "rol visual" temporal para que el perfil de staff siga viéndose épico.
+  const displayRoles = roles.length > 0 ? roles : (colorStaffRole ? ["staff"] : []);
+  const isStaff = displayRoles.some(r => ["master_web", "admin", "moderator", "staff"].includes(r));
 
   const isCurrentUserStaff = isMasterWeb || isAdmin || (currentUserRoles || []).includes("moderator");
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
@@ -165,7 +166,7 @@ export default function UserPopup({
               {displayName}
             </span>
             {isStaff ? (
-              <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
+              <RoleBadge roles={displayRoles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
             ) : membershipTier !== "novato" ? (
               <span className="text-[9px] font-pixel" style={getRoleStyle(colorRole)}>[{membershipTier.toUpperCase()}]</span>
             ) : null}
@@ -187,7 +188,7 @@ export default function UserPopup({
               <p className="text-sm font-body font-semibold text-foreground break-words leading-tight" style={getNameStyle(colorName)}>{displayName}</p>
               <div className="flex flex-wrap items-center gap-1 mt-1">
                 {isStaff ? (
-                  <RoleBadge roles={roles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
+                  <RoleBadge roles={displayRoles} roleIcon={roleIcon} showIcon={showRoleIcon} colorStaffRole={colorStaffRole} />
                 ) : (
                   <span className="text-[9px] text-neon-yellow font-pixel break-all" style={getRoleStyle(colorRole)}>{membershipTier.toUpperCase()}</span>
                 )}
@@ -197,17 +198,24 @@ export default function UserPopup({
 
           <div className="space-y-0.5">
             <button
-              onClick={() => { setOpen(false); navigate(`/usuario/${userId}`); }}
+              onClick={() => { 
+                setOpen(false); 
+                navigate(`/usuario/${userId}`); 
+              }}
               className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
             >
               <Eye className="w-3 h-3" /> Ver perfil
             </button>
             
-            {/* Solo mostrar opciones sociales si ESTÁ logueado Y no es él mismo */}
-            {user && user.id !== userId && (
+            {/* Acciones sociales siempre visibles, pero redirigen si no hay sesión */}
+            {(!user || user.id !== userId) && (
               <>
                 <button
-                  onClick={() => { setOpen(false); navigate(`/mensajes?to=${userId}`); }}
+                  onClick={() => { 
+                    setOpen(false); 
+                    if (!user) { navigate('/registro'); return; }
+                    navigate(`/mensajes?to=${userId}`); 
+                  }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                 >
                   <MessageSquare className="w-3 h-3" /> Enviar mensaje
@@ -215,11 +223,12 @@ export default function UserPopup({
 
                 <button
                   onClick={async () => {
+                    setOpen(false);
+                    if (!user) { navigate('/registro'); return; }
                     if (reachedFriendLimit) {
                        toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
                        return;
                     }
-                    setOpen(false);
                     if (user && userId) {
                        const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
                        if (!error) toast({ title: "Solicitud enviada" });
@@ -227,14 +236,18 @@ export default function UserPopup({
                        else if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
                     }
                   }}
-                  disabled={reachedFriendLimit}
-                  className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body transition-colors", reachedFriendLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
+                  disabled={!!user && reachedFriendLimit}
+                  className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body transition-colors", user && reachedFriendLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
                 >
-                  <UserPlus className="w-3 h-3" /> {reachedFriendLimit ? "Límite de amigos" : "Agregar amigo"}
+                  <UserPlus className="w-3 h-3" /> {user && reachedFriendLimit ? "Límite de amigos" : "Agregar amigo"}
                 </button>
 
                 <button
-                  onClick={() => { setOpen(false); setShowReport(true); }}
+                  onClick={() => { 
+                    setOpen(false); 
+                    if (!user) { navigate('/registro'); return; }
+                    setShowReport(true); 
+                  }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <Flag className="w-3 h-3" /> Reportar perfil
@@ -242,7 +255,7 @@ export default function UserPopup({
               </>
             )}
 
-            {/* Opciones exclusivas del Staff logueado */}
+            {/* Opciones exclusivas del Staff logueado (Se ocultan si no eres Staff) */}
             {user && isCurrentUserStaff && user.id !== userId && (
               <>
                 <div className="border-t border-border mt-1 pt-1">
@@ -271,13 +284,6 @@ export default function UserPopup({
                   </button>
                 )}
               </>
-            )}
-
-            {/* Si NO está logueado, mostrar un pequeño aviso sutil */}
-            {!user && (
-              <div className="text-center pt-2 mt-2 border-t border-border/50">
-                 <p className="text-[9px] text-muted-foreground/60 italic font-body">Inicia sesión para interactuar</p>
-              </div>
             )}
           </div>
         </div>,

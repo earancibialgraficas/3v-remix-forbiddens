@@ -63,9 +63,6 @@ export default function RightPanel() {
 
   useEffect(() => {
     const fetchPremium = async () => {
-      // Traemos más usuarios para poder filtrar de manera segura.
-      // EXCLUSIÓN DIRECTA: Filtramos "novato" y cualquier tier que uses internamente para staff
-      // si es que en membership_tier guardan algo especial.
       const { data } = await supabase
         .from("profiles")
         .select("id, user_id, display_name, membership_tier, created_at, avatar_url, role_icon, show_role_icon, color_name, color_avatar_border, color_role, color_staff_role")
@@ -76,7 +73,6 @@ export default function RightPanel() {
       if (data) {
         const userIds = (data as any[]).map(d => d.user_id).filter(Boolean);
         
-        // Intentamos buscar roles (esto puede fallar si no hay sesión y el RLS bloquea)
         const { data: rolesData, error: rolesError } = await supabase
           .from("user_roles")
           .select("user_id, role")
@@ -92,13 +88,12 @@ export default function RightPanel() {
         const filtered = (data as any[])
           .map(d => ({ ...d, roles: rolesMap[d.user_id] || [] }))
           .filter(d => {
-             // Si logramos cargar roles, filtramos usando eso.
-             if (!rolesError && rolesData) {
+             // Si logramos cargar roles reales, filtramos directamente
+             if (d.roles.length > 0) {
                  return !d.roles.some((r: string) => STAFF.has(r));
              }
              // RESPALDO SI NO HAY SESIÓN: Ocultamos usuarios si tienen color_staff_role asignado,
-             // o si su display_name es un nombre conocido de staff (ajusta esto si tienes nombres fijos)
-             // Esto evita que salgan en el top premium cuando no estás logueado.
+             // o si su nombre contiene admin/master, para asegurar que no salgan en el top premium.
              return !d.color_staff_role && 
                     !d.display_name.toLowerCase().includes("admin") &&
                     !d.display_name.toLowerCase().includes("master");
