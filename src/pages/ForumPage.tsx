@@ -483,9 +483,11 @@ export default function ForumPage() {
 
   const handlePost = async () => {
     if (!user) { toast({ title: "Inicia sesión", description: "Debes registrarte", variant: "destructive" }); return; }
-    if (!title.trim()) return;
-    if (title.trim().length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
-    if (content.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
+    const titleText = stripHtmlToText(title).trim();
+    const contentText = stripHtmlToText(content);
+    if (!titleText) return;
+    if (titleText.length > 150) { toast({ title: "Título muy largo", description: "Máx 150 caracteres.", variant: "destructive" }); return; }
+    if (contentText.length > limits.maxForumChars) { toast({ title: "Contenido muy largo", description: `Tu membresía permite hasta ${limits.maxForumChars} caracteres.`, variant: "destructive" }); return; }
     setPosting(true);
     
     const customSig = (profile as any)?.signature;
