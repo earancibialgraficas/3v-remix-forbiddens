@@ -137,6 +137,67 @@ ${message}[/COLOR]`;
         )}
       </div>
 
+      <div ref={driveRef} className="bg-card border border-neon-yellow/30 rounded overflow-hidden scroll-mt-4">
+        <SectionHeader id="drive" icon={Flame} title="CÓMO SINCRONIZAR ROMS CON GOOGLE DRIVE" color="hsl(var(--neon-yellow))" />
+        {openSection === "drive" && (
+          <div className="p-4 space-y-3 border-t border-border animate-fade-in">
+            <p className="text-xs text-muted-foreground font-body leading-relaxed">
+              Lleva tu propia colección de ROMs y juégala desde cualquier dispositivo vinculando tu Google Drive a tu cuenta arcade.
+            </p>
+            <ol className="space-y-3 text-xs font-body text-foreground">
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">1.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium flex-wrap">
+                    <FolderOpen className="w-4 h-4 text-neon-cyan" /> Crea una carpeta llamada <code className="bg-muted px-1.5 py-0.5 rounded text-neon-yellow">RetroRoms</code> en tu Google Drive
+                  </div>
+                  <p className="text-muted-foreground mt-1">El nombre debe ser exactamente <strong>RetroRoms</strong> (sin espacios, respeta mayúsculas).</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">2.</span>
+                <div>
+                  <div className="font-medium">Organización opcional por consola</div>
+                  <p className="text-muted-foreground mt-1">
+                    No es necesario organizar tus ROMs por consola en subcarpetas, pero <strong>se recomienda para mayor orden</strong>. Sugeridas: <code className="bg-muted px-1 rounded">NES</code>, <code className="bg-muted px-1 rounded">SNES</code>, <code className="bg-muted px-1 rounded">GBA</code>, <code className="bg-muted px-1 rounded">N64</code>, <code className="bg-muted px-1 rounded">PS1</code>, <code className="bg-muted px-1 rounded">Arcade</code>.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">3.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <Link2 className="w-4 h-4 text-neon-green" /> Vincula tu cuenta desde el Perfil
+                  </div>
+                  <p className="text-muted-foreground mt-1">
+                    Para vincular ve a tu <strong>Perfil → sección Storage</strong> y pulsa el botón <strong>Vincular Google Drive</strong>. Verás una barra que indica cuántas ROMs tienes vinculadas.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">4.</span>
+                <div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <RefreshCw className="w-4 h-4 text-neon-magenta" /> Pulsa <strong>Actualizar</strong> en la Biblioteca cuando añadas nuevas ROMs
+                  </div>
+                  <p className="text-muted-foreground mt-1">Cada vez que sumes ROMs a Drive, ve a la biblioteca y pulsa actualizar para sincronizarlas.</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="font-pixel text-neon-cyan shrink-0">5.</span>
+                <div>
+                  <div className="font-medium">Formatos soportados</div>
+                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd (PS1), .zip (Arcade).</p>
+                </div>
+              </li>
+            </ol>
+            <p className="text-[10px] text-muted-foreground font-body italic border-t border-border pt-3">
+              ⚠️ Tus ROMs nunca se suben a nuestros servidores. Solo se leen directamente desde tu Drive cuando juegas.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div ref={contactoRef} className="bg-card border border-neon-cyan/30 rounded overflow-hidden scroll-mt-4">
         <SectionHeader id="contacto" icon={Mail} title="CONTACTO" color="hsl(var(--neon-cyan))" />
         {openSection === "contacto" && (
