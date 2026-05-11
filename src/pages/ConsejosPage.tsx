@@ -20,10 +20,23 @@ const tips = [
 export default function ConsejosPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const tutorialRef = useRef<HTMLDivElement>(null);
+  const [highlightTutorial, setHighlightTutorial] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [tipTitle, setTipTitle] = useState("");
   const [tipDesc, setTipDesc] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (location.hash === "#retroroms-tutorial") {
+      setTimeout(() => {
+        tutorialRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightTutorial(true);
+        setTimeout(() => setHighlightTutorial(false), 6000);
+      }, 200);
+    }
+  }, [location.hash]);
 
   const handleSubmit = async () => {
     if (!user || !tipTitle.trim() || !tipDesc.trim()) return;
