@@ -39,38 +39,55 @@ export default function LeaderboardPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     const fetchScores = async () => {
-      const { data, error } = await supabase
-        .from("leaderboard_scores")
-        .select("*")
-        .order("score", { ascending: false })
-        .limit(100);
+      try {
+        const { data, error } = await supabase
+          .from("leaderboard_scores")
+          .select("*")
+          .order("score", { ascending: false })
+          .limit(100);
 
-      if (!error && data) {
-        setScores(data as Score[]);
-        const userIds = [...new Set((data as any[]).map(s => s.user_id).filter(Boolean))];
+        if (cancelled) return;
+        if (error) {
+          console.error("[Leaderboard] fetchScores error", error);
+          setLoading(false);
+          return;
+        }
+        const safeData = (data || []) as Score[];
+        setScores(safeData);
+        const userIds = [...new Set(safeData.map(s => s.user_id).filter(Boolean))];
         if (userIds.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
-          const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+          const [{ data: profiles }, { data: roles }] = await Promise.all([
+            supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds),
+            supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
+          ]);
+          if (cancelled) return;
           const pMap: Record<string, UserInfo> = {};
-          profiles?.forEach(p => pMap[p.user_id] = p as unknown as UserInfo);
+          profiles?.forEach((p: any) => { if (p?.user_id) pMap[p.user_id] = p as UserInfo; });
           const rMap: Record<string, string[]> = {};
-          roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
+          roles?.forEach((r: any) => { if (!r?.user_id) return; if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
           setUserProfiles(pMap);
           setUserRoles(rMap);
         }
+      } catch (e) {
+        console.error("[Leaderboard] fatal", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchScores();
 
     const channel = supabase
-      .channel("leaderboard-realtime")
+      .channel(`leaderboard-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "leaderboard_scores" }, () => fetchScores())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Deduplicate: keep only highest score per user per game

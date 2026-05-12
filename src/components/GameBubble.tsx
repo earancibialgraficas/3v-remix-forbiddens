@@ -1756,7 +1756,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       {!minimized && (
         <>
-          {/* 🔺 Botón TRIÁNGULO en esquina superior derecha — abre/cierra el menú L cuando el juego está maximizado */}
+          {/* 🔺 Botón para abrir/cerrar el menú L cuando el juego está maximizado.
+              Siempre se posiciona FUERA de la barra L (a su izquierda cuando está abierta,
+              o pegado al borde derecho cuando está cerrada) para no taparle los botones. */}
           {isExpanded && (
             <button
               type="button"
@@ -1767,16 +1769,18 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               aria-label={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               className={cn(
-                "absolute top-0 z-[63] h-0 w-0 transition-all duration-200 cursor-pointer",
-                "border-solid border-transparent",
-                // Triángulo rectángulo apuntando a la esquina superior derecha
+                "absolute top-2 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg backdrop-blur-sm border",
                 expandedControlsOpen
-                  ? "right-14 border-t-[44px] border-l-[44px] border-t-neon-cyan/80 hover:border-t-neon-cyan border-l-transparent"
-                  : "right-0 border-t-[44px] border-l-[44px] border-t-neon-magenta/80 hover:border-t-neon-magenta border-l-transparent",
-                "drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]",
+                  ? "right-[60px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                  : "right-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
               )}
-              style={{ filter: "drop-shadow(0 0 6px rgba(0,0,0,0.6))" }}
-            />
+            >
+              {expandedControlsOpen ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
           )}
 
           {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" - desplegable cuando hay juego maximizado 🔥 */}
@@ -1989,6 +1993,72 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           )}
         </>
       )}
+
+      {/* Save / Load dialogs — DENTRO de popupRef para que se vean en pantalla completa */}
+      {showSaveDialog && (
+        <div
+          className="absolute inset-0 z-[400] flex items-center justify-center"
+          onClick={() => setShowSaveDialog(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
+          <div
+            className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-pixel text-[10px] text-neon-green mb-3">GUARDAR PARTIDA</h3>
+            <Input
+              value={slotName}
+              onChange={(e) => setSlotName(e.target.value)}
+              placeholder={`Slot ${saveSlots.length + 1}`}
+              className="h-8 bg-muted text-xs font-body mb-3"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveState} className="text-xs flex-1">Guardar</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowSaveDialog(false)} className="text-xs">Cancelar</Button>
+            </div>
+            {saveSlots.length > 0 && (
+              <div className="mt-3 border-t border-border pt-2">
+                <p className="text-[9px] text-muted-foreground font-body mb-1">Slots guardados ({saveSlots.length}):</p>
+                {saveSlots.map((s, i) => (
+                  <div key={i} className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5">
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showLoadDialog && (
+        <div
+          className="absolute inset-0 z-[400] flex items-center justify-center"
+          onClick={() => setShowLoadDialog(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
+          <div
+            className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 w-80 max-h-[60vh] flex flex-col animate-scale-in pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-pixel text-[10px] text-neon-cyan mb-3">CARGAR PARTIDA</h3>
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {saveSlots.map((s, i) => (
+                <div key={i} className="flex items-center justify-between p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors">
+                  <button onClick={() => handleLoadState(s)} className="flex-1 text-left">
+                    <p className="text-xs font-body text-foreground">{s.name}</p>
+                    <p className="text-[8px] text-muted-foreground font-body">{new Date(s.timestamp).toLocaleString()}</p>
+                  </button>
+                  <button onClick={() => handleDeleteSlot(i)} className="text-destructive hover:text-destructive/80 p-1">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setShowLoadDialog(false)} className="text-xs mt-3">Cerrar</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -2043,89 +2113,6 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         )}
       </div>
 
-      {/* Save Dialog */}
-      {showSaveDialog && (
-        <div
-          className="fixed inset-0 z-[400] flex items-center justify-center"
-          onClick={() => setShowSaveDialog(false)}
-        >
-          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
-          <div
-            className="relative bg-card border border-neon-green/30 rounded-lg p-5 w-80 animate-scale-in pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-pixel text-[10px] text-neon-green mb-3">GUARDAR PARTIDA</h3>
-            <Input
-              value={slotName}
-              onChange={(e) => setSlotName(e.target.value)}
-              placeholder={`Slot ${saveSlots.length + 1}`}
-              className="h-8 bg-muted text-xs font-body mb-3"
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleSaveState} className="text-xs flex-1">
-                Guardar
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowSaveDialog(false)} className="text-xs">
-                Cancelar
-              </Button>
-            </div>
-            {saveSlots.length > 0 && (
-              <div className="mt-3 border-t border-border pt-2">
-                <p className="text-[9px] text-muted-foreground font-body mb-1">Slots guardados ({saveSlots.length}):</p>
-                {saveSlots.map((s, i) => (
-                  <div
-                    key={i}
-                    className="text-[9px] font-body text-foreground flex justify-between items-center py-0.5"
-                  >
-                    <span>{s.name}</span>
-                    <span className="text-muted-foreground">{new Date(s.timestamp).toLocaleTimeString()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Load Dialog */}
-      {showLoadDialog && (
-        <div
-          className="fixed inset-0 z-[400] flex items-center justify-center"
-          onClick={() => setShowLoadDialog(false)}
-        >
-          <div className="absolute inset-0 bg-black/60 pointer-events-auto" />
-          <div
-            className="relative bg-card border border-neon-cyan/30 rounded-lg p-5 w-80 max-h-[60vh] flex flex-col animate-scale-in pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-pixel text-[10px] text-neon-cyan mb-3">CARGAR PARTIDA</h3>
-            <div className="flex-1 overflow-y-auto space-y-1">
-              {saveSlots.map((s, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-2 bg-muted/30 rounded hover:bg-muted/50 transition-colors"
-                >
-                  <button onClick={() => handleLoadState(s)} className="flex-1 text-left">
-                    <p className="text-xs font-body text-foreground">{s.name}</p>
-                    <p className="text-[8px] text-muted-foreground font-body">
-                      {new Date(s.timestamp).toLocaleString()}
-                    </p>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSlot(i)}
-                    className="text-destructive hover:text-destructive/80 p-1"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <Button size="sm" variant="outline" onClick={() => setShowLoadDialog(false)} className="text-xs mt-3">
-              Cerrar
-            </Button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

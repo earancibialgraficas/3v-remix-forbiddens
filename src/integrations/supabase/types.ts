@@ -939,6 +939,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_game_covers: {
+        Row: {
+          created_at: string
+          custom_cover_url: string | null
+          custom_name: string | null
+          file_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_cover_url?: string | null
+          custom_name?: string | null
+          file_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_cover_url?: string | null
+          custom_name?: string | null
+          file_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

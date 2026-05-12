@@ -227,7 +227,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                     <p className="text-[8px] font-pixel text-neon-yellow uppercase">Membresía</p>
                     {foundUser.isStaff ? <p className="text-[9px] text-muted-foreground italic py-2 text-center">Un miembro del STAFF no requiere membresía.</p> : (
                       <>
-                        <select value={selectedTier} onChange={e => setSelectedTier(e.target.value)} className="w-full h-8 bg-muted border rounded text-[9px] uppercase font-body">{["novato", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => <option key={t} value={t}>{t}</option>)}</select>
+                        <select value={selectedTier} onChange={e => setSelectedTier(e.target.value)} className="w-full h-8 bg-muted border rounded text-[9px] uppercase font-body">{["novato", "lite", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => <option key={t} value={t}>{t}</option>)}</select>
                         <Button className="w-full h-8 bg-neon-yellow text-black text-[9px] font-pixel hover:bg-neon-yellow/80" onClick={() => openConfirm("CAMBIAR PLAN", `¿Actualizar plan de ${foundUser.display_name} a ${selectedTier.toUpperCase()}?`, "CAMBIAR", async () => { await supabase.from("profiles").update({ membership_tier: selectedTier } as any).eq("user_id", foundUser.user_id); handleSearchUser(); setConfirmAction(null); toast({title:"Membresía actualizada"}); })}>GUARDAR PLAN</Button>
                       </>
                     )}
