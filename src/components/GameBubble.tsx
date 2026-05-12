@@ -23,6 +23,11 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
+  Monitor,
+  RotateCcw,
+  Link2,
+  Share2,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,6 +157,40 @@ export default function GameBubble() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
+
+  // --- NUEVO: Lógica de Inactividad para el botón en Fullscreen/Teatro ---
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetIdleTimer = useCallback(() => {
+    setIsIdle(false);
+    if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+    idleTimeoutRef.current = setTimeout(() => {
+      setIsIdle(true);
+    }, 3000); // 3 segundos sin interactuar para volverse traslúcido
+  }, []);
+
+  useEffect(() => {
+    if (isFullscreen || (theaterRect && !minimized && !forceFloating && !isPs2)) {
+      resetIdleTimer();
+      window.addEventListener('mousemove', resetIdleTimer);
+      window.addEventListener('mousedown', resetIdleTimer);
+      window.addEventListener('touchstart', resetIdleTimer);
+      window.addEventListener('keydown', resetIdleTimer);
+
+      return () => {
+        if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+        window.removeEventListener('mousemove', resetIdleTimer);
+        window.removeEventListener('mousedown', resetIdleTimer);
+        window.removeEventListener('touchstart', resetIdleTimer);
+        window.removeEventListener('keydown', resetIdleTimer);
+      };
+    } else {
+      setIsIdle(false);
+    }
+  }, [isFullscreen, theaterRect, minimized, forceFloating, isPs2, resetIdleTimer]);
+  // ---------------------------------------------------------------
+
 
   useEffect(() => {
     const updateOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
@@ -1757,11 +1796,11 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       {!minimized && (
         <>
           {/* 🔺 Botón para abrir/cerrar el menú L cuando el juego está maximizado.
-              Siempre se posiciona FUERA de la barra L (a su izquierda cuando está abierta,
-              o pegado al borde derecho cuando está cerrada) para no taparle los botones. */}
+              Se oculta/hace traslúcido si isIdle es true */}
           {isExpanded && (
             <button
               type="button"
+              onMouseEnter={resetIdleTimer} // Despierta el botón al pasar el ratón
               onClick={(e) => {
                 e.stopPropagation();
                 setExpandedControlsOpen((v) => !v);
@@ -1769,11 +1808,17 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               aria-label={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               className={cn(
-                "absolute top-2 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg backdrop-blur-sm border",
+                "absolute z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
+                // Animación diagonal: se mueve a top-2 right-2 cuando cerrado, o se desplaza en X e Y al abrir
                 expandedControlsOpen
-                  ? "right-[60px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
-                  : "right-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
+                  ? "-translate-x-[60px] translate-y-2 bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                  : "translate-x-[-8px] translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
+                isIdle && !expandedControlsOpen ? "opacity-30 hover:opacity-100" : "opacity-100"
               )}
+              style={{
+                top: 0,
+                right: 0
+              }}
             >
               {expandedControlsOpen ? (
                 <ChevronRight className="w-4 h-4" />
