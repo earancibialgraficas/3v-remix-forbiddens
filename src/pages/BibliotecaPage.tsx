@@ -371,6 +371,7 @@ export default function BibliotecaPage() {
         coverUrl: "/placeholder.svg",
         customCover: g.custom_cover_url || null,
         driveRowId: g.id,
+        fileName: g.file_name,
         isCloud: true,
       };
     });
