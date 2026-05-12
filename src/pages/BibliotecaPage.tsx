@@ -415,12 +415,26 @@ export default function BibliotecaPage() {
     if (!editingGame || !user) return;
     setSavingEdit(true);
     try {
+      const newName = editName.trim() || null;
+      const newCover = editCover.trim() || null;
       const { error } = await supabase.from("user_drive_games" as any).update({
-        custom_name: editName.trim() || null,
-        custom_cover_url: editCover.trim() || null,
+        custom_name: newName,
+        custom_cover_url: newCover,
       }).eq("id", editingGame.driveRowId).eq("user_id", user.id);
       if (error) throw error;
-      setDriveGames(prev => prev.map(g => g.id === editingGame.driveRowId ? { ...g, custom_name: editName.trim() || null, custom_cover_url: editCover.trim() || null } : g));
+
+      // 💾 También guardamos en user_game_covers (sobrevive a desvincular Drive)
+      if (editingGame.fileName) {
+        await supabase.from("user_game_covers" as any).upsert({
+          user_id: user.id,
+          file_name: editingGame.fileName,
+          custom_name: newName,
+          custom_cover_url: newCover,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,file_name' });
+      }
+
+      setDriveGames(prev => prev.map(g => g.id === editingGame.driveRowId ? { ...g, custom_name: newName, custom_cover_url: newCover } : g));
       toast({ title: "Juego actualizado" });
       setEditingGame(null);
     } catch (e: any) {
