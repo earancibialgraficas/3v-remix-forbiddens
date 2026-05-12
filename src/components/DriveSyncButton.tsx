@@ -48,6 +48,29 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     if (!user) return;
     setIsSyncing(true);
     try {
+      // 🔒 Antes de borrar: respaldamos los nombres y portadas personalizadas por file_name
+      // para que cuando el usuario vuelva a vincular Drive, recupere su estética.
+      const { data: existing } = await supabase
+        .from('user_drive_games' as any)
+        .select('file_name, custom_name, custom_cover_url')
+        .eq('user_id', user.id);
+
+      const toBackup = (existing || [])
+        .filter((g: any) => g.custom_name || g.custom_cover_url)
+        .map((g: any) => ({
+          user_id: user.id,
+          file_name: g.file_name,
+          custom_name: g.custom_name,
+          custom_cover_url: g.custom_cover_url,
+          updated_at: new Date().toISOString(),
+        }));
+
+      if (toBackup.length > 0) {
+        await supabase
+          .from('user_game_covers' as any)
+          .upsert(toBackup, { onConflict: 'user_id,file_name' });
+      }
+
       await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id);
       sessionStorage.removeItem('drive_access_token');
       sessionStorage.removeItem('drive_token_expiry');
@@ -56,7 +79,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       localStorage.removeItem('drive_linked_until');
       
       setIsLinked(false);
-      toast({ title: 'Cuenta desvinculada', description: 'Se han borrado los juegos de tu biblioteca.' });
+      toast({ title: 'Cuenta desvinculada', description: 'Tus portadas y nombres personalizados se guardaron para la próxima vez.' });
       
       if (onSyncComplete) onSyncComplete();
     } catch (error) {
