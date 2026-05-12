@@ -31,6 +31,7 @@ import RulesPage from "./pages/RulesPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
 import { Navigate } from "react-router-dom";
 import { UpgradeProvider } from "@/components/UpgradeModal";
+import GlobalAds from "@/components/GlobalAds"; // 🔥 IMPORTAMOS EL COMPONENTE DE ANUNCIOS
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
@@ -62,6 +63,11 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <GameBubbleProvider>
+            
+            {/* 🔥 EL VIGILANTE SILENCIOSO DE LOS ANUNCIOS 🔥 
+                Al estar aquí adentro, ya puede usar el useAuth() para saber si el usuario es Premium */}
+            <GlobalAds />
+
             <Toaster />
             <Sonner />
             <BrowserRouter>
