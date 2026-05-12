@@ -182,13 +182,28 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         }
 
         toast({ title: 'Detectando juegos...', description: `Guardando ${validFiles.length} juegos de tu carpeta RetroRoms...` });
-        
-        const gamesToSave = validFiles.map((file: any) => ({
-          user_id: user?.id,
-          drive_file_id: file.id,
-          file_name: file.name,
-          console_type: getConsoleType(file.name)
-        }));
+
+        // 🎨 Recuperamos portadas/nombres personalizados guardados de vinculaciones anteriores
+        const { data: savedCovers } = await supabase
+          .from('user_game_covers' as any)
+          .select('file_name, custom_name, custom_cover_url')
+          .eq('user_id', user!.id);
+        const coverMap = new Map<string, { custom_name: string | null; custom_cover_url: string | null }>();
+        (savedCovers || []).forEach((c: any) => {
+          coverMap.set(c.file_name, { custom_name: c.custom_name, custom_cover_url: c.custom_cover_url });
+        });
+
+        const gamesToSave = validFiles.map((file: any) => {
+          const restored = coverMap.get(file.name);
+          return {
+            user_id: user?.id,
+            drive_file_id: file.id,
+            file_name: file.name,
+            console_type: getConsoleType(file.name),
+            ...(restored?.custom_name ? { custom_name: restored.custom_name } : {}),
+            ...(restored?.custom_cover_url ? { custom_cover_url: restored.custom_cover_url } : {}),
+          };
+        });
 
         const { error } = await supabase
           .from('user_drive_games' as any)
@@ -197,7 +212,13 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         if (error) throw error;
 
         setIsLinked(true);
-        toast({ title: '¡Sincronización Completa!', description: 'Tus juegos ya están en tu biblioteca.' });
+        const restoredCount = gamesToSave.filter((g: any) => g.custom_name || g.custom_cover_url).length;
+        toast({
+          title: '¡Sincronización Completa!',
+          description: restoredCount > 0
+            ? `Tus juegos ya están en tu biblioteca. Recuperamos ${restoredCount} portadas personalizadas.`
+            : 'Tus juegos ya están en tu biblioteca.'
+        });
         if (onSyncComplete) onSyncComplete();
 
       } else {
