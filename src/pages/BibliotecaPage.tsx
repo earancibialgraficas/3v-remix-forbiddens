@@ -117,9 +117,22 @@ export default function BibliotecaPage() {
   const [editCover, setEditCover] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const [searchParams] = useSearchParams();
-  const initialConsoleParam = searchParams.get("console") || "snes";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
+
+  // Persist selected console across reloads (URL + localStorage)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("biblioteca:console", selectedConsole);
+    }
+    const current = searchParams.get("console");
+    if (current !== selectedConsole) {
+      const next = new URLSearchParams(searchParams);
+      next.set("console", selectedConsole);
+      setSearchParams(next, { replace: true });
+    }
+  }, [selectedConsole]);
   const [searchQuery, setSearchQuery] = useState("");
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
