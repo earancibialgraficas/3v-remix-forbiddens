@@ -158,7 +158,7 @@ export default function GameBubble() {
   const [isLandscape, setIsLandscape] = useState(false);
   const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
 
-  // --- NUEVO: Lógica de Inactividad para el botón en Fullscreen/Teatro ---
+  // --- Lógica de Inactividad para el botón en Fullscreen/Teatro ---
   const [isIdle, setIsIdle] = useState(false);
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1808,17 +1808,13 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               aria-label={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               className={cn(
-                "absolute z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
-                // Animación diagonal: se mueve a top-2 right-2 cuando cerrado, o se desplaza en X e Y al abrir
+                "absolute top-0 right-0 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
+                // Animación diagonal: se cambia tanto en X como en Y drásticamente
                 expandedControlsOpen
-                  ? "-translate-x-[60px] translate-y-2 bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
-                  : "translate-x-[-8px] translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
+                  ? "-translate-x-[72px] translate-y-[72px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                  : "-translate-x-2 translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
                 isIdle && !expandedControlsOpen ? "opacity-30 hover:opacity-100" : "opacity-100"
               )}
-              style={{
-                top: 0,
-                right: 0
-              }}
             >
               {expandedControlsOpen ? (
                 <ChevronRight className="w-4 h-4" />
