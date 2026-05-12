@@ -167,7 +167,7 @@ export default function BibliotecaPage() {
     if (rescan) setIsRefreshing(true);
 
     try {
-      // 🔄 Si rescan = true, re-escaneamos la carpeta de Drive y upserteamos los nuevos juegos
+      // 1. Escaneo de Google Drive (Upsert de archivos encontrados)
       if (rescan) {
         try {
           const token = await requestGoogleToken();
@@ -192,6 +192,7 @@ export default function BibliotecaPage() {
                 file_name: f.name,
                 console_type: getConsoleType(f.name)
               }));
+              // Se guarda en user_drive_games
               await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
             }
           } else {
@@ -203,17 +204,38 @@ export default function BibliotecaPage() {
         }
       }
 
-      const { data, error } = await supabase
+      // 2. Extraer juegos desde user_drive_games
+      const { data: driveData, error: driveError } = await supabase
         .from("user_drive_games" as any)
         .select("*")
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (driveError) throw driveError;
 
-      if (data) {
-        const validGames = data.filter((g: any) => {
+      // 3. Extraer portadas/nombres desde user_game_covers
+      const { data: coverData, error: coverError } = await supabase
+        .from("user_game_covers" as any)
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (coverError) {
+          console.warn("No se pudo leer user_game_covers", coverError);
+      }
+
+      // 4. Combinar la lista
+      if (driveData) {
+        const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
+        }).map((g: any) => {
+            // Buscamos si existe una portada/nombre personalizado en user_game_covers
+            const customData = coverData?.find((c: any) => c.file_name === g.file_name);
+            return {
+                ...g,
+                // Le damos prioridad a lo que esté en user_game_covers, sino, tomamos lo antiguo
+                custom_name: customData?.custom_name || g.custom_name,
+                custom_cover_url: customData?.custom_cover_url || g.custom_cover_url
+            };
         });
 
         setDriveGames(validGames);
@@ -418,21 +440,28 @@ export default function BibliotecaPage() {
     try {
       const newName = editName.trim() || null;
       const newCover = editCover.trim() || null;
-      const { error } = await supabase.from("user_drive_games" as any).update({
+      
+      // Intentamos guardar en la tabla original por compatibilidad (si existe)
+      await supabase.from("user_drive_games" as any).update({
         custom_name: newName,
         custom_cover_url: newCover,
       }).eq("id", editingGame.driveRowId).eq("user_id", user.id);
-      if (error) throw error;
 
-      // 💾 También guardamos en user_game_covers (sobrevive a desvincular Drive)
+      // 🔥 LO MÁS IMPORTANTE: Guardamos el nombre y la foto en user_game_covers, 
+      // vinculándolo directamente por el "nombre_del_archivo.ext" y el usuario
       if (editingGame.fileName) {
-        await supabase.from("user_game_covers" as any).upsert({
+        const { error } = await supabase.from("user_game_covers" as any).upsert({
           user_id: user.id,
           file_name: editingGame.fileName,
           custom_name: newName,
           custom_cover_url: newCover,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id,file_name' });
+        
+        if (error) {
+            console.error("Error al guardar en user_game_covers", error);
+            throw new Error("No se pudo guardar la personalización correctamente.");
+        }
       }
 
       setDriveGames(prev => prev.map(g => g.id === editingGame.driveRowId ? { ...g, custom_name: newName, custom_cover_url: newCover } : g));
