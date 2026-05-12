@@ -37,9 +37,6 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
     
     const system = systems[consoleId] || "Nintendo_-_Super_Nintendo_Entertainment_System";
 
-    // libretro-thumbnails usa convención No-Intro: respeta espacios, paréntesis y caracteres
-    // especiales reemplazando ciertos chars problemáticos (& % por _) y URL-encoding del resto.
-    // Quitamos extensión y normalizamos.
     const noExt = gameName.replace(/\.[^/.]+$/, "").trim();
     const libretroName = noExt
       .replace(/&/g, "_")
@@ -49,7 +46,6 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
       .replace(/\?/g, "_");
     const encoded = encodeURIComponent(libretroName).replace(/%20/g, "%20");
 
-    // Hash matemático: la IA usará la misma seed siempre para no cambiar de imagen al recargar
     let hash = 0;
     for (let i = 0; i < gameName.length; i++) hash = gameName.charCodeAt(i) + ((hash << 5) - hash);
     const fixedSeed = Math.abs(hash);
@@ -57,7 +53,6 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
     const cleanName = encodeURIComponent(noExt.replace(/\[.*?\]|\(.*?\)/g, '').trim());
     const consoleName = consoleId.toUpperCase();
 
-    // Cascada de intentos: portada → título → IA → placeholder
     const urls = [
       `https://thumbnails.libretro.com/${system}/Named_Boxarts/${encoded}.png`,
       `https://thumbnails.libretro.com/${system}/Named_Titles/${encoded}.png`,
@@ -77,9 +72,9 @@ const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: 
       loading="lazy"
       onError={() => {
         if (isCloud && stage < 4) {
-          setStage(prev => prev + 1); // Si falla, pasa al siguiente intento
+          setStage(prev => prev + 1);
         } else if (!isCloud || stage >= 4) {
-          setImgSrc("/placeholder.svg"); // Seguro de vida final
+          setImgSrc("/placeholder.svg");
         }
       }}
     />
@@ -121,7 +116,6 @@ export default function BibliotecaPage() {
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
 
-  // Persist selected console across reloads (URL + localStorage)
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("biblioteca:console", selectedConsole);
@@ -167,7 +161,6 @@ export default function BibliotecaPage() {
     if (rescan) setIsRefreshing(true);
 
     try {
-      // 1. Escaneo de Google Drive (Upsert de archivos encontrados)
       if (rescan) {
         try {
           const token = await requestGoogleToken();
@@ -192,7 +185,6 @@ export default function BibliotecaPage() {
                 file_name: f.name,
                 console_type: getConsoleType(f.name)
               }));
-              // Se guarda en user_drive_games
               await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
             }
           } else {
@@ -204,7 +196,6 @@ export default function BibliotecaPage() {
         }
       }
 
-      // 2. Extraer juegos desde user_drive_games
       const { data: driveData, error: driveError } = await supabase
         .from("user_drive_games" as any)
         .select("*")
@@ -212,7 +203,6 @@ export default function BibliotecaPage() {
 
       if (driveError) throw driveError;
 
-      // 3. Extraer portadas/nombres desde user_game_covers
       const { data: coverData, error: coverError } = await supabase
         .from("user_game_covers" as any)
         .select("*")
@@ -222,17 +212,14 @@ export default function BibliotecaPage() {
           console.warn("No se pudo leer user_game_covers", coverError);
       }
 
-      // 4. Combinar la lista
       if (driveData) {
         const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
         }).map((g: any) => {
-            // Buscamos si existe una portada/nombre personalizado en user_game_covers
             const customData = coverData?.find((c: any) => c.file_name === g.file_name);
             return {
                 ...g,
-                // Le damos prioridad a lo que esté en user_game_covers, sino, tomamos lo antiguo
                 custom_name: customData?.custom_name || g.custom_name,
                 custom_cover_url: customData?.custom_cover_url || g.custom_cover_url
             };
@@ -284,8 +271,6 @@ export default function BibliotecaPage() {
 
   const requestGoogleToken = (): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // Persistencia entre tabs/recargas (localStorage). Google emite tokens de ~1h;
-      // intentamos refrescar silenciosamente con prompt:'' antes de pedir login.
       const cachedToken = localStorage.getItem('drive_access_token');
       const tokenExpiry = localStorage.getItem('drive_token_expiry');
 
@@ -303,7 +288,7 @@ export default function BibliotecaPage() {
       const client = google.accounts.oauth2.initTokenClient({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
-        prompt: '', // intenta refresco silencioso primero
+        prompt: '',
         callback: (response: any) => {
           if (response.error) {
             reject(response.error);
@@ -311,7 +296,6 @@ export default function BibliotecaPage() {
             const ttlMs = (response.expires_in ? response.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
             localStorage.setItem('drive_access_token', response.access_token);
             localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
-            // marca de "vinculación" 24h (UI sigue mostrando linked aunque token caduque)
             localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
             resolve(response.access_token);
           }
@@ -441,26 +425,46 @@ export default function BibliotecaPage() {
       const newName = editName.trim() || null;
       const newCover = editCover.trim() || null;
       
-      // Intentamos guardar en la tabla original por compatibilidad (si existe)
+      // 1. Guardar en tabla antigua
       await supabase.from("user_drive_games" as any).update({
         custom_name: newName,
         custom_cover_url: newCover,
       }).eq("id", editingGame.driveRowId).eq("user_id", user.id);
 
-      // 🔥 LO MÁS IMPORTANTE: Guardamos el nombre y la foto en user_game_covers, 
-      // vinculándolo directamente por el "nombre_del_archivo.ext" y el usuario
+      // 2. Guardar en nueva tabla (Evitando el UPSERT problemático)
       if (editingGame.fileName) {
-        const { error } = await supabase.from("user_game_covers" as any).upsert({
-          user_id: user.id,
-          file_name: editingGame.fileName,
-          custom_name: newName,
-          custom_cover_url: newCover,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,file_name' });
-        
-        if (error) {
-            console.error("Error al guardar en user_game_covers", error);
-            throw new Error("No se pudo guardar la personalización correctamente.");
+        // Primero buscamos si ya existe el registro para este usuario y archivo
+        const { data: existing } = await supabase
+          .from("user_game_covers" as any)
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("file_name", editingGame.fileName)
+          .maybeSingle();
+
+        if (existing) {
+          // Si existe, actualizamos
+          const { error: updateErr } = await supabase
+            .from("user_game_covers" as any)
+            .update({
+              custom_name: newName,
+              custom_cover_url: newCover,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existing.id);
+            
+          if (updateErr) throw new Error("Error de base de datos (Actualizar): " + updateErr.message);
+        } else {
+          // Si no existe, insertamos
+          const { error: insertErr } = await supabase
+            .from("user_game_covers" as any)
+            .insert({
+              user_id: user.id,
+              file_name: editingGame.fileName,
+              custom_name: newName,
+              custom_cover_url: newCover
+            });
+            
+          if (insertErr) throw new Error("Error de base de datos (Insertar): " + insertErr.message);
         }
       }
 
@@ -468,7 +472,9 @@ export default function BibliotecaPage() {
       toast({ title: "Juego actualizado" });
       setEditingGame(null);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      console.error(e);
+      // ESTA ALERTA AHORA SÍ TE DIRÁ EXACTAMENTE QUÉ FALLA EN LA BASE DE DATOS
+      toast({ title: "Error", description: e.message || "Error desconocido", variant: "destructive" });
     } finally {
       setSavingEdit(false);
     }
