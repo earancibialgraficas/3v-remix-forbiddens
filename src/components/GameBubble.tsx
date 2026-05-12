@@ -1756,7 +1756,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
       {!minimized && (
         <>
-          {/* 🔺 Botón TRIÁNGULO en esquina superior derecha — abre/cierra el menú L cuando el juego está maximizado */}
+          {/* 🔺 Botón para abrir/cerrar el menú L cuando el juego está maximizado.
+              Siempre se posiciona FUERA de la barra L (a su izquierda cuando está abierta,
+              o pegado al borde derecho cuando está cerrada) para no taparle los botones. */}
           {isExpanded && (
             <button
               type="button"
@@ -1767,16 +1769,18 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               aria-label={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               title={expandedControlsOpen ? "Ocultar menú" : "Mostrar menú"}
               className={cn(
-                "absolute top-0 z-[63] h-0 w-0 transition-all duration-200 cursor-pointer",
-                "border-solid border-transparent",
-                // Triángulo rectángulo apuntando a la esquina superior derecha
+                "absolute top-2 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg backdrop-blur-sm border",
                 expandedControlsOpen
-                  ? "right-14 border-t-[44px] border-l-[44px] border-t-neon-cyan/80 hover:border-t-neon-cyan border-l-transparent"
-                  : "right-0 border-t-[44px] border-l-[44px] border-t-neon-magenta/80 hover:border-t-neon-magenta border-l-transparent",
-                "drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]",
+                  ? "right-[60px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                  : "right-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
               )}
-              style={{ filter: "drop-shadow(0 0 6px rgba(0,0,0,0.6))" }}
-            />
+            >
+              {expandedControlsOpen ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
           )}
 
           {/* 🔥 BARRA LATERAL CON DISEÑO EN "L" - desplegable cuando hay juego maximizado 🔥 */}
