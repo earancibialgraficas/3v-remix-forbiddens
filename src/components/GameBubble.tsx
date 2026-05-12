@@ -1201,11 +1201,39 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     }
   }, [romLoaded, usesEmulatorJs]);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      if (popupRef.current) popupRef.current.requestFullscreen();
+      if (popupRef.current) {
+        try {
+          await popupRef.current.requestFullscreen();
+          setIsFullscreen(true);
+          setExpandedControlsOpen(false);
+
+          // 🔥 MAGIA: Forzar rotación a horizontal al entrar en pantalla completa
+          if (screen.orientation && (screen.orientation as any).lock) {
+            try {
+              await (screen.orientation as any).lock("landscape");
+            } catch (err) {
+              console.warn("No se pudo forzar la rotación:", err);
+            }
+          }
+        } catch (err) {
+          console.error("Error attempting to enable fullscreen:", err);
+        }
+      }
     } else {
-      document.exitFullscreen();
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+        setExpandedControlsOpen(false);
+
+        // 🔥 MAGIA: Liberar la rotación al salir de pantalla completa
+        if (screen.orientation && screen.orientation.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch (err) {}
+        }
+      }
     }
   };
 
