@@ -1,7 +1,7 @@
 import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MessageSquare, UserPlus, Flag, Shield, Ban, Eye, X, User } from "lucide-react";
+import { MessageSquare, UserPlus, Flag, Shield, Ban, Eye, X, User, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -73,6 +73,9 @@ export default function UserPopup({
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
   const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
+
+  // Lógica sólida de amistad para el Popup
+  const isFriend = friendIds.includes(userId);
 
   const updatePos = () => {
     if (!triggerRef.current) return;
@@ -221,26 +224,33 @@ export default function UserPopup({
                   <MessageSquare className="w-3 h-3" /> Enviar mensaje
                 </button>
 
-                <button
-                  onClick={async () => {
-                    setOpen(false);
-                    if (!user) { navigate('/registro'); return; }
-                    if (reachedFriendLimit) {
-                       toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
-                       return;
-                    }
-                    if (user && userId) {
-                       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
-                       if (!error) toast({ title: "Solicitud enviada" });
-                       else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
-                       else if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
-                    }
-                  }}
-                  disabled={!!user && reachedFriendLimit}
-                  className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body transition-colors", user && reachedFriendLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
-                >
-                  <UserPlus className="w-3 h-3" /> {user && reachedFriendLimit ? "Límite de amigos" : "Agregar amigo"}
-                </button>
+                {/* BOTÓN MAGICO CORREGIDO */}
+                {isFriend ? (
+                  <div className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body text-neon-green bg-neon-green/10 border border-neon-green/20 cursor-default">
+                    <Check className="w-3 h-3" /> Amigos
+                  </div>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      setOpen(false);
+                      if (!user) { navigate('/registro'); return; }
+                      if (reachedFriendLimit) {
+                         toast({ title: "Límite de Membresía", description: `Has alcanzado el límite de ${currentUserLimits.maxFriends} amigos.`, variant: "destructive" });
+                         return;
+                      }
+                      if (user && userId) {
+                         const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
+                         if (!error) toast({ title: "Solicitud enviada" });
+                         else if (error.code === '23505') toast({ title: "Aviso", description: "Ya existe una solicitud o amistad." });
+                         else if (!handleMembershipError(error)) toast({ title: "Error", description: error.message, variant: "destructive" });
+                      }
+                    }}
+                    disabled={!!user && reachedFriendLimit}
+                    className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-body transition-colors", user && reachedFriendLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
+                  >
+                    <UserPlus className="w-3 h-3" /> {user && reachedFriendLimit ? "Límite de amigos" : "Agregar amigo"}
+                  </button>
+                )}
 
                 <button
                   onClick={() => { 

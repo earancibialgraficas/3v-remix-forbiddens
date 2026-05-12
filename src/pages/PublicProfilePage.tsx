@@ -2,7 +2,7 @@ import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,7 +48,6 @@ const getProxyUrl = (url: string) => {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
 };
 
-// 🔥 GENERADOR DE IMÁGENES ESTANDARIZADO 🔥
 const getPostThumbnail = (post: any) => {
   const content = post.content || '';
   const imgMatch = content.match(/!\[.*?\]\((.*?)\)/);
@@ -130,7 +129,6 @@ export default function PublicProfilePage() {
   const [totalForumPosts, setTotalForumPosts] = useState(0);
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
 
-  // 🔥 ESTADOS PARA EL MODAL DE ELIMINAR AMIGO 🔥
   const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -150,6 +148,10 @@ export default function PublicProfilePage() {
   const currentUserTier = (currentUserProfile?.membership_tier?.toLowerCase() || 'novato') as MembershipTier;
   const currentUserLimits = isCurrentUserStaff ? MEMBERSHIP_LIMITS.staff : MEMBERSHIP_LIMITS[currentUserTier];
   const reachedFriendLimit = !isCurrentUserStaff && friendIds.length >= currentUserLimits.maxFriends;
+
+  // Lógica sólida de amistad real
+  const isFriend = friendIds.includes(userId || "");
+  const displayFriendStatus = isFriend ? "accepted" : friendStatus;
 
   useEffect(() => {
     if (!userId) return;
@@ -232,18 +234,19 @@ export default function PublicProfilePage() {
 
   const handleFriendRequest = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión", variant: "destructive" }); return; }
-    if (friendStatus === "none") {
+    
+    if (displayFriendStatus === "none") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, receiver_id: userId } as any);
       if (!error) { setFriendStatus("pending_sent"); toast({ title: "Solicitud enviada" }); }
       else handleMembershipError(error);
-    } else if (friendStatus === "pending_received") {
+    } else if (displayFriendStatus === "pending_received") {
       if (reachedFriendLimit) { toast({ title: "Límite Alcanzado", variant: "destructive" }); return; }
       const { error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("sender_id", userId).eq("receiver_id", user.id);
       if (!error) { setFriendStatus("accepted"); toast({ title: "Amistad aceptada" }); }
-    } else if (friendStatus === "accepted") {
+    } else if (displayFriendStatus === "accepted") {
       setFriendToRemove({ id: userId, name: profile?.display_name || "este usuario" });
-    } else if (friendStatus === "pending_sent") {
+    } else if (displayFriendStatus === "pending_sent") {
       const { error } = await supabase.from("friend_requests").delete().or(`and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`);
       if (!error) { setFriendStatus("none"); toast({ title: "Solicitud cancelada" }); }
     }
@@ -330,12 +333,21 @@ export default function PublicProfilePage() {
             {user && user.id !== userId && (
               <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                 <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={handleFollow} className="h-8 text-[10px] font-pixel uppercase">{isFollowing ? "Dejar de seguir" : "Seguir"}</Button>
-                <Button size="sm" variant={friendStatus === "none" ? "default" : "outline"} onClick={handleFriendRequest} disabled={friendStatus === "none" && reachedFriendLimit} className="h-8 text-[10px] font-pixel uppercase">
-                  {friendStatus === "none" && (reachedFriendLimit ? "Límite Lleno" : "Añadir amigo")}
-                  {friendStatus === "pending_sent" && "Cancelar Solicitud"}
-                  {friendStatus === "pending_received" && "Aceptar Amigo"}
-                  {friendStatus === "accepted" && "Amigos ✓"}
+                
+                {/* BOTÓN MAGICO CORREGIDO */}
+                <Button 
+                  size="sm" 
+                  variant={displayFriendStatus === "none" ? "default" : "outline"} 
+                  onClick={handleFriendRequest} 
+                  disabled={displayFriendStatus === "none" && reachedFriendLimit} 
+                  className={cn("h-8 text-[10px] font-pixel uppercase transition-all", displayFriendStatus === "accepted" && "border-neon-green text-neon-green hover:bg-neon-green/10 hover:text-neon-green")}
+                >
+                  {displayFriendStatus === "none" && (reachedFriendLimit ? "Límite Lleno" : "Añadir amigo")}
+                  {displayFriendStatus === "pending_sent" && "Cancelar Solicitud"}
+                  {displayFriendStatus === "pending_received" && "Aceptar Amigo"}
+                  {displayFriendStatus === "accepted" && <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Amigos</span>}
                 </Button>
+
                 <Button size="sm" variant="outline" asChild className="h-8 text-[10px] font-pixel uppercase"><Link to={`/mensajes?to=${userId}`}>Mensaje</Link></Button>
               </div>
             )}
@@ -466,7 +478,6 @@ export default function PublicProfilePage() {
               <p className="text-sm font-body text-muted-foreground">
                 ¿Seguro que quieres eliminar a <strong className="text-foreground">{friendToRemove.name}</strong>?
               </p>
-              {/* 🔥 AVISO DE IRREVERSIBLE 🔥 */}
               <p className="text-[10px] font-body text-destructive/80 mt-2 uppercase tracking-wide">
                 Esta acción es irreversible.
               </p>
