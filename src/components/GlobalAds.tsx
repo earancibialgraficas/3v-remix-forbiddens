@@ -22,7 +22,7 @@ export default function GlobalAds() {
     const script = document.createElement("script");
     
     // IMPORTANTE: Aquí debes poner la URL real que te dé tu red de anuncios
-    script.src = "https://khepera.net/tu-codigo-de-red-de-anuncios.js"; 
+    script.src = "https://pl29430791.profitablecpmratenetwork.com/82/c9/02/82c902b8c7cbb51e937b4d6c95cc4d91.js"; 
     script.async = true;
     
     // Si tu red te pide un ID de cliente, descomenta la línea de abajo:
