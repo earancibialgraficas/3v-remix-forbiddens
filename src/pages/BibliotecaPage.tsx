@@ -105,7 +105,7 @@ export default function BibliotecaPage() {
   
   const [activeConsoles, setActiveConsoles] = useState(baseConsoles);
   const [driveGames, setDriveGames] = useState<any[]>([]);
-  const [isLaunchingCloud, setIsLaunchingCloud] = useState(false);
+  const [launchingGameId, setLaunchingGameId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingGame, setEditingGame] = useState<any | null>(null);
   const [editName, setEditName] = useState("");
@@ -305,9 +305,12 @@ export default function BibliotecaPage() {
     });
   };
 
-  const handlePlayCloudGame = async (game: any) => {
-    if (isLaunchingCloud) return;
-    setIsLaunchingCloud(true);
+const handlePlayCloudGame = async (game: any) => {
+    // Si ya hay un juego abriéndose, no hacemos nada
+    if (launchingGameId) return; 
+    
+    // Guardamos la ID del juego específico que clickeó el usuario
+    setLaunchingGameId(game.id);
     toast({ title: "Iniciando...", description: "Conectando al servidor en la nube." });
 
     try {
@@ -338,7 +341,8 @@ export default function BibliotecaPage() {
       console.error(e);
       toast({ title: "Acceso denegado", description: "Hubo un error al leer la ROM desde tu Drive.", variant: "destructive" });
     } finally {
-      setIsLaunchingCloud(false);
+      // Cuando termina de cargar, limpiamos la ID
+      setLaunchingGameId(null);
     }
   };
 
@@ -570,8 +574,8 @@ export default function BibliotecaPage() {
                     </button>
                   </>
                 )}
-                <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
-                  {isLaunchingCloud && game.isCloud ? (
+                  <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
+                  {launchingGameId === game.id ? (
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   ) : (
                     <GameCover 
