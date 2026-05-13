@@ -24,6 +24,7 @@ import SocialContentTab from "@/components/profile/SocialContentTab";
 import AlmacenamientoTab from "@/components/profile/AlmacenamientoTab";
 import GuardadosTab from "@/components/profile/GuardadosTab";
 import ModerationPanel from "@/components/profile/ModerationPanel";
+import EnergyBar from "@/components/profile/EnergyBar";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
