@@ -409,9 +409,24 @@ const handlePlayCloudGame = async (game: any) => {
     if (!user || !gameName.trim()) return;
     setSending(true);
     try {
-      await supabase.from("game_suggestions" as any).insert({ user_id: user.id, console_type: suggestConsole, game_name: gameName.trim(), description: description.trim() } as any);
-      toast({ title: "Sugerencia enviada" });
+      const { error } = await supabase.from("game_suggestions" as any).insert({ user_id: user.id, console_type: suggestConsole, game_name: gameName.trim(), description: description.trim() } as any);
+      if (error) {
+        toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
+        return;
+      }
+      // Notificar al staff
+      try {
+        const content = `[COLOR:#22c55e]🎮 NUEVA SUGERENCIA DE JUEGO[/COLOR]\n\n[COLOR:#3b82f6]👤 ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]\n[COLOR:#eab308]🕹️ Consola: ${suggestConsole}[/COLOR]\n[COLOR:#eab308]🎯 Juego: ${gameName}[/COLOR]\n\n[COLOR:#ffffff]${description || '(sin descripción)'}[/COLOR]\n\n[LINK:/biblioteca]Ir a Biblioteca[/LINK]`;
+        await supabase.rpc("send_system_staff_message" as any, {
+          p_title: `Sugerencia de juego: ${gameName}`,
+          p_content: content,
+          p_message_type: 'game_suggestion',
+        });
+      } catch {}
+      toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto." });
       setGameName(""); setDescription("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo enviar", variant: "destructive" });
     } finally { setSending(false); }
   };
 
