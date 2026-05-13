@@ -438,12 +438,13 @@ const handlePlayCloudGame = async (game: any) => {
       // 2. Guardar en nueva tabla (Evitando el UPSERT problemático)
       if (editingGame.fileName) {
         // Primero buscamos si ya existe el registro para este usuario y archivo
-        const { data: existing } = await supabase
+        const { data: existingRaw } = await supabase
           .from("user_game_covers" as any)
           .select("id")
           .eq("user_id", user.id)
           .eq("file_name", editingGame.fileName)
           .maybeSingle();
+        const existing: any = existingRaw;
 
         if (existing) {
           // Si existe, actualizamos
