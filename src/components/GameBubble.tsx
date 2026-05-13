@@ -1038,6 +1038,11 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
+        // 🛠️ Restaurar configuración interna del emulador (controles, etc.)
+        try {
+          const { restoreEmulatorConfig } = await import("@/lib/nostalgistPersist");
+          restoreEmulatorConfig(instance, activeGame.consoleName);
+        } catch {}
         setRomLoaded(true);
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
