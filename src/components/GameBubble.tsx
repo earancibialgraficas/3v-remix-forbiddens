@@ -1424,6 +1424,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(false);
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try {
+        const { saveEmulatorConfig } = await import("@/lib/nostalgistPersist");
+        saveEmulatorConfig(nostalgistRef.current, activeGame?.consoleName || "");
+      } catch {}
+      try {
         nostalgistRef.current.exit();
       } catch {}
       nostalgistRef.current = null;
