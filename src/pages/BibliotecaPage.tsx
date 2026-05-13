@@ -217,7 +217,7 @@ export default function BibliotecaPage() {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
         }).map((g: any) => {
-            const customData = coverData?.find((c: any) => c.file_name === g.file_name);
+            const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
             return {
                 ...g,
                 custom_name: customData?.custom_name || g.custom_name,
