@@ -1038,6 +1038,11 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
         nostalgistRef.current = instance;
         setNostalgistInstance(instance);
+        // 🛠️ Restaurar configuración interna del emulador (controles, etc.)
+        try {
+          const { restoreEmulatorConfig } = await import("@/lib/nostalgistPersist");
+          restoreEmulatorConfig(instance, activeGame.consoleName);
+        } catch {}
         setRomLoaded(true);
         lastInputRef.current = Date.now();
         scheduleCanvasSurfaceSync();
@@ -1058,6 +1063,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
     return () => {
       if (nostalgistRef.current) {
+        try {
+          import("@/lib/nostalgistPersist").then(m => m.saveEmulatorConfig(nostalgistRef.current, activeGame?.consoleName || "")).catch(() => {});
+        } catch {}
         try {
           nostalgistRef.current.exit();
         } catch {}
@@ -1415,6 +1423,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     await autoSaveOnClose();
     if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(false);
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
+      try {
+        const { saveEmulatorConfig } = await import("@/lib/nostalgistPersist");
+        saveEmulatorConfig(nostalgistRef.current, activeGame?.consoleName || "");
+      } catch {}
       try {
         nostalgistRef.current.exit();
       } catch {}

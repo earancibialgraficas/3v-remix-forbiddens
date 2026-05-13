@@ -24,6 +24,7 @@ import SocialContentTab from "@/components/profile/SocialContentTab";
 import AlmacenamientoTab from "@/components/profile/AlmacenamientoTab";
 import GuardadosTab from "@/components/profile/GuardadosTab";
 import ModerationPanel from "@/components/profile/ModerationPanel";
+import EnergyBar from "@/components/profile/EnergyBar";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -144,6 +145,17 @@ export default function ProfilePage() {
     const channel2 = supabase.channel("profile-reqs").on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchPendingRequests()).subscribe();
     return () => { supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
   }, [activeTab, user?.id]);
+
+  // 🔄 Auto-expirar membresías vencidas al entrar al perfil
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc("auto_expire_user_membership" as any);
+        if (data === true) refreshProfile();
+      } catch {}
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -431,7 +443,7 @@ export default function ProfilePage() {
               {!isStaff && userTierStr !== "novato" && (
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!confirm("¿Seguro que quieres cancelar tu membresía? Volverás a Novato y perderás los beneficios.")) return;
-                  const { error } = await supabase.from("profiles").update({ membership_tier: "novato" } as any).eq("user_id", user.id);
+                  const { error } = await supabase.from("profiles").update({ membership_tier: "novato", membership_expires_at: null } as any).eq("user_id", user.id);
                   if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
                   toast({ title: "Membresía cancelada", description: "Tu plan ahora es Novato." });
                   refreshProfile();
@@ -446,6 +458,16 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {!isStaff && (
+        <EnergyBar
+          totalScore={profile?.total_score || 0}
+          isStaff={isStaff}
+          membershipTier={userTierStr}
+          membershipExpiresAt={(profile as any)?.membership_expires_at}
+          onClaimed={refreshProfile}
+        />
+      )}
 
       <UsageIndicators
         limits={limits}

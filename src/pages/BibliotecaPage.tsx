@@ -217,7 +217,7 @@ export default function BibliotecaPage() {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
         }).map((g: any) => {
-            const customData = coverData?.find((c: any) => c.file_name === g.file_name);
+            const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
             return {
                 ...g,
                 custom_name: customData?.custom_name || g.custom_name,
@@ -409,9 +409,24 @@ const handlePlayCloudGame = async (game: any) => {
     if (!user || !gameName.trim()) return;
     setSending(true);
     try {
-      await supabase.from("game_suggestions" as any).insert({ user_id: user.id, console_type: suggestConsole, game_name: gameName.trim(), description: description.trim() } as any);
-      toast({ title: "Sugerencia enviada" });
+      const { error } = await supabase.from("game_suggestions" as any).insert({ user_id: user.id, console_type: suggestConsole, game_name: gameName.trim(), description: description.trim() } as any);
+      if (error) {
+        toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
+        return;
+      }
+      // Notificar al staff
+      try {
+        const content = `[COLOR:#22c55e]🎮 NUEVA SUGERENCIA DE JUEGO[/COLOR]\n\n[COLOR:#3b82f6]👤 ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]\n[COLOR:#eab308]🕹️ Consola: ${suggestConsole}[/COLOR]\n[COLOR:#eab308]🎯 Juego: ${gameName}[/COLOR]\n\n[COLOR:#ffffff]${description || '(sin descripción)'}[/COLOR]\n\n[LINK:/biblioteca]Ir a Biblioteca[/LINK]`;
+        await supabase.rpc("send_system_staff_message" as any, {
+          p_title: `Sugerencia de juego: ${gameName}`,
+          p_content: content,
+          p_message_type: 'game_suggestion',
+        });
+      } catch {}
+      toast({ title: "Sugerencia enviada", description: "El staff la revisará pronto." });
       setGameName(""); setDescription("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo enviar", variant: "destructive" });
     } finally { setSending(false); }
   };
 
@@ -438,12 +453,13 @@ const handlePlayCloudGame = async (game: any) => {
       // 2. Guardar en nueva tabla (Evitando el UPSERT problemático)
       if (editingGame.fileName) {
         // Primero buscamos si ya existe el registro para este usuario y archivo
-        const { data: existing } = await supabase
+        const { data: existingRaw } = await supabase
           .from("user_game_covers" as any)
           .select("id")
           .eq("user_id", user.id)
           .eq("file_name", editingGame.fileName)
           .maybeSingle();
+        const existing: any = existingRaw;
 
         if (existing) {
           // Si existe, actualizamos
