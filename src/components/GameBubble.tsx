@@ -1064,6 +1064,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     return () => {
       if (nostalgistRef.current) {
         try {
+          import("@/lib/nostalgistPersist").then(m => m.saveEmulatorConfig(nostalgistRef.current, activeGame?.consoleName || "")).catch(() => {});
+        } catch {}
+        try {
           nostalgistRef.current.exit();
         } catch {}
         nostalgistRef.current = null;
