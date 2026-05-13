@@ -458,6 +458,16 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {!isStaff && (
+        <EnergyBar
+          totalScore={profile?.total_score || 0}
+          isStaff={isStaff}
+          membershipTier={userTierStr}
+          membershipExpiresAt={(profile as any)?.membership_expires_at}
+          onClaimed={refreshProfile}
+        />
+      )}
+
       <UsageIndicators
         limits={limits}
         isStaff={isStaff}
