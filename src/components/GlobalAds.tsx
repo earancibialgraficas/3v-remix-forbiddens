@@ -1,51 +1,51 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function GlobalAds() {
-  // 🔥 Agregamos "user" a la extracción para saber si alguien inició sesión
   const { user, profile, roles, isAdmin, isMasterWeb } = useAuth();
+  
+  // Usamos un Ref para guardar nuestro temporizador y poder cancelarlo
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // 🛑 SEGURO ANTI-RACE CONDITION:
-    // Si hay un usuario, pero la base de datos aún no trae su "profile",
-    // significa que está cargando. Nos salimos y ESPERAMOS.
-    if (user && !profile) {
-      return; 
-    }
-
     // 1. Calculamos si es Staff o Premium
     const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
     const userTier = profile?.membership_tier?.toLowerCase() || 'novato';
     
-    // Es premium si no es 'novato' o si pertenece al Staff
     const isPremium = userTier !== 'novato' || isStaff || isAdmin || isMasterWeb;
 
-    // Si es premium, no inyectamos la publicidad
+    // 🛑 Si es premium, cancelamos cualquier intento de inyectar el script y salimos
     if (isPremium) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return; 
     }
 
-    // 🔥 PREVENCIÓN DE DUPLICADOS:
-    // Si por alguna razón el script ya existe en la página, no lo volvemos a poner.
+    // 🛑 Si hay usuario pero no hay perfil, la base de datos sigue cargando. Esperamos.
+    if (user && !profile) {
+      return; 
+    }
+
+    // 🛑 Si ya existe el script en el código, no hacemos nada para evitar duplicados
     if (document.getElementById("adsterra-global-script")) {
       return;
     }
 
-    // 2. Si definitivamente es gratuito o invitado, inyectamos el script
-    const script = document.createElement("script");
-    script.id = "adsterra-global-script"; // Le ponemos un ID para reconocerlo
-    script.src = "https://pl29430791.profitablecpmratenetwork.com/82/c9/02/82c902b8c7cbb51e937b4d6c95cc4d91.js"; 
-    script.async = true;
-    
-    document.head.appendChild(script);
+    // 🔥 LA MAGIA: Esperamos 2 segundos antes de inyectar la publicidad.
+    // Esto le da tiempo a Supabase de leer la sesión y avisarnos si el usuario es VIP.
+    timeoutRef.current = setTimeout(() => {
+      const script = document.createElement("script");
+      script.id = "adsterra-global-script";
+      script.src = "https://pl29430791.profitablecpmratenetwork.com/82/c9/02/82c902b8c7cbb51e937b4d6c95cc4d91.js"; 
+      script.async = true;
+      
+      document.head.appendChild(script);
+    }, 2000); // 2000 milisegundos = 2 segundos de gracia
 
-    // Función de limpieza
+    // Función de limpieza: si el componente se actualiza antes de los 2 segundos, se cancela la inyección
     return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [user, profile, roles, isAdmin, isMasterWeb]); // Agregamos "user" a las dependencias
+  }, [user, profile, roles, isAdmin, isMasterWeb]);
 
   return null; 
 }
