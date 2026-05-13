@@ -145,6 +145,17 @@ export default function ProfilePage() {
     return () => { supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
   }, [activeTab, user?.id]);
 
+  // 🔄 Auto-expirar membresías vencidas al entrar al perfil
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc("auto_expire_user_membership" as any);
+        if (data === true) refreshProfile();
+      } catch {}
+    })();
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user) return;
     const loadCoreData = async () => {
