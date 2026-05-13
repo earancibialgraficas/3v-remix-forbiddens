@@ -443,7 +443,7 @@ export default function ProfilePage() {
               {!isStaff && userTierStr !== "novato" && (
                 <Button size="sm" variant="outline" onClick={async () => {
                   if (!confirm("¿Seguro que quieres cancelar tu membresía? Volverás a Novato y perderás los beneficios.")) return;
-                  const { error } = await supabase.from("profiles").update({ membership_tier: "novato" } as any).eq("user_id", user.id);
+                  const { error } = await supabase.from("profiles").update({ membership_tier: "novato", membership_expires_at: null } as any).eq("user_id", user.id);
                   if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
                   toast({ title: "Membresía cancelada", description: "Tu plan ahora es Novato." });
                   refreshProfile();
