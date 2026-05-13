@@ -562,6 +562,7 @@ export type Database = {
           display_name: string
           id: string
           instagram_url: string | null
+          membership_expires_at: string | null
           membership_tier: string
           role_icon: string | null
           show_role_icon: boolean | null
@@ -595,6 +596,7 @@ export type Database = {
           display_name?: string
           id?: string
           instagram_url?: string | null
+          membership_expires_at?: string | null
           membership_tier?: string
           role_icon?: string | null
           show_role_icon?: boolean | null
@@ -628,6 +630,7 @@ export type Database = {
           display_name?: string
           id?: string
           instagram_url?: string | null
+          membership_expires_at?: string | null
           membership_tier?: string
           role_icon?: string | null
           show_role_icon?: boolean | null
@@ -992,6 +995,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_expire_user_membership: { Args: never; Returns: boolean }
       award_bonus_points: {
         Args: {
           p_actor: string
@@ -1009,6 +1013,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_lite_membership: { Args: never; Returns: Json }
+      expire_memberships: { Args: never; Returns: number }
       extract_system_link: { Args: { p_content: string }; Returns: string }
       forum_post_route: {
         Args: { p_comment_id?: string; p_post_id: string }
