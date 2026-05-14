@@ -278,7 +278,7 @@ export default function MembershipsPage() {
          ===========================================================
       */
 
-        <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {tiers.map(tier => {
             const hasPlan = currentTier === tier.name.toLowerCase();
             const { canBuy, reason } = checkRequirements(tier.name); 
