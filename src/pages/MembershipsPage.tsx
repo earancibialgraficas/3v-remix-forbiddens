@@ -74,7 +74,6 @@ const tiers = [
   {
     name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
-    // 🏷️ ACTUALIZADO: Texto de requisitos
     requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
     checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/3a052872-c7af-42eb-85ce-449deaff996c",
     features: [
@@ -126,7 +125,6 @@ const tiers = [
   },
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
-    // 🏷️ ACTUALIZADO: Texto de requisitos
     requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
     checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/36769b6f-e093-48d3-9244-1a424c3bb6ec",
     features: [
@@ -155,9 +153,11 @@ export default function MembershipsPage() {
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
-  // 💎 ACTUALIZADO: Leemos "puntos" en lugar de "horas"
-  const userFollowers = profile?.seguidores || 0; 
-  const userPoints = profile?.puntos || 0; 
+  // 🛠️ CORRECCIÓN DE COLUMNAS:
+  // Cambiamos 'puntos' por 'total_score'
+  // Cambiamos 'seguidores' por 'follower_count' (Revisa si en Supabase se llama así!)
+  const userFollowers = profile?.follower_count || 0; 
+  const userPoints = profile?.total_score || 0; 
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -182,7 +182,6 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
-  // 🛡️ ACTUALIZADO: Lógica de validación con puntos
   const checkRequirements = (tierName: string) => {
     if (isStaff) return { canBuy: true, reason: "" };
 
@@ -190,7 +189,7 @@ export default function MembershipsPage() {
       const ok = userFollowers >= 1000 && userPoints >= 100000;
       return { 
         canBuy: ok, 
-        reason: ok ? "" : `Faltan requisitos: 1000 seguidores y 100k puntos (Tienes ${userFollowers} seg / ${userPoints.toLocaleString()} pts)` 
+        reason: ok ? "" : `Faltan requisitos: 1000 seguidores y 100k puntos (Tienes ${userFollowers.toLocaleString()} seg / ${userPoints.toLocaleString()} pts)` 
       };
     }
 
@@ -198,7 +197,7 @@ export default function MembershipsPage() {
       const ok = userFollowers >= 750 && userPoints >= 50000;
       return { 
         canBuy: ok, 
-        reason: ok ? "" : `Faltan requisitos: 750 seguidores y 50k puntos (Tienes ${userFollowers} seg / ${userPoints.toLocaleString()} pts)` 
+        reason: ok ? "" : `Faltan requisitos: 750 seguidores y 50k puntos (Tienes ${userFollowers.toLocaleString()} seg / ${userPoints.toLocaleString()} pts)` 
       };
     }
 
@@ -226,7 +225,7 @@ export default function MembershipsPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
       
-      {/* Header */}
+      {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">
         <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
         <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
@@ -252,7 +251,7 @@ export default function MembershipsPage() {
         <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto">
           <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MODO STAFF ACTIVO</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
-            Eres administrador. Las restricciones de puntos están desactivadas para ti.
+            Eres administrador. Las restricciones están desactivadas para ti.
           </p>
         </div>
       )}
@@ -262,9 +261,9 @@ export default function MembershipsPage() {
           <Hammer className="w-16 h-16 text-neon-yellow mb-6" />
           <h2 className="font-pixel text-2xl text-neon-yellow mb-4 text-center">SISTEMA EN MANTENIMIENTO</h2>
           <p className="font-body text-muted-foreground text-center max-w-lg leading-relaxed">
-            Estamos terminando de configurar nuestra pasarela de pagos. 
+            Estamos terminando de configurar nuestra pasarela de pagos con Lemon Squeezy para brindarte la mejor seguridad. 
             <br /><br />
-            <span className="text-neon-cyan font-bold">¡Volveremos en breve!</span>
+            <span className="text-neon-cyan font-bold">¡Volveremos en breve con todos los rangos activos!</span>
           </p>
         </div>
       ) : (
