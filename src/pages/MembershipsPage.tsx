@@ -216,10 +216,8 @@ export default function MembershipsPage() {
         </div>
       )}
 
-      <div 
-        className="grid gap-4 sm:gap-6 mt-8"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
-      >
+      {/* 🔥 AQUÍ ESTÁ EL AJUSTE DE COLUMNAS PARA RESPONSIVE 🔥 */}
+      <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {tiers.map(tier => (
           <div 
             key={tier.name} 
@@ -259,17 +257,13 @@ export default function MembershipsPage() {
                 ))}
               </div>
 
-              {/* 🔥 BOTONES REDISEÑADOS 🔥 */}
               <Button 
                 disabled={currentTier === tier.name.toLowerCase()}
                 onClick={() => handleCheckout(tier.checkoutUrl)}
                 className={cn(
                   "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
-                  // Estado por defecto: Verde neón sin luz, letra negra
                   "bg-[#39FF14] text-black", 
-                  // Estado Hover/Selección: Azul neón con luz (glow), letra negra
                   "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
-                  // Estado deshabilitado (cuando ya tienes el plan)
                   "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                 )}
               >
