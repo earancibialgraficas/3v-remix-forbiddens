@@ -20,10 +20,10 @@ const countryPricing: PriceByCountry = {
   GB: { symbol: "£", multiplier: 0.79 },
 };
 
-// Tiers ordenados: Novato, Legado y Creador primero como especialidades.
 const tiers = [
   {
     name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
+    checkoutUrl: null,
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Avatar/Perfil", value: "25 Avatares Pixel-Art" },
@@ -38,6 +38,7 @@ const tiers = [
   },
   {
     name: "Lite", basePrice: 5, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/4a363da2-6a4b-4179-9130-cabce74151a1",
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -54,6 +55,7 @@ const tiers = [
   {
     name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/70b40054-06ea-408c-984c-34b48f8bee62",
     features: [
       { label: "Emuladores", value: "6 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -73,6 +75,7 @@ const tiers = [
     name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
     requirements: "Requisitos: 1000+ Seguidores y 50 Horas",
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/3a052872-c7af-42eb-85ce-449deaff996c",
     features: [
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -90,11 +93,12 @@ const tiers = [
   },
   {
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/7dde60e7-66c1-4a4d-899f-6aa7c9eb68a6",
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "55 Avatares" },
-      { label: "Subir Avatar", value: "Si" }, // 🔥 CAMBIADO DE "NO" A "SI"
+      { label: "Subir Avatar", value: "Si" },
       { label: "Post en Foro", value: "Ilimitado - Texto + Imagenes" },
       { label: "Comentarios", value: "1000 Caracteres Maximo" },
       { label: "Amigos", value: "Maximo 50" },
@@ -105,6 +109,7 @@ const tiers = [
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/55122696-dcd6-4efa-a20d-aef3f5dbf183",
     features: [
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -121,6 +126,7 @@ const tiers = [
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
     requirements: "Requisitos: 750+ Seguidores y 30 Horas",
+    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/36769b6f-e093-48d3-9244-1a424c3bb6ec",
     features: [
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -140,7 +146,8 @@ const tiers = [
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("US");
   const [loading, setLoading] = useState(true);
-  const { profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
+  const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
+  
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
@@ -167,12 +174,22 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
+  const handleCheckout = (checkoutUrl: string | null) => {
+    if (!checkoutUrl) return;
+    if (!user) {
+      alert("Debes iniciar sesión o registrarte para adquirir una membresía.");
+      return;
+    }
+    const finalUrl = `${checkoutUrl}?checkout[custom][user_id]=${user.id}`;
+    window.location.href = finalUrl;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-4 max-w-7xl mx-auto">
       <div className="text-center space-y-3">
         <h1 className="font-pixel text-xl sm:text-2xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
         <p className="text-[10px] sm:text-xs text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed">
-          Elige el plan que mejor se adapte a tu estilo. Todos los planes permiten posts ilimitados en el foro. El límite de "Social Hub" y "Muro Fotográfico" se refiere a la cantidad de imágenes/videos que puedes publicar.
+          Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>
         
         <div className="flex items-center justify-center gap-2 mt-4 bg-card/40 border border-border/50 w-fit mx-auto px-4 py-2 rounded-full backdrop-blur-md">
@@ -194,7 +211,7 @@ export default function MembershipsPage() {
         <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center">
           <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MEMBRESÍA STAFF</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
-            Tu plan actual es <span className="font-bold text-neon-magenta">STAFF</span> — la membresía más poderosa del sitio. Acceso total a todas las funciones, sin límites. No es comprable ni transferible.
+            Tu plan actual es <span className="font-bold text-neon-magenta">STAFF</span>.
           </p>
         </div>
       )}
@@ -211,10 +228,6 @@ export default function MembershipsPage() {
               tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
             )}
           >
-            {tier.isVIP && (
-              <div className={cn("absolute inset-0 opacity-[0.04] pointer-events-none bg-gradient-to-br from-current to-transparent", tier.textColor)} />
-            )}
-
             <div className="relative z-10 flex-1 flex flex-col h-full">
               <div className="flex items-center justify-between mb-1">
                 <h3 className={cn("font-pixel text-[11px] sm:text-xs tracking-tight", tier.textColor)}>
@@ -246,13 +259,18 @@ export default function MembershipsPage() {
                 ))}
               </div>
 
+              {/* 🔥 BOTONES REDISEÑADOS 🔥 */}
               <Button 
                 disabled={currentTier === tier.name.toLowerCase()}
+                onClick={() => handleCheckout(tier.checkoutUrl)}
                 className={cn(
-                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300",
-                  tier.isVIP 
-                    ? `bg-transparent border-2 ${tier.color} ${tier.textColor} hover:bg-current hover:text-black shadow-lg` 
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
+                  // Estado por defecto: Verde neón sin luz, letra negra
+                  "bg-[#39FF14] text-black", 
+                  // Estado Hover/Selección: Azul neón con luz (glow), letra negra
+                  "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
+                  // Estado deshabilitado (cuando ya tienes el plan)
+                  "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                 )}
               >
                 {currentTier === tier.name.toLowerCase() ? "Plan Actual" : tier.basePrice === 0 ? "Plan Gratuito" : "Obtener Rango"}
