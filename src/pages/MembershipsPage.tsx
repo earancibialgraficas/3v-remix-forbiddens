@@ -74,7 +74,8 @@ const tiers = [
   {
     name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
-    requirements: "Requisitos: 1000+ Seguidores y 50 Horas",
+    // 🏷️ ACTUALIZADO: Texto de requisitos
+    requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
     checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/3a052872-c7af-42eb-85ce-449deaff996c",
     features: [
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
@@ -125,7 +126,8 @@ const tiers = [
   },
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
-    requirements: "Requisitos: 750+ Seguidores y 30 Horas",
+    // 🏷️ ACTUALIZADO: Texto de requisitos
+    requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
     checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/36769b6f-e093-48d3-9244-1a424c3bb6ec",
     features: [
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
@@ -148,14 +150,14 @@ export default function MembershipsPage() {
   const [loading, setLoading] = useState(true);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
-  // 🛠️ MODO MANTENIMIENTO: Cambia a false para mostrar las membresías
   const isUnderMaintenance = false; 
 
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
+  // 💎 ACTUALIZADO: Leemos "puntos" en lugar de "horas"
   const userFollowers = profile?.seguidores || 0; 
-  const userHours = profile?.horas || 0;
+  const userPoints = profile?.puntos || 0; 
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -180,22 +182,23 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
+  // 🛡️ ACTUALIZADO: Lógica de validación con puntos
   const checkRequirements = (tierName: string) => {
     if (isStaff) return { canBuy: true, reason: "" };
 
     if (tierName === "Creador de Contenido") {
-      const ok = userFollowers >= 1000 && userHours >= 50;
+      const ok = userFollowers >= 1000 && userPoints >= 100000;
       return { 
         canBuy: ok, 
-        reason: ok ? "" : `Faltan requisitos: 1000 seguidores y 50h (Tienes ${userFollowers} seg / ${userHours}h)` 
+        reason: ok ? "" : `Faltan requisitos: 1000 seguidores y 100k puntos (Tienes ${userFollowers} seg / ${userPoints.toLocaleString()} pts)` 
       };
     }
 
     if (tierName === "Leyenda Arcade") {
-      const ok = userFollowers >= 750 && userHours >= 30;
+      const ok = userFollowers >= 750 && userPoints >= 50000;
       return { 
         canBuy: ok, 
-        reason: ok ? "" : `Faltan requisitos: 750 seguidores y 30h (Tienes ${userFollowers} seg / ${userHours}h)` 
+        reason: ok ? "" : `Faltan requisitos: 750 seguidores y 50k puntos (Tienes ${userFollowers} seg / ${userPoints.toLocaleString()} pts)` 
       };
     }
 
@@ -249,7 +252,7 @@ export default function MembershipsPage() {
         <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto">
           <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MODO STAFF ACTIVO</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
-            Eres administrador. Las restricciones están desactivadas para ti.
+            Eres administrador. Las restricciones de puntos están desactivadas para ti.
           </p>
         </div>
       )}
@@ -266,7 +269,6 @@ export default function MembershipsPage() {
         </div>
       ) : (
 
-        /* 🚀 GRID FLUIDO INTELIGENTE: Se ajusta solo según el espacio disponible */
         <div className="grid gap-6 mt-8 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
           {tiers.map(tier => {
             const hasPlan = currentTier === tier.name.toLowerCase();
@@ -303,7 +305,6 @@ export default function MembershipsPage() {
                     </p>
                   </div>
 
-                  {/* 📝 FILAS DE BENEFICIOS RESPONSIVAS: No se cortan si el espacio es poco */}
                   <div className="space-y-3 text-[11px] sm:text-xs font-body flex-1">
                     {tier.features.map((f, i) => (
                       <div key={i} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-white/[0.04] py-2.5 last:border-0">
