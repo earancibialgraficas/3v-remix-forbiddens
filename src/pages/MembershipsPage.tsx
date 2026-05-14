@@ -216,8 +216,8 @@ export default function MembershipsPage() {
         </div>
       )}
 
-      {/* 🔥 AQUÍ ESTÁ EL AJUSTE DE COLUMNAS PARA RESPONSIVE 🔥 */}
-      <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      {/* 🔥 CAMBIADO: lg:grid-cols-3 para tener 3 columnas en PC 🔥 */}
+      <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {tiers.map(tier => (
           <div 
             key={tier.name} 
