@@ -151,6 +151,10 @@ export default function MembershipsPage() {
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
+  // 🔥 Leemos seguidores y horas (si tus columnas se llaman distinto, cámbialo aquí)
+  const userFollowers = profile?.seguidores || 0; 
+  const userHours = profile?.horas || 0;
+
   useEffect(() => {
     const detectCountry = async () => {
       try {
@@ -174,13 +178,22 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
-  const handleCheckout = (checkoutUrl: string | null) => {
+  // 🔥 Función para bloquear botones si no cumplen los requisitos
+  const checkRequirements = (tierName: string) => {
+    if (tierName === "Creador de Contenido") return userFollowers >= 1000 && userHours >= 50;
+    if (tierName === "Leyenda Arcade") return userFollowers >= 750 && userHours >= 30;
+    return true; 
+  };
+
+  // 🔥 MAGIA: Ahora enviamos el "rango" en la URL de pago
+  const handleCheckout = (tierName: string, checkoutUrl: string | null) => {
     if (!checkoutUrl) return;
     if (!user) {
       alert("Debes iniciar sesión o registrarte para adquirir una membresía.");
       return;
     }
-    const finalUrl = `${checkoutUrl}?checkout[custom][user_id]=${user.id}`;
+    const rangoFormateado = tierName.toLowerCase();
+    const finalUrl = `${checkoutUrl}?checkout[custom][user_id]=${user.id}&checkout[custom][rango]=${rangoFormateado}`;
     window.location.href = finalUrl;
   };
 
@@ -216,62 +229,75 @@ export default function MembershipsPage() {
         </div>
       )}
 
-      {/* 🔥 CAMBIADO: lg:grid-cols-3 para tener 3 columnas en PC 🔥 */}
+      {/* 3 Columnas en PC */}
       <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {tiers.map(tier => (
-          <div 
-            key={tier.name} 
-            className={cn(
-              "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-1 relative overflow-hidden flex flex-col h-full min-h-[400px]",
-              tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
-            )}
-          >
-            <div className="relative z-10 flex-1 flex flex-col h-full">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className={cn("font-pixel text-[11px] sm:text-xs tracking-tight", tier.textColor)}>
-                  {tier.name}
-                </h3>
-                {tier.isVIP && <Sparkles className={cn("w-4 h-4 animate-pulse text-white/40")} />}
-              </div>
-              
-              {tier.requirements && (
-                <p className="text-[8px] sm:text-[9px] text-muted-foreground font-body italic mb-2 border-b border-border/20 pb-2">
-                  {tier.requirements}
-                </p>
+        {tiers.map(tier => {
+          const hasPlan = currentTier === tier.name.toLowerCase();
+          const canBuy = checkRequirements(tier.name); 
+
+          return (
+            <div 
+              key={tier.name} 
+              className={cn(
+                "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-1 relative overflow-hidden flex flex-col h-full min-h-[400px]",
+                tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
               )}
-              
-              <div className="my-4 sm:my-6">
-                <p className="text-xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
-                  {formatPrice(tier.basePrice)}
-                </p>
-              </div>
-
-              <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px] font-body flex-1">
-                {tier.features.map((f, i) => (
-                  <div key={i} className="flex justify-between gap-x-3 border-b border-white/[0.03] py-1 last:border-0">
-                    <span className="text-muted-foreground">{f.label}</span>
-                    <span className={cn("text-right font-medium", f.bad ? "text-destructive/60" : "text-foreground/90")}>
-                      {f.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <Button 
-                disabled={currentTier === tier.name.toLowerCase()}
-                onClick={() => handleCheckout(tier.checkoutUrl)}
-                className={cn(
-                  "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
-                  "bg-[#39FF14] text-black", 
-                  "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
-                  "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              <div className="relative z-10 flex-1 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className={cn("font-pixel text-[11px] sm:text-xs tracking-tight", tier.textColor)}>
+                    {tier.name}
+                  </h3>
+                  {tier.isVIP && <Sparkles className={cn("w-4 h-4 animate-pulse text-white/40")} />}
+                </div>
+                
+                {tier.requirements && (
+                  <p className={cn("text-[8px] sm:text-[9px] font-body italic mb-2 border-b border-border/20 pb-2", 
+                    canBuy ? "text-muted-foreground" : "text-destructive"
+                  )}>
+                    {tier.requirements}
+                  </p>
                 )}
-              >
-                {currentTier === tier.name.toLowerCase() ? "Plan Actual" : tier.basePrice === 0 ? "Plan Gratuito" : "Obtener Rango"}
-              </Button>
+                
+                <div className="my-4 sm:my-6">
+                  <p className="text-xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
+                    {formatPrice(tier.basePrice)}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px] font-body flex-1">
+                  {tier.features.map((f, i) => (
+                    <div key={i} className="flex justify-between gap-x-3 border-b border-white/[0.03] py-1 last:border-0">
+                      <span className="text-muted-foreground">{f.label}</span>
+                      <span className={cn("text-right font-medium", f.bad ? "text-destructive/60" : "text-foreground/90")}>
+                        {f.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button 
+                  disabled={hasPlan || !canBuy} 
+                  onClick={() => handleCheckout(tier.name, tier.checkoutUrl)}
+                  className={cn(
+                    "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
+                    "bg-[#39FF14] text-black", 
+                    "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
+                    "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
+                  )}
+                >
+                  {hasPlan 
+                    ? "Plan Actual" 
+                    : !canBuy 
+                      ? "Faltan Requisitos" 
+                      : tier.basePrice === 0 
+                        ? "Plan Gratuito" 
+                        : "Obtener Rango"}
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
