@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Globe, Sparkles, Hammer } from "lucide-react"; // Añadí Hammer para el icono de mantenimiento
+import { Globe, Sparkles, Hammer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -148,12 +148,13 @@ export default function MembershipsPage() {
   const [loading, setLoading] = useState(true);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
-  // VARIABLE PARA MANTENIMIENTO: Cambia a false para mostrar las membresías
+  // 🛠️ MODO MANTENIMIENTO: Cambia a false para mostrar las membresías
   const isUnderMaintenance = false; 
 
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
+  // Datos para validación
   const userFollowers = profile?.seguidores || 0; 
   const userHours = profile?.horas || 0;
 
@@ -180,30 +181,56 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
+  // 🛡️ LÓGICA DE SEGURIDAD REFORZADA
   const checkRequirements = (tierName: string) => {
-    if (tierName === "Creador de Contenido") return userFollowers >= 1000 && userHours >= 50;
-    if (tierName === "Leyenda Arcade") return userFollowers >= 750 && userHours >= 30;
-    return true; 
+    // Si eres staff, te saltas las restricciones para poder probar
+    if (isStaff) return { canBuy: true, reason: "" };
+
+    if (tierName === "Creador de Contenido") {
+      const ok = userFollowers >= 1000 && userHours >= 50;
+      return { 
+        canBuy: ok, 
+        reason: ok ? "" : `Faltan requisitos: 1000 seguidores y 50h (Tienes ${userFollowers} seg / ${userHours}h)` 
+      };
+    }
+
+    if (tierName === "Leyenda Arcade") {
+      const ok = userFollowers >= 750 && userHours >= 30;
+      return { 
+        canBuy: ok, 
+        reason: ok ? "" : `Faltan requisitos: 750 seguidores y 30h (Tienes ${userFollowers} seg / ${userHours}h)` 
+      };
+    }
+
+    return { canBuy: true, reason: "" }; 
   };
 
   const handleCheckout = (tierName: string, checkoutUrl: string | null) => {
     if (!checkoutUrl) return;
     if (!user) {
-      alert("Debes iniciar sesión o registrarte para adquirir una membresía.");
+      alert("Debes iniciar sesión para adquirir una membresía.");
       return;
     }
+
+    // 🛑 SEGUNDO ESCUDO: Validación justo antes del pago
+    const validation = checkRequirements(tierName);
+    if (!validation.canBuy) {
+      alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
+      return;
+    }
+
     const rangoFormateado = tierName.toLowerCase();
     const finalUrl = `${checkoutUrl}?checkout[custom][user_id]=${user.id}&checkout[custom][rango]=${rangoFormateado}`;
     window.location.href = finalUrl;
   };
 
   return (
-    // "w-full" y "max-w-none" hacen que ocupe todo el ancho entre sidebars
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
       
-      <div className="text-center space-y-3">
-        <h1 className="font-pixel text-xl sm:text-3xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
-        <p className="text-[10px] sm:text-sm text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
+      {/* Header adaptable */}
+      <div className="text-center space-y-3 pt-4">
+        <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
+        <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
           Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>
         
@@ -224,9 +251,9 @@ export default function MembershipsPage() {
 
       {isStaff && (
         <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto">
-          <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MEMBRESÍA STAFF</h2>
+          <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MODO STAFF ACTIVO</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
-            Tu plan actual es <span className="font-bold text-neon-magenta">STAFF</span>.
+            Eres administrador. Las restricciones de seguidores y horas están desactivadas para ti.
           </p>
         </div>
       )}
@@ -236,32 +263,33 @@ export default function MembershipsPage() {
           ===========================================================
       */}
       {isUnderMaintenance ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 mt-10 border-2 border-dashed border-neon-yellow/30 rounded-3xl bg-neon-yellow/5 animate-pulse">
+        <div className="flex flex-col items-center justify-center py-24 px-4 mt-10 border-2 border-dashed border-neon-yellow/30 rounded-3xl bg-neon-yellow/5 animate-pulse max-w-6xl mx-auto">
           <Hammer className="w-16 h-16 text-neon-yellow mb-6" />
           <h2 className="font-pixel text-2xl text-neon-yellow mb-4 text-center">SISTEMA EN MANTENIMIENTO</h2>
-          <p className="font-body text-muted-foreground text-center max-w-lg">
+          <p className="font-body text-muted-foreground text-center max-w-lg leading-relaxed">
             Estamos terminando de configurar nuestra pasarela de pagos con Lemon Squeezy para brindarte la mejor seguridad. 
             <br /><br />
-            <span className="text-neon-cyan">¡Volveremos en breve con todos los rangos activos!</span>
+            <span className="text-neon-cyan font-bold">¡Volveremos en breve con todos los rangos activos!</span>
           </p>
         </div>
       ) : (
-        /* ===========================================================
-           FIN DEL BLOQUE DE MANTENIMIENTO
-           ===========================================================
-        */
+      /* ===========================================================
+         FIN DEL BLOQUE DE MANTENIMIENTO
+         ===========================================================
+      */
 
         <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {tiers.map(tier => {
             const hasPlan = currentTier === tier.name.toLowerCase();
-            const canBuy = checkRequirements(tier.name); 
+            const { canBuy, reason } = checkRequirements(tier.name); 
 
             return (
               <div 
                 key={tier.name} 
                 className={cn(
-                  "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden flex flex-col h-full min-h-[450px]",
-                  tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`
+                  "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden flex flex-col h-full min-h-[460px]",
+                  tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`,
+                  (!canBuy && !hasPlan && !isStaff) && "opacity-70 grayscale-[0.3]"
                 )}
               >
                 <div className="relative z-10 flex-1 flex flex-col h-full">
@@ -274,14 +302,14 @@ export default function MembershipsPage() {
                   
                   {tier.requirements && (
                     <p className={cn("text-[8px] sm:text-[9px] font-body italic mb-2 border-b border-border/20 pb-2", 
-                      canBuy ? "text-muted-foreground" : "text-destructive"
+                      (canBuy || isStaff) ? "text-muted-foreground" : "text-destructive"
                     )}>
                       {tier.requirements}
                     </p>
                   )}
                   
                   <div className="my-4 sm:my-6">
-                    <p className="text-xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
+                    <p className="text-2xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
                       {formatPrice(tier.basePrice)}
                     </p>
                   </div>
@@ -297,24 +325,26 @@ export default function MembershipsPage() {
                     ))}
                   </div>
 
-                  <Button 
-                    disabled={hasPlan || !canBuy} 
-                    onClick={() => handleCheckout(tier.name, tier.checkoutUrl)}
-                    className={cn(
-                      "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
-                      "bg-[#39FF14] text-black", 
-                      "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
-                      "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
+                  <div className="mt-auto">
+                    <Button 
+                      disabled={hasPlan || (!canBuy && !isStaff)} 
+                      onClick={() => handleCheckout(tier.name, tier.checkoutUrl)}
+                      className={cn(
+                        "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
+                        "bg-[#39FF14] text-black", 
+                        "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
+                        "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
+                      )}
+                    >
+                      {hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Requisitos Insuficientes" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
+                    </Button>
+
+                    {!canBuy && !hasPlan && !isStaff && (
+                      <p className="text-[8px] text-destructive/80 mt-2 text-center font-body px-2">
+                        {reason}
+                      </p>
                     )}
-                  >
-                    {hasPlan 
-                      ? "Plan Actual" 
-                      : !canBuy 
-                        ? "Faltan Requisitos" 
-                        : tier.basePrice === 0 
-                          ? "Plan Gratuito" 
-                          : "Obtener Rango"}
-                  </Button>
+                  </div>
                 </div>
               </div>
             );
