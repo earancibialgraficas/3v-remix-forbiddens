@@ -154,7 +154,6 @@ export default function MembershipsPage() {
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
-  // Datos para validación
   const userFollowers = profile?.seguidores || 0; 
   const userHours = profile?.horas || 0;
 
@@ -181,9 +180,7 @@ export default function MembershipsPage() {
     return `${pricing.symbol}${Math.round(basePrice * pricing.multiplier).toLocaleString()}/mes`;
   };
 
-  // 🛡️ LÓGICA DE SEGURIDAD REFORZADA
   const checkRequirements = (tierName: string) => {
-    // Si eres staff, te saltas las restricciones para poder probar
     if (isStaff) return { canBuy: true, reason: "" };
 
     if (tierName === "Creador de Contenido") {
@@ -212,7 +209,6 @@ export default function MembershipsPage() {
       return;
     }
 
-    // 🛑 SEGUNDO ESCUDO: Validación justo antes del pago
     const validation = checkRequirements(tierName);
     if (!validation.canBuy) {
       alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
@@ -227,7 +223,7 @@ export default function MembershipsPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
       
-      {/* Header adaptable */}
+      {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
         <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
@@ -253,32 +249,25 @@ export default function MembershipsPage() {
         <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto">
           <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MODO STAFF ACTIVO</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
-            Eres administrador. Las restricciones de seguidores y horas están desactivadas para ti.
+            Eres administrador. Las restricciones están desactivadas para ti.
           </p>
         </div>
       )}
 
-      {/* ===========================================================
-          BLOQUE DE MANTENIMIENTO (BORRAR ESTO CUANDO LEMON ESTÉ LISTO)
-          ===========================================================
-      */}
       {isUnderMaintenance ? (
         <div className="flex flex-col items-center justify-center py-24 px-4 mt-10 border-2 border-dashed border-neon-yellow/30 rounded-3xl bg-neon-yellow/5 animate-pulse max-w-6xl mx-auto">
           <Hammer className="w-16 h-16 text-neon-yellow mb-6" />
           <h2 className="font-pixel text-2xl text-neon-yellow mb-4 text-center">SISTEMA EN MANTENIMIENTO</h2>
           <p className="font-body text-muted-foreground text-center max-w-lg leading-relaxed">
-            Estamos terminando de configurar nuestra pasarela de pagos con Lemon Squeezy para brindarte la mejor seguridad. 
+            Estamos terminando de configurar nuestra pasarela de pagos. 
             <br /><br />
-            <span className="text-neon-cyan font-bold">¡Volveremos en breve con todos los rangos activos!</span>
+            <span className="text-neon-cyan font-bold">¡Volveremos en breve!</span>
           </p>
         </div>
       ) : (
-      /* ===========================================================
-         FIN DEL BLOQUE DE MANTENIMIENTO
-         ===========================================================
-      */
 
-        <div className="grid gap-4 sm:gap-6 mt-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        /* 🚀 GRID FLUIDO INTELIGENTE: Se ajusta solo según el espacio disponible */
+        <div className="grid gap-6 mt-8 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
           {tiers.map(tier => {
             const hasPlan = currentTier === tier.name.toLowerCase();
             const { canBuy, reason } = checkRequirements(tier.name); 
@@ -287,60 +276,64 @@ export default function MembershipsPage() {
               <div 
                 key={tier.name} 
                 className={cn(
-                  "bg-card rounded-2xl p-5 sm:p-6 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden flex flex-col h-full min-h-[460px]",
+                  "bg-card rounded-2xl p-6 sm:p-7 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden flex flex-col h-full min-h-[500px]",
                   tier.isVIP ? `border-2 ${tier.color} ${tier.shadow}` : `border ${tier.color} hover:border-white/20`,
                   (!canBuy && !hasPlan && !isStaff) && "opacity-70 grayscale-[0.3]"
                 )}
               >
                 <div className="relative z-10 flex-1 flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className={cn("font-pixel text-[11px] sm:text-xs tracking-tight", tier.textColor)}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className={cn("font-pixel text-xs sm:text-sm tracking-tight", tier.textColor)}>
                       {tier.name}
                     </h3>
-                    {tier.isVIP && <Sparkles className={cn("w-4 h-4 animate-pulse text-white/40")} />}
+                    {tier.isVIP && <Sparkles className={cn("w-5 h-5 animate-pulse text-white/40")} />}
                   </div>
                   
                   {tier.requirements && (
-                    <p className={cn("text-[8px] sm:text-[9px] font-body italic mb-2 border-b border-border/20 pb-2", 
+                    <p className={cn("text-[9px] sm:text-[10px] font-body italic mb-3 border-b border-border/20 pb-2", 
                       (canBuy || isStaff) ? "text-muted-foreground" : "text-destructive"
                     )}>
                       {tier.requirements}
                     </p>
                   )}
                   
-                  <div className="my-4 sm:my-6">
-                    <p className="text-2xl sm:text-3xl font-bold font-body text-foreground tracking-tight">
+                  <div className="my-6">
+                    <p className="text-3xl sm:text-4xl font-bold font-body text-foreground tracking-tighter">
                       {formatPrice(tier.basePrice)}
                     </p>
                   </div>
 
-                  <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px] font-body flex-1">
+                  {/* 📝 FILAS DE BENEFICIOS RESPONSIVAS: No se cortan si el espacio es poco */}
+                  <div className="space-y-3 text-[11px] sm:text-xs font-body flex-1">
                     {tier.features.map((f, i) => (
-                      <div key={i} className="flex justify-between gap-x-3 border-b border-white/[0.03] py-1 last:border-0">
-                        <span className="text-muted-foreground">{f.label}</span>
-                        <span className={cn("text-right font-medium", f.bad ? "text-destructive/60" : "text-foreground/90")}>
+                      <div key={i} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-white/[0.04] py-2.5 last:border-0">
+                        <span className="text-muted-foreground leading-tight">{f.label}</span>
+                        <span className={cn(
+                          "sm:text-right font-bold leading-tight break-words", 
+                          f.bad ? "text-destructive/70" : "text-foreground"
+                        )}>
                           {f.value}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-auto">
+                  <div className="mt-8">
                     <Button 
                       disabled={hasPlan || (!canBuy && !isStaff)} 
                       onClick={() => handleCheckout(tier.name, tier.checkoutUrl)}
                       className={cn(
-                        "w-full mt-6 h-10 sm:h-12 font-pixel text-[9px] sm:text-[10px] uppercase tracking-wider transition-all duration-300 border-none",
+                        "w-full h-12 sm:h-14 font-pixel text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 border-none",
                         "bg-[#39FF14] text-black", 
-                        "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_#00FFFF] active:scale-95",
+                        "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95",
                         "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                       )}
                     >
-                      {hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Requisitos Insuficientes" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
+                      {hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
                     </Button>
 
                     {!canBuy && !hasPlan && !isStaff && (
-                      <p className="text-[8px] text-destructive/80 mt-2 text-center font-body px-2">
+                      <p className="text-[9px] text-destructive/90 mt-3 text-center font-body leading-tight">
                         {reason}
                       </p>
                     )}
