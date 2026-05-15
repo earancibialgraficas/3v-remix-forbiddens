@@ -29,6 +29,7 @@ import NotFound from "./pages/NotFound";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
+import VaultPage from "./pages/VaultPage";
 import { Navigate } from "react-router-dom";
 import { UpgradeProvider } from "@/components/UpgradeModal";
 import GlobalAds from "@/components/GlobalAds"; // 🔥 IMPORTAMOS EL COMPONENTE DE ANUNCIOS
@@ -115,6 +116,7 @@ const App = () => {
                   <Route path="/registro" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/vault" element={<VaultPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -86,3 +86,36 @@ export function restoreEmulatorConfig(instance: any, consoleName: string) {
     }
   } catch {}
 }
+
+// 🇪🇸 Asegura que el menú interno de RetroArch (Nostalgist) esté en español.
+// user_language = 7 corresponde a Spanish en RetroArch.
+export function ensureSpanishLanguage(instance: any) {
+  const FS = getFS(instance);
+  if (!FS) return;
+  const cfgPath = "/home/web_user/retroarch/userdata/retroarch.cfg";
+  let existing = "";
+  try {
+    const data = FS.readFile(cfgPath);
+    existing = new TextDecoder().decode(data);
+  } catch {}
+
+  // Si ya tiene la línea, no la duplicamos
+  if (/user_language\s*=/.test(existing)) {
+    if (!/user_language\s*=\s*"?7"?/.test(existing)) {
+      existing = existing.replace(/user_language\s*=\s*"?\d+"?/g, 'user_language = "7"');
+    }
+  } else {
+    existing += `\nuser_language = "7"\n`;
+  }
+
+  // También fuerza menu en xmb con strings ES
+  if (!/menu_driver\s*=/.test(existing)) {
+    existing += `menu_driver = "ozone"\n`;
+  }
+
+  ensureDir(FS, "/home/web_user/retroarch/userdata");
+  try {
+    FS.writeFile(cfgPath, new TextEncoder().encode(existing));
+  } catch {}
+}
+

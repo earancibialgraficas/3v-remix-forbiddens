@@ -275,6 +275,36 @@ ${message}[/COLOR]`;
           </div>
         )}
       </div>
+
+      <div className="bg-card border border-neon-yellow/30 rounded overflow-hidden scroll-mt-4">
+        <SectionHeader id={"roms" as any} icon={FolderOpen} title="DESCARGAR ROMS (SITIOS RECOMENDADOS)" color="hsl(var(--neon-yellow))" />
+        {openSection === ("roms" as any) && (
+          <div className="p-4 space-y-3 border-t border-border animate-fade-in">
+            <p className="text-[11px] font-body text-muted-foreground italic">
+              ⚠️ Descarga ROMs solo de juegos que poseas legalmente. No alojamos ni distribuimos ROMs.
+            </p>
+            {[
+              { c: "NES / SNES / N64 / GBA / GBC", links: ["https://www.romsgames.net/", "https://wowroms.com/", "https://vimms-lair.com/"] },
+              { c: "PlayStation 1 / 2", links: ["https://www.romspedia.com/roms/playstation", "https://www.romsmania.cc/roms/playstation"] },
+              { c: "Sega Genesis / Mega Drive", links: ["https://www.romsgames.net/roms/sega-genesis/", "https://wowroms.com/en/roms/list/sega-genesis"] },
+              { c: "Arcade (FBNeo / MAME)", links: ["https://archive.org/details/MAME_0.139_ROMs_Merged", "https://wowroms.com/en/roms/mame/"] },
+              { c: "Nintendo DS", links: ["https://www.romspedia.com/roms/nintendo-ds", "https://wowroms.com/en/roms/list/nintendo-ds"] },
+              { c: "Nintendo 3DS", links: ["https://r-roms.github.io/megathread/3ds/"] },
+            ].map((g, i) => (
+              <div key={i} className="bg-muted/20 border border-border rounded p-3">
+                <div className="font-pixel text-[10px] text-neon-yellow mb-2">{g.c}</div>
+                <ul className="space-y-1">
+                  {g.links.map((l) => (
+                    <li key={l}>
+                      <a href={l} target="_blank" rel="noopener noreferrer" className="text-xs font-body text-neon-cyan hover:underline break-all">{l}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

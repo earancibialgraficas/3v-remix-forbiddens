@@ -13,6 +13,7 @@ import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
+import VaultPasswordModal from "@/components/VaultPasswordModal";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -111,6 +112,7 @@ export default function BibliotecaPage() {
   const [editName, setEditName] = useState("");
   const [editCover, setEditCover] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [vaultModalOpen, setVaultModalOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
@@ -414,10 +416,10 @@ const handlePlayCloudGame = async (game: any) => {
         toast({ title: "Error al enviar", description: error.message, variant: "destructive" });
         return;
       }
-      // Notificar al staff
+      // Notificar SOLO a master_web + admin (no moderadores) y SIN link
       try {
-        const content = `[COLOR:#22c55e]🎮 NUEVA SUGERENCIA DE JUEGO[/COLOR]\n\n[COLOR:#3b82f6]👤 ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]\n[COLOR:#eab308]🕹️ Consola: ${suggestConsole}[/COLOR]\n[COLOR:#eab308]🎯 Juego: ${gameName}[/COLOR]\n\n[COLOR:#ffffff]${description || '(sin descripción)'}[/COLOR]\n\n[LINK:/biblioteca]Ir a Biblioteca[/LINK]`;
-        await supabase.rpc("send_system_staff_message" as any, {
+        const content = `[COLOR:#22c55e]🎮 NUEVA SUGERENCIA DE JUEGO[/COLOR]\n\n[COLOR:#3b82f6]👤 ${user.user_metadata?.username || user.email || 'Anónimo'}[/COLOR]\n[COLOR:#eab308]🕹️ Consola: ${suggestConsole}[/COLOR]\n[COLOR:#eab308]🎯 Juego: ${gameName}[/COLOR]\n\n[COLOR:#ffffff]${description || '(sin descripción)'}[/COLOR]`;
+        await supabase.rpc("send_system_admin_message" as any, {
           p_title: `Sugerencia de juego: ${gameName}`,
           p_content: content,
           p_message_type: 'game_suggestion',
@@ -505,12 +507,20 @@ const handlePlayCloudGame = async (game: any) => {
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
       
-      <div className="bg-card border border-neon-green/30 rounded-lg p-4">
+      <div className="bg-card border border-neon-green/30 rounded-lg p-4 relative">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
+          <Gamepad2 className="w-4 h-4" /> SAL<span className="text-neon-yellow">A</span>S DE JUEGO
         </h1>
         <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
+        {/* 🔐 Botón oculto de la Bóveda Secreta — apenas visible en la esquina */}
+        <button
+          aria-label="."
+          title=""
+          onClick={() => setVaultModalOpen(true)}
+          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-neon-yellow/10 hover:bg-neon-yellow/40 transition-colors"
+        />
       </div>
+      <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
       <div className="flex gap-2 flex-wrap">
         {activeConsoles.map((c) => (

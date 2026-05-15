@@ -131,6 +131,21 @@ const systems = [
     glow: "rgba(249,115,22,0.7)", year: "1990"
   },
   {
+    // 🆕 DS — EmulatorJS desmume2015 (jugable por todos)
+    id: "ds", name: "Nintendo DS", short: "DS", core: "desmume2015", extensions: ".nds,.zip",
+    bg: "https://image.pollinations.ai/prompt/nintendo%20ds%20console%20dual%20screen%20neon%20cyan?width=1280&height=720&nologo=true",
+    consoleImg: "/consolasimg/Nintendo DS.png",
+    glow: "rgba(34,211,238,0.7)", year: "2004"
+  },
+  {
+    // 🆕 3DS — Sin emulador web funcional, modal informativo
+    id: "3ds", name: "Nintendo 3DS", short: "3DS", core: "(externo)", extensions: ".3ds,.cia",
+    bg: "https://image.pollinations.ai/prompt/nintendo%203ds%20console%20stereoscopic%20neon%20red?width=1280&height=720&nologo=true",
+    consoleImg: "/consolasimg/Nintendo 3DS.png",
+    glow: "rgba(248,113,113,0.7)", year: "2011",
+    experimental: true,
+  },
+  {
     // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
     id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
     bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",

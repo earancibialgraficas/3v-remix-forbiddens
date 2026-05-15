@@ -77,12 +77,13 @@ const consoleIcons: Record<string, string> = {
   arcade: "🕹️",
 };
 
-const emulatorJsConsoles = new Set(["n64", "ps1", "arcade"]);
+const emulatorJsConsoles = new Set(["n64", "ps1", "arcade", "ds"]);
 
 const getEmulatorJsCore = (consoleName: string) => {
   if (consoleName === "n64") return "n64";
   if (consoleName === "ps1") return "psx";
   if (consoleName === "arcade") return "arcade";
+  if (consoleName === "ds") return "nds";
   return consoleName;
 };
 
@@ -492,9 +493,26 @@ export default function GameBubble() {
     }
   }, [activeGame?.gameName, activeGame?.consoleName, user]);
 
+  // 🔐 Cache local de segundos jugados hoy en la bóveda (por juego)
+  const vaultSecondsRef = useRef<number>(0);
+  const vaultLastSyncRef = useRef<number>(0);
+
+  useEffect(() => {
+    // Resetea el cache al cambiar de juego y precarga si entramos en modo bóveda
+    vaultSecondsRef.current = 0;
+    vaultLastSyncRef.current = 0;
+    const vaultMode = !!(activeGame as any)?.vaultMode;
+    if (vaultMode && user && activeGame) {
+      import("@/lib/vaultTracking").then(({ getTodaySeconds }) =>
+        getTodaySeconds(user.id, activeGame.gameName).then((s) => { vaultSecondsRef.current = s; })
+      );
+    }
+  }, [activeGame?.gameName, user]);
+
   useEffect(() => {
     // 🚫 PS2 no acumula puntaje (es solo informativo, no se juega aquí dentro)
     if (activeGame && !minimized && romLoaded && !paused && !isPs2) {
+      const vaultMode = !!(activeGame as any).vaultMode;
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         if (now - lastInputRef.current > AFK_TIMEOUT_MS) {
@@ -510,14 +528,29 @@ export default function GameBubble() {
           return;
         }
         timeRef.current += 10;
-        scoreRef.current += 10;
+
+        // 🔐 Triple puntos si está en bóveda y aún no llegó al cap diario (1h)
+        const VAULT_CAP = 3600;
+        const bonusActive = vaultMode && vaultSecondsRef.current < VAULT_CAP;
+        scoreRef.current += bonusActive ? 30 : 10;
         updateScore(scoreRef.current, timeRef.current);
+
+        if (vaultMode && user && activeGame) {
+          vaultSecondsRef.current = Math.min(VAULT_CAP, vaultSecondsRef.current + 10);
+          // Sincroniza a DB cada 30s para no saturar
+          if (now - vaultLastSyncRef.current > 30000) {
+            vaultLastSyncRef.current = now;
+            import("@/lib/vaultTracking").then(({ bumpVaultSeconds }) =>
+              bumpVaultSeconds(user.id, activeGame.gameName, 30).catch(() => {})
+            );
+          }
+        }
       }, 10000);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [activeGame, minimized, romLoaded, paused, updateScore, isPs2]);
+  }, [activeGame, minimized, romLoaded, paused, updateScore, isPs2, user]);
 
   useEffect(() => {
     if (!activeGame) {

@@ -990,6 +990,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_play_sessions: {
+        Row: {
+          bonus_points_awarded: number
+          created_at: string
+          game_name: string
+          id: string
+          play_date: string
+          seconds_played: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bonus_points_awarded?: number
+          created_at?: string
+          game_name: string
+          id?: string
+          play_date?: string
+          seconds_played?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bonus_points_awarded?: number
+          created_at?: string
+          game_name?: string
+          id?: string
+          play_date?: string
+          seconds_played?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

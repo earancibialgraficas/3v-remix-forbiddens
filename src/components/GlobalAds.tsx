@@ -7,6 +7,15 @@ export default function GlobalAds() {
   // Usamos un Ref para guardar nuestro temporizador y poder cancelarlo
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 🧹 Limpieza profunda de Adsterra ya inyectado
+  const purgeAds = () => {
+    document.getElementById("adsterra-global-script")?.remove();
+    // Adsterra suele inyectar iframes y divs sueltos en el body
+    document.querySelectorAll('iframe[src*="profitablecpmratenetwork"], iframe[src*="adsterra"]').forEach((el) => el.remove());
+    document.querySelectorAll('script[src*="profitablecpmratenetwork"]').forEach((el) => el.remove());
+    document.querySelectorAll('[id^="atOptions"]').forEach((el) => el.remove());
+  };
+
   useEffect(() => {
     // 1. Calculamos si es Staff o Premium
     const isStaff = isAdmin || isMasterWeb || (roles || []).includes("moderator");
@@ -14,9 +23,10 @@ export default function GlobalAds() {
     
     const isPremium = userTier !== 'novato' || isStaff || isAdmin || isMasterWeb;
 
-    // 🛑 Si es premium, cancelamos cualquier intento de inyectar el script y salimos
+    // 🛑 Si es premium, cancelamos cualquier intento + limpiamos ads ya inyectados
     if (isPremium) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      purgeAds();
       return; 
     }
 
