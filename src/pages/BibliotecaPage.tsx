@@ -13,6 +13,7 @@ import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
+import VaultPasswordModal from "@/components/VaultPasswordModal";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -111,6 +112,7 @@ export default function BibliotecaPage() {
   const [editName, setEditName] = useState("");
   const [editCover, setEditCover] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [vaultModalOpen, setVaultModalOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
@@ -505,12 +507,20 @@ const handlePlayCloudGame = async (game: any) => {
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
       
-      <div className="bg-card border border-neon-green/30 rounded-lg p-4">
+      <div className="bg-card border border-neon-green/30 rounded-lg p-4 relative">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO
+          <Gamepad2 className="w-4 h-4" /> SAL<span className="text-neon-yellow">A</span>S DE JUEGO
         </h1>
         <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
+        {/* 🔐 Botón oculto de la Bóveda Secreta — apenas visible en la esquina */}
+        <button
+          aria-label="."
+          title=""
+          onClick={() => setVaultModalOpen(true)}
+          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-neon-yellow/10 hover:bg-neon-yellow/40 transition-colors"
+        />
       </div>
+      <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
       <div className="flex gap-2 flex-wrap">
         {activeConsoles.map((c) => (
