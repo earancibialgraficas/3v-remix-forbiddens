@@ -8,6 +8,7 @@ interface GameSession {
   consoleCore: string;
   score: number;
   playTime: number;
+  vaultMode?: boolean; // 🔐 Modo Bóveda: aplica triple puntos (max 1h/día por juego)
 }
 
 interface GameBubbleContextType {
