@@ -156,7 +156,7 @@ export default function MembershipsPage() {
   // 🛠️ CORRECCIÓN DE COLUMNAS:
   // Cambiamos 'puntos' por 'total_score'
   // Cambiamos 'seguidores' por 'follower_count' (Revisa si en Supabase se llama así!)
-  const userFollowers = profile?.follower_count || 0; 
+  const userFollowers = (profile as any)?.follower_count || 0; 
   const userPoints = profile?.total_score || 0; 
 
   useEffect(() => {
