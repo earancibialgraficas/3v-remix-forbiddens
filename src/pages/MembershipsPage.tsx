@@ -39,7 +39,7 @@ const tiers = [
   },
   {
     name: "Lite", basePrice: 5, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/4a363da2-6a4b-4179-9130-cabce74151a1",
+    checkoutUrl: "https://mpago.li/11TpqQK", // 🔗 LINK MERCADO PAGO LITE
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -56,7 +56,7 @@ const tiers = [
   {
     name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/70b40054-06ea-408c-984c-34b48f8bee62",
+    checkoutUrl: "https://mpago.li/16EaVeh", // 🔗 LINK MERCADO PAGO LEGADO
     features: [
       { label: "Emuladores", value: "6 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -76,7 +76,7 @@ const tiers = [
     name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
     requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/3a052872-c7af-42eb-85ce-449deaff996c",
+    checkoutUrl: "https://mpago.li/1JWBWQb", // 🔗 LINK MERCADO PAGO CREADOR
     features: [
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -94,7 +94,7 @@ const tiers = [
   },
   {
     name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/7dde60e7-66c1-4a4d-899f-6aa7c9eb68a6",
+    checkoutUrl: "https://mpago.li/2wzhSPp", // 🔗 LINK MERCADO PAGO ENTUSIASTA
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -110,7 +110,7 @@ const tiers = [
   },
   {
     name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/55122696-dcd6-4efa-a20d-aef3f5dbf183",
+    checkoutUrl: "https://mpago.li/2Jckx8W", // 🔗 LINK MERCADO PAGO COLECCIONISTA
     features: [
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -127,7 +127,7 @@ const tiers = [
   {
     name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
     requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
-    checkoutUrl: "https://forbiddens.lemonsqueezy.com/checkout/buy/36769b6f-e093-48d3-9244-1a424c3bb6ec",
+    checkoutUrl: "https://mpago.li/28qU5Gn", // 🔗 LINK MERCADO PAGO LEYENDA
     features: [
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -145,18 +145,15 @@ const tiers = [
 ];
 
 export default function MembershipsPage() {
-  const [userCountry, setUserCountry] = useState("US");
+  const [userCountry, setUserCountry] = useState("CL"); // Lo dejo en CL por defecto para Mercado Pago
   const [loading, setLoading] = useState(true);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
-  const isUnderMaintenance = true;   // 🛠️ CAMBIAR A FALSE PARA QUE SE VEAN LAS MEMBRESIAS:
+  const isUnderMaintenance = false;  // 🛠️ Puesto en false para que se vean las membresías
 
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
-  // 🛠️ CORRECCIÓN DE COLUMNAS:
-  // Cambiamos 'puntos' por 'total_score'
-  // Cambiamos 'seguidores' por 'follower_count' (Revisa si en Supabase se llama así!)
   const userFollowers = (profile as any)?.follower_count || 0; 
   const userPoints = profile?.total_score || 0; 
 
@@ -218,9 +215,8 @@ export default function MembershipsPage() {
       return;
     }
 
-    const rangoFormateado = tierName.toLowerCase();
-    const finalUrl = `${checkoutUrl}?checkout[custom][user_id]=${user.id}&checkout[custom][rango]=${rangoFormateado}`;
-    window.location.href = finalUrl;
+    // 🚀 REDIRECCIÓN LIMPIA PARA MERCADO PAGO
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -229,9 +225,18 @@ export default function MembershipsPage() {
       {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">
         <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ <VaultHint letter="M" position={3} color="text-neon-magenta" />embresías</h1>
-        <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
+        <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed mb-4">
           Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>
+
+        {/* ⚠️ AVISO IMPORTANTE PARA MERCADO PAGO */}
+        {!isUnderMaintenance && user && (
+          <div className="bg-card/60 border border-neon-yellow/40 text-muted-foreground text-[10px] sm:text-xs px-5 py-4 rounded-2xl max-w-2xl mx-auto font-body tracking-wide leading-relaxed shadow-[0_0_15px_rgba(255,255,0,0.05)] backdrop-blur-md">
+            ⚠️ <span className="font-bold text-neon-yellow">¡Aviso Importante!</span> Al pagar en Mercado Pago, debes ingresar obligatoriamente este correo: <br />
+            <span className="text-neon-cyan font-mono font-bold bg-black/50 px-3 py-1 rounded mt-2 inline-block shadow-inner">{user.email}</span> <br />
+            <span className="text-[9px] sm:text-[10px] mt-2 block opacity-80">De lo contrario, el sistema no podrá encontrar tu cuenta para activar tu rango.</span>
+          </div>
+        )}
         
         <div className="flex items-center justify-center gap-2 mt-4 bg-card/40 border border-border/50 w-fit mx-auto px-4 py-2 rounded-full backdrop-blur-md">
           <Globe className="w-4 h-4 text-neon-cyan" />
@@ -249,7 +254,7 @@ export default function MembershipsPage() {
       </div>
 
       {isStaff && (
-        <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto">
+        <div className="border-2 border-neon-magenta/60 rounded-2xl p-5 bg-gradient-to-br from-neon-magenta/10 via-card to-neon-cyan/10 shadow-[0_0_25px_rgba(255,0,255,0.15)] text-center max-w-4xl mx-auto mt-4">
           <h2 className="font-pixel text-sm sm:text-base text-neon-magenta tracking-tight mb-1">⚡ MODO STAFF ACTIVO</h2>
           <p className="text-[10px] sm:text-xs text-foreground/90 font-body">
             Eres administrador. Las restricciones están desactivadas para ti.
@@ -262,9 +267,9 @@ export default function MembershipsPage() {
           <Hammer className="w-16 h-16 text-neon-yellow mb-6" />
           <h2 className="font-pixel text-2xl text-neon-yellow mb-4 text-center">SISTEMA EN MANTENIMIENTO</h2>
           <p className="font-body text-muted-foreground text-center max-w-lg leading-relaxed">
-            Estamos terminando de configurar nuestra pasarela de pagos con Lemon Squeezy para brindarte la mejor seguridad. 
+            Estamos terminando de configurar nuestra pasarela de pagos. 
             <br /><br />
-            <span className="text-neon-cyan font-bold">¡Volveremos en breve con todos los rangos activos!</span>
+            <span className="text-neon-cyan font-bold">¡Volveremos en breve!</span>
           </p>
         </div>
       ) : (
