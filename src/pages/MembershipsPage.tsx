@@ -149,7 +149,7 @@ export default function MembershipsPage() {
   const [loading, setLoading] = useState(true);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
-  const isUnderMaintenance = false;  // 🛠️ Puesto en false para que se vean las membresías
+  const isUnderMaintenance = true;  // 🛠️ Puesto en false para que se vean las membresías
 
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
