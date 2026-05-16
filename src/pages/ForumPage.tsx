@@ -1201,45 +1201,49 @@ export default function ForumPage() {
               <div 
                 key={post.id} 
                 onClick={() => openPost(post.id)}
-                className={cn("flex flex-col sm:flex-row sm:items-center justify-between bg-card border rounded-lg p-3 hover:bg-muted/30 transition-colors cursor-pointer gap-3 shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
+                className={cn("relative overflow-hidden bg-card border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
-                <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: 'left' }}>
-                    {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
-                    {stripHtmlToText(post.title)}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground font-body">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                    {isTrending && post.category && <span className="uppercase bg-muted/50 px-1.5 py-0.5 rounded text-[10px] font-body font-bold text-neon-cyan border border-white/5">{post.category.replace(/-/g, ' ')}</span>}
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto">
-                  <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
-                    <span className="text-xs font-bold w-5 text-center text-foreground">{(post.upvotes||0)-(post.downvotes||0)}</span>
-                    <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                {/* Avatar como imagen lateral con degradado al estilo Eventos */}
+                {authorProfile?.avatar_url && (
+                  <>
+                    {/* MOBILE/TABLET: avatar arriba como banner */}
+                    <div className="sm:hidden w-full aspect-[3/1] relative">
+                      <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                      <div className="absolute bottom-1.5 left-3 right-3 text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
+                        {authorProfile.display_name}
+                      </div>
+                    </div>
+                    {/* DESKTOP: imagen al borde derecho con degradado a la izquierda */}
+                    <div className="hidden sm:block absolute top-0 right-0 h-full w-1/3 pointer-events-none">
+                      <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
+                      <div className="absolute bottom-2 left-0 right-3 text-right text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
+                        {authorProfile.display_name}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className={cn("relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3", authorProfile?.avatar_url && "sm:max-w-[68%]")}>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-base truncate group-hover:text-neon-cyan transition-colors flex items-center gap-1.5" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: 'left' }}>
+                      {post.is_pinned && <span className="text-neon-green text-xs">📌</span>}
+                      {stripHtmlToText(post.title)}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground font-body">
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(post.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      {isTrending && post.category && <span className="uppercase bg-muted/50 px-1.5 py-0.5 rounded text-[10px] font-body font-bold text-neon-cyan border border-white/5">{post.category.replace(/-/g, ' ')}</span>}
+                    </div>
                   </div>
                   
-                  <div className="flex items-center justify-end w-[130px] gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                    {authorProfile ? (
-                      <>
-                        <div className="min-w-0 flex-1 flex justify-end">
-                          <UserPopup
-                            userId={post.user_id} displayName={authorProfile.display_name} avatarUrl={authorProfile.avatar_url}
-                            roles={authorRoles} roleIcon={authorProfile.role_icon} showRoleIcon={authorProfile.show_role_icon}
-                            membershipTier={authorProfile.membership_tier} colorAvatarBorder={authorProfile.color_avatar_border}
-                            colorName={authorProfile.color_name} colorRole={authorProfile.color_role} colorStaffRole={authorProfile.color_staff_role}
-                            className="text-xs hover:bg-muted/30 p-1 rounded-md transition-colors truncate max-w-full text-right"
-                          >
-                            <span className="text-xs font-body font-semibold truncate" style={getNameStyle(authorProfile.color_name)}>{authorProfile.display_name}</span>
-                          </UserPopup>
-                        </div>
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border" style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
-                          {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-4 h-4 text-muted-foreground"/>}
-                        </div>
-                      </>
-                    ) : (
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto">
+                    <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded border border-white/5 shadow-inner" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => handleVote(post.id, "up")} className={cn("hover:text-primary transition-colors", myVote === "up" ? "text-primary" : "text-muted-foreground")}><ArrowUp className="w-3.5 h-3.5" /></button>
+                      <span className="text-xs font-bold w-5 text-center text-foreground">{(post.upvotes||0)-(post.downvotes||0)}</span>
+                      <button onClick={() => handleVote(post.id, "down")} className={cn("hover:text-destructive transition-colors", myVote === "down" ? "text-destructive" : "text-muted-foreground")}><ArrowDown className="w-3.5 h-3.5" /></button>
+                    </div>
+                    {!authorProfile?.avatar_url && (
                       <div className="text-[10px] text-muted-foreground w-8 h-8 bg-muted rounded-full flex items-center justify-center"><UserIcon className="w-4 h-4"/></div>
                     )}
                   </div>
