@@ -1,4 +1,5 @@
 import { handleMembershipError } from "@/components/UpgradeModal";
+import VaultHint from "@/components/VaultHint";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon, Flame, Sparkles, Edit2, ChevronDown } from "lucide-react";
@@ -719,7 +720,7 @@ export default function PhotoWallPage() {
 
       <div className="bg-card border border-neon-orange/30 rounded-xl p-4 shadow-lg text-center md:text-left mx-2 md:mx-0 relative overflow-hidden">
         {isFetching && page === 0 && <div className="absolute top-0 left-0 w-full h-1 bg-neon-orange animate-pulse z-50" />}
-        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2"><Camera className="w-4 h-4" /> MURO FOTOGRÁFICO</h1>
+        <h1 className="font-pixel text-sm text-neon-orange mb-1 flex items-center justify-center md:justify-start gap-2"><Camera className="w-4 h-4" /> MURO FOTOGRÁFICO <VaultHint letter="a" position={9} color="text-neon-cyan" /></h1>
         <p className="text-[10px] text-muted-foreground font-body uppercase tracking-tight">Galería de la comunidad — Haz clic para expandir</p>
       </div>
 

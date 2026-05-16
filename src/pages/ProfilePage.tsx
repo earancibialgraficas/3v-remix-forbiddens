@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import VaultHint from "@/components/VaultHint";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";
@@ -417,6 +418,7 @@ export default function ProfilePage() {
           <div className="flex-1 min-w-0 w-full">
             <div className={cn("flex items-center gap-2 flex-wrap", isMobile ? "justify-center" : "")}>
               <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</h2>
+              <VaultHint letter="v" position={5} color="text-neon-magenta" />
               <RoleBadge roles={safeRoles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
             </div>
             

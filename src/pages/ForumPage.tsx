@@ -1,4 +1,5 @@
 import { handleMembershipError } from "@/components/UpgradeModal";
+import VaultHint from "@/components/VaultHint";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -1100,7 +1101,7 @@ export default function ForumPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
-        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{page.title}</h1>
+        <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{page.title} <VaultHint letter="K" position={2} color="text-neon-cyan" /></h1>
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
       </div>
 

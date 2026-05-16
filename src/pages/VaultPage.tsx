@@ -8,26 +8,29 @@ import { useToast } from "@/hooks/use-toast";
 import { getTodaySeconds, VAULT_DAILY_CAP_SECONDS } from "@/lib/vaultTracking";
 import { Button } from "@/components/ui/button";
 
+// 📦 Portadas servidas vía jsDelivr CDN (mirror del repo libretro-thumbnails)
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System@master/Named_Boxarts";
+
 const VAULT_GAMES = [
   {
     id: "vault-pacman",
     name: "Pac-Man",
     romUrl: "/roms/vault/Pacman.nes",
-    cover: "https://upload.wikimedia.org/wikipedia/en/2/2a/Pac-Man_NES_box_art.jpg",
+    cover: `${CDN_BASE}/${encodeURIComponent("Pac-Man (Tengen) (USA) (Unl)")}.png`,
     color: "from-yellow-500/30 to-yellow-500/10 border-yellow-400",
   },
   {
     id: "vault-galaga",
     name: "Galaga",
     romUrl: "/roms/vault/Galaga.nes",
-    cover: "https://upload.wikimedia.org/wikipedia/en/8/89/Galaga_arcade_flyer.jpg",
+    cover: `${CDN_BASE}/${encodeURIComponent("Galaga - Demons of Death (USA)")}.png`,
     color: "from-red-500/30 to-red-500/10 border-red-400",
   },
   {
     id: "vault-bomberman",
     name: "Bomberman",
     romUrl: "/roms/vault/Bomberman.nes",
-    cover: "https://upload.wikimedia.org/wikipedia/en/3/3a/Bomberman_NES_cover.jpg",
+    cover: `${CDN_BASE}/${encodeURIComponent("Bomberman (USA)")}.png`,
     color: "from-blue-500/30 to-blue-500/10 border-blue-400",
   },
 ];

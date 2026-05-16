@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import VaultHint from "@/components/VaultHint";
 import { useSearchParams } from "react-router-dom";
 import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield, Flame, FolderOpen, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,7 +109,7 @@ ${message}[/COLOR]`;
     <div className="space-y-3 animate-fade-in max-w-2xl">
       <div className="bg-card border border-border rounded p-4">
         <h1 className="font-pixel text-sm text-muted-foreground mb-1 flex items-center gap-2">
-          <HelpCircle className="w-4 h-4" /> CENTRO DE AYUDA
+          <HelpCircle className="w-4 h-4" /> CENTRO DE AYUDA <VaultHint letter="2" position={8} color="text-neon-yellow" />
         </h1>
         <p className="text-xs text-muted-foreground font-body">Ayuda, contacto y privacidad — todo en un solo lugar.</p>
       </div>
