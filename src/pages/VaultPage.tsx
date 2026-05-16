@@ -16,7 +16,7 @@ const VAULT_GAMES = [
     id: "vault-pacman",
     name: "Pac-Man",
     romUrl: "/roms/vault/Pacman.nes",
-    cover: `${CDN_BASE}/${encodeURIComponent("Pac-Man (Tengen) (USA) (Unl)")}.png`,
+    cover: "https://imagenes.hobbyconsolas.com/files/image_640_auto/uploads/imagenes/2023/04/25/6901049dc77ad.png",
     color: "from-yellow-500/30 to-yellow-500/10 border-yellow-400",
   },
   {
