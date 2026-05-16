@@ -1073,8 +1073,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         setNostalgistInstance(instance);
         // 🛠️ Restaurar configuración interna del emulador (controles, etc.)
         try {
-          const { restoreEmulatorConfig } = await import("@/lib/nostalgistPersist");
+          const { restoreEmulatorConfig, ensureSpanishLanguage } = await import("@/lib/nostalgistPersist");
           restoreEmulatorConfig(instance, activeGame.consoleName);
+          ensureSpanishLanguage(instance);
         } catch {}
         setRomLoaded(true);
         lastInputRef.current = Date.now();
