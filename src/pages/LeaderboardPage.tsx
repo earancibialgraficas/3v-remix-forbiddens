@@ -182,7 +182,7 @@ export default function LeaderboardPage() {
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-yellow/30 rounded p-4">
         <h1 className="font-pixel text-sm text-neon-yellow mb-1 flex items-center gap-2">
-          <Trophy className="w-4 h-4" /> LEADERBOARDS <VaultHint letter="k" position={6} color="text-neon-green" />
+          <Trophy className="w-4 h-4" /> LEA<VaultHint letter="D" position={6} color="text-neon-green" />ERBOARDS
         </h1>
         <p className="text-xs text-muted-foreground font-body">
           Puntuaciones en tiempo real — solo se guarda el puntaje más alto por juego

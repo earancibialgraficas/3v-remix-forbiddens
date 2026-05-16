@@ -418,7 +418,6 @@ export default function ProfilePage() {
           <div className="flex-1 min-w-0 w-full">
             <div className={cn("flex items-center gap-2 flex-wrap", isMobile ? "justify-center" : "")}>
               <h2 className="font-pixel text-sm text-neon-cyan" style={getNameStyle(profile?.color_name)}>{profile?.display_name}</h2>
-              <VaultHint letter="v" position={5} color="text-neon-magenta" />
               <RoleBadge roles={safeRoles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
             </div>
             
@@ -428,7 +427,7 @@ export default function ProfilePage() {
               {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
-              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} seguidores · {followingCount} siguiendo</span>
+              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores · {followingCount} siguiendo</span>
             </div>
             
             {(profile?.instagram_url || profile?.youtube_url || profile?.tiktok_url) && (

@@ -1,6 +1,6 @@
-// Pista visible para la Bóveda Secreta. Cada pista lleva un número de orden
-// y un carácter coloreado que forma parte de la contraseña (10 caracteres).
-// Distribuidas a lo largo de las páginas del sitio.
+// Pista discreta para la Bóveda Secreta. Reemplaza una letra real de una
+// palabra existente: hereda tamaño y peso del texto que la contiene, solo
+// cambia el color y añade un pequeño número de orden en superíndice.
 interface Props {
   letter: string;
   position: number; // 1..10
@@ -11,11 +11,10 @@ export default function VaultHint({ letter, position, color = "text-neon-magenta
   return (
     <span
       title={`Pista N°${position} de la Bóveda`}
-      className={`relative inline-block font-pixel ${color} mx-0.5 select-none`}
-      style={{ textShadow: "0 0 8px currentColor, 0 0 16px currentColor" }}
+      className={`relative inline ${color} select-none`}
     >
-      <sup className="absolute -top-2 -right-2 text-[7px] opacity-80 font-pixel">{position}</sup>
       {letter}
+      <sup className="text-[0.5em] opacity-70 ml-[1px] font-normal align-super">{position}</sup>
     </span>
   );
 }
