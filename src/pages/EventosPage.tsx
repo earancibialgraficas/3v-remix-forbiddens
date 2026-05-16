@@ -239,7 +239,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
         <h1 className="font-pixel text-sm text-neon-cyan text-glow-cyan mb-1 flex items-center gap-2">
-          <Calendar className="w-4 h-4" /> EVENTOS
+          <Calendar className="w-4 h-4" /> EVENTOS <VaultHint letter="8" position={4} color="text-neon-yellow" />
         </h1>
         <p className="text-xs text-muted-foreground font-body">Torneos gaming, estrenos de anime y rodadas</p>
       </div>

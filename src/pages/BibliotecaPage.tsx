@@ -509,7 +509,7 @@ const handlePlayCloudGame = async (game: any) => {
       
       <div className="bg-card border border-neon-green/30 rounded-lg p-4 relative">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4" /> SAL<span className="text-neon-yellow">A</span>S DE JUEGO
+          <Gamepad2 className="w-4 h-4" /> SALAS DE JUEGO <VaultHint letter="n" position={10} color="text-neon-magenta" />
         </h1>
         <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
         {/* 🔐 Botón oculto de la Bóveda Secreta — apenas visible en la esquina */}

@@ -227,7 +227,7 @@ export default function MembershipsPage() {
       
       {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">
-        <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías</h1>
+        <h1 className="font-pixel text-xl sm:text-4xl text-neon-yellow uppercase tracking-tighter">⭐ Membresías <VaultHint letter="b" position={3} color="text-neon-magenta" /></h1>
         <p className="text-[10px] sm:text-base text-muted-foreground font-body max-w-3xl mx-auto leading-relaxed">
           Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>

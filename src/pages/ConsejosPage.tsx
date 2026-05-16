@@ -83,7 +83,7 @@ ${tipDesc}[/COLOR]
     <div className="space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-green/30 rounded p-4">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
-          <BookOpen className="w-4 h-4" /> CONSEJOS GAMING
+          <BookOpen className="w-4 h-4" /> CONSEJOS GAMING <VaultHint letter="n" position={7} color="text-neon-cyan" />
         </h1>
         <p className="text-xs text-muted-foreground font-body">
           Tips y trucos para sacar el máximo provecho de los emuladores
