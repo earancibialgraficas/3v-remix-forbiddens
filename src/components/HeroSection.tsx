@@ -52,12 +52,13 @@ export default function HeroSection() {
               filter: phase === "logo" ? "blur(6px)" : "blur(0)",
             }}
           >
-            <VaultHint letter="F" position={1} color="text-neon-green" />ORBIDDENS
+           FORBIDDENS
           </h1>
         </div>
 
         <p className="font-body text-sm sm:text-base text-foreground/80 max-w-lg">
-          &gt; EL FORO QUE NO DEBERÍA EXISTIR_<span className="animate-blink">|</span>
+          &gt; EL <VaultHint letter="F" position={1} color="text-neon-green" />ORO QUE NO DEBERÍA EXISTIR_<span className="animate-blink">|</span>
+           
         </p>
         <div className="flex gap-3 mt-2">
           {!user && (
