@@ -1,4 +1,5 @@
 import { handleMembershipError } from "@/components/UpgradeModal";
+import VaultHint from "@/components/VaultHint";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";

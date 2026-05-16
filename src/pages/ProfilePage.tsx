@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import VaultHint from "@/components/VaultHint";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";

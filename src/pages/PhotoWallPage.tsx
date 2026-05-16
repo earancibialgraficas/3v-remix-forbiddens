@@ -1,4 +1,5 @@
 import { handleMembershipError } from "@/components/UpgradeModal";
+import VaultHint from "@/components/VaultHint";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Camera, ThumbsDown, ThumbsUp, Flag, Image as ImageIcon, Globe, Users, Trash2, MessageSquare, X, Reply, Send, Maximize2, Bookmark, ExternalLink, Zap, Loader2, Ban, Shield, Copy, User as UserIcon, Flame, Sparkles, Edit2, ChevronDown } from "lucide-react";

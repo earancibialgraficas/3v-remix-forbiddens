@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import VaultHint from "@/components/VaultHint";
 import { Calendar, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

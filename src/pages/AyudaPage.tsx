@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import VaultHint from "@/components/VaultHint";
 import { useSearchParams } from "react-router-dom";
 import { HelpCircle, ChevronDown, ChevronRight, Send, CheckCircle, Mail, Shield, Flame, FolderOpen, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";

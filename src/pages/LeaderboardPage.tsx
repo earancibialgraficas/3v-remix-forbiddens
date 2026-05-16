@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import VaultHint from "@/components/VaultHint";
 import { Trophy, Gamepad2, User, Search, X, ChevronDown, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";

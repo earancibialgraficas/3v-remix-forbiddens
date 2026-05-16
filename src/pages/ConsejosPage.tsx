@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import VaultHint from "@/components/VaultHint";
 import { BookOpen, Lightbulb, Gamepad2, Shield, Zap, Send, X, Cloud, FolderOpen, Link2, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
