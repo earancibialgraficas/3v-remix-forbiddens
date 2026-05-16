@@ -1,7 +1,7 @@
 // Bóveda Secreta — verificación de contraseña con SHA-256.
 // El hash corresponde a la contraseña real definida por el dueño del sitio.
 // La contraseña en claro NUNCA se guarda en el bundle.
-const VAULT_HASH = "ecf8dbb32892d6a4181a52431ff232064e8caf3e249072a3e4b70f16d8f1f8f0";
+const VAULT_HASH = "1b2b0eb5b7b59eb1a167cb9147f472517b5c043f78815985021f9f1b478d07ff";
 const SESSION_KEY = "vault_unlocked_v1";
 
 async function sha256Hex(input: string): Promise<string> {
