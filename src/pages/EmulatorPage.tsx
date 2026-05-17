@@ -138,8 +138,8 @@ const systems = [
     glow: "rgba(34,211,238,0.7)", year: "2004"
   },
   {
-    // 🆕 3DS — Sin emulador web funcional, modal informativo
-    id: "3ds", name: "Nintendo 3DS", short: "3DS", core: "(externo)", extensions: ".3ds,.cia",
+    // 🆕 3DS — Lime3DS (fork de Citra). Sin core web, modal con descarga oficial.
+    id: "3ds", name: "Nintendo 3DS", short: "3DS", core: "lime3ds (externo)", extensions: ".3ds,.cia,.cci,.3dsx",
     bg: "https://image.pollinations.ai/prompt/nintendo%203ds%20console%20stereoscopic%20neon%20red?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/Nintendo 3DS.png",
     glow: "rgba(248,113,113,0.7)", year: "2011",
@@ -224,6 +224,7 @@ export default function EmulatorPage() {
   const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
   const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
   const [ps2Copied, setPs2Copied] = useState(false);
+  const [threeDsDialogOpen, setThreeDsDialogOpen] = useState(false);
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -641,18 +642,28 @@ export default function EmulatorPage() {
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
                <button
-                 onClick={() => currentSystem.id === "ps2" ? launchPs2() : fileInputRef.current?.click()}
+                 onClick={() => {
+                   if (currentSystem.id === "ps2") return launchPs2();
+                   if (currentSystem.id === "3ds") {
+                     if (!user) { toast({ title: "Acceso denegado", description: "Debes iniciar sesión.", variant: "destructive" }); return; }
+                     setThreeDsDialogOpen(true);
+                     return;
+                   }
+                   fileInputRef.current?.click();
+                 }}
                  className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
                >
                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
                  <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
                  <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
-                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : "Cargar ROM Local"}
+                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : currentSystem.id === "3ds" ? "Descargar Lime3DS" : "Cargar ROM Local"}
                  </span>
                </button>
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
                  {currentSystem.id === "ps2"
                    ? "Solo PC · Sube tu ISO desde la UI del emulador (no se requiere BIOS)"
+                   : currentSystem.id === "3ds"
+                   ? "Lime3DS · PC/Android · Sin emulador web por restricciones del navegador"
                    : `Formatos: ${currentSystem.extensions}`}
                </p>
             </div>
@@ -743,6 +754,47 @@ export default function EmulatorPage() {
 
           <p className="font-body text-[10px] sm:text-xs text-white/50 italic leading-snug mt-2">
             💡 No requiere BIOS · Compatibilidad limitada · No otorga puntaje en el ranking.
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🎮 3DS (Lime3DS) — Modal informativo con descarga oficial */}
+      <Dialog open={threeDsDialogOpen} onOpenChange={setThreeDsDialogOpen}>
+        <DialogContent className="max-w-lg bg-black/95 border-2 border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.35)] text-white">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-pixel text-[10px] px-2 py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse tracking-widest uppercase">Experimental</span>
+              <span className="font-pixel text-[9px] text-white/50 tracking-widest uppercase">PC / Android</span>
+            </div>
+            <DialogTitle className="font-pixel text-base sm:text-lg text-red-400 tracking-wide">
+              Jugar 3DS con Lime3DS
+            </DialogTitle>
+            <DialogDescription className="font-body text-xs sm:text-sm text-white/70 leading-relaxed pt-2">
+              No existe un emulador 3DS estable que funcione dentro del navegador.
+              Te recomendamos <strong className="text-red-300">Lime3DS</strong>, un fork mantenido de Citra
+              compatible con Windows, macOS, Linux y Android.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-black/60 border border-red-500/30 rounded-lg p-3 sm:p-4 mt-2">
+            <p className="font-pixel text-[9px] sm:text-[10px] text-red-400 uppercase tracking-widest mb-3">Descargas oficiales:</p>
+            <div className="space-y-2">
+              <a href="https://github.com/Lime3DS/lime3ds-archive/releases" target="_blank" rel="noopener noreferrer" className="block bg-black/80 border border-red-500/40 hover:border-red-500/80 rounded px-3 py-2 transition-colors">
+                <code className="font-mono text-xs sm:text-sm text-neon-yellow break-all">github.com/Lime3DS/lime3ds-archive/releases</code>
+              </a>
+              <a href="https://github.com/Lime3DS/lime3ds-archive" target="_blank" rel="noopener noreferrer" className="block bg-black/80 border border-red-500/40 hover:border-red-500/80 rounded px-3 py-2 transition-colors">
+                <code className="font-mono text-xs sm:text-sm text-white/80 break-all">Repositorio del proyecto</code>
+              </a>
+            </div>
+            <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed mt-4">
+              <li>Descarga el instalador para tu sistema operativo.</li>
+              <li>Abre Lime3DS y carga tu ROM <code className="text-neon-yellow">.3ds</code> o <code className="text-neon-yellow">.cia</code>.</li>
+              <li>Configura los controles desde <strong className="text-red-300">Emulation → Configure → Controls</strong>.</li>
+            </ol>
+          </div>
+
+          <p className="font-body text-[10px] sm:text-xs text-white/50 italic leading-snug mt-2">
+            💡 No otorga puntaje en el ranking · Compatibilidad variable según el juego.
           </p>
         </DialogContent>
       </Dialog>
