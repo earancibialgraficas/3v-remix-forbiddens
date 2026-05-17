@@ -33,12 +33,25 @@ interface MultiplayerGameBubbleProps {
 const makeRoomCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
+const TIME_REWARD_SECONDS = 10;
+const TIME_REWARD_POINTS = 5;
 const makeAgarRoomCode = (index: number) => `AGAR-${index}`;
 const normalizeAgarRoomCode = (code: string) => (code.startsWith("AGAR-") ? code : makeAgarRoomCode(1));
 
 interface AgarRoom {
   code: string;
   count: number;
+}
+
+interface SessionPlayer {
+  userId: string;
+  playerId: string;
+  name: string;
+  avatarUrl: string;
+  timePoints: number;
+  elapsedSeconds: number;
+  joinedAt: number;
+  updatedAt: number;
 }
 
 const getAgarRoomIndex = (code: string) => {
@@ -54,15 +67,27 @@ const getNextAgarRoomCode = (rooms: AgarRoom[]) => {
   return makeAgarRoomCode(Number.isFinite(highestRoom) ? highestRoom + 1 : rooms.length + 1);
 };
 
+const formatSessionTime = (seconds: number) => {
+  const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds % 60;
+  return `${minutes}:${rest.toString().padStart(2, "0")}`;
+};
+
 export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGameBubbleProps) {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const popupRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const lobbyChannelRef = useRef<any>(null);
+  const sessionChannelRef = useRef<any>(null);
   const lobbyPlayerIdRef = useRef(`agar_${Math.random().toString(36).slice(2, 10)}`);
   const lobbyJoinedAtRef = useRef(Date.now());
   const lobbyTrackedRoomRef = useRef("");
+  const sessionStartedAtRef = useRef(Date.now());
+  const sessionElapsedRef = useRef(0);
+  const sessionTimePointsRef = useRef(0);
+  const sessionTotalPointsRef = useRef(0);
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 860, h: 620 });
@@ -71,29 +96,52 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [roomCode, setRoomCode] = useState(makeRoomCode);
   const [agarRooms, setAgarRooms] = useState<AgarRoom[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const roomCodeRef = useRef(roomCode);
   const isAgar = game?.id === "agar";
+  const activeGameId = game?.id || "";
+  const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
+  const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
+  const localAvatarUrl = profile?.avatar_url || "";
+  const localSessionUserId = user?.id || lobbyPlayerIdRef.current;
+  const compactGameFrame = !fullscreen && size.w < 720;
+  const mobileGameFrame = !fullscreen && size.w < 460;
+  const headerButtonClass = cn("h-8 w-8 shrink-0", mobileGameFrame && "h-7 w-7");
 
   useEffect(() => {
     roomCodeRef.current = roomCode;
   }, [roomCode]);
 
   useEffect(() => {
-    if (!game) return;
+    if (!activeGameId) return;
     setMinimized(false);
     setPosition({ x: 0, y: 0 });
-    setSize({ w: Math.min(900, window.innerWidth - 32), h: Math.min(640, window.innerHeight - 32) });
+    setSize({ w: Math.min(900, Math.max(280, window.innerWidth - 32)), h: Math.min(640, Math.max(260, window.innerHeight - 32)) });
     lobbyJoinedAtRef.current = Date.now();
     lobbyTrackedRoomRef.current = "";
-    setRoomCode(game.id === "agar" ? makeAgarRoomCode(1) : makeRoomCode());
+    setRoomCode(activeGameId === "agar" ? makeAgarRoomCode(1) : makeRoomCode());
     setAgarRooms([]);
     setReloadKey((key) => key + 1);
     setLeaderboard([]);
-  }, [game?.id]);
+    setSessionPlayers([]);
+    sessionStartedAtRef.current = Date.now();
+    sessionElapsedRef.current = 0;
+    sessionTimePointsRef.current = 0;
+    sessionTotalPointsRef.current = 0;
+  }, [activeGameId]);
+
+  useEffect(() => {
+    if (!activeGameId) return;
+    setSessionPlayers([]);
+    sessionStartedAtRef.current = Date.now();
+    sessionElapsedRef.current = 0;
+    sessionTimePointsRef.current = 0;
+    sessionTotalPointsRef.current = 0;
+  }, [activeGameId, activeSessionRoomCode]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
@@ -102,6 +150,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         setLeaderboard(event.data.players || []);
       }
       if (event.data?.type === "game:pointsAwarded" && event.data.awarded > 0) {
+        sessionTotalPointsRef.current += Number(event.data.awarded || 0);
         toast({
           title: `+${event.data.awarded} puntos`,
           description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
@@ -213,6 +262,121 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   }, [isAgar, profile?.avatar_url, profile?.display_name, roomCode, user?.id, user?.user_metadata?.username]);
 
   useEffect(() => {
+    if (!activeGameId) {
+      setSessionPlayers([]);
+      return;
+    }
+
+    const channel = supabase.channel(`forbiddens:session-points:${activeGameId}:${activeSessionRoomCode}`, {
+      config: { presence: { key: lobbyPlayerIdRef.current } },
+    });
+    sessionChannelRef.current = channel;
+
+    const readPlayers = () => {
+      const latest = new Map<string, SessionPlayer>();
+      Object.values(channel.presenceState())
+        .flat()
+        .forEach((presence: any) => {
+          const userId = String(presence?.userId || presence?.playerId || "");
+          if (!userId) return;
+          const current = latest.get(userId);
+          const next: SessionPlayer = {
+            userId,
+            playerId: String(presence?.playerId || userId),
+            name: String(presence?.name || presence?.displayName || "Jugador"),
+            avatarUrl: String(presence?.avatarUrl || ""),
+            timePoints: Number(presence?.timePoints || 0),
+            elapsedSeconds: Number(presence?.elapsedSeconds || 0),
+            joinedAt: Number(presence?.joinedAt || 0),
+            updatedAt: Number(presence?.updatedAt || 0),
+          };
+          if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
+        });
+
+      setSessionPlayers(
+        Array.from(latest.values()).sort((a, b) => b.timePoints - a.timePoints || a.joinedAt - b.joinedAt),
+      );
+    };
+
+    const trackLocal = () =>
+      channel.track({
+        game: activeGameId,
+        room: activeSessionRoomCode,
+        playerId: lobbyPlayerIdRef.current,
+        userId: localSessionUserId,
+        name: localDisplayName,
+        avatarUrl: localAvatarUrl,
+        timePoints: sessionTimePointsRef.current,
+        elapsedSeconds: sessionElapsedRef.current,
+        joinedAt: sessionStartedAtRef.current,
+        updatedAt: Date.now(),
+      });
+
+    channel.on("presence", { event: "sync" }, readPlayers);
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await trackLocal();
+        readPlayers();
+      }
+    });
+
+    const heartbeat = window.setInterval(() => {
+      void trackLocal();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(heartbeat);
+      if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId]);
+
+  useEffect(() => {
+    if (!activeGameId || minimized) return;
+
+    const awardTimePoints = async () => {
+      sessionElapsedRef.current += TIME_REWARD_SECONDS;
+
+      if (user?.id) {
+        try {
+          const { data, error } = await (supabase as any).rpc("award_multiplayer_win", {
+            p_game_slug: activeGameId,
+            p_room_code: activeSessionRoomCode,
+            p_points: TIME_REWARD_POINTS,
+          });
+          if (!error && (data as any)?.awarded > 0) {
+            sessionTimePointsRef.current += Number((data as any).awarded || 0);
+            sessionTotalPointsRef.current += Number((data as any).awarded || 0);
+          }
+        } catch {
+          // El panel sigue funcionando aunque el guardado de puntos falle.
+        }
+      }
+
+      if (sessionChannelRef.current) {
+        await sessionChannelRef.current.track({
+          game: activeGameId,
+          room: activeSessionRoomCode,
+          playerId: lobbyPlayerIdRef.current,
+          userId: localSessionUserId,
+          name: localDisplayName,
+          avatarUrl: localAvatarUrl,
+          timePoints: sessionTimePointsRef.current,
+          elapsedSeconds: sessionElapsedRef.current,
+          joinedAt: sessionStartedAtRef.current,
+          updatedAt: Date.now(),
+        });
+      }
+    };
+
+    const timer = window.setInterval(() => {
+      void awardTimePoints();
+    }, TIME_REWARD_SECONDS * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, minimized, user?.id]);
+
+  useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (dragging) {
         setPosition({
@@ -221,9 +385,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         });
       }
       if (resizing) {
+        const minWidth = Math.max(240, Math.min(420, window.innerWidth - 16));
+        const minHeight = Math.max(220, Math.min(320, window.innerHeight - 16));
         setSize({
-          w: Math.max(420, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
-          h: Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
+          w: Math.max(minWidth, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
+          h: Math.max(minHeight, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
         });
       }
     };
@@ -240,6 +406,34 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   }, [dragging, resizing]);
 
   useEffect(() => {
+    const clampToViewport = () => {
+      setSize((current) => ({
+        w: Math.min(current.w, Math.max(240, window.innerWidth - 16)),
+        h: Math.min(current.h, Math.max(220, window.innerHeight - 16)),
+      }));
+      setPosition({ x: 0, y: 0 });
+    };
+    window.addEventListener("resize", clampToViewport);
+    window.addEventListener("orientationchange", clampToViewport);
+    return () => {
+      window.removeEventListener("resize", clampToViewport);
+      window.removeEventListener("orientationchange", clampToViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dragging && !resizing) return;
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = resizing ? "nwse-resize" : "move";
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+    };
+  }, [dragging, resizing]);
+
+  useEffect(() => {
     const onFullscreenChange = () => {
       setFullscreen(document.fullscreenElement === popupRef.current);
     };
@@ -250,6 +444,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const onDragDown = (e: React.MouseEvent) => {
     if (minimized) return;
     if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
     setDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -265,6 +460,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const onResizeDown = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setResizing(true);
     resizeRef.current = {
       startX: e.clientX,
@@ -300,8 +496,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const closeBubble = useCallback(() => {
     exitOwnFullscreen();
+    toast({
+      title: "Sesión finalizada",
+      description: `${game?.label || "Juego"}: +${sessionTotalPointsRef.current} puntos en ${formatSessionTime(sessionElapsedRef.current)}.`,
+    });
     onClose();
-  }, [exitOwnFullscreen, onClose]);
+  }, [exitOwnFullscreen, game?.label, onClose, toast]);
 
   const copyRoom = async () => {
     const codeToCopy = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
@@ -333,6 +533,48 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     agarRooms.some((room) => room.code === activeRoomCode) ? agarRooms : [...agarRooms, { code: activeRoomCode, count: 0 }],
   );
   const currentAgarRoom = visibleAgarRooms.find((room) => room.code === activeRoomCode);
+  const combinedLeaderboard = (() => {
+    const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
+    const rows = new Map<string, any>();
+
+    leaderboard.forEach((player, index) => {
+      const key = String(player.userId || player.playerId || `player-${index}`);
+      const session = sessionByUser.get(key);
+      const gamePoints = Number(player.points || 0);
+      const timePoints = Number(session?.timePoints || 0);
+      rows.set(key, {
+        ...session,
+        ...player,
+        userId: key,
+        name: player.name || player.displayName || session?.name || "Jugador",
+        avatarUrl: player.avatarUrl || session?.avatarUrl || "",
+        timePoints,
+        gamePoints,
+        matchPoints: gamePoints + timePoints,
+        elapsedSeconds: Number(session?.elapsedSeconds || 0),
+      });
+    });
+
+    sessionPlayers.forEach((player) => {
+      if (rows.has(player.userId)) return;
+      rows.set(player.userId, {
+        ...player,
+        points: 0,
+        wins: 0,
+        score: 0,
+        gamePoints: 0,
+        matchPoints: player.timePoints,
+      });
+    });
+
+    return Array.from(rows.values()).sort((a, b) => {
+      const pointDelta = Number(b.matchPoints || 0) - Number(a.matchPoints || 0);
+      if (pointDelta) return pointDelta;
+      const scoreDelta = Number(b.score || 0) - Number(a.score || 0);
+      if (scoreDelta) return scoreDelta;
+      return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
+    });
+  })();
 
   return createPortal(
     <>
@@ -345,6 +587,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         className={cn(
           "fixed z-[320] overflow-hidden border border-neon-magenta/40 bg-card shadow-2xl shadow-black/60",
           minimized ? "bottom-4 right-4 h-24 w-44 rounded-xl cursor-pointer" : "left-1/2 top-1/2 rounded-xl",
+          (dragging || resizing) && "select-none",
         )}
         style={
           minimized
@@ -358,11 +601,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         onClick={() => minimized && setMinimized(false)}
       >
         <div
-          className="flex h-11 items-center gap-2 border-b border-border bg-muted/30 px-3"
+          className={cn("flex h-11 items-center gap-2 border-b border-border bg-muted/30 px-3", mobileGameFrame && "gap-1 px-2")}
           onMouseDown={onDragDown}
         >
-          <Move className="h-3.5 w-3.5 text-muted-foreground" />
-          <Gamepad2 className="h-4 w-4 text-neon-magenta" />
+          <Move className={cn("h-3.5 w-3.5 text-muted-foreground", mobileGameFrame && "hidden")} />
+          <Gamepad2 className={cn("h-4 w-4 text-neon-magenta", mobileGameFrame && "hidden")} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-pixel text-[10px] text-neon-magenta">{game.label}</p>
             {isAgar && visibleAgarRooms.length > 1 ? (
@@ -393,16 +636,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </div>
           {!minimized && (
             <>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onMouseDown={stopHeaderDrag} onClick={copyRoom} title="Copiar codigo de sala" aria-label="Copiar codigo de sala">
+              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={copyRoom} title="Copiar codigo de sala" aria-label="Copiar codigo de sala">
                 <Copy className="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onMouseDown={stopHeaderDrag} onClick={() => setReloadKey((key) => key + 1)} title="Reiniciar juego" aria-label="Reiniciar juego">
+              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={() => setReloadKey((key) => key + 1)} title="Reiniciar juego" aria-label="Reiniciar juego">
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onMouseDown={stopHeaderDrag} onClick={toggleFullscreen} title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"} aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
+              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={toggleFullscreen} title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"} aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
                 {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onMouseDown={stopHeaderDrag} onClick={minimizeBubble} title="Minimizar" aria-label="Minimizar">
+              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={minimizeBubble} title="Minimizar" aria-label="Minimizar">
                 <Minus className="h-3.5 w-3.5" />
               </Button>
             </>
@@ -411,7 +654,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+            className={cn(headerButtonClass, "text-destructive hover:bg-destructive/10")}
             onMouseDown={stopHeaderDrag}
             onClick={(e) => {
               e.stopPropagation();
@@ -425,9 +668,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         </div>
 
         {!minimized && (
-          <div className="flex h-[calc(100%-44px)] w-full relative">
+          <div className={cn("flex h-[calc(100%-44px)] w-full relative", compactGameFrame && "flex-col")}>
             {/* Área del Juego */}
-            <div className="flex-1 h-full">
+            <div className="min-h-0 min-w-0 flex-1">
               <iframe
                 key={`${game.id}-${reloadKey}`}
                 ref={frameRef}
@@ -440,21 +683,30 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
             <div
               onMouseDown={onResizeDown}
-              className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize items-end justify-end p-1 text-muted-foreground hover:text-foreground"
+              className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize select-none items-end justify-end p-1 text-muted-foreground hover:text-foreground"
             >
               <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
             </div>
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
-            <div className="w-36 border-l border-border bg-black/60 flex flex-col shrink-0 overflow-hidden">
+            <div className={cn(
+              "border-border bg-black/60 flex flex-col shrink-0 overflow-hidden",
+              compactGameFrame ? "h-24 w-full border-t" : "w-36 border-l",
+            )}>
               <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
                 <Users className="w-2.5 h-2.5 text-neon-magenta" />
-                <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
+                <div className="min-w-0 text-center">
+                  <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
+                  <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
-                {leaderboard.length > 0 ? leaderboard.map((p, i) => {
+                {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
                   const playerName = p.name || p.displayName || "Jugador";
-                  const hasMatchStats = p.wins !== undefined || p.points !== undefined;
+                  const matchPoints = Number(p.matchPoints || 0);
+                  const timePoints = Number(p.timePoints || 0);
+                  const gamePoints = Number(p.gamePoints || 0);
+                  const elapsedSeconds = Number(p.elapsedSeconds || 0);
                   return (
                     <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
                       <div className="relative shrink-0">
@@ -483,14 +735,13 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                       <div className="min-w-0 flex-1">
                         <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                         <div className="mt-0.5 flex flex-col gap-0.5">
-                          {hasMatchStats ? (
-                            <>
-                              <span className="font-pixel text-[7px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>
-                              <span className="font-pixel text-[6px] text-neon-green leading-none">{p.points || 0} pts</span>
-                            </>
-                          ) : (
-                            <span className="font-pixel text-[7px] text-neon-green leading-none">En partida</span>
-                          )}
+                          <span className="font-pixel text-[7px] text-neon-green leading-none">{matchPoints} pts</span>
+                          {p.wins !== undefined && <span className="font-pixel text-[6px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>}
+                          {p.score !== undefined && Number(p.score) > 0 && <span className="font-pixel text-[6px] text-neon-cyan leading-none">score {Math.floor(Number(p.score))}</span>}
+                          <span className="font-pixel text-[5px] text-muted-foreground leading-none">
+                            {formatSessionTime(elapsedSeconds)} tiempo
+                            {gamePoints > 0 && timePoints > 0 ? ` + ${gamePoints} juego` : ""}
+                          </span>
                         </div>
                       </div>
                     </div>

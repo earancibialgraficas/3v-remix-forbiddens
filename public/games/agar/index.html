@@ -2,17 +2,38 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Forbiddens Agar</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        canvas { display: block; width: 100vw; height: 100vh; cursor: none; touch-action: none; }
+        canvas { display: block; width: 100dvw; height: 100dvh; cursor: none; touch-action: none; }
+        #split {
+            position: fixed;
+            right: max(14px, env(safe-area-inset-right));
+            bottom: max(14px, env(safe-area-inset-bottom));
+            z-index: 3;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 1px solid #67e8f9;
+            background: #06111bcc;
+            color: #e0f2fe;
+            font-size: 22px;
+            font-weight: 900;
+            box-shadow: 0 0 22px #22d3ee66;
+            touch-action: manipulation;
+        }
+        @media (hover:hover) and (pointer:fine) { #split { display: none; } }
+        @media (max-width:430px) { #split { width: 52px; height: 52px; font-size: 20px; } }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <button id="split" type="button" aria-label="Dividir">x2</button>
     <script>
         const canvas = document.getElementById('canvas');
+        const splitButton = document.getElementById('split');
         const ctx = canvas.getContext('2d');
         const params = new URLSearchParams(window.location.search);
         
@@ -32,7 +53,7 @@
         // Estado del Juego
         let worldSize = 3000;
         let myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
-        let camera = { x: myPos.x, y: myPos.y };
+        let camera = { x: myPos.x, y: myPos.y, zoom: 1 };
         let myScore = 40;
         let cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
         let players = {};
@@ -58,7 +79,7 @@
 
         function resetLocalPlayer() {
             myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
-            camera = { x: myPos.x, y: myPos.y };
+            camera = { x: myPos.x, y: myPos.y, zoom: 1 };
             myScore = 40;
             cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
             nextAwardScore = myScore + 20;
@@ -85,8 +106,8 @@
                 }
                 const childScore = cell.score * 0.5;
                 cell.score = childScore;
-                cell.vx -= dir.x * 5;
-                cell.vy -= dir.y * 5;
+                cell.vx -= dir.x * 1.5;
+                cell.vy -= dir.y * 1.5;
                 cell.rejoinAt = now + 3200;
                 nextCells.push(cell);
                 if (nextCells.length < 8) {
@@ -95,8 +116,8 @@
                         x: Math.max(0, Math.min(worldSize, cell.x + dir.x * (childScore + 20))),
                         y: Math.max(0, Math.min(worldSize, cell.y + dir.y * (childScore + 20))),
                         score: childScore,
-                        vx: dir.x * 26,
-                        vy: dir.y * 26,
+                        vx: dir.x * 8,
+                        vy: dir.y * 8,
                         rejoinAt: now + 3200
                     });
                 }
@@ -201,6 +222,11 @@
             return canvas.clientHeight || window.innerHeight;
         }
 
+        function getTargetZoom() {
+            const growth = Math.max(0, Math.sqrt(myScore) - Math.sqrt(40));
+            return Math.max(0.36, Math.min(1, 1 - growth * 0.04));
+        }
+
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
@@ -216,9 +242,9 @@
             const now = Date.now();
 
             cells.forEach(cell => {
-                const speed = Math.max(1.05, 7 - (cell.score / 90));
-                cell.vx = (cell.vx + moveX * speed) * 0.86;
-                cell.vy = (cell.vy + moveY * speed) * 0.86;
+                const speed = Math.max(1.05, 3.1 - Math.sqrt(cell.score) * 0.16);
+                cell.vx = cell.vx * 0.84 + moveX * speed * 0.16;
+                cell.vy = cell.vy * 0.84 + moveY * speed * 0.16;
                 cell.x = Math.max(0, Math.min(worldSize, cell.x + cell.vx));
                 cell.y = Math.max(0, Math.min(worldSize, cell.y + cell.vy));
             });
@@ -232,7 +258,7 @@
                     const d = Math.max(1, Math.sqrt(dxCells * dxCells + dyCells * dyCells));
                     const minDistance = (a.score + b.score) * 0.62;
                     if (d < minDistance && (now < a.rejoinAt || now < b.rejoinAt)) {
-                        const push = (minDistance - d) * 0.03;
+                        const push = (minDistance - d) * 0.015;
                         a.vx += (dxCells / d) * push;
                         a.vy += (dyCells / d) * push;
                         b.vx -= (dxCells / d) * push;
@@ -280,10 +306,10 @@
             channel.track(getLocalPlayer());
         }, 1000/60);
 
-        function drawPlayer(p, camX, camY) {
-            const x = p.x + camX;
-            const y = p.y + camY;
-            const r = p.score;
+        function drawPlayer(p, camX, camY, zoom) {
+            const x = p.x * zoom + camX;
+            const y = p.y * zoom + camY;
+            const r = Math.max(2, p.score * zoom);
 
             ctx.save();
             ctx.beginPath();
@@ -315,14 +341,16 @@
 
             camera.x += (myPos.x - camera.x) * 0.12;
             camera.y += (myPos.y - camera.y) * 0.12;
+            camera.zoom += (getTargetZoom() - camera.zoom) * 0.08;
 
-            const camX = width / 2 - camera.x;
-            const camY = height / 2 - camera.y;
+            const zoom = camera.zoom;
+            const camX = width / 2 - camera.x * zoom;
+            const camY = height / 2 - camera.y * zoom;
 
             // 🏁 Dibujar cuadrícula de fondo neón
             ctx.strokeStyle = '#111';
-            ctx.lineWidth = 1;
-            const step = 100;
+            ctx.lineWidth = Math.max(1, zoom);
+            const step = 100 * zoom;
             for (let x = (camX % step); x < width; x += step) {
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
             }
@@ -330,22 +358,22 @@
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
             }
             ctx.strokeStyle = '#222';
-            ctx.strokeRect(camX, camY, worldSize, worldSize); // Bordes del mundo
+            ctx.strokeRect(camX, camY, worldSize * zoom, worldSize * zoom); // Bordes del mundo
 
             // Dibujar comida
             food.forEach(f => {
                 ctx.fillStyle = f.c;
                 ctx.beginPath();
-                ctx.arc(f.x + camX, f.y + camY, 6, 0, Math.PI*2);
+                ctx.arc(f.x * zoom + camX, f.y * zoom + camY, Math.max(2, 6 * zoom), 0, Math.PI*2);
                 ctx.fill();
             });
 
             // Dibujar jugadores remotos desde Realtime y al jugador local desde la fisica actual.
             Object.values(players).forEach(p => {
                 if (!p || p.userId === userId) return;
-                drawPlayer(p, camX, camY);
+                drawPlayer(p, camX, camY, zoom);
             });
-            cells.forEach(cell => drawPlayer({ ...getLocalPlayer(), x: cell.x, y: cell.y, score: cell.score }, camX, camY));
+            cells.forEach(cell => drawPlayer({ ...getLocalPlayer(), x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));
 
             requestAnimationFrame(draw);
         }
@@ -373,6 +401,10 @@
                 e.preventDefault();
                 splitCells();
             }
+        });
+        splitButton.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            splitCells();
         });
         window.addEventListener('touchmove', e => {
             e.preventDefault();

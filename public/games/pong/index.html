@@ -8,12 +8,16 @@
     :root{color-scheme:dark}
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:#05050a;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
-    body{display:flex;align-items:center;justify-content:center}
-    .hud{position:fixed;left:12px;right:12px;top:10px;display:flex;gap:8px;align-items:center;z-index:2}
+    body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:10px}
+    .hud{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;z-index:2}
     input,button{height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:0 10px;font:inherit;font-size:12px}
     button{cursor:pointer;background:#0e7490;border-color:#22d3ee;color:#001018;font-weight:700}
-    #status{margin-left:auto;color:#67e8f9;font-size:12px}
-    canvas{width:min(96vw,900px);height:min(70vh,540px);max-height:calc(100vh - 72px);background:radial-gradient(circle at center,#113329,#06110f);border:1px solid #1f766d;border-radius:10px;box-shadow:0 0 36px #000}
+    input{min-width:90px;flex:0 1 120px}
+    #status{margin-left:auto;color:#67e8f9;font-size:12px;white-space:nowrap}
+    canvas{width:min(100%,900px);height:100%;min-height:0;justify-self:center;background:radial-gradient(circle at center,#113329,#06110f);border:1px solid #1f766d;border-radius:10px;box-shadow:0 0 36px #000}
+    @media(max-width:560px){#status{margin-left:0}}
+    @media(max-width:430px){body{gap:8px;padding:8px}.hud{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.hud button,.hud input{width:100%;min-width:0}#status{grid-column:1/-1;text-align:center}}
+    @media(max-height:390px){body{gap:6px;padding:6px}.hud button,.hud input{height:28px;padding:0 8px;font-size:11px}}
   </style>
 </head>
 <body>
