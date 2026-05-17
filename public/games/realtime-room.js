@@ -41,51 +41,27 @@
     const localWins = {};
     const localPoints = {};
 
-    function escapeHtml(value) {
-      return String(value || "").replace(/[&<>"']/g, (ch) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[ch]));
-    }
-
-    function renderPlayers() {
-      let panel = document.getElementById("forbiddens-players");
-      if (!panel) {
-        panel = document.createElement("aside");
-        panel.id = "forbiddens-players";
-        panel.innerHTML = '<div class="fp-title">JUGADORES</div><div class="fp-list"></div>';
-        const style = document.createElement("style");
-        style.textContent = `
-          #forbiddens-players{position:fixed;left:10px;top:54px;z-index:20;width:170px;max-width:34vw;border:1px solid rgba(34,211,238,.35);border-radius:12px;background:rgba(2,6,23,.78);backdrop-filter:blur(10px);box-shadow:0 12px 32px rgba(0,0,0,.35);padding:8px;color:#f8fafc;font-family:Inter,Arial,sans-serif}
-          #forbiddens-players .fp-title{font-size:9px;letter-spacing:.12em;color:#67e8f9;margin-bottom:7px;font-weight:800}
-          #forbiddens-players .fp-row{display:flex;align-items:center;gap:8px;padding:6px;border-radius:9px;background:rgba(15,23,42,.74);margin-top:6px;border:1px solid rgba(148,163,184,.15)}
-          #forbiddens-players .fp-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#111827;border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;overflow:hidden}
-          #forbiddens-players .fp-name{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          #forbiddens-players .fp-points{font-size:9px;color:#86efac;margin-top:2px}
-          @media (max-width:700px){#forbiddens-players{top:auto;bottom:10px;left:10px;right:10px;width:auto;max-width:none}.fp-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}#forbiddens-players .fp-row{margin-top:0}}
-        `;
-        document.head.appendChild(style);
-        document.body.appendChild(panel);
-      }
-      const list = panel.querySelector(".fp-list");
+    function syncPlayersPanel() {
       const players = channel ? Object.values(channel.presenceState()).flat().slice(0, 4) : [];
-      list.innerHTML = players.map((p) => {
-        const name = escapeHtml(p.displayName || "Jugador");
-        const avatarUrl = escapeHtml(p.avatarUrl || "");
-        const avatar = avatarUrl ? `<img src="${avatarUrl}" alt="" class="fp-avatar" />` : `<div class="fp-avatar">${name.slice(0, 1).toUpperCase()}</div>`;
-        const wins = localWins[p.userId || p.playerId] || p.wins || 0;
-        const points = localPoints[p.userId || p.playerId] ?? p.points ?? 0;
-        return `<div class="fp-row">${avatar}<div style="min-width:0"><div class="fp-name">${name}</div><div class="fp-points">${wins} victorias · ${points} pts</div></div></div>`;
-      }).join("");
+      const leaderboard = players.map((p) => {
+        const playerKey = p.userId || p.playerId;
+        return {
+          userId: playerKey,
+          name: p.displayName || "Jugador",
+          avatarUrl: p.avatarUrl || "",
+          wins: localWins[playerKey] || p.wins || 0,
+          points: localPoints[playerKey] ?? p.points ?? 0,
+        };
+      });
+
+      window.parent?.postMessage({ type: "game:updateLeaderboard", players: leaderboard }, "*");
     }
 
     const disconnect = async () => {
       if (channel) await client.removeChannel(channel);
       channel = null;
       activeRoom = "";
+      window.parent?.postMessage({ type: "game:updateLeaderboard", players: [] }, "*");
     };
 
     const connect = async (room) => {
@@ -101,13 +77,13 @@
         if (payload?.type === "win" && payload.payload?.userId) {
           localWins[payload.payload.userId] = (localWins[payload.payload.userId] || 0) + 1;
           localPoints[payload.payload.userId] = (localPoints[payload.payload.userId] || 0) + (payload.payload.awarded || 0);
-          renderPlayers();
+          syncPlayersPanel();
         }
         options.onMessage?.(payload);
       });
       channel.on("presence", { event: "sync" }, () => {
         const count = Object.keys(channel.presenceState()).length;
-        renderPlayers();
+        syncPlayersPanel();
         options.onPeers?.(count);
       });
       return new Promise((resolve, reject) => {
@@ -164,7 +140,7 @@
       }
       localWins[userId] = (localWins[userId] || 0) + 1;
       localPoints[userId] = (localPoints[userId] || 0) + (result.awarded || 0);
-      renderPlayers();
+      syncPlayersPanel();
       send("win", { userId, displayName: profile.displayName || "Jugador", gameSlug, room: activeRoom, awarded: result.awarded || 0 });
       return result;
     };

@@ -19,7 +19,7 @@ const faqs = [
   { q: "¿Puedo cambiar mi nombre de usuario?", a: "Sí, depende de tu membresía. Los usuarios gratuitos no pueden cambiarlo, mientras que miembros de pago pueden hacerlo según su plan." },
 ];
 
-type SectionId = "ayuda" | "drive" | "contacto" | "privacidad";
+type SectionId = "ayuda" | "drive" | "contacto" | "privacidad" | "roms";
 
 export default function AyudaPage() {
   const { user, profile } = useAuth();
@@ -278,8 +278,8 @@ ${message}[/COLOR]`;
       </div>
 
       <div className="bg-card border border-neon-yellow/30 rounded overflow-hidden scroll-mt-4">
-        <SectionHeader id={"roms" as any} icon={FolderOpen} title="DESCARGAR ROMS (SITIOS RECOMENDADOS)" color="hsl(var(--neon-yellow))" />
-        {openSection === ("roms" as any) && (
+        <SectionHeader id="roms" icon={FolderOpen} title="DESCARGAR ROMS (SITIOS RECOMENDADOS)" color="hsl(var(--neon-yellow))" />
+        {openSection === "roms" && (
           <div className="p-4 space-y-3 border-t border-border animate-fade-in">
             <p className="text-[11px] font-body text-muted-foreground italic">
               ⚠️ Descarga ROMs solo de juegos que poseas legalmente. No alojamos ni distribuimos ROMs.

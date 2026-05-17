@@ -52,13 +52,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setSize({ w: Math.min(900, window.innerWidth - 32), h: Math.min(640, window.innerHeight - 32) });
     setRoomCode(makeRoomCode());
     setReloadKey((key) => key + 1);
-    setLeaderboard([]); // Limpiar al cambiar de juego
+    setLeaderboard([]);
   }, [game?.id]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // El juego debe enviar un objeto con type: "game:updateLeaderboard"
       if (event.data?.type === "game:updateLeaderboard") {
         setLeaderboard(event.data.players || []);
       }
@@ -231,73 +230,71 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               />
             </div>
 
-<<<<<<< HEAD
-=======
-            {/* 👤 Perfil del Jugador en el Marco (Para no estorbar el juego) */}
-            <div className="w-14 border-l border-border bg-black/40 flex flex-col items-center py-4 gap-3 shrink-0">
-              <div className="relative group/avatar">
-                <img 
-                  src={profile?.avatar_url || "/placeholder.svg"} 
-                  alt="User" 
-                  className="w-8 h-8 rounded-full border-2 border-neon-magenta shadow-[0_0_8px_rgba(255,0,255,0.3)] object-cover"
-                />
-                <div className="absolute -bottom-1 -right-1 bg-neon-green w-2.5 h-2.5 rounded-full border-2 border-black" title="En línea" />
-              </div>
-              <span className="font-pixel text-[8px] text-neon-green text-center animate-pulse">{profile?.total_score || 0}</span>
-            </div>
-
->>>>>>> 0d85e5517f1537a57287b60e04742c8d696c08d3
             <div
               onMouseDown={onResizeDown}
               className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize items-end justify-end p-1 text-muted-foreground hover:text-foreground"
             >
               <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
             </div>
-<<<<<<< HEAD
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
-            <div className="w-28 border-l border-border bg-black/60 flex flex-col shrink-0 overflow-hidden">
+            <div className="w-36 border-l border-border bg-black/60 flex flex-col shrink-0 overflow-hidden">
               <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
                 <Users className="w-2.5 h-2.5 text-neon-magenta" />
-                <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Players</p>
+                <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
               </div>
               <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
-                {leaderboard.length > 0 ? leaderboard.map((p, i) => (
-                  <div key={p.userId || i} className="flex flex-col items-center gap-1 animate-fade-in">
-                    <div className="relative">
-                      <img 
-                        src={p.avatarUrl || "/placeholder.svg"} 
-                        alt={p.name} 
-                        className={cn(
-                          "w-9 h-9 rounded border object-cover transition-all",
-                          p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                {leaderboard.length > 0 ? leaderboard.map((p, i) => {
+                  const playerName = p.name || p.displayName || "Jugador";
+                  const hasMatchStats = p.wins !== undefined || p.points !== undefined;
+                  return (
+                    <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
+                      <div className="relative shrink-0">
+                        {p.avatarUrl ? (
+                          <img
+                            src={p.avatarUrl}
+                            alt={playerName}
+                            className={cn(
+                              "w-8 h-8 rounded border object-cover transition-all",
+                              p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                            )}
+                            onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
+                          />
+                        ) : (
+                          <div className={cn(
+                            "w-8 h-8 rounded border bg-muted/70 flex items-center justify-center font-pixel text-[10px] text-white",
+                            p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                          )}>
+                            {playerName.slice(0, 1).toUpperCase()}
+                          </div>
                         )}
-                        onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
-                      />
-                      <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
-                        <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                        <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
+                          <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
+                        <div className="mt-0.5 flex flex-col gap-0.5">
+                          {hasMatchStats ? (
+                            <>
+                              <span className="font-pixel text-[7px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>
+                              <span className="font-pixel text-[6px] text-neon-green leading-none">{p.points || 0} pts</span>
+                            </>
+                          ) : (
+                            <span className="font-pixel text-[7px] text-neon-green leading-none">En partida</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-center min-w-0 w-full">
-                      <p className="font-pixel text-[6px] text-white truncate px-1" title={p.name}>{p.name}</p>
-                      <div className="flex flex-col gap-0 mt-0.5">
-                        <span className="font-pixel text-[7px] text-neon-green leading-none">{p.score?.toLocaleString() || 0}</span>
-                        {p.wins !== undefined && (
-                          <span className="font-pixel text-[5px] text-neon-yellow uppercase tracking-tighter">🏆 {p.wins} wins</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )) : (
+                  );
+                }) : (
                   <div className="h-full flex flex-col items-center justify-center opacity-15 gap-2 pt-10">
                     <Users className="w-5 h-5 text-white" />
-                    <p className="font-pixel text-[5px] text-center uppercase">Waiting...</p>
+                    <p className="font-pixel text-[5px] text-center uppercase">Esperando...</p>
                   </div>
                 )}
               </div>
             </div>
-=======
->>>>>>> 0d85e5517f1537a57287b60e04742c8d696c08d3
           </div>
         )}
 
