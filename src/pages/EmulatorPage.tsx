@@ -757,6 +757,47 @@ export default function EmulatorPage() {
           </p>
         </DialogContent>
       </Dialog>
+
+      {/* 🎮 3DS (Lime3DS) — Modal informativo con descarga oficial */}
+      <Dialog open={threeDsDialogOpen} onOpenChange={setThreeDsDialogOpen}>
+        <DialogContent className="max-w-lg bg-black/95 border-2 border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.35)] text-white">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-pixel text-[10px] px-2 py-1 rounded border border-red-500/60 bg-red-600/20 text-red-400 animate-pulse tracking-widest uppercase">Experimental</span>
+              <span className="font-pixel text-[9px] text-white/50 tracking-widest uppercase">PC / Android</span>
+            </div>
+            <DialogTitle className="font-pixel text-base sm:text-lg text-red-400 tracking-wide">
+              Jugar 3DS con Lime3DS
+            </DialogTitle>
+            <DialogDescription className="font-body text-xs sm:text-sm text-white/70 leading-relaxed pt-2">
+              No existe un emulador 3DS estable que funcione dentro del navegador.
+              Te recomendamos <strong className="text-red-300">Lime3DS</strong>, un fork mantenido de Citra
+              compatible con Windows, macOS, Linux y Android.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-black/60 border border-red-500/30 rounded-lg p-3 sm:p-4 mt-2">
+            <p className="font-pixel text-[9px] sm:text-[10px] text-red-400 uppercase tracking-widest mb-3">Descargas oficiales:</p>
+            <div className="space-y-2">
+              <a href="https://github.com/Lime3DS/lime3ds-archive/releases" target="_blank" rel="noopener noreferrer" className="block bg-black/80 border border-red-500/40 hover:border-red-500/80 rounded px-3 py-2 transition-colors">
+                <code className="font-mono text-xs sm:text-sm text-neon-yellow break-all">github.com/Lime3DS/lime3ds-archive/releases</code>
+              </a>
+              <a href="https://github.com/Lime3DS/lime3ds-archive" target="_blank" rel="noopener noreferrer" className="block bg-black/80 border border-red-500/40 hover:border-red-500/80 rounded px-3 py-2 transition-colors">
+                <code className="font-mono text-xs sm:text-sm text-white/80 break-all">Repositorio del proyecto</code>
+              </a>
+            </div>
+            <ol className="font-body text-xs sm:text-sm text-white/85 space-y-1.5 list-decimal list-inside leading-relaxed mt-4">
+              <li>Descarga el instalador para tu sistema operativo.</li>
+              <li>Abre Lime3DS y carga tu ROM <code className="text-neon-yellow">.3ds</code> o <code className="text-neon-yellow">.cia</code>.</li>
+              <li>Configura los controles desde <strong className="text-red-300">Emulation → Configure → Controls</strong>.</li>
+            </ol>
+          </div>
+
+          <p className="font-body text-[10px] sm:text-xs text-white/50 italic leading-snug mt-2">
+            💡 No otorga puntaje en el ranking · Compatibilidad variable según el juego.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
