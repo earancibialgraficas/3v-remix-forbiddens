@@ -117,11 +117,12 @@ export default function BibliotecaPage() {
   // Eliminamos el tab, todo será controlado por el dropdown
   const [multiGameOpen, setMultiGameOpen] = useState(false);
   const [selectedMultiGame, setSelectedMultiGame] = useState<string | null>(null);
-  const [dropdownValue, setDropdownValue] = useState<string>("console:classic");
-
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
+  const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
+  const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
+  const initialConsoleParam = validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
+  const [dropdownValue, setDropdownValue] = useState<string>(`console:${initialConsoleParam}`);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -269,7 +270,10 @@ export default function BibliotecaPage() {
 
   useEffect(() => {
     const consoleParam = searchParams.get("console");
-    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) setSelectedConsole(consoleParam);
+    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) {
+      setSelectedConsole(consoleParam);
+      setDropdownValue(`console:${consoleParam}`);
+    }
   }, [searchParams, activeConsoles]);
 
   useEffect(() => {
@@ -734,7 +738,7 @@ const handlePlayCloudGame = async (game: any) => {
         </div>
       </div>
 
-      {activeTab === "multi" && (
+      {/* Bloque legacy de multijugador desactivado: el dropdown ya renderiza esta vista arriba.
         <div className="space-y-4">
           <div className="bg-card border border-neon-magenta/30 rounded-lg p-4">
             <h1 className="font-pixel text-sm text-neon-magenta text-glow-magenta mb-1 flex items-center gap-2">
@@ -778,7 +782,7 @@ const handlePlayCloudGame = async (game: any) => {
             </DialogContent>
           </Dialog>
         </div>
-      )}
+      */}
 
       <Dialog open={!!editingGame} onOpenChange={(o) => !o && setEditingGame(null)}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-md">
