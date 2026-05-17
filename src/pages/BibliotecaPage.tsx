@@ -549,7 +549,9 @@ const handlePlayCloudGame = async (game: any) => {
     { type: 'multiplayer', value: 'multi', label: '🎮 Multijugador', color: 'text-neon-magenta' }
   ];
 
-  const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
+  const consoleInfo = dropdownValue === 'multi'
+    ? { id: 'multiplayer', label: 'Multijugador', color: 'text-neon-magenta' }
+    : activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
@@ -566,6 +568,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
                 setSearchQuery('');
               } else if (val === 'multi') {
+                setSelectedConsole('multiplayer');
                 setSelectedMultiGame(null);
               }
             }}
@@ -619,6 +622,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
                 setSearchQuery('');
               } else if (val === 'multi') {
+                setSelectedConsole('multiplayer');
                 setSelectedMultiGame(null);
               }
             }}

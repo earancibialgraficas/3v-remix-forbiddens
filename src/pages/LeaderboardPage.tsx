@@ -123,6 +123,11 @@ export default function LeaderboardPage() {
     return set;
   }, [deduped]);
 
+  const visibleConsoles = useMemo(
+    () => ALL_CONSOLES.filter(c => consolesWithScores.has(c.id)),
+    [consolesWithScores]
+  );
+
   // Aplicar filtros
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -223,16 +228,16 @@ export default function LeaderboardPage() {
                 {consoleFilter === "all" && <Check className="w-3.5 h-3.5" />}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {ALL_CONSOLES.map(c => {
-                const hasScores = consolesWithScores.has(c.id);
+              {visibleConsoles.map(c => {
                 const isActive = consoleFilter === c.id;
+                const hasScores = true;
                 return (
                   <DropdownMenuItem
                     key={c.id}
                     onClick={() => setConsoleFilter(c.id)}
                     className={cn(
                       "font-pixel text-[10px] uppercase tracking-wider cursor-pointer flex items-center justify-between",
-                      isActive ? "text-neon-green" : !hasScores && "text-muted-foreground/60"
+                      isActive && "text-neon-green"
                     )}
                   >
                     <span>{c.label}</span>

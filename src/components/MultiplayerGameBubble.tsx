@@ -393,6 +393,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         });
       }
       if (resizing) {
+        window.getSelection()?.removeAllRanges();
         const minWidth = Math.max(240, Math.min(420, window.innerWidth - 16));
         const minHeight = Math.max(220, Math.min(320, window.innerHeight - 16));
         setSize({
@@ -432,12 +433,21 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   useEffect(() => {
     if (!dragging && !resizing) return;
     const previousUserSelect = document.body.style.userSelect;
+    const previousHtmlUserSelect = document.documentElement.style.userSelect;
     const previousCursor = document.body.style.cursor;
     document.body.style.userSelect = "none";
+    document.documentElement.style.userSelect = "none";
+    document.body.style.setProperty("-webkit-user-select", "none");
+    document.documentElement.style.setProperty("-webkit-user-select", "none");
     document.body.style.cursor = resizing ? "nwse-resize" : "move";
+    window.getSelection()?.removeAllRanges();
     return () => {
       document.body.style.userSelect = previousUserSelect;
+      document.documentElement.style.userSelect = previousHtmlUserSelect;
+      document.body.style.removeProperty("-webkit-user-select");
+      document.documentElement.style.removeProperty("-webkit-user-select");
       document.body.style.cursor = previousCursor;
+      window.getSelection()?.removeAllRanges();
     };
   }, [dragging, resizing]);
 
@@ -756,6 +766,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             <X className="h-4 w-4" />
           </Button>
         </div>
+
+        {resizing && (
+          <div className="absolute inset-0 z-[95] cursor-nwse-resize select-none bg-transparent" />
+        )}
 
         {fullscreen && !minimized && (
           <button
