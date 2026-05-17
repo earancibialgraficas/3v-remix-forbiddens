@@ -125,7 +125,9 @@ export default function BibliotecaPage() {
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   
   const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
-  const initialConsoleParam = validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
+  const initialConsoleParam = savedTab === "multi"
+    ? "multiplayer"
+    : validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
   
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
   const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
@@ -282,6 +284,7 @@ export default function BibliotecaPage() {
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "multi") {
+      setSelectedConsole("multiplayer");
       setDropdownValue("multi");
     } else {
       const consoleParam = searchParams.get("console");
@@ -420,15 +423,15 @@ const handlePlayCloudGame = async (game: any) => {
     const fetchLeaderboard = async () => {
       const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(200);
       if (data) {
-        const bestByUserGame = new Map<string, any>();
+        const bestByUser = new Map<string, any>();
         (data as any[]).forEach((score) => {
-          const key = `${score.user_id}:${score.game_name}:${score.console_type}`;
-          const previous = bestByUserGame.get(key);
+          const key = String(score.user_id || score.display_name || score.id);
+          const previous = bestByUser.get(key);
           if (!previous || Number(score.score || 0) > Number(previous.score || 0)) {
-            bestByUserGame.set(key, score);
+            bestByUser.set(key, score);
           }
         });
-        const visibleScores = Array.from(bestByUserGame.values())
+        const visibleScores = Array.from(bestByUser.values())
           .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
           .slice(0, 10);
         setLeaderboard(visibleScores as any);
@@ -437,6 +440,8 @@ const handlePlayCloudGame = async (game: any) => {
           const { data: p } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
           const cm: any = {}; p?.forEach((x: any) => cm[x.user_id] = x.color_name);
           setLeaderboardColors(cm);
+        } else {
+          setLeaderboardColors({});
         }
       }
     };
