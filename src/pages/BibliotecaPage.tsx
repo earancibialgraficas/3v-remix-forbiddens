@@ -136,10 +136,21 @@ export default function BibliotecaPage() {
       localStorage.setItem("biblioteca:activeTab", dropdownValue);
     }
     
+<<<<<<< HEAD
     const next = new URLSearchParams();
     // Si es multi, solo guardamos el tab. Si es consola, guardamos la consola.
     if (dropdownValue === "multi") next.set("tab", "multi");
     else next.set("console", selectedConsole);
+=======
+    const next = new URLSearchParams(searchParams);
+    if (dropdownValue === "multi") {
+      next.set("tab", "multi");
+      next.delete("console");
+    } else {
+      next.delete("tab");
+      next.set("console", selectedConsole);
+    }
+>>>>>>> 0d85e5517f1537a57287b60e04742c8d696c08d3
 
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
