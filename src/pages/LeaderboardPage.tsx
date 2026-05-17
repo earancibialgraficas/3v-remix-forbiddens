@@ -113,6 +113,7 @@ export default function LeaderboardPage() {
     { id: "sega", label: "MEGA DRIVE" },
     { id: "ps1", label: "PSX" },
     { id: "arcade", label: "ARCADE" },
+    { id: "multiplayer", label: "MULTIPLAYER" },
   ];
 
   // Consolas que tienen al menos un score (para resaltar visualmente)

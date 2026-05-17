@@ -101,10 +101,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (event.data?.type === "game:updateLeaderboard") {
         setLeaderboard(event.data.players || []);
       }
+      if (event.data?.type === "game:pointsAwarded" && event.data.awarded > 0) {
+        toast({
+          title: `+${event.data.awarded} puntos`,
+          description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
+        });
+      }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!isAgar) {

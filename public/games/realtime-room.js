@@ -153,6 +153,9 @@
       localWins[userId] = (localWins[userId] || 0) + 1;
       localPoints[userId] = (localPoints[userId] || 0) + (result.awarded || 0);
       syncPlayersPanel();
+      if ((result.awarded || 0) > 0) {
+        window.parent?.postMessage({ type: "game:pointsAwarded", awarded: result.awarded || 0, total: result.leaderboard_score || 0 }, "*");
+      }
       send("win", { userId, displayName: profile.displayName || "Jugador", gameSlug, room: activeRoom, awarded: result.awarded || 0 });
       return result;
     };

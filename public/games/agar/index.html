@@ -6,7 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        canvas { display: block; cursor: crosshair; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
     </style>
 </head>
 <body>
@@ -36,7 +36,9 @@
         let myScore = 40;
         let players = {};
         let food = [];
-        let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        let mouse = { x: 0, y: 0 };
+        let nextAwardScore = myScore + 20;
+        let awardInFlight = false;
         const avatarCache = {};
 
         function getLocalPlayer() {
@@ -60,6 +62,27 @@
             img.crossOrigin = "anonymous";
             avatarCache[url] = img;
             return img;
+        }
+
+        async function awardAgarProgress() {
+            if (awardInFlight || myScore < nextAwardScore) return;
+            awardInFlight = true;
+            try {
+                const points = Math.max(1, Math.min(10, Math.floor((myScore - nextAwardScore + 20) / 10)));
+                const { data } = await supabaseClient.rpc('award_multiplayer_win', {
+                    p_game_slug: 'agar',
+                    p_room_code: room,
+                    p_points: points
+                });
+                if (data?.awarded > 0) {
+                    window.parent.postMessage({ type: 'game:pointsAwarded', awarded: data.awarded, total: data.leaderboard_score }, '*');
+                }
+            } catch (e) {
+                console.warn('No se pudieron guardar puntos de Agar', e);
+            } finally {
+                while (myScore >= nextAwardScore) nextAwardScore += 20;
+                awardInFlight = false;
+            }
         }
 
         // Sincronización Multijugador
@@ -93,9 +116,39 @@
             });
 
         // Loop de física
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const width = Math.max(1, Math.floor(rect.width || window.innerWidth));
+            const height = Math.max(1, Math.floor(rect.height || window.innerHeight));
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            const nextWidth = Math.floor(width * dpr);
+            const nextHeight = Math.floor(height * dpr);
+            if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+                canvas.width = nextWidth;
+                canvas.height = nextHeight;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            if (!mouse.x && !mouse.y) {
+                mouse = { x: width / 2, y: height / 2 };
+            }
+        }
+
+        function canvasWidth() {
+            return canvas.clientWidth || window.innerWidth;
+        }
+
+        function canvasHeight() {
+            return canvas.clientHeight || window.innerHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         setInterval(() => {
-            const dx = mouse.x - window.innerWidth / 2;
-            const dy = mouse.y - window.innerHeight / 2;
+            const centerX = canvasWidth() / 2;
+            const centerY = canvasHeight() / 2;
+            const dx = mouse.x - centerX;
+            const dy = mouse.y - centerY;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             if (dist > 10) {
@@ -129,8 +182,10 @@
                     myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
                     camera = { x: myPos.x, y: myPos.y };
                     myScore = 40;
+                    nextAwardScore = myScore + 20;
                 }
             });
+            awardAgarProgress();
 
             // Actualizar mi posición a los demás
             channel.track(getLocalPlayer());
@@ -163,26 +218,27 @@
         }
 
         function draw() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            resizeCanvas();
+            const width = canvasWidth();
+            const height = canvasHeight();
             ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.fillRect(0,0,width, height);
 
             camera.x += (myPos.x - camera.x) * 0.12;
             camera.y += (myPos.y - camera.y) * 0.12;
 
-            const camX = window.innerWidth/2 - camera.x;
-            const camY = window.innerHeight/2 - camera.y;
+            const camX = width / 2 - camera.x;
+            const camY = height / 2 - camera.y;
 
             // 🏁 Dibujar cuadrícula de fondo neón
             ctx.strokeStyle = '#111';
             ctx.lineWidth = 1;
             const step = 100;
-            for (let x = (camX % step); x < canvas.width; x += step) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            for (let x = (camX % step); x < width; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
             }
-            for (let y = (camY % step); y < canvas.height; y += step) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            for (let y = (camY % step); y < height; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
             }
             ctx.strokeStyle = '#222';
             ctx.strokeRect(camX, camY, worldSize, worldSize); // Bordes del mundo
@@ -206,14 +262,28 @@
         }
 
         function updatePointer(clientX, clientY) {
-            mouse = { x: clientX, y: clientY };
+            const rect = canvas.getBoundingClientRect();
+            mouse = {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
         }
 
-        window.addEventListener('pointermove', e => updatePointer(e.clientX, e.clientY));
+        canvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            canvas.setPointerCapture?.(e.pointerId);
+            updatePointer(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('pointermove', e => {
+            e.preventDefault();
+            updatePointer(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('mousemove', e => updatePointer(e.clientX, e.clientY));
         window.addEventListener('touchmove', e => {
+            e.preventDefault();
             const touch = e.touches[0];
             if (touch) updatePointer(touch.clientX, touch.clientY);
-        }, { passive: true });
+        }, { passive: false });
         draw();
     </script>
 </body>
