@@ -107,12 +107,12 @@
             await channel.track({
               playerId,
               userId: profile.userId || playerId,
-              displayName: profile.displayName || "Jugador",
-              avatarUrl: profile.avatarUrl || "",
-              wins: 0,
-              points: 0,
-              joinedAt: Date.now(),
-            });
+            displayName: profile.displayName || "Jugador",
+            avatarUrl: profile.avatarUrl || "",
+            wins: localWins[profile.userId || playerId] || 0,
+            points: localPoints[profile.userId || playerId] || 0,
+            joinedAt: Date.now(),
+          });
             resolve(nextRoom);
           }
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -152,6 +152,17 @@
       }
       localWins[userId] = (localWins[userId] || 0) + 1;
       localPoints[userId] = (localPoints[userId] || 0) + (result.awarded || 0);
+      if (channel && activeRoom) {
+        await channel.track({
+          playerId,
+          userId,
+          displayName: profile.displayName || "Jugador",
+          avatarUrl: profile.avatarUrl || "",
+          wins: localWins[userId],
+          points: localPoints[userId],
+          joinedAt: Date.now(),
+        });
+      }
       syncPlayersPanel();
       if ((result.awarded || 0) > 0) {
         window.parent?.postMessage({ type: "game:pointsAwarded", awarded: result.awarded || 0, total: result.leaderboard_score || 0 }, "*");

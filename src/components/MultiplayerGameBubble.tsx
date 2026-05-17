@@ -51,6 +51,7 @@ interface SessionPlayer {
   name: string;
   avatarUrl: string;
   timePoints: number;
+  totalPoints: number;
   elapsedSeconds: number;
   joinedAt: number;
   updatedAt: number;
@@ -159,6 +160,21 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
       if (event.data?.type === "game:pointsAwarded" && event.data.awarded > 0) {
         sessionTotalPointsRef.current += Number(event.data.awarded || 0);
+        if (sessionChannelRef.current) {
+          void sessionChannelRef.current.track({
+            game: activeGameId,
+            room: activeSessionRoomCode,
+            playerId: lobbyPlayerIdRef.current,
+            userId: localSessionUserId,
+            name: localDisplayName,
+            avatarUrl: localAvatarUrl,
+            timePoints: sessionTimePointsRef.current,
+            totalPoints: sessionTotalPointsRef.current,
+            elapsedSeconds: sessionElapsedRef.current,
+            joinedAt: sessionStartedAtRef.current,
+            updatedAt: Date.now(),
+          });
+        }
         toast({
           title: `+${event.data.awarded} puntos`,
           description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
@@ -167,7 +183,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [toast]);
+  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, toast]);
 
   useEffect(() => {
     if (!isAgar) {
@@ -294,6 +310,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             name: String(presence?.name || presence?.displayName || "Jugador"),
             avatarUrl: String(presence?.avatarUrl || ""),
             timePoints: Number(presence?.timePoints || 0),
+            totalPoints: Number(presence?.totalPoints || presence?.timePoints || 0),
             elapsedSeconds: Number(presence?.elapsedSeconds || 0),
             joinedAt: Number(presence?.joinedAt || 0),
             updatedAt: Number(presence?.updatedAt || 0),
@@ -302,7 +319,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         });
 
       setSessionPlayers(
-        Array.from(latest.values()).sort((a, b) => b.timePoints - a.timePoints || a.joinedAt - b.joinedAt),
+        Array.from(latest.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt),
       );
     };
 
@@ -315,6 +332,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         name: localDisplayName,
         avatarUrl: localAvatarUrl,
         timePoints: sessionTimePointsRef.current,
+        totalPoints: sessionTotalPointsRef.current,
         elapsedSeconds: sessionElapsedRef.current,
         joinedAt: sessionStartedAtRef.current,
         updatedAt: Date.now(),
@@ -370,6 +388,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           name: localDisplayName,
           avatarUrl: localAvatarUrl,
           timePoints: sessionTimePointsRef.current,
+          totalPoints: sessionTotalPointsRef.current,
           elapsedSeconds: sessionElapsedRef.current,
           joinedAt: sessionStartedAtRef.current,
           updatedAt: Date.now(),
@@ -560,6 +579,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       const session = sessionByUser.get(key);
       const gamePoints = Number(player.points || 0);
       const timePoints = Number(session?.timePoints || 0);
+      const totalPoints = Math.max(gamePoints + timePoints, Number(session?.totalPoints || 0));
       rows.set(key, {
         ...session,
         ...player,
@@ -568,7 +588,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         avatarUrl: player.avatarUrl || session?.avatarUrl || "",
         timePoints,
         gamePoints,
-        matchPoints: gamePoints + timePoints,
+        totalPoints,
+        matchPoints: totalPoints,
         elapsedSeconds: Number(session?.elapsedSeconds || 0),
       });
     });
@@ -581,7 +602,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         wins: 0,
         score: 0,
         gamePoints: 0,
-        matchPoints: player.timePoints,
+        matchPoints: Number(player.totalPoints || player.timePoints || 0),
       });
     });
 

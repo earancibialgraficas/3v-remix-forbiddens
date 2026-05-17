@@ -418,10 +418,21 @@ const handlePlayCloudGame = async (game: any) => {
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(10);
+      const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(200);
       if (data) {
-        setLeaderboard(data as any);
-        const uids = [...new Set(data.map((s: any) => s.user_id))];
+        const bestByUserGame = new Map<string, any>();
+        (data as any[]).forEach((score) => {
+          const key = `${score.user_id}:${score.game_name}:${score.console_type}`;
+          const previous = bestByUserGame.get(key);
+          if (!previous || Number(score.score || 0) > Number(previous.score || 0)) {
+            bestByUserGame.set(key, score);
+          }
+        });
+        const visibleScores = Array.from(bestByUserGame.values())
+          .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+          .slice(0, 10);
+        setLeaderboard(visibleScores as any);
+        const uids = [...new Set(visibleScores.map((s: any) => s.user_id))];
         if (uids.length > 0) {
           const { data: p } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
           const cm: any = {}; p?.forEach((x: any) => cm[x.user_id] = x.color_name);
