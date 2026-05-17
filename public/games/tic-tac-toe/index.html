@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic Tac Toe - Multiplayer</title>
+  <style>
+    body{font-family:Inter,Arial;background:#0b0b0b;color:#e6e6e6;display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .board{display:grid;grid-template-columns:repeat(3,120px);gap:8px}
+    .cell{width:120px;height:120px;background:#111;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;cursor:pointer}
+    .controls{position:fixed;top:18px;left:18px}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#0ea5a4;color:#011}
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="create">Crear sala</button>
+    <input id="room" placeholder="Código sala" />
+    <button id="join">Unirse</button>
+    <span id="status"></span>
+  </div>
+  <div>
+    <div class="board" id="board"></div>
+    <p id="info" style="text-align:center;margin-top:12px">Esperando jugadores...</p>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://' + location.hostname + ':12346');
+    let roomId = null;
+    let mark = null; // 'X' or 'O'
+    const board = Array(9).fill(null);
+    const boardEl = document.getElementById('board');
+    const info = document.getElementById('info');
+    const status = document.getElementById('status');
+
+    function render(){
+      boardEl.innerHTML = '';
+      board.forEach((v,i)=>{
+        const d = document.createElement('div'); d.className='cell'; d.textContent = v||'';
+        d.onclick = () => play(i);
+        boardEl.appendChild(d);
+      });
+    }
+
+    function play(i){
+      if (!roomId || !mark) return;
+      if (board[i]) return;
+      // optimistic update if it's our turn
+      ws.send(JSON.stringify({ type: 'move', room: roomId, payload: { index: i } }));
+    }
+
+    ws.onmessage = (ev) => {
+      const d = JSON.parse(ev.data);
+      if (d.type === 'created') { roomId = d.room; status.textContent = 'Sala: '+roomId; info.textContent='Esperando otro jugador...'; mark='X'; }
+      if (d.type === 'peer-joined') { info.textContent='Jugador conectado. Tu marca: '+mark; }
+      if (d.type === 'relay' && d.originalType === 'move') {
+        const { index } = d.payload;
+        // determine who played: alternate marks based on count
+        const counts = board.filter(Boolean).length;
+        const m = counts % 2 === 0 ? 'X' : 'O';
+        board[index] = m;
+        render();
+        checkWin();
+      }
+      if (d.type === 'peer-left') { info.textContent='El rival se fue.'; }
+    };
+
+    document.getElementById('create').onclick = ()=> ws.send(JSON.stringify({ type: 'create' }));
+    document.getElementById('join').onclick = ()=>{
+      const r = document.getElementById('room').value.trim().toUpperCase();
+      if (!r) return alert('Escribe el código');
+      roomId = r; ws.send(JSON.stringify({ type: 'join', room: r })); mark='O'; status.textContent='Sala: '+roomId; info.textContent='Conectado. Tu marca: '+mark;
+    };
+
+    function checkWin(){
+      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for(const l of lines){
+        const [a,b,c]=l; if(board[a] && board[a]===board[b] && board[a]===board[c]){ info.textContent = board[a] + ' gana!'; return true; }
+      }
+      if (board.every(Boolean)) info.textContent='Empate';
+      return false;
+    }
+
+    render();
+  </script>
+</body>
+</html>

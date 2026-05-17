@@ -116,6 +116,7 @@ export default function BibliotecaPage() {
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"single" | "multi">("single");
   const [multiGameOpen, setMultiGameOpen] = useState(false);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<string | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
@@ -505,28 +506,47 @@ const handlePlayCloudGame = async (game: any) => {
     }
   };
 
+  const multiplayerGames = [
+    { id: 'tic-tac-toe', label: 'Tic Tac Toe' },
+    { id: 'pong', label: 'Pong' },
+    { id: 'agar', label: 'Arena (agar-like)' },
+    { id: 'card-duel', label: 'Card Duel (lite)' }
+  ];
+
   const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
-      
-      <div className="flex gap-2">
-        <Button
-          variant={activeTab === "single" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveTab("single")}
-          className="text-xs font-pixel"
-        >
-          <Gamepad2 className="w-3 h-3 mr-1" /> SALAS DE JUEGO
-        </Button>
-        <Button
-          variant={activeTab === "multi" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveTab("multi")}
-          className="text-xs font-pixel"
-        >
-          <User className="w-3 h-3 mr-1" /> MULTIJUGADOR
-        </Button>
+      <div className="flex flex-col md:flex-row items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <select
+            value={selectedConsole}
+            onChange={(e) => { setSelectedConsole(e.target.value); setSearchQuery(''); }}
+            className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none"
+            aria-label="Seleccionar consola"
+          >
+            {activeConsoles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+
+          <select
+            value={selectedMultiGame || ''}
+            onChange={(e) => setSelectedMultiGame(e.target.value || null)}
+            className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none"
+            aria-label="Juegos multijugador"
+          >
+            <option value="">Juegos multijugador</option>
+            {multiplayerGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+          </select>
+        </div>
+        <div className="relative flex-1 max-w-sm md:ml-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder={`Buscar en ${consoleInfo?.label}...`} 
+            value={searchQuery} 
+            onChange={(e) => setSearchQuery(e.target.value)} 
+            className="pl-9 h-8 bg-card border-border font-body text-xs focus:border-primary transition-colors" 
+          />
+        </div>
       </div>
 
       {activeTab === "single" && (
@@ -683,48 +703,41 @@ const handlePlayCloudGame = async (game: any) => {
             <h1 className="font-pixel text-sm text-neon-magenta text-glow-magenta mb-1 flex items-center gap-2">
               <User className="w-4 h-4" /> MULTIJUGADOR
             </h1>
-            <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos en la misma pantalla.</p>
+            <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos a través del servidor integrado.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            <div
-              onClick={() => setMultiGameOpen(true)}
-              className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
-            >
-              <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
-                <img
-                  src="https://raw.githubusercontent.com/nanonixx/Fighting-Furry/main/img/icono.png"
-                  alt="Fighting Furry"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
+            {multiplayerGames.map(g => (
+              <div
+                key={g.id}
+                onClick={() => { setSelectedMultiGame(g.id); setMultiGameOpen(true); }}
+                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
+              >
+                <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
+                  <div className="text-center text-[12px] px-2">{g.label}</div>
+                </div>
+                <div className="p-2 flex items-center gap-1">
+                  <Play className="w-3 h-3 text-neon-magenta shrink-0" />
+                  <p className="text-[10px] font-body text-foreground truncate">{g.label}</p>
+                  <span className="ml-auto font-pixel text-[8px] text-neon-cyan">2P</span>
+                </div>
               </div>
-              <div className="p-2 flex items-center gap-1">
-                <Play className="w-3 h-3 text-neon-magenta shrink-0" />
-                <p className="text-[10px] font-body text-foreground truncate">Fighting Furry</p>
-                <span className="ml-auto font-pixel text-[8px] text-neon-cyan">2P</span>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <Dialog open={multiGameOpen} onOpenChange={setMultiGameOpen}>
+          <Dialog open={multiGameOpen} onOpenChange={(o) => { if(!o){ setSelectedMultiGame(null); setMultiGameOpen(false); } else setMultiGameOpen(o); }}>
             <DialogContent className="max-w-5xl w-[95vw] h-[85vh] bg-black border-2 border-neon-magenta/50 p-2 flex flex-col">
               <DialogHeader className="px-2 pt-1 pb-2 flex-shrink-0">
                 <DialogTitle className="font-pixel text-xs text-neon-magenta flex items-center gap-2">
-                  <Gamepad2 className="w-4 h-4" /> FIGHTING FURRY · 2 JUGADORES
+                  <Gamepad2 className="w-4 h-4" /> {selectedMultiGame ? multiplayerGames.find(x=>x.id===selectedMultiGame)?.label : 'Juego'}
                 </DialogTitle>
               </DialogHeader>
               <iframe
-                src="https://nanonixx.github.io/Fighting-Furry/"
-                title="Fighting Furry"
+                src={selectedMultiGame ? `/games/${selectedMultiGame}/index.html` : undefined}
+                title={selectedMultiGame || 'multijugador'}
                 className="w-full flex-1 rounded border border-neon-magenta/30 bg-black"
                 allow="gamepad; fullscreen; autoplay"
               />
-              <p className="text-[10px] font-body text-muted-foreground text-center mt-1">
-                Si no carga, ábrelo en una pestaña nueva:{" "}
-                <a href="https://nanonixx.github.io/Fighting-Furry/" target="_blank" rel="noopener noreferrer" className="text-neon-cyan underline">nanonixx.github.io/Fighting-Furry</a>
-              </p>
             </DialogContent>
           </Dialog>
         </div>

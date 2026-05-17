@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Card Duel - Multiplayer</title>
+  <style>body{font-family:Inter;background:#081;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh}#table{width:720px;background:#061;padding:16px;border-radius:12px}</style>
+</head>
+<body>
+  <div id="table">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><button id="create">Crear sala</button><input id="room" placeholder="Código" /><button id="join">Unirse</button></div><div id="status"></div></div>
+    <div style="margin-top:12px;display:flex;gap:12px"><div id="hand1"></div><div style="flex:1;text-align:center"><div id="log"></div></div><div id="hand2"></div></div>
+  </div>
+  <script>
+    const ws=new WebSocket('ws://'+location.hostname+':12346');
+    let room=null, player=0;
+    const hand1=document.getElementById('hand1'), hand2=document.getElementById('hand2'), log=document.getElementById('log');
+    function makeHand(){ return [randCard(), randCard(), randCard()]; }
+    function randCard(){ return {id:Math.random().toString(36).slice(2,6), atk: Math.floor(Math.random()*8)+2}; }
+    let myHand = makeHand(), oppHand = makeHand(), myHp=30, oppHp=30, myTurn=false;
+    function render(){ hand1.innerHTML = myTurn? 'Tu mano:<br>' + myHand.map(c=>`<button onclick="play('${c.id}')">ATK ${c.atk}</button>`).join(' ') : 'Tu mano oculta'; hand2.innerHTML = 'Rival: HP '+oppHp; }
+    window.play = function(id){ const card = myHand.find(c=>c.id===id); if(!card || !myTurn) return; ws.send(JSON.stringify({ type:'play', room, payload:card })); myTurn=false; }
+    ws.onmessage = e=>{ const d=JSON.parse(e.data); if(d.type==='created'){ room=d.room; document.getElementById('status').textContent='Sala '+room; } if(d.type==='peer-joined'){ document.getElementById('status').textContent='Rival conectado'; myTurn = true; } if(d.type==='relay' && d.originalType==='play'){ const card=d.payload; oppHp -= card.atk; log.innerHTML = 'Rival juega ATK '+card.atk; render(); } };
+    document.getElementById('create').onclick = ()=> ws.send(JSON.stringify({ type:'create' }));
+    document.getElementById('join').onclick = ()=>{ const r=document.getElementById('room').value.trim().toUpperCase(); room=r; ws.send(JSON.stringify({ type:'join', room:r })); };
+    render();
+  </script>
+</body>
+</html>

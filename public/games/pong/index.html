@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pong - Multiplayer</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000;color:#fff;font-family:Inter}
+    canvas{display:block;margin:0 auto;background:#051;border-radius:8px}
+    .ui{position:fixed;top:12px;left:12px;color:#0f0}
+    button{padding:8px;border-radius:6px;border:0;background:#06b}
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <button id="create">Crear sala</button>
+    <input id="room" placeholder="Código sala" />
+    <button id="join">Unirse</button>
+    <span id="status"></span>
+  </div>
+  <canvas id="c" width="700" height="420"></canvas>
+  <script>
+    const ws = new WebSocket('ws://'+location.hostname+':12346');
+    let roomId=null, playerIndex=0; // 0 = left, 1 = right
+    const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d');
+    const paddle = [{y:180},{y:180}];
+    let ball = {x:350,y:210,vx:3,vy:2};
+
+    ws.onmessage = (e)=>{ const d=JSON.parse(e.data); if (d.type==='created'){ roomId=d.room; document.getElementById('status').textContent='Sala '+roomId; }
+      if (d.type==='peer-joined'){ document.getElementById('status').textContent='Jugador conectado'; }
+      if (d.type==='relay'){ if (d.originalType==='paddle'){ Object.assign(paddle[d.payload.index], { y: d.payload.y }); }
+        if (d.originalType==='ball') { Object.assign(ball, d.payload); }
+      }
+    };
+
+    document.getElementById('create').onclick = ()=> ws.send(JSON.stringify({ type:'create' }));
+    document.getElementById('join').onclick = ()=>{ const r=document.getElementById('room').value.trim().toUpperCase(); if(!r) return; roomId=r; ws.send(JSON.stringify({ type:'join', room:r })); }
+
+    window.addEventListener('keydown',(e)=>{
+      if (e.key==='ArrowUp') { paddle[1].y -= 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:1, y:paddle[1].y }})); }
+      if (e.key==='ArrowDown') { paddle[1].y += 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:1, y:paddle[1].y }})); }
+      if (e.key==='w') { paddle[0].y -= 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:0, y:paddle[0].y }})); }
+      if (e.key==='s') { paddle[0].y += 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:0, y:paddle[0].y }})); }
+      if (e.key===' ') { // host can reset ball
+        ws.send(JSON.stringify({ type:'ball', room:roomId, payload:ball }));
+      }
+    });
+
+    function step(){
+      // simple local physics and broadcast
+      ball.x += ball.vx; ball.y += ball.vy;
+      if (ball.y < 0 || ball.y > canvas.height) ball.vy *= -1;
+      // collisions with paddles
+      if (ball.x < 30 && ball.y > paddle[0].y && ball.y < paddle[0].y + 60){ ball.vx *= -1; }
+      if (ball.x > canvas.width-30 && ball.y > paddle[1].y && ball.y < paddle[1].y + 60){ ball.vx *= -1; }
+      // broadcast ball state occasionally
+      ws.send(JSON.stringify({ type:'ball', room:roomId, payload:ball }));
+      draw(); requestAnimationFrame(step);
+    }
+
+    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle='#0a0'; ctx.fillRect(10,paddle[0].y,10,60); ctx.fillRect(canvas.width-20,paddle[1].y,10,60); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ball.x,ball.y,8,0,Math.PI*2); ctx.fill(); }
+
+    step();
+  </script>
+</body>
+</html>
