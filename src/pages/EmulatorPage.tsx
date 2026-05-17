@@ -138,8 +138,8 @@ const systems = [
     glow: "rgba(34,211,238,0.7)", year: "2004"
   },
   {
-    // 🆕 3DS — Sin emulador web funcional, modal informativo
-    id: "3ds", name: "Nintendo 3DS", short: "3DS", core: "(externo)", extensions: ".3ds,.cia",
+    // 🆕 3DS — Lime3DS (fork de Citra). Sin core web, modal con descarga oficial.
+    id: "3ds", name: "Nintendo 3DS", short: "3DS", core: "lime3ds (externo)", extensions: ".3ds,.cia,.cci,.3dsx",
     bg: "https://image.pollinations.ai/prompt/nintendo%203ds%20console%20stereoscopic%20neon%20red?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/Nintendo 3DS.png",
     glow: "rgba(248,113,113,0.7)", year: "2011",
