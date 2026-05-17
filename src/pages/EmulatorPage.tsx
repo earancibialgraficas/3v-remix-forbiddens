@@ -642,18 +642,28 @@ export default function EmulatorPage() {
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
                <button
-                 onClick={() => currentSystem.id === "ps2" ? launchPs2() : fileInputRef.current?.click()}
+                 onClick={() => {
+                   if (currentSystem.id === "ps2") return launchPs2();
+                   if (currentSystem.id === "3ds") {
+                     if (!user) { toast({ title: "Acceso denegado", description: "Debes iniciar sesión.", variant: "destructive" }); return; }
+                     setThreeDsDialogOpen(true);
+                     return;
+                   }
+                   fileInputRef.current?.click();
+                 }}
                  className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
                >
                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
                  <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
                  <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
-                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : "Cargar ROM Local"}
+                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : currentSystem.id === "3ds" ? "Descargar Lime3DS" : "Cargar ROM Local"}
                  </span>
                </button>
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
                  {currentSystem.id === "ps2"
                    ? "Solo PC · Sube tu ISO desde la UI del emulador (no se requiere BIOS)"
+                   : currentSystem.id === "3ds"
+                   ? "Lime3DS · PC/Android · Sin emulador web por restricciones del navegador"
                    : `Formatos: ${currentSystem.extensions}`}
                </p>
             </div>
