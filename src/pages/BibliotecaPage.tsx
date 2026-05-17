@@ -674,6 +674,61 @@ const handlePlayCloudGame = async (game: any) => {
           <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs h-8 w-full"><Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}</Button>
         </div>
       </div>
+      </>
+      )}
+
+      {activeTab === "multi" && (
+        <div className="space-y-4">
+          <div className="bg-card border border-neon-magenta/30 rounded-lg p-4">
+            <h1 className="font-pixel text-sm text-neon-magenta text-glow-magenta mb-1 flex items-center gap-2">
+              <User className="w-4 h-4" /> MULTIJUGADOR
+            </h1>
+            <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos en la misma pantalla.</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div
+              onClick={() => setMultiGameOpen(true)}
+              className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
+            >
+              <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
+                <img
+                  src="https://raw.githubusercontent.com/nanonixx/Fighting-Furry/main/img/icono.png"
+                  alt="Fighting Furry"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+              <div className="p-2 flex items-center gap-1">
+                <Play className="w-3 h-3 text-neon-magenta shrink-0" />
+                <p className="text-[10px] font-body text-foreground truncate">Fighting Furry</p>
+                <span className="ml-auto font-pixel text-[8px] text-neon-cyan">2P</span>
+              </div>
+            </div>
+          </div>
+
+          <Dialog open={multiGameOpen} onOpenChange={setMultiGameOpen}>
+            <DialogContent className="max-w-5xl w-[95vw] h-[85vh] bg-black border-2 border-neon-magenta/50 p-2 flex flex-col">
+              <DialogHeader className="px-2 pt-1 pb-2 flex-shrink-0">
+                <DialogTitle className="font-pixel text-xs text-neon-magenta flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4" /> FIGHTING FURRY · 2 JUGADORES
+                </DialogTitle>
+              </DialogHeader>
+              <iframe
+                src="https://nanonixx.github.io/Fighting-Furry/"
+                title="Fighting Furry"
+                className="w-full flex-1 rounded border border-neon-magenta/30 bg-black"
+                allow="gamepad; fullscreen; autoplay"
+              />
+              <p className="text-[10px] font-body text-muted-foreground text-center mt-1">
+                Si no carga, ábrelo en una pestaña nueva:{" "}
+                <a href="https://nanonixx.github.io/Fighting-Furry/" target="_blank" rel="noopener noreferrer" className="text-neon-cyan underline">nanonixx.github.io/Fighting-Furry</a>
+              </p>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
 
       <Dialog open={!!editingGame} onOpenChange={(o) => !o && setEditingGame(null)}>
         <DialogContent className="bg-card border-neon-cyan/30 max-w-md">
