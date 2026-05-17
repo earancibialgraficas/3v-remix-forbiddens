@@ -7,7 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        canvas { display: block; width: 100dvw; height: 100dvh; cursor: none; touch-action: none; }
+        canvas { display: block; width: 100dvw; height: 100dvh; cursor: crosshair; touch-action: none; }
+        canvas.locked { cursor: none; }
         #split {
             position: fixed;
             right: max(14px, env(safe-area-inset-right));
@@ -26,14 +27,61 @@
         }
         @media (hover:hover) and (pointer:fine) { #split { display: none; } }
         @media (max-width:430px) { #split { width: 52px; height: 52px; font-size: 20px; } }
+        #death {
+            position: fixed;
+            inset: 0;
+            z-index: 8;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #020617cc;
+            backdrop-filter: blur(8px);
+            color: #f8fafc;
+        }
+        #death.show { display: flex; }
+        .death-card {
+            width: min(360px, calc(100vw - 32px));
+            border: 1px solid #fb7185aa;
+            border-radius: 14px;
+            background: #09090fee;
+            box-shadow: 0 0 36px #fb718555;
+            padding: 20px;
+            text-align: center;
+        }
+        .death-card h1 { margin: 0 0 10px; font-size: 18px; color: #fb7185; }
+        .death-card p { margin: 6px 0; font-size: 13px; color: #cbd5e1; }
+        .death-card strong { color: #86efac; }
+        .death-card button {
+            margin-top: 14px;
+            min-height: 36px;
+            border-radius: 10px;
+            border: 1px solid #22d3ee;
+            background: #083344;
+            color: #e0f2fe;
+            padding: 0 14px;
+            font: 800 12px Inter, Arial, sans-serif;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <button id="split" type="button" aria-label="Dividir">x2</button>
+    <div id="death" role="dialog" aria-modal="true">
+        <div class="death-card">
+            <h1>Te comieron</h1>
+            <p>Puntos de esta sesion: <strong id="deathPoints">0</strong></p>
+            <p>Masa maxima: <strong id="deathMass">40</strong></p>
+            <button type="button" id="resetPlayer">Resetear</button>
+        </div>
+    </div>
     <script>
         const canvas = document.getElementById('canvas');
         const splitButton = document.getElementById('split');
+        const deathEl = document.getElementById('death');
+        const deathPointsEl = document.getElementById('deathPoints');
+        const deathMassEl = document.getElementById('deathMass');
+        const resetPlayerButton = document.getElementById('resetPlayer');
         const ctx = canvas.getContext('2d');
         const params = new URLSearchParams(window.location.search);
         
@@ -55,21 +103,42 @@
         let myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
         let camera = { x: myPos.x, y: myPos.y, zoom: 1 };
         let myScore = 40;
-        let cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
+        let cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, splitAt: 0, mergeAt: 0 }];
         let players = {};
         let food = [];
         let mouse = { x: 0, y: 0 };
+        let virtualAim = { x: 0, y: 0 };
+        let lastBroadcastAt = 0;
         let nextAwardScore = myScore + 20;
         let awardInFlight = false;
+        let sessionAwarded = 0;
+        let foodPointsPending = 0;
+        let lastPublishedFoodPoints = 0;
+        let bestMass = myScore;
+        let gameOver = false;
         const avatarCache = {};
 
         function getLocalPlayer() {
-            return { userId, name: userName, avatarUrl, score: myScore, x: myPos.x, y: myPos.y };
+            return {
+                userId,
+                name: userName,
+                avatarUrl,
+                score: gameOver ? 0 : myScore,
+                x: myPos.x,
+                y: myPos.y,
+                cells: gameOver ? [] : cells.map(cell => ({
+                    id: cell.id,
+                    x: cell.x,
+                    y: cell.y,
+                    score: cell.score
+                }))
+            };
         }
 
         function syncLocalStats() {
             const total = cells.reduce((sum, cell) => sum + cell.score, 0) || 40;
             myScore = total;
+            bestMass = Math.max(bestMass, myScore);
             myPos = cells.reduce((center, cell) => {
                 center.x += cell.x * cell.score / total;
                 center.y += cell.y * cell.score / total;
@@ -81,8 +150,21 @@
             myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
             camera = { x: myPos.x, y: myPos.y, zoom: 1 };
             myScore = 40;
-            cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
+            cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, splitAt: 0, mergeAt: 0 }];
             nextAwardScore = myScore + 20;
+            gameOver = false;
+            bestMass = myScore;
+            deathEl.classList.remove('show');
+            canvas.focus?.();
+        }
+
+        function showDeath() {
+            gameOver = true;
+            cells = [];
+            deathPointsEl.textContent = String(sessionAwarded + foodPointsPending);
+            deathMassEl.textContent = String(Math.floor(bestMass));
+            deathEl.classList.add('show');
+            if (document.pointerLockElement === canvas) document.exitPointerLock?.();
         }
 
         function directionFromPointer() {
@@ -92,6 +174,15 @@
             const dy = mouse.y - centerY;
             const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
             return { x: dx / dist, y: dy / dist };
+        }
+
+        function aimIntensity() {
+            const centerX = canvasWidth() / 2;
+            const centerY = canvasHeight() / 2;
+            const dx = mouse.x - centerX;
+            const dy = mouse.y - centerY;
+            const maxDist = Math.max(90, Math.min(canvasWidth(), canvasHeight()) * 0.42);
+            return Math.min(1, Math.sqrt(dx * dx + dy * dy) / maxDist);
         }
 
         function splitCells() {
@@ -108,7 +199,8 @@
                 cell.score = childScore;
                 cell.vx -= dir.x * 1.5;
                 cell.vy -= dir.y * 1.5;
-                cell.rejoinAt = now + 3200;
+                cell.splitAt = now;
+                cell.mergeAt = now + 30000;
                 nextCells.push(cell);
                 if (nextCells.length < 8) {
                     nextCells.push({
@@ -116,14 +208,48 @@
                         x: Math.max(0, Math.min(worldSize, cell.x + dir.x * (childScore + 20))),
                         y: Math.max(0, Math.min(worldSize, cell.y + dir.y * (childScore + 20))),
                         score: childScore,
-                        vx: dir.x * 8,
-                        vy: dir.y * 8,
-                        rejoinAt: now + 3200
+                        vx: dir.x * 11,
+                        vy: dir.y * 11,
+                        splitAt: now,
+                        mergeAt: now + 30000
                     });
                 }
             });
             cells = nextCells;
             syncLocalStats();
+        }
+
+        function mergeCells(now) {
+            if (cells.length <= 1) return;
+            const ready = cells.every(cell => now >= (cell.mergeAt || 0));
+            if (!ready) return;
+            const total = cells.reduce((sum, cell) => sum + cell.score, 0);
+            const center = cells.reduce((acc, cell) => {
+                acc.x += cell.x * cell.score / total;
+                acc.y += cell.y * cell.score / total;
+                acc.vx += cell.vx * cell.score / total;
+                acc.vy += cell.vy * cell.score / total;
+                return acc;
+            }, { x: 0, y: 0, vx: 0, vy: 0 });
+
+            cells.forEach(cell => {
+                cell.vx += (center.x - cell.x) * 0.0028;
+                cell.vy += (center.y - cell.y) * 0.0028;
+            });
+
+            const closeEnough = cells.every(cell => Math.hypot(cell.x - center.x, cell.y - center.y) < Math.max(16, Math.sqrt(total) * 0.9));
+            if (closeEnough) {
+                cells = [{
+                    id: 'main',
+                    x: center.x,
+                    y: center.y,
+                    score: total,
+                    vx: center.vx,
+                    vy: center.vy,
+                    splitAt: 0,
+                    mergeAt: 0
+                }];
+            }
         }
 
         // Generar comida inicial
@@ -156,6 +282,7 @@
                     p_points: points
                 });
                 if (data?.awarded > 0) {
+                    sessionAwarded += Number(data.awarded || 0);
                     window.parent.postMessage({ type: 'game:pointsAwarded', awarded: data.awarded, total: data.leaderboard_score }, '*');
                 }
             } catch (e) {
@@ -166,8 +293,35 @@
             }
         }
 
+        function publishSessionScore() {
+            const pointsDelta = Math.max(0, foodPointsPending - lastPublishedFoodPoints);
+            lastPublishedFoodPoints = foodPointsPending;
+            window.parent.postMessage({ type: 'game:sessionScore', points: foodPointsPending, pointsDelta }, '*');
+        }
+
         // Sincronización Multijugador
+        function publishLeaderboard() {
+            const leaderboardPlayers = { ...players, [userId]: getLocalPlayer() };
+            const leaderboard = Object.values(leaderboardPlayers)
+                .filter(Boolean)
+                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+                .slice(0, 10)
+                .map(p => ({
+                    userId: p.userId,
+                    name: p.name,
+                    avatarUrl: p.avatarUrl,
+                    score: Math.floor(Number(p.score || 0)),
+                    cells: p.cells || []
+                }));
+            window.parent.postMessage({ type: 'game:updateLeaderboard', players: leaderboard }, '*');
+        }
+
         channel
+            .on('broadcast', { event: 'state' }, ({ payload }) => {
+                if (!payload || payload.userId === userId) return;
+                players[payload.userId] = payload;
+                publishLeaderboard();
+            })
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
                 const newPlayers = {};
@@ -185,7 +339,8 @@
                         userId: p.userId,
                         name: p.name,
                         avatarUrl: p.avatarUrl,
-                        score: Math.floor(p.score)
+                        score: Math.floor(p.score),
+                        cells: p.cells || []
                     }));
                 
                 window.parent.postMessage({ type: 'game:updateLeaderboard', players: leaderboard }, '*');
@@ -231,6 +386,16 @@
         window.addEventListener('resize', resizeCanvas);
 
         setInterval(() => {
+            if (gameOver) {
+                const now = Date.now();
+                const localState = getLocalPlayer();
+                if (now - lastBroadcastAt > 250) {
+                    lastBroadcastAt = now;
+                    channel.send({ type: 'broadcast', event: 'state', payload: localState });
+                    channel.track(localState);
+                }
+                return;
+            }
             const centerX = canvasWidth() / 2;
             const centerY = canvasHeight() / 2;
             const dx = mouse.x - centerX;
@@ -239,10 +404,12 @@
             
             const moveX = dist > 10 ? dx / dist : 0;
             const moveY = dist > 10 ? dy / dist : 0;
+            const throttle = dist > 10 ? Math.max(0.28, aimIntensity()) : 0;
             const now = Date.now();
+            mergeCells(now);
 
             cells.forEach(cell => {
-                const speed = Math.max(1.05, 3.1 - Math.sqrt(cell.score) * 0.16);
+                const speed = Math.max(1.05, 3.1 - Math.sqrt(cell.score) * 0.16) * throttle;
                 cell.vx = cell.vx * 0.84 + moveX * speed * 0.16;
                 cell.vy = cell.vy * 0.84 + moveY * speed * 0.16;
                 cell.x = Math.max(0, Math.min(worldSize, cell.x + cell.vx));
@@ -257,13 +424,13 @@
                     const dyCells = a.y - b.y;
                     const d = Math.max(1, Math.sqrt(dxCells * dxCells + dyCells * dyCells));
                     const minDistance = (a.score + b.score) * 0.62;
-                    if (d < minDistance && (now < a.rejoinAt || now < b.rejoinAt)) {
+                    if (d < minDistance && (now < (a.mergeAt || 0) || now < (b.mergeAt || 0))) {
                         const push = (minDistance - d) * 0.015;
                         a.vx += (dxCells / d) * push;
                         a.vy += (dyCells / d) * push;
                         b.vx -= (dxCells / d) * push;
                         b.vy -= (dyCells / d) * push;
-                    } else if (d < Math.max(a.score, b.score) * 0.5 && now >= a.rejoinAt && now >= b.rejoinAt) {
+                    } else if (d < Math.max(a.score, b.score) * 0.5 && now >= (a.mergeAt || 0) && now >= (b.mergeAt || 0)) {
                         b.score += a.score;
                         cells.splice(i, 1);
                         break;
@@ -275,7 +442,12 @@
             food = food.filter(f => {
                 for (const cell of cells) {
                     const d = Math.sqrt((f.x - cell.x)**2 + (f.y - cell.y)**2);
-                    if (d < cell.score) { cell.score += 0.5; return false; }
+                    if (d < cell.score) {
+                        cell.score += 0.5;
+                        foodPointsPending += 1;
+                        publishSessionScore();
+                        return false;
+                    }
                 }
                 return true;
             });
@@ -286,24 +458,31 @@
                 if (id === userId) return;
                 const p = players[id];
                 if (!p || p.userId === userId) return;
+                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
                 cells = cells.filter(cell => {
-                    const cellDistance = Math.sqrt((p.x - cell.x)**2 + (p.y - cell.y)**2);
-                    if (cell.score > p.score * 1.1 && cellDistance < cell.score) {
-                        cell.score += p.score * 0.08;
-                        return true;
-                    }
-                    if (p.score > cell.score * 1.1 && cellDistance < p.score) {
-                        return false;
+                    for (const remoteCell of remoteCells) {
+                        const remoteScore = Number(remoteCell.score || p.score || 0);
+                        const cellDistance = Math.sqrt((remoteCell.x - cell.x)**2 + (remoteCell.y - cell.y)**2);
+                        if (cell.score > remoteScore * 1.1 && cellDistance < cell.score) {
+                            cell.score += remoteScore * 0.35;
+                            return true;
+                        }
+                        if (remoteScore > cell.score * 1.1 && cellDistance < remoteScore) {
+                            return false;
+                        }
                     }
                     return true;
                 });
-                if (!cells.length) resetLocalPlayer();
+                if (!cells.length) showDeath();
             });
             syncLocalStats();
-            awardAgarProgress();
-
             // Actualizar mi posición a los demás
-            channel.track(getLocalPlayer());
+            const localState = getLocalPlayer();
+            if (now - lastBroadcastAt > 80) {
+                lastBroadcastAt = now;
+                channel.send({ type: 'broadcast', event: 'state', payload: localState });
+            }
+            channel.track(localState);
         }, 1000/60);
 
         function drawPlayer(p, camX, camY, zoom) {
@@ -330,6 +509,48 @@
             ctx.strokeStyle = p.userId === userId ? '#00f3ff' : '#ff00ff';
             ctx.lineWidth = 4;
             ctx.stroke();
+        }
+
+        function drawMinimap(width, height) {
+            const mapSize = Math.min(150, Math.max(96, Math.min(width, height) * 0.23));
+            const x = width - mapSize - 14;
+            const y = 14;
+            const scale = mapSize / worldSize;
+            ctx.save();
+            ctx.globalAlpha = 0.92;
+            ctx.fillStyle = '#020617cc';
+            ctx.strokeStyle = '#22d3ee99';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect?.(x, y, mapSize, mapSize, 10);
+            if (!ctx.roundRect) ctx.rect(x, y, mapSize, mapSize);
+            ctx.fill();
+            ctx.stroke();
+
+            const drawDot = (p, color) => {
+                const dotX = x + Math.max(0, Math.min(worldSize, p.x)) * scale;
+                const dotY = y + Math.max(0, Math.min(worldSize, p.y)) * scale;
+                const r = Math.max(2, Math.min(9, Math.sqrt(Number(p.score || 10)) * 0.42));
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, r, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffffaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            };
+
+            Object.values(players).forEach(p => {
+                if (!p || p.userId === userId) return;
+                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
+                remoteCells.forEach(cell => drawDot(cell, '#ff00ff'));
+            });
+            cells.forEach(cell => drawDot(cell, '#00f3ff'));
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '10px Inter, Arial';
+            ctx.fillText('mapa', x + 8, y + mapSize - 8);
+            ctx.restore();
         }
 
         function draw() {
@@ -371,18 +592,38 @@
             // Dibujar jugadores remotos desde Realtime y al jugador local desde la fisica actual.
             Object.values(players).forEach(p => {
                 if (!p || p.userId === userId) return;
-                drawPlayer(p, camX, camY, zoom);
+                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
+                remoteCells.forEach(cell => drawPlayer({ ...p, x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));
             });
             cells.forEach(cell => drawPlayer({ ...getLocalPlayer(), x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));
+            drawMinimap(width, height);
 
             requestAnimationFrame(draw);
         }
 
         function updatePointer(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
+            const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+            const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
             mouse = {
-                x: clientX - rect.left,
-                y: clientY - rect.top
+                x,
+                y
+            };
+            virtualAim = { x: x - rect.width / 2, y: y - rect.height / 2 };
+        }
+
+        function updateVirtualAim(dx, dy) {
+            const maxDist = Math.max(90, Math.min(canvasWidth(), canvasHeight()) * 0.42);
+            virtualAim.x += dx;
+            virtualAim.y += dy;
+            const dist = Math.sqrt(virtualAim.x * virtualAim.x + virtualAim.y * virtualAim.y);
+            if (dist > maxDist) {
+                virtualAim.x = virtualAim.x / dist * maxDist;
+                virtualAim.y = virtualAim.y / dist * maxDist;
+            }
+            mouse = {
+                x: canvasWidth() / 2 + virtualAim.x,
+                y: canvasHeight() / 2 + virtualAim.y
             };
         }
 
@@ -390,14 +631,28 @@
             e.preventDefault();
             canvas.setPointerCapture?.(e.pointerId);
             updatePointer(e.clientX, e.clientY);
+            if (e.pointerType === 'mouse') canvas.requestPointerLock?.();
         });
         canvas.addEventListener('pointermove', e => {
             e.preventDefault();
+            if (document.pointerLockElement === canvas) return;
             updatePointer(e.clientX, e.clientY);
         });
-        canvas.addEventListener('mousemove', e => updatePointer(e.clientX, e.clientY));
+        canvas.addEventListener('mousemove', e => {
+            if (document.pointerLockElement !== canvas) updatePointer(e.clientX, e.clientY);
+        });
+        document.addEventListener('mousemove', e => {
+            if (document.pointerLockElement === canvas) updateVirtualAim(e.movementX || 0, e.movementY || 0);
+        });
+        document.addEventListener('pointerlockchange', () => {
+            canvas.classList.toggle('locked', document.pointerLockElement === canvas);
+        });
         window.addEventListener('keydown', e => {
-            if (e.code === 'Space') {
+            if (e.code === 'Escape') {
+                document.exitPointerLock?.();
+                return;
+            }
+            if (e.code === 'KeyZ') {
                 e.preventDefault();
                 splitCells();
             }
@@ -405,6 +660,11 @@
         splitButton.addEventListener('pointerdown', e => {
             e.preventDefault();
             splitCells();
+        });
+        resetPlayerButton.addEventListener('click', () => {
+            resetLocalPlayer();
+            channel.track(getLocalPlayer());
+            publishLeaderboard();
         });
         window.addEventListener('touchmove', e => {
             e.preventDefault();

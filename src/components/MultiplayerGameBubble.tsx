@@ -11,10 +11,12 @@ import {
   Minus,
   Move,
   RefreshCw,
+  Settings,
   Users,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import MultiplayerSharedMusicPlayer from "@/components/MultiplayerSharedMusicPlayer";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +39,9 @@ const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
 const TIME_REWARD_POINTS = 5;
+const MASSIVE_DECK_CODE = "M08NN";
+const MASSIVE_DECK_NAME = "mala leche con semola";
+const MASSIVE_DECK_CONFIG_URL = `https://decks.rereadgames.com/decks/${MASSIVE_DECK_CODE}`;
 const makeAgarRoomCode = (index: number) => `AGAR-${index}`;
 const normalizeAgarRoomCode = (code: string) => (code.startsWith("AGAR-") ? code : makeAgarRoomCode(1));
 
@@ -91,6 +96,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const sessionElapsedRef = useRef(0);
   const sessionTimePointsRef = useRef(0);
   const sessionTotalPointsRef = useRef(0);
+  const pendingGamePointsRef = useRef(0);
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 860, h: 620 });
@@ -107,6 +113,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const roomCodeRef = useRef(roomCode);
   const isAgar = game?.id === "agar";
+  const isMassiveDecks = game?.id === "massive-decks";
   const activeGameId = game?.id || "";
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
@@ -137,6 +144,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
+    pendingGamePointsRef.current = 0;
   }, [activeGameId]);
 
   useEffect(() => {
@@ -150,6 +158,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
+    pendingGamePointsRef.current = 0;
   }, [activeGameId, activeSessionRoomCode]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
@@ -157,6 +166,28 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "game:updateLeaderboard") {
         setLeaderboard(event.data.players || []);
+      }
+      if (event.data?.type === "game:sessionScore") {
+        const delta = Math.max(0, Number(event.data.pointsDelta || 0));
+        const total = Math.max(0, Number(event.data.points || 0));
+        pendingGamePointsRef.current = delta > 0
+          ? pendingGamePointsRef.current + delta
+          : Math.max(pendingGamePointsRef.current, total);
+        if (sessionChannelRef.current) {
+          void sessionChannelRef.current.track({
+            game: activeGameId,
+            room: activeSessionRoomCode,
+            playerId: lobbyPlayerIdRef.current,
+            userId: localSessionUserId,
+            name: localDisplayName,
+            avatarUrl: localAvatarUrl,
+            timePoints: sessionTimePointsRef.current,
+            totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
+            elapsedSeconds: sessionElapsedRef.current,
+            joinedAt: sessionStartedAtRef.current,
+            updatedAt: Date.now(),
+          });
+        }
       }
       if (event.data?.type === "game:pointsAwarded" && event.data.awarded > 0) {
         sessionTotalPointsRef.current += Number(event.data.awarded || 0);
@@ -169,7 +200,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             name: localDisplayName,
             avatarUrl: localAvatarUrl,
             timePoints: sessionTimePointsRef.current,
-            totalPoints: sessionTotalPointsRef.current,
+            totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
             elapsedSeconds: sessionElapsedRef.current,
             joinedAt: sessionStartedAtRef.current,
             updatedAt: Date.now(),
@@ -332,7 +363,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         name: localDisplayName,
         avatarUrl: localAvatarUrl,
         timePoints: sessionTimePointsRef.current,
-        totalPoints: sessionTotalPointsRef.current,
+        totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
         elapsedSeconds: sessionElapsedRef.current,
         joinedAt: sessionStartedAtRef.current,
         updatedAt: Date.now(),
@@ -362,22 +393,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
     const awardTimePoints = async () => {
       sessionElapsedRef.current += TIME_REWARD_SECONDS;
-
-      if (user?.id) {
-        try {
-          const { data, error } = await (supabase as any).rpc("award_multiplayer_win", {
-            p_game_slug: activeGameId,
-            p_room_code: activeSessionRoomCode,
-            p_points: TIME_REWARD_POINTS,
-          });
-          if (!error && (data as any)?.awarded > 0) {
-            sessionTimePointsRef.current += Number((data as any).awarded || 0);
-            sessionTotalPointsRef.current += Number((data as any).awarded || 0);
-          }
-        } catch {
-          // El panel sigue funcionando aunque el guardado de puntos falle.
-        }
-      }
+      sessionTimePointsRef.current += TIME_REWARD_POINTS;
+      pendingGamePointsRef.current += TIME_REWARD_POINTS;
 
       if (sessionChannelRef.current) {
         await sessionChannelRef.current.track({
@@ -388,7 +405,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           name: localDisplayName,
           avatarUrl: localAvatarUrl,
           timePoints: sessionTimePointsRef.current,
-          totalPoints: sessionTotalPointsRef.current,
+          totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
           elapsedSeconds: sessionElapsedRef.current,
           joinedAt: sessionStartedAtRef.current,
           updatedAt: Date.now(),
@@ -531,14 +548,35 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setMinimized(true);
   }, [exitOwnFullscreen]);
 
-  const closeBubble = useCallback(() => {
+  const savePendingGamePoints = useCallback(async () => {
+    if (!user?.id || !activeGameId || pendingGamePointsRef.current <= 0) return 0;
+    const pendingPoints = Math.floor(pendingGamePointsRef.current);
+    pendingGamePointsRef.current = 0;
+
+    try {
+      const { data, error } = await (supabase as any).rpc("award_multiplayer_win", {
+        p_game_slug: activeGameId,
+        p_room_code: activeSessionRoomCode,
+        p_points: pendingPoints,
+      });
+      if (error) return 0;
+      const saved = Number((data as any)?.awarded || 0);
+      if (saved > 0) sessionTotalPointsRef.current += saved;
+      return saved;
+    } catch {
+      return 0;
+    }
+  }, [activeGameId, activeSessionRoomCode, user?.id]);
+
+  const closeBubble = useCallback(async () => {
+    const savedOnClose = await savePendingGamePoints();
     exitOwnFullscreen();
     toast({
       title: "Sesión finalizada",
-      description: `${game?.label || "Juego"}: +${sessionTotalPointsRef.current} puntos en ${formatSessionTime(sessionElapsedRef.current)}.`,
+      description: `${game?.label || "Juego"}: +${sessionTotalPointsRef.current} puntos${savedOnClose > 0 ? ` (${savedOnClose} guardados al cerrar)` : ""}.`,
     });
     onClose();
-  }, [exitOwnFullscreen, game?.label, onClose, toast]);
+  }, [exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
 
   const copyRoom = async () => {
     const codeToCopy = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
@@ -547,6 +585,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       toast({ title: "Codigo copiado", description: `Sala ${codeToCopy}` });
     } catch {
       toast({ title: "Sala", description: codeToCopy });
+    }
+  };
+
+  const copyMassiveDeckCode = async () => {
+    try {
+      await navigator.clipboard.writeText(MASSIVE_DECK_CODE);
+      toast({ title: "Codigo copiado", description: `Mazo ${MASSIVE_DECK_CODE}` });
+    } catch {
+      toast({ title: "Mazo", description: MASSIVE_DECK_CODE });
     }
   };
 
@@ -570,6 +617,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     agarRooms.some((room) => room.code === activeRoomCode) ? agarRooms : [...agarRooms, { code: activeRoomCode, count: 0 }],
   );
   const currentAgarRoom = visibleAgarRooms.find((room) => room.code === activeRoomCode);
+  const infoPanelWidthClass = isMassiveDecks ? "w-52" : "w-36";
   const combinedLeaderboard = (() => {
     const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
     const rows = new Map<string, any>();
@@ -620,25 +668,52 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       "border-border bg-black/60 flex flex-col shrink-0 overflow-hidden transition-transform duration-300",
       fullscreen
         ? cn(
-            "absolute right-0 top-0 bottom-0 z-[60] w-36 border-l bg-black/85 pt-14",
+            "absolute right-0 top-0 bottom-0 z-[60] border-l bg-black/85 pt-14",
+            infoPanelWidthClass,
             expandedInfoOpen ? "translate-x-0" : "translate-x-full pointer-events-none",
           )
-        : compactGameFrame ? "h-24 w-full border-t" : "w-36 border-l",
+        : compactGameFrame ? "h-40 w-full border-t" : cn(infoPanelWidthClass, "border-l"),
     )}>
-      <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
-        <Users className="w-2.5 h-2.5 text-neon-magenta" />
-        <div className="min-w-0 text-center">
-          <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
-          <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
-        </div>
+      <div className="border-b border-white/5 bg-white/5 p-2">
+        {isMassiveDecks ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-1">
+              <div className="min-w-0">
+                <p className="font-pixel text-[7px] uppercase tracking-widest text-neon-magenta">Mazo {MASSIVE_DECK_CODE}</p>
+                <p className="truncate text-[9px] text-neon-cyan" title={MASSIVE_DECK_NAME}>{MASSIVE_DECK_NAME}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={copyMassiveDeckCode} title="Copiar codigo del mazo" aria-label="Copiar codigo del mazo">
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(MASSIVE_DECK_CONFIG_URL, "_blank", "noopener,noreferrer")} title="Configuracion del mazo" aria-label="Configuracion del mazo">
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <p className="font-pixel text-[5px] text-neon-green">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-1.5">
+            <Users className="w-2.5 h-2.5 text-neon-magenta" />
+            <div className="min-w-0 text-center">
+              <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
+              <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="border-b border-white/5">
+        <MultiplayerSharedMusicPlayer
+          gameId={activeGameId}
+          roomCode={activeSessionRoomCode}
+          userName={localDisplayName}
+        />
       </div>
       <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
         {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
           const playerName = p.name || p.displayName || "Jugador";
           const matchPoints = Number(p.matchPoints || 0);
-          const timePoints = Number(p.timePoints || 0);
-          const gamePoints = Number(p.gamePoints || 0);
-          const elapsedSeconds = Number(p.elapsedSeconds || 0);
           return (
             <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
               <div className="relative shrink-0">
@@ -668,12 +743,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   <span className="font-pixel text-[7px] text-neon-green leading-none">{matchPoints} pts</span>
-                  {p.wins !== undefined && <span className="font-pixel text-[6px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>}
-                  {p.score !== undefined && Number(p.score) > 0 && <span className="font-pixel text-[6px] text-neon-cyan leading-none">score {Math.floor(Number(p.score))}</span>}
-                  <span className="font-pixel text-[5px] text-muted-foreground leading-none">
-                    {formatSessionTime(elapsedSeconds)} tiempo
-                    {gamePoints > 0 && timePoints > 0 ? ` + ${gamePoints} juego` : ""}
-                  </span>
+                  <span className="font-pixel text-[5px] text-muted-foreground leading-none">sesion actual</span>
                 </div>
               </div>
             </div>
@@ -779,7 +849,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             onMouseDown={stopHeaderDrag}
             onClick={(e) => {
               e.stopPropagation();
-              closeBubble();
+              void closeBubble();
             }}
             title="Cerrar"
             aria-label="Cerrar"
@@ -804,7 +874,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             className={cn(
               "absolute top-0 right-0 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
               expandedInfoOpen
-                ? "-translate-x-[152px] translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                ? cn(isMassiveDecks ? "-translate-x-[216px]" : "-translate-x-[152px]", "translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan")
                 : "-translate-x-2 translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
             )}
           >

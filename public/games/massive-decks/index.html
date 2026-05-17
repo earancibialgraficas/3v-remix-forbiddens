@@ -8,43 +8,13 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:#000;overflow:hidden}
     iframe{display:block;width:100%;height:100%;border:0;background:#000}
-    .deck-copy{position:fixed;top:10px;left:10px;z-index:4;display:flex;align-items:center;gap:8px;border:1px solid #d946ef99;background:#05010dcc;color:#f8fafc;border-radius:999px;padding:7px 10px;font:700 12px Inter,Arial,sans-serif;box-shadow:0 0 22px #d946ef55;backdrop-filter:blur(8px)}
-    .deck-copy button{border:1px solid #22d3ee;background:#071827;color:#67e8f9;border-radius:999px;padding:5px 9px;font:800 11px Inter,Arial,sans-serif;cursor:pointer}
-    .deck-copy span{color:#f0abfc;font-weight:900;letter-spacing:.04em}
-    .deck-copy .ok{display:none;color:#86efac;font-size:11px}
-    .deck-copy.copied .ok{display:inline}
-    @media(max-width:480px){.deck-copy{top:8px;left:8px;right:8px;justify-content:center;font-size:11px}.deck-copy button{font-size:10px}}
   </style>
 </head>
 <body>
-  <div class="deck-copy" id="deckCopy">
-    <span>Mazo M08NN</span>
-    <button type="button" id="copyDeck">Copiar</button>
-    <small class="ok">Copiado</small>
-  </div>
   <iframe
     title="Massive Decks"
     src="https://md.rereadgames.com/"
     allow="fullscreen; clipboard-read; clipboard-write"
   ></iframe>
-  <script>
-    const deckCode = 'M08NN';
-    const copyBox = document.getElementById('deckCopy');
-    const copyButton = document.getElementById('copyDeck');
-    copyButton.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(deckCode);
-      } catch {
-        const input = document.createElement('input');
-        input.value = deckCode;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        input.remove();
-      }
-      copyBox.classList.add('copied');
-      window.setTimeout(() => copyBox.classList.remove('copied'), 1600);
-    });
-  </script>
 </body>
 </html>
