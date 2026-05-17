@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Gamepad2,
   GripVertical,
@@ -99,6 +101,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  const [expandedInfoOpen, setExpandedInfoOpen] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const roomCodeRef = useRef(roomCode);
@@ -128,11 +131,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setReloadKey((key) => key + 1);
     setLeaderboard([]);
     setSessionPlayers([]);
+    setExpandedInfoOpen(false);
     sessionStartedAtRef.current = Date.now();
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
   }, [activeGameId]);
+
+  useEffect(() => {
+    if (!fullscreen) setExpandedInfoOpen(false);
+  }, [fullscreen]);
 
   useEffect(() => {
     if (!activeGameId) return;
@@ -576,6 +584,79 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   })();
 
+  const leaderboardPanel = (
+    <div className={cn(
+      "border-border bg-black/60 flex flex-col shrink-0 overflow-hidden transition-transform duration-300",
+      fullscreen
+        ? cn(
+            "absolute right-0 top-0 bottom-0 z-[60] w-36 border-l bg-black/85 pt-14",
+            expandedInfoOpen ? "translate-x-0" : "translate-x-full pointer-events-none",
+          )
+        : compactGameFrame ? "h-24 w-full border-t" : "w-36 border-l",
+    )}>
+      <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
+        <Users className="w-2.5 h-2.5 text-neon-magenta" />
+        <div className="min-w-0 text-center">
+          <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
+          <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
+        {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
+          const playerName = p.name || p.displayName || "Jugador";
+          const matchPoints = Number(p.matchPoints || 0);
+          const timePoints = Number(p.timePoints || 0);
+          const gamePoints = Number(p.gamePoints || 0);
+          const elapsedSeconds = Number(p.elapsedSeconds || 0);
+          return (
+            <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
+              <div className="relative shrink-0">
+                {p.avatarUrl ? (
+                  <img
+                    src={p.avatarUrl}
+                    alt={playerName}
+                    className={cn(
+                      "w-8 h-8 rounded border object-cover transition-all",
+                      p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                    )}
+                    onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
+                  />
+                ) : (
+                  <div className={cn(
+                    "w-8 h-8 rounded border bg-muted/70 flex items-center justify-center font-pixel text-[10px] text-white",
+                    p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                  )}>
+                    {playerName.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
+                  <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
+                <div className="mt-0.5 flex flex-col gap-0.5">
+                  <span className="font-pixel text-[7px] text-neon-green leading-none">{matchPoints} pts</span>
+                  {p.wins !== undefined && <span className="font-pixel text-[6px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>}
+                  {p.score !== undefined && Number(p.score) > 0 && <span className="font-pixel text-[6px] text-neon-cyan leading-none">score {Math.floor(Number(p.score))}</span>}
+                  <span className="font-pixel text-[5px] text-muted-foreground leading-none">
+                    {formatSessionTime(elapsedSeconds)} tiempo
+                    {gamePoints > 0 && timePoints > 0 ? ` + ${gamePoints} juego` : ""}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        }) : (
+          <div className="h-full flex flex-col items-center justify-center opacity-15 gap-2 pt-10">
+            <Users className="w-5 h-5 text-white" />
+            <p className="font-pixel text-[5px] text-center uppercase">Esperando...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return createPortal(
     <>
       {!minimized && (
@@ -586,12 +667,14 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         ref={popupRef}
         className={cn(
           "fixed z-[320] overflow-hidden border border-neon-magenta/40 bg-card shadow-2xl shadow-black/60",
-          minimized ? "bottom-4 right-4 h-24 w-44 rounded-xl cursor-pointer" : "left-1/2 top-1/2 rounded-xl",
+          minimized ? "bottom-4 right-4 h-24 w-44 rounded-xl cursor-pointer" : fullscreen ? "inset-0 rounded-none" : "left-1/2 top-1/2 rounded-xl",
           (dragging || resizing) && "select-none",
         )}
         style={
           minimized
             ? undefined
+            : fullscreen
+              ? { width: "100vw", height: "100dvh", transform: "none" }
             : {
                 width: `${size.w}px`,
                 height: `${size.h}px`,
@@ -601,8 +684,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         onClick={() => minimized && setMinimized(false)}
       >
         <div
-          className={cn("flex h-11 items-center gap-2 border-b border-border bg-muted/30 px-3", mobileGameFrame && "gap-1 px-2")}
-          onMouseDown={onDragDown}
+          className={cn(
+            "flex h-11 items-center gap-2 border-b border-border bg-muted/30 px-3 transition-transform duration-300",
+            mobileGameFrame && "gap-1 px-2",
+            fullscreen && cn(
+              "absolute left-0 top-0 z-[61] h-12 w-full bg-black/85 border-white/10",
+              expandedInfoOpen ? "translate-y-0" : "-translate-y-full pointer-events-none",
+            ),
+          )}
+          onMouseDown={fullscreen ? undefined : onDragDown}
         >
           <Move className={cn("h-3.5 w-3.5 text-muted-foreground", mobileGameFrame && "hidden")} />
           <Gamepad2 className={cn("h-4 w-4 text-neon-magenta", mobileGameFrame && "hidden")} />
@@ -667,8 +757,28 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </Button>
         </div>
 
+        {fullscreen && !minimized && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedInfoOpen((value) => !value);
+            }}
+            aria-label={expandedInfoOpen ? "Ocultar informacion" : "Mostrar informacion"}
+            title={expandedInfoOpen ? "Ocultar informacion" : "Mostrar informacion"}
+            className={cn(
+              "absolute top-0 right-0 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
+              expandedInfoOpen
+                ? "-translate-x-[152px] translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan"
+                : "-translate-x-2 translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
+            )}
+          >
+            {expandedInfoOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        )}
+
         {!minimized && (
-          <div className={cn("flex h-[calc(100%-44px)] w-full relative", compactGameFrame && "flex-col")}>
+          <div className={cn("flex w-full relative", fullscreen ? "h-full" : "h-[calc(100%-44px)]", compactGameFrame && !fullscreen && "flex-col")}>
             {/* Área del Juego */}
             <div className="min-h-0 min-w-0 flex-1">
               <iframe
@@ -681,79 +791,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               />
             </div>
 
-            <div
-              onMouseDown={onResizeDown}
-              className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize select-none items-end justify-end p-1 text-muted-foreground hover:text-foreground"
-            >
-              <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
-            </div>
+            {!fullscreen && (
+              <div
+                onMouseDown={onResizeDown}
+                className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize select-none items-end justify-end p-1 text-muted-foreground hover:text-foreground"
+              >
+                <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
+              </div>
+            )}
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
-            <div className={cn(
-              "border-border bg-black/60 flex flex-col shrink-0 overflow-hidden",
-              compactGameFrame ? "h-24 w-full border-t" : "w-36 border-l",
-            )}>
-              <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
-                <Users className="w-2.5 h-2.5 text-neon-magenta" />
-                <div className="min-w-0 text-center">
-                  <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
-                  <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
-                {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
-                  const playerName = p.name || p.displayName || "Jugador";
-                  const matchPoints = Number(p.matchPoints || 0);
-                  const timePoints = Number(p.timePoints || 0);
-                  const gamePoints = Number(p.gamePoints || 0);
-                  const elapsedSeconds = Number(p.elapsedSeconds || 0);
-                  return (
-                    <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
-                      <div className="relative shrink-0">
-                        {p.avatarUrl ? (
-                          <img
-                            src={p.avatarUrl}
-                            alt={playerName}
-                            className={cn(
-                              "w-8 h-8 rounded border object-cover transition-all",
-                              p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
-                            )}
-                            onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
-                          />
-                        ) : (
-                          <div className={cn(
-                            "w-8 h-8 rounded border bg-muted/70 flex items-center justify-center font-pixel text-[10px] text-white",
-                            p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
-                          )}>
-                            {playerName.slice(0, 1).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
-                          <span className="font-pixel text-[6px] text-white">{i + 1}</span>
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
-                        <div className="mt-0.5 flex flex-col gap-0.5">
-                          <span className="font-pixel text-[7px] text-neon-green leading-none">{matchPoints} pts</span>
-                          {p.wins !== undefined && <span className="font-pixel text-[6px] text-neon-yellow leading-none">{p.wins || 0} victorias</span>}
-                          {p.score !== undefined && Number(p.score) > 0 && <span className="font-pixel text-[6px] text-neon-cyan leading-none">score {Math.floor(Number(p.score))}</span>}
-                          <span className="font-pixel text-[5px] text-muted-foreground leading-none">
-                            {formatSessionTime(elapsedSeconds)} tiempo
-                            {gamePoints > 0 && timePoints > 0 ? ` + ${gamePoints} juego` : ""}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }) : (
-                  <div className="h-full flex flex-col items-center justify-center opacity-15 gap-2 pt-10">
-                    <Users className="w-5 h-5 text-white" />
-                    <p className="font-pixel text-[5px] text-center uppercase">Esperando...</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            {leaderboardPanel}
           </div>
         )}
 
