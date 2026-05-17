@@ -114,9 +114,10 @@ export default function BibliotecaPage() {
   const [editCover, setEditCover] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"single" | "multi">("single");
+  // Eliminamos el tab, todo será controlado por el dropdown
   const [multiGameOpen, setMultiGameOpen] = useState(false);
   const [selectedMultiGame, setSelectedMultiGame] = useState<string | null>(null);
+  const [dropdownValue, setDropdownValue] = useState<string>("console:classic");
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
@@ -513,29 +514,49 @@ const handlePlayCloudGame = async (game: any) => {
     { id: 'card-duel', label: 'Card Duel (lite)' }
   ];
 
+  // Opciones para el dropdown unificado
+  const dropdownOptions = [
+    ...activeConsoles.map(c => ({
+      type: 'console',
+      value: `console:${c.id}`,
+      label: c.label,
+      color: c.color
+    })),
+    { type: 'section', label: '────────────' },
+    { type: 'multiplayer', value: 'multi', label: '🎮 Multijugador', color: 'text-neon-magenta' }
+  ];
+
   const consoleInfo = activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
-      <div className="flex flex-col md:flex-row items-center gap-2">
+      {/* Selector unificado debajo del cuadro de título */}
+      <div className="mt-2 flex flex-col md:flex-row items-center gap-2">
         <div className="flex items-center gap-2 w-full md:w-auto">
           <select
-            value={selectedConsole}
-            onChange={(e) => { setSelectedConsole(e.target.value); setSearchQuery(''); }}
-            className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none"
-            aria-label="Seleccionar consola"
+            value={dropdownValue}
+            onChange={e => {
+              const val = e.target.value;
+              setDropdownValue(val);
+              if (val.startsWith('console:')) {
+                setSelectedConsole(val.replace('console:', ''));
+                setSelectedMultiGame(null);
+                setSearchQuery('');
+              } else if (val === 'multi') {
+                setSelectedMultiGame(null);
+                setMultiGameOpen(false);
+              }
+            }}
+            className="h-10 rounded-lg border border-border bg-card text-xs font-body px-3 text-foreground outline-none shadow-lg focus:border-neon-cyan/50 transition-colors min-w-[160px]"
+            aria-label="Seleccionar consola o multijugador"
           >
-            {activeConsoles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-
-          <select
-            value={selectedMultiGame || ''}
-            onChange={(e) => setSelectedMultiGame(e.target.value || null)}
-            className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none"
-            aria-label="Juegos multijugador"
-          >
-            <option value="">Juegos multijugador</option>
-            {multiplayerGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+            {dropdownOptions.map((opt, i) =>
+              opt.type === 'section' ? (
+                <option key={i} disabled>────────────</option>
+              ) : (
+                <option key={opt.value} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
+              )
+            )}
           </select>
         </div>
         <div className="relative flex-1 max-w-sm md:ml-4">
@@ -549,14 +570,12 @@ const handlePlayCloudGame = async (game: any) => {
         </div>
       </div>
 
-      {activeTab === "single" && (
-      <>
+      {/* Encabezado y bóveda */}
       <div className="bg-card border border-neon-green/30 rounded-lg p-4 relative">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
           <Gamepad2 className="w-4 h-4" /> SALAS DE JUE<VaultHint letter="G" position={10} color="text-neon-magenta" />O
         </h1>
         <p className="text-xs text-muted-foreground font-body">Selecciona una consola, elige un juego y empieza a jugar.</p>
-        {/* 🔐 Botón oculto de la Bóveda Secreta — apenas visible en la esquina */}
         <button
           aria-label="."
           title=""
@@ -566,30 +585,7 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
       <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
-      <div className="flex gap-2 flex-wrap">
-        {activeConsoles.map((c) => (
-          <Button
-            key={c.id}
-            variant={selectedConsole === c.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setSelectedConsole(c.id); setSearchQuery(""); }}
-            className={cn("text-xs font-body transition-all duration-300", selectedConsole === c.id ? "bg-primary text-primary-foreground shadow-lg" : "border-border")}
-          >
-            <Monitor className="w-3 h-3 mr-1" /> {c.label} {isLocked(c.id) && <Lock className="w-3 h-3 ml-1 text-neon-yellow" />}
-          </Button>
-        ))}
-      </div>
-
       <div className="flex items-center gap-2 mt-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder={`Buscar en ${consoleInfo?.label}...`} 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
-            className="pl-9 h-8 bg-card border-border font-body text-xs focus:border-primary transition-colors" 
-          />
-        </div>
         <Button 
           variant="outline" 
           size="icon" 
@@ -611,61 +607,105 @@ const handlePlayCloudGame = async (game: any) => {
         </Link>
       </div>
 
-      <div>
-        <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo?.color)}>
-          <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo?.label.toUpperCase()}
-        </h2>
-        
-        {isLocked(selectedConsole) ? (
-          <div className="bg-card border border-dashed border-neon-yellow/40 rounded-lg p-8 text-center space-y-3">
-            <Lock className="w-8 h-8 mx-auto text-neon-yellow" />
-            <p className="text-xs font-body text-foreground">Esta consola requiere membresía <span className="font-bold">Elite</span>.</p>
-            <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {currentGames.map((game: any) => (
-              <div
-                key={game.id}
-                onClick={() => game.isCloud ? handlePlayCloudGame(game) : launchGame({ romUrl: game.romUrl, consoleName: selectedConsole, gameName: game.name, consoleCore: getCoreForConsole(selectedConsole), score: 0, playTime: 0 })}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
-              >
-                {game.isCloud && (
-                  <>
-                    <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
-                      <Cloud className="w-3 h-3 text-[#4285F4]" />
-                    </div>
-                    <button
-                      onClick={(e) => openEdit(game, e)}
-                      className="absolute top-1 left-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10 hover:bg-neon-cyan/30 transition-colors"
-                      title="Editar nombre o portada"
-                    >
-                      <Pencil className="w-3 h-3 text-neon-cyan" />
-                    </button>
-                  </>
-                )}
-                  <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
-                  {launchingGameId === game.id ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  ) : (
-                    <GameCover 
-                      gameName={game.originalName || game.name} 
-                      consoleId={game.console} 
-                      isCloud={game.isCloud} 
-                      defaultCover={game.coverUrl} 
-                      customCover={game.customCover}
-                    />
+      {/* Mostrar juegos clásicos o multijugador según el dropdown */}
+      {dropdownValue !== 'multi' ? (
+        <div>
+          <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo?.color)}>
+            <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo?.label.toUpperCase()}
+          </h2>
+          {isLocked(selectedConsole) ? (
+            <div className="bg-card border border-dashed border-neon-yellow/40 rounded-lg p-8 text-center space-y-3">
+              <Lock className="w-8 h-8 mx-auto text-neon-yellow" />
+              <p className="text-xs font-body text-foreground">Esta consola requiere membresía <span className="font-bold">Elite</span>.</p>
+              <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {currentGames.map((game: any) => (
+                <div
+                  key={game.id}
+                  onClick={() => game.isCloud ? handlePlayCloudGame(game) : launchGame({ romUrl: game.romUrl, consoleName: selectedConsole, gameName: game.name, consoleCore: getCoreForConsole(selectedConsole), score: 0, playTime: 0 })}
+                  className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
+                >
+                  {game.isCloud && (
+                    <>
+                      <div className="absolute top-1 right-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10">
+                        <Cloud className="w-3 h-3 text-[#4285F4]" />
+                      </div>
+                      <button
+                        onClick={(e) => openEdit(game, e)}
+                        className="absolute top-1 left-1 bg-black/60 p-1 rounded-full z-10 backdrop-blur-sm border border-white/10 hover:bg-neon-cyan/30 transition-colors"
+                        title="Editar nombre o portada"
+                      >
+                        <Pencil className="w-3 h-3 text-neon-cyan" />
+                      </button>
+                    </>
                   )}
+                  <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
+                    {launchingGameId === game.id ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    ) : (
+                      <GameCover 
+                        gameName={game.originalName || game.name} 
+                        consoleId={game.console} 
+                        isCloud={game.isCloud} 
+                        defaultCover={game.coverUrl} 
+                        customCover={game.customCover}
+                      />
+                    )}
+                  </div>
+                  <div className="p-1.5 flex items-center gap-1">
+                    <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
+                  </div>
                 </div>
-                <div className="p-1.5 flex items-center gap-1">
-                  <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                  <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-card border border-neon-magenta/30 rounded-lg p-4">
+            <h1 className="font-pixel text-sm text-neon-magenta text-glow-magenta mb-1 flex items-center gap-2">
+              <User className="w-4 h-4" /> MULTIJUGADOR
+            </h1>
+            <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos a través del servidor integrado.</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {multiplayerGames.map(g => (
+              <div
+                key={g.id}
+                onClick={() => { setSelectedMultiGame(g.id); setMultiGameOpen(true); }}
+                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
+              >
+                <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
+                  <div className="text-center text-[12px] px-2">{g.label}</div>
+                </div>
+                <div className="p-2 flex items-center gap-1">
+                  <Play className="w-3 h-3 text-neon-magenta shrink-0" />
+                  <p className="text-[10px] font-body text-foreground truncate">{g.label}</p>
+                  <span className="ml-auto font-pixel text-[8px] text-neon-cyan">2P</span>
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+          <Dialog open={multiGameOpen} onOpenChange={(o) => { if(!o){ setSelectedMultiGame(null); setMultiGameOpen(false); } else setMultiGameOpen(o); }}>
+            <DialogContent className="max-w-5xl w-[95vw] h-[85vh] bg-black border-2 border-neon-magenta/50 p-2 flex flex-col">
+              <DialogHeader className="px-2 pt-1 pb-2 flex-shrink-0">
+                <DialogTitle className="font-pixel text-xs text-neon-magenta flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4" /> {selectedMultiGame ? multiplayerGames.find(x=>x.id===selectedMultiGame)?.label : 'Juego'}
+                </DialogTitle>
+              </DialogHeader>
+              <iframe
+                src={selectedMultiGame ? `/games/${selectedMultiGame}/index.html` : undefined}
+                title={selectedMultiGame || 'multijugador'}
+                className="w-full flex-1 rounded border border-neon-magenta/30 bg-black"
+                allow="gamepad; fullscreen; autoplay"
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
         <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden h-fit">
@@ -681,7 +721,6 @@ const handlePlayCloudGame = async (game: any) => {
             </div>
           ))}
         </div>
-
         <div className="bg-card border border-neon-cyan/20 rounded-lg p-3 space-y-2 h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -694,8 +733,6 @@ const handlePlayCloudGame = async (game: any) => {
           <Button size="sm" onClick={handleSuggestSubmit} disabled={sending || !gameName.trim()} className="text-xs h-8 w-full"><Send className="w-3 h-3" /> {sending ? "Enviando..." : "Enviar sugerencia"}</Button>
         </div>
       </div>
-      </>
-      )}
 
       {activeTab === "multi" && (
         <div className="space-y-4">
