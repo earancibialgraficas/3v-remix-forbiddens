@@ -4,6 +4,7 @@ import { Globe, Sparkles, Hammer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PriceByCountry {
   [country: string]: { symbol: string; multiplier: number };
