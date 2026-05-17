@@ -5,8 +5,8 @@
     <title>Forbiddens Agar</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        canvas { display: block; cursor: crosshair; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        canvas { display: block; cursor: crosshair; touch-action: none; }
     </style>
 </head>
 <body>
@@ -19,7 +19,7 @@
         const room = params.get('room');
         const sbUrl = params.get('sbUrl');
         const sbKey = params.get('sbKey');
-        const userId = params.get('userId');
+        const userId = params.get('userId') || `guest_${Math.random().toString(36).slice(2, 10)}`;
         const userName = params.get('displayName') || 'Invitado';
         const avatarUrl = params.get('avatarUrl');
 
@@ -32,11 +32,16 @@
         // Estado del Juego
         let worldSize = 3000;
         let myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
+        let camera = { x: myPos.x, y: myPos.y };
         let myScore = 40;
         let players = {};
         let food = [];
         let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         const avatarCache = {};
+
+        function getLocalPlayer() {
+            return { userId, name: userName, avatarUrl, score: myScore, x: myPos.x, y: myPos.y };
+        }
 
         // Generar comida inicial
         for(let i=0; i<150; i++) {
@@ -68,7 +73,8 @@
                 players = newPlayers;
                 
                 // 📡 ENVIAR LEADERBOARD AL MARCO DE FORBIDDENS
-                const leaderboard = Object.values(players)
+                const leaderboardPlayers = { ...players, [userId]: getLocalPlayer() };
+                const leaderboard = Object.values(leaderboardPlayers)
                     .sort((a, b) => b.score - a.score)
                     .slice(0, 10)
                     .map(p => ({
@@ -82,7 +88,7 @@
             })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    await channel.track({ userId, name: userName, avatarUrl, score: myScore, x: myPos.x, y: myPos.y });
+                    await channel.track(getLocalPlayer());
                 }
             });
 
@@ -110,6 +116,7 @@
             Object.keys(players).forEach(id => {
                 if (id === userId) return;
                 const p = players[id];
+                if (!p || p.userId === userId) return;
                 const d = Math.sqrt((p.x - myPos.x)**2 + (p.y - myPos.y)**2);
                 
                 // Si yo soy significativamente más grande y lo toco: crezco un poco
@@ -120,13 +127,40 @@
                 // Si el otro es significativamente más grande y me toca: muero y aparezco en otro lado
                 if (p.score > myScore * 1.1 && d < p.score) {
                     myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
+                    camera = { x: myPos.x, y: myPos.y };
                     myScore = 40;
                 }
             });
 
             // Actualizar mi posición a los demás
-            channel.track({ userId, name: userName, avatarUrl, score: myScore, x: myPos.x, y: myPos.y });
+            channel.track(getLocalPlayer());
         }, 1000/60);
+
+        function drawPlayer(p, camX, camY) {
+            const x = p.x + camX;
+            const y = p.y + camY;
+            const r = p.score;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI*2);
+            ctx.clip();
+
+            const img = getImg(p.avatarUrl);
+            if (img && img.complete) {
+                ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
+            } else {
+                ctx.fillStyle = p.userId === userId ? '#00f3ff' : '#222';
+                ctx.fill();
+            }
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI*2);
+            ctx.strokeStyle = p.userId === userId ? '#00f3ff' : '#ff00ff';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
 
         function draw() {
             canvas.width = window.innerWidth;
@@ -134,8 +168,11 @@
             ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0,0,canvas.width, canvas.height);
 
-            const camX = window.innerWidth/2 - myPos.x;
-            const camY = window.innerHeight/2 - myPos.y;
+            camera.x += (myPos.x - camera.x) * 0.12;
+            camera.y += (myPos.y - camera.y) * 0.12;
+
+            const camX = window.innerWidth/2 - camera.x;
+            const camY = window.innerHeight/2 - camera.y;
 
             // 🏁 Dibujar cuadrícula de fondo neón
             ctx.strokeStyle = '#111';
@@ -158,35 +195,25 @@
                 ctx.fill();
             });
 
-            // Dibujar jugadores
+            // Dibujar jugadores remotos desde Realtime y al jugador local desde la fisica actual.
             Object.values(players).forEach(p => {
-                const x = p.x + camX;
-                const y = p.y + camY;
-                const r = p.score;
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI*2);
-                ctx.clip();
-                
-                const img = getImg(p.avatarUrl);
-                if (img && img.complete) {
-                    ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
-                } else {
-                    ctx.fillStyle = '#222';
-                    ctx.fill();
-                }
-                ctx.restore();
-
-                ctx.strokeStyle = p.userId === userId ? '#00f3ff' : '#ff00ff';
-                ctx.lineWidth = 4;
-                ctx.stroke();
+                if (!p || p.userId === userId) return;
+                drawPlayer(p, camX, camY);
             });
+            drawPlayer(getLocalPlayer(), camX, camY);
 
             requestAnimationFrame(draw);
         }
 
-        window.addEventListener('mousemove', e => mouse = { x: e.clientX, y: e.clientY });
+        function updatePointer(clientX, clientY) {
+            mouse = { x: clientX, y: clientY };
+        }
+
+        window.addEventListener('pointermove', e => updatePointer(e.clientX, e.clientY));
+        window.addEventListener('touchmove', e => {
+            const touch = e.touches[0];
+            if (touch) updatePointer(touch.clientX, touch.clientY);
+        }, { passive: true });
         draw();
     </script>
 </body>

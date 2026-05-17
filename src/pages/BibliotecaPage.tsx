@@ -116,7 +116,7 @@ export default function BibliotecaPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
-  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string } | null>(null);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string } | null>(null);
   
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -528,10 +528,12 @@ const handlePlayCloudGame = async (game: any) => {
   };
 
   const multiplayerGames = [
-    { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.png' },
-    { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.png' },
-    { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.png' },
-    { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.png' }
+    { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.png', maxPlayers: 2, playersLabel: '2P' },
+    { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.png', maxPlayers: 10, playersLabel: '10P' },
+    { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
+    { id: 'mala-junta', label: 'Mala Junta', coverUrl: '/games/covers/mala-junta.svg', maxPlayers: 10, playersLabel: '10P' },
+    { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.png', maxPlayers: 2, playersLabel: '2P' },
+    { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.png', maxPlayers: 2, playersLabel: '2P' }
   ];
 
   // Opciones para el dropdown unificado
@@ -734,6 +736,9 @@ const handlePlayCloudGame = async (game: any) => {
               >
                 <div className="aspect-square bg-muted overflow-hidden relative">
                   <img src={g.coverUrl} alt={g.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <div className="absolute right-2 top-2 rounded border border-neon-cyan/40 bg-black/75 px-1.5 py-1 font-pixel text-[8px] text-neon-cyan shadow-lg">
+                    {g.playersLabel}
+                  </div>
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2">
                     <div className="text-[11px] font-bold text-white drop-shadow">{g.label}</div>
                   </div>
@@ -741,7 +746,7 @@ const handlePlayCloudGame = async (game: any) => {
                 <div className="p-2 flex items-center gap-1">
                   <Play className="w-3 h-3 text-neon-magenta shrink-0" />
                   <p className="text-[10px] font-body text-foreground truncate">{g.label}</p>
-                  <span className="ml-auto font-pixel text-[8px] text-neon-cyan">2P</span>
+                  <span className="ml-auto shrink-0 font-pixel text-[8px] text-neon-cyan">{g.playersLabel}</span>
                 </div>
               </div>
             ))}

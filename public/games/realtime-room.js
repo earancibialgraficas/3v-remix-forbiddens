@@ -33,6 +33,7 @@
       auth: { persistSession: true, autoRefreshToken: true },
       realtime: { params: { eventsPerSecond: 30 } },
     });
+    const maxPlayers = Math.max(2, Number(params.get("maxPlayers") || options.maxPlayers || 10));
 
     let channel = null;
     let activeRoom = "";
@@ -41,8 +42,16 @@
     const localWins = {};
     const localPoints = {};
 
+    function getPlayers() {
+      return channel
+        ? Object.values(channel.presenceState())
+            .flat()
+            .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))
+        : [];
+    }
+
     function syncPlayersPanel() {
-      const players = channel ? Object.values(channel.presenceState()).flat().slice(0, 4) : [];
+      const players = getPlayers().slice(0, maxPlayers);
       const leaderboard = players.map((p) => {
         const playerKey = p.userId || p.playerId;
         return {
@@ -51,6 +60,8 @@
           avatarUrl: p.avatarUrl || "",
           wins: localWins[playerKey] || p.wins || 0,
           points: localPoints[playerKey] ?? p.points ?? 0,
+          playerId: p.playerId || playerKey,
+          joinedAt: p.joinedAt || 0,
         };
       });
 
@@ -82,9 +93,10 @@
         options.onMessage?.(payload);
       });
       channel.on("presence", { event: "sync" }, () => {
-        const count = Object.keys(channel.presenceState()).length;
+        const players = getPlayers();
+        const count = players.length;
         syncPlayersPanel();
-        options.onPeers?.(count);
+        options.onPeers?.(count, players);
       });
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error("No se pudo conectar a la sala.")), 8000);
@@ -145,6 +157,6 @@
       return result;
     };
 
-    return { connect, disconnect, send, awardWin, playerId, get room() { return activeRoom; } };
+    return { connect, disconnect, send, awardWin, playerId, getPlayers, get room() { return activeRoom; } };
   };
 })();

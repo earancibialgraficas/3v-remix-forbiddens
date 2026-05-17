@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mala Junta</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:#07070a;color:#f8fafc;font-family:Inter,Arial,sans-serif}
+    body{padding:58px 12px 12px;overflow:hidden}
+    .controls{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:8px;align-items:center;z-index:5}
+    input,button{min-height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:7px 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#be123c;border-color:#fb7185;font-weight:900}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    #status{margin-left:auto;color:#fb7185;font-size:12px;white-space:nowrap}
+    .app{height:calc(100vh - 70px);display:grid;grid-template-columns:1fr 250px;gap:12px;max-width:1120px;margin:0 auto}
+    .stage{display:grid;grid-template-rows:auto 1fr auto;gap:12px;min-width:0}
+    .black{border:2px solid #f8fafc;background:#050505;border-radius:14px;padding:18px;min-height:160px;box-shadow:0 0 28px #ffffff22}
+    .black h1{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fb7185;margin:0 0 10px}
+    .prompt{font-size:clamp(20px,3vw,34px);font-weight:900;line-height:1.15}
+    .submissions,.hand{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;overflow:auto;min-height:0}
+    .card{min-height:150px;border-radius:12px;border:1px solid #dbeafe;background:#f8fafc;color:#111827;padding:12px;text-align:left;font-weight:900;line-height:1.25;box-shadow:0 8px 18px #0006}
+    .card.played{background:#fef3c7;border-color:#facc15}
+    .side{border:1px solid #334155;background:#020617d9;border-radius:12px;padding:12px;overflow:auto}
+    .side h2{font-size:12px;color:#fb7185;text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px}
+    .player{display:flex;align-items:center;gap:8px;border-bottom:1px solid #1f2937;padding:7px 0;font-size:12px}
+    .score{margin-left:auto;color:#facc15;font-weight:900}
+    .tag{font-size:10px;color:#94a3b8}
+    .notice{border:1px dashed #475569;border-radius:10px;padding:14px;color:#cbd5e1;text-align:center}
+    @media(max-width:820px){body{padding-top:100px}.controls{flex-wrap:wrap}.app{grid-template-columns:1fr;height:calc(100vh - 112px)}.side{max-height:170px}.card{min-height:120px}}
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="create">Crear sala</button>
+    <input id="room" maxlength="12" placeholder="Codigo" />
+    <button id="join">Unirse</button>
+    <button id="start">Nueva ronda</button>
+    <span id="status">Conectando...</span>
+  </div>
+  <main class="app">
+    <section class="stage">
+      <article class="black">
+        <h1 id="roundTitle">Mala Junta</h1>
+        <div class="prompt" id="prompt">Crea o entra a una sala. Juego original de cartas absurdas con sabor chileno.</div>
+      </article>
+      <section class="submissions" id="submissions"></section>
+      <section class="hand" id="hand"></section>
+    </section>
+    <aside class="side">
+      <h2>Jugadores</h2>
+      <div id="players"></div>
+      <div class="notice" id="help">Hasta 10 personas. En cada ronda una persona juzga y el resto juega una carta.</div>
+    </aside>
+  </main>
+  <script src="/games/realtime-room.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const presetRoom = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
+    const roomInput = document.getElementById('room');
+    const statusEl = document.getElementById('status');
+    const promptEl = document.getElementById('prompt');
+    const handEl = document.getElementById('hand');
+    const submissionsEl = document.getElementById('submissions');
+    const playersEl = document.getElementById('players');
+    const helpEl = document.getElementById('help');
+    const roundTitle = document.getElementById('roundTitle');
+    if (presetRoom) roomInput.value = presetRoom;
+
+    const prompts = [
+      "La reunion familiar se puso rara cuando aparecio ____.",
+      "El verdadero motivo por el que nadie llego al asado fue ____.",
+      "La micro iba llena, pero igual se hizo espacio para ____.",
+      "El alcalde prometio arreglar la plaza con ____.",
+      "Mi plan de domingo perfecto incluye completos, bebida y ____.",
+      "El carrete murio cuando alguien saco ____.",
+      "La nueva tradicion dieciochera sera ____.",
+      "En vez de premio, el concurso entregaba ____.",
+      "Mi abuela siempre decia: cuidado con ____.",
+      "La once no esta completa sin pan, palta y ____.",
+      "La app fallo porque el servidor estaba ocupado con ____.",
+      "El peor poder de un superheroe chileno seria ____."
+    ];
+    const whites = [
+      "un completo mojado en lagrimas",
+      "la palta a precio de joya",
+      "un audio de WhatsApp de siete minutos",
+      "una empanada sospechosamente tibia",
+      "el tio que habla de politica antes del postre",
+      "una fila eterna en el consultorio",
+      "un karaoke desafinado a las tres de la manana",
+      "la micro que nunca paro",
+      "un terremoto servido en vaso de bebida",
+      "la cuenta compartida que nadie quiere pagar",
+      "un mote con huesillo filosofico",
+      "la ansiedad de revisar el saldo",
+      "una sopaipilla que vio demasiadas cosas",
+      "un vecino taladrando en domingo",
+      "el grupo familiar mandando cadenas",
+      "un pan batido usado como arma ceremonial",
+      "la promesa de llegar en cinco minutos",
+      "un delivery que viene en modo aventura",
+      "una reunion que pudo ser mensaje",
+      "el drama de elegir donde comer",
+      "un perro del barrio con mas vida social que yo",
+      "la silla plastica rota del patio",
+      "un calefont con caracter fuerte",
+      "una playlist llamada 'se prendio'",
+      "la excusa de que habia taco",
+      "un amigo que trae juegos de mesa eternos",
+      "un pan con palta medido al milimetro",
+      "una caja misteriosa del persa",
+      "el olor a carbon pegado en la ropa",
+      "una boleta que nadie entiende",
+      "la dignidad perdida en el karaoke",
+      "un tutorial de YouTube a medio volumen",
+      "la mesa chica de los primos",
+      "un cargador prestado que nunca volvio",
+      "un jefe diciendo 'somos familia'",
+      "la lluvia justo despues de lavar ropa"
+    ];
+
+    let connected = false, roomId = presetRoom || null, roomApi = null;
+    let players = [], active = [], scores = {}, round = 0, judgeId = '', prompt = '', submissions = {}, revealed = false, winner = '';
+    let hand = [], played = false, awardedMatch = false;
+
+    function shuffle(list){ return [...list].sort(() => Math.random() - 0.5); }
+    function drawHand(){ while(hand.length < 6) hand.push(whites[Math.floor(Math.random()*whites.length)]); }
+    function localName(){ return profile.displayName || 'Jugador'; }
+    function isLeader(){ return active[0]?.playerId === roomApi?.playerId; }
+    function isJudge(){ return judgeId === roomApi?.playerId; }
+    function isActive(){ return active.some(p => p.playerId === roomApi?.playerId); }
+    function setStatus(text){ statusEl.textContent = text; }
+    function send(type,payload){ if(connected && roomApi) roomApi.send(type,payload); }
+    function publicState(){ return { scores, round, judgeId, prompt, submissions, revealed, winner }; }
+    function syncState(){ if(connected) send('state', publicState()); }
+    function nextRound(localOnly){
+      if(!isLeader() && !localOnly) return;
+      if(active.length < 3){ setStatus('Minimo 3 jugadores'); return; }
+      round += 1;
+      judgeId = active[round % active.length].playerId;
+      prompt = prompts[Math.floor(Math.random()*prompts.length)];
+      submissions = {};
+      revealed = false;
+      winner = '';
+      played = false;
+      drawHand();
+      if(!localOnly) send('state', publicState());
+      render();
+    }
+    function applyState(s){
+      if(!s) return;
+      scores = s.scores || {};
+      round = s.round || 0;
+      judgeId = s.judgeId || '';
+      prompt = s.prompt || prompt;
+      submissions = s.submissions || {};
+      revealed = !!s.revealed;
+      winner = s.winner || '';
+      played = !!submissions[roomApi?.playerId];
+      drawHand();
+      render();
+    }
+    function playCard(text){
+      if(!connected || !isActive() || isJudge() || played || !prompt) return;
+      played = true;
+      hand = hand.filter(c => c !== text);
+      drawHand();
+      submissions[roomApi.playerId] = { playerId: roomApi.playerId, name: localName(), text };
+      send('submit', submissions[roomApi.playerId]);
+      render();
+    }
+    function chooseWinner(playerId){
+      if(!isJudge() || !submissions[playerId] || winner) return;
+      winner = playerId;
+      scores[playerId] = (scores[playerId] || 0) + 1;
+      revealed = true;
+      send('winner', { playerId, scores, submissions, winner });
+      render();
+    }
+    function awardIfLocalWinner(){
+      if(winner === roomApi?.playerId && (scores[winner] || 0) >= 5 && !awardedMatch){
+        awardedMatch = true;
+        roomApi.awardWin('mala-junta');
+      }
+    }
+    function renderPlayers(){
+      playersEl.innerHTML = '';
+      active.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'player';
+        row.innerHTML = '<span>' + (p.displayName || p.name || 'Jugador') + '</span><span class="tag">' + (p.playerId === judgeId ? 'juez' : i === 0 ? 'host' : 'jugador') + '</span><span class="score">' + (scores[p.playerId] || 0) + '</span>';
+        playersEl.appendChild(row);
+      });
+      if(players.length > 10){
+        const extra = document.createElement('div');
+        extra.className = 'tag';
+        extra.textContent = (players.length - 10) + ' mirando fuera de la mesa';
+        playersEl.appendChild(extra);
+      }
+    }
+    function renderSubmissions(){
+      submissionsEl.innerHTML = '';
+      const list = Object.values(submissions);
+      if(!prompt){
+        submissionsEl.innerHTML = '<div class="notice">Presiona Nueva ronda cuando haya al menos 3 jugadores.</div>';
+        return;
+      }
+      if(isJudge()){
+        if(!list.length){ submissionsEl.innerHTML = '<div class="notice">Esperando respuestas...</div>'; return; }
+        shuffle(list).forEach(s => {
+          const btn = document.createElement('button');
+          btn.className = 'card played';
+          btn.disabled = !!winner;
+          btn.textContent = s.text + (revealed ? ' - ' + s.name : '');
+          btn.onclick = () => chooseWinner(s.playerId);
+          submissionsEl.appendChild(btn);
+        });
+        return;
+      }
+      submissionsEl.innerHTML = '<div class="notice">' + list.length + '/' + Math.max(active.length - 1, 0) + ' respuestas jugadas.</div>';
+    }
+    function renderHand(){
+      handEl.innerHTML = '';
+      if(!connected || !isActive()){
+        handEl.innerHTML = '<div class="notice">Sala llena. Estas mirando la mesa.</div>';
+        return;
+      }
+      if(isJudge()){
+        handEl.innerHTML = '<div class="notice">Eres juez esta ronda. Elige la respuesta mas brutal.</div>';
+        return;
+      }
+      if(!prompt || played){
+        handEl.innerHTML = '<div class="notice">' + (played ? 'Carta enviada. Espera al juez.' : 'Esperando nueva ronda.') + '</div>';
+        return;
+      }
+      hand.forEach(card => {
+        const btn = document.createElement('button');
+        btn.className = 'card';
+        btn.textContent = card;
+        btn.onclick = () => playCard(card);
+        handEl.appendChild(btn);
+      });
+    }
+    function render(){
+      roundTitle.textContent = roomId ? ('Sala ' + roomId + ' - ronda ' + round) : 'Mala Junta';
+      promptEl.textContent = prompt || 'Crea o entra a una sala. Juego original de cartas absurdas con sabor chileno.';
+      helpEl.textContent = isLeader() ? 'Eres host: puedes iniciar la siguiente ronda.' : 'Gana punto quien el juez elija. A 5 puntos se premia la partida.';
+      renderPlayers();
+      renderSubmissions();
+      renderHand();
+    }
+    function updatePlayers(count, list){
+      players = list || [];
+      active = players.slice(0, 10);
+      setStatus(active.length + '/10 en sala');
+      drawHand();
+      if(isLeader()) setTimeout(syncState, 250);
+      render();
+    }
+    async function setupRealtime(){
+      try {
+        roomApi = await window.createRealtimeRoom({
+          game: 'mala-junta',
+          profile,
+          maxPlayers: 10,
+          onPeers: updatePlayers,
+          onMessage: msg => {
+            if(msg.type === 'state') applyState(msg.payload);
+            if(msg.type === 'submit'){
+              submissions[msg.payload.playerId] = msg.payload;
+              if(isLeader()) syncState();
+              render();
+            }
+            if(msg.type === 'winner'){
+              scores = msg.payload.scores || scores;
+              submissions = msg.payload.submissions || submissions;
+              winner = msg.payload.winner || '';
+              revealed = true;
+              awardIfLocalWinner();
+              render();
+            }
+            if(msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
+          }
+        });
+        setStatus('Listo');
+        drawHand();
+        if(presetRoom && shouldHost) createRoom(presetRoom);
+      } catch(e){ setStatus(e.message || 'Realtime no disponible'); }
+    }
+    async function createRoom(room){
+      roomId = room || Math.random().toString(36).slice(2,8).toUpperCase();
+      await roomApi.connect(roomId); connected = true; roomInput.value = roomId; render();
+    }
+    async function joinRoom(room){
+      roomId = room; await roomApi.connect(roomId); connected = true; render();
+    }
+    document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('join').onclick = () => joinRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('start').onclick = () => nextRound(false);
+    setupRealtime(); render();
+  </script>
+</body>
+</html>

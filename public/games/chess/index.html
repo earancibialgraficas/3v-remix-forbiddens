@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ajedrez Arcade</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:#05070d;color:#f8fafc;font-family:Inter,Arial,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;padding:58px 12px 12px;overflow:hidden}
+    .controls{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:8px;align-items:center;z-index:5}
+    input,button{min-height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:7px 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#0f766e;border-color:#2dd4bf;font-weight:800}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    #status{margin-left:auto;color:#67e8f9;font-size:12px;white-space:nowrap}
+    .shell{width:min(900px,100%);display:grid;grid-template-columns:minmax(280px,560px) minmax(180px,260px);gap:14px;align-items:start}
+    .board{aspect-ratio:1;border:2px solid #14b8a6;box-shadow:0 0 28px #14b8a633;display:grid;grid-template-columns:repeat(8,1fr);overflow:hidden;border-radius:10px;background:#0f172a}
+    .sq{display:flex;align-items:center;justify-content:center;font-size:clamp(28px,7vw,58px);line-height:1;cursor:pointer;position:relative}
+    .light{background:#d7f7ee;color:#071014}.dark{background:#168071;color:#f8fafc}
+    .sq.selected{outline:4px solid #facc15;outline-offset:-4px}
+    .sq.move::after{content:"";width:22%;height:22%;border-radius:999px;background:#facc15aa;position:absolute}
+    .panel{border:1px solid #334155;border-radius:10px;background:#020617d9;padding:12px;min-height:280px}
+    h1{font-size:13px;margin:0 0 10px;color:#2dd4bf;text-transform:uppercase;letter-spacing:.08em}
+    .meta{font-size:12px;color:#cbd5e1;line-height:1.6}
+    .role{font-size:18px;font-weight:900;color:#facc15;margin:12px 0}
+    .moves{margin-top:10px;max-height:230px;overflow:auto;border-top:1px solid #1e293b;padding-top:8px;font-size:11px;color:#94a3b8}
+    @media(max-width:760px){body{padding-top:96px}.controls{flex-wrap:wrap}.shell{grid-template-columns:1fr}.panel{min-height:auto}.sq{font-size:clamp(24px,10vw,48px)}}
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="create">Crear sala</button>
+    <input id="room" maxlength="12" placeholder="Codigo" />
+    <button id="join">Unirse</button>
+    <button id="reset">Reiniciar</button>
+    <span id="status">Conectando...</span>
+  </div>
+  <main class="shell">
+    <section class="board" id="board"></section>
+    <aside class="panel">
+      <h1>Ajedrez Arcade</h1>
+      <div class="meta" id="roomInfo">Crea una sala o usa el codigo de un amigo.</div>
+      <div class="role" id="roleInfo">Sin sala</div>
+      <div class="meta" id="turnInfo">Turno: blancas</div>
+      <div class="meta">2 jugadores + hasta 8 espectadores.</div>
+      <div class="moves" id="moves"></div>
+    </aside>
+  </main>
+  <script src="/games/realtime-room.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const presetRoom = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
+    const roomInput = document.getElementById('room');
+    const statusEl = document.getElementById('status');
+    const boardEl = document.getElementById('board');
+    const roleInfo = document.getElementById('roleInfo');
+    const turnInfo = document.getElementById('turnInfo');
+    const roomInfo = document.getElementById('roomInfo');
+    const movesEl = document.getElementById('moves');
+    if (presetRoom) roomInput.value = presetRoom;
+
+    const glyphs = { K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙', k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟' };
+    let board = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    let cells = [];
+    let selected = -1;
+    let legal = [];
+    let turn = 'w';
+    let role = 'spectator';
+    let connected = false;
+    let roomId = presetRoom || null;
+    let roomApi = null;
+    let players = [];
+    let winner = '';
+    let moveLog = [];
+    let awarded = false;
+
+    function fromFen(fen){
+      const out = [];
+      fen.split('/').forEach(row => row.split('').forEach(ch => {
+        if (Number(ch)) for(let i=0;i<Number(ch);i++) out.push('');
+        else out.push(ch);
+      }));
+      return out;
+    }
+    function toFen(list){
+      const rows = [];
+      for(let r=0;r<8;r++){
+        let row = '', empty = 0;
+        for(let c=0;c<8;c++){
+          const p = list[r*8+c];
+          if(!p) empty++;
+          else { if(empty){ row += empty; empty = 0; } row += p; }
+        }
+        if(empty) row += empty;
+        rows.push(row);
+      }
+      return rows.join('/');
+    }
+    function colorOf(p){ return !p ? '' : (p === p.toUpperCase() ? 'w' : 'b'); }
+    function coords(i){ return { r: Math.floor(i/8), c: i%8 }; }
+    function idx(r,c){ return r*8+c; }
+    function inside(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+    function pushRay(moves, i, dr, dc){
+      const me = colorOf(cells[i]);
+      let {r,c} = coords(i); r += dr; c += dc;
+      while(inside(r,c)){
+        const j = idx(r,c), p = cells[j];
+        if(!p) moves.push(j);
+        else { if(colorOf(p) !== me) moves.push(j); break; }
+        r += dr; c += dc;
+      }
+    }
+    function legalMoves(i){
+      const p = cells[i]; if(!p) return [];
+      const me = colorOf(p); const low = p.toLowerCase(); const {r,c} = coords(i); const moves = [];
+      if(low === 'p'){
+        const dir = me === 'w' ? -1 : 1, start = me === 'w' ? 6 : 1;
+        if(inside(r+dir,c) && !cells[idx(r+dir,c)]) moves.push(idx(r+dir,c));
+        if(r === start && !cells[idx(r+dir,c)] && !cells[idx(r+dir*2,c)]) moves.push(idx(r+dir*2,c));
+        [-1,1].forEach(dc => { const nr=r+dir,nc=c+dc; if(inside(nr,nc) && cells[idx(nr,nc)] && colorOf(cells[idx(nr,nc)]) !== me) moves.push(idx(nr,nc)); });
+      }
+      if(low === 'n') [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc]) => {
+        const nr=r+dr,nc=c+dc; if(inside(nr,nc) && colorOf(cells[idx(nr,nc)]) !== me) moves.push(idx(nr,nc));
+      });
+      if(low === 'b' || low === 'q') [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d => pushRay(moves,i,d[0],d[1]));
+      if(low === 'r' || low === 'q') [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => pushRay(moves,i,d[0],d[1]));
+      if(low === 'k') [[1,1],[1,0],[1,-1],[0,1],[0,-1],[-1,1],[-1,0],[-1,-1]].forEach(([dr,dc]) => {
+        const nr=r+dr,nc=c+dc; if(inside(nr,nc) && colorOf(cells[idx(nr,nc)]) !== me) moves.push(idx(nr,nc));
+      });
+      return moves;
+    }
+    function render(){
+      cells = fromFen(board);
+      boardEl.innerHTML = '';
+      for(let i=0;i<64;i++){
+        const {r,c} = coords(i);
+        const b = document.createElement('button');
+        b.className = 'sq ' + ((r+c)%2 ? 'dark' : 'light') + (i === selected ? ' selected' : '') + (legal.includes(i) ? ' move' : '');
+        b.textContent = glyphs[cells[i]] || '';
+        b.onclick = () => clickSquare(i);
+        boardEl.appendChild(b);
+      }
+      roleInfo.textContent = role === 'w' ? 'Juegas blancas' : role === 'b' ? 'Juegas negras' : 'Espectador';
+      turnInfo.textContent = winner ? ('Ganador: ' + (winner === 'w' ? 'blancas' : 'negras')) : ('Turno: ' + (turn === 'w' ? 'blancas' : 'negras'));
+      roomInfo.textContent = roomId ? ('Sala ' + roomId + ' - ' + players.length + '/10 conectados') : 'Sin sala';
+      movesEl.innerHTML = moveLog.slice(-18).map(m => '<div>' + m + '</div>').join('');
+    }
+    function setStatus(text){ statusEl.textContent = text; }
+    function send(type,payload){ if(connected && roomApi) roomApi.send(type,payload); }
+    function syncState(){ send('state', { board, turn, winner, moveLog }); }
+    function applyState(s){ if(!s) return; board=s.board||board; turn=s.turn||turn; winner=s.winner||''; moveLog=s.moveLog||[]; selected=-1; legal=[]; render(); }
+    function clickSquare(i){
+      if(!connected || winner || role !== turn) return;
+      const p = cells[i];
+      if(selected < 0){
+        if(p && colorOf(p) === role){ selected = i; legal = legalMoves(i); render(); }
+        return;
+      }
+      if(i === selected){ selected = -1; legal = []; render(); return; }
+      if(!legal.includes(i)){ if(p && colorOf(p) === role){ selected=i; legal=legalMoves(i); render(); } return; }
+      const moving = cells[selected], captured = cells[i];
+      cells[i] = moving; cells[selected] = '';
+      if(moving === 'P' && coords(i).r === 0) cells[i] = 'Q';
+      if(moving === 'p' && coords(i).r === 7) cells[i] = 'q';
+      board = toFen(cells);
+      if(captured && captured.toLowerCase() === 'k') winner = role;
+      moveLog.push((role === 'w' ? 'Blancas' : 'Negras') + ': ' + glyphs[moving] + ' ' + selected + '-' + i);
+      turn = role === 'w' ? 'b' : 'w';
+      selected = -1; legal = [];
+      send('move', { board, turn, winner, moveLog });
+      if(winner === role && !awarded){ awarded = true; roomApi.awardWin('chess'); }
+      render();
+    }
+    function reset(localOnly){
+      board = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+      turn = 'w'; winner = ''; moveLog = []; awarded = false; selected = -1; legal = [];
+      render();
+      if(!localOnly) send('reset', {});
+    }
+    function updatePlayers(count, list){
+      players = list || [];
+      const active = players.slice(0, 10);
+      const first = active[0]?.playerId;
+      const second = active[1]?.playerId;
+      role = roomApi?.playerId === first ? 'w' : roomApi?.playerId === second ? 'b' : 'spectator';
+      setStatus(active.length > 2 ? 'Sala con espectadores' : active.length === 2 ? 'Partida lista' : 'Esperando rival');
+      if(role === 'w') setTimeout(syncState, 200);
+      render();
+    }
+    async function setupRealtime(){
+      try {
+        roomApi = await window.createRealtimeRoom({
+          game: 'chess',
+          profile,
+          maxPlayers: 10,
+          onPeers: updatePlayers,
+          onMessage: msg => {
+            if(msg.type === 'move') applyState(msg.payload);
+            if(msg.type === 'state') applyState(msg.payload);
+            if(msg.type === 'reset') reset(true);
+            if(msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
+          }
+        });
+        setStatus('Listo');
+        if(presetRoom && shouldHost) createRoom(presetRoom);
+      } catch(e){ setStatus(e.message || 'Realtime no disponible'); }
+    }
+    async function createRoom(room){
+      roomId = room || Math.random().toString(36).slice(2,8).toUpperCase();
+      await roomApi.connect(roomId); connected = true; roomInput.value = roomId; reset(true); render();
+    }
+    async function joinRoom(room){
+      roomId = room; await roomApi.connect(roomId); connected = true; render();
+    }
+    document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('join').onclick = () => joinRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('reset').onclick = () => reset(false);
+    setupRealtime(); render();
+  </script>
+</body>
+</html>
