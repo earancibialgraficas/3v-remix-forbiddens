@@ -231,29 +231,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               />
             </div>
 
-<<<<<<< HEAD
-=======
-            {/* 👤 Perfil del Jugador en el Marco (Para no estorbar el juego) */}
-            <div className="w-14 border-l border-border bg-black/40 flex flex-col items-center py-4 gap-3 shrink-0">
-              <div className="relative group/avatar">
-                <img 
-                  src={profile?.avatar_url || "/placeholder.svg"} 
-                  alt="User" 
-                  className="w-8 h-8 rounded-full border-2 border-neon-magenta shadow-[0_0_8px_rgba(255,0,255,0.3)] object-cover"
-                />
-                <div className="absolute -bottom-1 -right-1 bg-neon-green w-2.5 h-2.5 rounded-full border-2 border-black" title="En línea" />
-              </div>
-              <span className="font-pixel text-[8px] text-neon-green text-center animate-pulse">{profile?.total_score || 0}</span>
-            </div>
-
->>>>>>> 0d85e5517f1537a57287b60e04742c8d696c08d3
             <div
               onMouseDown={onResizeDown}
               className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize items-end justify-end p-1 text-muted-foreground hover:text-foreground"
             >
               <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
             </div>
-<<<<<<< HEAD
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
             <div className="w-28 border-l border-border bg-black/60 flex flex-col shrink-0 overflow-hidden">
@@ -296,8 +279,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 )}
               </div>
             </div>
-=======
->>>>>>> 0d85e5517f1537a57287b60e04742c8d696c08d3
           </div>
         )}
 
