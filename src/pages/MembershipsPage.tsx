@@ -154,8 +154,20 @@ export default function MembershipsPage() {
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
 
-  const userFollowers = (profile as any)?.follower_count || 0; 
-  const userPoints = profile?.total_score || 0; 
+  const [userFollowers, setUserFollowers] = useState<number>((profile as any)?.follower_count || 0);
+  const userPoints = profile?.total_score || 0;
+
+  useEffect(() => {
+    if (!user) return;
+    // Cuenta real de seguidores desde la tabla follows
+    supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_id", user.id)
+      .then(({ count, error }) => {
+        if (!error && typeof count === "number") setUserFollowers(count);
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     const detectCountry = async () => {
