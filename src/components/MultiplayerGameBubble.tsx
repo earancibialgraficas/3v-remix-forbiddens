@@ -202,22 +202,39 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         </div>
 
         {!minimized && (
-          <>
-            <iframe
-              key={`${game.id}-${reloadKey}`}
-              ref={frameRef}
-              src={src}
-              title={game.label}
-              className="h-[calc(100%-44px)] w-full bg-black"
-              allow="gamepad; fullscreen; autoplay"
-            />
+          <div className="flex h-[calc(100%-44px)] w-full relative">
+            {/* Área del Juego */}
+            <div className="flex-1 h-full">
+              <iframe
+                key={`${game.id}-${reloadKey}`}
+                ref={frameRef}
+                src={src}
+                title={game.label}
+                className="h-full w-full bg-black"
+                allow="gamepad; fullscreen; autoplay"
+              />
+            </div>
+
+            {/* 👤 Perfil del Jugador en el Marco (Para no estorbar el juego) */}
+            <div className="w-14 border-l border-border bg-black/40 flex flex-col items-center py-4 gap-3 shrink-0">
+              <div className="relative group/avatar">
+                <img 
+                  src={profile?.avatar_url || "/placeholder.svg"} 
+                  alt="User" 
+                  className="w-8 h-8 rounded-full border-2 border-neon-magenta shadow-[0_0_8px_rgba(255,0,255,0.3)] object-cover"
+                />
+                <div className="absolute -bottom-1 -right-1 bg-neon-green w-2.5 h-2.5 rounded-full border-2 border-black" title="En línea" />
+              </div>
+              <span className="font-pixel text-[8px] text-neon-green text-center animate-pulse">{profile?.total_score || 0}</span>
+            </div>
+
             <div
               onMouseDown={onResizeDown}
               className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize items-end justify-end p-1 text-muted-foreground hover:text-foreground"
             >
               <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
             </div>
-          </>
+          </div>
         )}
 
         {minimized && (
