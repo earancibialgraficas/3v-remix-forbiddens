@@ -18,10 +18,19 @@ wss.on('connection', (ws) => {
 
     if (type === 'create') {
       // create room
-      const roomId = (Math.random() + 1).toString(36).substring(2, 8).toUpperCase();
-      rooms.set(roomId, { clients: new Set([ws]) });
+      const requestedRoom = String(room || '').trim().toUpperCase();
+      const roomId = requestedRoom || (Math.random() + 1).toString(36).substring(2, 8).toUpperCase();
+      const existing = rooms.get(roomId);
+      if (existing) {
+        existing.clients.add(ws);
+      } else {
+        rooms.set(roomId, { clients: new Set([ws]) });
+      }
       ws.roomId = roomId;
       send(ws, { type: 'created', room: roomId });
+      rooms.get(roomId)?.clients.forEach(c => {
+        if (c !== ws) send(c, { type: 'peer-joined', room: roomId });
+      });
       return;
     }
 

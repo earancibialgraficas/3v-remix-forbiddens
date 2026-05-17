@@ -3,27 +3,149 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Card Duel - Multiplayer</title>
-  <style>body{font-family:Inter;background:#081;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh}#table{width:720px;background:#061;padding:16px;border-radius:12px}</style>
+  <title>Card Duel</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:#07030f;color:#f8fafc;font-family:Inter,Arial,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;padding:56px 12px 12px}
+    .controls{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center}
+    input,button{min-height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:7px 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#7c3aed;border-color:#c084fc;font-weight:700}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    #status{margin-left:auto;color:#c084fc;font-size:12px}
+    .table{width:min(960px,100%);min-height:520px;border:1px solid #4c1d95;border-radius:14px;background:radial-gradient(circle at center,#17310e,#12051f 70%);padding:16px;display:grid;grid-template-rows:auto 1fr auto;gap:14px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .hero{padding:12px;border:1px solid #334155;border-radius:12px;background:#020617cc;min-width:130px;text-align:center}
+    .hp{font-size:28px;font-weight:900;color:#f87171}
+    .log{align-self:center;text-align:center;color:#e9d5ff;min-height:80px}
+    .hand{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .card{height:130px;border-radius:12px;border:1px solid #c084fc;background:linear-gradient(160deg,#581c87,#111827);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+    .atk{font-size:24px;font-weight:900;color:#facc15}
+  </style>
 </head>
 <body>
-  <div id="table">
-    <div style="display:flex;justify-content:space-between;align-items:center"><div><button id="create">Crear sala</button><input id="room" placeholder="Código" /><button id="join">Unirse</button></div><div id="status"></div></div>
-    <div style="margin-top:12px;display:flex;gap:12px"><div id="hand1"></div><div style="flex:1;text-align:center"><div id="log"></div></div><div id="hand2"></div></div>
+  <div class="controls">
+    <button id="create">Crear sala</button>
+    <input id="room" maxlength="8" placeholder="Codigo" />
+    <button id="join">Unirse</button>
+    <button id="reset">Nueva mano</button>
+    <span id="status">Conectando...</span>
   </div>
+  <main class="table">
+    <section class="row">
+      <div class="hero"><div>Rival</div><div class="hp" id="oppHp">30</div></div>
+      <div id="turn">Esperando sala</div>
+    </section>
+    <section class="log" id="log">Juega cartas de ataque. El primer jugador en bajar al rival a 0 gana.</section>
+    <section>
+      <div class="hero" style="margin-bottom:10px"><div>Tu HP</div><div class="hp" id="myHp">30</div></div>
+      <div class="hand" id="hand"></div>
+    </section>
+  </main>
+  <script src="/games/realtime-room.js"></script>
   <script>
-    const ws=new WebSocket('ws://'+location.hostname+':12346');
-    let room=null, player=0;
-    const hand1=document.getElementById('hand1'), hand2=document.getElementById('hand2'), log=document.getElementById('log');
-    function makeHand(){ return [randCard(), randCard(), randCard()]; }
-    function randCard(){ return {id:Math.random().toString(36).slice(2,6), atk: Math.floor(Math.random()*8)+2}; }
-    let myHand = makeHand(), oppHand = makeHand(), myHp=30, oppHp=30, myTurn=false;
-    function render(){ hand1.innerHTML = myTurn? 'Tu mano:<br>' + myHand.map(c=>`<button onclick="play('${c.id}')">ATK ${c.atk}</button>`).join(' ') : 'Tu mano oculta'; hand2.innerHTML = 'Rival: HP '+oppHp; }
-    window.play = function(id){ const card = myHand.find(c=>c.id===id); if(!card || !myTurn) return; ws.send(JSON.stringify({ type:'play', room, payload:card })); myTurn=false; }
-    ws.onmessage = e=>{ const d=JSON.parse(e.data); if(d.type==='created'){ room=d.room; document.getElementById('status').textContent='Sala '+room; } if(d.type==='peer-joined'){ document.getElementById('status').textContent='Rival conectado'; myTurn = true; } if(d.type==='relay' && d.originalType==='play'){ const card=d.payload; oppHp -= card.atk; log.innerHTML = 'Rival juega ATK '+card.atk; render(); } };
-    document.getElementById('create').onclick = ()=> ws.send(JSON.stringify({ type:'create' }));
-    document.getElementById('join').onclick = ()=>{ const r=document.getElementById('room').value.trim().toUpperCase(); room=r; ws.send(JSON.stringify({ type:'join', room:r })); };
-    render();
+    const params = new URLSearchParams(location.search);
+    const presetRoom = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
+    const roomInput = document.getElementById('room');
+    const statusEl = document.getElementById('status');
+    const handEl = document.getElementById('hand');
+    const logEl = document.getElementById('log');
+    const turnEl = document.getElementById('turn');
+    if (presetRoom) roomInput.value = presetRoom;
+
+    let connected = false, roomId = presetRoom || null, roomApi = null, role = shouldHost ? 'host' : null;
+    let myHp = 30, oppHp = 30, myTurn = false, gameOver = false;
+    let hand = [];
+    function randCard(){ return { id: Math.random().toString(36).slice(2,7), atk: Math.floor(Math.random()*7)+2, cost: Math.floor(Math.random()*3)+1 }; }
+    function drawHand(){ hand = [randCard(), randCard(), randCard()]; render(); }
+    function setStatus(text){ statusEl.textContent = text; }
+    function send(type,payload){ if (connected && roomApi) roomApi.send(type, payload); }
+    function render(){
+      document.getElementById('myHp').textContent = myHp;
+      document.getElementById('oppHp').textContent = oppHp;
+      turnEl.textContent = gameOver ? 'Partida terminada' : (myTurn ? 'Tu turno' : 'Turno rival');
+      handEl.innerHTML = '';
+      hand.forEach(card => {
+        const btn = document.createElement('button');
+        btn.className = 'card';
+        btn.disabled = !myTurn || gameOver;
+        btn.innerHTML = '<div>Golpe arcano</div><div class="atk">ATK ' + card.atk + '</div><div>Mana ' + card.cost + '</div>';
+        btn.onclick = () => play(card.id);
+        handEl.appendChild(btn);
+      });
+    }
+    function endCheck(){
+      if (myHp <= 0 || oppHp <= 0) {
+        gameOver = true;
+        logEl.textContent = oppHp <= 0 ? 'Ganaste el duelo.' : 'Perdiste el duelo.';
+      }
+    }
+    function play(id){
+      const card = hand.find(c => c.id === id);
+      if (!card || !myTurn || gameOver) return;
+      oppHp = Math.max(0, oppHp - card.atk);
+      hand = hand.filter(c => c.id !== id);
+      while (hand.length < 3) hand.push(randCard());
+      myTurn = false;
+      logEl.textContent = 'Jugaste ATK ' + card.atk;
+      send('card', { atk: card.atk });
+      endCheck();
+      render();
+    }
+    function reset(localOnly){
+      myHp = 30; oppHp = 30; gameOver = false;
+      myTurn = role === 'host';
+      drawHand();
+      logEl.textContent = 'Nueva mano lista.';
+      if (!localOnly) send('reset', {});
+    }
+
+    async function setupRealtime(){
+      try {
+        roomApi = await window.createRealtimeRoom({
+          game: 'card-duel',
+          onPeers: count => { if (count > 1) { myTurn = role === 'host'; setStatus('Rival conectado'); render(); } },
+          onMessage: msg => {
+            if (msg.type === 'card') {
+              myHp = Math.max(0, myHp - msg.payload.atk);
+              myTurn = true;
+              logEl.textContent = 'El rival jugo ATK ' + msg.payload.atk;
+              endCheck();
+              render();
+            }
+            if (msg.type === 'reset') reset(true);
+          }
+        });
+        setStatus('Listo');
+        drawHand();
+        if (presetRoom && shouldHost) createRoom(presetRoom);
+      } catch (e) {
+        setStatus(e.message || 'Realtime no disponible');
+      }
+    }
+    async function createRoom(room){
+      roomId = room || Math.random().toString(36).slice(2,8).toUpperCase();
+      role = 'host';
+      await roomApi.connect(roomId);
+      connected = true;
+      roomInput.value = roomId;
+      setStatus('Sala ' + roomId);
+      render();
+    }
+    async function joinRoom(room){
+      roomId = room;
+      role = 'guest';
+      myTurn = false;
+      await roomApi.connect(roomId);
+      connected = true;
+      setStatus('Sala ' + room);
+      render();
+    }
+    document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('join').onclick = () => joinRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('reset').onclick = () => reset(false);
+    setupRealtime();
   </script>
 </body>
 </html>

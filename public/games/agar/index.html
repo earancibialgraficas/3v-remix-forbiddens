@@ -3,20 +3,112 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Arena - Multiplayer (agar-like)</title>
-  <style>body{margin:0;background:#010;overflow:hidden}canvas{display:block}</style>
+  <title>Arena Agar-like</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:#020617;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
+    .hud{position:fixed;left:12px;right:12px;top:10px;display:flex;gap:8px;align-items:center;z-index:3}
+    input,button{height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:0 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#0e7490;border-color:#22d3ee;color:#001018;font-weight:700}
+    #status{margin-left:auto;color:#67e8f9;font-size:12px}
+    canvas{display:block;width:100vw;height:100vh;background:radial-gradient(circle at center,#062a2f,#020617 70%)}
+  </style>
 </head>
 <body>
+  <div class="hud">
+    <button id="create">Crear sala</button>
+    <input id="room" maxlength="8" placeholder="Codigo" />
+    <button id="join">Unirse</button>
+    <span id="status">Conectando...</span>
+  </div>
   <canvas id="g"></canvas>
+  <script src="/games/realtime-room.js"></script>
   <script>
-    const ws = new WebSocket('ws://'+location.hostname+':12346');
-    const c=document.getElementById('g'); const ctx=c.getContext('2d'); function resize(){c.width=innerWidth;c.height=innerHeight;} resize(); onresize=resize;
-    const me = {x:100,y:100,r:20,color:'#ff6'}; const others = {};
-    ws.onmessage = e=>{ const d=JSON.parse(e.data); if (d.type==='created'){ alert('Sala: '+d.room); } if (d.type==='relay' && d.originalType==='pos'){ const p=d.payload; others[p.id]=p; } };
-    let id = Math.random().toString(36).slice(2,9);
-    setInterval(()=>{ ws.send(JSON.stringify({ type:'pos', room:location.search.split('room=')[1] || '', payload:{ id, x:me.x, y:me.y, r:me.r }})); }, 100);
-    addEventListener('mousemove', e=>{ me.x=e.clientX; me.y=e.clientY; });
-    function loop(){ ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle=me.color; ctx.beginPath(); ctx.arc(me.x,me.y,me.r,0,6.28); ctx.fill(); for(const k in others){ const p=others[k]; ctx.fillStyle='#6ef'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28); ctx.fill(); } requestAnimationFrame(loop); }
+    const params = new URLSearchParams(location.search);
+    const presetRoom = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
+    const canvas = document.getElementById('g');
+    const ctx = canvas.getContext('2d');
+    const roomInput = document.getElementById('room');
+    const statusEl = document.getElementById('status');
+    if (presetRoom) roomInput.value = presetRoom;
+
+    let connected = false, roomId = presetRoom || null, roomApi = null;
+    const id = Math.random().toString(36).slice(2, 9);
+    const me = { id, x: 220, y: 180, r: 22, color: '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6,'0') };
+    const target = { x: me.x, y: me.y };
+    const others = {};
+    const food = Array.from({ length: 40 }, (_, i) => ({ id:i, x: Math.random()*1600-300, y: Math.random()*1000-200, r: 4 + Math.random()*4 }));
+    function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+    function setStatus(text){ statusEl.textContent = text; }
+    function send(type,payload){ if (connected && roomApi) roomApi.send(type, payload); }
+    function camera(){ return { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 }; }
+
+    async function setupRealtime(){
+      try {
+        roomApi = await window.createRealtimeRoom({
+          game: 'agar',
+          onPeers: count => setStatus(count > 1 ? count + ' jugadores' : 'Sala ' + roomId),
+          onMessage: msg => {
+            if (msg.type === 'pos') others[msg.payload.id] = { ...msg.payload, seen: Date.now() };
+          }
+        });
+        setStatus('Listo');
+        if (presetRoom && shouldHost) createRoom(presetRoom);
+      } catch (e) {
+        setStatus(e.message || 'Realtime no disponible');
+      }
+    }
+    async function createRoom(room){
+      roomId = room || Math.random().toString(36).slice(2,8).toUpperCase();
+      await roomApi.connect(roomId);
+      connected = true;
+      roomInput.value = roomId;
+      setStatus('Sala ' + roomId);
+    }
+    async function joinRoom(room){
+      roomId = room;
+      await roomApi.connect(roomId);
+      connected = true;
+      setStatus('Sala ' + room);
+    }
+    document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('join').onclick = () => joinRoom(roomInput.value.trim().toUpperCase());
+    addEventListener('mousemove', e => { target.x = e.clientX + camera().x; target.y = e.clientY + camera().y; });
+    addEventListener('touchmove', e => { const t=e.touches[0]; target.x=t.clientX+camera().x; target.y=t.clientY+camera().y; }, { passive:true });
+    addEventListener('resize', resize); resize();
+    setInterval(() => {
+      send('pos', { id, x: me.x, y: me.y, r: me.r, color: me.color });
+      const now = Date.now();
+      for (const key in others) if (now - others[key].seen > 5000) delete others[key];
+    }, 70);
+
+    function update(){
+      me.x += (target.x - me.x) * 0.05;
+      me.y += (target.y - me.y) * 0.05;
+      for (const pellet of food) {
+        const dx = pellet.x - me.x, dy = pellet.y - me.y;
+        if (Math.hypot(dx,dy) < me.r + pellet.r) {
+          me.r = Math.min(80, me.r + 0.35);
+          pellet.x = me.x + Math.random()*1400-700;
+          pellet.y = me.y + Math.random()*900-450;
+        }
+      }
+    }
+    function drawCircle(x,y,r,color){ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+    function draw(){
+      const cam = camera();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='rgba(148,163,184,.12)';
+      for(let x=-1000;x<2000;x+=60){ ctx.beginPath(); ctx.moveTo(x-cam.x,-1000-cam.y); ctx.lineTo(x-cam.x,2000-cam.y); ctx.stroke(); }
+      for(let y=-1000;y<2000;y+=60){ ctx.beginPath(); ctx.moveTo(-1000-cam.x,y-cam.y); ctx.lineTo(2000-cam.x,y-cam.y); ctx.stroke(); }
+      food.forEach(p => drawCircle(p.x-cam.x,p.y-cam.y,p.r,'#a7f3d0'));
+      Object.values(others).forEach(p => drawCircle(p.x-cam.x,p.y-cam.y,p.r,p.color || '#38bdf8'));
+      drawCircle(me.x-cam.x,me.y-cam.y,me.r,me.color);
+      ctx.fillStyle='#fff'; ctx.font='12px monospace'; ctx.fillText('Masa ' + Math.round(me.r), 12, canvas.height - 16);
+    }
+    function loop(){ update(); draw(); requestAnimationFrame(loop); }
+    setupRealtime();
     loop();
   </script>
 </body>

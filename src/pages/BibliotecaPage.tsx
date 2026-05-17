@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
+import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -115,8 +116,7 @@ export default function BibliotecaPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
-  const [multiGameOpen, setMultiGameOpen] = useState(false);
-  const [selectedMultiGame, setSelectedMultiGame] = useState<string | null>(null);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
@@ -512,10 +512,10 @@ const handlePlayCloudGame = async (game: any) => {
   };
 
   const multiplayerGames = [
+    { id: 'pong', label: 'Pong / Air Hockey' },
+    { id: 'agar', label: 'Agar.io-like' },
     { id: 'tic-tac-toe', label: 'Tic Tac Toe' },
-    { id: 'pong', label: 'Pong' },
-    { id: 'agar', label: 'Arena (agar-like)' },
-    { id: 'card-duel', label: 'Card Duel (lite)' }
+    { id: 'card-duel', label: 'Card Duel (Hearthstone lite)' }
   ];
 
   // Opciones para el dropdown unificado
@@ -535,7 +535,7 @@ const handlePlayCloudGame = async (game: any) => {
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
       {/* Selector unificado debajo del cuadro de título */}
-      <div className="mt-2 flex flex-col md:flex-row items-center gap-2">
+      <div className="hidden">
         <div className="flex items-center gap-2 w-full md:w-auto">
           <select
             value={dropdownValue}
@@ -548,7 +548,6 @@ const handlePlayCloudGame = async (game: any) => {
                 setSearchQuery('');
               } else if (val === 'multi') {
                 setSelectedMultiGame(null);
-                setMultiGameOpen(false);
               }
             }}
             className="h-10 rounded-lg border border-border bg-card text-xs font-body px-3 text-foreground outline-none shadow-lg focus:border-neon-cyan/50 transition-colors min-w-[160px]"
@@ -589,7 +588,42 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
       <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
-      <div className="flex items-center gap-2 mt-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex w-full items-center gap-2 md:w-auto">
+          <select
+            value={dropdownValue}
+            onChange={e => {
+              const val = e.target.value;
+              setDropdownValue(val);
+              if (val.startsWith('console:')) {
+                setSelectedConsole(val.replace('console:', ''));
+                setSelectedMultiGame(null);
+                setSearchQuery('');
+              } else if (val === 'multi') {
+                setSelectedMultiGame(null);
+              }
+            }}
+            className="h-9 w-full min-w-[160px] rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 md:w-auto"
+            aria-label="Seleccionar consola o multijugador"
+          >
+            {dropdownOptions.map((opt, i) =>
+              opt.type === 'section' ? (
+                <option key={i} disabled>────────────</option>
+              ) : (
+                <option key={opt.value} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
+              )
+            )}
+          </select>
+          <div className="relative flex-1 md:w-80 md:flex-none">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={`Buscar en ${consoleInfo?.label}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 border-border bg-card pl-9 font-body text-xs transition-colors focus:border-primary"
+            />
+          </div>
+        </div>
         <Button 
           variant="outline" 
           size="icon" 
@@ -679,7 +713,7 @@ const handlePlayCloudGame = async (game: any) => {
             {multiplayerGames.map(g => (
               <div
                 key={g.id}
-                onClick={() => { setSelectedMultiGame(g.id); setMultiGameOpen(true); }}
+                onClick={() => setSelectedMultiGame(g)}
                 className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
               >
                 <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
@@ -693,21 +727,6 @@ const handlePlayCloudGame = async (game: any) => {
               </div>
             ))}
           </div>
-          <Dialog open={multiGameOpen} onOpenChange={(o) => { if(!o){ setSelectedMultiGame(null); setMultiGameOpen(false); } else setMultiGameOpen(o); }}>
-            <DialogContent className="max-w-5xl w-[95vw] h-[85vh] bg-black border-2 border-neon-magenta/50 p-2 flex flex-col">
-              <DialogHeader className="px-2 pt-1 pb-2 flex-shrink-0">
-                <DialogTitle className="font-pixel text-xs text-neon-magenta flex items-center gap-2">
-                  <Gamepad2 className="w-4 h-4" /> {selectedMultiGame ? multiplayerGames.find(x=>x.id===selectedMultiGame)?.label : 'Juego'}
-                </DialogTitle>
-              </DialogHeader>
-              <iframe
-                src={selectedMultiGame ? `/games/${selectedMultiGame}/index.html` : undefined}
-                title={selectedMultiGame || 'multijugador'}
-                className="w-full flex-1 rounded border border-neon-magenta/30 bg-black"
-                allow="gamepad; fullscreen; autoplay"
-              />
-            </DialogContent>
-          </Dialog>
         </div>
       )}
 
@@ -814,6 +833,8 @@ const handlePlayCloudGame = async (game: any) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MultiplayerGameBubble game={selectedMultiGame} onClose={() => setSelectedMultiGame(null)} />
 
     </div>
   );

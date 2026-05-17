@@ -3,64 +3,124 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pong - Multiplayer</title>
+  <title>Pong / Air Hockey</title>
   <style>
-    html,body{height:100%;margin:0;background:#000;color:#fff;font-family:Inter}
-    canvas{display:block;margin:0 auto;background:#051;border-radius:8px}
-    .ui{position:fixed;top:12px;left:12px;color:#0f0}
-    button{padding:8px;border-radius:6px;border:0;background:#06b}
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:#05050a;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
+    body{display:flex;align-items:center;justify-content:center}
+    .hud{position:fixed;left:12px;right:12px;top:10px;display:flex;gap:8px;align-items:center;z-index:2}
+    input,button{height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:0 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#0e7490;border-color:#22d3ee;color:#001018;font-weight:700}
+    #status{margin-left:auto;color:#67e8f9;font-size:12px}
+    canvas{width:min(96vw,900px);height:min(70vh,540px);max-height:calc(100vh - 72px);background:radial-gradient(circle at center,#113329,#06110f);border:1px solid #1f766d;border-radius:10px;box-shadow:0 0 36px #000}
   </style>
 </head>
 <body>
-  <div class="ui">
+  <div class="hud">
     <button id="create">Crear sala</button>
-    <input id="room" placeholder="Código sala" />
+    <input id="room" maxlength="8" placeholder="Codigo" />
     <button id="join">Unirse</button>
-    <span id="status"></span>
+    <span id="status">Conectando...</span>
   </div>
-  <canvas id="c" width="700" height="420"></canvas>
+  <canvas id="c" width="900" height="540"></canvas>
+  <script src="/games/realtime-room.js"></script>
   <script>
-    const ws = new WebSocket('ws://'+location.hostname+':12346');
-    let roomId=null, playerIndex=0; // 0 = left, 1 = right
-    const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d');
-    const paddle = [{y:180},{y:180}];
-    let ball = {x:350,y:210,vx:3,vy:2};
+    const params = new URLSearchParams(location.search);
+    const presetRoom = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const roomInput = document.getElementById('room');
+    if (presetRoom) roomInput.value = presetRoom;
 
-    ws.onmessage = (e)=>{ const d=JSON.parse(e.data); if (d.type==='created'){ roomId=d.room; document.getElementById('status').textContent='Sala '+roomId; }
-      if (d.type==='peer-joined'){ document.getElementById('status').textContent='Jugador conectado'; }
-      if (d.type==='relay'){ if (d.originalType==='paddle'){ Object.assign(paddle[d.payload.index], { y: d.payload.y }); }
-        if (d.originalType==='ball') { Object.assign(ball, d.payload); }
+    let roomId = presetRoom || null;
+    let roomApi = null;
+    let role = shouldHost ? 'left' : null;
+    let connected = false;
+    const paddles = { left: 230, right: 230 };
+    const keys = {};
+    const score = { left: 0, right: 0 };
+    let ball = { x: 450, y: 270, vx: 4, vy: 2.8 };
+
+    function setStatus(text){ statusEl.textContent = text; }
+    function send(type, payload){ if (connected && roomApi) roomApi.send(type, payload); }
+    function resetBall(dir){ ball = { x: 450, y: 270, vx: 4 * dir, vy: (Math.random() * 4) - 2 }; }
+
+    async function setupRealtime(){
+      try {
+        roomApi = await window.createRealtimeRoom({
+          game: 'pong',
+          onPeers: count => setStatus(count > 1 ? 'Rival conectado' : 'Sala ' + roomId),
+          onMessage: msg => {
+            if (msg.type === 'paddle') paddles[msg.payload.side] = msg.payload.y;
+            if (msg.type === 'state') {
+              ball = msg.payload.ball;
+              score.left = msg.payload.score.left;
+              score.right = msg.payload.score.right;
+            }
+          }
+        });
+        setStatus('Listo');
+        if (presetRoom && shouldHost) createRoom(presetRoom);
+      } catch (e) {
+        setStatus(e.message || 'Realtime no disponible');
       }
-    };
-
-    document.getElementById('create').onclick = ()=> ws.send(JSON.stringify({ type:'create' }));
-    document.getElementById('join').onclick = ()=>{ const r=document.getElementById('room').value.trim().toUpperCase(); if(!r) return; roomId=r; ws.send(JSON.stringify({ type:'join', room:r })); }
-
-    window.addEventListener('keydown',(e)=>{
-      if (e.key==='ArrowUp') { paddle[1].y -= 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:1, y:paddle[1].y }})); }
-      if (e.key==='ArrowDown') { paddle[1].y += 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:1, y:paddle[1].y }})); }
-      if (e.key==='w') { paddle[0].y -= 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:0, y:paddle[0].y }})); }
-      if (e.key==='s') { paddle[0].y += 20; ws.send(JSON.stringify({ type:'paddle', room:roomId, payload:{ index:0, y:paddle[0].y }})); }
-      if (e.key===' ') { // host can reset ball
-        ws.send(JSON.stringify({ type:'ball', room:roomId, payload:ball }));
-      }
-    });
-
-    function step(){
-      // simple local physics and broadcast
-      ball.x += ball.vx; ball.y += ball.vy;
-      if (ball.y < 0 || ball.y > canvas.height) ball.vy *= -1;
-      // collisions with paddles
-      if (ball.x < 30 && ball.y > paddle[0].y && ball.y < paddle[0].y + 60){ ball.vx *= -1; }
-      if (ball.x > canvas.width-30 && ball.y > paddle[1].y && ball.y < paddle[1].y + 60){ ball.vx *= -1; }
-      // broadcast ball state occasionally
-      ws.send(JSON.stringify({ type:'ball', room:roomId, payload:ball }));
-      draw(); requestAnimationFrame(step);
     }
 
-    function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle='#0a0'; ctx.fillRect(10,paddle[0].y,10,60); ctx.fillRect(canvas.width-20,paddle[1].y,10,60); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ball.x,ball.y,8,0,Math.PI*2); ctx.fill(); }
+    async function createRoom(room){
+      roomId = room || Math.random().toString(36).slice(2,8).toUpperCase();
+      role = 'left';
+      await roomApi.connect(roomId);
+      connected = true;
+      roomInput.value = roomId;
+      setStatus('Sala ' + roomId + ' - eres izquierda (W/S)');
+    }
+    async function joinRoom(room){
+      roomId = room;
+      role = 'right';
+      await roomApi.connect(roomId);
+      connected = true;
+      setStatus('Conectado como derecha (flechas)');
+    }
+    document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
+    document.getElementById('join').onclick = () => joinRoom(roomInput.value.trim().toUpperCase());
+    addEventListener('keydown', e => keys[e.key] = true);
+    addEventListener('keyup', e => keys[e.key] = false);
 
-    step();
+    function update(){
+      if (role === 'left') {
+        if (keys.w || keys.W) paddles.left -= 7;
+        if (keys.s || keys.S) paddles.left += 7;
+        ball.x += ball.vx; ball.y += ball.vy;
+        if (ball.y < 12 || ball.y > canvas.height - 12) ball.vy *= -1;
+        if (ball.x < 34 && ball.y > paddles.left && ball.y < paddles.left + 86) ball.vx = Math.abs(ball.vx) + 0.15;
+        if (ball.x > canvas.width - 34 && ball.y > paddles.right && ball.y < paddles.right + 86) ball.vx = -Math.abs(ball.vx) - 0.15;
+        if (ball.x < -20) { score.right++; resetBall(1); }
+        if (ball.x > canvas.width + 20) { score.left++; resetBall(-1); }
+        send('state', { ball, score });
+      }
+      if (role === 'right') {
+        if (keys.ArrowUp) paddles.right -= 7;
+        if (keys.ArrowDown) paddles.right += 7;
+      }
+      paddles.left = Math.max(8, Math.min(canvas.height - 94, paddles.left));
+      paddles.right = Math.max(8, Math.min(canvas.height - 94, paddles.right));
+      if (role) send('paddle', { side: role, y: paddles[role] });
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='#1f766d'; ctx.setLineDash([10,10]); ctx.beginPath(); ctx.moveTo(450,0); ctx.lineTo(450,540); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#22c55e'; ctx.fillRect(18,paddles.left,14,86);
+      ctx.fillStyle='#38bdf8'; ctx.fillRect(868,paddles.right,14,86);
+      ctx.fillStyle='#f8fafc'; ctx.beginPath(); ctx.arc(ball.x,ball.y,10,0,Math.PI*2); ctx.fill();
+      ctx.font='28px monospace'; ctx.fillStyle='#94a3b8'; ctx.fillText(score.left + '   ' + score.right, 410,42);
+    }
+    function loop(){ update(); draw(); requestAnimationFrame(loop); }
+    setupRealtime();
+    loop();
   </script>
 </body>
 </html>
