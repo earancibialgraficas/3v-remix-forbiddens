@@ -140,6 +140,7 @@ export default function BibliotecaPage() {
     // Si es multi, solo guardamos el tab. Si es consola, guardamos la consola.
     if (dropdownValue === "multi") next.set("tab", "multi");
     else next.set("console", selectedConsole);
+
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
@@ -534,7 +535,7 @@ const handlePlayCloudGame = async (game: any) => {
   ];
 
   // Opciones para el dropdown unificado
-  const dropdownOptions = [
+  const dropdownOptions: Array<{ type: string; label: string; value?: string; color?: string }> = [
     ...activeConsoles.map(c => ({
       type: 'console',
       value: `console:${c.id}`,
@@ -572,7 +573,7 @@ const handlePlayCloudGame = async (game: any) => {
               opt.type === 'section' ? (
                 <option key={i} disabled>────────────</option>
               ) : (
-                <option key={opt.value} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
+                <option key={opt.value || i} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
               )
             )}
           </select>
@@ -625,7 +626,7 @@ const handlePlayCloudGame = async (game: any) => {
               opt.type === 'section' ? (
                 <option key={i} disabled>────────────</option>
               ) : (
-                <option key={opt.value} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
+                <option key={opt.value || i} value={opt.value} className={opt.color ? opt.color : ''}>{opt.label}</option>
               )
             )}
           </select>
