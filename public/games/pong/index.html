@@ -29,6 +29,7 @@
     const params = new URLSearchParams(location.search);
     const presetRoom = (params.get('room') || '').toUpperCase();
     const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
     const canvas = document.getElementById('c');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
@@ -43,6 +44,7 @@
     const keys = {};
     const score = { left: 0, right: 0 };
     let ball = { x: 450, y: 270, vx: 4, vy: 2.8 };
+    let lastAwardedScore = { left: 0, right: 0 };
 
     function setStatus(text){ statusEl.textContent = text; }
     function send(type, payload){ if (connected && roomApi) roomApi.send(type, payload); }
@@ -52,14 +54,19 @@
       try {
         roomApi = await window.createRealtimeRoom({
           game: 'pong',
+          profile,
           onPeers: count => setStatus(count > 1 ? 'Rival conectado' : 'Sala ' + roomId),
           onMessage: msg => {
             if (msg.type === 'paddle') paddles[msg.payload.side] = msg.payload.y;
             if (msg.type === 'state') {
+              if (role === 'right' && msg.payload.score.right > lastAwardedScore.right) roomApi.awardWin('pong');
+              if (role === 'left' && msg.payload.score.left > lastAwardedScore.left) roomApi.awardWin('pong');
               ball = msg.payload.ball;
               score.left = msg.payload.score.left;
               score.right = msg.payload.score.right;
+              lastAwardedScore = { left: score.left, right: score.right };
             }
+            if (msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
           }
         });
         setStatus('Listo');
@@ -97,8 +104,18 @@
         if (ball.y < 12 || ball.y > canvas.height - 12) ball.vy *= -1;
         if (ball.x < 34 && ball.y > paddles.left && ball.y < paddles.left + 86) ball.vx = Math.abs(ball.vx) + 0.15;
         if (ball.x > canvas.width - 34 && ball.y > paddles.right && ball.y < paddles.right + 86) ball.vx = -Math.abs(ball.vx) - 0.15;
-        if (ball.x < -20) { score.right++; resetBall(1); }
-        if (ball.x > canvas.width + 20) { score.left++; resetBall(-1); }
+        if (ball.x < -20) {
+          score.right++;
+          if (role === 'right' && score.right > lastAwardedScore.right) roomApi.awardWin('pong');
+          lastAwardedScore.right = score.right;
+          resetBall(1);
+        }
+        if (ball.x > canvas.width + 20) {
+          score.left++;
+          if (role === 'left' && score.left > lastAwardedScore.left) roomApi.awardWin('pong');
+          lastAwardedScore.left = score.left;
+          resetBall(-1);
+        }
         send('state', { ball, score });
       }
       if (role === 'right') {

@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const makeRoomCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGameBubbleProps) {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
   const popupRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [minimized, setMinimized] = useState(false);
@@ -129,6 +131,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     v: String(reloadKey),
     sbUrl: import.meta.env.VITE_SUPABASE_URL,
     sbKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    userId: user?.id || "",
+    displayName: profile?.display_name || user?.user_metadata?.username || "Jugador",
+    avatarUrl: profile?.avatar_url || "",
   });
   const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
 

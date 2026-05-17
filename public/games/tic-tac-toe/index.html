@@ -35,13 +35,14 @@
     const params = new URLSearchParams(location.search);
     const presetRoom = (params.get('room') || '').toUpperCase();
     const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
     const boardEl = document.getElementById('board');
     const roomInput = document.getElementById('room');
     const statusEl = document.getElementById('status');
     const info = document.getElementById('info');
     if (presetRoom) roomInput.value = presetRoom;
 
-    let connected = false, roomId = presetRoom || null, roomApi = null, mark = shouldHost ? 'X' : null, turn = 'X', winner = null;
+    let connected = false, roomId = presetRoom || null, roomApi = null, mark = shouldHost ? 'X' : null, turn = 'X', winner = null, awardedWinner = null;
     let board = Array(9).fill('');
     function setStatus(text){ statusEl.textContent = text; }
     function send(type,payload){ if (connected && roomApi) roomApi.send(type, payload); }
@@ -61,6 +62,10 @@
       });
       winner = lineWinner();
       info.textContent = winner ? (winner === 'Empate' ? 'Empate' : winner + ' gana') : ('Turno ' + turn + (mark ? ' - eres ' + mark : ''));
+      if (winner && winner !== 'Empate' && winner === mark && awardedWinner !== winner) {
+        awardedWinner = winner;
+        roomApi?.awardWin('tic-tac-toe');
+      }
     }
     function applyMove(index, playedMark){
       if (board[index] || winner) return;
@@ -77,6 +82,7 @@
       board = Array(9).fill('');
       turn = 'X';
       winner = null;
+      awardedWinner = null;
       render();
       if (!localOnly) send('reset', {});
     }
@@ -85,10 +91,12 @@
       try {
         roomApi = await window.createRealtimeRoom({
           game: 'tic-tac-toe',
+          profile,
           onPeers: count => setStatus(count > 1 ? 'Rival conectado' : 'Sala ' + roomId),
           onMessage: msg => {
             if (msg.type === 'move') applyMove(msg.payload.index, msg.payload.mark);
             if (msg.type === 'reset') reset(true);
+            if (msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
           }
         });
         setStatus('Listo');

@@ -47,6 +47,7 @@
     const params = new URLSearchParams(location.search);
     const presetRoom = (params.get('room') || '').toUpperCase();
     const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
     const roomInput = document.getElementById('room');
     const statusEl = document.getElementById('status');
     const handEl = document.getElementById('hand');
@@ -55,7 +56,7 @@
     if (presetRoom) roomInput.value = presetRoom;
 
     let connected = false, roomId = presetRoom || null, roomApi = null, role = shouldHost ? 'host' : null;
-    let myHp = 30, oppHp = 30, myTurn = false, gameOver = false;
+    let myHp = 30, oppHp = 30, myTurn = false, gameOver = false, winAwarded = false;
     let hand = [];
     function randCard(){ return { id: Math.random().toString(36).slice(2,7), atk: Math.floor(Math.random()*7)+2, cost: Math.floor(Math.random()*3)+1 }; }
     function drawHand(){ hand = [randCard(), randCard(), randCard()]; render(); }
@@ -79,6 +80,10 @@
       if (myHp <= 0 || oppHp <= 0) {
         gameOver = true;
         logEl.textContent = oppHp <= 0 ? 'Ganaste el duelo.' : 'Perdiste el duelo.';
+        if (oppHp <= 0 && !winAwarded) {
+          winAwarded = true;
+          roomApi?.awardWin('card-duel');
+        }
       }
     }
     function play(id){
@@ -94,7 +99,7 @@
       render();
     }
     function reset(localOnly){
-      myHp = 30; oppHp = 30; gameOver = false;
+      myHp = 30; oppHp = 30; gameOver = false; winAwarded = false;
       myTurn = role === 'host';
       drawHand();
       logEl.textContent = 'Nueva mano lista.';
@@ -105,6 +110,7 @@
       try {
         roomApi = await window.createRealtimeRoom({
           game: 'card-duel',
+          profile,
           onPeers: count => { if (count > 1) { myTurn = role === 'host'; setStatus('Rival conectado'); render(); } },
           onMessage: msg => {
             if (msg.type === 'card') {
@@ -115,6 +121,7 @@
               render();
             }
             if (msg.type === 'reset') reset(true);
+            if (msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
           }
         });
         setStatus('Listo');

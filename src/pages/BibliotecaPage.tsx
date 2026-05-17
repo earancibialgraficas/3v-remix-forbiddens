@@ -512,10 +512,10 @@ const handlePlayCloudGame = async (game: any) => {
   };
 
   const multiplayerGames = [
-    { id: 'pong', label: 'Pong / Air Hockey' },
-    { id: 'agar', label: 'Agar.io-like' },
-    { id: 'tic-tac-toe', label: 'Tic Tac Toe' },
-    { id: 'card-duel', label: 'Card Duel (Hearthstone lite)' }
+    { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.png' },
+    { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.png' },
+    { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.png' },
+    { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.png' }
   ];
 
   // Opciones para el dropdown unificado
@@ -716,8 +716,11 @@ const handlePlayCloudGame = async (game: any) => {
                 onClick={() => setSelectedMultiGame(g)}
                 className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
               >
-                <div className="aspect-square bg-gradient-to-br from-neon-magenta/30 via-card to-neon-cyan/20 flex items-center justify-center">
-                  <div className="text-center text-[12px] px-2">{g.label}</div>
+                <div className="aspect-square bg-muted overflow-hidden relative">
+                  <img src={g.coverUrl} alt={g.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2">
+                    <div className="text-[11px] font-bold text-white drop-shadow">{g.label}</div>
+                  </div>
                 </div>
                 <div className="p-2 flex items-center gap-1">
                   <Play className="w-3 h-3 text-neon-magenta shrink-0" />

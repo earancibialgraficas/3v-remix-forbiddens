@@ -27,6 +27,7 @@
     const params = new URLSearchParams(location.search);
     const presetRoom = (params.get('room') || '').toUpperCase();
     const shouldHost = params.get('host') === '1';
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
     const canvas = document.getElementById('g');
     const ctx = canvas.getContext('2d');
     const roomInput = document.getElementById('room');
@@ -39,6 +40,7 @@
     const target = { x: me.x, y: me.y };
     const others = {};
     const food = Array.from({ length: 40 }, (_, i) => ({ id:i, x: Math.random()*1600-300, y: Math.random()*1000-200, r: 4 + Math.random()*4 }));
+    let nextWinMass = 36;
     function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
     function setStatus(text){ statusEl.textContent = text; }
     function send(type,payload){ if (connected && roomApi) roomApi.send(type, payload); }
@@ -48,9 +50,11 @@
       try {
         roomApi = await window.createRealtimeRoom({
           game: 'agar',
+          profile,
           onPeers: count => setStatus(count > 1 ? count + ' jugadores' : 'Sala ' + roomId),
           onMessage: msg => {
             if (msg.type === 'pos') others[msg.payload.id] = { ...msg.payload, seen: Date.now() };
+            if (msg.type === 'win') setStatus(msg.payload.displayName + ' gano +' + (msg.payload.awarded || 0) + ' pts');
           }
         });
         setStatus('Listo');
@@ -90,6 +94,10 @@
         const dx = pellet.x - me.x, dy = pellet.y - me.y;
         if (Math.hypot(dx,dy) < me.r + pellet.r) {
           me.r = Math.min(80, me.r + 0.35);
+          if (me.r >= nextWinMass) {
+            nextWinMass += 14;
+            roomApi?.awardWin('agar');
+          }
           pellet.x = me.x + Math.random()*1400-700;
           pellet.y = me.y + Math.random()*900-450;
         }
