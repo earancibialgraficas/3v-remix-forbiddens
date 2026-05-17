@@ -139,6 +139,35 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const mobileGameFrame = !fullscreen && size.w < 460;
   const headerButtonClass = cn("h-8 w-8 shrink-0", mobileGameFrame && "h-7 w-7");
 
+  const syncLocalSessionPlayer = useCallback(() => {
+    if (!activeGameId) return;
+    const next: SessionPlayer = {
+      userId: localSessionUserId,
+      playerId: lobbyPlayerIdRef.current,
+      name: localDisplayName,
+      avatarUrl: localAvatarUrl,
+      timePoints: sessionTimePointsRef.current,
+      totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
+      elapsedSeconds: sessionElapsedRef.current,
+      joinedAt: sessionStartedAtRef.current,
+      updatedAt: Date.now(),
+    };
+
+    setSessionPlayers((current) => {
+      const players = new Map(current.map((player) => [player.userId, player]));
+      players.set(next.userId, { ...(players.get(next.userId) || {}), ...next });
+      return Array.from(players.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
+    });
+
+    if (sessionChannelRef.current) {
+      void sessionChannelRef.current.track({
+        game: activeGameId,
+        room: activeSessionRoomCode,
+        ...next,
+      });
+    }
+  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId]);
+
   useEffect(() => {
     roomCodeRef.current = roomCode;
   }, [roomCode]);
@@ -240,43 +269,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
       if (event.data?.type === "game:sessionScore") {
         const delta = Math.max(0, Number(event.data.pointsDelta || 0));
-        const total = Math.max(0, Number(event.data.points || 0));
+        const total = Math.max(0, Number(event.data.sessionPoints ?? event.data.points ?? 0));
         pendingGamePointsRef.current = delta > 0
           ? pendingGamePointsRef.current + delta
           : Math.max(pendingGamePointsRef.current, total);
-        if (sessionChannelRef.current) {
-          void sessionChannelRef.current.track({
-            game: activeGameId,
-            room: activeSessionRoomCode,
-            playerId: lobbyPlayerIdRef.current,
-            userId: localSessionUserId,
-            name: localDisplayName,
-            avatarUrl: localAvatarUrl,
-            timePoints: sessionTimePointsRef.current,
-            totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
-            elapsedSeconds: sessionElapsedRef.current,
-            joinedAt: sessionStartedAtRef.current,
-            updatedAt: Date.now(),
-          });
-        }
+        syncLocalSessionPlayer();
       }
       if (event.data?.type === "game:pointsAwarded" && event.data.awarded > 0) {
         sessionTotalPointsRef.current += Number(event.data.awarded || 0);
-        if (sessionChannelRef.current) {
-          void sessionChannelRef.current.track({
-            game: activeGameId,
-            room: activeSessionRoomCode,
-            playerId: lobbyPlayerIdRef.current,
-            userId: localSessionUserId,
-            name: localDisplayName,
-            avatarUrl: localAvatarUrl,
-            timePoints: sessionTimePointsRef.current,
-            totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
-            elapsedSeconds: sessionElapsedRef.current,
-            joinedAt: sessionStartedAtRef.current,
-            updatedAt: Date.now(),
-          });
-        }
+        syncLocalSessionPlayer();
         toast({
           title: `+${event.data.awarded} puntos`,
           description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
@@ -285,7 +286,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, toast]);
+  }, [syncLocalSessionPlayer, toast]);
 
   useEffect(() => {
     if (!isAgar || !gameLaunched) {
@@ -466,22 +467,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       sessionElapsedRef.current += TIME_REWARD_SECONDS;
       sessionTimePointsRef.current += TIME_REWARD_POINTS;
       pendingGamePointsRef.current += TIME_REWARD_POINTS;
-
-      if (sessionChannelRef.current) {
-        await sessionChannelRef.current.track({
-          game: activeGameId,
-          room: activeSessionRoomCode,
-          playerId: lobbyPlayerIdRef.current,
-          userId: localSessionUserId,
-          name: localDisplayName,
-          avatarUrl: localAvatarUrl,
-          timePoints: sessionTimePointsRef.current,
-          totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
-          elapsedSeconds: sessionElapsedRef.current,
-          joinedAt: sessionStartedAtRef.current,
-          updatedAt: Date.now(),
-        });
-      }
+      syncLocalSessionPlayer();
     };
 
     const timer = window.setInterval(() => {
@@ -489,7 +475,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }, TIME_REWARD_SECONDS * 1000);
 
     return () => window.clearInterval(timer);
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, minimized, user?.id]);
+  }, [activeGameId, gameLaunched, isMassiveDecks, minimized, syncLocalSessionPlayer, user?.id]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {

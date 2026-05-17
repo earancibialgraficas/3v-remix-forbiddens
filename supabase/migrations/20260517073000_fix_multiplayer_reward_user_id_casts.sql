@@ -1,12 +1,5 @@
--- Remove the per-call and daily caps for browser multiplayer rewards.
--- Points are still only awarded to authenticated users through this RPC.
-
-ALTER TABLE public.leaderboard_scores
-  DROP CONSTRAINT IF EXISTS leaderboard_scores_console_type_check;
-
-ALTER TABLE public.leaderboard_scores
-  ADD CONSTRAINT leaderboard_scores_console_type_check
-  CHECK (console_type IN ('nes', 'snes', 'gba', 'n64', 'gbc', 'sega', 'ps1', 'arcade', 'multiplayer'));
+-- Make multiplayer reward saving tolerate projects where user_id is stored as
+-- text in some tables and uuid in others.
 
 CREATE OR REPLACE FUNCTION public.award_multiplayer_win(
   p_game_slug text,
@@ -112,6 +105,61 @@ BEGIN
     'leaderboard_score', COALESCE(leaderboard_score, 0),
     'total_score', COALESCE(profile_total, 0)
   );
+END;
+$$;
+
+-- Text version used by triggers so uuid/text column differences do not break
+-- profile total recalculation.
+CREATE OR REPLACE FUNCTION public.recalculate_total_score(p_user_id text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  arcade_sum integer;
+  bonus_sum integer;
+BEGIN
+  SELECT COALESCE(SUM(best), 0) INTO arcade_sum
+  FROM (
+    SELECT MAX(score) AS best
+    FROM public.leaderboard_scores
+    WHERE user_id::text = p_user_id
+      AND console_type <> 'multiplayer'
+    GROUP BY game_name, console_type
+  ) sub;
+
+  SELECT COALESCE(SUM(points), 0) INTO bonus_sum
+  FROM public.point_events
+  WHERE user_id::text = p_user_id;
+
+  UPDATE public.profiles
+  SET total_score = arcade_sum + bonus_sum,
+      updated_at = now()
+  WHERE user_id::text = p_user_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.recalculate_total_score(p_user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  PERFORM public.recalculate_total_score(p_user_id::text);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.trigger_recalculate_total_score()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  PERFORM public.recalculate_total_score(NEW.user_id::text);
+  RETURN NEW;
 END;
 $$;
 

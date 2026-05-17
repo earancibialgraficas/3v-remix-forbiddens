@@ -95,7 +95,7 @@
         // Configuración de Supabase Realtime
         const supabaseClient = supabase.createClient(sbUrl, sbKey);
         const channel = supabaseClient.channel(`agar_${room}`, {
-            config: { presence: { key: userId } }
+            config: { broadcast: { self: false }, presence: { key: userId } }
         });
 
         // Estado del Juego
@@ -117,6 +117,8 @@
         let mouse = { x: 0, y: 0 };
         let virtualAim = { x: 0, y: 0 };
         let lastBroadcastAt = 0;
+        let lastPresenceTrackAt = 0;
+        let lastLeaderboardAt = 0;
         let nextAwardScore = myScore + 20;
         let awardInFlight = false;
         let sessionAwarded = 0;
@@ -131,6 +133,8 @@
                 userId,
                 name: userName,
                 avatarUrl,
+                points: sessionAwarded + foodPointsPending,
+                sessionPoints: sessionAwarded + foodPointsPending,
                 score: gameOver ? 0 : myScore,
                 x: myPos.x,
                 y: myPos.y,
@@ -307,21 +311,54 @@
         function publishSessionScore() {
             const pointsDelta = Math.max(0, foodPointsPending - lastPublishedFoodPoints);
             lastPublishedFoodPoints = foodPointsPending;
-            window.parent.postMessage({ type: 'game:sessionScore', points: foodPointsPending, pointsDelta }, '*');
+            window.parent.postMessage({
+                type: 'game:sessionScore',
+                points: foodPointsPending,
+                sessionPoints: sessionAwarded + foodPointsPending,
+                pointsDelta
+            }, '*');
+            maybePublishLeaderboard(true);
         }
 
         // Sincronización Multijugador
-        function rememberRemotePlayer(player) {
-            if (!player || player.userId === userId) return;
-            const remoteCells = Array.isArray(player.cells) ? player.cells : [];
-            const hasCells = remoteCells.some(cell =>
+        function hasUsableCells(player) {
+            const remoteCells = Array.isArray(player?.cells) ? player.cells : [];
+            return remoteCells.some(cell =>
                 Number.isFinite(Number(cell.x)) &&
                 Number.isFinite(Number(cell.y)) &&
                 Number(cell.score || 0) > 0
             );
-            if (!hasCells && (!Number.isFinite(Number(player.x)) || !Number.isFinite(Number(player.y)))) return;
-            players[player.userId] = { ...player, lastSeen: Date.now() };
+        }
+
+        function mergeRemotePlayer(player, source) {
+            if (!player || player.userId === userId) return;
+            const now = Date.now();
+            const existing = players[player.userId] || {};
+            const incomingHasCells = hasUsableCells(player);
+            const incomingX = Number(player.x);
+            const incomingY = Number(player.y);
+            const incomingScore = Number(player.score);
+
+            players[player.userId] = {
+                ...existing,
+                ...player,
+                x: Number.isFinite(incomingX) ? incomingX : existing.x,
+                y: Number.isFinite(incomingY) ? incomingY : existing.y,
+                score: Number.isFinite(incomingScore) && incomingScore > 0 ? incomingScore : existing.score,
+                cells: incomingHasCells ? player.cells : existing.cells,
+                points: Number(player.points ?? player.sessionPoints ?? existing.points ?? 0),
+                sessionPoints: Number(player.sessionPoints ?? player.points ?? existing.sessionPoints ?? 0),
+                lastSeen: now,
+                presenceSeen: source === 'presence' ? now : existing.presenceSeen
+            };
             anchorSpawnNearRemote();
+        }
+
+        function rememberRemotePlayer(player) {
+            if (!player || player.userId === userId) return;
+            const hasCells = hasUsableCells(player);
+            if (!hasCells && (!Number.isFinite(Number(player.x)) || !Number.isFinite(Number(player.y)))) return;
+            mergeRemotePlayer(player, 'broadcast');
         }
 
         function getRemoteCells(player) {
@@ -360,7 +397,7 @@
         function pruneRemotePlayers() {
             const now = Date.now();
             Object.keys(players).forEach(id => {
-                if (!players[id] || now - Number(players[id].lastSeen || 0) > 8000) {
+                if (!players[id] || now - Number(players[id].lastSeen || 0) > 15000) {
                     delete players[id];
                 }
             });
@@ -377,28 +414,57 @@
                     userId: p.userId,
                     name: p.name,
                     avatarUrl: p.avatarUrl,
+                    points: Math.floor(Number(p.points || p.sessionPoints || 0)),
+                    sessionPoints: Math.floor(Number(p.sessionPoints || p.points || 0)),
                     score: Math.floor(Number(p.score || 0)),
                     cells: p.cells || []
                 }));
             window.parent.postMessage({ type: 'game:updateLeaderboard', players: leaderboard }, '*');
         }
 
+        function maybePublishLeaderboard(force = false) {
+            const now = Date.now();
+            if (!force && now - lastLeaderboardAt < 500) return;
+            lastLeaderboardAt = now;
+            publishLeaderboard();
+        }
+
+        function publishLocalRealtimeState(forcePresence = false) {
+            const now = Date.now();
+            const localState = getLocalPlayer();
+            if (now - lastBroadcastAt > 80) {
+                lastBroadcastAt = now;
+                channel.send({ type: 'broadcast', event: 'state', payload: localState });
+            }
+            if (forcePresence || now - lastPresenceTrackAt > 1000) {
+                lastPresenceTrackAt = now;
+                channel.track(localState);
+            }
+            maybePublishLeaderboard();
+        }
+
         channel
             .on('broadcast', { event: 'state' }, ({ payload }) => {
                 if (!payload || payload.userId === userId) return;
                 rememberRemotePlayer(payload);
-                publishLeaderboard();
+                maybePublishLeaderboard(true);
             })
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
-                const newPlayers = {};
+                const activePresenceIds = new Set();
                 Object.keys(state).forEach(key => {
                     const presence = state[key][0];
                     if (presence?.userId && presence.userId !== userId) {
-                        newPlayers[presence.userId] = { ...presence, lastSeen: Date.now() };
+                        activePresenceIds.add(presence.userId);
+                        mergeRemotePlayer(presence, 'presence');
                     }
                 });
-                players = newPlayers;
+                const now = Date.now();
+                Object.keys(players).forEach(id => {
+                    if (!activePresenceIds.has(id) && now - Number(players[id].lastSeen || 0) > 15000) {
+                        delete players[id];
+                    }
+                });
                 anchorSpawnNearRemote();
                 
                 // 📡 ENVIAR LEADERBOARD AL MARCO DE FORBIDDENS
@@ -411,6 +477,8 @@
                         userId: p.userId,
                         name: p.name,
                         avatarUrl: p.avatarUrl,
+                        points: Math.floor(Number(p.points || p.sessionPoints || 0)),
+                        sessionPoints: Math.floor(Number(p.sessionPoints || p.points || 0)),
                         score: Math.floor(Number(p.score || 0)),
                         cells: p.cells || []
                     }));
@@ -419,7 +487,9 @@
             })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
+                    lastPresenceTrackAt = Date.now();
                     await channel.track(getLocalPlayer());
+                    publishLocalRealtimeState(true);
                 }
             });
 
@@ -459,13 +529,7 @@
 
         setInterval(() => {
             if (gameOver) {
-                const now = Date.now();
-                const localState = getLocalPlayer();
-                if (now - lastBroadcastAt > 250) {
-                    lastBroadcastAt = now;
-                    channel.send({ type: 'broadcast', event: 'state', payload: localState });
-                    channel.track(localState);
-                }
+                publishLocalRealtimeState();
                 return;
             }
             const centerX = canvasWidth() / 2;
@@ -550,12 +614,7 @@
             });
             syncLocalStats();
             // Actualizar mi posición a los demás
-            const localState = getLocalPlayer();
-            if (now - lastBroadcastAt > 80) {
-                lastBroadcastAt = now;
-                channel.send({ type: 'broadcast', event: 'state', payload: localState });
-                channel.track(localState);
-            }
+            publishLocalRealtimeState();
         }, 1000/60);
 
         function drawPlayer(p, camX, camY, zoom) {
