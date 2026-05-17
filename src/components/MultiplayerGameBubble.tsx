@@ -50,6 +50,13 @@ interface AgarRoom {
   count: number;
 }
 
+interface MultiplayerLobbyRoom {
+  code: string;
+  count: number;
+  hostName: string;
+  updatedAt: number;
+}
+
 interface SessionPlayer {
   userId: string;
   playerId: string;
@@ -60,6 +67,12 @@ interface SessionPlayer {
   elapsedSeconds: number;
   joinedAt: number;
   updatedAt: number;
+}
+
+interface SavePendingResult {
+  saved: number;
+  attempted: number;
+  reason?: string;
 }
 
 const getAgarRoomIndex = (code: string) => {
@@ -106,6 +119,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [agarRooms, setAgarRooms] = useState<AgarRoom[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
+  const [lobbyRooms, setLobbyRooms] = useState<MultiplayerLobbyRoom[]>([]);
+  const [gameLaunched, setGameLaunched] = useState(false);
+  const [launchedAsHost, setLaunchedAsHost] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [expandedInfoOpen, setExpandedInfoOpen] = useState(false);
@@ -139,6 +155,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setReloadKey((key) => key + 1);
     setLeaderboard([]);
     setSessionPlayers([]);
+    setLobbyRooms([]);
+    setGameLaunched(activeGameId === "massive-decks");
+    setLaunchedAsHost(true);
     setExpandedInfoOpen(false);
     sessionStartedAtRef.current = Date.now();
     sessionElapsedRef.current = 0;
@@ -160,6 +179,58 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
   }, [activeGameId, activeSessionRoomCode]);
+
+  useEffect(() => {
+    if (!activeGameId || isMassiveDecks) {
+      setLobbyRooms([]);
+      return;
+    }
+
+    const channel = supabase.channel(`forbiddens:multiplayer-lobby:${activeGameId}`, {
+      config: { presence: { key: lobbyPlayerIdRef.current } },
+    });
+
+    const readLobbyRooms = () => {
+      const rooms = new Map<string, MultiplayerLobbyRoom>();
+      Object.values(channel.presenceState())
+        .flat()
+        .forEach((presence: any) => {
+          const code = String(presence?.room || "").trim().toUpperCase();
+          if (!code) return;
+          const current = rooms.get(code);
+          rooms.set(code, {
+            code,
+            count: (current?.count || 0) + 1,
+            hostName: current?.hostName || String(presence?.hostName || presence?.name || "Jugador"),
+            updatedAt: Math.max(Number(current?.updatedAt || 0), Number(presence?.updatedAt || 0)),
+          });
+        });
+      setLobbyRooms(Array.from(rooms.values()).sort((a, b) => b.updatedAt - a.updatedAt || a.code.localeCompare(b.code)));
+    };
+
+    channel.on("presence", { event: "sync" }, readLobbyRooms);
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        if (gameLaunched) {
+          await channel.track({
+            game: activeGameId,
+            room: activeSessionRoomCode,
+            playerId: lobbyPlayerIdRef.current,
+            userId: localSessionUserId,
+            name: localDisplayName,
+            hostName: launchedAsHost ? localDisplayName : undefined,
+            joinedAt: sessionStartedAtRef.current,
+            updatedAt: Date.now(),
+          });
+        }
+        readLobbyRooms();
+      }
+    });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, launchedAsHost, localDisplayName, localSessionUserId]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
@@ -217,7 +288,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, toast]);
 
   useEffect(() => {
-    if (!isAgar) {
+    if (!isAgar || !gameLaunched) {
       setAgarRooms([]);
       return;
     }
@@ -296,10 +367,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (lobbyChannelRef.current === channel) lobbyChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [isAgar, profile?.avatar_url, profile?.display_name, user?.id, user?.user_metadata?.username]);
+  }, [gameLaunched, isAgar, profile?.avatar_url, profile?.display_name, user?.id, user?.user_metadata?.username]);
 
   useEffect(() => {
-    if (!isAgar || !lobbyChannelRef.current) return;
+    if (!isAgar || !gameLaunched || !lobbyChannelRef.current) return;
     const trackedRoom = normalizeAgarRoomCode(roomCode);
     if (lobbyTrackedRoomRef.current !== trackedRoom) {
       lobbyTrackedRoomRef.current = trackedRoom;
@@ -314,10 +385,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       avatarUrl: profile?.avatar_url || "",
       joinedAt: lobbyJoinedAtRef.current,
     });
-  }, [isAgar, profile?.avatar_url, profile?.display_name, roomCode, user?.id, user?.user_metadata?.username]);
+  }, [gameLaunched, isAgar, profile?.avatar_url, profile?.display_name, roomCode, user?.id, user?.user_metadata?.username]);
 
   useEffect(() => {
-    if (!activeGameId) {
+    if (!activeGameId || (!gameLaunched && !isMassiveDecks)) {
       setSessionPlayers([]);
       return;
     }
@@ -386,10 +457,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId]);
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId]);
 
   useEffect(() => {
-    if (!activeGameId || minimized) return;
+    if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
 
     const awardTimePoints = async () => {
       sessionElapsedRef.current += TIME_REWARD_SECONDS;
@@ -418,7 +489,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }, TIME_REWARD_SECONDS * 1000);
 
     return () => window.clearInterval(timer);
-  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, minimized, user?.id]);
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, minimized, user?.id]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -548,10 +619,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setMinimized(true);
   }, [exitOwnFullscreen]);
 
-  const savePendingGamePoints = useCallback(async () => {
-    if (!user?.id || !activeGameId || pendingGamePointsRef.current <= 0) return 0;
+  const savePendingGamePoints = useCallback(async (): Promise<SavePendingResult> => {
     const pendingPoints = Math.floor(pendingGamePointsRef.current);
-    pendingGamePointsRef.current = 0;
+    if (pendingPoints <= 0) return { saved: 0, attempted: 0, reason: "no_points" };
+    if (!user?.id) return { saved: 0, attempted: pendingPoints, reason: "not_authenticated_in_client" };
+    if (!activeGameId) return { saved: 0, attempted: pendingPoints, reason: "missing_game" };
 
     try {
       const { data, error } = await (supabase as any).rpc("award_multiplayer_win", {
@@ -559,23 +631,33 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         p_room_code: activeSessionRoomCode,
         p_points: pendingPoints,
       });
-      if (error) return 0;
+      if (error) {
+        console.warn("No se pudo guardar puntaje multiplayer", error);
+        return { saved: 0, attempted: pendingPoints, reason: error.message || "rpc_error" };
+      }
       const saved = Number((data as any)?.awarded || 0);
-      if (saved > 0) sessionTotalPointsRef.current += saved;
-      return saved;
+      if (saved > 0) {
+        pendingGamePointsRef.current = Math.max(0, pendingGamePointsRef.current - saved);
+        sessionTotalPointsRef.current += saved;
+      }
+      return { saved, attempted: pendingPoints, reason: String((data as any)?.reason || "ok") };
     } catch {
-      return 0;
+      return { saved: 0, attempted: pendingPoints, reason: "unexpected_error" };
     }
   }, [activeGameId, activeSessionRoomCode, user?.id]);
 
   const closeBubble = useCallback(async () => {
-    const savedOnClose = await savePendingGamePoints();
+    const result = await savePendingGamePoints();
     exitOwnFullscreen();
+    const visiblePoints = sessionTotalPointsRef.current + pendingGamePointsRef.current;
     toast({
-      title: "Sesión finalizada",
-      description: `${game?.label || "Juego"}: +${sessionTotalPointsRef.current} puntos${savedOnClose > 0 ? ` (${savedOnClose} guardados al cerrar)` : ""}.`,
+      title: result.saved > 0 ? "Sesion finalizada" : "No se pudo guardar el puntaje",
+      description: result.saved > 0
+        ? `${game?.label || "Juego"}: +${visiblePoints} puntos (${result.saved} guardados al cerrar).`
+        : `${game?.label || "Juego"}: ${result.attempted} puntos pendientes. Motivo: ${result.reason || "desconocido"}.`,
+      variant: result.saved > 0 || result.attempted === 0 ? "default" : "destructive",
     });
-    onClose();
+    if (result.saved > 0 || result.attempted === 0) onClose();
   }, [exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
 
   const copyRoom = async () => {
@@ -597,12 +679,37 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }
   };
 
+  const launchRoom = (code: string, asHost: boolean) => {
+    const nextCode = (code || makeRoomCode()).trim().toUpperCase();
+    setRoomCode(isAgar ? normalizeAgarRoomCode(nextCode) : nextCode);
+    setLaunchedAsHost(asHost);
+    setGameLaunched(true);
+    setLeaderboard([]);
+    setSessionPlayers([]);
+    sessionStartedAtRef.current = Date.now();
+    sessionElapsedRef.current = 0;
+    sessionTimePointsRef.current = 0;
+    sessionTotalPointsRef.current = 0;
+    pendingGamePointsRef.current = 0;
+    setReloadKey((key) => key + 1);
+  };
+
+  const createLobbyRoom = () => launchRoom(roomCode, true);
+  const joinLobbyRoom = (code = roomCode) => {
+    const nextCode = code.trim().toUpperCase();
+    if (!nextCode) {
+      toast({ title: "Codigo requerido", description: "Escribe o elige una sala para unirte.", variant: "destructive" });
+      return;
+    }
+    launchRoom(nextCode, false);
+  };
+
   if (!game) return null;
 
   const activeRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const srcParams = new URLSearchParams({
     room: activeRoomCode,
-    host: "1",
+    host: launchedAsHost ? "1" : "0",
     embed: "1",
     v: String(reloadKey),
     sbUrl: import.meta.env.VITE_SUPABASE_URL,
@@ -617,7 +724,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     agarRooms.some((room) => room.code === activeRoomCode) ? agarRooms : [...agarRooms, { code: activeRoomCode, count: 0 }],
   );
   const currentAgarRoom = visibleAgarRooms.find((room) => room.code === activeRoomCode);
-  const infoPanelWidthClass = isMassiveDecks ? "w-52" : "w-36";
+  const infoPanelWidthClass = isMassiveDecks ? "w-64" : "w-44";
   const combinedLeaderboard = (() => {
     const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
     const rows = new Map<string, any>();
@@ -663,6 +770,79 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   })();
 
+  const lobbyPanel = (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-black/80">
+      <div className="border-b border-white/10 p-4">
+        <p className="font-pixel text-[11px] uppercase tracking-widest text-neon-magenta">{game.label}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">Crea una sala, comparte el codigo o entra a una partida disponible.</p>
+      </div>
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-[minmax(0,320px)_1fr]">
+        <div className="space-y-3">
+          <div className="rounded border border-neon-cyan/25 bg-white/[0.03] p-3">
+            <label className="font-pixel text-[8px] uppercase text-neon-cyan">Codigo de sala</label>
+            <input
+              value={roomCode}
+              onChange={(event) => setRoomCode(event.target.value.trim().toUpperCase())}
+              maxLength={12}
+              className="mt-2 h-9 w-full rounded border border-white/10 bg-black/60 px-2 font-pixel text-[10px] text-white outline-none focus:border-neon-cyan"
+              placeholder="CODIGO"
+            />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button size="sm" onClick={createLobbyRoom} className="h-8 text-[10px]">
+                Crear
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => joinLobbyRoom()} className="h-8 text-[10px]">
+                Unirse
+              </Button>
+            </div>
+          </div>
+          <div className="rounded border border-white/10 bg-white/[0.03] p-3">
+            <p className="font-pixel text-[8px] uppercase text-neon-green">Como funciona</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              El creador entra como jugador principal. Quien se une con el codigo entra como rival. Esto evita que ambos clientes tomen el mismo lado de la partida.
+            </p>
+          </div>
+        </div>
+
+        <div className="min-h-0 rounded border border-white/10 bg-white/[0.03]">
+          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+            <p className="font-pixel text-[9px] uppercase text-neon-magenta">Salas disponibles</p>
+            <span className="font-pixel text-[8px] text-neon-cyan">{lobbyRooms.length}</span>
+          </div>
+          <div className="max-h-[360px] overflow-y-auto p-2">
+            {lobbyRooms.length > 0 ? lobbyRooms.map((room) => {
+              const isFull = room.count >= (game.maxPlayers || 10);
+              return (
+              <button
+                key={room.code}
+                type="button"
+                disabled={isFull}
+                onClick={() => joinLobbyRoom(room.code)}
+                className={cn(
+                  "mb-2 flex w-full items-center gap-3 rounded border border-white/10 bg-black/45 px-3 py-2 text-left transition-colors hover:border-neon-cyan/50 hover:bg-neon-cyan/10",
+                  isFull && "cursor-not-allowed opacity-45 hover:border-white/10 hover:bg-black/45",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-pixel text-[9px] text-white">{room.code}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">Host: {room.hostName}</p>
+                </div>
+                <span className="rounded border border-neon-green/30 px-2 py-1 font-pixel text-[8px] text-neon-green">
+                  {room.count}/{game.maxPlayers || 10}
+                </span>
+              </button>
+            )}) : (
+              <div className="flex min-h-[180px] flex-col items-center justify-center gap-2 text-center opacity-60">
+                <Users className="h-6 w-6 text-white" />
+                <p className="font-pixel text-[8px] uppercase text-muted-foreground">No hay salas activas</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const leaderboardPanel = (
     <div className={cn(
       "border-border bg-black/60 flex flex-col shrink-0 overflow-hidden transition-transform duration-300",
@@ -672,7 +852,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             infoPanelWidthClass,
             expandedInfoOpen ? "translate-x-0" : "translate-x-full pointer-events-none",
           )
-        : compactGameFrame ? "h-40 w-full border-t" : cn(infoPanelWidthClass, "border-l"),
+        : compactGameFrame ? "h-44 w-full border-t" : cn(infoPanelWidthClass, "border-l"),
     )}>
       <div className="border-b border-white/5 bg-white/5 p-2">
         {isMassiveDecks ? (
@@ -708,6 +888,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           gameId={activeGameId}
           roomCode={activeSessionRoomCode}
           userName={localDisplayName}
+          showListeners={isMassiveDecks}
         />
       </div>
       <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
@@ -789,7 +970,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             "flex h-11 items-center gap-2 border-b border-border bg-muted/30 px-3 transition-transform duration-300",
             mobileGameFrame && "gap-1 px-2",
             fullscreen && cn(
-              "absolute left-0 top-0 z-[61] h-12 w-full bg-black/85 border-white/10",
+              "absolute left-0 top-0 z-[61] h-12 bg-black/85 border-white/10",
+              expandedInfoOpen
+                ? cn("w-auto", isMassiveDecks ? "right-64" : "right-44")
+                : "right-0 w-full",
               expandedInfoOpen ? "translate-y-0" : "-translate-y-full pointer-events-none",
             ),
           )}
@@ -874,7 +1058,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             className={cn(
               "absolute top-0 right-0 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
               expandedInfoOpen
-                ? cn(isMassiveDecks ? "-translate-x-[216px]" : "-translate-x-[152px]", "translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan")
+                ? cn(isMassiveDecks ? "-translate-x-[264px]" : "-translate-x-[184px]", "translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan")
                 : "-translate-x-2 translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
             )}
           >
@@ -885,6 +1069,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         {!minimized && (
           <div className={cn("flex w-full relative", fullscreen ? "h-full" : "h-[calc(100%-44px)]", compactGameFrame && !fullscreen && "flex-col")}>
             {/* Área del Juego */}
+            {!gameLaunched && !isMassiveDecks ? (
+              <div className="min-h-0 min-w-0 flex-1">
+                {lobbyPanel}
+              </div>
+            ) : (
             <div className="min-h-0 min-w-0 flex-1">
               <iframe
                 key={`${game.id}-${reloadKey}`}
@@ -895,6 +1084,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 allow="gamepad; fullscreen; autoplay"
               />
             </div>
+            )}
 
             {!fullscreen && (
               <div
@@ -906,7 +1096,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             )}
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
-            {leaderboardPanel}
+            {(gameLaunched || isMassiveDecks) && leaderboardPanel}
           </div>
         )}
 

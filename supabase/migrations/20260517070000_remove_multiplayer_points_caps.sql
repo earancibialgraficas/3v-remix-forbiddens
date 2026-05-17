@@ -1,6 +1,13 @@
 -- Remove the per-call and daily caps for browser multiplayer rewards.
 -- Points are still only awarded to authenticated users through this RPC.
 
+ALTER TABLE public.leaderboard_scores
+  DROP CONSTRAINT IF EXISTS leaderboard_scores_console_type_check;
+
+ALTER TABLE public.leaderboard_scores
+  ADD CONSTRAINT leaderboard_scores_console_type_check
+  CHECK (console_type IN ('nes', 'snes', 'gba', 'n64', 'gbc', 'sega', 'ps1', 'arcade', 'multiplayer'));
+
 CREATE OR REPLACE FUNCTION public.award_multiplayer_win(
   p_game_slug text,
   p_room_code text,

@@ -17,7 +17,10 @@
     .shell{width:min(900px,100%);height:100%;min-height:0;justify-self:center;display:grid;grid-template-columns:minmax(0,560px) minmax(180px,260px);gap:14px;align-items:stretch;container-type:size}
     .board{width:min(100%,560px);width:min(100%,560px,100cqh);max-height:100%;aspect-ratio:1;border:2px solid #14b8a6;box-shadow:0 0 28px #14b8a633;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);overflow:hidden;border-radius:10px;background:#0f172a;align-self:center;justify-self:center}
     .sq{width:100%;height:100%;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;font-size:clamp(22px,6.5vmin,58px);line-height:1;cursor:pointer;position:relative}
-    .light{background:#d7f7ee;color:#071014}.dark{background:#168071;color:#f8fafc}
+    .light{background:#d7f7ee}.dark{background:#168071}
+    .piece{display:block;width:100%;text-align:center;font-family:"DejaVu Sans","Segoe UI Symbol","Noto Sans Symbols 2","Apple Color Emoji",serif;font-weight:900}
+    .piece.white{color:#fff;text-shadow:0 1px 0 #020617,1px 0 0 #020617,0 -1px 0 #020617,-1px 0 0 #020617,0 0 10px #ffffffcc}
+    .piece.black{color:#000;text-shadow:0 1px 0 #ffffff55,0 0 10px #000}
     .sq.selected{outline:4px solid #facc15;outline-offset:-4px}
     .sq.move::after{content:"";width:22%;height:22%;border-radius:999px;background:#facc15aa;position:absolute}
     .panel{border:1px solid #334155;border-radius:10px;background:#020617d9;padding:12px;min-height:0;overflow:auto}
@@ -106,6 +109,10 @@
     function coords(i){ return { r: Math.floor(i/8), c: i%8 }; }
     function idx(r,c){ return r*8+c; }
     function inside(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+    function boardIndexForView(viewIndex){
+      const { r, c } = coords(viewIndex);
+      return role === 'b' ? idx(7 - r, 7 - c) : viewIndex;
+    }
     function pushRay(moves, i, dr, dc){
       const me = colorOf(cells[i]);
       let {r,c} = coords(i); r += dr; c += dc;
@@ -138,11 +145,20 @@
     function render(){
       cells = fromFen(board);
       boardEl.innerHTML = '';
-      for(let i=0;i<64;i++){
-        const {r,c} = coords(i);
+      for(let viewIndex=0;viewIndex<64;viewIndex++){
+        const i = boardIndexForView(viewIndex);
+        const {r,c} = coords(viewIndex);
+        const piece = cells[i];
+        const pieceColor = colorOf(piece);
         const b = document.createElement('button');
         b.className = 'sq ' + ((r+c)%2 ? 'dark' : 'light') + (i === selected ? ' selected' : '') + (legal.includes(i) ? ' move' : '');
-        b.textContent = glyphs[cells[i]] || '';
+        b.setAttribute('aria-label', piece ? (pieceColor === 'w' ? 'pieza blanca' : 'pieza negra') : 'casilla vacia');
+        if(piece){
+          const span = document.createElement('span');
+          span.className = 'piece ' + (pieceColor === 'w' ? 'white' : 'black');
+          span.textContent = glyphs[piece] || '';
+          b.appendChild(span);
+        }
         b.onclick = () => clickSquare(i);
         boardEl.appendChild(b);
       }
@@ -208,7 +224,10 @@
           }
         });
         setStatus('Listo');
-        if(presetRoom && shouldHost) createRoom(presetRoom);
+        if(presetRoom) {
+          if(shouldHost) createRoom(presetRoom);
+          else joinRoom(presetRoom);
+        }
       } catch(e){ setStatus(e.message || 'Realtime no disponible'); }
     }
     async function createRoom(room){

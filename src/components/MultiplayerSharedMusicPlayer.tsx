@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronUp, Music, Pause, Play, Plus, SkipBack, SkipForward, Trash2 } from "lucide-react";
+import { ChevronUp, Music, Pause, Play, Plus, SkipBack, SkipForward, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ interface SharedSong {
   id: string;
   title: string;
   url: string;
+  type?: "audio" | "youtube";
+  youtubeId?: string;
 }
 
 interface SharedMusicState {
@@ -23,6 +25,13 @@ interface MultiplayerSharedMusicPlayerProps {
   gameId: string;
   roomCode: string;
   userName: string;
+  showListeners?: boolean;
+}
+
+interface MusicListener {
+  id: string;
+  userName: string;
+  joinedAt: number;
 }
 
 const MUSIC_ROOMS = [
@@ -49,10 +58,26 @@ const titleFromUrl = (url: string) => {
   }
 };
 
-export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userName }: MultiplayerSharedMusicPlayerProps) {
+const getYoutubeId = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtu.be")) return parsed.pathname.replace("/", "").slice(0, 32) || null;
+    if (parsed.hostname.includes("youtube.com")) {
+      if (parsed.pathname.startsWith("/shorts/")) return parsed.pathname.split("/")[2] || null;
+      if (parsed.pathname.startsWith("/embed/")) return parsed.pathname.split("/")[2] || null;
+      return parsed.searchParams.get("v");
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userName, showListeners = false }: MultiplayerSharedMusicPlayerProps) {
   const [selectedRoom, setSelectedRoom] = useState("table");
   const [expanded, setExpanded] = useState(false);
   const [playlist, setPlaylist] = useState<SharedSong[]>([]);
+  const [listeners, setListeners] = useState<MusicListener[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -60,7 +85,9 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const channelRef = useRef<any>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientIdRef = useRef(`music_${Math.random().toString(36).slice(2, 10)}`);
   const pendingSeekRef = useRef<{ position: number; startedAt: number; isPlaying: boolean } | null>(null);
   const stateRef = useRef<SharedMusicState>({
@@ -72,6 +99,8 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   });
 
   const current = playlist[currentIndex];
+  const currentYoutubeId = current?.youtubeId || (current?.url ? getYoutubeId(current.url) : null);
+  const currentIsYoutube = Boolean(currentYoutubeId);
   const activeRoomId = selectedRoom === "table" ? `${gameId}:${roomCode}` : selectedRoom;
 
   useEffect(() => {
@@ -80,6 +109,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setListeners([]);
     pendingSeekRef.current = null;
   }, [activeRoomId]);
 
@@ -88,10 +118,10 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       playlist,
       currentIndex,
       isPlaying,
-      position: audioRef.current?.currentTime || currentTime,
+      position: currentIsYoutube ? currentTime : audioRef.current?.currentTime || currentTime,
       startedAt: Date.now(),
     };
-  }, [playlist, currentIndex, isPlaying, currentTime]);
+  }, [playlist, currentIndex, isPlaying, currentTime, currentIsYoutube]);
 
   const applyRemoteState = useCallback((state: SharedMusicState) => {
     const safePlaylist = Array.isArray(state.playlist) ? state.playlist : [];
@@ -113,7 +143,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       playlist,
       currentIndex,
       isPlaying,
-      position: audio?.currentTime || currentTime,
+      position: currentIsYoutube ? currentTime : audio?.currentTime || currentTime,
       startedAt: Date.now(),
       ...next,
     };
@@ -128,7 +158,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         state,
       },
     });
-  }, [currentIndex, currentTime, isPlaying, playlist, userName]);
+  }, [currentIndex, currentIsYoutube, currentTime, isPlaying, playlist, userName]);
 
   useEffect(() => {
     if (!gameId || !roomCode) return;
@@ -136,6 +166,21 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       config: { presence: { key: clientIdRef.current } },
     });
     channelRef.current = channel;
+
+    const readListeners = () => {
+      const latest = new Map<string, MusicListener>();
+      Object.entries(channel.presenceState()).forEach(([key, presences]: any) => {
+        const presence = Array.isArray(presences) ? presences[0] : presences;
+        const id = String(presence?.clientId || key);
+        if (!id) return;
+        latest.set(id, {
+          id,
+          userName: String(presence?.userName || "Jugador"),
+          joinedAt: Number(presence?.joinedAt || 0),
+        });
+      });
+      setListeners(Array.from(latest.values()).sort((a, b) => a.joinedAt - b.joinedAt));
+    };
 
     channel.on("broadcast", { event: "music" }, ({ payload }: any) => {
       if (!payload || payload.sender === clientIdRef.current) return;
@@ -156,10 +201,12 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         applyRemoteState(payload.state);
       }
     });
+    channel.on("presence", { event: "sync" }, readListeners);
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        await channel.track({ userName, joinedAt: Date.now() });
+        await channel.track({ clientId: clientIdRef.current, userName, joinedAt: Date.now() });
+        readListeners();
         void channel.send({
           type: "broadcast",
           event: "music",
@@ -177,6 +224,10 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    if (currentIsYoutube) {
+      audio.pause();
+      return;
+    }
     if (!current) {
       audio.pause();
       return;
@@ -205,15 +256,61 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     } else {
       audio.pause();
     }
-  }, [current?.id, current?.url, isPlaying]);
+  }, [current?.id, current?.url, currentIsYoutube, isPlaying]);
+
+  useEffect(() => {
+    if (!currentIsYoutube || !currentYoutubeId) return;
+    const pending = pendingSeekRef.current;
+    const basePosition = pending ? pending.position + (pending.isPlaying ? Math.max(0, (Date.now() - pending.startedAt) / 1000) : 0) : currentTime;
+    const shouldPlay = pending ? pending.isPlaying : isPlaying;
+    const timer = window.setTimeout(() => {
+      if (!iframeRef.current?.contentWindow) return;
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: "command", func: "seekTo", args: [basePosition, true] }), "*");
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: "command", func: shouldPlay ? "playVideo" : "pauseVideo" }), "*");
+      pendingSeekRef.current = null;
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [currentIsYoutube, currentTime, currentYoutubeId, isPlaying]);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (!currentIsYoutube || !event.data) return;
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (data.event !== "infoDelivery" || !data.info) return;
+        if (typeof data.info.currentTime === "number") setCurrentTime(data.info.currentTime);
+        if (typeof data.info.duration === "number") setDuration(data.info.duration);
+        if (data.info.playerState === 0) jumpTo(currentIndex + 1);
+      } catch {
+        // Ignore non-YouTube postMessage traffic.
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [currentIndex, currentIsYoutube]);
+
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (currentIsYoutube && iframeRef.current?.contentWindow) {
+      pollRef.current = setInterval(() => {
+        iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1 }), "*");
+      }, 1000);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [currentIsYoutube, currentYoutubeId]);
 
   const addSong = () => {
     const url = newSongUrl.trim();
     if (!url) return;
+    const youtubeId = getYoutubeId(url);
     const nextSong: SharedSong = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       title: newSongTitle.trim() || titleFromUrl(url),
       url,
+      type: youtubeId ? "youtube" : "audio",
+      youtubeId: youtubeId || undefined,
     };
     const nextPlaylist = [...playlist, nextSong];
     const nextIndex = playlist.length ? currentIndex : 0;
@@ -238,7 +335,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     setIsPlaying(nextPlaying);
     publishState({
       isPlaying: nextPlaying,
-      position: audioRef.current?.currentTime || currentTime,
+      position: currentIsYoutube ? currentTime : audioRef.current?.currentTime || currentTime,
       startedAt: Date.now(),
     });
   };
@@ -281,12 +378,21 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     <div className="bg-black/35 p-2">
       <audio
         ref={audioRef}
-        src={current?.url}
+        src={current && !currentIsYoutube ? current.url : undefined}
         preload="metadata"
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
         onEnded={() => jumpTo(currentIndex + 1)}
       />
+      {currentIsYoutube && currentYoutubeId && (
+        <iframe
+          ref={iframeRef}
+          title="YouTube compartido"
+          src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
+          allow="autoplay; encrypted-media"
+          className="sr-only"
+        />
+      )}
 
       <div className="flex items-center gap-1.5">
         <Music className="h-3.5 w-3.5 shrink-0 text-neon-cyan" />
@@ -314,9 +420,38 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
           {current?.title || "Sin canciones"}
         </p>
         <p className="font-pixel text-[5px] text-neon-cyan">
-          {formatTime(currentTime)} / {duration ? formatTime(duration) : "0:00"}
+          {currentIsYoutube ? "YouTube - " : ""}{formatTime(currentTime)} / {duration ? formatTime(duration) : "0:00"}
         </p>
       </div>
+
+      {showListeners && (
+        <div className="mt-2 rounded border border-white/10 bg-black/35 p-1.5">
+          <div className="mb-1 flex items-center gap-1">
+            <Users className="h-3 w-3 text-neon-magenta" />
+            <p className="font-pixel text-[6px] uppercase tracking-widest text-neon-magenta">
+              Escuchando {roomLabel}
+            </p>
+            <span className="ml-auto font-pixel text-[6px] text-neon-cyan">{listeners.length}</span>
+          </div>
+          {listeners.length > 0 ? (
+            <div className="space-y-1">
+              {listeners.slice(0, 8).map((listener) => (
+                <div key={listener.id} className="flex min-w-0 items-center gap-1.5">
+                  <span className={cn(
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                    listener.id === clientIdRef.current ? "bg-neon-cyan shadow-[0_0_8px_rgba(34,211,238,0.85)]" : "bg-neon-green"
+                  )} />
+                  <p className="truncate text-[8px] text-white" title={listener.userName}>
+                    {listener.userName}{listener.id === clientIdRef.current ? " (tu)" : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[8px] text-muted-foreground">Esperando oyentes...</p>
+          )}
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-2 space-y-1.5">
@@ -341,7 +476,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
             <Input
               value={newSongUrl}
               onChange={(event) => setNewSongUrl(event.target.value)}
-              placeholder="URL mp3/ogg"
+              placeholder="URL YouTube/mp3/ogg"
               className="h-7 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]"
               onKeyDown={(event) => {
                 if (event.key === "Enter") addSong();

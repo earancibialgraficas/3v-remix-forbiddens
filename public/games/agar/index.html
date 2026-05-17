@@ -100,11 +100,19 @@
 
         // Estado del Juego
         let worldSize = 3000;
-        let myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
+        function createSpawnPoint() {
+            const spread = 420;
+            return {
+                x: worldSize / 2 + (Math.random() - 0.5) * spread,
+                y: worldSize / 2 + (Math.random() - 0.5) * spread
+            };
+        }
+        let myPos = createSpawnPoint();
         let camera = { x: myPos.x, y: myPos.y, zoom: 1 };
         let myScore = 40;
         let cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, splitAt: 0, mergeAt: 0 }];
         let players = {};
+        let hasAnchoredSpawn = false;
         let food = [];
         let mouse = { x: 0, y: 0 };
         let virtualAim = { x: 0, y: 0 };
@@ -126,6 +134,7 @@
                 score: gameOver ? 0 : myScore,
                 x: myPos.x,
                 y: myPos.y,
+                lastSeen: Date.now(),
                 cells: gameOver ? [] : cells.map(cell => ({
                     id: cell.id,
                     x: cell.x,
@@ -147,7 +156,7 @@
         }
 
         function resetLocalPlayer() {
-            myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
+            myPos = createSpawnPoint();
             camera = { x: myPos.x, y: myPos.y, zoom: 1 };
             myScore = 40;
             cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, splitAt: 0, mergeAt: 0 }];
@@ -155,6 +164,8 @@
             gameOver = false;
             bestMass = myScore;
             deathEl.classList.remove('show');
+            hasAnchoredSpawn = false;
+            anchorSpawnNearRemote();
             canvas.focus?.();
         }
 
@@ -300,7 +311,63 @@
         }
 
         // Sincronización Multijugador
+        function rememberRemotePlayer(player) {
+            if (!player || player.userId === userId) return;
+            const remoteCells = Array.isArray(player.cells) ? player.cells : [];
+            const hasCells = remoteCells.some(cell =>
+                Number.isFinite(Number(cell.x)) &&
+                Number.isFinite(Number(cell.y)) &&
+                Number(cell.score || 0) > 0
+            );
+            if (!hasCells && (!Number.isFinite(Number(player.x)) || !Number.isFinite(Number(player.y)))) return;
+            players[player.userId] = { ...player, lastSeen: Date.now() };
+            anchorSpawnNearRemote();
+        }
+
+        function getRemoteCells(player) {
+            const source = Array.isArray(player?.cells) && player.cells.length ? player.cells : [player];
+            return source
+                .map(cell => ({
+                    ...cell,
+                    x: Number(cell.x),
+                    y: Number(cell.y),
+                    score: Number(cell.score || player?.score || 0)
+                }))
+                .filter(cell => Number.isFinite(cell.x) && Number.isFinite(cell.y) && cell.score > 0);
+        }
+
+        function anchorSpawnNearRemote() {
+            if (hasAnchoredSpawn || gameOver || myScore > 42 || cells.length !== 1) return;
+            const remote = Object.values(players).find(player => player && player.userId !== userId);
+            if (!remote) return;
+            const remoteCells = getRemoteCells(remote);
+            const anchor = remoteCells[0] || remote;
+            const anchorX = Number(anchor.x);
+            const anchorY = Number(anchor.y);
+            if (!Number.isFinite(anchorX) || !Number.isFinite(anchorY)) return;
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 170 + Math.random() * 120;
+            cells[0].x = Math.max(80, Math.min(worldSize - 80, anchorX + Math.cos(angle) * distance));
+            cells[0].y = Math.max(80, Math.min(worldSize - 80, anchorY + Math.sin(angle) * distance));
+            cells[0].vx = 0;
+            cells[0].vy = 0;
+            hasAnchoredSpawn = true;
+            syncLocalStats();
+            camera = { x: myPos.x, y: myPos.y, zoom: camera.zoom };
+        }
+
+        function pruneRemotePlayers() {
+            const now = Date.now();
+            Object.keys(players).forEach(id => {
+                if (!players[id] || now - Number(players[id].lastSeen || 0) > 8000) {
+                    delete players[id];
+                }
+            });
+        }
+
         function publishLeaderboard() {
+            pruneRemotePlayers();
             const leaderboardPlayers = { ...players, [userId]: getLocalPlayer() };
             const leaderboard = Object.values(leaderboardPlayers)
                 .filter(Boolean)
@@ -319,27 +386,32 @@
         channel
             .on('broadcast', { event: 'state' }, ({ payload }) => {
                 if (!payload || payload.userId === userId) return;
-                players[payload.userId] = payload;
+                rememberRemotePlayer(payload);
                 publishLeaderboard();
             })
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
                 const newPlayers = {};
                 Object.keys(state).forEach(key => {
-                    newPlayers[key] = state[key][0];
+                    const presence = state[key][0];
+                    if (presence?.userId && presence.userId !== userId) {
+                        newPlayers[presence.userId] = { ...presence, lastSeen: Date.now() };
+                    }
                 });
                 players = newPlayers;
+                anchorSpawnNearRemote();
                 
                 // 📡 ENVIAR LEADERBOARD AL MARCO DE FORBIDDENS
                 const leaderboardPlayers = { ...players, [userId]: getLocalPlayer() };
                 const leaderboard = Object.values(leaderboardPlayers)
-                    .sort((a, b) => b.score - a.score)
+                    .filter(Boolean)
+                    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
                     .slice(0, 10)
                     .map(p => ({
                         userId: p.userId,
                         name: p.name,
                         avatarUrl: p.avatarUrl,
-                        score: Math.floor(p.score),
+                        score: Math.floor(Number(p.score || 0)),
                         cells: p.cells || []
                     }));
                 
@@ -452,13 +524,14 @@
                 return true;
             });
             while(food.length < 150) food.push({ x: Math.random() * worldSize, y: Math.random() * worldSize, c: `hsl(${Math.random()*360}, 70%, 60%)` });
+            pruneRemotePlayers();
 
             // ⚔️ Colisión entre jugadores (Comer / Ser comido)
             Object.keys(players).forEach(id => {
                 if (id === userId) return;
                 const p = players[id];
                 if (!p || p.userId === userId) return;
-                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
+                const remoteCells = getRemoteCells(p);
                 cells = cells.filter(cell => {
                     for (const remoteCell of remoteCells) {
                         const remoteScore = Number(remoteCell.score || p.score || 0);
@@ -481,8 +554,8 @@
             if (now - lastBroadcastAt > 80) {
                 lastBroadcastAt = now;
                 channel.send({ type: 'broadcast', event: 'state', payload: localState });
+                channel.track(localState);
             }
-            channel.track(localState);
         }, 1000/60);
 
         function drawPlayer(p, camX, camY, zoom) {
@@ -542,7 +615,7 @@
 
             Object.values(players).forEach(p => {
                 if (!p || p.userId === userId) return;
-                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
+                const remoteCells = getRemoteCells(p);
                 remoteCells.forEach(cell => drawDot(cell, '#ff00ff'));
             });
             cells.forEach(cell => drawDot(cell, '#00f3ff'));
@@ -592,7 +665,7 @@
             // Dibujar jugadores remotos desde Realtime y al jugador local desde la fisica actual.
             Object.values(players).forEach(p => {
                 if (!p || p.userId === userId) return;
-                const remoteCells = Array.isArray(p.cells) && p.cells.length ? p.cells : [p];
+                const remoteCells = getRemoteCells(p);
                 remoteCells.forEach(cell => drawPlayer({ ...p, x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));
             });
             cells.forEach(cell => drawPlayer({ ...getLocalPlayer(), x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));

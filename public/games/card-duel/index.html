@@ -131,7 +131,10 @@
         });
         setStatus('Listo');
         drawHand();
-        if (presetRoom && shouldHost) createRoom(presetRoom);
+        if (presetRoom) {
+          if (shouldHost) createRoom(presetRoom);
+          else joinRoom(presetRoom);
+        }
       } catch (e) {
         setStatus(e.message || 'Realtime no disponible');
       }
