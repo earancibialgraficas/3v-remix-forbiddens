@@ -114,6 +114,8 @@ export default function BibliotecaPage() {
   const [editCover, setEditCover] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"single" | "multi">("single");
+  const [multiGameOpen, setMultiGameOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialConsoleParam = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
