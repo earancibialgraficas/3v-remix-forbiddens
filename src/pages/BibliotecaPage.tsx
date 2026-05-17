@@ -117,24 +117,35 @@ export default function BibliotecaPage() {
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
   const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string } | null>(null);
+  
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // 🔄 Lógica de persistencia unificada para Consolas y Multijugador
+  const savedTab = searchParams.get("tab") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:activeTab") : null);
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
+  
   const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
   const initialConsoleParam = validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
+  
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
-  const [dropdownValue, setDropdownValue] = useState<string>(`console:${initialConsoleParam}`);
+  const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("biblioteca:console", selectedConsole);
+      localStorage.setItem("biblioteca:activeTab", dropdownValue);
     }
-    const current = searchParams.get("console");
-    if (current !== selectedConsole) {
-      const next = new URLSearchParams(searchParams);
-      next.set("console", selectedConsole);
+    
+    const next = new URLSearchParams();
+    // Si es multi, solo guardamos el tab. Si es consola, guardamos la consola.
+    if (dropdownValue === "multi") next.set("tab", "multi");
+    else next.set("console", selectedConsole);
+
+    if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [selectedConsole]);
+  }, [selectedConsole, dropdownValue, searchParams, setSearchParams]);
+
   const [searchQuery, setSearchQuery] = useState("");
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
@@ -269,10 +280,15 @@ export default function BibliotecaPage() {
   }, [fetchDriveGames]);
 
   useEffect(() => {
-    const consoleParam = searchParams.get("console");
-    if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) {
-      setSelectedConsole(consoleParam);
-      setDropdownValue(`console:${consoleParam}`);
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "multi") {
+      setDropdownValue("multi");
+    } else {
+      const consoleParam = searchParams.get("console");
+      if (consoleParam && activeConsoles.some(c => c.id === consoleParam)) {
+        setSelectedConsole(consoleParam);
+        setDropdownValue(`console:${consoleParam}`);
+      }
     }
   }, [searchParams, activeConsoles]);
 

@@ -9,6 +9,7 @@ import {
   Minimize2,
   Move,
   RefreshCw,
+  Users,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [roomCode, setRoomCode] = useState(makeRoomCode);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -50,7 +52,20 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setSize({ w: Math.min(900, window.innerWidth - 32), h: Math.min(640, window.innerHeight - 32) });
     setRoomCode(makeRoomCode());
     setReloadKey((key) => key + 1);
+    setLeaderboard([]); // Limpiar al cambiar de juego
   }, [game?.id]);
+
+  // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // El juego debe enviar un objeto con type: "game:updateLeaderboard"
+      if (event.data?.type === "game:updateLeaderboard") {
+        setLeaderboard(event.data.players || []);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -134,6 +149,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     userId: user?.id || "",
     displayName: profile?.display_name || user?.user_metadata?.username || "Jugador",
     avatarUrl: profile?.avatar_url || "",
+    maxPlayers: "10",
   });
   const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
 
@@ -202,22 +218,68 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         </div>
 
         {!minimized && (
-          <>
-            <iframe
-              key={`${game.id}-${reloadKey}`}
-              ref={frameRef}
-              src={src}
-              title={game.label}
-              className="h-[calc(100%-44px)] w-full bg-black"
-              allow="gamepad; fullscreen; autoplay"
-            />
+          <div className="flex h-[calc(100%-44px)] w-full relative">
+            {/* Área del Juego */}
+            <div className="flex-1 h-full">
+              <iframe
+                key={`${game.id}-${reloadKey}`}
+                ref={frameRef}
+                src={src}
+                title={game.label}
+                className="h-full w-full bg-black"
+                allow="gamepad; fullscreen; autoplay"
+              />
+            </div>
+
             <div
               onMouseDown={onResizeDown}
               className="absolute bottom-0 right-0 z-10 flex h-6 w-6 cursor-nwse-resize items-end justify-end p-1 text-muted-foreground hover:text-foreground"
             >
               <GripVertical className="h-3.5 w-3.5 rotate-[-45deg]" />
             </div>
-          </>
+            
+            {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
+            <div className="w-28 border-l border-border bg-black/60 flex flex-col shrink-0 overflow-hidden">
+              <div className="p-2 border-b border-white/5 bg-white/5 flex items-center justify-center gap-1.5">
+                <Users className="w-2.5 h-2.5 text-neon-magenta" />
+                <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Players</p>
+              </div>
+              <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
+                {leaderboard.length > 0 ? leaderboard.map((p, i) => (
+                  <div key={p.userId || i} className="flex flex-col items-center gap-1 animate-fade-in">
+                    <div className="relative">
+                      <img 
+                        src={p.avatarUrl || "/placeholder.svg"} 
+                        alt={p.name} 
+                        className={cn(
+                          "w-9 h-9 rounded border object-cover transition-all",
+                          p.userId === user?.id ? "border-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.4)]" : "border-white/10"
+                        )}
+                        onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
+                      />
+                      <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
+                        <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                      </div>
+                    </div>
+                    <div className="text-center min-w-0 w-full">
+                      <p className="font-pixel text-[6px] text-white truncate px-1" title={p.name}>{p.name}</p>
+                      <div className="flex flex-col gap-0 mt-0.5">
+                        <span className="font-pixel text-[7px] text-neon-green leading-none">{p.score?.toLocaleString() || 0}</span>
+                        {p.wins !== undefined && (
+                          <span className="font-pixel text-[5px] text-neon-yellow uppercase tracking-tighter">🏆 {p.wins} wins</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="h-full flex flex-col items-center justify-center opacity-15 gap-2 pt-10">
+                    <Users className="w-5 h-5 text-white" />
+                    <p className="font-pixel text-[5px] text-center uppercase">Waiting...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {minimized && (
