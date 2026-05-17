@@ -510,6 +510,27 @@ const handlePlayCloudGame = async (game: any) => {
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
       
+      <div className="flex gap-2">
+        <Button
+          variant={activeTab === "single" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveTab("single")}
+          className="text-xs font-pixel"
+        >
+          <Gamepad2 className="w-3 h-3 mr-1" /> SALAS DE JUEGO
+        </Button>
+        <Button
+          variant={activeTab === "multi" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveTab("multi")}
+          className="text-xs font-pixel"
+        >
+          <User className="w-3 h-3 mr-1" /> MULTIJUGADOR
+        </Button>
+      </div>
+
+      {activeTab === "single" && (
+      <>
       <div className="bg-card border border-neon-green/30 rounded-lg p-4 relative">
         <h1 className="font-pixel text-sm text-neon-green text-glow-green mb-1 flex items-center gap-2">
           <Gamepad2 className="w-4 h-4" /> SALAS DE JUE<VaultHint letter="G" position={10} color="text-neon-magenta" />O
