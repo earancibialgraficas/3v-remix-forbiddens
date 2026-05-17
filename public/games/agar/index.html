@@ -6,7 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: none; touch-action: none; }
     </style>
 </head>
 <body>
@@ -34,6 +34,7 @@
         let myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
         let camera = { x: myPos.x, y: myPos.y };
         let myScore = 40;
+        let cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
         let players = {};
         let food = [];
         let mouse = { x: 0, y: 0 };
@@ -43,6 +44,65 @@
 
         function getLocalPlayer() {
             return { userId, name: userName, avatarUrl, score: myScore, x: myPos.x, y: myPos.y };
+        }
+
+        function syncLocalStats() {
+            const total = cells.reduce((sum, cell) => sum + cell.score, 0) || 40;
+            myScore = total;
+            myPos = cells.reduce((center, cell) => {
+                center.x += cell.x * cell.score / total;
+                center.y += cell.y * cell.score / total;
+                return center;
+            }, { x: 0, y: 0 });
+        }
+
+        function resetLocalPlayer() {
+            myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
+            camera = { x: myPos.x, y: myPos.y };
+            myScore = 40;
+            cells = [{ id: 'main', x: myPos.x, y: myPos.y, score: myScore, vx: 0, vy: 0, rejoinAt: 0 }];
+            nextAwardScore = myScore + 20;
+        }
+
+        function directionFromPointer() {
+            const centerX = canvasWidth() / 2;
+            const centerY = canvasHeight() / 2;
+            const dx = mouse.x - centerX;
+            const dy = mouse.y - centerY;
+            const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+            return { x: dx / dist, y: dy / dist };
+        }
+
+        function splitCells() {
+            if (cells.length >= 8) return;
+            const dir = directionFromPointer();
+            const now = Date.now();
+            const nextCells = [];
+            cells.forEach(cell => {
+                if (cell.score < 70 || nextCells.length >= 8) {
+                    nextCells.push(cell);
+                    return;
+                }
+                const childScore = cell.score * 0.5;
+                cell.score = childScore;
+                cell.vx -= dir.x * 5;
+                cell.vy -= dir.y * 5;
+                cell.rejoinAt = now + 3200;
+                nextCells.push(cell);
+                if (nextCells.length < 8) {
+                    nextCells.push({
+                        id: Math.random().toString(36).slice(2, 9),
+                        x: Math.max(0, Math.min(worldSize, cell.x + dir.x * (childScore + 20))),
+                        y: Math.max(0, Math.min(worldSize, cell.y + dir.y * (childScore + 20))),
+                        score: childScore,
+                        vx: dir.x * 26,
+                        vy: dir.y * 26,
+                        rejoinAt: now + 3200
+                    });
+                }
+            });
+            cells = nextCells;
+            syncLocalStats();
         }
 
         // Generar comida inicial
@@ -151,16 +211,46 @@
             const dy = mouse.y - centerY;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            if (dist > 10) {
-                const speed = Math.max(1, 6 - (myScore / 500)); // Más grande = más lento
-                myPos.x = Math.max(0, Math.min(worldSize, myPos.x + (dx/dist) * speed));
-                myPos.y = Math.max(0, Math.min(worldSize, myPos.y + (dy/dist) * speed));
+            const moveX = dist > 10 ? dx / dist : 0;
+            const moveY = dist > 10 ? dy / dist : 0;
+            const now = Date.now();
+
+            cells.forEach(cell => {
+                const speed = Math.max(1.05, 7 - (cell.score / 90));
+                cell.vx = (cell.vx + moveX * speed) * 0.86;
+                cell.vy = (cell.vy + moveY * speed) * 0.86;
+                cell.x = Math.max(0, Math.min(worldSize, cell.x + cell.vx));
+                cell.y = Math.max(0, Math.min(worldSize, cell.y + cell.vy));
+            });
+
+            for (let i = cells.length - 1; i >= 0; i--) {
+                for (let j = i - 1; j >= 0; j--) {
+                    const a = cells[i];
+                    const b = cells[j];
+                    const dxCells = a.x - b.x;
+                    const dyCells = a.y - b.y;
+                    const d = Math.max(1, Math.sqrt(dxCells * dxCells + dyCells * dyCells));
+                    const minDistance = (a.score + b.score) * 0.62;
+                    if (d < minDistance && (now < a.rejoinAt || now < b.rejoinAt)) {
+                        const push = (minDistance - d) * 0.03;
+                        a.vx += (dxCells / d) * push;
+                        a.vy += (dyCells / d) * push;
+                        b.vx -= (dxCells / d) * push;
+                        b.vy -= (dyCells / d) * push;
+                    } else if (d < Math.max(a.score, b.score) * 0.5 && now >= a.rejoinAt && now >= b.rejoinAt) {
+                        b.score += a.score;
+                        cells.splice(i, 1);
+                        break;
+                    }
+                }
             }
             
             // Colisión con comida
             food = food.filter(f => {
-                const d = Math.sqrt((f.x - myPos.x)**2 + (f.y - myPos.y)**2);
-                if (d < myScore) { myScore += 0.5; return false; }
+                for (const cell of cells) {
+                    const d = Math.sqrt((f.x - cell.x)**2 + (f.y - cell.y)**2);
+                    if (d < cell.score) { cell.score += 0.5; return false; }
+                }
                 return true;
             });
             while(food.length < 150) food.push({ x: Math.random() * worldSize, y: Math.random() * worldSize, c: `hsl(${Math.random()*360}, 70%, 60%)` });
@@ -170,21 +260,20 @@
                 if (id === userId) return;
                 const p = players[id];
                 if (!p || p.userId === userId) return;
-                const d = Math.sqrt((p.x - myPos.x)**2 + (p.y - myPos.y)**2);
-                
-                // Si yo soy significativamente más grande y lo toco: crezco un poco
-                if (myScore > p.score * 1.1 && d < myScore) {
-                    myScore += p.score * 0.1; 
-                }
-                
-                // Si el otro es significativamente más grande y me toca: muero y aparezco en otro lado
-                if (p.score > myScore * 1.1 && d < p.score) {
-                    myPos = { x: Math.random() * worldSize, y: Math.random() * worldSize };
-                    camera = { x: myPos.x, y: myPos.y };
-                    myScore = 40;
-                    nextAwardScore = myScore + 20;
-                }
+                cells = cells.filter(cell => {
+                    const cellDistance = Math.sqrt((p.x - cell.x)**2 + (p.y - cell.y)**2);
+                    if (cell.score > p.score * 1.1 && cellDistance < cell.score) {
+                        cell.score += p.score * 0.08;
+                        return true;
+                    }
+                    if (p.score > cell.score * 1.1 && cellDistance < p.score) {
+                        return false;
+                    }
+                    return true;
+                });
+                if (!cells.length) resetLocalPlayer();
             });
+            syncLocalStats();
             awardAgarProgress();
 
             // Actualizar mi posición a los demás
@@ -256,7 +345,7 @@
                 if (!p || p.userId === userId) return;
                 drawPlayer(p, camX, camY);
             });
-            drawPlayer(getLocalPlayer(), camX, camY);
+            cells.forEach(cell => drawPlayer({ ...getLocalPlayer(), x: cell.x, y: cell.y, score: cell.score }, camX, camY));
 
             requestAnimationFrame(draw);
         }
@@ -279,6 +368,12 @@
             updatePointer(e.clientX, e.clientY);
         });
         canvas.addEventListener('mousemove', e => updatePointer(e.clientX, e.clientY));
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                splitCells();
+            }
+        });
         window.addEventListener('touchmove', e => {
             e.preventDefault();
             const touch = e.touches[0];

@@ -54,6 +54,7 @@
     </aside>
   </main>
   <script src="/games/realtime-room.js"></script>
+  <script src="/games/mala-junta/cards.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
     const presetRoom = (params.get('room') || '').toUpperCase();
@@ -69,58 +70,8 @@
     const roundTitle = document.getElementById('roundTitle');
     if (presetRoom) roomInput.value = presetRoom;
 
-    const prompts = [
-      "La reunion familiar se puso rara cuando aparecio ____.",
-      "El verdadero motivo por el que nadie llego al asado fue ____.",
-      "La micro iba llena, pero igual se hizo espacio para ____.",
-      "El alcalde prometio arreglar la plaza con ____.",
-      "Mi plan de domingo perfecto incluye completos, bebida y ____.",
-      "El carrete murio cuando alguien saco ____.",
-      "La nueva tradicion dieciochera sera ____.",
-      "En vez de premio, el concurso entregaba ____.",
-      "Mi abuela siempre decia: cuidado con ____.",
-      "La once no esta completa sin pan, palta y ____.",
-      "La app fallo porque el servidor estaba ocupado con ____.",
-      "El peor poder de un superheroe chileno seria ____."
-    ];
-    const whites = [
-      "un completo mojado en lagrimas",
-      "la palta a precio de joya",
-      "un audio de WhatsApp de siete minutos",
-      "una empanada sospechosamente tibia",
-      "el tio que habla de politica antes del postre",
-      "una fila eterna en el consultorio",
-      "un karaoke desafinado a las tres de la manana",
-      "la micro que nunca paro",
-      "un terremoto servido en vaso de bebida",
-      "la cuenta compartida que nadie quiere pagar",
-      "un mote con huesillo filosofico",
-      "la ansiedad de revisar el saldo",
-      "una sopaipilla que vio demasiadas cosas",
-      "un vecino taladrando en domingo",
-      "el grupo familiar mandando cadenas",
-      "un pan batido usado como arma ceremonial",
-      "la promesa de llegar en cinco minutos",
-      "un delivery que viene en modo aventura",
-      "una reunion que pudo ser mensaje",
-      "el drama de elegir donde comer",
-      "un perro del barrio con mas vida social que yo",
-      "la silla plastica rota del patio",
-      "un calefont con caracter fuerte",
-      "una playlist llamada 'se prendio'",
-      "la excusa de que habia taco",
-      "un amigo que trae juegos de mesa eternos",
-      "un pan con palta medido al milimetro",
-      "una caja misteriosa del persa",
-      "el olor a carbon pegado en la ropa",
-      "una boleta que nadie entiende",
-      "la dignidad perdida en el karaoke",
-      "un tutorial de YouTube a medio volumen",
-      "la mesa chica de los primos",
-      "un cargador prestado que nunca volvio",
-      "un jefe diciendo 'somos familia'",
-      "la lluvia justo despues de lavar ropa"
-    ];
+    const prompts = Array.isArray(window.MALA_JUNTA_CARDS?.prompts) ? window.MALA_JUNTA_CARDS.prompts : [];
+    const whites = Array.isArray(window.MALA_JUNTA_CARDS?.whites) ? window.MALA_JUNTA_CARDS.whites : [];
 
     let connected = false, roomId = presetRoom || null, roomApi = null;
     let players = [], active = [], scores = {}, round = 0, judgeId = '', prompt = '', submissions = {}, revealed = false, winner = '';

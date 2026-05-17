@@ -6,16 +6,29 @@
   <title>Tic Tac Toe</title>
   <style>
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:#09090b;color:#f8fafc;font-family:Inter,Arial,sans-serif}
-    body{display:flex;align-items:center;justify-content:center}
-    .controls{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center}
+    :root{--board:min(78vw,430px);--line:#d8b4fe;--blue:#60a5fa;--red:#fb7185}
+    html,body{height:100%;margin:0;background:#07051b;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
+    body{display:flex;align-items:center;justify-content:center;padding:58px 10px 16px}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,#33105f88 0,#09072a 34%,#03020d 78%);z-index:-3}
+    body::after{content:"";position:fixed;left:-12%;right:-12%;bottom:-20%;height:70%;background:linear-gradient(#d946ef55 2px,transparent 2px),linear-gradient(90deg,#d946ef66 2px,transparent 2px);background-size:100% 44px,64px 100%;transform:perspective(360px) rotateX(62deg);transform-origin:bottom;filter:drop-shadow(0 0 12px #d946ef);opacity:.58;z-index:-2}
+    .controls{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;z-index:3}
     input,button{height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:0 10px;font:inherit;font-size:12px}
-    button{cursor:pointer;background:#0e7490;border-color:#22d3ee;color:#001018;font-weight:700}
-    #status{margin-left:auto;color:#67e8f9;font-size:12px}
-    .wrap{text-align:center;margin-top:48px}
-    .board{display:grid;grid-template-columns:repeat(3,min(26vw,120px));gap:8px}
-    .cell{width:min(26vw,120px);height:min(26vw,120px);border:1px solid #334155;border-radius:12px;background:#111827;color:#e879f9;display:flex;align-items:center;justify-content:center;font-size:min(16vw,64px);cursor:pointer}
-    #info{min-height:22px;color:#cbd5e1}
+    button{cursor:pointer;background:#0e7490;border-color:#22d3ee;color:#001018;font-weight:800;box-shadow:0 0 18px #22d3ee44}
+    #status{margin-left:auto;color:#67e8f9;font-size:12px;text-shadow:0 0 12px #22d3ee}
+    .wrap{text-align:center;width:min(100%,520px)}
+    .board{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:var(--board);height:var(--board);margin:0 auto;background:#07051b99;box-shadow:0 0 36px #000,0 0 34px #d946ef55}
+    .board::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent calc(33.333% - 4px),var(--line) calc(33.333% - 4px),var(--line) calc(33.333% + 4px),transparent calc(33.333% + 4px),transparent calc(66.666% - 4px),var(--line) calc(66.666% - 4px),var(--line) calc(66.666% + 4px),transparent calc(66.666% + 4px)),linear-gradient(transparent calc(33.333% - 4px),var(--line) calc(33.333% - 4px),var(--line) calc(33.333% + 4px),transparent calc(33.333% + 4px),transparent calc(66.666% - 4px),var(--line) calc(66.666% - 4px),var(--line) calc(66.666% + 4px),transparent calc(66.666% + 4px));filter:drop-shadow(0 0 10px #d8b4fe);z-index:1}
+    .cell{position:relative;z-index:2;width:100%;height:100%;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .cell:disabled{cursor:default}
+    .mark{position:relative;display:block;width:58%;height:58%;filter:drop-shadow(0 0 10px currentColor) drop-shadow(0 0 22px currentColor)}
+    .mark-x{color:var(--blue)}
+    .mark-x::before,.mark-x::after{content:"";position:absolute;left:50%;top:50%;width:20%;height:116%;border-radius:999px;background:#eff6ff;box-shadow:0 0 0 7px currentColor,0 0 28px 12px currentColor;transform:translate(-50%,-50%) rotate(45deg)}
+    .mark-x::after{transform:translate(-50%,-50%) rotate(-45deg)}
+    .mark-o{color:var(--red);border:18px solid #fff;border-radius:50%;box-shadow:0 0 0 7px currentColor,0 0 30px 14px currentColor,inset 0 0 18px currentColor}
+    .cell.win .mark{animation:pulse .9s ease-in-out infinite alternate}
+    #info{min-height:22px;color:#f8fafc;text-shadow:0 0 12px #d8b4fe;font-weight:800}
+    @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+    @media(max-width:560px){:root{--board:min(92vw,390px)}.controls{flex-wrap:wrap}#status{margin-left:0}.mark-o{border-width:14px}.mark-x::before,.mark-x::after{box-shadow:0 0 0 5px currentColor,0 0 22px 9px currentColor}}
   </style>
 </head>
 <body>
@@ -43,24 +56,27 @@
     if (presetRoom) roomInput.value = presetRoom;
 
     let connected = false, roomId = presetRoom || null, roomApi = null, mark = shouldHost ? 'X' : null, turn = 'X', winner = null, awardedWinner = null;
+    let winningCells = [];
     let board = Array(9).fill('');
     function setStatus(text){ statusEl.textContent = text; }
     function send(type,payload){ if (connected && roomApi) roomApi.send(type, payload); }
     function lineWinner(){
+      winningCells = [];
       const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for (const [a,b,c] of lines) if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+      for (const [a,b,c] of lines) if (board[a] && board[a] === board[b] && board[a] === board[c]) { winningCells = [a,b,c]; return board[a]; }
       return board.every(Boolean) ? 'Empate' : null;
     }
     function render(){
+      winner = lineWinner();
       boardEl.innerHTML = '';
       board.forEach((value,index) => {
         const cell = document.createElement('button');
-        cell.className = 'cell';
-        cell.textContent = value;
+        cell.className = 'cell' + (winningCells.includes(index) ? ' win' : '');
+        cell.disabled = !!winner || !!value || !mark || turn !== mark;
+        cell.innerHTML = value ? '<span class="mark mark-' + value.toLowerCase() + '"></span>' : '';
         cell.onclick = () => play(index);
         boardEl.appendChild(cell);
       });
-      winner = lineWinner();
       info.textContent = winner ? (winner === 'Empate' ? 'Empate' : winner + ' gana') : ('Turno ' + turn + (mark ? ' - eres ' + mark : ''));
       if (winner && winner !== 'Empate' && winner === mark && awardedWinner !== winner) {
         awardedWinner = winner;
@@ -82,6 +98,7 @@
       board = Array(9).fill('');
       turn = 'X';
       winner = null;
+      winningCells = [];
       awardedWinner = null;
       render();
       if (!localOnly) send('reset', {});

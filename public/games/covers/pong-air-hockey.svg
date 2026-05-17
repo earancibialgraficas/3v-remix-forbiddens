@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Pong Air Hockey">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#021a1d"/>
+      <stop offset=".5" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#062c23"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g opacity=".24">
+    <path d="M0 102h512M0 204h512M0 306h512M0 408h512M102 0v512M204 0v512M306 0v512M408 0v512" stroke="#22d3ee" stroke-width="3"/>
+  </g>
+  <rect x="62" y="114" width="388" height="286" rx="28" fill="#020617" stroke="#22d3ee" stroke-width="6"/>
+  <path d="M256 126v262" stroke="#f8fafc" stroke-width="6" stroke-dasharray="18 18" opacity=".75"/>
+  <rect x="102" y="214" width="28" height="90" rx="10" fill="#22c55e" filter="url(#glow)"/>
+  <rect x="382" y="178" width="28" height="90" rx="10" fill="#38bdf8" filter="url(#glow)"/>
+  <circle cx="278" cy="260" r="22" fill="#f8fafc" filter="url(#glow)"/>
+  <text x="256" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="900" letter-spacing="2" fill="#67e8f9">PONG</text>
+  <text x="256" y="460" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="900" letter-spacing="2" fill="#facc15">AIR HOCKEY 2P</text>
+</svg>

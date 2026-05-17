@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tic Tac Toe Neon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17052d"/>
+      <stop offset=".5" stop-color="#070b24"/>
+      <stop offset="1" stop-color="#21051b"/>
+    </linearGradient>
+    <filter id="redGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g opacity=".26">
+    <path d="M0 410h512M32 356h448M82 306h348M150 256h214M256 96v344M96 440l126-344M416 440 290 96" stroke="#d946ef" stroke-width="3"/>
+  </g>
+  <g stroke="#d8b4fe" stroke-width="7">
+    <path d="M190 110v292M322 110v292M110 190h292M110 322h292"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="146" cy="146" r="38" stroke="#fb7185" stroke-width="17" filter="url(#redGlow)"/>
+    <path d="M232 112l48 68M280 112l-48 68" stroke="#60a5fa" stroke-width="18" filter="url(#blueGlow)"/>
+    <path d="M100 232l68 68M168 232l-68 68" stroke="#60a5fa" stroke-width="18" filter="url(#blueGlow)"/>
+    <circle cx="256" cy="256" r="38" stroke="#fb7185" stroke-width="17" filter="url(#redGlow)"/>
+    <circle cx="366" cy="256" r="38" stroke="#fb7185" stroke-width="17" filter="url(#redGlow)"/>
+    <circle cx="146" cy="366" r="38" stroke="#fb7185" stroke-width="17" filter="url(#redGlow)"/>
+    <path d="M232 332l48 68M280 332l-48 68" stroke="#60a5fa" stroke-width="18" filter="url(#blueGlow)"/>
+    <circle cx="366" cy="366" r="38" stroke="#fb7185" stroke-width="17" filter="url(#redGlow)"/>
+  </g>
+  <text x="256" y="58" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" font-weight="900" letter-spacing="2" fill="#67e8f9">TIC TAC TOE</text>
+  <text x="256" y="468" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="900" letter-spacing="2" fill="#facc15">NEON 2P</text>
+</svg>
