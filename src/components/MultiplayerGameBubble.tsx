@@ -106,6 +106,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const frameRef = useRef<HTMLIFrameElement>(null);
   const lobbyChannelRef = useRef<any>(null);
   const sessionChannelRef = useRef<any>(null);
+  const sessionPlayersRef = useRef<SessionPlayer[]>([]);
+  const disconnectToastSeenRef = useRef<Record<string, number>>({});
   const lobbyPlayerIdRef = useRef(`agar_${Math.random().toString(36).slice(2, 10)}`);
   const lobbyJoinedAtRef = useRef(Date.now());
   const lobbyTrackedRoomRef = useRef("");
@@ -145,6 +147,28 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const mobileGameFrame = !fullscreen && size.w < 460;
   const headerButtonClass = cn("h-8 w-8 shrink-0", mobileGameFrame && "h-7 w-7");
 
+  const upsertSessionPlayer = useCallback((player: SessionPlayer) => {
+    setSessionPlayers((current) => {
+      const players = new Map(current.map((item) => [item.userId, item]));
+      players.set(player.userId, { ...(players.get(player.userId) || {}), ...player });
+      const nextPlayers = Array.from(players.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
+      sessionPlayersRef.current = nextPlayers;
+      return nextPlayers;
+    });
+  }, []);
+
+  const notifyPlayerDisconnected = useCallback((player?: Partial<SessionPlayer>) => {
+    const userId = String(player?.userId || player?.playerId || "");
+    if (!userId || userId === localSessionUserId) return;
+    const now = Date.now();
+    if (now - Number(disconnectToastSeenRef.current[userId] || 0) < 3000) return;
+    disconnectToastSeenRef.current[userId] = now;
+    toast({
+      title: "Jugador desconectado",
+      description: `${player?.name || "Un jugador"} salio de la partida.`,
+    });
+  }, [localSessionUserId, toast]);
+
   const syncLocalSessionPlayer = useCallback(() => {
     if (!activeGameId) return;
     const localTotalPoints = sessionTotalPointsRef.current + pendingGamePointsRef.current;
@@ -163,11 +187,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setSessionPointPreview(localTotalPoints);
     setSessionElapsedPreview(sessionElapsedRef.current);
 
-    setSessionPlayers((current) => {
-      const players = new Map(current.map((player) => [player.userId, player]));
-      players.set(next.userId, { ...(players.get(next.userId) || {}), ...next });
-      return Array.from(players.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
-    });
+    upsertSessionPlayer(next);
 
     if (sessionChannelRef.current) {
       void sessionChannelRef.current.track({
@@ -175,8 +195,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         room: activeSessionRoomCode,
         ...next,
       });
+      void sessionChannelRef.current.send({
+        type: "broadcast",
+        event: "session",
+        payload: {
+          type: "score",
+          player: next,
+        },
+      });
     }
-  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId]);
+  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, upsertSessionPlayer]);
 
   useEffect(() => {
     roomCodeRef.current = roomCode;
@@ -194,6 +222,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setReloadKey((key) => key + 1);
     setLeaderboard([]);
     setSessionPlayers([]);
+    sessionPlayersRef.current = [];
     setLobbyRooms([]);
     setGameLaunched(activeGameId === "massive-decks");
     setLaunchedAsHost(true);
@@ -405,6 +434,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   useEffect(() => {
     if (!activeGameId || (!gameLaunched && !isMassiveDecks)) {
       setSessionPlayers([]);
+      sessionPlayersRef.current = [];
       return;
     }
 
@@ -435,9 +465,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
         });
 
-      setSessionPlayers(
-        Array.from(latest.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt),
-      );
+      const previousPlayers = sessionPlayersRef.current;
+      const nextPlayers = Array.from(latest.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
+      if (previousPlayers.length > 0) {
+        previousPlayers.forEach((player) => {
+          if (player.userId !== localSessionUserId && !latest.has(player.userId)) {
+            notifyPlayerDisconnected(player);
+          }
+        });
+      }
+      sessionPlayersRef.current = nextPlayers;
+      setSessionPlayers(nextPlayers);
     };
 
     const trackLocal = () =>
@@ -455,7 +493,26 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         updatedAt: Date.now(),
       });
 
+    channel.on("broadcast", { event: "session" }, ({ payload }: any) => {
+      if (payload?.type === "score" && payload.player) {
+        const player = payload.player as SessionPlayer;
+        if (player.userId && player.userId !== localSessionUserId) upsertSessionPlayer(player);
+      }
+      if (payload?.type === "disconnect" && payload.player) {
+        notifyPlayerDisconnected(payload.player);
+      }
+    });
     channel.on("presence", { event: "sync" }, readPlayers);
+    channel.on("presence", { event: "leave" }, ({ leftPresences }: any) => {
+      (leftPresences || []).forEach((presence: any) => {
+        notifyPlayerDisconnected({
+          userId: String(presence?.userId || presence?.playerId || ""),
+          playerId: String(presence?.playerId || ""),
+          name: String(presence?.name || presence?.displayName || "Un jugador"),
+        });
+      });
+      readPlayers();
+    });
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await trackLocal();
@@ -469,10 +526,21 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
     return () => {
       window.clearInterval(heartbeat);
+      const leavingPlayer = sessionPlayersRef.current.find((player) => player.userId === localSessionUserId);
+      if (leavingPlayer) {
+        void channel.send({
+          type: "broadcast",
+          event: "session",
+          payload: {
+            type: "disconnect",
+            player: leavingPlayer,
+          },
+        });
+      }
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId]);
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, notifyPlayerDisconnected, upsertSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -693,6 +761,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setGameLaunched(true);
     setLeaderboard([]);
     setSessionPlayers([]);
+    sessionPlayersRef.current = [];
     sessionStartedAtRef.current = Date.now();
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
