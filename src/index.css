@@ -59,17 +59,33 @@
     @apply bg-background text-foreground;
     font-family: var(--font-body);
     top: 0 !important;
+    position: static !important;
   }
 
   .goog-te-banner-frame,
   .goog-te-gadget,
   .goog-te-balloon-frame,
+  .goog-logo-link,
+  .goog-te-spinner-pos,
+  .VIpgJd-ZVi9od-ORHb-OEVmcd,
+  .VIpgJd-ZVi9od-l4eHX-hSRGPd,
+  .VIpgJd-yAWNEb-L7lbkb,
   iframe.skiptranslate {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   #goog-gt-tt {
     display: none !important;
+  }
+
+  html.translated-ltr,
+  html.translated-rtl,
+  body.translated-ltr,
+  body.translated-rtl {
+    top: 0 !important;
+    margin-top: 0 !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
