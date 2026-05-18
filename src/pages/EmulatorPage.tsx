@@ -214,6 +214,7 @@ export default function EmulatorPage() {
   const rafId = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0); // px en vivo durante el drag
+  const [carouselWidth, setCarouselWidth] = useState(900);
   const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
   const [ps2Copied, setPs2Copied] = useState(false);
 
@@ -274,6 +275,23 @@ export default function EmulatorPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasActiveGame]);
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+
+    const updateWidth = () => setCarouselWidth(Math.max(320, el.clientWidth || 900));
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const currentSystem = systems[currentIndex];
 
@@ -552,7 +570,7 @@ export default function EmulatorPage() {
             <div
               ref={carouselRef}
               className={cn(
-                "relative w-full h-52 sm:h-56 md:h-72 flex items-center justify-center overflow-visible touch-pan-y select-none",
+                "relative w-full h-60 sm:h-72 md:h-80 lg:h-96 flex items-center justify-center overflow-visible touch-pan-y select-none",
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               )}
               style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
@@ -568,6 +586,12 @@ export default function EmulatorPage() {
                 // Posiciones base por "slot" relativo al activo
                 const SLOT_DISTANCE_PX = 260; // px entre slots (coincide con SLOT_DISTANCE arriba)
                 const maxDepthSlot = Math.max(1, Math.floor(systems.length / 2));
+                const halfWidth = carouselWidth / 2;
+                const usableHalfWidth = Math.max(150, halfWidth - 32);
+                const firstSlotDistance = Math.min(
+                  Math.max(carouselWidth * 0.3, 160),
+                  Math.max(150, usableHalfWidth * 0.72),
+                );
 
                 // Offset visual unificado: durante drag o settle se aplica como desplazamiento del "tren"
                 // dragOffset > 0 (drag derecha) => el tren se mueve a la derecha => prev (slot -1) viene al centro
@@ -591,7 +615,12 @@ export default function EmulatorPage() {
                   const normalizedDepth = Math.min(1, depth / maxDepthSlot);
                   const scale = Math.max(0.34, 1.1 - depth * 0.12);
                   const opacity = Math.max(0.18, 1 - depth * 0.16);
-                  const translatePx = direction * (Math.min(depth, 1) * 260 + Math.max(0, depth - 1) * 58);
+                  const farProgress = maxDepthSlot <= 1 ? 0 : Math.min(1, Math.max(0, (depth - 1) / (maxDepthSlot - 1)));
+                  const translatePx = direction * (
+                    depth <= 1
+                      ? depth * firstSlotDistance
+                      : firstSlotDistance + (usableHalfWidth - firstSlotDistance) * Math.pow(farProgress, 0.82)
+                  );
                   const translateZ = -depth * 150;
                   const translateY = Math.min(30, depth * 8);
                   const rotateY = -direction * Math.min(66, depth * 18);
@@ -622,7 +651,7 @@ export default function EmulatorPage() {
                       }}
                       onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                     >
-                      <div className="w-36 h-36 sm:w-40 sm:h-40 md:w-64 md:h-64 flex items-center justify-center pointer-events-none">
+                      <div className="w-40 h-40 sm:w-52 sm:h-52 md:w-72 md:h-72 lg:w-80 lg:h-80 flex items-center justify-center pointer-events-none">
                          <img src={sys.consoleImg} alt={sys.name} className="w-full h-full object-contain" draggable={false} />
                       </div>
                     </div>
