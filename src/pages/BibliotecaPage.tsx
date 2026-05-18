@@ -744,7 +744,7 @@ const handlePlayCloudGame = async (game: any) => {
               <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
             </div>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(118px,1fr))] gap-2 sm:grid-cols-[repeat(auto-fit,minmax(132px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(145px,1fr))]">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {currentGames.map((game: any) => (
                 <div
                   key={game.id}
@@ -794,7 +794,7 @@ const handlePlayCloudGame = async (game: any) => {
               <User className="w-3.5 h-3.5" /> MULTIJUGADOR
             </h2>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
             {multiplayerGames.map(g => (
               <div
                 key={g.id}
