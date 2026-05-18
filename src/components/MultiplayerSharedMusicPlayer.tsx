@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ListMusic, Pause, Play, Plus, SkipBack, SkipForward, Trash2, Users, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, ChevronUp, ListMusic, Pause, Play, Plus, SkipBack, SkipForward, Users, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -490,27 +490,6 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     });
   };
 
-  const removeSongAt = (index: number) => {
-    if (!playlist[index]) return;
-    const nextPlaylist = playlist.filter((_, songIndex) => songIndex !== index);
-    const nextIndex = index < currentIndex
-      ? Math.max(0, currentIndex - 1)
-      : Math.min(currentIndex, Math.max(0, nextPlaylist.length - 1));
-    const nextPlaying = Boolean(nextPlaylist.length && isPlaying);
-    setPlaylist(nextPlaylist);
-    setCurrentIndex(nextIndex);
-    setIsPlaying(nextPlaying);
-    setCurrentTime(0);
-    if (!nextPlaylist.length) setDuration(0);
-    publishState({
-      playlist: nextPlaylist,
-      currentIndex: nextIndex,
-      isPlaying: nextPlaying,
-      position: 0,
-      startedAt: Date.now(),
-    });
-  };
-
   const handleSongUrlChange = (url: string) => {
     setNewSongUrl(url);
     setVolumeOpen(false);
@@ -680,15 +659,6 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
                 <span className="w-4 shrink-0 font-pixel text-[6px]">{index + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[8px]">{song.title}</span>
                 {song.type === "youtube" && <span className="shrink-0 font-pixel text-[5px] text-red-300">YT</span>}
-              </button>
-              <button
-                type="button"
-                onClick={() => removeSongAt(index)}
-                className="shrink-0 rounded p-0.5 text-destructive/75 hover:bg-destructive/10 hover:text-destructive"
-                title="Quitar cancion"
-                aria-label="Quitar cancion"
-              >
-                <Trash2 className="h-3 w-3" />
               </button>
             </div>
           ))}

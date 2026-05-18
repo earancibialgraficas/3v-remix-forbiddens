@@ -150,7 +150,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const upsertSessionPlayer = useCallback((player: SessionPlayer) => {
     setSessionPlayers((current) => {
       const players = new Map(current.map((item) => [item.userId, item]));
-      players.set(player.userId, { ...(players.get(player.userId) || {}), ...player });
+      const existing = players.get(player.userId);
+      players.set(player.userId, {
+        ...(existing || {}),
+        ...player,
+        timePoints: Math.max(Number(existing?.timePoints || 0), Number(player.timePoints || 0)),
+        totalPoints: Math.max(Number(existing?.totalPoints || 0), Number(player.totalPoints || 0)),
+        elapsedSeconds: Math.max(Number(existing?.elapsedSeconds || 0), Number(player.elapsedSeconds || 0)),
+        updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(player.updatedAt || 0)),
+      });
       const nextPlayers = Array.from(players.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
       sessionPlayersRef.current = nextPlayers;
       return nextPlayers;
@@ -444,6 +452,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionChannelRef.current = channel;
 
     const readPlayers = () => {
+      const existingById = new Map<string, SessionPlayer>();
+      sessionPlayersRef.current.forEach((player) => {
+        existingById.set(player.userId, player);
+        if (player.playerId) existingById.set(player.playerId, player);
+      });
       const latest = new Map<string, SessionPlayer>();
       Object.values(channel.presenceState())
         .flat()
@@ -451,16 +464,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           const userId = String(presence?.userId || presence?.playerId || "");
           if (!userId) return;
           const current = latest.get(userId);
+          const existing = existingById.get(userId) || existingById.get(String(presence?.playerId || ""));
           const next: SessionPlayer = {
             userId,
             playerId: String(presence?.playerId || userId),
             name: String(presence?.name || presence?.displayName || "Jugador"),
             avatarUrl: String(presence?.avatarUrl || ""),
-            timePoints: Number(presence?.timePoints || 0),
-            totalPoints: Number(presence?.totalPoints || presence?.timePoints || 0),
-            elapsedSeconds: Number(presence?.elapsedSeconds || 0),
-            joinedAt: Number(presence?.joinedAt || 0),
-            updatedAt: Number(presence?.updatedAt || 0),
+            timePoints: Math.max(Number(existing?.timePoints || 0), Number(presence?.timePoints || 0)),
+            totalPoints: Math.max(Number(existing?.totalPoints || 0), Number(presence?.totalPoints || presence?.timePoints || 0)),
+            elapsedSeconds: Math.max(Number(existing?.elapsedSeconds || 0), Number(presence?.elapsedSeconds || 0)),
+            joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
+            updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(presence?.updatedAt || 0)),
           };
           if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
         });
@@ -801,7 +815,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
   const infoPanelWidthClass = "w-64";
   const combinedLeaderboard = (() => {
-    const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
+    const sessionByUser = new Map<string, SessionPlayer>();
+    sessionPlayers.forEach((player) => {
+      sessionByUser.set(player.userId, player);
+      if (player.playerId) sessionByUser.set(player.playerId, player);
+    });
     const rows = new Map<string, any>();
 
     leaderboard.forEach((player, index) => {
@@ -825,7 +843,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
 
     sessionPlayers.forEach((player) => {
-      if (rows.has(player.userId)) return;
+      if (rows.has(player.userId) || (player.playerId && rows.has(player.playerId))) return;
       rows.set(player.userId, {
         ...player,
         points: 0,
