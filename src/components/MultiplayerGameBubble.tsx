@@ -120,6 +120,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const sessionPlayersRef = useRef<SessionPlayer[]>([]);
   const disconnectToastSeenRef = useRef<Record<string, number>>({});
   const connectedToastSeenRef = useRef<Record<string, number>>({});
+  const disconnectGraceTimersRef = useRef<Record<string, number>>({});
   const lobbyPlayerIdRef = useRef(`agar_${Math.random().toString(36).slice(2, 10)}`);
   const lobbyJoinedAtRef = useRef(Date.now());
   const lobbyTrackedRoomRef = useRef("");
@@ -175,9 +176,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const upsertSessionPlayer = useCallback((player: SessionPlayer) => {
     setSessionPlayers((current) => {
-      const players = new Map(current.map((item) => [item.userId, item]));
-      const existing = players.get(player.userId);
+      const players = new Map<string, SessionPlayer>();
+      const aliases = new Map<string, string>();
+      current.forEach((item) => {
+        players.set(item.userId, item);
+        aliases.set(item.userId, item.userId);
+        if (item.playerId) aliases.set(item.playerId, item.userId);
+      });
+      const existingKey = aliases.get(player.userId) || aliases.get(player.playerId) || player.userId;
+      const existing = players.get(existingKey);
       if (!existing && player.userId !== localSessionUserId) notifyPlayerConnected(player);
+      players.delete(existingKey);
       players.set(player.userId, {
         ...(existing || {}),
         ...player,
@@ -215,22 +224,40 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   }, []);
 
+  const pruneStaleSessionPlayers = useCallback(() => {
+    const now = Date.now();
+    const staleAfterMs = TIME_REWARD_SECONDS * 3000;
+    setSessionPlayers((current) => {
+      const stalePlayers: SessionPlayer[] = [];
+      const nextPlayers = current.filter((player) => {
+        const isLocal = player.userId === localSessionUserId || player.playerId === lobbyPlayerIdRef.current;
+        const isFresh = now - Number(player.updatedAt || 0) < staleAfterMs;
+        if (!isLocal && !isFresh) stalePlayers.push(player);
+        return isLocal || isFresh;
+      });
+      stalePlayers.forEach((player) => notifyPlayerDisconnected(player));
+      sessionPlayersRef.current = nextPlayers;
+      return nextPlayers;
+    });
+  }, [localSessionUserId, notifyPlayerDisconnected]);
+
+  const buildLocalSessionPlayer = useCallback((): SessionPlayer => ({
+    userId: localSessionUserId,
+    playerId: lobbyPlayerIdRef.current,
+    name: localDisplayName,
+    avatarUrl: localAvatarUrl,
+    timePoints: sessionTimePointsRef.current,
+    totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
+    elapsedSeconds: sessionElapsedRef.current,
+    joinedAt: sessionStartedAtRef.current,
+    updatedAt: Date.now(),
+  }), [localAvatarUrl, localDisplayName, localSessionUserId]);
+
   const syncLocalSessionPlayer = useCallback(() => {
     if (!activeGameId) return;
-    const localTotalPoints = sessionTotalPointsRef.current + pendingGamePointsRef.current;
-    const next: SessionPlayer = {
-      userId: localSessionUserId,
-      playerId: lobbyPlayerIdRef.current,
-      name: localDisplayName,
-      avatarUrl: localAvatarUrl,
-      timePoints: sessionTimePointsRef.current,
-      totalPoints: localTotalPoints,
-      elapsedSeconds: sessionElapsedRef.current,
-      joinedAt: sessionStartedAtRef.current,
-      updatedAt: Date.now(),
-    };
+    const next = buildLocalSessionPlayer();
 
-    setSessionPointPreview(localTotalPoints);
+    setSessionPointPreview(next.totalPoints);
     setSessionElapsedPreview(sessionElapsedRef.current);
 
     upsertSessionPlayer(next);
@@ -250,7 +277,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         },
       });
     }
-  }, [activeGameId, activeSessionRoomCode, localAvatarUrl, localDisplayName, localSessionUserId, upsertSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, upsertSessionPlayer]);
 
   useEffect(() => {
     roomCodeRef.current = roomCode;
@@ -271,6 +298,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionPlayersRef.current = [];
     connectedToastSeenRef.current = {};
     disconnectToastSeenRef.current = {};
+    Object.values(disconnectGraceTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+    disconnectGraceTimersRef.current = {};
     setLobbyRooms([]);
     setRoomPrivate(false);
     setRoomPassword("");
@@ -297,6 +326,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionPlayersRef.current = [];
     connectedToastSeenRef.current = {};
     disconnectToastSeenRef.current = {};
+    Object.values(disconnectGraceTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+    disconnectGraceTimersRef.current = {};
     sessionStartedAtRef.current = Date.now();
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
@@ -502,6 +533,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionChannelRef.current = channel;
 
     const readPlayers = () => {
+      const now = Date.now();
       const existingById = new Map<string, SessionPlayer>();
       sessionPlayersRef.current.forEach((player) => {
         existingById.set(player.userId, player);
@@ -531,27 +563,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         });
 
       const merged = new Map<string, SessionPlayer>();
-      sessionPlayersRef.current.forEach((player) => merged.set(player.userId, player));
+      sessionPlayersRef.current.forEach((player) => {
+        const isStillFresh = player.userId === localSessionUserId || now - Number(player.updatedAt || 0) < TIME_REWARD_SECONDS * 2500;
+        if (isStillFresh) merged.set(player.userId, player);
+      });
       latest.forEach((player, userId) => merged.set(userId, player));
       const nextPlayers = Array.from(merged.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
       sessionPlayersRef.current = nextPlayers;
       setSessionPlayers(nextPlayers);
     };
 
-    const getLocalSessionPlayer = (): SessionPlayer => ({
-      userId: localSessionUserId,
-      playerId: lobbyPlayerIdRef.current,
-      name: localDisplayName,
-      avatarUrl: localAvatarUrl,
-      timePoints: sessionTimePointsRef.current,
-      totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
-      elapsedSeconds: sessionElapsedRef.current,
-      joinedAt: sessionStartedAtRef.current,
-      updatedAt: Date.now(),
-    });
-
     const trackLocal = async () => {
-      const player = getLocalSessionPlayer();
+      const player = buildLocalSessionPlayer();
       await channel.track({
         game: activeGameId,
         room: activeSessionRoomCode,
@@ -578,6 +601,34 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
     });
     channel.on("presence", { event: "sync" }, readPlayers);
+    channel.on("presence", { event: "leave" }, ({ leftPresences }: any) => {
+      (leftPresences || []).forEach((presence: any) => {
+        const userId = String(presence?.userId || presence?.playerId || "");
+        const playerId = String(presence?.playerId || userId);
+        if (!userId || userId === localSessionUserId || disconnectGraceTimersRef.current[userId]) return;
+        disconnectGraceTimersRef.current[userId] = window.setTimeout(() => {
+          delete disconnectGraceTimersRef.current[userId];
+          const stillPresent = Object.values(channel.presenceState())
+            .flat()
+            .some((item: any) => String(item?.userId || item?.playerId || "") === userId || String(item?.playerId || "") === playerId);
+          if (stillPresent) return;
+          const existing = sessionPlayersRef.current.find((item) => item.userId === userId || item.playerId === playerId);
+          const leavingPlayer = existing || {
+            userId,
+            playerId,
+            name: String(presence?.name || presence?.displayName || "Jugador"),
+            avatarUrl: String(presence?.avatarUrl || ""),
+            timePoints: Number(presence?.timePoints || 0),
+            totalPoints: Number(presence?.totalPoints || presence?.timePoints || 0),
+            elapsedSeconds: Number(presence?.elapsedSeconds || 0),
+            joinedAt: Number(presence?.joinedAt || 0),
+            updatedAt: Number(presence?.updatedAt || Date.now()),
+          };
+          notifyPlayerDisconnected(leavingPlayer);
+          removeSessionPlayer(leavingPlayer);
+        }, 2500);
+      });
+    });
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await trackLocal();
@@ -586,15 +637,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
 
     const heartbeat = window.setInterval(() => {
-      void trackLocal();
-    }, 5000);
+      syncLocalSessionPlayer();
+      pruneStaleSessionPlayers();
+    }, TIME_REWARD_SECONDS * 1000);
 
     return () => {
       window.clearInterval(heartbeat);
+      Object.values(disconnectGraceTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+      disconnectGraceTimersRef.current = {};
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, notifyPlayerConnected, notifyPlayerDisconnected, removeSessionPlayer, upsertSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, notifyPlayerConnected, notifyPlayerDisconnected, pruneStaleSessionPlayers, removeSessionPlayer, syncLocalSessionPlayer, upsertSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -777,8 +831,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const broadcastLocalDisconnect = useCallback(async () => {
     const channel = sessionChannelRef.current;
-    const leavingPlayer = sessionPlayersRef.current.find((player) => player.userId === localSessionUserId);
-    if (!channel || !leavingPlayer) return;
+    const leavingPlayer = sessionPlayersRef.current.find((player) => player.userId === localSessionUserId) || buildLocalSessionPlayer();
+    if (!channel) return;
     await channel.send({
       type: "broadcast",
       event: "session",
@@ -787,7 +841,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         player: leavingPlayer,
       },
     });
-  }, [localSessionUserId]);
+    await channel.untrack?.();
+  }, [buildLocalSessionPlayer, localSessionUserId]);
 
   const closeBubble = useCallback(async () => {
     const result = await savePendingGamePoints();

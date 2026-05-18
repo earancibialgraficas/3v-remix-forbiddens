@@ -84,6 +84,25 @@ const emptyState = (): WatchState => ({
   startedAt: Date.now(),
 });
 
+const VIDEO_QUALITIES = [
+  { value: "auto", label: "Auto" },
+  { value: "small", label: "240p" },
+  { value: "medium", label: "360p" },
+  { value: "large", label: "480p" },
+  { value: "hd720", label: "720p" },
+  { value: "hd1080", label: "1080p" },
+  { value: "highres", label: "Max" },
+];
+
+const CAPTION_LANGUAGES = [
+  { value: "es", label: "Espanol" },
+  { value: "en", label: "Ingles" },
+  { value: "pt", label: "Portugues" },
+  { value: "fr", label: "Frances" },
+  { value: "it", label: "Italiano" },
+  { value: "ja", label: "Japones" },
+];
+
 export default function WatchTogetherPlayer({ roomCode, userName, controlsTargetId }: WatchTogetherPlayerProps) {
   const [playlist, setPlaylist] = useState<WatchSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -97,13 +116,19 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [captionLanguage, setCaptionLanguage] = useState("es");
+  const [videoQuality, setVideoQuality] = useState("auto");
   const [newUrl, setNewUrl] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [controlsElement, setControlsElement] = useState<HTMLElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const channelRef = useRef<any>(null);
+  const pollRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const stateRef = useRef<WatchState>(emptyState());
   const effectiveVolumeRef = useRef(80);
+  const captionsEnabledRef = useRef(false);
+  const captionLanguageRef = useRef("es");
+  const videoQualityRef = useRef("auto");
   const applyingRemoteStateRef = useRef(false);
   const nativeStateBroadcastRef = useRef(0);
   const clientIdRef = useRef(`watch_${Math.random().toString(36).slice(2, 10)}`);
@@ -115,6 +140,18 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   useEffect(() => {
     effectiveVolumeRef.current = effectiveVolume;
   }, [effectiveVolume]);
+
+  useEffect(() => {
+    captionsEnabledRef.current = captionsEnabled;
+  }, [captionsEnabled]);
+
+  useEffect(() => {
+    captionLanguageRef.current = captionLanguage;
+  }, [captionLanguage]);
+
+  useEffect(() => {
+    videoQualityRef.current = videoQuality;
+  }, [videoQuality]);
 
   useEffect(() => {
     if (!controlsTargetId || typeof document === "undefined") {
@@ -130,6 +167,29 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const sendCommand = useCallback((func: string, args: unknown[] = []) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
   }, []);
+
+  const requestYoutubeStatus = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: clientIdRef.current }), "*");
+    sendCommand("getCurrentTime");
+    sendCommand("getDuration");
+    sendCommand("getPlaybackQuality");
+  }, [sendCommand]);
+
+  const applyYoutubePreferences = useCallback(() => {
+    const localVolume = effectiveVolumeRef.current;
+    const localQuality = videoQualityRef.current;
+    const localCaptionsEnabled = captionsEnabledRef.current;
+    const localCaptionLanguage = captionLanguageRef.current;
+    sendCommand("setVolume", [localVolume]);
+    sendCommand(localVolume <= 0 ? "mute" : "unMute");
+    if (localQuality !== "auto") sendCommand("setPlaybackQuality", [localQuality]);
+    if (localCaptionsEnabled) {
+      sendCommand("loadModule", ["captions"]);
+      sendCommand("setOption", ["captions", "track", { languageCode: localCaptionLanguage }]);
+    } else {
+      sendCommand("unloadModule", ["captions"]);
+    }
+  }, [sendCommand]);
 
   const getSnapshot = useCallback((): WatchState => ({
     playlist,
@@ -160,13 +220,15 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
       sendCommand(playing ? "playVideo" : "pauseVideo");
       sendCommand("setVolume", [localVolume]);
       sendCommand(localVolume <= 0 ? "mute" : "unMute");
+      applyYoutubePreferences();
+      requestYoutubeStatus();
     };
     drive();
     window.setTimeout(drive, 450);
     window.setTimeout(() => {
       applyingRemoteStateRef.current = false;
     }, 900);
-  }, [sendCommand]);
+  }, [applyYoutubePreferences, requestYoutubeStatus, sendCommand]);
 
   const publishState = useCallback((next: Partial<WatchState> = {}) => {
     const state = { ...getSnapshot(), ...next };
@@ -224,13 +286,34 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   }, [effectiveVolume, sendCommand]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: clientIdRef.current }), "*");
-      sendCommand("getCurrentTime");
-      sendCommand("getDuration");
+    if (pollRef.current) window.clearInterval(pollRef.current);
+    if (!current?.youtubeId) return;
+    requestYoutubeStatus();
+    pollRef.current = window.setInterval(() => {
+      requestYoutubeStatus();
     }, 1000);
-    return () => window.clearInterval(timer);
-  }, [sendCommand]);
+    return () => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
+  }, [current?.youtubeId, requestYoutubeStatus]);
+
+  useEffect(() => {
+    if (!current?.youtubeId) return;
+    setDuration(0);
+    const first = window.setTimeout(requestYoutubeStatus, 250);
+    const second = window.setTimeout(requestYoutubeStatus, 900);
+    const third = window.setTimeout(requestYoutubeStatus, 1800);
+    return () => {
+      window.clearTimeout(first);
+      window.clearTimeout(second);
+      window.clearTimeout(third);
+    };
+  }, [current?.youtubeId, requestYoutubeStatus]);
+
+  useEffect(() => {
+    applyYoutubePreferences();
+  }, [applyYoutubePreferences]);
 
   const playPause = () => {
     if (!current) return;
@@ -243,8 +326,24 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const toggleCaptions = () => {
     const next = !captionsEnabled;
     setCaptionsEnabled(next);
-    sendCommand("setOption", ["captions", "track", next ? {} : null]);
-    sendCommand(next ? "loadModule" : "unloadModule", ["captions"]);
+    if (next) {
+      sendCommand("loadModule", ["captions"]);
+      sendCommand("setOption", ["captions", "track", { languageCode: captionLanguage }]);
+    } else {
+      sendCommand("unloadModule", ["captions"]);
+    }
+  };
+
+  const changeCaptionLanguage = (language: string) => {
+    setCaptionLanguage(language);
+    setCaptionsEnabled(true);
+    sendCommand("loadModule", ["captions"]);
+    sendCommand("setOption", ["captions", "track", { languageCode: language }]);
+  };
+
+  const changeVideoQuality = (quality: string) => {
+    setVideoQuality(quality);
+    if (quality !== "auto") sendCommand("setPlaybackQuality", [quality]);
   };
 
   const jumpTo = useCallback((index: number) => {
@@ -360,6 +459,30 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
           <button type="button" onClick={toggleCaptions} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
             Subtitulos: {captionsEnabled ? "ON" : "OFF"}
           </button>
+          <label className="block text-[9px] uppercase text-muted-foreground">
+            Calidad
+            <select
+              value={videoQuality}
+              onChange={(event) => changeVideoQuality(event.target.value)}
+              className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
+            >
+              {VIDEO_QUALITIES.map((quality) => (
+                <option key={quality.value} value={quality.value}>{quality.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-[9px] uppercase text-muted-foreground">
+            Idioma subtitulos
+            <select
+              value={captionLanguage}
+              onChange={(event) => changeCaptionLanguage(event.target.value)}
+              className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
+            >
+              {CAPTION_LANGUAGES.map((language) => (
+                <option key={language.value} value={language.value}>{language.label}</option>
+              ))}
+            </select>
+          </label>
           <button type="button" onClick={() => applyState(stateRef.current)} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
             Re-sincronizar video
           </button>
@@ -406,7 +529,11 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
             src={`https://www.youtube.com/embed/${current.youtubeId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&disablekb=1&fs=0&rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`}
             allow="autoplay; encrypted-media; fullscreen"
             className="h-full w-full"
-            onLoad={() => applyState(stateRef.current)}
+            onLoad={() => {
+              requestYoutubeStatus();
+              applyYoutubePreferences();
+              applyState(stateRef.current);
+            }}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.16),transparent_45%)] p-6 text-center">
