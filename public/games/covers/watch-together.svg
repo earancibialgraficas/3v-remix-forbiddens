@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050816"/>
+      <stop offset=".55" stop-color="#111827"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" values="0 0 0 0 0.05 0 0 0 0 0.95 0 0 0 0 1 0 0 0 .9 0"/>
+      <feBlend in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <path d="M64 150h384v216H64z" fill="#020617" stroke="#22d3ee" stroke-width="8" filter="url(#glow)"/>
+  <path d="M230 203l92 55-92 55z" fill="#ec4899" filter="url(#glow)"/>
+  <path d="M96 397h320" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" opacity=".8"/>
+  <circle cx="148" cy="102" r="28" fill="#22d3ee" opacity=".9"/>
+  <circle cx="364" cy="102" r="28" fill="#ec4899" opacity=".9"/>
+  <path d="M174 106c42 28 122 28 164 0" fill="none" stroke="#a78bfa" stroke-width="10" stroke-linecap="round"/>
+  <text x="256" y="455" text-anchor="middle" font-family="monospace" font-size="34" font-weight="700" fill="#22d3ee">WATCH TOGETHER</text>
+</svg>

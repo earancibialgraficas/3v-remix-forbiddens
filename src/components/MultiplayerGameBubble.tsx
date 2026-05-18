@@ -18,7 +18,9 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import MultiplayerSharedMusicPlayer from "@/components/MultiplayerSharedMusicPlayer";
+import WatchTogetherPlayer from "@/components/WatchTogetherPlayer";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +50,13 @@ const MASSIVE_DECKS = [
 const getMassiveDeckConfigUrl = (code: string) => `https://decks.rereadgames.com/decks/${code}`;
 const makeAgarRoomCode = (index: number) => `AGAR-${index}`;
 const normalizeAgarRoomCode = (code: string) => (code.startsWith("AGAR-") ? code : makeAgarRoomCode(1));
+const hashRoomPassword = (password: string) => {
+  let hash = 5381;
+  for (let i = 0; i < password.length; i += 1) {
+    hash = ((hash << 5) + hash) ^ password.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(36);
+};
 
 interface AgarRoom {
   code: string;
@@ -59,6 +68,8 @@ interface MultiplayerLobbyRoom {
   count: number;
   hostName: string;
   updatedAt: number;
+  passwordProtected?: boolean;
+  passwordHash?: string;
 }
 
 interface SessionPlayer {
@@ -128,6 +139,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [sessionPointPreview, setSessionPointPreview] = useState(0);
   const [sessionElapsedPreview, setSessionElapsedPreview] = useState(0);
   const [lobbyRooms, setLobbyRooms] = useState<MultiplayerLobbyRoom[]>([]);
+  const [roomPrivate, setRoomPrivate] = useState(false);
+  const [roomPassword, setRoomPassword] = useState("");
+  const [joinPassword, setJoinPassword] = useState("");
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -138,6 +152,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const roomCodeRef = useRef(roomCode);
   const isAgar = game?.id === "agar";
   const isMassiveDecks = game?.id === "massive-decks";
+  const isWatchTogether = game?.id === "watch-together";
   const activeGameId = game?.id || "";
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
@@ -176,6 +191,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       description: `${player?.name || "Un jugador"} salio de la partida.`,
     });
   }, [localSessionUserId, toast]);
+
+  const removeSessionPlayer = useCallback((player?: Partial<SessionPlayer>) => {
+    const userId = String(player?.userId || "");
+    const playerId = String(player?.playerId || "");
+    if (!userId && !playerId) return;
+    setSessionPlayers((current) => {
+      const nextPlayers = current.filter((item) => item.userId !== userId && item.playerId !== playerId);
+      sessionPlayersRef.current = nextPlayers;
+      return nextPlayers;
+    });
+  }, []);
 
   const syncLocalSessionPlayer = useCallback(() => {
     if (!activeGameId) return;
@@ -232,6 +258,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
     setLobbyRooms([]);
+    setRoomPrivate(false);
+    setRoomPassword("");
+    setJoinPassword("");
     setGameLaunched(activeGameId === "massive-decks");
     setLaunchedAsHost(true);
     setExpandedInfoOpen(false);
@@ -283,6 +312,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             count: (current?.count || 0) + 1,
             hostName: current?.hostName || String(presence?.hostName || presence?.name || "Jugador"),
             updatedAt: Math.max(Number(current?.updatedAt || 0), Number(presence?.updatedAt || 0)),
+            passwordProtected: Boolean(current?.passwordProtected || presence?.passwordProtected),
+            passwordHash: current?.passwordHash || String(presence?.passwordHash || ""),
           });
         });
       setLobbyRooms(Array.from(rooms.values()).sort((a, b) => b.updatedAt - a.updatedAt || a.code.localeCompare(b.code)));
@@ -299,6 +330,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             userId: localSessionUserId,
             name: localDisplayName,
             hostName: launchedAsHost ? localDisplayName : undefined,
+            passwordProtected: isWatchTogether && roomPrivate,
+            passwordHash: isWatchTogether && roomPrivate ? hashRoomPassword(roomPassword.trim()) : "",
             joinedAt: sessionStartedAtRef.current,
             updatedAt: Date.now(),
           });
@@ -310,7 +343,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, launchedAsHost, localDisplayName, localSessionUserId]);
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, isWatchTogether, launchedAsHost, localDisplayName, localSessionUserId, roomPassword, roomPrivate]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
@@ -479,15 +512,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
         });
 
-      const previousPlayers = sessionPlayersRef.current;
-      const nextPlayers = Array.from(latest.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
-      if (previousPlayers.length > 0) {
-        previousPlayers.forEach((player) => {
-          if (player.userId !== localSessionUserId && !latest.has(player.userId)) {
-            notifyPlayerDisconnected(player);
-          }
-        });
-      }
+      const merged = new Map<string, SessionPlayer>();
+      sessionPlayersRef.current.forEach((player) => merged.set(player.userId, player));
+      latest.forEach((player, userId) => merged.set(userId, player));
+      const nextPlayers = Array.from(merged.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
       sessionPlayersRef.current = nextPlayers;
       setSessionPlayers(nextPlayers);
     };
@@ -514,19 +542,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
       if (payload?.type === "disconnect" && payload.player) {
         notifyPlayerDisconnected(payload.player);
+        removeSessionPlayer(payload.player);
       }
     });
     channel.on("presence", { event: "sync" }, readPlayers);
-    channel.on("presence", { event: "leave" }, ({ leftPresences }: any) => {
-      (leftPresences || []).forEach((presence: any) => {
-        notifyPlayerDisconnected({
-          userId: String(presence?.userId || presence?.playerId || ""),
-          playerId: String(presence?.playerId || ""),
-          name: String(presence?.name || presence?.displayName || "Un jugador"),
-        });
-      });
-      readPlayers();
-    });
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
         await trackLocal();
@@ -540,21 +559,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
     return () => {
       window.clearInterval(heartbeat);
-      const leavingPlayer = sessionPlayersRef.current.find((player) => player.userId === localSessionUserId);
-      if (leavingPlayer) {
-        void channel.send({
-          type: "broadcast",
-          event: "session",
-          payload: {
-            type: "disconnect",
-            player: leavingPlayer,
-          },
-        });
-      }
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, notifyPlayerDisconnected, upsertSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, localAvatarUrl, localDisplayName, localSessionUserId, notifyPlayerDisconnected, removeSessionPlayer, upsertSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -735,6 +743,20 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }
   }, [activeGameId, activeSessionRoomCode, user?.id]);
 
+  const broadcastLocalDisconnect = useCallback(async () => {
+    const channel = sessionChannelRef.current;
+    const leavingPlayer = sessionPlayersRef.current.find((player) => player.userId === localSessionUserId);
+    if (!channel || !leavingPlayer) return;
+    await channel.send({
+      type: "broadcast",
+      event: "session",
+      payload: {
+        type: "disconnect",
+        player: leavingPlayer,
+      },
+    });
+  }, [localSessionUserId]);
+
   const closeBubble = useCallback(async () => {
     const result = await savePendingGamePoints();
     exitOwnFullscreen();
@@ -746,8 +768,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         : `${game?.label || "Juego"}: ${result.attempted} puntos pendientes. Motivo: ${result.reason || "desconocido"}.`,
       variant: result.saved > 0 || result.attempted === 0 ? "default" : "destructive",
     });
-    if (result.saved > 0 || result.attempted === 0) onClose();
-  }, [exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
+    if (result.saved > 0 || result.attempted === 0) {
+      await broadcastLocalDisconnect();
+      onClose();
+    }
+  }, [broadcastLocalDisconnect, exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
 
   const copyRoom = async () => {
     const codeToCopy = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
@@ -786,12 +811,27 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setReloadKey((key) => key + 1);
   };
 
-  const createLobbyRoom = () => launchRoom(roomCode, true);
+  const createLobbyRoom = () => {
+    if (isWatchTogether && roomPrivate && !roomPassword.trim()) {
+      toast({ title: "Contrasena requerida", description: "Escribe una contrasena o marca la sala como publica.", variant: "destructive" });
+      return;
+    }
+    launchRoom(roomCode, true);
+  };
   const joinLobbyRoom = (code = roomCode) => {
     const nextCode = code.trim().toUpperCase();
     if (!nextCode) {
       toast({ title: "Codigo requerido", description: "Escribe o elige una sala para unirte.", variant: "destructive" });
       return;
+    }
+    if (isWatchTogether) {
+      const targetRoom = lobbyRooms.find((room) => room.code === nextCode);
+      if (targetRoom?.passwordProtected && hashRoomPassword(joinPassword.trim()) !== targetRoom.passwordHash) {
+        toast({ title: "Contrasena incorrecta", description: "Esta sala de Watch Together es privada.", variant: "destructive" });
+        return;
+      }
+      setRoomPrivate(Boolean(targetRoom?.passwordProtected));
+      setRoomPassword(joinPassword.trim());
     }
     launchRoom(nextCode, false);
   };
@@ -888,6 +928,33 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 Unirse
               </Button>
             </div>
+            {isWatchTogether && (
+              <div className="mt-3 space-y-2 rounded border border-white/10 bg-black/30 p-2">
+                <label className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={roomPrivate}
+                    onChange={(event) => setRoomPrivate(event.target.checked)}
+                    className="h-3 w-3"
+                  />
+                  Sala privada
+                </label>
+                {roomPrivate && (
+                  <Input
+                    value={roomPassword}
+                    onChange={(event) => setRoomPassword(event.target.value)}
+                    placeholder="Contrasena para crear"
+                    className="h-8 border-white/10 bg-black/60 text-[10px]"
+                  />
+                )}
+                <Input
+                  value={joinPassword}
+                  onChange={(event) => setJoinPassword(event.target.value)}
+                  placeholder="Contrasena para unirse"
+                  className="h-8 border-white/10 bg-black/60 text-[10px]"
+                />
+              </div>
+            )}
           </div>
           <div className="rounded border border-white/10 bg-white/[0.03] p-3">
             <p className="font-pixel text-[8px] uppercase text-neon-green">Como funciona</p>
@@ -918,7 +985,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-pixel text-[9px] text-white">{room.code}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">Host: {room.hostName}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    Host: {room.hostName}{room.passwordProtected ? " - privada" : " - publica"}
+                  </p>
                 </div>
                 <span className="rounded border border-neon-green/30 px-2 py-1 font-pixel text-[8px] text-neon-green">
                   {room.count}/{game.maxPlayers || 10}
@@ -978,6 +1047,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </div>
         )}
       </div>
+      {!isWatchTogether && (
       <div className="border-b border-white/5">
         <MultiplayerSharedMusicPlayer
           gameId={activeGameId}
@@ -986,6 +1056,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           showListeners={isMassiveDecks}
         />
       </div>
+      )}
       <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
         {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
           const playerName = p.name || p.displayName || "Jugador";
@@ -1150,6 +1221,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               <div className="min-h-0 min-w-0 flex-1">
                 {lobbyPanel}
               </div>
+            ) : isWatchTogether ? (
+            <div className="min-h-0 min-w-0 flex-1">
+              <WatchTogetherPlayer roomCode={activeSessionRoomCode} userName={localDisplayName} />
+            </div>
             ) : (
             <div className="min-h-0 min-w-0 flex-1">
               <iframe

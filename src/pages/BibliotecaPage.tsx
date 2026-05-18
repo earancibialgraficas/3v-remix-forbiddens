@@ -580,6 +580,7 @@ const handlePlayCloudGame = async (game: any) => {
     { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.svg', maxPlayers: 10, playersLabel: '10P' },
     { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
     { id: 'massive-decks', label: 'Massive Decks', coverUrl: '/games/covers/massive-decks.svg', maxPlayers: 20, playersLabel: 'PARTY' },
+    { id: 'watch-together', label: 'Watch Together', coverUrl: '/games/covers/watch-together.svg', maxPlayers: 20, playersLabel: 'WATCH' },
     { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.svg', maxPlayers: 2, playersLabel: '2P' },
     { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.svg', maxPlayers: 2, playersLabel: '2P' }
   ];
