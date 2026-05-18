@@ -288,6 +288,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setMinimized(false);
     setPosition({ x: 0, y: 0 });
     setSize({ w: Math.min(900, Math.max(280, window.innerWidth - 32)), h: Math.min(640, Math.max(260, window.innerHeight - 32)) });
+    setFullscreen(activeGameId === "watch-together");
     lobbyJoinedAtRef.current = Date.now();
     lobbyTrackedRoomRef.current = "";
     setRoomCode(activeGameId === "agar" ? makeAgarRoomCode(1) : makeRoomCode());
@@ -795,7 +796,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setMinimized(true);
   }, [exitOwnFullscreen]);
 
-  const savePendingGamePoints = useCallback(async (): Promise<SavePendingResult> => {
+  const savePendingGamePoints = useCallback(async (updatePreview = true): Promise<SavePendingResult> => {
     const pendingPoints = Math.floor(pendingGamePointsRef.current);
     if (pendingPoints <= 0) return { saved: 0, attempted: 0, reason: "no_points" };
     if (!user?.id) return { saved: 0, attempted: pendingPoints, reason: "not_authenticated_in_client" };
@@ -820,8 +821,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (saved > 0) {
         pendingGamePointsRef.current = Math.max(0, pendingGamePointsRef.current - saved);
         sessionTotalPointsRef.current += saved;
-        setSessionPointPreview(sessionTotalPointsRef.current + pendingGamePointsRef.current);
-        setSessionElapsedPreview(sessionElapsedRef.current);
+        if (updatePreview) {
+          setSessionPointPreview(sessionTotalPointsRef.current + pendingGamePointsRef.current);
+          setSessionElapsedPreview(sessionElapsedRef.current);
+        }
       }
       return { saved, attempted: pendingPoints, reason: reasonParts.length ? reasonParts.join(" - ") : "ok" };
     } catch {
@@ -844,21 +847,23 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     await channel.untrack?.();
   }, [buildLocalSessionPlayer, localSessionUserId]);
 
-  const closeBubble = useCallback(async () => {
-    const result = await savePendingGamePoints();
+  const closeBubble = useCallback(() => {
+    const visiblePointsAtClose = sessionTotalPointsRef.current + pendingGamePointsRef.current;
+    const gameLabel = game?.label || "Juego";
     exitOwnFullscreen();
-    const visiblePoints = sessionTotalPointsRef.current + pendingGamePointsRef.current;
-    toast({
-      title: result.saved > 0 ? "Sesion finalizada" : "No se pudo guardar el puntaje",
-      description: result.saved > 0
-        ? `${game?.label || "Juego"}: +${visiblePoints} puntos (${result.saved} guardados al cerrar).`
-        : `${game?.label || "Juego"}: ${result.attempted} puntos pendientes. Motivo: ${result.reason || "desconocido"}.`,
-      variant: result.saved > 0 || result.attempted === 0 ? "default" : "destructive",
+    void broadcastLocalDisconnect();
+    onClose();
+    void savePendingGamePoints(false).then((result) => {
+      toast({
+        title: result.saved > 0 || result.attempted === 0 ? "Sesion finalizada" : "No se pudo guardar el puntaje",
+        description: result.saved > 0
+          ? `${gameLabel}: +${visiblePointsAtClose} puntos (${result.saved} guardados al cerrar).`
+          : result.attempted > 0
+            ? `${gameLabel}: ${result.attempted} puntos pendientes. Motivo: ${result.reason || "desconocido"}.`
+            : `${gameLabel}: sin puntos pendientes.`,
+        variant: result.saved > 0 || result.attempted === 0 ? "default" : "destructive",
+      });
     });
-    if (result.saved > 0 || result.attempted === 0) {
-      await broadcastLocalDisconnect();
-      onClose();
-    }
   }, [broadcastLocalDisconnect, exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
 
   const copyRoom = async () => {
@@ -1346,7 +1351,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               </div>
             ) : isWatchTogether ? (
             <div className="min-h-0 min-w-0 flex-1">
-              <WatchTogetherPlayer roomCode={activeSessionRoomCode} userName={localDisplayName} controlsTargetId={watchControlsTargetId} />
+              <WatchTogetherPlayer roomCode={activeSessionRoomCode} userName={localDisplayName} controlsTargetId={watchControlsTargetId} fullscreen={fullscreen} />
             </div>
             ) : (
             <div className="min-h-0 min-w-0 flex-1">

@@ -26,6 +26,7 @@ interface WatchTogetherPlayerProps {
   roomCode: string;
   userName: string;
   controlsTargetId?: string;
+  fullscreen?: boolean;
 }
 
 const formatTime = (seconds: number) => {
@@ -103,7 +104,7 @@ const CAPTION_LANGUAGES = [
   { value: "ja", label: "Japones" },
 ];
 
-export default function WatchTogetherPlayer({ roomCode, userName, controlsTargetId }: WatchTogetherPlayerProps) {
+export default function WatchTogetherPlayer({ roomCode, userName, controlsTargetId, fullscreen = false }: WatchTogetherPlayerProps) {
   const [playlist, setPlaylist] = useState<WatchSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -115,6 +116,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [videoHudVisible, setVideoHudVisible] = useState(true);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [captionLanguage, setCaptionLanguage] = useState("es");
   const [videoQuality, setVideoQuality] = useState("auto");
@@ -122,6 +124,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const [newTitle, setNewTitle] = useState("");
   const [controlsElement, setControlsElement] = useState<HTMLElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const hudTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const channelRef = useRef<any>(null);
   const pollRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const stateRef = useRef<WatchState>(emptyState());
@@ -136,6 +139,25 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
 
   const current = playlist[currentIndex];
   const effectiveVolume = muted ? 0 : volume;
+
+  const revealVideoHud = useCallback(() => {
+    setVideoHudVisible(true);
+    if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
+    if (!fullscreen || volumeOpen || settingsOpen) return;
+    hudTimerRef.current = window.setTimeout(() => setVideoHudVisible(false), 1800);
+  }, [fullscreen, settingsOpen, volumeOpen]);
+
+  useEffect(() => {
+    if (!fullscreen) {
+      setVideoHudVisible(true);
+      return;
+    }
+    revealVideoHud();
+    return () => {
+      if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
+      hudTimerRef.current = null;
+    };
+  }, [fullscreen, revealVideoHud]);
 
   useEffect(() => {
     effectiveVolumeRef.current = effectiveVolume;
@@ -436,6 +458,22 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
         </div>
       </div>
 
+      {volumeOpen && !fullscreen && (
+        <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+          <button type="button" onClick={() => setMuted((value) => !value)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
+          <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
+          <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
+        </div>
+      )}
+
+      {fullscreen && (
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setPlaylistOpen((v) => !v); setAddOpen(false); }} disabled={!playlist.length} title="Lista" aria-label="Lista">{playlistOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ListVideo className="h-3.5 w-3.5" />}</Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddOpen((v) => !v); setPlaylistOpen(false); }} title="Agregar video" aria-label="Agregar video">{addOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</Button>
+        </div>
+      )}
+
+      {!fullscreen && (
       <div className="mt-1.5 flex items-center justify-center gap-1.5">
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</Button>
@@ -445,16 +483,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setSettingsOpen((v) => !v); setVolumeOpen(false); setPlaylistOpen(false); setAddOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddOpen((v) => !v); setVolumeOpen(false); setPlaylistOpen(false); setSettingsOpen(false); }} title="Agregar video" aria-label="Agregar video">{addOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</Button>
       </div>
-
-      {volumeOpen && (
-        <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
-          <button type="button" onClick={() => setMuted((value) => !value)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white" title="Silenciar" aria-label="Silenciar">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</button>
-          <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
-          <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
-        </div>
       )}
 
-      {settingsOpen && (
+      {settingsOpen && !fullscreen && (
         <div className="mt-2 space-y-1 rounded border border-white/10 bg-black/35 p-2">
           <button type="button" onClick={toggleCaptions} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
             Subtitulos: {captionsEnabled ? "ON" : "OFF"}
@@ -518,9 +549,49 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
     </div>
   );
 
+  const settingsMenu = (
+    <div className="space-y-1 rounded border border-white/10 bg-black/80 p-2 shadow-2xl backdrop-blur-md">
+      <button type="button" onClick={toggleCaptions} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
+        Subtitulos: {captionsEnabled ? "ON" : "OFF"}
+      </button>
+      <label className="block text-[9px] uppercase text-muted-foreground">
+        Calidad
+        <select
+          value={videoQuality}
+          onChange={(event) => changeVideoQuality(event.target.value)}
+          className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
+        >
+          {VIDEO_QUALITIES.map((quality) => (
+            <option key={quality.value} value={quality.value}>{quality.label}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-[9px] uppercase text-muted-foreground">
+        Idioma subtitulos
+        <select
+          value={captionLanguage}
+          onChange={(event) => changeCaptionLanguage(event.target.value)}
+          className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
+        >
+          {CAPTION_LANGUAGES.map((language) => (
+            <option key={language.value} value={language.value}>{language.label}</option>
+          ))}
+        </select>
+      </label>
+      <button type="button" onClick={() => applyState(stateRef.current)} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
+        Re-sincronizar video
+      </button>
+      {current && (
+        <button type="button" onClick={() => window.open(current.url, "_blank", "noopener,noreferrer")} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
+          Abrir en YouTube
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-black">
-      <div className="relative min-h-0 flex-1 bg-black">
+      <div className="relative min-h-0 flex-1 bg-black" onMouseMove={revealVideoHud} onPointerMove={revealVideoHud} onPointerDown={revealVideoHud}>
         {current ? (
           <iframe
             key={current.youtubeId}
@@ -542,7 +613,33 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
             <p className="max-w-md text-xs text-muted-foreground">Agrega un link de YouTube para iniciar una lista sincronizada con la sala.</p>
           </div>
         )}
-        {current && <div className="absolute inset-0 z-10 cursor-default bg-transparent" title="Usa los controles sincronizados de la derecha" />}
+        {current && <button type="button" className="absolute inset-0 z-10 cursor-default bg-transparent" title="Usa los controles sincronizados" aria-label={isPlaying ? "Pausar" : "Reproducir"} onClick={playPause} />}
+        {fullscreen && current && (
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 transition-opacity duration-300",
+              videoHudVisible || settingsOpen || volumeOpen ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+            onMouseMove={revealVideoHud}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {settingsOpen && <div className="w-full max-w-[260px]">{settingsMenu}</div>}
+            {volumeOpen && (
+              <div className="flex w-full max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-black/75 px-3 py-2 backdrop-blur-md">
+                <Volume2 className="h-3.5 w-3.5 text-neon-cyan" />
+                <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
+                <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2 py-1.5 shadow-2xl backdrop-blur-md">
+              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {controlsElement ? createPortal(controls, controlsElement) : <div className="border-t border-neon-cyan/20 bg-black/85">{controls}</div>}

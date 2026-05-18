@@ -6,6 +6,7 @@ import GameBubble from "@/components/GameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import FloatingChat from "@/components/FloatingChat";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
+import SiteLanguageSelect from "@/components/SiteLanguageSelect";
 import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export default function MainLayout() {
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const location = useLocation();
+  const mobileTopBarHeight = 46;
 
   // 📱 Detectar orientación landscape en móvil/tablet → footer pasa a ser rightbar
   const [isLandscape, setIsLandscape] = useState(false);
@@ -144,22 +146,33 @@ export default function MainLayout() {
       {/* Menú Hamburguesa flotante (Visible en Tablet y Celular) - se auto-oculta tras 3.5s */}
       <div
         className={cn(
-          "lg:hidden fixed top-2 left-2 z-50 flex gap-2 transition-all duration-300",
+          "lg:hidden fixed inset-x-0 top-0 z-50 flex h-[46px] items-center justify-between border-b border-border/70 bg-background/92 px-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition-all duration-300",
           lBarVisible
-            ? "opacity-100 translate-x-0 pointer-events-auto"
-            : "opacity-0 -translate-x-full pointer-events-none"
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-full pointer-events-none"
         )}
       >
         <Button
-          variant="secondary"
+          variant="ghost"
           size="icon"
+          className="h-9 w-9 rounded border border-border/60 bg-card/80 text-muted-foreground hover:text-foreground"
           onClick={() => {
             setMobileSidebarOpen(true);
             showLBar();
           }}
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="h-5 w-5" />
         </Button>
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none">
+          <span
+            className="font-pixel text-[9px] uppercase tracking-[0.28em]"
+            style={{ color: "#de1839", textShadow: "0 0 7px rgba(222, 24, 57, 0.45)" }}
+          >
+            FORBIDDENS
+          </span>
+          <span className="mt-0.5 h-px w-16 bg-gradient-to-r from-transparent via-[#de1839]/55 to-transparent" />
+        </div>
+        <SiteLanguageSelect compact className="bg-card/80" />
       </div>
 
       {/* Fondo oscuro al abrir menú lateral en móviles */}
@@ -180,7 +193,15 @@ export default function MainLayout() {
             ? "h-[100dvh] transition-[padding-right] duration-300"
             : "h-[calc(100dvh-104px)]"
         )}
-        style={isLandscape ? { paddingRight: mobileRightOpen ? "min(60vw, 380px)" : "56px" } : undefined}
+        style={
+          isMobile
+            ? {
+                height: isLandscape ? `calc(100dvh - ${mobileTopBarHeight}px)` : `calc(100dvh - ${mobileTopBarHeight}px - 104px)`,
+                marginTop: `${mobileTopBarHeight}px`,
+                paddingRight: isLandscape ? (mobileRightOpen ? "min(60vw, 380px)" : "56px") : undefined,
+              }
+            : undefined
+        }
       >
         {/* 🔥 FIX SECUNDARIO: Removidos paddings en celular (p-0) para que el hijo ocupe el 100% exacto 🔥 */}
         <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-3 2xl:gap-8 p-0 lg:p-3 2xl:p-6 pb-0 lg:pb-4 2xl:pb-6 max-w-[1800px] mx-auto w-full h-full">
@@ -200,7 +221,7 @@ export default function MainLayout() {
             "lg:hidden fixed bg-card border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
             isLandscape
               ? cn(
-                  "top-0 bottom-0 right-0 border-l",
+                  "top-[46px] bottom-0 right-0 border-l",
                   mobileRightOpen ? "w-[60vw] max-w-[380px]" : "w-[56px]"
                 )
               : cn(

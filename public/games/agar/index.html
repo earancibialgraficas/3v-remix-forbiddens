@@ -127,6 +127,7 @@
         let lastPublishedFoodPoints = 0;
         let bestMass = myScore;
         let gameOver = false;
+        const REMOTE_PLAYER_TTL = 60000;
         const avatarCache = {};
 
         function getLocalPlayer() {
@@ -402,7 +403,7 @@
         function pruneRemotePlayers() {
             const now = Date.now();
             Object.keys(players).forEach(id => {
-                if (!players[id] || now - Number(players[id].lastSeen || 0) > 15000) {
+                if (!players[id] || now - Number(players[id].lastSeen || 0) > REMOTE_PLAYER_TTL) {
                     delete players[id];
                 }
             });
@@ -438,11 +439,11 @@
         function publishLocalRealtimeState(forcePresence = false) {
             const now = Date.now();
             const localState = getLocalPlayer();
-            if (now - lastBroadcastAt > 80) {
+            if (now - lastBroadcastAt > 160) {
                 lastBroadcastAt = now;
                 channel.send({ type: 'broadcast', event: 'state', payload: localState });
             }
-            if (forcePresence || now - lastPresenceTrackAt > 1000) {
+            if (forcePresence || now - lastPresenceTrackAt > 800) {
                 lastPresenceTrackAt = now;
                 channel.track(localState);
             }
@@ -468,7 +469,7 @@
                 });
                 const now = Date.now();
                 Object.keys(players).forEach(id => {
-                    if (!activePresenceIds.has(id) && now - Number(players[id].lastSeen || 0) > 15000) {
+                    if (!activePresenceIds.has(id) && now - Number(players[id].lastSeen || 0) > REMOTE_PLAYER_TTL) {
                         delete players[id];
                     }
                 });

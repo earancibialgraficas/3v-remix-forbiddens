@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import MembershipBadge from "@/components/MembershipBadge";
 import MiniCarousel from "@/components/MiniCarousel";
 import UserPopup from "@/components/UserPopup";
+import SiteLanguageSelect from "@/components/SiteLanguageSelect";
 
 interface TopUser { id: string; user_id: string; display_name: string; total_score: number; avatar_url?: string | null; membership_tier?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
 interface PremiumUser { id: string; user_id: string; display_name: string; membership_tier: string; created_at: string; avatar_url?: string | null; role_icon?: string | null; show_role_icon?: boolean | null; color_name?: string | null; color_avatar_border?: string | null; color_role?: string | null; color_staff_role?: string | null; roles?: string[]; }
@@ -157,6 +158,7 @@ export default function RightPanel() {
             <Type className="w-3 h-3" />
             <span className={cn("font-body uppercase font-pixel tracking-tighter", sizes.body)}>{textSize}</span>
           </button>
+          <SiteLanguageSelect />
         </div>
       )}
 
