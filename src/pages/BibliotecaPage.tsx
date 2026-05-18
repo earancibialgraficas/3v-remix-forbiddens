@@ -657,8 +657,8 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
       <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:flex-1">
+      <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden pb-1 retro-scrollbar lg:overflow-visible">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 lg:flex-1">
           <select
             value={dropdownValue}
             onChange={e => {
@@ -673,7 +673,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
               }
             }}
-            className="h-9 w-full min-w-0 rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-44 lg:w-48"
+            className="h-9 w-28 shrink-0 rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-40 lg:w-48"
             aria-label="Seleccionar consola o multijugador"
           >
             {dropdownOptions.map((opt, i) =>
@@ -684,7 +684,7 @@ const handlePlayCloudGame = async (game: any) => {
               )
             )}
           </select>
-          <div className="relative min-w-0 flex-1">
+          <div className="relative w-44 shrink-0 sm:w-64 lg:min-w-0 lg:flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={`Buscar en ${consoleInfo?.label}...`}
@@ -694,7 +694,7 @@ const handlePlayCloudGame = async (game: any) => {
             />
           </div>
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
         <Button 
           variant="outline" 
           size="icon" 
@@ -707,7 +707,7 @@ const handlePlayCloudGame = async (game: any) => {
         </Button>
         <Link
           to="/arcade/consejos#retroroms-tutorial"
-          className="group relative inline-flex h-8 min-w-0 shrink items-center gap-2 overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
+          className="group relative inline-flex h-8 shrink-0 items-center gap-2 overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
           title="Cómo sincronizar tus ROMs con Google Drive"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -774,12 +774,11 @@ const handlePlayCloudGame = async (game: any) => {
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="bg-card border border-neon-magenta/30 rounded-lg p-4">
-            <h1 className="font-pixel text-sm text-neon-magenta text-glow-magenta mb-1 flex items-center gap-2">
-              <User className="w-4 h-4" /> MULTIJUGADOR
-            </h1>
-            <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos a través del servidor integrado.</p>
+        <div className="space-y-3">
+          <div className="font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2 text-neon-magenta">
+            <h2 className="contents">
+              <User className="w-3.5 h-3.5" /> MULTIJUGADOR
+            </h2>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
             {multiplayerGames.map(g => (
