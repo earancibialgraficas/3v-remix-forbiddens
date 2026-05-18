@@ -84,7 +84,7 @@ DECLARE
   awarded integer := GREATEST(COALESCE(p_points, 25), 0);
   profile_total integer := 0;
   player_name text := 'Anonimo';
-  leaderboard_id uuid;
+  leaderboard_id text;
   leaderboard_score integer := 0;
   display_game_name text;
   save_step text := 'start';
@@ -185,7 +185,7 @@ BEGIN
     SET score = leaderboard_score,
         display_name = COALESCE(player_name, display_name),
         updated_at = now()
-    WHERE id = leaderboard_id;
+    WHERE id::text = leaderboard_id;
   END IF;
 
   save_step := 'update_profile_total';

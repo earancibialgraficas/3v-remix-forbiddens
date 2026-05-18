@@ -718,7 +718,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     agarRooms.some((room) => room.code === activeRoomCode) ? agarRooms : [...agarRooms, { code: activeRoomCode, count: 0 }],
   );
   const currentAgarRoom = visibleAgarRooms.find((room) => room.code === activeRoomCode);
-  const infoPanelWidthClass = isMassiveDecks ? "w-64" : "w-44";
+  const infoPanelWidthClass = "w-64";
   const combinedLeaderboard = (() => {
     const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
     const rows = new Map<string, any>();
@@ -969,9 +969,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             mobileGameFrame && "gap-1 px-2",
             fullscreen && cn(
               "absolute left-0 top-0 z-[61] h-12 bg-black/85 border-white/10",
-              expandedInfoOpen
-                ? cn("w-auto", isMassiveDecks ? "right-64" : "right-44")
-                : "right-0 w-full",
+              expandedInfoOpen ? cn("w-auto", "right-64") : "right-0 w-full",
               expandedInfoOpen ? "translate-y-0" : "-translate-y-full pointer-events-none",
             ),
           )}
@@ -1056,7 +1054,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             className={cn(
               "absolute top-0 right-0 z-[100] h-9 w-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm border",
               expandedInfoOpen
-                ? cn(isMassiveDecks ? "-translate-x-[264px]" : "-translate-x-[184px]", "translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan")
+                ? cn("-translate-x-[264px]", "translate-y-[58px] bg-neon-cyan/90 border-neon-cyan text-black hover:bg-neon-cyan")
                 : "-translate-x-2 translate-y-2 bg-neon-magenta/90 border-neon-magenta text-black hover:bg-neon-magenta",
             )}
           >

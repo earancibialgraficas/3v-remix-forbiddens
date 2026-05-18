@@ -103,6 +103,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const pendingSeekRef = useRef<{ position: number; startedAt: number; isPlaying: boolean } | null>(null);
   const roomStatesRef = useRef<Record<string, SharedMusicState>>({});
   const stateRef = useRef<SharedMusicState>(emptyMusicState());
+  const lastStateResponseAtRef = useRef(0);
 
   const current = playlist[currentIndex];
   const currentYoutubeId = current?.youtubeId || (current?.url ? getYoutubeId(current.url) : null);
@@ -187,6 +188,29 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     });
   }, [activeRoomId, getCurrentSnapshot, userName]);
 
+  const broadcastCurrentStateResponse = useCallback((force = false) => {
+    const now = Date.now();
+    if (!force && now - lastStateResponseAtRef.current < 1200) return;
+
+    const state = stateRef.current;
+    if (!state.playlist.length) return;
+
+    lastStateResponseAtRef.current = now;
+    roomStatesRef.current[activeRoomId] = state;
+
+    void channelRef.current?.send({
+      type: "broadcast",
+      event: "music",
+      payload: {
+        type: "state_response",
+        sender: clientIdRef.current,
+        room: activeRoomId,
+        userName,
+        state,
+      },
+    });
+  }, [activeRoomId, userName]);
+
   useEffect(() => {
     if (!gameId || !roomCode) return;
     const channel = supabase.channel(`forbiddens:multiplayer-music:${activeRoomId}`, {
@@ -213,18 +237,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       if (!payload || payload.sender === clientIdRef.current) return;
       if (payload.room && payload.room !== activeRoomId) return;
       if (payload.type === "request_state") {
-        if (!stateRef.current.playlist.length) return;
-        void channel.send({
-          type: "broadcast",
-          event: "music",
-          payload: {
-            type: "state_response",
-            sender: clientIdRef.current,
-            room: activeRoomId,
-            userName,
-            state: stateRef.current,
-          },
-        });
+        broadcastCurrentStateResponse(true);
         return;
       }
       if (payload.type === "state_response" && payload.state) {
@@ -237,7 +250,10 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         applyRemoteState(payload.state);
       }
     });
-    channel.on("presence", { event: "sync" }, readListeners);
+    channel.on("presence", { event: "sync" }, () => {
+      readListeners();
+      broadcastCurrentStateResponse();
+    });
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
@@ -255,7 +271,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       if (channelRef.current === channel) channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeRoomId, applyRemoteState, gameId, roomCode, userName]);
+  }, [activeRoomId, applyRemoteState, broadcastCurrentStateResponse, gameId, roomCode, userName]);
 
   useEffect(() => {
     const audio = audioRef.current;
