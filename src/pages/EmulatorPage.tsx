@@ -643,7 +643,7 @@ export default function EmulatorPage() {
                       }}
                       onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                     >
-                      <div className="w-40 h-40 sm:w-52 sm:h-52 md:w-72 md:h-72 lg:w-80 lg:h-80 flex items-center justify-center pointer-events-none">
+                      <div className="w-36 h-36 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-72 lg:h-72 flex items-center justify-center pointer-events-none">
                          <img src={sys.consoleImg} alt={sys.name} className="w-full h-full object-contain" draggable={false} />
                       </div>
                     </div>

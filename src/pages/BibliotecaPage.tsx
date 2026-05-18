@@ -601,7 +601,7 @@ const handlePlayCloudGame = async (game: any) => {
     : activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-7xl mx-auto pb-12 px-4 md:px-0">
+    <div className="w-full min-w-0 space-y-4 overflow-x-hidden px-3 pb-12 sm:px-4 lg:px-0 animate-fade-in max-w-7xl mx-auto">
       {/* Selector unificado debajo del cuadro de título */}
       <div className="hidden">
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -657,8 +657,8 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
       <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <div className="flex w-full items-center gap-2 md:w-auto">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:flex-1">
           <select
             value={dropdownValue}
             onChange={e => {
@@ -673,7 +673,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
               }
             }}
-            className="h-9 w-full min-w-[160px] rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 md:w-auto"
+            className="h-9 w-full min-w-0 rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-44 lg:w-48"
             aria-label="Seleccionar consola o multijugador"
           >
             {dropdownOptions.map((opt, i) =>
@@ -684,7 +684,7 @@ const handlePlayCloudGame = async (game: any) => {
               )
             )}
           </select>
-          <div className="relative flex-1 md:w-80 md:flex-none">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={`Buscar en ${consoleInfo?.label}...`}
@@ -694,6 +694,7 @@ const handlePlayCloudGame = async (game: any) => {
             />
           </div>
         </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Button 
           variant="outline" 
           size="icon" 
@@ -706,13 +707,14 @@ const handlePlayCloudGame = async (game: any) => {
         </Button>
         <Link
           to="/arcade/consejos#retroroms-tutorial"
-          className="group relative overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 h-8 inline-flex items-center gap-2 shrink-0 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
+          className="group relative inline-flex h-8 min-w-0 shrink items-center gap-2 overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
           title="Cómo sincronizar tus ROMs con Google Drive"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          <Flame className="relative w-3.5 h-3.5 text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]" />
-          <span className="relative font-pixel text-[10px] uppercase tracking-wider text-destructive">IMPORTANTE</span>
+          <Flame className="relative w-3.5 h-3.5 shrink-0 text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]" />
+          <span className="relative truncate font-pixel text-[10px] uppercase tracking-wider text-destructive">IMPORTANTE</span>
         </Link>
+        </div>
       </div>
 
       {/* Mostrar juegos clásicos o multijugador según el dropdown */}
@@ -728,7 +730,7 @@ const handlePlayCloudGame = async (game: any) => {
               <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(118px,1fr))] gap-2 sm:grid-cols-[repeat(auto-fit,minmax(132px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(145px,1fr))]">
               {currentGames.map((game: any) => (
                 <div
                   key={game.id}
@@ -779,7 +781,7 @@ const handlePlayCloudGame = async (game: any) => {
             </h1>
             <p className="text-xs text-muted-foreground font-body">Juegos web para jugar con amigos a través del servidor integrado.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
             {multiplayerGames.map(g => (
               <div
                 key={g.id}
@@ -806,7 +808,7 @@ const handlePlayCloudGame = async (game: any) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+      <div className="grid grid-cols-1 gap-4 pt-4 xl:grid-cols-2">
         <div className="bg-card border border-neon-yellow/20 rounded-lg overflow-hidden h-fit">
           <div className="px-3 py-2 border-b border-border flex items-center gap-2">
             <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
