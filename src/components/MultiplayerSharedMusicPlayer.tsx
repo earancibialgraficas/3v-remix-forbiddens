@@ -108,8 +108,6 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const effectiveVolume = muted ? 0 : volume;
 
   useEffect(() => {
-    setPlaylist([]);
-    setCurrentIndex(0);
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);

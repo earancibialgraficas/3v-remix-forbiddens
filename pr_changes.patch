@@ -1,0 +1,159 @@
+*** Begin Patch
+*** Update File: src/components/MultiplayerSharedMusicPlayer.tsx
+@@
+-  useEffect(() => {
+-    setPlaylist([]);
+-    setCurrentIndex(0);
+-    setIsPlaying(false);
+-    setCurrentTime(0);
+-    setDuration(0);
+-    setListeners([]);
+-    pendingSeekRef.current = null;
+-  }, [activeRoomId]);
++  useEffect(() => {
++    setIsPlaying(false);
++    setCurrentTime(0);
++    setDuration(0);
++    setListeners([]);
++    pendingSeekRef.current = null;
++  }, [activeRoomId]);
+*** End Patch
+
+*** Begin Patch
+*** Add File: test/MultiplayerSharedMusicPlayer.spec.tsx
++import { render, screen, fireEvent, waitFor } from '@testing-library/react';
++import { describe, it, expect, vi } from 'vitest';
++import MultiplayerSharedMusicPlayer from '@/components/MultiplayerSharedMusicPlayer';
++
++vi.mock('@/integrations/supabase/client', () => {
++  const channel = {
++    presenceState: () => ({}),
++    on: () => channel,
++    subscribe: (cb: any) => {
++      if (typeof cb === 'function') cb('SUBSCRIBED');
++      return Promise.resolve();
++    },
++    track: () => Promise.resolve(),
++    send: () => Promise.resolve(),
++  };
++  return { supabase: { channel: () => channel, removeChannel: async () => {} } };
++});
++
++describe('MultiplayerSharedMusicPlayer', () => {
++  it('preserva la canción al cambiar de sala', async () => {
++    render(<MultiplayerSharedMusicPlayer gameId="g1" roomCode="r1" userName="tester" />);
++
++    const urlInput = screen.getByPlaceholderText(/URL YouTube\/mp3\/ogg/i);
++    const titleInput = screen.getByPlaceholderText(/Titulo/i);
++    const addButton = screen.getByRole('button', { name: /Agregar/i });
++
++    fireEvent.change(titleInput, { target: { value: 'Mi Canción' } });
++    fireEvent.change(urlInput, { target: { value: 'https://example.com/song.mp3' } });
++    fireEvent.click(addButton);
++
++    await waitFor(() => expect(screen.getByText('Mi Canción')).toBeInTheDocument());
++
++    const select = screen.getByLabelText(/Sala de musica/i);
++    fireEvent.change(select, { target: { value: 'shared-1' } });
++
++    expect(screen.getByText('Mi Canción')).toBeInTheDocument();
++  });
++});
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: scripts/create_pr.ps1
++Param(
++  [switch]$Force
++)
++
++function Fail($msg) {
++  Write-Host "ERROR: $msg" -ForegroundColor Red
++  exit 1
++}
++
++if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
++  Fail 'git no está instalado o no está en PATH. Instala git y vuelve a ejecutar este script.'
++}
++if (-not (Get-Command node -ErrorAction SilentlyContinue) -or -not (Get-Command npm -ErrorAction SilentlyContinue)) {
++  Fail 'node/npm no están instalados o no están en PATH. Instala Node.js y npm y vuelve a ejecutar este script.'
++}
++
++$timestamp = Get-Date -Format "yyyyMMddHHmmss"
++$branch = "fix/preserve-playlist-$timestamp"
++
++Write-Host "Creando branch: $branch"
++git checkout -b $branch
++if ($LASTEXITCODE -ne 0) { Fail 'No se pudo crear el branch con git.' }
++
++Write-Host "Instalando dependencias..."
++npm install
++if ($LASTEXITCODE -ne 0) { Fail 'npm install falló.' }
++
++Write-Host "Comprobando TypeScript..."
++npx tsc --noEmit
++if ($LASTEXITCODE -ne 0) { Fail 'Comprobación TypeScript falló. Revisa errores antes de continuar.' }
++
++Write-Host "Ejecutando tests..."
++npm test
++if ($LASTEXITCODE -ne 0) { Fail 'Algunos tests fallaron. Revisa la salida de tests.' }
++
++Write-Host "Preparando commit..."
++git add -A
++git commit -m "fix: preserve playlist when switching music room; add test(MultiplayerSharedMusicPlayer)"
++if ($LASTEXITCODE -ne 0) {
++  Write-Host "Nada para commitear o commit fallido. Continuando..." -ForegroundColor Yellow
++}
++
++Write-Host "Pusheando branch a origin..."
++git push -u origin $branch
++if ($LASTEXITCODE -ne 0) { Fail 'git push falló. Verifica permisos y conexión remota.' }
++
++if (Get-Command gh -ErrorAction SilentlyContinue) {
++  Write-Host "Creando PR con gh CLI..."
++  if (Test-Path PR_BODY.md) {
++    gh pr create --title "Fix: preserve playlist when switching music room" --body-file PR_BODY.md
++  } else {
++    gh pr create --fill
++  }
++  if ($LASTEXITCODE -ne 0) { Write-Host "gh pr create falló o fue cancelado." -ForegroundColor Yellow }
++} else {
++  $remote = git config --get remote.origin.url
++  if (-not $remote) { Write-Host "Branch push hecho. No tengo URL remota para generar enlace automático."; exit 0 }
++  $repo = $remote -replace '^(?:git@|https://)github.com[:/]', '' -replace '\.git$', ''
++  $base = 'main'
++  $url = "https://github.com/$repo/compare/$base...$branch?expand=1"
++  Write-Host "Branch push hecho. Crea el PR manualmente en:"
++  Write-Host $url -ForegroundColor Cyan
++}
++
++Write-Host "Hecho." -ForegroundColor Green
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: PR_BODY.md
++Resumen
++
++Al cambiar la sala de música, el componente borraba la playlist y el índice actual, lo que hacía perder la canción en reproducción. Este PR evita limpiar la playlist al cambiar de sala y solo reinicia el estado transitorio de reproducción (pausa/tiempo/duración/oyentes).
++
++Qué cambia
++
++- [src/components/MultiplayerSharedMusicPlayer.tsx](src/components/MultiplayerSharedMusicPlayer.tsx): No limpiar `playlist` ni `currentIndex` al cambiar `activeRoomId`.
++- [test/MultiplayerSharedMusicPlayer.spec.tsx](test/MultiplayerSharedMusicPlayer.spec.tsx): Añadida prueba que verifica que la canción se conserva al cambiar de sala.
++- [scripts/create_pr.ps1](scripts/create_pr.ps1): Script PowerShell para automatizar instalación, checks, commit, push y creación de PR.
++
++Cómo probar localmente
++
++1. `npm install`
++2. `npx tsc --noEmit`
++3. `npm test`
++4. `npm run dev` y en la app: añadir una canción compartida, cambiar de sala y comprobar que la canción sigue presente.
++
++Notas
++
++- Este entorno no puede ejecutar git/npm/gh por razones de permisos, por eso incluyo `scripts/create_pr.ps1` para que lo ejecutes localmente y genere el PR automáticamente.
++- Si quieres que cree el PR por ti, necesitaría acceso remoto con credenciales o que ejecutes el script en tu máquina.
++
+*** End Patch
