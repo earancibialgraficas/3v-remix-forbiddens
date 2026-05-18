@@ -585,13 +585,10 @@ export default function EmulatorPage() {
               {(() => {
                 // Posiciones base por "slot" relativo al activo
                 const SLOT_DISTANCE_PX = 260; // px entre slots (coincide con SLOT_DISTANCE arriba)
-                const maxDepthSlot = Math.max(1, Math.floor(systems.length / 2));
-                const halfWidth = carouselWidth / 2;
-                const usableHalfWidth = Math.max(150, halfWidth - 32);
-                const firstSlotDistance = Math.min(
-                  Math.max(carouselWidth * 0.3, 160),
-                  Math.max(150, usableHalfWidth * 0.72),
-                );
+                const angleStep = (Math.PI * 2) / systems.length;
+                const ringRadiusX = Math.min(Math.max(carouselWidth * 0.43, 190), Math.max(210, carouselWidth / 2 - 64));
+                const ringRadiusZ = Math.min(Math.max(carouselWidth * 0.26, 150), 420);
+                const ringTiltY = Math.min(Math.max(carouselWidth * 0.065, 34), 82);
 
                 // Offset visual unificado: durante drag o settle se aplica como desplazamiento del "tren"
                 // dragOffset > 0 (drag derecha) => el tren se mueve a la derecha => prev (slot -1) viene al centro
@@ -607,29 +604,24 @@ export default function EmulatorPage() {
 
                   // Posición efectiva: el tren completo se desplaza con el offset visual
                   const effectiveSlot = slot + progress;
-                  const absSlot = Math.abs(effectiveSlot);
+                  const angle = effectiveSlot * angleStep;
+                  const sin = Math.sin(angle);
+                  const cos = Math.cos(angle);
+                  const frontness = Math.max(0, (cos + 1) / 2);
 
                   // Interpolación suave entre activo y lateral
-                  const direction = effectiveSlot === 0 ? 0 : Math.sign(effectiveSlot);
-                  const depth = Math.min(absSlot, maxDepthSlot);
-                  const normalizedDepth = Math.min(1, depth / maxDepthSlot);
-                  const scale = Math.max(0.34, 1.1 - depth * 0.12);
-                  const opacity = Math.max(0.18, 1 - depth * 0.16);
-                  const farProgress = maxDepthSlot <= 1 ? 0 : Math.min(1, Math.max(0, (depth - 1) / (maxDepthSlot - 1)));
-                  const translatePx = direction * (
-                    depth <= 1
-                      ? depth * firstSlotDistance
-                      : firstSlotDistance + (usableHalfWidth - firstSlotDistance) * Math.pow(farProgress, 0.82)
-                  );
-                  const translateZ = -depth * 150;
-                  const translateY = Math.min(30, depth * 8);
-                  const rotateY = -direction * Math.min(66, depth * 18);
-                  const zIndex = Math.round(100 - depth * 10);
+                  const translatePx = sin * ringRadiusX;
+                  const translateZ = (cos - 1) * ringRadiusZ;
+                  const translateY = 24 - (1 - cos) * ringTiltY + Math.abs(sin) * 10;
+                  const rotateY = -sin * 68;
+                  const scale = 0.38 + frontness * 0.72;
+                  const opacity = 0.2 + frontness * 0.8;
+                  const zIndex = Math.round(60 + frontness * 60);
 
-                  const glowAlpha = 1 - normalizedDepth;
+                  const glowAlpha = frontness;
                   const filter = glowAlpha > 0.05
                     ? `drop-shadow(0 0 ${35 * glowAlpha}px ${sys.glow})`
-                    : `grayscale(${Math.round(70 * normalizedDepth)}%) brightness(${Math.max(0.45, 0.86 - normalizedDepth * 0.25)})`;
+                    : `grayscale(${Math.round(70 * (1 - frontness))}%) brightness(${0.5 + frontness * 0.35})`;
 
                   // Sin transición durante el drag activo (sigue al dedo en vivo).
                   // Con transición durante el settle y el reposo.

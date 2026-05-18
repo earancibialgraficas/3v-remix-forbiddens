@@ -176,17 +176,20 @@ export default function MainLayout() {
       <main
         className={cn(
           "flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden lg:h-auto lg:overflow-visible",
-          isLandscape ? "h-[100dvh] pr-[56px]" : "h-[calc(100dvh-104px)]"
+          isLandscape
+            ? "h-[100dvh] transition-[padding-right] duration-300"
+            : "h-[calc(100dvh-104px)]"
         )}
+        style={isLandscape ? { paddingRight: mobileRightOpen ? "min(60vw, 380px)" : "56px" } : undefined}
       >
         {/* 🔥 FIX SECUNDARIO: Removidos paddings en celular (p-0) para que el hijo ocupe el 100% exacto 🔥 */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-4 xl:gap-8 p-0 lg:p-4 xl:p-6 pb-0 lg:pb-6 max-w-[1800px] mx-auto w-full h-full">
+        <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:gap-3 2xl:gap-8 p-0 lg:p-3 2xl:p-6 pb-0 lg:pb-4 2xl:pb-6 max-w-[1800px] mx-auto w-full h-full">
           <div className="flex-1 min-w-0 flex flex-col h-full">
             <Outlet />
           </div>
           
           {/* Panel Derecho (Solo en PC) */}
-          <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-4 h-[calc(100vh-2rem)]">
+          <div className="hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]">
             <RightPanel />
           </div>
         </div>
