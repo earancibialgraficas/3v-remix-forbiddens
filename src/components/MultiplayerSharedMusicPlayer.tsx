@@ -74,6 +74,14 @@ const getYoutubeId = (url: string) => {
   return null;
 };
 
+const emptyMusicState = (): SharedMusicState => ({
+  playlist: [],
+  currentIndex: 0,
+  isPlaying: false,
+  position: 0,
+  startedAt: Date.now(),
+});
+
 export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userName, showListeners = false }: MultiplayerSharedMusicPlayerProps) {
   const [selectedRoom, setSelectedRoom] = useState("table");
   const [expanded, setExpanded] = useState(false);
@@ -93,13 +101,8 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientIdRef = useRef(`music_${Math.random().toString(36).slice(2, 10)}`);
   const pendingSeekRef = useRef<{ position: number; startedAt: number; isPlaying: boolean } | null>(null);
-  const stateRef = useRef<SharedMusicState>({
-    playlist: [],
-    currentIndex: 0,
-    isPlaying: false,
-    position: 0,
-    startedAt: Date.now(),
-  });
+  const roomStatesRef = useRef<Record<string, SharedMusicState>>({});
+  const stateRef = useRef<SharedMusicState>(emptyMusicState());
 
   const current = playlist[currentIndex];
   const currentYoutubeId = current?.youtubeId || (current?.url ? getYoutubeId(current.url) : null);
@@ -107,23 +110,52 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const activeRoomId = selectedRoom === "table" ? `${gameId}:${roomCode}` : selectedRoom;
   const effectiveVolume = muted ? 0 : volume;
 
-  useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setListeners([]);
-    pendingSeekRef.current = null;
-  }, [activeRoomId]);
-
-  useEffect(() => {
-    stateRef.current = {
+  const getCurrentSnapshot = useCallback((): SharedMusicState => {
+    const audio = audioRef.current;
+    return {
       playlist,
       currentIndex,
       isPlaying,
-      position: currentIsYoutube ? currentTime : audioRef.current?.currentTime || currentTime,
+      position: currentIsYoutube ? currentTime : audio?.currentTime || currentTime,
       startedAt: Date.now(),
     };
-  }, [playlist, currentIndex, isPlaying, currentTime, currentIsYoutube]);
+  }, [currentIndex, currentIsYoutube, currentTime, isPlaying, playlist]);
+
+  const applyMusicState = useCallback((state: SharedMusicState, shouldSeek = true) => {
+    const safePlaylist = Array.isArray(state.playlist) ? state.playlist : [];
+    const safeIndex = Math.min(Math.max(0, Number(state.currentIndex || 0)), Math.max(0, safePlaylist.length - 1));
+    const safePlaying = Boolean(state.isPlaying && safePlaylist.length);
+    const basePosition = Math.max(0, Number(state.position || 0));
+    const startedAt = Number(state.startedAt || Date.now());
+    const nextState: SharedMusicState = {
+      playlist: safePlaylist,
+      currentIndex: safeIndex,
+      isPlaying: safePlaying,
+      position: basePosition,
+      startedAt,
+    };
+
+    stateRef.current = nextState;
+    roomStatesRef.current[activeRoomId] = nextState;
+    pendingSeekRef.current = shouldSeek ? { position: basePosition, startedAt, isPlaying: safePlaying } : null;
+    setPlaylist(safePlaylist);
+    setCurrentIndex(safeIndex);
+    setIsPlaying(safePlaying);
+    setCurrentTime(basePosition);
+    setDuration(0);
+  }, [activeRoomId]);
+
+  useEffect(() => {
+    const cachedState = roomStatesRef.current[activeRoomId] || emptyMusicState();
+    applyMusicState(cachedState, true);
+    setListeners([]);
+  }, [activeRoomId, applyMusicState]);
+
+  useEffect(() => {
+    const snapshot = getCurrentSnapshot();
+    stateRef.current = snapshot;
+    roomStatesRef.current[activeRoomId] = snapshot;
+  }, [getCurrentSnapshot]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = effectiveVolume / 100;
@@ -132,41 +164,28 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   }, [effectiveVolume, currentIsYoutube, currentYoutubeId]);
 
   const applyRemoteState = useCallback((state: SharedMusicState) => {
-    const safePlaylist = Array.isArray(state.playlist) ? state.playlist : [];
-    const safeIndex = Math.min(Math.max(0, Number(state.currentIndex || 0)), Math.max(0, safePlaylist.length - 1));
-    const safePlaying = Boolean(state.isPlaying && safePlaylist.length);
-    const basePosition = Math.max(0, Number(state.position || 0));
-    const startedAt = Number(state.startedAt || Date.now());
-
-    pendingSeekRef.current = { position: basePosition, startedAt, isPlaying: safePlaying };
-    setPlaylist(safePlaylist);
-    setCurrentIndex(safeIndex);
-    setIsPlaying(safePlaying);
-    setCurrentTime(basePosition);
-  }, []);
+    applyMusicState(state, true);
+  }, [applyMusicState]);
 
   const publishState = useCallback((next: Partial<SharedMusicState> = {}) => {
-    const audio = audioRef.current;
     const state: SharedMusicState = {
-      playlist,
-      currentIndex,
-      isPlaying,
-      position: currentIsYoutube ? currentTime : audio?.currentTime || currentTime,
-      startedAt: Date.now(),
+      ...getCurrentSnapshot(),
       ...next,
     };
     stateRef.current = state;
+    roomStatesRef.current[activeRoomId] = state;
     void channelRef.current?.send({
       type: "broadcast",
       event: "music",
       payload: {
         type: "state",
         sender: clientIdRef.current,
+        room: activeRoomId,
         userName,
         state,
       },
     });
-  }, [currentIndex, currentIsYoutube, currentTime, isPlaying, playlist, userName]);
+  }, [activeRoomId, getCurrentSnapshot, userName]);
 
   useEffect(() => {
     if (!gameId || !roomCode) return;
@@ -192,17 +211,26 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
 
     channel.on("broadcast", { event: "music" }, ({ payload }: any) => {
       if (!payload || payload.sender === clientIdRef.current) return;
+      if (payload.room && payload.room !== activeRoomId) return;
       if (payload.type === "request_state") {
+        if (!stateRef.current.playlist.length) return;
         void channel.send({
           type: "broadcast",
           event: "music",
           payload: {
-            type: "state",
+            type: "state_response",
             sender: clientIdRef.current,
+            room: activeRoomId,
             userName,
             state: stateRef.current,
           },
         });
+        return;
+      }
+      if (payload.type === "state_response" && payload.state) {
+        if (Array.isArray(payload.state.playlist) && payload.state.playlist.length > 0) {
+          applyRemoteState(payload.state);
+        }
         return;
       }
       if (payload.type === "state" && payload.state) {
@@ -218,7 +246,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         void channel.send({
           type: "broadcast",
           event: "music",
-          payload: { type: "request_state", sender: clientIdRef.current, userName },
+          payload: { type: "request_state", sender: clientIdRef.current, room: activeRoomId, userName },
         });
       }
     });
@@ -396,11 +424,12 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         <iframe
           ref={iframeRef}
           title="YouTube compartido"
-          src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
+          src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
           allow="autoplay; encrypted-media"
           onLoad={() => {
             iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [effectiveVolume] }), "*");
             iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: effectiveVolume <= 0 ? "mute" : "unMute" }), "*");
+            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: isPlaying ? "playVideo" : "pauseVideo", args: [] }), "*");
           }}
           className="sr-only"
         />

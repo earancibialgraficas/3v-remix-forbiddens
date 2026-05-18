@@ -10,6 +10,47 @@ ALTER TABLE public.leaderboard_scores
   CHECK (console_type IN ('nes', 'snes', 'gba', 'gb', 'gbc', 'n64', 'sega', 'megadrive', 'ps1', 'psx', 'ps2', 'ds', 'arcade', 'multiplayer'))
   NOT VALID;
 
+-- Keep global role helpers text-safe too. Some RLS policies call is_staff(),
+-- and older versions compared user_roles.user_id directly to a uuid.
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id::text = _user_id::text
+      AND role = _role
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_staff(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT public.has_role(_user_id, 'master_web'::public.app_role)
+      OR public.has_role(_user_id, 'admin'::public.app_role)
+      OR public.has_role(_user_id, 'moderator'::public.app_role)
+$$;
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+CREATE POLICY "Users can insert their own profile"
+ON public.profiles
+FOR INSERT
+WITH CHECK (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+CREATE POLICY "Users can update their own profile"
+ON public.profiles
+FOR UPDATE
+USING (auth.uid()::text = user_id::text);
+
 DROP POLICY IF EXISTS "Users can insert their own scores" ON public.leaderboard_scores;
 CREATE POLICY "Users can insert their own scores"
 ON public.leaderboard_scores
@@ -178,6 +219,8 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS recalc_total_score_after_upsert ON public.leaderboard_scores;
+DROP TRIGGER IF EXISTS recalc_total_score_on_insert ON public.leaderboard_scores;
+DROP TRIGGER IF EXISTS recalc_total_score_on_update ON public.leaderboard_scores;
 
 CREATE OR REPLACE FUNCTION public.trigger_recalculate_total_score()
 RETURNS trigger
