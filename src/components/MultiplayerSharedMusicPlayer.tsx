@@ -85,6 +85,7 @@ const emptyMusicState = (): SharedMusicState => ({
 export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userName, showListeners = false }: MultiplayerSharedMusicPlayerProps) {
   const [selectedRoom, setSelectedRoom] = useState("table");
   const [expanded, setExpanded] = useState(false);
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const [playlist, setPlaylist] = useState<SharedSong[]>([]);
   const [listeners, setListeners] = useState<MusicListener[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -111,6 +112,16 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const activeRoomId = selectedRoom === "table" ? `${gameId}:${roomCode}` : selectedRoom;
   const effectiveVolume = muted ? 0 : volume;
 
+  const sendYoutubeCommand = useCallback((func: string, args: unknown[] = []) => {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+  }, []);
+
+  const requestYoutubeStatus = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: clientIdRef.current }), "*");
+    sendYoutubeCommand("getCurrentTime");
+    sendYoutubeCommand("getDuration");
+  }, [sendYoutubeCommand]);
+
   const getCurrentSnapshot = useCallback((): SharedMusicState => {
     const audio = audioRef.current;
     return {
@@ -128,6 +139,8 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     const safePlaying = Boolean(state.isPlaying && safePlaylist.length);
     const basePosition = Math.max(0, Number(state.position || 0));
     const startedAt = Number(state.startedAt || Date.now());
+    const previousSongId = stateRef.current.playlist[stateRef.current.currentIndex]?.id;
+    const nextSongId = safePlaylist[safeIndex]?.id;
     const nextState: SharedMusicState = {
       playlist: safePlaylist,
       currentIndex: safeIndex,
@@ -143,7 +156,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     setCurrentIndex(safeIndex);
     setIsPlaying(safePlaying);
     setCurrentTime(basePosition);
-    setDuration(0);
+    if (!safePlaylist.length || previousSongId !== nextSongId) setDuration(0);
   }, [activeRoomId]);
 
   useEffect(() => {
@@ -160,9 +173,9 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = effectiveVolume / 100;
-    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [effectiveVolume] }), "*");
-    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: effectiveVolume <= 0 ? "mute" : "unMute" }), "*");
-  }, [effectiveVolume, currentIsYoutube, currentYoutubeId]);
+    sendYoutubeCommand("setVolume", [effectiveVolume]);
+    sendYoutubeCommand(effectiveVolume <= 0 ? "mute" : "unMute");
+  }, [effectiveVolume, currentIsYoutube, currentYoutubeId, sendYoutubeCommand]);
 
   const applyRemoteState = useCallback((state: SharedMusicState) => {
     applyMusicState(state, true);
@@ -317,12 +330,13 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     const shouldPlay = pending ? pending.isPlaying : isPlaying;
     const timer = window.setTimeout(() => {
       if (!iframeRef.current?.contentWindow) return;
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: "command", func: "seekTo", args: [basePosition, true] }), "*");
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: "command", func: shouldPlay ? "playVideo" : "pauseVideo" }), "*");
+      requestYoutubeStatus();
+      sendYoutubeCommand("seekTo", [basePosition, true]);
+      sendYoutubeCommand(shouldPlay ? "playVideo" : "pauseVideo");
       pendingSeekRef.current = null;
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [currentIsYoutube, currentTime, currentYoutubeId, isPlaying]);
+  }, [currentIsYoutube, currentTime, currentYoutubeId, isPlaying, requestYoutubeStatus, sendYoutubeCommand]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -331,27 +345,28 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data.event !== "infoDelivery" || !data.info) return;
         if (typeof data.info.currentTime === "number") setCurrentTime(data.info.currentTime);
-        if (typeof data.info.duration === "number") setDuration(data.info.duration);
-        if (data.info.playerState === 0) jumpTo(currentIndex + 1);
+        if (typeof data.info.duration === "number" && data.info.duration > 0) setDuration(data.info.duration);
+        if (data.info.playerState === 0 && playlist.length > 1) jumpTo(currentIndex + 1);
       } catch {
         // Ignore non-YouTube postMessage traffic.
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [currentIndex, currentIsYoutube]);
+  }, [currentIndex, currentIsYoutube, playlist.length]);
 
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (currentIsYoutube && iframeRef.current?.contentWindow) {
+      requestYoutubeStatus();
       pollRef.current = setInterval(() => {
-        iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1 }), "*");
+        requestYoutubeStatus();
       }, 1000);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [currentIsYoutube, currentYoutubeId]);
+  }, [currentIsYoutube, currentYoutubeId, requestYoutubeStatus]);
 
   const addSong = () => {
     const url = newSongUrl.trim();
@@ -384,10 +399,18 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const playPause = () => {
     if (!current) return;
     const nextPlaying = !isPlaying;
+    const position = currentIsYoutube ? currentTime : audioRef.current?.currentTime || currentTime;
     setIsPlaying(nextPlaying);
+    if (currentIsYoutube) {
+      sendYoutubeCommand(nextPlaying ? "playVideo" : "pauseVideo");
+    } else if (nextPlaying) {
+      void audioRef.current?.play().catch(() => setIsPlaying(false));
+    } else {
+      audioRef.current?.pause();
+    }
     publishState({
       isPlaying: nextPlaying,
-      position: currentIsYoutube ? currentTime : audioRef.current?.currentTime || currentTime,
+      position,
       startedAt: Date.now(),
     });
   };
@@ -397,6 +420,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     const nextIndex = (index + playlist.length) % playlist.length;
     setCurrentIndex(nextIndex);
     setCurrentTime(0);
+    setDuration(0);
     setIsPlaying(true);
     publishState({
       currentIndex: nextIndex,
@@ -415,6 +439,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     setCurrentIndex(nextIndex);
     setIsPlaying(nextPlaying);
     setCurrentTime(0);
+    if (!nextPlaylist.length) setDuration(0);
     publishState({
       playlist: nextPlaylist,
       currentIndex: nextIndex,
@@ -443,9 +468,10 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
           src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
           allow="autoplay; encrypted-media"
           onLoad={() => {
-            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [effectiveVolume] }), "*");
-            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: effectiveVolume <= 0 ? "mute" : "unMute" }), "*");
-            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: isPlaying ? "playVideo" : "pauseVideo", args: [] }), "*");
+            requestYoutubeStatus();
+            sendYoutubeCommand("setVolume", [effectiveVolume]);
+            sendYoutubeCommand(effectiveVolume <= 0 ? "mute" : "unMute");
+            sendYoutubeCommand(isPlaying ? "playVideo" : "pauseVideo");
           }}
           className="sr-only"
         />
@@ -464,16 +490,22 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
             <option key={room.id} value={room.id}>{room.label}</option>
           ))}
         </select>
+        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior">
+          <SkipBack className="h-3.5 w-3.5" />
+        </Button>
         <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>
           {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        </Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente">
+          <SkipForward className="h-3.5 w-3.5" />
         </Button>
         <Button
           size="icon"
           variant="ghost"
           className="h-7 w-7 shrink-0"
-          onClick={() => setMuted((value) => !value)}
-          title={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
-          aria-label={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+          onClick={() => setVolumeOpen((value) => !value)}
+          title="Volumen"
+          aria-label="Volumen"
         >
           {muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
         </Button>
@@ -490,6 +522,34 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
           {currentIsYoutube ? "YouTube - " : ""}{formatTime(currentTime)} / {duration ? formatTime(duration) : "0:00"}
         </p>
       </div>
+
+      {volumeOpen && (
+        <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => setMuted((value) => !value)}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white"
+            title={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+            aria-label={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+          >
+            {muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+          </button>
+          <Slider
+            value={[volume]}
+            min={0}
+            max={100}
+            step={1}
+            onValueChange={([next]) => {
+              const safeNext = Number(next || 0);
+              setVolume(safeNext);
+              if (safeNext > 0) setMuted(false);
+            }}
+            className="min-w-0 flex-1"
+            aria-label="Volumen local"
+          />
+          <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
+        </div>
+      )}
 
       {showListeners && (
         <div className="mt-2 rounded border border-white/10 bg-black/35 p-1.5">
@@ -533,6 +593,26 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
+          {playlist.length > 0 && (
+            <div className="max-h-28 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
+              {playlist.map((song, index) => (
+                <button
+                  key={song.id}
+                  type="button"
+                  onClick={() => jumpTo(index)}
+                  className={cn(
+                    "flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors",
+                    index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white"
+                  )}
+                  title={song.title}
+                >
+                  <span className="w-4 shrink-0 font-pixel text-[6px]">{index + 1}</span>
+                  <span className="min-w-0 flex-1 truncate text-[8px]">{song.title}</span>
+                  {song.type === "youtube" && <span className="shrink-0 font-pixel text-[5px] text-red-300">YT</span>}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
             <button
               type="button"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Gamepad2, Monitor, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Flame, Pencil } from "lucide-react";
+import { Gamepad2, Trophy, Play, User, Lightbulb, Send, Search, Cloud, Lock, Loader2, RefreshCw, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -584,16 +584,30 @@ const handlePlayCloudGame = async (game: any) => {
     { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.svg', maxPlayers: 2, playersLabel: '2P' }
   ];
 
+  const getConsoleShortLabel = (consoleId: string, label: string) => {
+    const shortLabels: Record<string, string> = {
+      nes: "NES",
+      snes: "SNES",
+      gba: "GBA",
+      n64: "N64",
+      gbc: "GBC",
+      sega: "SEGA",
+      ps1: "PS1",
+      arcade: "ARC",
+    };
+    return shortLabels[consoleId] || label;
+  };
+
   // Opciones para el dropdown unificado
   const dropdownOptions: Array<{ type: string; label: string; value?: string; color?: string }> = [
     ...activeConsoles.map(c => ({
       type: 'console',
       value: `console:${c.id}`,
-      label: c.label,
+      label: getConsoleShortLabel(c.id, c.label),
       color: c.color
     })),
     { type: 'section', label: '────────────' },
-    { type: 'multiplayer', value: 'multi', label: '🎮 Multijugador', color: 'text-neon-magenta' }
+    { type: 'multiplayer', value: 'multi', label: 'MULTI', color: 'text-neon-magenta' }
   ];
 
   const consoleInfo = dropdownValue === 'multi'
@@ -657,8 +671,8 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
       <VaultPasswordModal open={vaultModalOpen} onOpenChange={setVaultModalOpen} />
 
-      <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden pb-1 retro-scrollbar lg:overflow-visible">
-        <div className="flex min-w-0 shrink-0 items-center gap-2 lg:flex-1">
+      <div className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden pb-1 lg:gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-2">
           <select
             value={dropdownValue}
             onChange={e => {
@@ -673,7 +687,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
               }
             }}
-            className="h-9 w-28 shrink-0 rounded-lg border border-border bg-card px-3 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-40 lg:w-48"
+            className="h-9 w-20 shrink-0 rounded-lg border border-border bg-card px-2 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-28 lg:w-40"
             aria-label="Seleccionar consola o multijugador"
           >
             {dropdownOptions.map((opt, i) =>
@@ -684,7 +698,7 @@ const handlePlayCloudGame = async (game: any) => {
               )
             )}
           </select>
-          <div className="relative w-44 shrink-0 sm:w-64 lg:min-w-0 lg:flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={`Buscar en ${consoleInfo?.label}...`}
@@ -707,12 +721,11 @@ const handlePlayCloudGame = async (game: any) => {
         </Button>
         <Link
           to="/arcade/consejos#retroroms-tutorial"
-          className="group relative inline-flex h-8 shrink-0 items-center gap-2 overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/30 via-card to-destructive/10 px-3 transition-all hover:border-destructive hover:shadow-[0_0_24px_-6px_hsl(var(--destructive))]"
+          className="group relative inline-flex h-8 shrink-0 items-center overflow-hidden rounded-lg border border-destructive/50 bg-gradient-to-br from-destructive/25 via-card to-destructive/10 px-2 transition-all hover:border-destructive hover:shadow-[0_0_18px_-8px_hsl(var(--destructive))]"
           title="Cómo sincronizar tus ROMs con Google Drive"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          <Flame className="relative w-3.5 h-3.5 shrink-0 text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]" />
-          <span className="relative truncate font-pixel text-[10px] uppercase tracking-wider text-destructive">IMPORTANTE</span>
+          <span className="relative truncate font-pixel text-[8px] uppercase tracking-wider text-destructive">IMPORTANTE</span>
         </Link>
         </div>
       </div>
