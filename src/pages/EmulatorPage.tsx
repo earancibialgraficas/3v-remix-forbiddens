@@ -552,9 +552,10 @@ export default function EmulatorPage() {
             <div
               ref={carouselRef}
               className={cn(
-                "relative w-full h-44 sm:h-48 md:h-64 flex items-center justify-center overflow-visible touch-pan-y select-none",
+                "relative w-full h-52 sm:h-56 md:h-72 flex items-center justify-center overflow-visible touch-pan-y select-none",
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               )}
+              style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
               onMouseDown={(e) => onPointerDown(e.clientX)}
               onMouseMove={(e) => isDragging && onPointerMove(e.clientX)}
               onMouseUp={onPointerUp}
@@ -566,10 +567,7 @@ export default function EmulatorPage() {
               {(() => {
                 // Posiciones base por "slot" relativo al activo
                 const SLOT_DISTANCE_PX = 260; // px entre slots (coincide con SLOT_DISTANCE arriba)
-                const ACTIVE_SCALE = 1.1;
-                const SIDE_SCALE = 0.65;
-                const ACTIVE_OPACITY = 1;
-                const SIDE_OPACITY = 0.5;
+                const maxDepthSlot = Math.max(1, Math.floor(systems.length / 2));
 
                 // Offset visual unificado: durante drag o settle se aplica como desplazamiento del "tren"
                 // dragOffset > 0 (drag derecha) => el tren se mueve a la derecha => prev (slot -1) viene al centro
@@ -587,20 +585,22 @@ export default function EmulatorPage() {
                   const effectiveSlot = slot + progress;
                   const absSlot = Math.abs(effectiveSlot);
 
-                  if (absSlot > 1.6) return null;
-
                   // Interpolación suave entre activo y lateral
-                  const t = Math.min(1, absSlot);
-                  const ease = t * t * (3 - 2 * t); // smoothstep
-                  const scale = ACTIVE_SCALE + (SIDE_SCALE - ACTIVE_SCALE) * ease;
-                  const opacity = ACTIVE_OPACITY + (SIDE_OPACITY - ACTIVE_OPACITY) * ease;
-                  const translatePx = effectiveSlot * SLOT_DISTANCE_PX;
-                  const zIndex = Math.round(30 - absSlot * 10);
+                  const direction = effectiveSlot === 0 ? 0 : Math.sign(effectiveSlot);
+                  const depth = Math.min(absSlot, maxDepthSlot);
+                  const normalizedDepth = Math.min(1, depth / maxDepthSlot);
+                  const scale = Math.max(0.34, 1.1 - depth * 0.12);
+                  const opacity = Math.max(0.18, 1 - depth * 0.16);
+                  const translatePx = direction * (Math.min(depth, 1) * 260 + Math.max(0, depth - 1) * 58);
+                  const translateZ = -depth * 150;
+                  const translateY = Math.min(30, depth * 8);
+                  const rotateY = -direction * Math.min(66, depth * 18);
+                  const zIndex = Math.round(100 - depth * 10);
 
-                  const glowAlpha = 1 - ease;
+                  const glowAlpha = 1 - normalizedDepth;
                   const filter = glowAlpha > 0.05
                     ? `drop-shadow(0 0 ${35 * glowAlpha}px ${sys.glow})`
-                    : "grayscale(60%) brightness(0.75)";
+                    : `grayscale(${Math.round(70 * normalizedDepth)}%) brightness(${Math.max(0.45, 0.86 - normalizedDepth * 0.25)})`;
 
                   // Sin transición durante el drag activo (sigue al dedo en vivo).
                   // Con transición durante el settle y el reposo.
@@ -614,7 +614,8 @@ export default function EmulatorPage() {
                         useTransition ? "transition-all duration-[350ms] ease-out" : "transition-none"
                       )}
                       style={{
-                        transform: `translate3d(${translatePx}px, 0, 0) scale(${scale})`,
+                        transform: `translate3d(${translatePx}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                        transformStyle: "preserve-3d",
                         opacity,
                         zIndex,
                         filter,
