@@ -12,6 +12,7 @@ import {
   Move,
   RefreshCw,
   Settings,
+  Trophy,
   Users,
   X,
 } from "lucide-react";
@@ -121,6 +122,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [agarRooms, setAgarRooms] = useState<AgarRoom[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
+  const [sessionPointPreview, setSessionPointPreview] = useState(0);
   const [lobbyRooms, setLobbyRooms] = useState<MultiplayerLobbyRoom[]>([]);
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
@@ -143,17 +145,20 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const syncLocalSessionPlayer = useCallback(() => {
     if (!activeGameId) return;
+    const localTotalPoints = sessionTotalPointsRef.current + pendingGamePointsRef.current;
     const next: SessionPlayer = {
       userId: localSessionUserId,
       playerId: lobbyPlayerIdRef.current,
       name: localDisplayName,
       avatarUrl: localAvatarUrl,
       timePoints: sessionTimePointsRef.current,
-      totalPoints: sessionTotalPointsRef.current + pendingGamePointsRef.current,
+      totalPoints: localTotalPoints,
       elapsedSeconds: sessionElapsedRef.current,
       joinedAt: sessionStartedAtRef.current,
       updatedAt: Date.now(),
     };
+
+    setSessionPointPreview(localTotalPoints);
 
     setSessionPlayers((current) => {
       const players = new Map(current.map((player) => [player.userId, player]));
@@ -195,6 +200,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
+    setSessionPointPreview(0);
   }, [activeGameId]);
 
   useEffect(() => {
@@ -209,6 +215,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
+    setSessionPointPreview(0);
   }, [activeGameId, activeSessionRoomCode]);
 
   useEffect(() => {
@@ -632,6 +639,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (saved > 0) {
         pendingGamePointsRef.current = Math.max(0, pendingGamePointsRef.current - saved);
         sessionTotalPointsRef.current += saved;
+        setSessionPointPreview(sessionTotalPointsRef.current + pendingGamePointsRef.current);
       }
       return { saved, attempted: pendingPoints, reason: reasonParts.length ? reasonParts.join(" - ") : "ok" };
     } catch {
@@ -684,6 +692,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
+    setSessionPointPreview(0);
     setReloadKey((key) => key + 1);
   };
 
@@ -763,6 +772,13 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
   })();
+
+  const sessionPointsBadge = (
+    <div className="flex shrink-0 items-center gap-1 rounded border border-neon-yellow/30 bg-neon-yellow/10 px-2 py-1 shadow-[0_0_14px_rgba(250,204,21,0.12)]">
+      <Trophy className="h-3 w-3 text-neon-yellow" />
+      <span className="font-pixel text-[8px] text-neon-green">{sessionPointPreview}</span>
+    </div>
+  );
 
   const lobbyPanel = (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black/80">
@@ -869,14 +885,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 </div>
               ))}
             </div>
-            <p className="font-pixel text-[5px] text-neon-green">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-1.5">
             <Users className="w-2.5 h-2.5 text-neon-magenta" />
             <div className="min-w-0 text-center">
               <p className="font-pixel text-[7px] text-neon-magenta uppercase tracking-widest">Marcador</p>
-              <p className="font-pixel text-[5px] text-neon-cyan">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
             </div>
           </div>
         )}
@@ -978,7 +992,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           <Move className={cn("h-3.5 w-3.5 text-muted-foreground", mobileGameFrame && "hidden")} />
           <Gamepad2 className={cn("h-4 w-4 text-neon-magenta", mobileGameFrame && "hidden")} />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-pixel text-[10px] text-neon-magenta">{game.label}</p>
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="truncate font-pixel text-[10px] text-neon-magenta">{game.label}</p>
+              {!mobileGameFrame && sessionPointsBadge}
+            </div>
             {isAgar && visibleAgarRooms.length > 1 ? (
               <select
                 value={activeRoomCode}

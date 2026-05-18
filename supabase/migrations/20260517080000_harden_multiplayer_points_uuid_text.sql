@@ -82,10 +82,10 @@ DECLARE
   uid uuid := auth.uid();
   uid_text text := auth.uid()::text;
   awarded integer := GREATEST(COALESCE(p_points, 25), 0);
-  profile_total integer := 0;
+  profile_total bigint := 0;
   player_name text := 'Anonimo';
   leaderboard_id text;
-  leaderboard_score integer := 0;
+  leaderboard_score bigint := 0;
   display_game_name text;
   save_step text := 'start';
   point_event_saved boolean := false;

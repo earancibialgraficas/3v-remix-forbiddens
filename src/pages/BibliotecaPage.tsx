@@ -96,6 +96,7 @@ interface LeaderboardScore {
   id: string;
   display_name: string;
   game_name: string;
+  console_type: string;
   score: number;
   user_id: string;
 }
@@ -419,34 +420,65 @@ const handlePlayCloudGame = async (game: any) => {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data } = await supabase.from("leaderboard_scores").select("*").eq("console_type", selectedConsole).order("score", { ascending: false }).limit(200);
-      if (data) {
-        const bestByUser = new Map<string, any>();
-        (data as any[]).forEach((score) => {
-          const key = String(score.user_id || score.display_name || score.id);
-          const previous = bestByUser.get(key);
-          if (!previous || Number(score.score || 0) > Number(previous.score || 0)) {
-            bestByUser.set(key, score);
-          }
-        });
-        const visibleScores = Array.from(bestByUser.values())
-          .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
-          .slice(0, 10);
-        setLeaderboard(visibleScores as any);
-        const uids = [...new Set(visibleScores.map((s: any) => s.user_id))];
-        if (uids.length > 0) {
-          const { data: p } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
-          const cm: any = {}; p?.forEach((x: any) => cm[x.user_id] = x.color_name);
-          setLeaderboardColors(cm);
-        } else {
-          setLeaderboardColors({});
-        }
+  const leaderboardConsole = dropdownValue === "multi" ? "multiplayer" : selectedConsole;
+
+  const fetchLeaderboard = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("leaderboard_scores")
+      .select("id, display_name, game_name, console_type, score, user_id")
+      .eq("console_type", leaderboardConsole)
+      .order("score", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.error("[Biblioteca] leaderboard error", error);
+      setLeaderboard([]);
+      setLeaderboardColors({});
+      return;
+    }
+
+    const bestByUser = new Map<string, LeaderboardScore>();
+    ((data || []) as LeaderboardScore[]).forEach((score) => {
+      const key = String(score.user_id || score.display_name || score.id);
+      const previous = bestByUser.get(key);
+      if (!previous || Number(score.score || 0) > Number(previous.score || 0)) {
+        bestByUser.set(key, score);
       }
-    };
+    });
+
+    const visibleScores = Array.from(bestByUser.values())
+      .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+      .slice(0, 10);
+
+    setLeaderboard(visibleScores);
+
+    const uids = [...new Set(visibleScores.map((s) => s.user_id).filter(Boolean))];
+    if (uids.length > 0) {
+      const { data: p } = await supabase.from("profiles").select("user_id, color_name").in("user_id", uids);
+      const cm: Record<string, string | null> = {};
+      p?.forEach((x: any) => cm[x.user_id] = x.color_name);
+      setLeaderboardColors(cm);
+    } else {
+      setLeaderboardColors({});
+    }
+  }, [leaderboardConsole]);
+
+  useEffect(() => {
     fetchLeaderboard();
-  }, [selectedConsole]);
+
+    const channel = supabase
+      .channel(`biblioteca-leaderboard-${leaderboardConsole}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "leaderboard_scores", filter: `console_type=eq.${leaderboardConsole}` },
+        () => fetchLeaderboard(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchLeaderboard, leaderboardConsole]);
 
   const handleSuggestSubmit = async () => {
     if (!user || !gameName.trim()) return;
@@ -783,7 +815,10 @@ const handlePlayCloudGame = async (game: any) => {
           {leaderboard.length === 0 ? <div className="p-4 text-center text-[10px] text-muted-foreground">Sin puntuaciones.</div> : leaderboard.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 border-b border-border/30 text-[10px] font-body">
               <span className={cn("w-5 font-bold text-center", i === 0 ? "text-neon-yellow" : "text-muted-foreground")}>{i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}</span>
-              <span className="flex-1 truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-medium" style={getNameStyle(leaderboardColors[s.user_id])}>{s.display_name}</span>
+                <span className="truncate text-[8px] text-muted-foreground">{s.game_name}</span>
+              </span>
               <span className="text-neon-green font-bold">{s.score.toLocaleString()}</span>
             </div>
           ))}
