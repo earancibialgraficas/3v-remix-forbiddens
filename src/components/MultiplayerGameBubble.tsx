@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   ChevronLeft,
   ChevronRight,
+  Clock,
   Copy,
   Gamepad2,
   GripVertical,
@@ -123,6 +124,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [sessionPointPreview, setSessionPointPreview] = useState(0);
+  const [sessionElapsedPreview, setSessionElapsedPreview] = useState(0);
   const [lobbyRooms, setLobbyRooms] = useState<MultiplayerLobbyRoom[]>([]);
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
@@ -159,6 +161,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
 
     setSessionPointPreview(localTotalPoints);
+    setSessionElapsedPreview(sessionElapsedRef.current);
 
     setSessionPlayers((current) => {
       const players = new Map(current.map((player) => [player.userId, player]));
@@ -201,6 +204,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
+    setSessionElapsedPreview(0);
   }, [activeGameId]);
 
   useEffect(() => {
@@ -216,6 +220,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
+    setSessionElapsedPreview(0);
   }, [activeGameId, activeSessionRoomCode]);
 
   useEffect(() => {
@@ -640,6 +645,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         pendingGamePointsRef.current = Math.max(0, pendingGamePointsRef.current - saved);
         sessionTotalPointsRef.current += saved;
         setSessionPointPreview(sessionTotalPointsRef.current + pendingGamePointsRef.current);
+        setSessionElapsedPreview(sessionElapsedRef.current);
       }
       return { saved, attempted: pendingPoints, reason: reasonParts.length ? reasonParts.join(" - ") : "ok" };
     } catch {
@@ -693,6 +699,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
+    setSessionElapsedPreview(0);
     setReloadKey((key) => key + 1);
   };
 
@@ -723,10 +730,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     maxPlayers: String(game.maxPlayers || 10),
   });
   const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
-  const visibleAgarRooms = sortAgarRooms(
-    agarRooms.some((room) => room.code === activeRoomCode) ? agarRooms : [...agarRooms, { code: activeRoomCode, count: 0 }],
-  );
-  const currentAgarRoom = visibleAgarRooms.find((room) => room.code === activeRoomCode);
   const infoPanelWidthClass = "w-64";
   const combinedLeaderboard = (() => {
     const sessionByUser = new Map(sessionPlayers.map((player) => [player.userId, player]));
@@ -772,13 +775,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
   })();
-
-  const sessionPointsBadge = (
-    <div className="flex shrink-0 items-center gap-1 rounded border border-neon-yellow/30 bg-neon-yellow/10 px-2 py-1 shadow-[0_0_14px_rgba(250,204,21,0.12)]">
-      <Trophy className="h-3 w-3 text-neon-yellow" />
-      <span className="font-pixel text-[8px] text-neon-green">{sessionPointPreview}</span>
-    </div>
-  );
 
   const lobbyPanel = (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black/80">
@@ -990,37 +986,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           onMouseDown={fullscreen ? undefined : onDragDown}
         >
           <Move className={cn("h-3.5 w-3.5 text-muted-foreground", mobileGameFrame && "hidden")} />
-          <Gamepad2 className={cn("h-4 w-4 text-neon-magenta", mobileGameFrame && "hidden")} />
+          <Gamepad2 className={cn("h-4 w-4 text-neon-green", mobileGameFrame && "hidden")} />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <p className="truncate font-pixel text-[10px] text-neon-magenta">{game.label}</p>
-              {!mobileGameFrame && sessionPointsBadge}
+            <p className="truncate text-xs font-body font-medium text-foreground">{game.label}</p>
+            <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
+              <span className="font-pixel text-neon-cyan">MULTI</span>
+              <span className="flex items-center gap-0.5">
+                <Trophy className="w-2.5 h-2.5" /> {sessionPointPreview}
+              </span>
+              <span className="flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" /> {formatSessionTime(sessionElapsedPreview)}
+              </span>
             </div>
-            {isAgar && visibleAgarRooms.length > 1 ? (
-              <select
-                value={activeRoomCode}
-                onMouseDown={stopHeaderDrag}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  setLeaderboard([]);
-                  setRoomCode(e.target.value);
-                }}
-                className="mt-0.5 h-5 max-w-full rounded border border-neon-magenta/30 bg-black/70 px-1 font-pixel text-[8px] text-neon-cyan outline-none"
-                title="Cambiar sala"
-                aria-label="Cambiar sala de Agar"
-              >
-                {visibleAgarRooms.map((room) => (
-                  <option key={room.code} value={room.code} disabled={room.count >= AGAR_MAX_PLAYERS && room.code !== activeRoomCode}>
-                    {room.code} ({room.count}/{AGAR_MAX_PLAYERS})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="truncate text-[9px] text-muted-foreground">
-                Sala {activeRoomCode}
-                {isAgar && currentAgarRoom ? ` - ${currentAgarRoom.count}/${AGAR_MAX_PLAYERS}` : ""}
-              </p>
-            )}
           </div>
           {!minimized && (
             <>

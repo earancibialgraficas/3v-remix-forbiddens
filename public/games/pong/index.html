@@ -49,6 +49,7 @@
     const BALL_R = 10;
     const MIN_BALL_SPEED = 4.2;
     const MAX_BALL_SPEED = 13;
+    const GOAL_POINTS = 5;
     const paddles = { left: 230, right: 230 };
     const keys = {};
     const score = { left: 0, right: 0 };
@@ -97,8 +98,8 @@
           onMessage: msg => {
             if (msg.type === 'paddle') paddles[msg.payload.side] = msg.payload.y;
             if (msg.type === 'state') {
-              if (role === 'right' && msg.payload.score.right > lastAwardedScore.right) roomApi.awardWin('pong');
-              if (role === 'left' && msg.payload.score.left > lastAwardedScore.left) roomApi.awardWin('pong');
+              if (role === 'right' && msg.payload.score.right > lastAwardedScore.right) roomApi.awardWin('pong', GOAL_POINTS);
+              if (role === 'left' && msg.payload.score.left > lastAwardedScore.left) roomApi.awardWin('pong', GOAL_POINTS);
               ball = msg.payload.ball;
               score.left = msg.payload.score.left;
               score.right = msg.payload.score.right;
@@ -149,13 +150,13 @@
         hitPaddle('right', prevX);
         if (ball.x < -BALL_R * 2) {
           score.right++;
-          if (role === 'right' && score.right > lastAwardedScore.right) roomApi.awardWin('pong');
+          if (role === 'right' && score.right > lastAwardedScore.right) roomApi.awardWin('pong', GOAL_POINTS);
           lastAwardedScore.right = score.right;
           resetBall(1);
         }
         if (ball.x > canvas.width + BALL_R * 2) {
           score.left++;
-          if (role === 'left' && score.left > lastAwardedScore.left) roomApi.awardWin('pong');
+          if (role === 'left' && score.left > lastAwardedScore.left) roomApi.awardWin('pong', GOAL_POINTS);
           lastAwardedScore.left = score.left;
           resetBall(-1);
         }

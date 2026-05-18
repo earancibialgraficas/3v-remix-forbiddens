@@ -132,15 +132,16 @@
       });
     };
 
-    const awardWin = async (gameSlug) => {
+    const awardWin = async (gameSlug, points = 25) => {
       const userId = profile.userId;
       if (!userId) return { awarded: 0, reason: "anonymous" };
+      const safePoints = Math.max(0, Math.floor(Number(points) || 0));
       let result = { awarded: 0, reason: "rpc_missing" };
       try {
         const { data, error } = await client.rpc("award_multiplayer_win", {
           p_game_slug: gameSlug || options.game,
           p_room_code: activeRoom,
-          p_points: 25,
+          p_points: safePoints,
         });
         if (error) {
           result = { awarded: 0, reason: error.message };
