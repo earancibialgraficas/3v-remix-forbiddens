@@ -624,11 +624,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         return { saved: 0, attempted: pendingPoints, reason: error.message || "rpc_error" };
       }
       const saved = Number((data as any)?.awarded || 0);
+      const reasonParts = [
+        (data as any)?.reason,
+        (data as any)?.step ? `paso: ${(data as any).step}` : "",
+        (data as any)?.message,
+      ].filter(Boolean);
       if (saved > 0) {
         pendingGamePointsRef.current = Math.max(0, pendingGamePointsRef.current - saved);
         sessionTotalPointsRef.current += saved;
       }
-      return { saved, attempted: pendingPoints, reason: String((data as any)?.reason || "ok") };
+      return { saved, attempted: pendingPoints, reason: reasonParts.length ? reasonParts.join(" - ") : "ok" };
     } catch {
       return { saved: 0, attempted: pendingPoints, reason: "unexpected_error" };
     }

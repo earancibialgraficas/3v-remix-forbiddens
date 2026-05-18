@@ -87,6 +87,11 @@ DECLARE
   leaderboard_id uuid;
   leaderboard_score integer := 0;
   display_game_name text;
+  save_step text := 'start';
+  point_event_saved boolean := false;
+  point_event_error text;
+  profile_saved boolean := false;
+  profile_error text;
 BEGIN
   IF uid IS NULL THEN
     RETURN json_build_object('awarded', 0, 'reason', 'not_authenticated');
@@ -114,15 +119,29 @@ BEGIN
     ELSE p_game_slug
   END;
 
+  save_step := 'load_profile';
   SELECT COALESCE(display_name, 'Anonimo')
   INTO player_name
   FROM public.profiles
   WHERE user_id::text = uid_text
   LIMIT 1;
 
-  INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
-  VALUES (uid, uid, 'multiplayer_win', gen_random_uuid(), awarded);
+  save_step := 'insert_point_event';
+  BEGIN
+    EXECUTE format(
+      'INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
+       VALUES (%L, %L, %L, gen_random_uuid(), %s)',
+      uid_text,
+      uid_text,
+      'multiplayer_win',
+      awarded
+    );
+    point_event_saved := true;
+  EXCEPTION WHEN OTHERS THEN
+    point_event_error := SQLERRM;
+  END;
 
+  save_step := 'select_leaderboard';
   SELECT id, score
   INTO leaderboard_id, leaderboard_score
   FROM public.leaderboard_scores
@@ -133,24 +152,34 @@ BEGIN
   LIMIT 1;
 
   IF leaderboard_id IS NULL THEN
+    save_step := 'insert_leaderboard';
     leaderboard_score := awarded;
-    INSERT INTO public.leaderboard_scores (
-      user_id,
-      display_name,
-      game_name,
-      console_type,
-      score,
-      play_time_seconds
-    ) VALUES (
-      uid,
+    EXECUTE format(
+      'INSERT INTO public.leaderboard_scores (
+        user_id,
+        display_name,
+        game_name,
+        console_type,
+        score,
+        play_time_seconds
+      ) VALUES (
+        %L,
+        %L,
+        %L,
+        %L,
+        %s,
+        0
+      )
+      RETURNING id',
+      uid_text,
       COALESCE(player_name, 'Anonimo'),
       display_game_name,
       'multiplayer',
-      leaderboard_score,
-      0
+      leaderboard_score
     )
-    RETURNING id INTO leaderboard_id;
+    INTO leaderboard_id;
   ELSE
+    save_step := 'update_leaderboard';
     leaderboard_score := COALESCE(leaderboard_score, 0) + awarded;
     UPDATE public.leaderboard_scores
     SET score = leaderboard_score,
@@ -159,11 +188,17 @@ BEGIN
     WHERE id = leaderboard_id;
   END IF;
 
-  UPDATE public.profiles
-  SET total_score = COALESCE(total_score, 0) + awarded,
-      updated_at = now()
-  WHERE user_id::text = uid_text
-  RETURNING total_score INTO profile_total;
+  save_step := 'update_profile_total';
+  BEGIN
+    UPDATE public.profiles
+    SET total_score = COALESCE(total_score, 0) + awarded,
+        updated_at = now()
+    WHERE user_id::text = uid_text
+    RETURNING total_score INTO profile_total;
+    profile_saved := true;
+  EXCEPTION WHEN OTHERS THEN
+    profile_error := SQLERRM;
+  END;
 
   RETURN json_build_object(
     'awarded', awarded,
@@ -172,7 +207,21 @@ BEGIN
     'game_name', display_game_name,
     'room', p_room_code,
     'leaderboard_score', COALESCE(leaderboard_score, 0),
-    'total_score', COALESCE(profile_total, 0)
+    'total_score', COALESCE(profile_total, 0),
+    'point_event_saved', point_event_saved,
+    'point_event_error', point_event_error,
+    'profile_saved', profile_saved,
+    'profile_error', profile_error
+  );
+EXCEPTION WHEN OTHERS THEN
+  RETURN json_build_object(
+    'awarded', 0,
+    'reason', 'sql_error',
+    'step', save_step,
+    'message', SQLERRM,
+    'detail', SQLSTATE,
+    'game', p_game_slug,
+    'room', p_room_code
   );
 END;
 $$;
