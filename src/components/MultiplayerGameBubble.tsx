@@ -39,9 +39,11 @@ const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
 const TIME_REWARD_POINTS = 5;
-const MASSIVE_DECK_CODE = "M08NN";
-const MASSIVE_DECK_NAME = "mala leche con semola";
-const MASSIVE_DECK_CONFIG_URL = `https://decks.rereadgames.com/decks/${MASSIVE_DECK_CODE}`;
+const MASSIVE_DECKS = [
+  { code: "M08NN", name: "mala leche con semola" },
+  { code: "EZ3OO", name: "Forbiddens" },
+];
+const getMassiveDeckConfigUrl = (code: string) => `https://decks.rereadgames.com/decks/${code}`;
 const makeAgarRoomCode = (index: number) => `AGAR-${index}`;
 const normalizeAgarRoomCode = (code: string) => (code.startsWith("AGAR-") ? code : makeAgarRoomCode(1));
 
@@ -656,12 +658,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }
   };
 
-  const copyMassiveDeckCode = async () => {
+  const copyMassiveDeckCode = async (code: string) => {
     try {
-      await navigator.clipboard.writeText(MASSIVE_DECK_CODE);
-      toast({ title: "Codigo copiado", description: `Mazo ${MASSIVE_DECK_CODE}` });
+      await navigator.clipboard.writeText(code);
+      toast({ title: "Codigo copiado", description: `Mazo ${code}` });
     } catch {
-      toast({ title: "Mazo", description: MASSIVE_DECK_CODE });
+      toast({ title: "Mazo", description: code });
     }
   };
 
@@ -700,6 +702,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     v: String(reloadKey),
     sbUrl: import.meta.env.VITE_SUPABASE_URL,
     sbKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    playerId: lobbyPlayerIdRef.current,
     userId: user?.id || lobbyPlayerIdRef.current,
     displayName: profile?.display_name || user?.user_metadata?.username || "Jugador",
     avatarUrl: profile?.avatar_url || "",
@@ -843,19 +846,23 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       <div className="border-b border-white/5 bg-white/5 p-2">
         {isMassiveDecks ? (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-1">
-              <div className="min-w-0">
-                <p className="font-pixel text-[7px] uppercase tracking-widest text-neon-magenta">Mazo {MASSIVE_DECK_CODE}</p>
-                <p className="truncate text-[9px] text-neon-cyan" title={MASSIVE_DECK_NAME}>{MASSIVE_DECK_NAME}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={copyMassiveDeckCode} title="Copiar codigo del mazo" aria-label="Copiar codigo del mazo">
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(MASSIVE_DECK_CONFIG_URL, "_blank", "noopener,noreferrer")} title="Configuracion del mazo" aria-label="Configuracion del mazo">
-                  <Settings className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+            <div className="space-y-1">
+              {MASSIVE_DECKS.map((deck) => (
+                <div key={deck.code} className="flex items-center justify-between gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-1">
+                  <div className="min-w-0">
+                    <p className="font-pixel text-[7px] uppercase tracking-widest text-neon-magenta">Mazo {deck.code}</p>
+                    <p className="truncate text-[9px] text-neon-cyan" title={deck.name}>{deck.name}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyMassiveDeckCode(deck.code)} title={`Copiar mazo ${deck.code}`} aria-label={`Copiar mazo ${deck.code}`}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(getMassiveDeckConfigUrl(deck.code), "_blank", "noopener,noreferrer")} title={`Configuracion del mazo ${deck.code}`} aria-label={`Configuracion del mazo ${deck.code}`}>
+                      <Settings className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
             <p className="font-pixel text-[5px] text-neon-green">+{TIME_REWARD_POINTS} pts / {TIME_REWARD_SECONDS}s</p>
           </div>

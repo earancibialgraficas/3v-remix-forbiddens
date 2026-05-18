@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronUp, Music, Pause, Play, Plus, SkipBack, SkipForward, Trash2, Users } from "lucide-react";
+import { ChevronUp, Music, Pause, Play, Plus, SkipBack, SkipForward, Trash2, Users, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,8 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(80);
+  const [muted, setMuted] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -102,6 +105,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const currentYoutubeId = current?.youtubeId || (current?.url ? getYoutubeId(current.url) : null);
   const currentIsYoutube = Boolean(currentYoutubeId);
   const activeRoomId = selectedRoom === "table" ? `${gameId}:${roomCode}` : selectedRoom;
+  const effectiveVolume = muted ? 0 : volume;
 
   useEffect(() => {
     setPlaylist([]);
@@ -122,6 +126,12 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       startedAt: Date.now(),
     };
   }, [playlist, currentIndex, isPlaying, currentTime, currentIsYoutube]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = effectiveVolume / 100;
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [effectiveVolume] }), "*");
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: effectiveVolume <= 0 ? "mute" : "unMute" }), "*");
+  }, [effectiveVolume, currentIsYoutube, currentYoutubeId]);
 
   const applyRemoteState = useCallback((state: SharedMusicState) => {
     const safePlaylist = Array.isArray(state.playlist) ? state.playlist : [];
@@ -390,6 +400,10 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
           title="YouTube compartido"
           src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
           allow="autoplay; encrypted-media"
+          onLoad={() => {
+            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [effectiveVolume] }), "*");
+            iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: effectiveVolume <= 0 ? "mute" : "unMute" }), "*");
+          }}
           className="sr-only"
         />
       )}
@@ -409,6 +423,16 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
         </select>
         <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>
           {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 shrink-0"
+          onClick={() => setMuted((value) => !value)}
+          title={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+          aria-label={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+        >
+          {muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
         </Button>
         <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setExpanded((value) => !value)} title={expanded ? "Ocultar musica" : "Agregar musica"} aria-label={expanded ? "Ocultar musica" : "Agregar musica"}>
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -465,6 +489,31 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
             <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={removeCurrent} disabled={!current} title="Quitar cancion" aria-label="Quitar cancion">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
+          </div>
+          <div className="flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+            <button
+              type="button"
+              onClick={() => setMuted((value) => !value)}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-white"
+              title={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+              aria-label={muted || volume <= 0 ? "Activar volumen" : "Silenciar"}
+            >
+              {muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+            </button>
+            <Slider
+              value={[volume]}
+              min={0}
+              max={100}
+              step={1}
+              onValueChange={([next]) => {
+                const safeNext = Number(next || 0);
+                setVolume(safeNext);
+                if (safeNext > 0) setMuted(false);
+              }}
+              className="min-w-0 flex-1"
+              aria-label="Volumen local"
+            />
+            <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
           </div>
           <Input
             value={newSongTitle}

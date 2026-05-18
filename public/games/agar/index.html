@@ -89,13 +89,14 @@
         const sbUrl = params.get('sbUrl');
         const sbKey = params.get('sbKey');
         const userId = params.get('userId') || `guest_${Math.random().toString(36).slice(2, 10)}`;
+        const playerId = params.get('playerId') || `${userId}_${Math.random().toString(36).slice(2, 8)}`;
         const userName = params.get('displayName') || 'Invitado';
         const avatarUrl = params.get('avatarUrl');
 
         // Configuración de Supabase Realtime
         const supabaseClient = supabase.createClient(sbUrl, sbKey);
         const channel = supabaseClient.channel(`agar_${room}`, {
-            config: { broadcast: { self: false }, presence: { key: userId } }
+            config: { broadcast: { self: false }, presence: { key: playerId } }
         });
 
         // Estado del Juego
@@ -131,6 +132,7 @@
         function getLocalPlayer() {
             return {
                 userId,
+                playerId,
                 name: userName,
                 avatarUrl,
                 points: sessionAwarded + foodPointsPending,
@@ -331,17 +333,19 @@
         }
 
         function mergeRemotePlayer(player, source) {
-            if (!player || player.userId === userId) return;
+            const remoteKey = String(player?.playerId || player?.userId || '');
+            if (!player || !remoteKey || remoteKey === playerId) return;
             const now = Date.now();
-            const existing = players[player.userId] || {};
+            const existing = players[remoteKey] || {};
             const incomingHasCells = hasUsableCells(player);
             const incomingX = Number(player.x);
             const incomingY = Number(player.y);
             const incomingScore = Number(player.score);
 
-            players[player.userId] = {
+            players[remoteKey] = {
                 ...existing,
                 ...player,
+                playerId: remoteKey,
                 x: Number.isFinite(incomingX) ? incomingX : existing.x,
                 y: Number.isFinite(incomingY) ? incomingY : existing.y,
                 score: Number.isFinite(incomingScore) && incomingScore > 0 ? incomingScore : existing.score,
@@ -355,7 +359,8 @@
         }
 
         function rememberRemotePlayer(player) {
-            if (!player || player.userId === userId) return;
+            const remoteKey = String(player?.playerId || player?.userId || '');
+            if (!player || !remoteKey || remoteKey === playerId) return;
             const hasCells = hasUsableCells(player);
             if (!hasCells && (!Number.isFinite(Number(player.x)) || !Number.isFinite(Number(player.y)))) return;
             mergeRemotePlayer(player, 'broadcast');
@@ -375,7 +380,7 @@
 
         function anchorSpawnNearRemote() {
             if (hasAnchoredSpawn || gameOver || myScore > 42 || cells.length !== 1) return;
-            const remote = Object.values(players).find(player => player && player.userId !== userId);
+            const remote = Object.values(players).find(player => player && (player.playerId || player.userId) !== playerId);
             if (!remote) return;
             const remoteCells = getRemoteCells(remote);
             const anchor = remoteCells[0] || remote;
@@ -412,6 +417,7 @@
                 .slice(0, 10)
                 .map(p => ({
                     userId: p.userId,
+                    playerId: p.playerId || p.userId,
                     name: p.name,
                     avatarUrl: p.avatarUrl,
                     points: Math.floor(Number(p.points || p.sessionPoints || 0)),
@@ -445,7 +451,7 @@
 
         channel
             .on('broadcast', { event: 'state' }, ({ payload }) => {
-                if (!payload || payload.userId === userId) return;
+                if (!payload || (payload.playerId || payload.userId) === playerId) return;
                 rememberRemotePlayer(payload);
                 maybePublishLeaderboard(true);
             })
@@ -454,8 +460,9 @@
                 const activePresenceIds = new Set();
                 Object.keys(state).forEach(key => {
                     const presence = state[key][0];
-                    if (presence?.userId && presence.userId !== userId) {
-                        activePresenceIds.add(presence.userId);
+                    const presenceKey = String(presence?.playerId || presence?.userId || '');
+                    if (presenceKey && presenceKey !== playerId) {
+                        activePresenceIds.add(presenceKey);
                         mergeRemotePlayer(presence, 'presence');
                     }
                 });
@@ -475,6 +482,7 @@
                     .slice(0, 10)
                     .map(p => ({
                         userId: p.userId,
+                        playerId: p.playerId || p.userId,
                         name: p.name,
                         avatarUrl: p.avatarUrl,
                         points: Math.floor(Number(p.points || p.sessionPoints || 0)),
@@ -592,9 +600,9 @@
 
             // ⚔️ Colisión entre jugadores (Comer / Ser comido)
             Object.keys(players).forEach(id => {
-                if (id === userId) return;
+                if (id === playerId) return;
                 const p = players[id];
-                if (!p || p.userId === userId) return;
+                if (!p || (p.playerId || p.userId) === playerId) return;
                 const remoteCells = getRemoteCells(p);
                 cells = cells.filter(cell => {
                     for (const remoteCell of remoteCells) {
@@ -631,14 +639,14 @@
             if (img && img.complete) {
                 ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
             } else {
-                ctx.fillStyle = p.userId === userId ? '#00f3ff' : '#222';
+                ctx.fillStyle = (p.playerId || p.userId) === playerId ? '#00f3ff' : '#222';
                 ctx.fill();
             }
             ctx.restore();
 
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI*2);
-            ctx.strokeStyle = p.userId === userId ? '#00f3ff' : '#ff00ff';
+            ctx.strokeStyle = (p.playerId || p.userId) === playerId ? '#00f3ff' : '#ff00ff';
             ctx.lineWidth = 4;
             ctx.stroke();
         }
@@ -673,7 +681,7 @@
             };
 
             Object.values(players).forEach(p => {
-                if (!p || p.userId === userId) return;
+                if (!p || (p.playerId || p.userId) === playerId) return;
                 const remoteCells = getRemoteCells(p);
                 remoteCells.forEach(cell => drawDot(cell, '#ff00ff'));
             });
@@ -723,7 +731,7 @@
 
             // Dibujar jugadores remotos desde Realtime y al jugador local desde la fisica actual.
             Object.values(players).forEach(p => {
-                if (!p || p.userId === userId) return;
+                if (!p || (p.playerId || p.userId) === playerId) return;
                 const remoteCells = getRemoteCells(p);
                 remoteCells.forEach(cell => drawPlayer({ ...p, x: cell.x, y: cell.y, score: cell.score }, camX, camY, zoom));
             });
