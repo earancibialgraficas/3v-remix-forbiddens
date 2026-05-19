@@ -43,7 +43,7 @@ const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
 const TIME_REWARD_POINTS = 5;
-const SESSION_LEAVE_GRACE_MS = 45000;
+const SESSION_LEAVE_GRACE_MS = 120000;
 const SESSION_VISITED_MS = 120000;
 const MASSIVE_DECKS = [
   { code: "M08NN", name: "mala leche con semola" },
@@ -1195,6 +1195,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           )
         : compactGameFrame ? "h-44 w-full border-t" : cn(infoPanelWidthClass, "border-l"),
     )}>
+      {!isWatchTogether && (
       <div className="border-b border-white/5 bg-white/5 p-2">
         {isMassiveDecks ? (
           <div className="space-y-1.5">
@@ -1226,6 +1227,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </div>
         )}
       </div>
+      )}
       {!isWatchTogether && (
       <div className="border-b border-white/5">
         <MultiplayerSharedMusicPlayer
@@ -1270,9 +1272,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                     {playerName.slice(0, 1).toUpperCase()}
                   </div>
                 )}
-                <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
-                  <span className="font-pixel text-[6px] text-white">{i + 1}</span>
-                </div>
+                {!isWatchTogether && (
+                  <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
+                    <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                  </div>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
@@ -1380,20 +1384,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </div>
           {!minimized && (
             <>
-              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={copyRoom} title="Copiar codigo de sala" aria-label="Copiar codigo de sala">
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={headerButtonClass}
-                onMouseDown={stopHeaderDrag}
-                onClick={refreshHeaderAction}
-                title={isWatchTogether ? "Actualizar personas de la sala" : "Reiniciar juego"}
-                aria-label={isWatchTogether ? "Actualizar personas de la sala" : "Reiniciar juego"}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
+              {!isWatchTogether && (
+                <>
+                  <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={copyRoom} title="Copiar codigo de sala" aria-label="Copiar codigo de sala">
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={headerButtonClass}
+                    onMouseDown={stopHeaderDrag}
+                    onClick={refreshHeaderAction}
+                    title="Reiniciar juego"
+                    aria-label="Reiniciar juego"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
               <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={toggleFullscreen} title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"} aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
                 {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </Button>

@@ -417,9 +417,27 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     sendCommand("setOption", ["captions", "track", { languageCode: language }]);
   };
 
+  const forceVideoQuality = useCallback((quality: string) => {
+    if (!current || quality === "auto") {
+      sendCommand("setPlaybackQualityRange", ["small", "highres"]);
+      requestYoutubeStatus();
+      return;
+    }
+    const startSeconds = Math.max(0, Math.floor(currentTime || 0));
+    sendCommand("setPlaybackQualityRange", [quality, quality]);
+    sendCommand("setPlaybackQuality", [quality]);
+    sendCommand("loadVideoById", [{ videoId: current.youtubeId, startSeconds, suggestedQuality: quality }]);
+    window.setTimeout(() => {
+      sendCommand("seekTo", [startSeconds, true]);
+      sendCommand(isPlaying ? "playVideo" : "pauseVideo");
+      applyYoutubePreferences();
+      requestYoutubeStatus();
+    }, 350);
+  }, [applyYoutubePreferences, current, currentTime, isPlaying, requestYoutubeStatus, sendCommand]);
+
   const changeVideoQuality = (quality: string) => {
     setVideoQuality(quality);
-    if (quality !== "auto") sendCommand("setPlaybackQuality", [quality]);
+    forceVideoQuality(quality);
   };
 
   const jumpTo = useCallback((index: number) => {
@@ -610,7 +628,6 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
 
       {addOpen && (
         <div className="mt-2 space-y-1.5">
-          <Input value={newTitle} onChange={(event) => setNewTitle(event.target.value)} placeholder="Titulo" className="h-7 border-white/10 bg-black/60 px-2 text-[10px]" />
           <div className="flex gap-1">
             <Input value={newUrl} onChange={(event) => handleUrlChange(event.target.value)} placeholder="URL YouTube" className="h-7 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]" onKeyDown={(event) => { if (event.key === "Enter") void addVideo(); }} />
             <Button size="icon" variant="secondary" className="h-7 w-7 shrink-0" onClick={() => void addVideo()} title="Agregar" aria-label="Agregar"><Plus className="h-3.5 w-3.5" /></Button>
@@ -702,26 +719,26 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
                 <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
               </div>
             )}
-            <div className="flex w-full max-w-[520px] items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 shadow-2xl backdrop-blur-md">
-              <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
-              <Slider
-                value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
-                min={0}
-                max={Math.max(duration, currentTime, 1)}
-                step={1}
-                onValueChange={([next]) => setCurrentTime(Number(next || 0))}
-                onValueCommit={([next]) => seekVideo(Number(next || 0))}
-                className="min-w-0 flex-1"
-                aria-label="Tiempo del video sincronizado"
-              />
-              <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2 py-1.5 shadow-2xl backdrop-blur-md">
-              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
+            <div className="flex w-full max-w-[820px] items-center justify-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-1.5 shadow-2xl backdrop-blur-md">
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
+              <div className="flex min-w-[180px] max-w-[380px] flex-1 items-center gap-2 px-1">
+                <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
+                <Slider
+                  value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
+                  min={0}
+                  max={Math.max(duration, currentTime, 1)}
+                  step={1}
+                  onValueChange={([next]) => setCurrentTime(Number(next || 0))}
+                  onValueCommit={([next]) => seekVideo(Number(next || 0))}
+                  className="min-w-0 flex-1"
+                  aria-label="Tiempo del video sincronizado"
+                />
+                <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
+              </div>
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
             </div>
           </div>
         )}
