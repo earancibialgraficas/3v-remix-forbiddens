@@ -136,8 +136,10 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const captionsEnabledRef = useRef(false);
   const captionLanguageRef = useRef("es");
   const videoQualityRef = useRef("auto");
+  const durationByVideoRef = useRef<Record<string, number>>({});
   const applyingRemoteStateRef = useRef(false);
   const nativeStateBroadcastRef = useRef(0);
+  const hasAuthoritativeRoomStateRef = useRef(false);
   const clientIdRef = useRef(`watch_${Math.random().toString(36).slice(2, 10)}`);
   const watchJoinedAtRef = useRef(Date.now());
   const titleFetchRef = useRef(0);
@@ -146,6 +148,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const effectiveVolume = muted ? 0 : volume;
   const localWatchPlayerId = playerId || clientIdRef.current;
   const localWatchUserId = userId || localWatchPlayerId;
+  const effectiveDuration = duration || (current?.youtubeId ? durationByVideoRef.current[current.youtubeId] || 0 : 0);
 
   const closeTransientPanels = useCallback(() => {
     setVolumeOpen(false);
@@ -281,6 +284,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
 
   const publishState = useCallback((next: Partial<WatchState> = {}) => {
     const state = { ...getSnapshot(), ...next };
+    hasAuthoritativeRoomStateRef.current = true;
     stateRef.current = state;
     void channelRef.current?.send({
       type: "broadcast",
@@ -294,6 +298,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       config: { presence: { key: clientIdRef.current } },
     });
     channelRef.current = channel;
+    hasAuthoritativeRoomStateRef.current = false;
 
     const buildPresencePayload = () => ({
       userName,
@@ -328,14 +333,17 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     channel.on("broadcast", { event: "watch" }, ({ payload }: any) => {
       if (!payload || payload.sender === clientIdRef.current || payload.room !== roomCode) return;
       if (payload.type === "request_state") {
-        if (!stateRef.current.playlist.length) return;
+        if (!hasAuthoritativeRoomStateRef.current || !stateRef.current.playlist.length) return;
         void channel.send({
           type: "broadcast",
           event: "watch",
           payload: { type: "state", sender: clientIdRef.current, room: roomCode, userName, state: stateRef.current },
         });
       }
-      if (payload.type === "state" && payload.state) applyState(payload.state);
+      if (payload.type === "state" && payload.state) {
+        hasAuthoritativeRoomStateRef.current = true;
+        applyState(payload.state);
+      }
     });
     channel.on("presence", { event: "sync" }, readPresencePlayers);
 
@@ -348,6 +356,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
           event: "watch",
           payload: { type: "request_state", sender: clientIdRef.current, room: roomCode, userName },
         });
+        window.setTimeout(() => {
+          void channel.send({
+            type: "broadcast",
+            event: "watch",
+            payload: { type: "request_state", sender: clientIdRef.current, room: roomCode, userName },
+          });
+        }, 1200);
       }
     });
 
@@ -386,14 +401,18 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
 
   useEffect(() => {
     if (!current?.youtubeId) return;
-    setDuration(0);
+    setDuration(durationByVideoRef.current[current.youtubeId] || 0);
     const first = window.setTimeout(requestYoutubeStatus, 250);
     const second = window.setTimeout(requestYoutubeStatus, 900);
     const third = window.setTimeout(requestYoutubeStatus, 1800);
+    const fourth = window.setTimeout(requestYoutubeStatus, 3200);
+    const fifth = window.setTimeout(requestYoutubeStatus, 5200);
     return () => {
       window.clearTimeout(first);
       window.clearTimeout(second);
       window.clearTimeout(third);
+      window.clearTimeout(fourth);
+      window.clearTimeout(fifth);
     };
   }, [current?.youtubeId, requestYoutubeStatus]);
 
@@ -411,13 +430,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
 
   const seekVideo = useCallback((seconds: number) => {
     if (!current) return;
-    const maxTime = duration > 0 ? duration : Math.max(currentTime, seconds, 0);
+    const maxTime = effectiveDuration > 0 ? effectiveDuration : Math.max(currentTime, seconds, 0);
     const target = Math.min(Math.max(0, Number(seconds || 0)), maxTime);
     setCurrentTime(target);
     sendCommand("seekTo", [target, true]);
     publishState({ isPlaying, position: target, startedAt: Date.now() });
     requestYoutubeStatus();
-  }, [current, currentTime, duration, isPlaying, publishState, requestYoutubeStatus, sendCommand]);
+  }, [current, currentTime, effectiveDuration, isPlaying, publishState, requestYoutubeStatus, sendCommand]);
 
   const toggleCaptions = () => {
     const next = !captionsEnabled;
@@ -463,9 +482,10 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const jumpTo = useCallback((index: number) => {
     if (!playlist.length) return;
     const nextIndex = (index + playlist.length) % playlist.length;
+    const nextVideo = playlist[nextIndex];
     setCurrentIndex(nextIndex);
     setCurrentTime(0);
-    setDuration(0);
+    setDuration(nextVideo?.youtubeId ? durationByVideoRef.current[nextVideo.youtubeId] || 0 : 0);
     setIsPlaying(true);
     publishState({ currentIndex: nextIndex, isPlaying: true, position: 0, startedAt: Date.now() });
   }, [playlist.length, publishState]);
@@ -478,7 +498,10 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         if (data.event !== "infoDelivery" || !data.info) return;
         const reportedTime = typeof data.info.currentTime === "number" ? data.info.currentTime : currentTime;
         if (typeof data.info.currentTime === "number") setCurrentTime(data.info.currentTime);
-        if (typeof data.info.duration === "number" && data.info.duration > 0) setDuration(data.info.duration);
+        if (typeof data.info.duration === "number" && data.info.duration > 0) {
+          setDuration(data.info.duration);
+          if (current?.youtubeId) durationByVideoRef.current[current.youtubeId] = data.info.duration;
+        }
         if ((data.info.playerState === 1 || data.info.playerState === 2) && current) {
           const nextPlaying = data.info.playerState === 1;
           const shouldBroadcast = nextPlaying !== isPlaying && !applyingRemoteStateRef.current && Date.now() - nativeStateBroadcastRef.current > 600;
@@ -545,7 +568,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             ))}
           </div>
           <p className="mt-0.5 truncate font-pixel text-[7px] text-neon-cyan/90">
-            YouTube - {formatTime(currentTime)} / {duration ? formatTime(duration) : "0:00"}
+            YouTube - {formatTime(currentTime)} / {effectiveDuration ? formatTime(effectiveDuration) : "cargando"}
           </p>
         </div>
       </div>
@@ -554,16 +577,16 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
           <span className="w-8 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
           <Slider
-            value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
+            value={[Math.min(currentTime, effectiveDuration || Math.max(currentTime, 1))]}
             min={0}
-            max={Math.max(duration, currentTime, 1)}
+            max={Math.max(effectiveDuration, currentTime, 1)}
             step={1}
             onValueChange={([next]) => setCurrentTime(Number(next || 0))}
             onValueCommit={([next]) => seekVideo(Number(next || 0))}
             className="min-w-0 flex-1"
             aria-label="Tiempo del video sincronizado"
           />
-          <span className="w-8 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
+          <span className="w-8 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{effectiveDuration ? formatTime(effectiveDuration) : "--:--"}</span>
         </div>
       )}
 
@@ -711,7 +734,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             onLoad={() => {
               requestYoutubeStatus();
               applyYoutubePreferences();
-              applyState(stateRef.current);
+              if (hasAuthoritativeRoomStateRef.current) applyState(stateRef.current);
             }}
           />
         ) : (
@@ -751,23 +774,23 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
                 <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
               </div>
             )}
-            <div className="flex w-[620px] max-w-[calc(100vw-32px)] items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
+            <div className="inline-flex max-w-[calc(100vw-32px)] items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
-              <div className="flex min-w-[140px] max-w-[270px] flex-1 items-center gap-2 px-1">
+              <div className="flex w-[230px] max-w-[38vw] shrink-0 items-center gap-2 px-1">
                 <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
                 <Slider
-                  value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
+                  value={[Math.min(currentTime, effectiveDuration || Math.max(currentTime, 1))]}
                   min={0}
-                  max={Math.max(duration, currentTime, 1)}
+                  max={Math.max(effectiveDuration, currentTime, 1)}
                   step={1}
                   onValueChange={([next]) => setCurrentTime(Number(next || 0))}
                   onValueCommit={([next]) => seekVideo(Number(next || 0))}
                   className="min-w-0 flex-1"
                   aria-label="Tiempo del video sincronizado"
                 />
-                <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
+                <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{effectiveDuration ? formatTime(effectiveDuration) : "--:--"}</span>
               </div>
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
