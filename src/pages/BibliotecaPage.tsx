@@ -117,7 +117,7 @@ export default function BibliotecaPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
-  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string } | null>(null);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string; externalUrl?: string; rewardSlug?: string } | null>(null);
   
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -578,6 +578,7 @@ const handlePlayCloudGame = async (game: any) => {
   const multiplayerGames = [
     { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.svg', maxPlayers: 2, playersLabel: '2P' },
     { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.svg', maxPlayers: 10, playersLabel: '10P' },
+    { id: 'agar-server', label: 'Agar.io Server', coverUrl: '/games/covers/agar-io-like.svg', maxPlayers: 30, playersLabel: 'SERVER', externalUrl: import.meta.env.VITE_AGAR_SERVER_URL, rewardSlug: 'agar' },
     { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
     { id: 'massive-decks', label: 'Massive Decks', coverUrl: '/games/covers/massive-decks.svg', maxPlayers: 20, playersLabel: 'PARTY' },
     { id: 'watch-together', label: 'Watch Together', coverUrl: '/games/covers/watch-together.svg', maxPlayers: 20, playersLabel: 'WATCH' },

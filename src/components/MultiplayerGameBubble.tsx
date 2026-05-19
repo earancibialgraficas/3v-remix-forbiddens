@@ -31,6 +31,8 @@ interface MultiplayerGame {
   label: string;
   maxPlayers?: number;
   playersLabel?: string;
+  externalUrl?: string;
+  rewardSlug?: string;
 }
 
 interface MultiplayerGameBubbleProps {
@@ -158,7 +160,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const isAgar = game?.id === "agar";
   const isMassiveDecks = game?.id === "massive-decks";
   const isWatchTogether = game?.id === "watch-together";
+  const externalGameBaseUrl = (game?.externalUrl || "").trim().replace(/\/+$/, "");
+  const isExternalGame = Boolean(game?.externalUrl);
   const activeGameId = game?.id || "";
+  const rewardGameSlug = game?.rewardSlug || (game?.id === "agar-server" ? "agar" : activeGameId);
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
   const localAvatarUrl = profile?.avatar_url || "";
@@ -893,7 +898,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
     try {
       const { data, error } = await (supabase as any).rpc("award_multiplayer_win", {
-        p_game_slug: activeGameId,
+        p_game_slug: rewardGameSlug,
         p_room_code: activeSessionRoomCode,
         p_points: pendingPoints,
       });
@@ -919,7 +924,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     } catch {
       return { saved: 0, attempted: pendingPoints, reason: "unexpected_error" };
     }
-  }, [activeGameId, activeSessionRoomCode, user?.id]);
+  }, [activeGameId, activeSessionRoomCode, rewardGameSlug, user?.id]);
 
   const broadcastLocalDisconnect = useCallback(async () => {
     const channel = sessionChannelRef.current;
@@ -1094,7 +1099,19 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     avatarUrl: profile?.avatar_url || "",
     maxPlayers: String(game.maxPlayers || 10),
   });
-  const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
+  const externalSrcParams = new URLSearchParams({
+    room: activeRoomCode,
+    name: localDisplayName,
+    displayName: localDisplayName,
+    userId: localSessionUserId,
+    playerId: lobbyPlayerIdRef.current,
+    embed: "1",
+  });
+  const src = isExternalGame
+    ? externalGameBaseUrl
+      ? `${externalGameBaseUrl}/?${externalSrcParams.toString()}`
+      : ""
+    : `/games/${game.id}/index.html?${srcParams.toString()}`;
   const infoPanelWidthClass = "w-64";
   const presenceRows = sessionPlayers
     .filter((player) => {
@@ -1490,6 +1507,19 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 fullscreen={fullscreen}
                 onPresencePlayers={syncWatchTogetherPresencePlayers}
               />
+            </div>
+            ) : isExternalGame && !externalGameBaseUrl ? (
+            <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center bg-black p-6 text-center">
+              <div className="max-w-md rounded-xl border border-neon-cyan/30 bg-card/90 p-5 shadow-[0_0_32px_rgba(0,240,255,0.12)]">
+                <Gamepad2 className="mx-auto mb-3 h-8 w-8 text-neon-cyan" />
+                <p className="font-pixel text-[11px] uppercase text-neon-cyan">Servidor no configurado</p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Para jugar {game.label}, configura la URL del servidor en <span className="font-mono text-foreground">VITE_AGAR_SERVER_URL</span>.
+                </p>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Cuando el servidor este desplegado, este juego se abrira aqui dentro de la misma ventana multijugador.
+                </p>
+              </div>
             </div>
             ) : (
             <div className="min-h-0 min-w-0 flex-1">
