@@ -217,7 +217,9 @@ const drawMinimap = (global, player, users, graph) => {
 
     graph.fillStyle = '#cbd5e1';
     graph.font = '10px sans-serif';
-    graph.fillText('mapa', x + 8, y + size - 8);
+    graph.textAlign = 'center';
+    graph.fillText('mapa', x + size / 2, y + size - 8);
+    graph.textAlign = 'start';
     graph.restore();
 };
 

@@ -24,6 +24,19 @@
         </div>
         <canvas tabindex="1" id="cvs"></canvas>
     </div>
+    <div id="deathSummary" class="death-summary" role="dialog" aria-modal="true">
+        <div class="death-summary-card">
+            <p class="eyebrow">Resumen de partida</p>
+            <h2>Te comieron</h2>
+            <div class="summary-grid">
+                <div><strong id="summaryBestMass">0</strong><span>Masa maxima</span></div>
+                <div><strong id="summaryPoints">0</strong><span>Puntos estimados</span></div>
+                <div><strong id="summaryKills">0</strong><span>Jugadores comidos</span></div>
+            </div>
+            <p id="summaryKiller" class="summary-killer"></p>
+            <button type="button" id="summaryRestart">Reiniciar</button>
+        </div>
+    </div>
     <div id="startMenuWrapper">
         <div id="startMenu">
             <p>Open Agar</p>

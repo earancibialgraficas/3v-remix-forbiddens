@@ -7,6 +7,7 @@ import {
   Copy,
   Gamepad2,
   GripVertical,
+  Loader2,
   Maximize2,
   Minimize2,
   Minus,
@@ -154,6 +155,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [reloadKey, setReloadKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [expandedInfoOpen, setExpandedInfoOpen] = useState(false);
+  const [externalFrameLoaded, setExternalFrameLoaded] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const roomCodeRef = useRef(roomCode);
@@ -435,6 +437,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setRoomCode(activeGameId === "agar" ? makeAgarRoomCode(1) : makeRoomCode());
     setAgarRooms([]);
     setReloadKey((key) => key + 1);
+    setExternalFrameLoaded(false);
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
     connectedToastSeenRef.current = {};
@@ -1032,6 +1035,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       void refreshSessionPresence();
       return;
     }
+    setExternalFrameLoaded(false);
     setReloadKey((key) => key + 1);
   }, [isWatchTogether, refreshSessionPresence]);
 
@@ -1067,6 +1071,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
     setSessionElapsedPreview(0);
+    setExternalFrameLoaded(false);
     setReloadKey((key) => key + 1);
   };
 
@@ -1129,6 +1134,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     displayName: localDisplayName,
     userId: localSessionUserId,
     playerId: lobbyPlayerIdRef.current,
+    avatarUrl: localAvatarUrl,
     embed: "1",
   });
   const src = isExternalGame
@@ -1143,6 +1149,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       return Date.now() - player.leftAt < SESSION_VISITED_MS;
     })
     .sort((a, b) => {
+      if (isExternalGame) return Number(b.totalPoints || 0) - Number(a.totalPoints || 0);
       if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
@@ -1546,7 +1553,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               </div>
             </div>
             ) : (
-            <div className="min-h-0 min-w-0 flex-1">
+            <div className="relative min-h-0 min-w-0 flex-1">
+              {isExternalGame && !externalFrameLoaded && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-neon-cyan" />
+                  <div>
+                    <p className="font-pixel text-[10px] uppercase text-neon-cyan">Despertando servidor</p>
+                    <p className="mt-2 max-w-xs text-xs text-muted-foreground">
+                      El servidor gratuito puede tardar hasta un minuto si estaba dormido.
+                    </p>
+                  </div>
+                </div>
+              )}
               <iframe
                 key={`${game.id}-${reloadKey}`}
                 ref={frameRef}
@@ -1554,6 +1572,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 title={game.label}
                 className="h-full w-full bg-black"
                 allow="gamepad; fullscreen; autoplay"
+                onLoad={() => setExternalFrameLoaded(true)}
               />
             </div>
             )}

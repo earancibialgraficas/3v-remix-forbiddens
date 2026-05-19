@@ -23,6 +23,17 @@ const INIT_MASS_LOG = util.mathLog(config.defaultPlayerMass, config.slowBase);
 
 let leaderboard = [];
 let leaderboardChanged = false;
+let lastOnlinePlayersBroadcastAt = 0;
+
+const getOnlinePlayers = () => map.players.data
+    .map((player) => ({
+        id: player.id,
+        name: player.name || '',
+        avatarUrl: player.avatarUrl || '',
+        massTotal: Math.floor(player.massTotal || 0),
+        cells: Array.isArray(player.cells) ? player.cells.length : 0
+    }))
+    .sort((a, b) => b.massTotal - a.massTotal);
 
 const Vector = SAT.Vector;
 
@@ -275,8 +286,18 @@ const tickGame = () => {
         const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
         if (playerDied) {
             let playerGotEaten = map.players.data[gotEaten.playerIndex];
-            io.emit('playerDied', { name: playerGotEaten.name }); //TODO: on client it is `playerEatenName` instead of `name`
-            sockets[playerGotEaten.id].emit('RIP');
+            let playerWhoAte = map.players.data[eater.playerIndex];
+            io.emit('playerDied', {
+                name: playerGotEaten.name,
+                playerEatenName: playerGotEaten.name,
+                playerEatenId: playerGotEaten.id,
+                playerWhoAtePlayerName: playerWhoAte?.name || '',
+                playerWhoAtePlayerId: playerWhoAte?.id || ''
+            });
+            sockets[playerGotEaten.id].emit('RIP', {
+                killerName: playerWhoAte?.name || '',
+                killerId: playerWhoAte?.id || ''
+            });
             map.players.removePlayerByIndex(gotEaten.playerIndex);
         }
     });
@@ -318,6 +339,12 @@ const sendUpdates = () => {
         }
     });
 
+    const now = Date.now();
+    if (now - lastOnlinePlayersBroadcastAt > 500) {
+        lastOnlinePlayersBroadcastAt = now;
+        io.emit('onlinePlayers', { players: map.players.data.length, onlinePlayers: getOnlinePlayers() });
+    }
+
     leaderboardChanged = false;
 };
 
@@ -325,13 +352,7 @@ const sendLeaderboard = (socket) => {
     socket.emit('leaderboard', {
         players: map.players.data.length,
         leaderboard,
-        onlinePlayers: map.players.data.map((player) => ({
-            id: player.id,
-            name: player.name || '',
-            avatarUrl: player.avatarUrl || '',
-            massTotal: Math.floor(player.massTotal || 0),
-            cells: Array.isArray(player.cells) ? player.cells.length : 0
-        }))
+        onlinePlayers: getOnlinePlayers()
     });
 }
 const updateSpectator = (socketID) => {

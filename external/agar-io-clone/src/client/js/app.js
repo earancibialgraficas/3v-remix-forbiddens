@@ -12,6 +12,8 @@ var roomCode = (queryParams.get('room') || 'PUBLIC').replace(/[^\w-]/g, '').subs
 var forbiddensUserId = queryParams.get('userId') || '';
 var forbiddensPlayerId = queryParams.get('playerId') || '';
 var forbiddensAvatarUrl = queryParams.get('avatarUrl') || '';
+var bestMassReached = 0;
+var playersEaten = 0;
 
 function safePlayerName(value) {
     var clean = String(value || 'Jugador')
@@ -65,6 +67,8 @@ if (/Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent)) {
 function startGame(type) {
     global.playerName = safePlayerName(playerNameInput.value);
     global.playerType = type;
+    bestMassReached = 0;
+    playersEaten = 0;
 
     global.screen.width = window.innerWidth;
     global.screen.height = window.innerHeight;
@@ -214,6 +218,28 @@ function handleDisconnect() {
     }
 }
 
+function showDeathSummary(data) {
+    const summary = document.getElementById('deathSummary');
+    const bestMassEl = document.getElementById('summaryBestMass');
+    const pointsEl = document.getElementById('summaryPoints');
+    const killsEl = document.getElementById('summaryKills');
+    const killerEl = document.getElementById('summaryKiller');
+    const bestMass = Math.max(bestMassReached, Math.floor(Number(player.massTotal || 0)));
+    const estimatedPoints = Math.max(0, Math.min(250, Math.floor((bestMass - 10) / 5) + playersEaten * 10));
+    bestMassEl.textContent = String(bestMass);
+    pointsEl.textContent = String(estimatedPoints);
+    killsEl.textContent = String(playersEaten);
+    killerEl.textContent = data.killerName ? 'Te comio ' + safePlayerName(data.killerName) + '.' : '';
+    summary.classList.add('show');
+}
+
+document.getElementById('summaryRestart').addEventListener('click', function () {
+    document.getElementById('deathSummary').classList.remove('show');
+    bestMassReached = 0;
+    playersEaten = 0;
+    startGame('player');
+});
+
 // socket stuff.
 function setupSocket(socket) {
     // Handle ping.
@@ -251,11 +277,14 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', (data) => {
-        const player = isUnnamedCell(data.playerEatenName) ? 'An unnamed cell' : data.playerEatenName;
+        const eatenName = isUnnamedCell(data.playerEatenName || data.name || '') ? 'An unnamed cell' : (data.playerEatenName || data.name);
         //const killer = isUnnamedCell(data.playerWhoAtePlayerName) ? 'An unnamed cell' : data.playerWhoAtePlayerName;
 
         //window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten by <b>' + (killer) + '</b>');
-        window.chat.addSystemLine('{GAME} - <b>' + (player) + '</b> was eaten');
+        window.chat.addSystemLine('{GAME} - <b>' + (eatenName) + '</b> was eaten');
+        if (data.playerWhoAtePlayerId && player.id && data.playerWhoAtePlayerId === player.id) {
+            playersEaten += 1;
+        }
     });
 
     socket.on('playerDisconnect', (data) => {
@@ -295,6 +324,10 @@ function setupSocket(socket) {
         }
     });
 
+    socket.on('onlinePlayers', (data) => {
+        publishForbiddensPresence(data.onlinePlayers, leaderboard);
+    });
+
     socket.on('serverMSG', function (data) {
         window.chat.addSystemLine(data);
     });
@@ -312,6 +345,7 @@ function setupSocket(socket) {
             player.hue = playerData.hue;
             player.massTotal = playerData.massTotal;
             player.cells = playerData.cells;
+            bestMassReached = Math.max(bestMassReached, Math.floor(Number(player.massTotal || 0)));
         }
         users = userData;
         foods = foodsList;
@@ -321,17 +355,9 @@ function setupSocket(socket) {
     });
 
     // Death.
-    socket.on('RIP', function () {
+    socket.on('RIP', function (data) {
         global.gameStart = false;
-        render.drawErrorMessage('You died!', graph, global.screen);
-        window.setTimeout(() => {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        showDeathSummary(data || {});
     });
 
     socket.on('kick', function (reason) {
