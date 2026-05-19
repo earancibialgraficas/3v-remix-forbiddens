@@ -43,6 +43,8 @@ const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
 const TIME_REWARD_POINTS = 5;
+const SESSION_LEAVE_GRACE_MS = 15000;
+const SESSION_VISITED_MS = 120000;
 const MASSIVE_DECKS = [
   { code: "M08NN", name: "mala leche con semola" },
   { code: "EZ3OO", name: "Forbiddens" },
@@ -82,6 +84,8 @@ interface SessionPlayer {
   elapsedSeconds: number;
   joinedAt: number;
   updatedAt: number;
+  status?: "online" | "visited";
+  leftAt?: number;
 }
 
 interface SavePendingResult {
@@ -136,7 +140,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [resizing, setResizing] = useState(false);
   const [roomCode, setRoomCode] = useState(makeRoomCode);
   const [agarRooms, setAgarRooms] = useState<AgarRoom[]>([]);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [sessionPointPreview, setSessionPointPreview] = useState(0);
   const [sessionElapsedPreview, setSessionElapsedPreview] = useState(0);
@@ -166,8 +169,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const notifyPlayerConnected = useCallback((player?: Partial<SessionPlayer>) => {
     const userId = String(player?.userId || player?.playerId || "");
-    if (!userId || userId === localSessionUserId || connectedToastSeenRef.current[userId]) return;
-    connectedToastSeenRef.current[userId] = Date.now();
+    if (!userId || userId === localSessionUserId) return;
+    const now = Date.now();
+    if (now - Number(connectedToastSeenRef.current[userId] || 0) < 3000) return;
+    connectedToastSeenRef.current[userId] = now;
     toast({
       title: "Jugador conectado",
       description: `${player?.name || "Un jugador"} se unio a la partida.`,
@@ -185,17 +190,26 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       });
       const existingKey = aliases.get(player.userId) || aliases.get(player.playerId) || player.userId;
       const existing = players.get(existingKey);
-      if (!existing && player.userId !== localSessionUserId) notifyPlayerConnected(player);
+      if (disconnectGraceTimersRef.current[player.userId]) {
+        window.clearTimeout(disconnectGraceTimersRef.current[player.userId]);
+        delete disconnectGraceTimersRef.current[player.userId];
+      }
+      if ((!existing || existing.status === "visited") && player.userId !== localSessionUserId) notifyPlayerConnected(player);
       players.delete(existingKey);
       players.set(player.userId, {
         ...(existing || {}),
         ...player,
+        status: "online",
+        leftAt: undefined,
         timePoints: Math.max(Number(existing?.timePoints || 0), Number(player.timePoints || 0)),
         totalPoints: Math.max(Number(existing?.totalPoints || 0), Number(player.totalPoints || 0)),
         elapsedSeconds: Math.max(Number(existing?.elapsedSeconds || 0), Number(player.elapsedSeconds || 0)),
         updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(player.updatedAt || 0)),
       });
-      const nextPlayers = Array.from(players.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
+      const nextPlayers = Array.from(players.values()).sort((a, b) => {
+        if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
+        return a.joinedAt - b.joinedAt;
+      });
       sessionPlayersRef.current = nextPlayers;
       return nextPlayers;
     });
@@ -213,33 +227,64 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   }, [localSessionUserId, toast]);
 
-  const removeSessionPlayer = useCallback((player?: Partial<SessionPlayer>) => {
+  const markSessionPlayerVisited = useCallback((player?: Partial<SessionPlayer>, notify = false) => {
     const userId = String(player?.userId || "");
     const playerId = String(player?.playerId || "");
     if (!userId && !playerId) return;
+    if (notify) notifyPlayerDisconnected(player);
     setSessionPlayers((current) => {
-      const nextPlayers = current.filter((item) => item.userId !== userId && item.playerId !== playerId);
-      sessionPlayersRef.current = nextPlayers;
-      return nextPlayers;
+      const now = Date.now();
+      let matched = false;
+      const nextPlayers = current.map((item) => {
+        if (item.userId !== userId && item.playerId !== playerId) return item;
+        matched = true;
+        return {
+          ...item,
+          status: "visited" as const,
+          leftAt: item.leftAt || now,
+          updatedAt: now,
+        };
+      });
+      if (!matched && (userId || playerId)) {
+        nextPlayers.push({
+          userId: userId || playerId,
+          playerId: playerId || userId,
+          name: String(player?.name || "Jugador"),
+          avatarUrl: String(player?.avatarUrl || ""),
+          timePoints: 0,
+          totalPoints: 0,
+          elapsedSeconds: 0,
+          joinedAt: Number(player?.joinedAt || now),
+          updatedAt: now,
+          status: "visited",
+          leftAt: now,
+        });
+      }
+      const visiblePlayers = nextPlayers
+        .filter((item) => !item.leftAt || now - item.leftAt < SESSION_VISITED_MS)
+        .sort((a, b) => {
+          if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
+          return a.joinedAt - b.joinedAt;
+        });
+      sessionPlayersRef.current = visiblePlayers;
+      return visiblePlayers;
     });
-  }, []);
+  }, [notifyPlayerDisconnected]);
 
   const pruneStaleSessionPlayers = useCallback(() => {
     const now = Date.now();
-    const staleAfterMs = TIME_REWARD_SECONDS * 3000;
+    const staleAfterMs = SESSION_LEAVE_GRACE_MS;
     setSessionPlayers((current) => {
-      const stalePlayers: SessionPlayer[] = [];
-      const nextPlayers = current.filter((player) => {
+      const nextPlayers = current.map((player) => {
         const isLocal = player.userId === localSessionUserId || player.playerId === lobbyPlayerIdRef.current;
+        if (isLocal || player.status === "visited") return player;
         const isFresh = now - Number(player.updatedAt || 0) < staleAfterMs;
-        if (!isLocal && !isFresh) stalePlayers.push(player);
-        return isLocal || isFresh;
-      });
-      stalePlayers.forEach((player) => notifyPlayerDisconnected(player));
+        return isFresh ? player : { ...player, status: "visited" as const, leftAt: now, updatedAt: now };
+      }).filter((player) => !player.leftAt || now - player.leftAt < SESSION_VISITED_MS);
       sessionPlayersRef.current = nextPlayers;
       return nextPlayers;
     });
-  }, [localSessionUserId, notifyPlayerDisconnected]);
+  }, [localSessionUserId]);
 
   const buildLocalSessionPlayer = useCallback((): SessionPlayer => ({
     userId: localSessionUserId,
@@ -251,6 +296,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     elapsedSeconds: sessionElapsedRef.current,
     joinedAt: sessionStartedAtRef.current,
     updatedAt: Date.now(),
+    status: "online",
   }), [localAvatarUrl, localDisplayName, localSessionUserId]);
 
   const syncLocalSessionPlayer = useCallback(() => {
@@ -268,14 +314,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         room: activeSessionRoomCode,
         ...next,
       });
-      void sessionChannelRef.current.send({
-        type: "broadcast",
-        event: "session",
-        payload: {
-          type: "score",
-          player: next,
-        },
-      });
     }
   }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, upsertSessionPlayer]);
 
@@ -285,16 +323,21 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   useEffect(() => {
     if (!activeGameId) return;
+    const availableWidth = Math.max(280, window.innerWidth - 32);
+    const availableHeight = Math.max(260, window.innerHeight - 32);
     setMinimized(false);
     setPosition({ x: 0, y: 0 });
-    setSize({ w: Math.min(900, Math.max(280, window.innerWidth - 32)), h: Math.min(640, Math.max(260, window.innerHeight - 32)) });
-    setFullscreen(activeGameId === "watch-together");
+    setSize(
+      activeGameId === "watch-together"
+        ? { w: availableWidth, h: availableHeight }
+        : { w: Math.min(900, availableWidth), h: Math.min(640, availableHeight) },
+    );
+    setFullscreen(false);
     lobbyJoinedAtRef.current = Date.now();
     lobbyTrackedRoomRef.current = "";
     setRoomCode(activeGameId === "agar" ? makeAgarRoomCode(1) : makeRoomCode());
     setAgarRooms([]);
     setReloadKey((key) => key + 1);
-    setLeaderboard([]);
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
     connectedToastSeenRef.current = {};
@@ -397,9 +440,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "game:updateLeaderboard") {
-        setLeaderboard(event.data.players || []);
-      }
       if (event.data?.type === "game:sessionScore") {
         const delta = Math.max(0, Number(event.data.pointsDelta || 0));
         const total = Math.max(0, Number(event.data.sessionPoints ?? event.data.points ?? 0));
@@ -471,7 +511,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       const nextRoom = localPlayerCanStay ? currentRoom : availableRoom?.code || getNextAgarRoomCode(rooms);
 
       if (nextRoom !== roomCodeRef.current) {
-        setLeaderboard([]);
         setRoomCode(nextRoom);
       }
     };
@@ -553,23 +592,45 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             playerId: String(presence?.playerId || userId),
             name: String(presence?.name || presence?.displayName || "Jugador"),
             avatarUrl: String(presence?.avatarUrl || ""),
-            timePoints: Math.max(Number(existing?.timePoints || 0), Number(presence?.timePoints || 0)),
-            totalPoints: Math.max(Number(existing?.totalPoints || 0), Number(presence?.totalPoints || presence?.timePoints || 0)),
-            elapsedSeconds: Math.max(Number(existing?.elapsedSeconds || 0), Number(presence?.elapsedSeconds || 0)),
+            timePoints: 0,
+            totalPoints: 0,
+            elapsedSeconds: 0,
             joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
             updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(presence?.updatedAt || 0)),
+            status: "online",
           };
-          if (!existing && userId !== localSessionUserId) notifyPlayerConnected(next);
+          if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
+          if (disconnectGraceTimersRef.current[userId]) {
+            window.clearTimeout(disconnectGraceTimersRef.current[userId]);
+            delete disconnectGraceTimersRef.current[userId];
+          }
           if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
         });
 
       const merged = new Map<string, SessionPlayer>();
       sessionPlayersRef.current.forEach((player) => {
-        const isStillFresh = player.userId === localSessionUserId || now - Number(player.updatedAt || 0) < TIME_REWARD_SECONDS * 2500;
-        if (isStillFresh) merged.set(player.userId, player);
+        const isLocal = player.userId === localSessionUserId || player.playerId === lobbyPlayerIdRef.current;
+        const isOnline = latest.has(player.userId) || latest.has(player.playerId);
+        const isRecentlySeen = now - Number(player.updatedAt || 0) < SESSION_LEAVE_GRACE_MS;
+        const visitedAt = player.leftAt || now;
+        if (isLocal || isOnline || isRecentlySeen) {
+          merged.set(player.userId, player);
+          return;
+        }
+        if (now - visitedAt < SESSION_VISITED_MS) {
+          merged.set(player.userId, {
+            ...player,
+            status: "visited",
+            leftAt: visitedAt,
+            updatedAt: Math.max(Number(player.updatedAt || 0), visitedAt),
+          });
+        }
       });
       latest.forEach((player, userId) => merged.set(userId, player));
-      const nextPlayers = Array.from(merged.values()).sort((a, b) => b.totalPoints - a.totalPoints || a.joinedAt - b.joinedAt);
+      const nextPlayers = Array.from(merged.values()).sort((a, b) => {
+        if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
+        return a.joinedAt - b.joinedAt;
+      });
       sessionPlayersRef.current = nextPlayers;
       setSessionPlayers(nextPlayers);
     };
@@ -581,24 +642,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         room: activeSessionRoomCode,
         ...player,
       });
-      await channel.send({
-        type: "broadcast",
-        event: "session",
-        payload: {
-          type: "score",
-          player,
-        },
-      });
     };
 
     channel.on("broadcast", { event: "session" }, ({ payload }: any) => {
-      if (payload?.type === "score" && payload.player) {
-        const player = payload.player as SessionPlayer;
-        if (player.userId && player.userId !== localSessionUserId) upsertSessionPlayer(player);
-      }
       if (payload?.type === "disconnect" && payload.player) {
-        notifyPlayerDisconnected(payload.player);
-        removeSessionPlayer(payload.player);
+        markSessionPlayerVisited(payload.player, true);
       }
     });
     channel.on("presence", { event: "sync" }, readPlayers);
@@ -619,15 +667,14 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             playerId,
             name: String(presence?.name || presence?.displayName || "Jugador"),
             avatarUrl: String(presence?.avatarUrl || ""),
-            timePoints: Number(presence?.timePoints || 0),
-            totalPoints: Number(presence?.totalPoints || presence?.timePoints || 0),
-            elapsedSeconds: Number(presence?.elapsedSeconds || 0),
+            timePoints: 0,
+            totalPoints: 0,
+            elapsedSeconds: 0,
             joinedAt: Number(presence?.joinedAt || 0),
             updatedAt: Number(presence?.updatedAt || Date.now()),
           };
-          notifyPlayerDisconnected(leavingPlayer);
-          removeSessionPlayer(leavingPlayer);
-        }, 2500);
+          markSessionPlayerVisited(leavingPlayer, false);
+        }, SESSION_LEAVE_GRACE_MS);
       });
     });
     channel.subscribe(async (status) => {
@@ -649,7 +696,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, notifyPlayerConnected, notifyPlayerDisconnected, pruneStaleSessionPlayers, removeSessionPlayer, syncLocalSessionPlayer, upsertSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, notifyPlayerConnected, pruneStaleSessionPlayers, syncLocalSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -890,7 +937,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setRoomCode(isAgar ? normalizeAgarRoomCode(nextCode) : nextCode);
     setLaunchedAsHost(asHost);
     setGameLaunched(true);
-    setLeaderboard([]);
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
     sessionStartedAtRef.current = Date.now();
@@ -958,54 +1004,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   });
   const src = `/games/${game.id}/index.html?${srcParams.toString()}`;
   const infoPanelWidthClass = "w-64";
-  const combinedLeaderboard = (() => {
-    const sessionByUser = new Map<string, SessionPlayer>();
-    sessionPlayers.forEach((player) => {
-      sessionByUser.set(player.userId, player);
-      if (player.playerId) sessionByUser.set(player.playerId, player);
-    });
-    const rows = new Map<string, any>();
-
-    leaderboard.forEach((player, index) => {
-      const key = String(player.userId || player.playerId || `player-${index}`);
-      const session = sessionByUser.get(key);
-      const gamePoints = Number(player.points || 0);
-      const timePoints = Number(session?.timePoints || 0);
-      const totalPoints = Math.max(gamePoints + timePoints, Number(session?.totalPoints || 0));
-      rows.set(key, {
-        ...session,
-        ...player,
-        userId: key,
-        name: player.name || player.displayName || session?.name || "Jugador",
-        avatarUrl: player.avatarUrl || session?.avatarUrl || "",
-        timePoints,
-        gamePoints,
-        totalPoints,
-        matchPoints: totalPoints,
-        elapsedSeconds: Number(session?.elapsedSeconds || 0),
-      });
-    });
-
-    sessionPlayers.forEach((player) => {
-      if (rows.has(player.userId) || (player.playerId && rows.has(player.playerId))) return;
-      rows.set(player.userId, {
-        ...player,
-        points: 0,
-        wins: 0,
-        score: 0,
-        gamePoints: 0,
-        matchPoints: Number(player.totalPoints || player.timePoints || 0),
-      });
-    });
-
-    return Array.from(rows.values()).sort((a, b) => {
-      const pointDelta = Number(b.matchPoints || 0) - Number(a.matchPoints || 0);
-      if (pointDelta) return pointDelta;
-      const scoreDelta = Number(b.score || 0) - Number(a.score || 0);
-      if (scoreDelta) return scoreDelta;
+  const presenceRows = sessionPlayers
+    .filter((player) => {
+      if (!player.leftAt) return true;
+      return Date.now() - player.leftAt < SESSION_VISITED_MS;
+    })
+    .sort((a, b) => {
+      if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
-  })();
 
   const lobbyPanel = (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black/80">
@@ -1159,11 +1166,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         <div id={watchControlsTargetId} className="border-b border-white/5" />
       )}
       <div className="flex-1 overflow-y-auto retro-scrollbar p-1.5 space-y-3">
-        {combinedLeaderboard.length > 0 ? combinedLeaderboard.map((p, i) => {
-          const playerName = p.name || p.displayName || "Jugador";
-          const matchPoints = Number(p.matchPoints || 0);
+        {presenceRows.length > 0 ? presenceRows.map((p, i) => {
+          const playerName = p.name || "Jugador";
+          const isOnline = (p.status || "online") === "online";
           return (
-            <div key={p.userId || i} className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in">
+            <div
+              key={p.userId || i}
+              className={cn(
+                "flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in transition-opacity",
+                !isOnline && "opacity-45",
+              )}
+            >
               <div className="relative shrink-0">
                 {p.avatarUrl ? (
                   <img
@@ -1190,8 +1203,14 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                 <div className="mt-0.5 flex flex-col gap-0.5">
-                  <span className="font-pixel text-[7px] text-neon-green leading-none">{matchPoints} pts</span>
-                  <span className="font-pixel text-[5px] text-muted-foreground leading-none">sesion actual</span>
+                  <span className={cn("font-pixel text-[7px] leading-none", isOnline ? "text-neon-green" : "text-muted-foreground")}>
+                    {isOnline ? "online" : "estuvo aqui"}
+                  </span>
+                  {!isOnline && p.leftAt ? (
+                    <span className="font-pixel text-[5px] text-muted-foreground leading-none">visible 2 min</span>
+                  ) : (
+                    <span className="font-pixel text-[5px] text-muted-foreground leading-none">en la sala</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1278,7 +1297,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
               <span className="font-pixel text-neon-cyan">MULTI</span>
               <span className="flex items-center gap-0.5">
-                <Trophy className="w-2.5 h-2.5" /> {sessionPointPreview}
+                <Trophy className="w-2.5 h-2.5" /> +{sessionPointPreview}
               </span>
               <span className="flex items-center gap-0.5">
                 <Clock className="w-2.5 h-2.5" /> {formatSessionTime(sessionElapsedPreview)}
