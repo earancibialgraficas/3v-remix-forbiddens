@@ -25,8 +25,12 @@ interface WatchState {
 interface WatchTogetherPlayerProps {
   roomCode: string;
   userName: string;
+  userId?: string;
+  playerId?: string;
+  avatarUrl?: string;
   controlsTargetId?: string;
   fullscreen?: boolean;
+  onPresencePlayers?: (players: Array<{ userId: string; playerId: string; name: string; avatarUrl: string; joinedAt: number; updatedAt: number }>) => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -104,7 +108,7 @@ const CAPTION_LANGUAGES = [
   { value: "ja", label: "Japones" },
 ];
 
-export default function WatchTogetherPlayer({ roomCode, userName, controlsTargetId, fullscreen = false }: WatchTogetherPlayerProps) {
+export default function WatchTogetherPlayer({ roomCode, userName, userId, playerId, avatarUrl = "", controlsTargetId, fullscreen = false, onPresencePlayers }: WatchTogetherPlayerProps) {
   const [playlist, setPlaylist] = useState<WatchSong[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -135,10 +139,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
   const applyingRemoteStateRef = useRef(false);
   const nativeStateBroadcastRef = useRef(0);
   const clientIdRef = useRef(`watch_${Math.random().toString(36).slice(2, 10)}`);
+  const watchJoinedAtRef = useRef(Date.now());
   const titleFetchRef = useRef(0);
 
   const current = playlist[currentIndex];
   const effectiveVolume = muted ? 0 : volume;
+  const localWatchPlayerId = playerId || clientIdRef.current;
+  const localWatchUserId = userId || localWatchPlayerId;
 
   const revealVideoHud = useCallback(() => {
     setVideoHudVisible(true);
@@ -268,6 +275,36 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
     });
     channelRef.current = channel;
 
+    const buildPresencePayload = () => ({
+      userName,
+      name: userName,
+      userId: localWatchUserId,
+      playerId: localWatchPlayerId,
+      avatarUrl,
+      joinedAt: watchJoinedAtRef.current,
+      updatedAt: Date.now(),
+    });
+
+    const readPresencePlayers = () => {
+      const players = Object.values(channel.presenceState())
+        .flat()
+        .map((presence: any) => {
+          const seenPlayerId = String(presence?.playerId || presence?.userId || "");
+          const seenUserId = String(presence?.userId || seenPlayerId);
+          if (!seenUserId) return null;
+          return {
+            userId: seenUserId,
+            playerId: seenPlayerId || seenUserId,
+            name: String(presence?.name || presence?.userName || "Jugador"),
+            avatarUrl: String(presence?.avatarUrl || ""),
+            joinedAt: Number(presence?.joinedAt || 0),
+            updatedAt: Number(presence?.updatedAt || Date.now()),
+          };
+        })
+        .filter(Boolean) as Array<{ userId: string; playerId: string; name: string; avatarUrl: string; joinedAt: number; updatedAt: number }>;
+      onPresencePlayers?.(players);
+    };
+
     channel.on("broadcast", { event: "watch" }, ({ payload }: any) => {
       if (!payload || payload.sender === clientIdRef.current || payload.room !== roomCode) return;
       if (payload.type === "request_state") {
@@ -280,10 +317,12 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
       }
       if (payload.type === "state" && payload.state) applyState(payload.state);
     });
+    channel.on("presence", { event: "sync" }, readPresencePlayers);
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        await channel.track({ userName, joinedAt: Date.now() });
+        await channel.track(buildPresencePayload());
+        readPresencePlayers();
         void channel.send({
           type: "broadcast",
           event: "watch",
@@ -292,11 +331,16 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
       }
     });
 
+    const presenceHeartbeat = window.setInterval(() => {
+      void channel.track(buildPresencePayload()).then(readPresencePlayers);
+    }, 10000);
+
     return () => {
+      window.clearInterval(presenceHeartbeat);
       if (channelRef.current === channel) channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [applyState, roomCode, userName]);
+  }, [applyState, avatarUrl, localWatchPlayerId, localWatchUserId, onPresencePlayers, roomCode, userName]);
 
   useEffect(() => {
     stateRef.current = getSnapshot();

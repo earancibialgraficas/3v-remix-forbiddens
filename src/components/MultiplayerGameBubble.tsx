@@ -43,7 +43,7 @@ const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
 const TIME_REWARD_POINTS = 5;
-const SESSION_LEAVE_GRACE_MS = 15000;
+const SESSION_LEAVE_GRACE_MS = 45000;
 const SESSION_VISITED_MS = 120000;
 const MASSIVE_DECKS = [
   { code: "M08NN", name: "mala leche con semola" },
@@ -379,8 +379,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         room: activeSessionRoomCode,
         ...next,
       });
+      void sessionChannelRef.current.send({
+        type: "broadcast",
+        event: "session",
+        payload: {
+          type: "presence",
+          sender: localSessionUserId,
+          player: next,
+        },
+      });
     }
-  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, upsertSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, localSessionUserId, upsertSessionPlayer]);
 
   useEffect(() => {
     roomCodeRef.current = roomCode;
@@ -649,6 +658,14 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
 
     channel.on("broadcast", { event: "session" }, ({ payload }: any) => {
+      if (payload?.sender === localSessionUserId) return;
+      if (payload?.type === "presence" && payload.player) {
+        const player = payload.player as SessionPlayer;
+        if (player.userId && player.userId !== localSessionUserId) upsertSessionPlayer(player);
+      }
+      if (payload?.type === "presence_request") {
+        syncLocalSessionPlayer();
+      }
       if (payload?.type === "disconnect" && payload.player) {
         markSessionPlayerVisited(payload.player, true);
       }
@@ -659,6 +676,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         const userId = String(presence?.userId || presence?.playerId || "");
         const playerId = String(presence?.playerId || userId);
         if (!userId || userId === localSessionUserId || disconnectGraceTimersRef.current[userId]) return;
+        const leaveStartedAt = Date.now();
         disconnectGraceTimersRef.current[userId] = window.setTimeout(() => {
           delete disconnectGraceTimersRef.current[userId];
           const stillPresent = Object.values(channel.presenceState())
@@ -666,6 +684,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             .some((item: any) => String(item?.userId || item?.playerId || "") === userId || String(item?.playerId || "") === playerId);
           if (stillPresent) return;
           const existing = sessionPlayersRef.current.find((item) => item.userId === userId || item.playerId === playerId);
+          if (existing?.status === "online" && Date.now() - Number(existing.updatedAt || leaveStartedAt) < SESSION_LEAVE_GRACE_MS) return;
           const leavingPlayer = existing || {
             userId,
             playerId,
@@ -685,6 +704,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (status === "SUBSCRIBED") {
         await trackLocal();
         readPlayers();
+        syncLocalSessionPlayer();
       }
     });
 
@@ -700,7 +720,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, pruneStaleSessionPlayers, syncLocalSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, pruneStaleSessionPlayers, syncLocalSessionPlayer, upsertSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -947,9 +967,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       room: activeSessionRoomCode,
       ...player,
     });
+    await sessionChannelRef.current.send({
+      type: "broadcast",
+      event: "session",
+      payload: {
+        type: "presence_request",
+        sender: localSessionUserId,
+        room: activeSessionRoomCode,
+      },
+    });
     applySessionPresenceState(sessionChannelRef.current);
     toast({ title: "Sala actualizada", description: "Se actualizo la lista de personas conectadas." });
-  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, toast]);
+  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, localSessionUserId, toast]);
 
   const refreshHeaderAction = useCallback(() => {
     if (isWatchTogether) {
@@ -958,6 +987,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }
     setReloadKey((key) => key + 1);
   }, [isWatchTogether, refreshSessionPresence]);
+
+  const syncWatchTogetherPresencePlayers = useCallback((players: Array<{ userId: string; playerId: string; name: string; avatarUrl: string; joinedAt: number; updatedAt: number }>) => {
+    if (!isWatchTogether) return;
+    players.forEach((player) => {
+      upsertSessionPlayer({
+        userId: player.userId,
+        playerId: player.playerId,
+        name: player.name,
+        avatarUrl: player.avatarUrl,
+        timePoints: 0,
+        totalPoints: 0,
+        elapsedSeconds: 0,
+        joinedAt: player.joinedAt || Date.now(),
+        updatedAt: player.updatedAt || Date.now(),
+        status: "online",
+      });
+    });
+  }, [isWatchTogether, upsertSessionPlayer]);
 
   const launchRoom = (code: string, asHost: boolean) => {
     const nextCode = (code || makeRoomCode()).trim().toUpperCase();
@@ -1405,7 +1452,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               </div>
             ) : isWatchTogether ? (
             <div className="min-h-0 min-w-0 flex-1">
-              <WatchTogetherPlayer roomCode={activeSessionRoomCode} userName={localDisplayName} controlsTargetId={watchControlsTargetId} fullscreen={fullscreen} />
+              <WatchTogetherPlayer
+                roomCode={activeSessionRoomCode}
+                userName={localDisplayName}
+                userId={localSessionUserId}
+                playerId={lobbyPlayerIdRef.current}
+                avatarUrl={localAvatarUrl}
+                controlsTargetId={watchControlsTargetId}
+                fullscreen={fullscreen}
+                onPresencePlayers={syncWatchTogetherPresencePlayers}
+              />
             </div>
             ) : (
             <div className="min-h-0 min-w-0 flex-1">
