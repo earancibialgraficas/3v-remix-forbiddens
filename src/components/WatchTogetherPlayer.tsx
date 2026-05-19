@@ -147,12 +147,22 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const localWatchPlayerId = playerId || clientIdRef.current;
   const localWatchUserId = userId || localWatchPlayerId;
 
+  const closeTransientPanels = useCallback(() => {
+    setVolumeOpen(false);
+    setPlaylistOpen(false);
+    setAddOpen(false);
+    setSettingsOpen(false);
+  }, []);
+
   const revealVideoHud = useCallback(() => {
     setVideoHudVisible(true);
     if (hudTimerRef.current) window.clearTimeout(hudTimerRef.current);
-    if (!fullscreen || volumeOpen || settingsOpen) return;
-    hudTimerRef.current = window.setTimeout(() => setVideoHudVisible(false), 1800);
-  }, [fullscreen, settingsOpen, volumeOpen]);
+    if (!fullscreen) return;
+    hudTimerRef.current = window.setTimeout(() => {
+      closeTransientPanels();
+      setVideoHudVisible(false);
+    }, 2200);
+  }, [closeTransientPanels, fullscreen]);
 
   useEffect(() => {
     if (!fullscreen) {
@@ -165,6 +175,16 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       hudTimerRef.current = null;
     };
   }, [fullscreen, revealVideoHud]);
+
+  useEffect(() => {
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-watch-controls-root='true']")) return;
+      closeTransientPanels();
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [closeTransientPanels]);
 
   useEffect(() => {
     effectiveVolumeRef.current = effectiveVolume;
@@ -507,7 +527,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   };
 
   const controls = (
-    <div className="bg-black/35 p-2">
+    <div data-watch-controls-root="true" className="bg-black/35 p-2">
       <div className="flex min-w-0 items-center gap-1.5">
         <div
           className="relative flex h-9 min-w-0 flex-1 flex-col justify-center overflow-hidden rounded border border-neon-cyan/25 bg-black/60 px-2"
@@ -701,9 +721,21 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             <p className="max-w-md text-xs text-muted-foreground">Agrega un link de YouTube para iniciar una lista sincronizada con la sala.</p>
           </div>
         )}
-        {current && <button type="button" className="absolute inset-0 z-10 cursor-default bg-transparent" title="Usa los controles sincronizados" aria-label={isPlaying ? "Pausar" : "Reproducir"} onClick={playPause} />}
+        {current && (
+          <button
+            type="button"
+            className="absolute inset-0 z-10 cursor-default bg-transparent"
+            title="Usa los controles sincronizados"
+            aria-label={isPlaying ? "Pausar" : "Reproducir"}
+            onClick={() => {
+              closeTransientPanels();
+              playPause();
+            }}
+          />
+        )}
         {fullscreen && current && (
           <div
+            data-watch-controls-root="true"
             className={cn(
               "absolute inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 transition-opacity duration-300",
               videoHudVisible || settingsOpen || volumeOpen ? "opacity-100" : "pointer-events-none opacity-0",
@@ -719,11 +751,11 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
                 <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
               </div>
             )}
-            <div className="flex w-full max-w-[820px] items-center justify-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-1.5 shadow-2xl backdrop-blur-md">
+            <div className="flex w-[620px] max-w-[calc(100vw-32px)] items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
               <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
-              <div className="flex min-w-[180px] max-w-[380px] flex-1 items-center gap-2 px-1">
+              <div className="flex min-w-[140px] max-w-[270px] flex-1 items-center gap-2 px-1">
                 <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
                 <Slider
                   value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}

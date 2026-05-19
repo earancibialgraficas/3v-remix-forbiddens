@@ -1371,7 +1371,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           <Move className={cn("h-3.5 w-3.5 text-muted-foreground", mobileGameFrame && "hidden")} />
           <Gamepad2 className={cn("h-4 w-4 text-neon-green", mobileGameFrame && "hidden")} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-body font-medium text-foreground">{game.label}</p>
+            <p className="truncate text-xs font-body font-medium text-foreground">
+              {isWatchTogether ? `${game.label} / Sala: ${activeRoomCode}` : game.label}
+            </p>
             <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
               <span className="font-pixel text-neon-cyan">MULTI</span>
               <span className="flex items-center gap-0.5">
