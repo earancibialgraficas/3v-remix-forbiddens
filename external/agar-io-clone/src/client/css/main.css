@@ -56,6 +56,10 @@ div {
     text-align: center;
 }
 
+body.embed-mode #status {
+    display: none;
+}
+
 #status .title {
     font-size: 25px;
 }
@@ -269,14 +273,6 @@ body.embed-mode #chatbox {
     display: none;
 }
 
-body.embed-mode #status {
-    top: 12px;
-    right: 12px;
-    border: 1px solid rgba(0, 240, 255, 0.35);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.58);
-    color: #e0f2fe;
-}
 
 @media only screen  and (min-width : 1224px) {
 #mobile {

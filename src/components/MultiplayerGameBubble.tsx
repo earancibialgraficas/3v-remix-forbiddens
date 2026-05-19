@@ -553,10 +553,34 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
         });
       }
+      if (isExternalGame && event.data?.type === "game:updateLeaderboard" && Array.isArray(event.data.players)) {
+        const now = Date.now();
+        const nextPlayers: SessionPlayer[] = event.data.players
+          .map((player: any, index: number) => {
+            const userId = String(player?.userId || player?.playerId || `external-${index}`);
+            const playerId = String(player?.playerId || userId);
+            const existing = sessionPlayersRef.current.find((item) => item.userId === userId || item.playerId === playerId);
+            return {
+              userId,
+              playerId,
+              name: String(player?.name || "Jugador"),
+              avatarUrl: String(player?.avatarUrl || ""),
+              timePoints: Number(existing?.timePoints || 0),
+              totalPoints: Math.max(0, Number(player?.massTotal ?? player?.score ?? existing?.totalPoints ?? 0)),
+              elapsedSeconds: Number(existing?.elapsedSeconds || 0),
+              joinedAt: Number(existing?.joinedAt || player?.joinedAt || now + index),
+              updatedAt: now,
+              status: "online" as const,
+            };
+          })
+          .filter((player: SessionPlayer) => player.userId && player.playerId);
+        sessionPlayersRef.current = nextPlayers;
+        setSessionPlayers(nextPlayers);
+      }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [syncLocalSessionPlayer, toast]);
+  }, [isExternalGame, syncLocalSessionPlayer, toast]);
 
   useEffect(() => {
     if (!isAgar || !gameLaunched) {
@@ -1317,13 +1341,13 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   <span className={cn("font-pixel text-[7px] leading-none", isOnline ? "text-neon-green" : "text-muted-foreground")}>
-                    {isOnline ? "online" : "estuvo aqui"}
+                    {isExternalGame ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui"}
                   </span>
-                  {!isOnline && p.leftAt ? (
+                  {!isExternalGame && (!isOnline && p.leftAt ? (
                     <span className="font-pixel text-[5px] text-muted-foreground leading-none">visible 2 min</span>
                   ) : (
                     <span className="font-pixel text-[5px] text-muted-foreground leading-none">en la sala</span>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>

@@ -88,6 +88,7 @@ exports.Player = class {
         this.hue = Math.round(Math.random() * 360);
         this.name = null;
         this.admin = false;
+        this.avatarUrl = '';
         this.screenWidth = null;
         this.screenHeight = null;
         this.timeToMerge = null;
@@ -108,6 +109,7 @@ exports.Player = class {
 
     clientProvidedData(playerData) {
         this.name = playerData.name;
+        this.avatarUrl = playerData.avatarUrl || '';
         this.screenWidth = playerData.screenWidth;
         this.screenHeight = playerData.screenHeight;
         this.setLastHeartbeat();
@@ -334,7 +336,10 @@ exports.PlayerManager = class {
         for (var i = 0; i < Math.min(10, this.data.length); i++) {
             topPlayers.push({
                 id: this.data[i].id,
-                name: this.data[i].name
+                name: this.data[i].name,
+                avatarUrl: this.data[i].avatarUrl || '',
+                massTotal: Math.floor(this.data[i].massTotal || 0),
+                cells: Array.isArray(this.data[i].cells) ? this.data[i].cells.length : 0
             });
         }
         return topPlayers;

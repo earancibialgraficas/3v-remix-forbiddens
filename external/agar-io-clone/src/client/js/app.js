@@ -9,6 +9,9 @@ var socket;
 var queryParams = new URLSearchParams(window.location.search);
 var embedMode = queryParams.get('embed') === '1';
 var roomCode = (queryParams.get('room') || 'PUBLIC').replace(/[^\w-]/g, '').substring(0, 24) || 'PUBLIC';
+var forbiddensUserId = queryParams.get('userId') || '';
+var forbiddensPlayerId = queryParams.get('playerId') || '';
+var forbiddensAvatarUrl = queryParams.get('avatarUrl') || '';
 
 function safePlayerName(value) {
     var clean = String(value || 'Jugador')
@@ -18,6 +21,35 @@ function safePlayerName(value) {
         .replace(/^_+|_+$/g, '')
         .substring(0, 25);
     return clean || 'Jugador';
+}
+
+function publishForbiddensPresence(serverPlayers, fallbackLeaderboard) {
+    if (!embedMode || !window.parent) return;
+    var sourcePlayers = Array.isArray(serverPlayers) && serverPlayers.length ? serverPlayers : fallbackLeaderboard || [];
+    var players = sourcePlayers.map(function (serverPlayer, index) {
+        var serverId = String(serverPlayer.id || serverPlayer.playerId || index);
+        var isLocal = player && serverId === String(player.id);
+        var safeName = safePlayerName(serverPlayer.name || (isLocal ? global.playerName : 'Jugador'));
+        return {
+            userId: isLocal && forbiddensUserId ? forbiddensUserId : 'agar-server:' + serverId,
+            playerId: isLocal && forbiddensPlayerId ? forbiddensPlayerId : serverId,
+            name: safeName,
+            avatarUrl: serverPlayer.avatarUrl || (isLocal ? forbiddensAvatarUrl : ''),
+            score: Math.floor(Number(serverPlayer.massTotal || serverPlayer.score || 0)),
+            massTotal: Math.floor(Number(serverPlayer.massTotal || serverPlayer.score || 0)),
+            rank: index + 1,
+            points: 0,
+            sessionPoints: 0,
+            joinedAt: Date.now() - ((sourcePlayers.length - index) * 10),
+            updatedAt: Date.now()
+        };
+    });
+    window.parent.postMessage({
+        type: 'game:updateLeaderboard',
+        source: 'agar-server',
+        room: roomCode,
+        players: players
+    }, '*');
 }
 
 var debug = function (args) {
@@ -202,6 +234,7 @@ function setupSocket(socket) {
         player.screenWidth = global.screen.width;
         player.screenHeight = global.screen.height;
         player.target = window.canvas.target;
+        player.avatarUrl = forbiddensAvatarUrl;
         global.player = player;
         window.chat.player = player;
         socket.emit('gotit', player);
@@ -227,31 +260,39 @@ function setupSocket(socket) {
 
     socket.on('playerDisconnect', (data) => {
         window.chat.addSystemLine('{GAME} - <b>' + (isUnnamedCell(data.name) ? 'An unnamed cell' : data.name) + '</b> disconnected.');
+        window.setTimeout(function () {
+            publishForbiddensPresence(users, leaderboard);
+        }, 250);
     });
 
     socket.on('playerJoin', (data) => {
         window.chat.addSystemLine('{GAME} - <b>' + (isUnnamedCell(data.name) ? 'An unnamed cell' : data.name) + '</b> joined.');
+        window.setTimeout(function () {
+            publishForbiddensPresence(users, leaderboard);
+        }, 250);
     });
 
     socket.on('leaderboard', (data) => {
         leaderboard = data.leaderboard;
-        var status = '<span class="title">Leaderboard</span>';
-        for (var i = 0; i < leaderboard.length; i++) {
-            status += '<br />';
-            if (leaderboard[i].id == player.id) {
-                if (leaderboard[i].name.length !== 0)
-                    status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
-                else
-                    status += '<span class="me">' + (i + 1) + ". An unnamed cell</span>";
-            } else {
-                if (leaderboard[i].name.length !== 0)
-                    status += (i + 1) + '. ' + leaderboard[i].name;
-                else
-                    status += (i + 1) + '. An unnamed cell';
+        publishForbiddensPresence(data.onlinePlayers, leaderboard);
+        if (!embedMode) {
+            var status = '<span class="title">Leaderboard</span>';
+            for (var i = 0; i < leaderboard.length; i++) {
+                status += '<br />';
+                if (leaderboard[i].id == player.id) {
+                    if (leaderboard[i].name.length !== 0)
+                        status += '<span class="me">' + (i + 1) + '. ' + leaderboard[i].name + "</span>";
+                    else
+                        status += '<span class="me">' + (i + 1) + ". An unnamed cell</span>";
+                } else {
+                    if (leaderboard[i].name.length !== 0)
+                        status += (i + 1) + '. ' + leaderboard[i].name;
+                    else
+                        status += (i + 1) + '. An unnamed cell';
+                }
             }
+            document.getElementById('status').innerHTML = status;
         }
-        //status += '<br />Players: ' + data.players;
-        document.getElementById('status').innerHTML = status;
     });
 
     socket.on('serverMSG', function (data) {
@@ -276,6 +317,7 @@ function setupSocket(socket) {
         foods = foodsList;
         viruses = virusList;
         fireFood = massList;
+        publishForbiddensPresence(users, leaderboard);
     });
 
     // Death.
@@ -374,6 +416,7 @@ function gameLoop() {
                     borderColor: borderColor,
                     mass: users[i].cells[j].mass,
                     name: users[i].name,
+                    avatarUrl: users[i].avatarUrl,
                     radius: users[i].cells[j].radius,
                     x: users[i].cells[j].x - player.x + global.screen.width / 2,
                     y: users[i].cells[j].y - player.y + global.screen.height / 2
@@ -384,6 +427,7 @@ function gameLoop() {
             return obj1.mass - obj2.mass;
         });
         render.drawCells(cellsToDraw, playerConfig, global.toggleMassState, borders, graph);
+        render.drawMinimap(global, player, users, graph);
 
         socket.emit('0', window.canvas.target); // playerSendTarget "Heartbeat".
     }

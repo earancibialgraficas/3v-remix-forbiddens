@@ -26,6 +26,6 @@ module.exports = {
     continuity: false,
     startPingTime: 0,
     toggleMassState: 0,
-    backgroundColor: '#f2fbff',
-    lineColor: '#000000',
+    backgroundColor: '#090b10',
+    lineColor: '#6b7280',
 };

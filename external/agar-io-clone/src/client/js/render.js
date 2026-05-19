@@ -1,4 +1,15 @@
 const FULL_ANGLE = 2 * Math.PI;
+const avatarCache = {};
+
+const getAvatarImage = (url) => {
+    if (!url) return null;
+    if (avatarCache[url]) return avatarCache[url];
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    avatarCache[url] = img;
+    return img;
+};
 
 const drawRoundObject = (position, radius, graph) => {
     graph.beginPath();
@@ -80,12 +91,26 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
         graph.fillStyle = cell.color;
         graph.strokeStyle = cell.borderColor;
         graph.lineWidth = 6;
+        const avatar = getAvatarImage(cell.avatarUrl);
         if (cellTouchingBorders(cell, borders)) {
             // Asssemble the cell from lines
             drawCellWithLines(cell, borders, graph);
         } else {
             // Border corrections are not needed, the cell can be drawn as a circle
             drawRoundObject(cell, cell.radius, graph);
+        }
+        if (avatar && avatar.complete && avatar.naturalWidth > 0 && !cellTouchingBorders(cell, borders)) {
+            graph.save();
+            graph.beginPath();
+            graph.arc(cell.x, cell.y, Math.max(0, cell.radius - 3), 0, FULL_ANGLE);
+            graph.clip();
+            graph.drawImage(avatar, cell.x - cell.radius, cell.y - cell.radius, cell.radius * 2, cell.radius * 2);
+            graph.restore();
+            graph.beginPath();
+            graph.arc(cell.x, cell.y, cell.radius, 0, FULL_ANGLE);
+            graph.strokeStyle = cell.borderColor;
+            graph.lineWidth = 6;
+            graph.stroke();
         }
 
         // Draw the name of the player
@@ -152,6 +177,50 @@ const drawErrorMessage = (message, graph, screen) => {
     graph.fillText(message, screen.width / 2, screen.height / 2);
 }
 
+const drawMinimap = (global, player, users, graph) => {
+    if (!global.game.width || !global.game.height) return;
+    const size = Math.min(150, Math.max(96, Math.min(global.screen.width, global.screen.height) * 0.22));
+    const padding = 14;
+    const x = global.screen.width - size - padding;
+    const y = padding;
+    const scaleX = size / global.game.width;
+    const scaleY = size / global.game.height;
+
+    graph.save();
+    graph.globalAlpha = 0.92;
+    graph.fillStyle = 'rgba(5, 8, 14, 0.82)';
+    graph.strokeStyle = 'rgba(34, 211, 238, 0.65)';
+    graph.lineWidth = 1;
+    graph.beginPath();
+    if (graph.roundRect) graph.roundRect(x, y, size, size, 10);
+    else graph.rect(x, y, size, size);
+    graph.fill();
+    graph.stroke();
+
+    const drawDot = (worldX, worldY, mass, color) => {
+        const dotX = x + Math.max(0, Math.min(global.game.width, worldX)) * scaleX;
+        const dotY = y + Math.max(0, Math.min(global.game.height, worldY)) * scaleY;
+        const radius = Math.max(2, Math.min(8, Math.sqrt(Math.max(1, mass || 1)) * 0.22));
+        graph.beginPath();
+        graph.arc(dotX, dotY, radius, 0, FULL_ANGLE);
+        graph.fillStyle = color;
+        graph.fill();
+        graph.strokeStyle = 'rgba(255,255,255,0.55)';
+        graph.lineWidth = 1;
+        graph.stroke();
+    };
+
+    users.forEach(user => {
+        const color = user.id === player.id ? '#00f0ff' : 'hsl(' + user.hue + ', 100%, 58%)';
+        (user.cells || []).forEach(cell => drawDot(cell.x, cell.y, cell.mass, color));
+    });
+
+    graph.fillStyle = '#cbd5e1';
+    graph.font = '10px sans-serif';
+    graph.fillText('mapa', x + 8, y + size - 8);
+    graph.restore();
+};
+
 module.exports = {
     drawFood,
     drawVirus,
@@ -159,5 +228,6 @@ module.exports = {
     drawCells,
     drawErrorMessage,
     drawGrid,
-    drawBorder
+    drawBorder,
+    drawMinimap
 };

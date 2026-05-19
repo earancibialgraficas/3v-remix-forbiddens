@@ -324,7 +324,14 @@ const sendUpdates = () => {
 const sendLeaderboard = (socket) => {
     socket.emit('leaderboard', {
         players: map.players.data.length,
-        leaderboard
+        leaderboard,
+        onlinePlayers: map.players.data.map((player) => ({
+            id: player.id,
+            name: player.name || '',
+            avatarUrl: player.avatarUrl || '',
+            massTotal: Math.floor(player.massTotal || 0),
+            cells: Array.isArray(player.cells) ? player.cells.length : 0
+        }))
     });
 }
 const updateSpectator = (socketID) => {
