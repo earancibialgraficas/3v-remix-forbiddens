@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
@@ -368,7 +369,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-4 animate-fade-in">
       
-      {showAvatarSelector && (
+      {showAvatarSelector && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAvatarSelector(false)} />
           <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto">
@@ -376,12 +377,13 @@ export default function ProfilePage() {
             <h3 className="font-pixel text-[11px] text-neon-cyan mb-4 uppercase text-center">Selecciona tu Avatar</h3>
             <AvatarSelector currentAvatarUrl={profile?.avatar_url || null} onSelect={handleAvatarSelect} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {showRoleIconSelector && <RoleIconSelector currentIcon={profile?.role_icon || "⭐"} onSelect={handleRoleIconSelect} onClose={() => setShowRoleIconSelector(false)} />}
 
-      {showColorPicker && (
+      {showColorPicker && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowColorPicker(false)} />
           <div className="relative bg-card border border-border rounded-lg p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto retro-scrollbar shadow-2xl">
@@ -403,7 +405,8 @@ export default function ProfilePage() {
               <div className="pt-4 border-t border-border flex gap-2"><Button onClick={handleSaveColors} disabled={savingColors} className="flex-1 text-xs">{savingColors ? "Guardando..." : "Guardar Paleta"}</Button><Button variant="outline" onClick={() => setShowColorPicker(false)} className="flex-1 text-xs">Cancelar</Button></div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
