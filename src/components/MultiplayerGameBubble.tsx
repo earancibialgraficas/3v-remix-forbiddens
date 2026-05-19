@@ -167,6 +167,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const mobileGameFrame = !fullscreen && size.w < 460;
   const headerButtonClass = cn("h-8 w-8 shrink-0", mobileGameFrame && "h-7 w-7");
 
+  useEffect(() => {
+    if (!activeGameId || typeof document === "undefined") return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [activeGameId]);
+
   const notifyPlayerConnected = useCallback((player?: Partial<SessionPlayer>) => {
     const userId = String(player?.userId || player?.playerId || "");
     if (!userId || userId === localSessionUserId) return;

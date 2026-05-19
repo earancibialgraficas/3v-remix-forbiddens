@@ -131,12 +131,22 @@ export default function PublicProfilePage() {
 
   const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   useEffect(() => {
-    if (friendToRemove) document.body.style.overflow = 'hidden';
+    if (friendToRemove || isAvatarPreviewOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
-  }, [friendToRemove]);
+  }, [friendToRemove, isAvatarPreviewOpen]);
+
+  useEffect(() => {
+    if (!isAvatarPreviewOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsAvatarPreviewOpen(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isAvatarPreviewOpen]);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -316,9 +326,16 @@ export default function PublicProfilePage() {
       
       <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-          <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm" style={getAvatarBorderStyle(profile.color_avatar_border)}>
+          <button
+            type="button"
+            onClick={() => setIsAvatarPreviewOpen(true)}
+            className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            style={getAvatarBorderStyle(profile.color_avatar_border)}
+            aria-label={`Ver foto de perfil de ${profile.display_name}`}
+            title="Ver foto de perfil"
+          >
             {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground" />}
-          </div>
+          </button>
           <div className="flex-1 min-w-0 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
               <h2 className="font-pixel text-xl text-neon-cyan" style={getNameStyle(profile.color_name)}>{profile.display_name}</h2>
@@ -459,6 +476,43 @@ export default function PublicProfilePage() {
       )}
 
       {/* 🔥 MODAL DE CONFIRMACIÓN AL ELIMINAR AMIGO DESDE EL PERFIL PÚBLICO 🔥 */}
+      {isAvatarPreviewOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-sm animate-fade-in p-4" onClick={() => setIsAvatarPreviewOpen(false)}>
+          <div
+            className="absolute top-1/2 left-1/2 w-[92vw] max-w-[520px] -translate-x-1/2 -translate-y-1/2 bg-card border border-neon-cyan/35 rounded-xl shadow-[0_0_60px_rgba(0,240,255,0.18)] animate-scale-in overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10">
+              <div className="min-w-0">
+                <p className="font-pixel text-[10px] text-neon-cyan uppercase truncate">Foto de perfil</p>
+                <p className="text-xs text-muted-foreground font-body truncate">{profile.display_name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAvatarPreviewOpen(false)}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded transition-colors"
+                aria-label="Cerrar foto ampliada"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 flex items-center justify-center bg-black/35">
+              <div
+                className="w-full max-w-[420px] aspect-square rounded-2xl bg-muted border-2 border-neon-cyan/30 overflow-hidden shadow-neon-sm flex items-center justify-center"
+                style={getAvatarBorderStyle(profile.color_avatar_border)}
+              >
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt={`Foto de perfil de ${profile.display_name}`} className="w-full h-full object-contain bg-black" />
+                ) : (
+                  <User className="w-28 h-28 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {friendToRemove && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setFriendToRemove(null)}>
           <div 
