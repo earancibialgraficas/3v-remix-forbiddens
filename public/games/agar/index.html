@@ -125,10 +125,23 @@
         let sessionAwarded = 0;
         let foodPointsPending = 0;
         let lastPublishedFoodPoints = 0;
+        let lastSessionScorePostAt = 0;
         let bestMass = myScore;
         let gameOver = false;
         const REMOTE_PLAYER_TTL = 60000;
+        const BROADCAST_INTERVAL_MS = 80;
+        const PRESENCE_INTERVAL_MS = 2500;
+        const RADIUS_SCALE = 5.4;
+        const MIN_CELL_RADIUS = 14;
         const avatarCache = {};
+
+        function radiusFromScore(score) {
+            return Math.max(MIN_CELL_RADIUS, Math.sqrt(Math.max(1, Number(score) || 1)) * RADIUS_SCALE);
+        }
+
+        function canConsume(bigScore, smallScore) {
+            return Number(bigScore || 0) > Number(smallScore || 0) * 1.18;
+        }
 
         function getLocalPlayer() {
             return {
@@ -152,6 +165,10 @@
         }
 
         function syncLocalStats() {
+            if (!cells.length) {
+                myScore = 0;
+                return;
+            }
             const total = cells.reduce((sum, cell) => sum + cell.score, 0) || 40;
             myScore = total;
             bestMass = Math.max(bestMass, myScore);
@@ -179,10 +196,13 @@
         function showDeath() {
             gameOver = true;
             cells = [];
+            publishSessionScore(true);
             deathPointsEl.textContent = String(sessionAwarded + foodPointsPending);
             deathMassEl.textContent = String(Math.floor(bestMass));
             deathEl.classList.add('show');
             if (document.pointerLockElement === canvas) document.exitPointerLock?.();
+            publishLocalRealtimeState(true);
+            publishLeaderboard();
         }
 
         function directionFromPointer() {
@@ -223,8 +243,8 @@
                 if (nextCells.length < 8) {
                     nextCells.push({
                         id: Math.random().toString(36).slice(2, 9),
-                        x: Math.max(0, Math.min(worldSize, cell.x + dir.x * (childScore + 20))),
-                        y: Math.max(0, Math.min(worldSize, cell.y + dir.y * (childScore + 20))),
+                        x: Math.max(0, Math.min(worldSize, cell.x + dir.x * (radiusFromScore(childScore) + 20))),
+                        y: Math.max(0, Math.min(worldSize, cell.y + dir.y * (radiusFromScore(childScore) + 20))),
                         score: childScore,
                         vx: dir.x * 11,
                         vy: dir.y * 11,
@@ -255,7 +275,7 @@
                 cell.vy += (center.y - cell.y) * 0.0028;
             });
 
-            const closeEnough = cells.every(cell => Math.hypot(cell.x - center.x, cell.y - center.y) < Math.max(16, Math.sqrt(total) * 0.9));
+            const closeEnough = cells.every(cell => Math.hypot(cell.x - center.x, cell.y - center.y) < Math.max(16, radiusFromScore(total) * 0.35));
             if (closeEnough) {
                 cells = [{
                     id: 'main',
@@ -311,7 +331,10 @@
             }
         }
 
-        function publishSessionScore() {
+        function publishSessionScore(force = false) {
+            const now = Date.now();
+            if (!force && now - lastSessionScorePostAt < 250) return;
+            lastSessionScorePostAt = now;
             const pointsDelta = Math.max(0, foodPointsPending - lastPublishedFoodPoints);
             lastPublishedFoodPoints = foodPointsPending;
             window.parent.postMessage({
@@ -338,6 +361,8 @@
             if (!player || !remoteKey || remoteKey === playerId) return;
             const now = Date.now();
             const existing = players[remoteKey] || {};
+            const incomingCells = Array.isArray(player.cells) ? player.cells : null;
+            const incomingIsDead = incomingCells && incomingCells.length === 0;
             const incomingHasCells = hasUsableCells(player);
             const incomingX = Number(player.x);
             const incomingY = Number(player.y);
@@ -349,8 +374,8 @@
                 playerId: remoteKey,
                 x: Number.isFinite(incomingX) ? incomingX : existing.x,
                 y: Number.isFinite(incomingY) ? incomingY : existing.y,
-                score: Number.isFinite(incomingScore) && incomingScore > 0 ? incomingScore : existing.score,
-                cells: incomingHasCells ? player.cells : existing.cells,
+                score: incomingIsDead ? 0 : Number.isFinite(incomingScore) && incomingScore > 0 ? incomingScore : existing.score,
+                cells: incomingIsDead ? [] : incomingHasCells ? player.cells : existing.cells,
                 points: Number(player.points ?? player.sessionPoints ?? existing.points ?? 0),
                 sessionPoints: Number(player.sessionPoints ?? player.points ?? existing.sessionPoints ?? 0),
                 lastSeen: now,
@@ -368,7 +393,7 @@
         }
 
         function getRemoteCells(player) {
-            const source = Array.isArray(player?.cells) && player.cells.length ? player.cells : [player];
+            const source = Array.isArray(player?.cells) ? player.cells : [player];
             return source
                 .map(cell => ({
                     ...cell,
@@ -439,11 +464,11 @@
         function publishLocalRealtimeState(forcePresence = false) {
             const now = Date.now();
             const localState = getLocalPlayer();
-            if (now - lastBroadcastAt > 160) {
+            if (now - lastBroadcastAt > BROADCAST_INTERVAL_MS) {
                 lastBroadcastAt = now;
                 channel.send({ type: 'broadcast', event: 'state', payload: localState });
             }
-            if (forcePresence || now - lastPresenceTrackAt > 800) {
+            if (forcePresence || now - lastPresenceTrackAt > PRESENCE_INTERVAL_MS) {
                 lastPresenceTrackAt = now;
                 channel.track(localState);
             }
@@ -568,14 +593,16 @@
                     const dxCells = a.x - b.x;
                     const dyCells = a.y - b.y;
                     const d = Math.max(1, Math.sqrt(dxCells * dxCells + dyCells * dyCells));
-                    const minDistance = (a.score + b.score) * 0.62;
+                    const aRadius = radiusFromScore(a.score);
+                    const bRadius = radiusFromScore(b.score);
+                    const minDistance = (aRadius + bRadius) * 0.9;
                     if (d < minDistance && (now < (a.mergeAt || 0) || now < (b.mergeAt || 0))) {
                         const push = (minDistance - d) * 0.015;
                         a.vx += (dxCells / d) * push;
                         a.vy += (dyCells / d) * push;
                         b.vx -= (dxCells / d) * push;
                         b.vy -= (dyCells / d) * push;
-                    } else if (d < Math.max(a.score, b.score) * 0.5 && now >= (a.mergeAt || 0) && now >= (b.mergeAt || 0)) {
+                    } else if (d < Math.max(aRadius, bRadius) * 0.55 && now >= (a.mergeAt || 0) && now >= (b.mergeAt || 0)) {
                         b.score += a.score;
                         cells.splice(i, 1);
                         break;
@@ -587,7 +614,7 @@
             food = food.filter(f => {
                 for (const cell of cells) {
                     const d = Math.sqrt((f.x - cell.x)**2 + (f.y - cell.y)**2);
-                    if (d < cell.score) {
+                    if (d < radiusFromScore(cell.score)) {
                         cell.score += 0.5;
                         foodPointsPending += 1;
                         publishSessionScore();
@@ -608,12 +635,16 @@
                 cells = cells.filter(cell => {
                     for (const remoteCell of remoteCells) {
                         const remoteScore = Number(remoteCell.score || p.score || 0);
+                        const localRadius = radiusFromScore(cell.score);
+                        const remoteRadius = radiusFromScore(remoteScore);
                         const cellDistance = Math.sqrt((remoteCell.x - cell.x)**2 + (remoteCell.y - cell.y)**2);
-                        if (cell.score > remoteScore * 1.1 && cellDistance < cell.score) {
-                            cell.score += remoteScore * 0.35;
+                        if (canConsume(cell.score, remoteScore) && cellDistance < localRadius - remoteRadius * 0.35) {
+                            cell.score += remoteScore * 0.55;
+                            p.cells = remoteCells.filter(item => String(item.id || `${item.x}:${item.y}`) !== String(remoteCell.id || `${remoteCell.x}:${remoteCell.y}`));
+                            p.score = p.cells.reduce((sum, item) => sum + Number(item.score || 0), 0);
                             return true;
                         }
-                        if (remoteScore > cell.score * 1.1 && cellDistance < remoteScore) {
+                        if (canConsume(remoteScore, cell.score) && cellDistance < remoteRadius - localRadius * 0.35) {
                             return false;
                         }
                     }
@@ -629,7 +660,7 @@
         function drawPlayer(p, camX, camY, zoom) {
             const x = p.x * zoom + camX;
             const y = p.y * zoom + camY;
-            const r = Math.max(2, p.score * zoom);
+            const r = Math.max(2, radiusFromScore(p.score) * zoom);
 
             ctx.save();
             ctx.beginPath();
