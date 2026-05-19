@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 const categoryColors: Record<string, { color: string; label: string }> = {
   "general": { color: "text-foreground", label: "General" },
@@ -59,7 +60,7 @@ export default function HomeCarousel() {
           const postImage = extractImageFromContent(p.content || "");
           const categoryImage = fallbackImages[p.category] || fallbackImages["general"];
           return {
-            id: p.id, title: p.title, content: p.content || "",
+            id: p.id, title: stripHtmlToText(p.title), content: stripHtmlToText(p.content || ""),
             image: postImage || categoryImage,
             category: p.category, upvotes: p.upvotes,
           };

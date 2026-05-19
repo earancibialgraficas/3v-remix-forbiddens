@@ -1,9 +1,28 @@
 import DOMPurify from "dompurify";
 
-// Detección simple: contenido producido por TipTap empieza con tag HTML.
+const HTML_TAG_PATTERN = /<\/?(p|h[1-6]|ul|ol|blockquote|div|span|strong|em|u|s|a|br|li)\b[^>]*>/i;
+const ESCAPED_HTML_TAG_PATTERN = /&lt;\/?(p|h[1-6]|ul|ol|blockquote|div|span|strong|em|u|s|a|br|li)\b/i;
+
+export function decodeHtmlEntities(s?: string | null): string {
+  if (!s) return "";
+  if (typeof document === "undefined") {
+    return s
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  }
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = s;
+  return textarea.value;
+}
+
+// Detecta contenido producido por TipTap, incluso cuando llega escapado.
 export function isHtml(s?: string | null): boolean {
   if (!s) return false;
-  return /^\s*<(p|h[1-6]|ul|ol|blockquote|div|span|strong|em|u|s|a)\b/i.test(s);
+  return HTML_TAG_PATTERN.test(s) || ESCAPED_HTML_TAG_PATTERN.test(s);
 }
 
 const ALLOWED_TAGS = [
@@ -20,13 +39,13 @@ export function sanitizeHtml(html: string): string {
   });
 }
 
-// Convierte HTML a texto plano (para listados de posts donde mantenemos
-// la coherencia visual: misma fuente, alineación a la izquierda).
+// Convierte HTML a texto plano para listados, avisos y carruseles.
 export function stripHtmlToText(s?: string | null): string {
   if (!s) return "";
-  if (!isHtml(s)) return s;
-  if (typeof document === "undefined") return s.replace(/<[^>]+>/g, "");
+  const decoded = decodeHtmlEntities(s);
+  if (!isHtml(decoded)) return decoded.trim();
+  if (typeof document === "undefined") return decoded.replace(/<[^>]+>/g, "").trim();
   const tmp = document.createElement("div");
-  tmp.innerHTML = sanitizeHtml(s);
+  tmp.innerHTML = sanitizeHtml(decoded);
   return (tmp.textContent || tmp.innerText || "").trim();
 }

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getNameStyle, getAvatarBorderStyle } from "@/lib/profileAppearance";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 import { Trophy, Gamepad2, HardDrive, Trash2, Search, UserMinus, UserPlus, Heart, MessageSquare, Users, Star, Ban, Unlock, User } from "lucide-react";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -65,8 +66,8 @@ export function AvisosTab({ notifications, pendingRequests, handleMarkAsRead, ha
               <div key={notif.id} onClick={() => handleMarkAsRead(notif.id)} className={cn("flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left cursor-pointer", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30")}>
                 <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>{c.icon}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-body font-medium text-foreground leading-snug">{notif.title}</p>
-                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
+                  <p className="text-xs font-body font-medium text-foreground leading-snug">{stripHtmlToText(notif.title)}</p>
+                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{stripHtmlToText(notif.body)}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[9px] text-muted-foreground/70">{new Date(notif.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                     {notif.type === "friend_request" && notif.related_id && <Link to={`/usuario/${notif.related_id}`} onClick={() => handleMarkAsRead(notif.id)} className="text-[9px] text-primary hover:underline font-body">Ver perfil</Link>}
@@ -90,7 +91,7 @@ export function PostsTab({ userPosts }: { userPosts: any[] }) {
          <div className="space-y-2">
            {userPosts.map((post) => (
              <Link key={post.id} to={getCategoryRoute(post.category || "gaming-anime-foro", post.id)} className="block p-2 border-border/30 border-b hover:bg-muted/30 transition-colors cursor-pointer text-xs truncate">
-               {post.title}
+               {stripHtmlToText(post.title)}
              </Link>
            ))}
          </div>

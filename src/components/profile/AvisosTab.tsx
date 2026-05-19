@@ -1,4 +1,5 @@
 import React from "react";
+import { stripHtmlToText } from "@/lib/htmlContent";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { User, Trash2, UserPlus, Heart, MessageSquare, Users, Trophy, Star, Clock } from "lucide-react";
@@ -185,8 +186,8 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
               >
                 <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>{c.icon}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-body font-medium text-foreground leading-snug">{notif.title}</p>
-                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
+                  <p className="text-xs font-body font-medium text-foreground leading-snug">{stripHtmlToText(notif.title)}</p>
+                  <p className="text-[10px] font-body text-muted-foreground mt-0.5 line-clamp-2">{stripHtmlToText(notif.body)}</p>
                   <div className="flex items-center gap-2 mt-1.5">
                     
                     <span 

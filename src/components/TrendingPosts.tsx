@@ -66,7 +66,7 @@ export default function TrendingPosts() {
         user_id: user.id, 
         item_type: 'post',
         original_id: post.id,
-        title: post.title || 'Post del Foro',
+        title: stripHtmlToText(post.title) || 'Post del Foro',
         redirect_url: getCategoryRoute(post.category || "gaming-anime-foro", post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });

@@ -30,7 +30,7 @@ const getPostThumbnail = (post: any) => {
 
   // 🔥 Fallback IA Pollinations (AHORA SÍ ESTANDARIZADO A 40 CARACTERES) 🔥
   const idSeed = getSeedFromId(post.id);
-  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+  const title = stripHtmlToText(post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 

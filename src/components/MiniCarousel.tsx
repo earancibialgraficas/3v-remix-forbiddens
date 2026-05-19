@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import { stripHtmlToText } from "@/lib/htmlContent";
 
 const SLIDE_DURATION = 5000;
 
@@ -38,7 +39,7 @@ export default function MiniCarousel() {
           const imgMatch = p.content?.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
           return {
             id: p.id,
-            title: p.title,
+            title: stripHtmlToText(p.title),
             image: imgMatch ? imgMatch[1] : "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&fit=crop",
             category: p.category
           };

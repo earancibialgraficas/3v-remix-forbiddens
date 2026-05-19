@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { stripHtmlToText } from "@/lib/htmlContent";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ExternalLink, Loader2, Bookmark, PlayCircle, X, Maximize2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Image as ImageIcon, User as UserIcon } from "lucide-react";
@@ -351,11 +352,11 @@ export default function GuardadosTab() {
        const rawImgMatch = content.match(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/i);
        if (rawImgMatch && !isVideoExt(rawImgMatch[0])) return getProxyUrl(rawImgMatch[0]);
        
-       const title = (item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+       const title = stripHtmlToText(item.title || item.originalData?.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
        return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
     }
 
-    const title = (item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
+    const title = stripHtmlToText(item.title || item.originalData?.title || item.originalData?.caption || 'Content').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
   };
 
@@ -483,7 +484,7 @@ export default function GuardadosTab() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
                 <div className="flex justify-end"><button onClick={(e) => handleRemove(e, item.id)} className="p-1.5 bg-black/60 hover:bg-destructive/90 text-white rounded"><Trash2 className="w-3 h-3" /></button></div>
                 <div>
-                  <p className="text-[9px] font-body text-white line-clamp-2 leading-tight mb-1.5 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-bold">{item.title || "Sin título"}</p>
+                  <p className="text-[9px] font-body text-white line-clamp-2 leading-tight mb-1.5 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] font-bold">{stripHtmlToText(item.title) || "Sin título"}</p>
                   <div className="flex items-center gap-1 text-[8px] text-neon-cyan font-pixel uppercase bg-black/60 w-fit px-1.5 py-0.5 rounded backdrop-blur-sm border border-neon-cyan/30"><Maximize2 className="w-2.5 h-2.5" /> Ampliar</div>
                 </div>
               </div>
@@ -510,7 +511,7 @@ export default function GuardadosTab() {
                    </div>
                    <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-pixel text-white truncate">{items[selectedIndex]?.originalData?.profile?.display_name || "Anónimo"}</span>
-                      <span className="text-[10px] font-body text-muted-foreground truncate">{items[selectedIndex]?.title || "Guardado"}</span>
+                      <span className="text-[10px] font-body text-muted-foreground truncate">{stripHtmlToText(items[selectedIndex]?.title) || "Guardado"}</span>
                    </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -557,7 +558,7 @@ export default function GuardadosTab() {
                            </div>
                            <div className="flex flex-col min-w-0">
                               <span className="text-xs font-pixel text-white truncate">{author.display_name || "Usuario Anónimo"}</span>
-                              <span className="text-[10px] font-body text-muted-foreground truncate">{item?.title || "Contenido guardado"}</span>
+                              <span className="text-[10px] font-body text-muted-foreground truncate">{stripHtmlToText(item?.title) || "Contenido guardado"}</span>
                            </div>
                         </div>
                         <button onClick={() => setSelectedIndex(null)} className="text-white/70 hover:text-white hover:bg-destructive p-1.5 rounded transition-all border border-white/10 shrink-0" title="Cerrar"><X className="w-5 h-5"/></button>
@@ -589,7 +590,7 @@ export default function GuardadosTab() {
               {items[selectedIndex]?.item_type !== 'post' && (items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title) && (
                  <div className="p-4 shrink-0 border-b border-white/10 bg-black/20 max-h-[25vh] overflow-y-auto custom-scrollbar">
                     <div className="text-slate-300 font-sans font-light text-[13px] leading-relaxed tracking-wide whitespace-pre-wrap break-words w-full">
-                      {items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title}
+                      {stripHtmlToText(items[selectedIndex]?.originalData?.caption || items[selectedIndex]?.title)}
                     </div>
                  </div>
               )}

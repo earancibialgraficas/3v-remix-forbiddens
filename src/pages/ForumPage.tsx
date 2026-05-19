@@ -23,7 +23,7 @@ import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } f
 import CommentModMenu from "@/components/CommentModMenu";
 import { EditableCommentContent } from "@/components/EditableCommentContent";
 import RichTextEditor, { RichTextRender } from "@/components/RichTextEditor";
-import { isHtml, stripHtmlToText } from "@/lib/htmlContent";
+import { decodeHtmlEntities, isHtml, sanitizeHtml, stripHtmlToText } from "@/lib/htmlContent";
 
 const pageTitles: Record<string, { title: string; description: string; color: string }> = {
   "/arcade": { title: "ZONA ARCADE", description: "Emuladores retro, salas de juego y leaderboards", color: "text-neon-green" },
@@ -110,7 +110,7 @@ function extractThumbnail(content: string): string | null {
 // --------------------------------------------------------------------------------------
 function preprocessHtmlForRender(html: string): string {
   if (!html) return "";
-  let processed = html;
+  let processed = decodeHtmlEntities(html);
   
   // 1. Limpiar Markdown envuelto en un link (pasa mucho cuando el editor auto-linkea la URL)
   processed = processed.replace(/\!\[([^\]]*)\]\(\s*<a[^>]*href=["']([^"']+)["'][^>]*>.*?<\/a>\s*\)/g, '![$1]($2)');
@@ -719,7 +719,7 @@ export default function ForumPage() {
     if (!user) return;
     try { 
       const thumb = extractThumbnail(post.content);
-      const { error } = await supabase.from("saved_items" as any).insert({ user_id: user.id, item_type: 'post', original_id: post.id, title: post.title || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category || "gaming-anime-foro", post.id) }); 
+      const { error } = await supabase.from("saved_items" as any).insert({ user_id: user.id, item_type: 'post', original_id: post.id, title: stripHtmlToText(post.title) || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category || "gaming-anime-foro", post.id) }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
     } catch (e) { }
@@ -956,7 +956,7 @@ export default function ForumPage() {
                     {isHtml(post.title) ? (
                       <div 
                         className="text-2xl break-words font-body font-bold"
-                        dangerouslySetInnerHTML={{ __html: post.title }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.title)) }}
                       />
                     ) : (
                       <h1 className="text-2xl break-words" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, textAlign: (post.title_align as any) || 'left' }}>{post.title}</h1>

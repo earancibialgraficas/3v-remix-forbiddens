@@ -57,7 +57,7 @@ const getPostThumbnail = (post: any) => {
   if (rawImgMatch && rawImgMatch[0]) return rawImgMatch[0];
   
   const idSeed = getSeedFromId(post.id);
-  const title = (post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
+  const title = stripHtmlToText(post.title || 'Foro').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Gaming Forum';
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " digital art neon")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
@@ -80,7 +80,7 @@ const getSocialThumbnail = (item: any) => {
   
   if (item.thumbnail_url && !isVideoExt(item.thumbnail_url)) return getProxyUrl(item.thumbnail_url);
   
-  const title = (item.title || item.caption || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
+  const title = stripHtmlToText(item.title || item.caption || 'Video').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Cyberpunk Video';
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(title.substring(0, 40) + " cyberpunk neon grid")}?width=400&height=400&nologo=true&seed=${idSeed}`;
 };
 
@@ -273,7 +273,7 @@ export default function PublicProfilePage() {
     const thumb = getPostThumbnail(post);
     try { 
       const { error } = await supabase.from("saved_items" as any).insert({ 
-        user_id: user.id, item_type: 'post', original_id: post.id, title: post.title || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category, post.id)
+        user_id: user.id, item_type: 'post', original_id: post.id, title: stripHtmlToText(post.title) || 'Post del Foro', thumbnail_url: thumb, redirect_url: getCategoryRoute(post.category, post.id)
       }); 
       if (error && error.code === '23505') toast({ title: "Aviso", description: "Ya tienes esta publicación guardada." });
       else if (!error) toast({ title: "¡Guardado en tu Perfil!" }); 
@@ -450,7 +450,7 @@ export default function PublicProfilePage() {
                    <div key={item.id} onClick={() => navigate(destRoute)} className={cn("relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02] w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] border", borderStyle)}>
                      <img src={getSocialThumbnail(item)} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
                      {isVideo && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" /></div>}
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20"><p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">{item.title || item.caption || "Ver post"}</p></div>
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20"><p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">{stripHtmlToText(item.title || item.caption) || "Ver post"}</p></div>
                    </div>
                  );
               })}

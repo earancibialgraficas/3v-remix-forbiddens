@@ -345,6 +345,16 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
     publishState({ isPlaying: nextPlaying, position: currentTime, startedAt: Date.now() });
   };
 
+  const seekVideo = useCallback((seconds: number) => {
+    if (!current) return;
+    const maxTime = duration > 0 ? duration : Math.max(currentTime, seconds, 0);
+    const target = Math.min(Math.max(0, Number(seconds || 0)), maxTime);
+    setCurrentTime(target);
+    sendCommand("seekTo", [target, true]);
+    publishState({ isPlaying, position: target, startedAt: Date.now() });
+    requestYoutubeStatus();
+  }, [current, currentTime, duration, isPlaying, publishState, requestYoutubeStatus, sendCommand]);
+
   const toggleCaptions = () => {
     const next = !captionsEnabled;
     setCaptionsEnabled(next);
@@ -457,6 +467,23 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
           </p>
         </div>
       </div>
+
+      {current && (
+        <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
+          <span className="w-8 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
+          <Slider
+            value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
+            min={0}
+            max={Math.max(duration, currentTime, 1)}
+            step={1}
+            onValueChange={([next]) => setCurrentTime(Number(next || 0))}
+            onValueCommit={([next]) => seekVideo(Number(next || 0))}
+            className="min-w-0 flex-1"
+            aria-label="Tiempo del video sincronizado"
+          />
+          <span className="w-8 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
+        </div>
+      )}
 
       {volumeOpen && !fullscreen && (
         <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
@@ -631,6 +658,20 @@ export default function WatchTogetherPlayer({ roomCode, userName, controlsTarget
                 <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
               </div>
             )}
+            <div className="flex w-full max-w-[520px] items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 shadow-2xl backdrop-blur-md">
+              <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
+              <Slider
+                value={[Math.min(currentTime, duration || Math.max(currentTime, 1))]}
+                min={0}
+                max={Math.max(duration, currentTime, 1)}
+                step={1}
+                onValueChange={([next]) => setCurrentTime(Number(next || 0))}
+                onValueCommit={([next]) => seekVideo(Number(next || 0))}
+                className="min-w-0 flex-1"
+                aria-label="Tiempo del video sincronizado"
+              />
+              <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{duration ? formatTime(duration) : "--:--"}</span>
+            </div>
             <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2 py-1.5 shadow-2xl backdrop-blur-md">
               <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
