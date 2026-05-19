@@ -286,6 +286,71 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   }, [localSessionUserId]);
 
+  const applySessionPresenceState = useCallback((channel: any) => {
+    if (!channel) return;
+    const now = Date.now();
+    const existingById = new Map<string, SessionPlayer>();
+    sessionPlayersRef.current.forEach((player) => {
+      existingById.set(player.userId, player);
+      if (player.playerId) existingById.set(player.playerId, player);
+    });
+
+    const latest = new Map<string, SessionPlayer>();
+    Object.values(channel.presenceState())
+      .flat()
+      .forEach((presence: any) => {
+        const userId = String(presence?.userId || presence?.playerId || "");
+        if (!userId) return;
+        const current = latest.get(userId);
+        const existing = existingById.get(userId) || existingById.get(String(presence?.playerId || ""));
+        const next: SessionPlayer = {
+          userId,
+          playerId: String(presence?.playerId || userId),
+          name: String(presence?.name || presence?.displayName || "Jugador"),
+          avatarUrl: String(presence?.avatarUrl || ""),
+          timePoints: 0,
+          totalPoints: 0,
+          elapsedSeconds: 0,
+          joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
+          updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(presence?.updatedAt || 0)),
+          status: "online",
+        };
+        if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
+        if (disconnectGraceTimersRef.current[userId]) {
+          window.clearTimeout(disconnectGraceTimersRef.current[userId]);
+          delete disconnectGraceTimersRef.current[userId];
+        }
+        if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
+      });
+
+    const merged = new Map<string, SessionPlayer>();
+    sessionPlayersRef.current.forEach((player) => {
+      const isLocal = player.userId === localSessionUserId || player.playerId === lobbyPlayerIdRef.current;
+      const isOnline = latest.has(player.userId) || latest.has(player.playerId);
+      const isRecentlySeen = now - Number(player.updatedAt || 0) < SESSION_LEAVE_GRACE_MS;
+      const visitedAt = player.leftAt || now;
+      if (isLocal || isOnline || isRecentlySeen) {
+        merged.set(player.userId, player);
+        return;
+      }
+      if (now - visitedAt < SESSION_VISITED_MS) {
+        merged.set(player.userId, {
+          ...player,
+          status: "visited",
+          leftAt: visitedAt,
+          updatedAt: Math.max(Number(player.updatedAt || 0), visitedAt),
+        });
+      }
+    });
+    latest.forEach((player, userId) => merged.set(userId, player));
+    const nextPlayers = Array.from(merged.values()).sort((a, b) => {
+      if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
+      return a.joinedAt - b.joinedAt;
+    });
+    sessionPlayersRef.current = nextPlayers;
+    setSessionPlayers(nextPlayers);
+  }, [localSessionUserId, notifyPlayerConnected]);
+
   const buildLocalSessionPlayer = useCallback((): SessionPlayer => ({
     userId: localSessionUserId,
     playerId: lobbyPlayerIdRef.current,
@@ -572,68 +637,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
     sessionChannelRef.current = channel;
 
-    const readPlayers = () => {
-      const now = Date.now();
-      const existingById = new Map<string, SessionPlayer>();
-      sessionPlayersRef.current.forEach((player) => {
-        existingById.set(player.userId, player);
-        if (player.playerId) existingById.set(player.playerId, player);
-      });
-      const latest = new Map<string, SessionPlayer>();
-      Object.values(channel.presenceState())
-        .flat()
-        .forEach((presence: any) => {
-          const userId = String(presence?.userId || presence?.playerId || "");
-          if (!userId) return;
-          const current = latest.get(userId);
-          const existing = existingById.get(userId) || existingById.get(String(presence?.playerId || ""));
-          const next: SessionPlayer = {
-            userId,
-            playerId: String(presence?.playerId || userId),
-            name: String(presence?.name || presence?.displayName || "Jugador"),
-            avatarUrl: String(presence?.avatarUrl || ""),
-            timePoints: 0,
-            totalPoints: 0,
-            elapsedSeconds: 0,
-            joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
-            updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(presence?.updatedAt || 0)),
-            status: "online",
-          };
-          if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
-          if (disconnectGraceTimersRef.current[userId]) {
-            window.clearTimeout(disconnectGraceTimersRef.current[userId]);
-            delete disconnectGraceTimersRef.current[userId];
-          }
-          if (!current || next.updatedAt >= current.updatedAt) latest.set(userId, next);
-        });
-
-      const merged = new Map<string, SessionPlayer>();
-      sessionPlayersRef.current.forEach((player) => {
-        const isLocal = player.userId === localSessionUserId || player.playerId === lobbyPlayerIdRef.current;
-        const isOnline = latest.has(player.userId) || latest.has(player.playerId);
-        const isRecentlySeen = now - Number(player.updatedAt || 0) < SESSION_LEAVE_GRACE_MS;
-        const visitedAt = player.leftAt || now;
-        if (isLocal || isOnline || isRecentlySeen) {
-          merged.set(player.userId, player);
-          return;
-        }
-        if (now - visitedAt < SESSION_VISITED_MS) {
-          merged.set(player.userId, {
-            ...player,
-            status: "visited",
-            leftAt: visitedAt,
-            updatedAt: Math.max(Number(player.updatedAt || 0), visitedAt),
-          });
-        }
-      });
-      latest.forEach((player, userId) => merged.set(userId, player));
-      const nextPlayers = Array.from(merged.values()).sort((a, b) => {
-        if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
-        return a.joinedAt - b.joinedAt;
-      });
-      sessionPlayersRef.current = nextPlayers;
-      setSessionPlayers(nextPlayers);
-    };
+    const readPlayers = () => applySessionPresenceState(channel);
 
     const trackLocal = async () => {
       const player = buildLocalSessionPlayer();
@@ -696,7 +700,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if (sessionChannelRef.current === channel) sessionChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, notifyPlayerConnected, pruneStaleSessionPlayers, syncLocalSessionPlayer]);
+  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, pruneStaleSessionPlayers, syncLocalSessionPlayer]);
 
   useEffect(() => {
     if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
@@ -931,6 +935,29 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       toast({ title: "Mazo", description: code });
     }
   };
+
+  const refreshSessionPresence = useCallback(async () => {
+    if (!sessionChannelRef.current) {
+      toast({ title: "Sala", description: "Todavia no hay una sala activa para actualizar." });
+      return;
+    }
+    const player = buildLocalSessionPlayer();
+    await sessionChannelRef.current.track({
+      game: activeGameId,
+      room: activeSessionRoomCode,
+      ...player,
+    });
+    applySessionPresenceState(sessionChannelRef.current);
+    toast({ title: "Sala actualizada", description: "Se actualizo la lista de personas conectadas." });
+  }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, toast]);
+
+  const refreshHeaderAction = useCallback(() => {
+    if (isWatchTogether) {
+      void refreshSessionPresence();
+      return;
+    }
+    setReloadKey((key) => key + 1);
+  }, [isWatchTogether, refreshSessionPresence]);
 
   const launchRoom = (code: string, asHost: boolean) => {
     const nextCode = (code || makeRoomCode()).trim().toUpperCase();
@@ -1309,7 +1336,15 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={copyRoom} title="Copiar codigo de sala" aria-label="Copiar codigo de sala">
                 <Copy className="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={() => setReloadKey((key) => key + 1)} title="Reiniciar juego" aria-label="Reiniciar juego">
+              <Button
+                size="icon"
+                variant="ghost"
+                className={headerButtonClass}
+                onMouseDown={stopHeaderDrag}
+                onClick={refreshHeaderAction}
+                title={isWatchTogether ? "Actualizar personas de la sala" : "Reiniciar juego"}
+                aria-label={isWatchTogether ? "Actualizar personas de la sala" : "Reiniciar juego"}
+              >
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               <Button size="icon" variant="ghost" className={headerButtonClass} onMouseDown={stopHeaderDrag} onClick={toggleFullscreen} title={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"} aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
