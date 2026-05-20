@@ -15,18 +15,20 @@
     button{cursor:pointer}
     .shell{min-height:100vh;display:grid;grid-template-rows:minmax(0,1fr);gap:8px;padding:8px 10px 10px;background:radial-gradient(circle at 50% 6%,#1d6934 0,#0b1a17 30%,#070812 100%)}
     .status{color:#cbd5e1;font-size:12px;white-space:nowrap}
-    .layout{max-width:1440px;width:100%;min-height:0;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:12px}
-    .tableSide{min-width:0;display:grid;grid-template-rows:minmax(180px,28vh) auto auto minmax(220px,1fr) auto;gap:8px}
+    .layout{max-width:1440px;width:100%;min-height:0;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:14px}
+    .tableSide{min-width:0;display:grid;grid-template-rows:minmax(230px,34vh) auto auto minmax(240px,1fr) auto;gap:9px}
     .panel,.sideCard{border:1px solid #374151;background:#10131ce6;border-radius:10px;box-shadow:0 18px 58px #0009,0 0 28px #0f70372b}
     .wheelPanel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 45%,#15251f 0,#10131c 60%)}
     .wheelPanel:before{content:"";position:absolute;inset:auto 8% -44px;height:112px;border-radius:50%;background:#0b4f25;filter:blur(20px);opacity:.9}
     .wheelPanel:after{content:"";position:absolute;inset:12px;border-radius:10px;box-shadow:inset 0 0 52px #facc1514,inset 0 0 90px #22c55e12;pointer-events:none}
-    .pointer{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:20px solid #facc15;z-index:4;filter:drop-shadow(0 0 7px #facc15)}
-    .wheel{width:min(280px,56vw,29vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 8px #5b390d,0 0 0 13px #113914,0 18px 60px #000d,0 0 34px #22c55e33;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
-    .wheel:before{content:"";position:absolute;inset:22px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 9px #0e612d,inset 0 0 18px #000}
-    .wheel:after{content:"";position:absolute;inset:76px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34,0 0 24px #0008}
-    .wheelNumber{position:absolute;left:50%;top:50%;z-index:3;width:20px;height:13px;margin:-6.5px 0 0 -10px;display:grid;place-items:center;border-radius:3px;color:#fff;font-size:8px;font-weight:1000;text-shadow:0 1px 2px #000,0 0 5px #000;pointer-events:none;transform-origin:center center}
-    .hub{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0a8,#b47a05 72%);z-index:2;box-shadow:0 4px 14px #0009}
+    .pointer{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid #facc15;z-index:9;filter:drop-shadow(0 0 7px #facc15)}
+    .wheel{width:min(284px,58vw,31vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 8px #5b390d,0 0 0 13px #113914,0 18px 60px #000d,0 0 34px #22c55e33}
+    .wheelRotor{position:absolute;inset:0;border-radius:50%;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
+    .wheelRotor:before{content:"";position:absolute;inset:21px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 9px #0e612d,inset 0 0 18px #000}
+    .wheelRotor:after{content:"";position:absolute;inset:76px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34,0 0 24px #0008}
+    .wheelNumber{position:absolute;left:50%;top:50%;z-index:3;width:19px;height:12px;margin:-6px 0 0 -9.5px;display:grid;place-items:center;border-radius:2px;color:#fff;font-size:7.5px;font-weight:1000;text-shadow:0 1px 2px #000,0 0 5px #000;pointer-events:none;transform-origin:center center}
+    .rouletteBall{position:absolute;left:50%;top:50%;z-index:8;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff,#e5e7eb 40%,#9ca3af 74%);box-shadow:0 4px 9px #000b,0 0 12px #fff9;transform:translate(-50%,-50%);transition:transform 3s cubic-bezier(.12,.8,.18,1)}
+    .hub{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0a8,#b47a05 72%);z-index:7;box-shadow:0 4px 14px #0009,0 0 16px #facc1544}
     .lastPanel{display:flex;align-items:center;gap:10px;padding:7px 9px}
     .lastBall{width:40px;height:32px;border-radius:8px;border:2px solid #facc15;background:#0b8f42;display:grid;place-items:center;font-weight:1000;color:#fff;box-shadow:0 0 18px #facc1544}
     .betText{min-width:0;color:#cbd5e1;font-size:12px}.betText b{color:#fff}
@@ -35,10 +37,10 @@
     .roomBar button,.actionBtn{height:32px;border:1px solid #16a34a;background:linear-gradient(#1aa34c,#0f672d);color:white;border-radius:7px;padding:0 10px;font-size:11px;font-weight:900;box-shadow:0 0 14px #22c55e22}
     .wallet{justify-self:end;display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px}.wallet b{color:#facc15;font-size:16px}
     .betPanel{background:#075a28;border:2px solid #b88700;padding:8px;border-radius:12px;display:grid;gap:8px;box-shadow:inset 0 0 0 1px #2f8b47,inset 0 0 28px #0006,0 0 28px #facc1524}
-    .numGrid{display:grid;grid-template-columns:52px repeat(12,minmax(38px,1fr)) 42px;grid-template-rows:repeat(3,38px);overflow:hidden;border:1px solid #2d7d41;border-radius:7px 7px 0 0}
+    .numGrid{display:grid;grid-template-columns:54px repeat(12,minmax(42px,1fr)) 44px;grid-template-rows:repeat(3,42px);overflow:hidden;border:1px solid #2d7d41;border-radius:7px 7px 0 0}
     .outside{display:grid;grid-template-columns:58px repeat(6,1fr) 48px;overflow:hidden;border:1px solid #2d7d41;border-top:0;border-radius:0 0 8px 8px}
     .cell{min-width:0;border:1px solid #24462c;background:#161819;color:#fff;font-weight:1000;display:grid;place-items:center;position:relative}
-    .cell.red{background:#c8171d}.cell.black{background:#111318}.cell.green{background:#0b8d42}.cell.out{height:34px;background:#0d6630}.cell.selected{outline:3px solid #facc15;outline-offset:-5px;z-index:2;box-shadow:inset 0 0 18px #facc1566}
+    .cell.red{background:#c8171d}.cell.black{background:#111318}.cell.green{background:#0b8d42}.cell.out{height:36px;background:#0d6630}.cell.selected{outline:3px solid #facc15;outline-offset:-5px;z-index:2;box-shadow:inset 0 0 18px #facc1566}
     .zeroA{grid-row:1/3;font-size:22px}.zeroB{grid-row:3/4;font-size:22px}.sidePay{font-size:11px;background:#0d6630;color:#d9ffe5}
     .controls{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:1px 0}
     .chip{width:50px;height:50px;border-radius:50%;border:4px dashed #a0a7b3;background:#4b5563;color:#fff;font-weight:1000;box-shadow:inset 0 0 0 3px #626b78,0 8px 20px #0007}
@@ -52,7 +54,7 @@
     .metric{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #293241;background:#0d111a;border-radius:9px;padding:10px;margin-top:8px;color:#cbd5e1;font-size:12px}.metric b{color:#fff;font-size:18px}
     .heat{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:7px 9px;background:#1f2937;color:#fff;font-weight:900;font-size:12px}.pill.red{background:#b91c1c}.pill.green{background:#047857}.pill.black{background:#020617}
     table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#9ca3af;padding:9px 4px}td{padding:9px 4px;border-top:1px solid #2a2a2a}.pos{color:#22c55e;font-weight:1000}.neg{color:#fb7185;font-weight:1000}
-    @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:210px auto auto auto auto}.wheel{width:210px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
+    @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:230px auto auto auto auto}.wheel{width:220px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
     @media(max-width:680px){.shell{padding:8px}.status{margin-left:0;width:100%}.roomBar{grid-template-columns:1fr 1fr;align-items:stretch}.wallet{justify-self:start}.betPanel{overflow-x:auto}.numGrid,.outside{min-width:760px}.side{grid-template-columns:1fr}.chip{width:48px;height:48px;font-size:12px}.spin{width:64px;height:64px}.controls{justify-content:flex-start}.tableSide{grid-template-rows:210px auto auto auto auto}}
   </style>
 </head>
@@ -62,7 +64,11 @@
       <section class="tableSide">
         <div class="panel wheelPanel">
           <div class="pointer"></div>
-          <div id="wheel" class="wheel"><div class="hub"></div></div>
+          <div id="wheel" class="wheel">
+            <div id="rotor" class="wheelRotor"></div>
+            <div id="ball" class="rouletteBall"></div>
+            <div class="hub"></div>
+          </div>
         </div>
 
         <div class="panel lastPanel">
@@ -134,7 +140,7 @@
     const red = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
     const $ = (id) => document.getElementById(id);
     const color = (n) => (n === 0 || n === "00") ? "green" : red.has(Number(n)) ? "red" : "black";
-    let api, connected = false, rotation = 0, chip = 25, wallet = null, net = 0, busy = false;
+    let api, connected = false, rotation = 0, ballRotation = 0, chip = 25, wallet = null, net = 0, busy = false;
     let players = 1, lastBet = null, selected = { type: "number", value: 36, label: "36" };
     const spins = [];
     const preset = (params.get("room") || "").toUpperCase();
@@ -203,7 +209,8 @@
 
     function renderWheelNumbers() {
       const wheel = $("wheel");
-      wheel.querySelectorAll(".wheelNumber").forEach((node) => node.remove());
+      const rotor = $("rotor");
+      rotor.querySelectorAll(".wheelNumber").forEach((node) => node.remove());
       const radius = wheel.clientWidth * 0.365;
       numbers.forEach((n, index) => {
         const label = document.createElement("span");
@@ -211,7 +218,7 @@
         label.className = "wheelNumber";
         label.textContent = n;
         label.style.transform = `rotate(${angle}deg) translateY(-${radius}px)`;
-        wheel.appendChild(label);
+        rotor.appendChild(label);
       });
     }
 
@@ -265,8 +272,12 @@
       const bet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
       const result = payload?.result ?? spinResult();
       lastBet = bet;
-      rotation += 1440 + numbers.indexOf(result) * 9.47;
-      $("wheel").style.transform = `rotate(${rotation}deg)`;
+      const resultIndex = numbers.indexOf(result);
+      const pocketAngle = resultIndex * (360 / numbers.length);
+      rotation += 1440 - pocketAngle;
+      ballRotation += 1080;
+      $("rotor").style.transform = `rotate(${rotation}deg)`;
+      $("ball").style.transform = `translate(-50%,-50%) rotate(${ballRotation}deg) translateY(-${Math.max(72, $("wheel").clientWidth * 0.36)}px)`;
       const won = wins(result, bet);
       const multiplier = bet.type === "number" ? 36 : 2;
       const payout = won ? bet.amount * multiplier : 0;
