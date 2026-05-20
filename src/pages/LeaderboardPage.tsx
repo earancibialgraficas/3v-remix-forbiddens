@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import VaultHint from "@/components/VaultHint";
 import { Trophy, Gamepad2, User, Search, X, ChevronDown, Check } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -32,12 +33,23 @@ interface UserInfo {
 }
 
 export default function LeaderboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [userRoles, setUserRoles] = useState<Record<string, string[]>>({});
-  const [consoleFilter, setConsoleFilter] = useState<string>("all");
+  const savedFilter = searchParams.get("filter") || (typeof window !== "undefined" ? localStorage.getItem("leaderboard:filter") : null) || "all";
+  const [consoleFilter, setConsoleFilter] = useState<string>(savedFilter);
   const [search, setSearch] = useState("");
+
+  const changeConsoleFilter = (nextFilter: string) => {
+    setConsoleFilter(nextFilter);
+    if (typeof window !== "undefined") localStorage.setItem("leaderboard:filter", nextFilter);
+    const next = new URLSearchParams(searchParams);
+    if (nextFilter === "all") next.delete("filter");
+    else next.set("filter", nextFilter);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +126,7 @@ export default function LeaderboardPage() {
     { id: "ps1", label: "PSX" },
     { id: "arcade", label: "ARCADE" },
     { id: "multiplayer", label: "MULTIPLAYER" },
+    { id: "bet", label: "BET" },
   ];
 
   // Consolas que tienen al menos un score (para resaltar visualmente)
@@ -218,7 +231,7 @@ export default function LeaderboardPage() {
               className="w-56 bg-card border-border max-h-80 overflow-y-auto"
             >
               <DropdownMenuItem
-                onClick={() => setConsoleFilter("all")}
+                onClick={() => changeConsoleFilter("all")}
                 className={cn(
                   "font-pixel text-[10px] uppercase tracking-wider cursor-pointer flex items-center justify-between",
                   consoleFilter === "all" && "text-neon-yellow"
@@ -234,7 +247,7 @@ export default function LeaderboardPage() {
                 return (
                   <DropdownMenuItem
                     key={c.id}
-                    onClick={() => setConsoleFilter(c.id)}
+                    onClick={() => changeConsoleFilter(c.id)}
                     className={cn(
                       "font-pixel text-[10px] uppercase tracking-wider cursor-pointer flex items-center justify-between",
                       isActive && "text-neon-green"

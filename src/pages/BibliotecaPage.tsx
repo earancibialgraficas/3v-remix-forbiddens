@@ -13,7 +13,7 @@ import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useLocation } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 
@@ -101,10 +101,23 @@ interface LeaderboardScore {
   user_id: string;
 }
 
+interface MultiplayerLibraryGame {
+  id: string;
+  label: string;
+  coverUrl: string;
+  maxPlayers?: number;
+  playersLabel?: string;
+  externalUrl?: string;
+  rewardSlug?: string;
+  extraPoints?: boolean;
+  wagerGame?: boolean;
+}
+
 export default function BibliotecaPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  const location = useLocation();
   const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
   
   const [activeConsoles, setActiveConsoles] = useState(baseConsoles);
@@ -117,21 +130,22 @@ export default function BibliotecaPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
-  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string; externalUrl?: string; rewardSlug?: string; extraPoints?: boolean; wagerGame?: boolean } | null>(null);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<MultiplayerLibraryGame | null>(null);
   
   const [searchParams, setSearchParams] = useSearchParams();
 
   // 🔄 Lógica de persistencia unificada para Consolas y Multijugador
-  const savedTab = searchParams.get("tab") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:activeTab") : null);
+  const routeTab = location.pathname === "/arcade/bet" ? "bet" : null;
+  const savedTab = routeTab || searchParams.get("tab") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:activeTab") : null);
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   
   const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
-  const initialConsoleParam = savedTab === "multi"
+  const initialConsoleParam = savedTab === "multi" || savedTab === "bet"
     ? "multiplayer"
     : validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
   
   const [selectedConsole, setSelectedConsole] = useState<string>(initialConsoleParam);
-  const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
+  const [dropdownValue, setDropdownValue] = useState<string>(savedTab === "bet" ? "bet" : savedTab === "multi" ? "multi" : `console:${initialConsoleParam}`);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -142,6 +156,7 @@ export default function BibliotecaPage() {
     const next = new URLSearchParams();
     // Si es multi, solo guardamos el tab. Si es consola, guardamos la consola.
     if (dropdownValue === "multi") next.set("tab", "multi");
+    else if (dropdownValue === "bet") next.set("tab", "bet");
     else next.set("console", selectedConsole);
 
     if (next.toString() !== searchParams.toString()) {
@@ -420,7 +435,7 @@ const handlePlayCloudGame = async (game: any) => {
     return [...official, ...cloud];
   }, [searchQuery, selectedConsole, driveGames]);
 
-  const leaderboardConsole = dropdownValue === "multi" ? "multiplayer" : selectedConsole;
+  const leaderboardConsole = dropdownValue === "multi" ? "multiplayer" : dropdownValue === "bet" ? "bet" : selectedConsole;
 
   const fetchLeaderboard = useCallback(async () => {
     const { data, error } = await supabase
@@ -575,7 +590,7 @@ const handlePlayCloudGame = async (game: any) => {
     }
   };
 
-  const multiplayerGames = [
+  const allMultiplayerGames: MultiplayerLibraryGame[] = [
     { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.svg', maxPlayers: 2, playersLabel: '2P' },
     { id: 'agar-server', label: 'Agar.io Clon', coverUrl: '/games/covers/agar-io-clon.svg', maxPlayers: 10, playersLabel: '10P', externalUrl: import.meta.env.VITE_AGAR_SERVER_URL, rewardSlug: 'agar' },
     { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
@@ -589,6 +604,10 @@ const handlePlayCloudGame = async (game: any) => {
     { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.svg', maxPlayers: 2, playersLabel: '2P' },
     { id: 'card-duel', label: 'Card Duel (Hearthstone lite)', coverUrl: '/games/covers/card-duel.svg', maxPlayers: 2, playersLabel: '2P' }
   ];
+  const multiplayerGames = allMultiplayerGames.filter((game) => !game.wagerGame);
+  const betGames = allMultiplayerGames.filter((game) => game.wagerGame);
+  const visibleMultiplayerGames = multiplayerGames.filter((game) => game.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const visibleBetGames = betGames.filter((game) => game.label.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const getConsoleShortLabel = (consoleId: string, label: string) => {
     const shortLabels: Record<string, string> = {
@@ -613,11 +632,14 @@ const handlePlayCloudGame = async (game: any) => {
       color: c.color
     })),
     { type: 'section', label: '────────────' },
-    { type: 'multiplayer', value: 'multi', label: 'MULTI', color: 'text-neon-magenta' }
+    { type: 'multiplayer', value: 'multi', label: 'MULTI', color: 'text-neon-magenta' },
+    { type: 'bet', value: 'bet', label: 'BET', color: 'text-neon-yellow' }
   ];
 
   const consoleInfo = dropdownValue === 'multi'
     ? { id: 'multiplayer', label: 'Multijugador', color: 'text-neon-magenta' }
+    : dropdownValue === 'bet'
+      ? { id: 'bet', label: 'Juegos BET', color: 'text-neon-yellow' }
     : activeConsoles.find((c) => c.id === selectedConsole) || activeConsoles[0];
 
   return (
@@ -635,6 +657,9 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
                 setSearchQuery('');
               } else if (val === 'multi') {
+                setSelectedConsole('multiplayer');
+                setSelectedMultiGame(null);
+              } else if (val === 'bet') {
                 setSelectedConsole('multiplayer');
                 setSelectedMultiGame(null);
               }
@@ -691,6 +716,9 @@ const handlePlayCloudGame = async (game: any) => {
               } else if (val === 'multi') {
                 setSelectedConsole('multiplayer');
                 setSelectedMultiGame(null);
+              } else if (val === 'bet') {
+                setSelectedConsole('multiplayer');
+                setSelectedMultiGame(null);
               }
             }}
             className="h-9 w-20 shrink-0 rounded-lg border border-border bg-card px-2 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-28 lg:w-40"
@@ -737,7 +765,7 @@ const handlePlayCloudGame = async (game: any) => {
       </div>
 
       {/* Mostrar juegos clásicos o multijugador según el dropdown */}
-      {dropdownValue !== 'multi' ? (
+      {dropdownValue.startsWith('console:') ? (
         <div>
           <h2 className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", consoleInfo?.color)}>
             <Gamepad2 className="w-3.5 h-3.5" /> BIBLIOTECA {consoleInfo?.label.toUpperCase()}
@@ -794,17 +822,27 @@ const handlePlayCloudGame = async (game: any) => {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2 text-neon-magenta">
+          <div className={cn("font-pixel text-xs mb-2 flex items-center gap-1.5 mt-2", dropdownValue === "bet" ? "text-neon-yellow" : "text-neon-magenta")}>
             <h2 className="contents">
-              <User className="w-3.5 h-3.5" /> MULTIJUGADOR
+              <User className="w-3.5 h-3.5" /> {dropdownValue === "bet" ? "JUEGOS BET" : "MULTIJUGADOR"}
             </h2>
           </div>
+          {dropdownValue === "bet" && (
+            <div className="rounded-lg border border-neon-yellow/25 bg-neon-yellow/10 p-3 text-xs text-muted-foreground">
+              Juegos con apuestas de F-coin separados del multijugador normal. El leaderboard de esta vista solo usa resultados BET.
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-            {multiplayerGames.map(g => (
+            {(dropdownValue === "bet" ? visibleBetGames : visibleMultiplayerGames).map(g => (
               <div
                 key={g.id}
                 onClick={() => setSelectedMultiGame(g)}
-                className="group bg-card border border-border rounded-lg overflow-hidden hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))] transition-all duration-300 cursor-pointer relative"
+                className={cn(
+                  "group bg-card border border-border rounded-lg overflow-hidden transition-all duration-300 cursor-pointer relative",
+                  dropdownValue === "bet"
+                    ? "hover:border-neon-yellow/70 hover:shadow-[0_0_18px_-4px_rgba(250,204,21,0.65)]"
+                    : "hover:border-neon-magenta/60 hover:shadow-[0_0_18px_-4px_hsl(var(--primary))]",
+                )}
               >
                 <div className="aspect-square bg-muted overflow-hidden relative">
                   <img src={g.coverUrl} alt={g.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -821,7 +859,7 @@ const handlePlayCloudGame = async (game: any) => {
                   </div>
                 </div>
                 <div className="p-2 flex items-center gap-1">
-                  <Play className="w-3 h-3 text-neon-magenta shrink-0" />
+                  <Play className={cn("w-3 h-3 shrink-0", dropdownValue === "bet" ? "text-neon-yellow" : "text-neon-magenta")} />
                   <p className="text-[10px] font-body text-foreground truncate">{g.label}</p>
                   <span className="ml-auto shrink-0 font-pixel text-[8px] text-neon-cyan">{g.playersLabel}</span>
                 </div>

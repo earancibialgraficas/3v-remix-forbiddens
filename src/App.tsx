@@ -79,6 +79,7 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/arcade/salas" element={<EmulatorPage />} />
                   <Route path="/arcade/biblioteca" element={<BibliotecaPage />} />
+                  <Route path="/arcade/bet" element={<BibliotecaPage />} />
                   <Route path="/arcade/leaderboards" element={<LeaderboardPage />} />
                   <Route path="/arcade/consejos" element={<ConsejosPage />} />
                   <Route path="/gaming-anime/foro" element={<ForumPage />} />
