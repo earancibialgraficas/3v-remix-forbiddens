@@ -44,6 +44,7 @@
     let roomApi = null;
     let role = shouldHost ? 'left' : null;
     let connected = false;
+    let ballAuthority = shouldHost;
     const PADDLE_W = 14;
     const PADDLE_H = 86;
     const BALL_R = 10;
@@ -94,7 +95,11 @@
         roomApi = await window.createRealtimeRoom({
           game: 'pong',
           profile,
-          onPeers: count => setStatus(count > 1 ? 'Rival conectado' : 'Sala ' + roomId),
+          onPeers: (count, players) => {
+            const first = Array.isArray(players) && players.length ? players[0] : null;
+            ballAuthority = shouldHost || role === 'left' || (first && roomApi && first.playerId === roomApi.playerId);
+            setStatus(count > 1 ? 'Rival conectado' : 'Sala ' + roomId);
+          },
           onMessage: msg => {
             if (msg.type === 'paddle') paddles[msg.payload.side] = msg.payload.y;
             if (msg.type === 'state') {
@@ -123,6 +128,7 @@
       role = 'left';
       await roomApi.connect(roomId);
       connected = true;
+      ballAuthority = true;
       roomInput.value = roomId;
       setStatus('Sala ' + roomId + ' - eres izquierda (W/S)');
     }
@@ -131,6 +137,7 @@
       role = 'right';
       await roomApi.connect(roomId);
       connected = true;
+      ballAuthority = false;
       setStatus('Conectado como derecha (flechas)');
     }
     document.getElementById('create').onclick = () => createRoom(roomInput.value.trim().toUpperCase());
@@ -142,6 +149,8 @@
       if (role === 'left') {
         if (keys.w || keys.W) paddles.left -= 7;
         if (keys.s || keys.S) paddles.left += 7;
+      }
+      if (ballAuthority) {
         const prevX = ball.x;
         ball.x += ball.vx; ball.y += ball.vy;
         if (ball.y - BALL_R <= 0) { ball.y = BALL_R; ball.vy = Math.abs(ball.vy); }

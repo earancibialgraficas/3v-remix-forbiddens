@@ -581,6 +581,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             };
           })
           .filter((player: SessionPlayer) => player.userId && player.playerId);
+        if (nextPlayers.length === 0 && sessionPlayersRef.current.length > 0) return;
         sessionPlayersRef.current = nextPlayers;
         setSessionPlayers(nextPlayers);
       }

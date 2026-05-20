@@ -28,7 +28,7 @@ function safePlayerName(value) {
 
 function publishForbiddensPresence(serverPlayers, fallbackLeaderboard) {
     if (!embedMode || !window.parent) return;
-    var sourcePlayers = Array.isArray(serverPlayers) && serverPlayers.length ? serverPlayers : fallbackLeaderboard || [];
+    var sourcePlayers = Array.isArray(fallbackLeaderboard) && fallbackLeaderboard.length ? fallbackLeaderboard : (serverPlayers || []);
     var players = sourcePlayers.map(function (serverPlayer, index) {
         var serverId = String(serverPlayer.id || serverPlayer.playerId || index);
         var isLocal = player && serverId === String(player.id);

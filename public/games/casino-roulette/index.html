@@ -24,7 +24,7 @@
     .pointer{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid #facc15;z-index:9;filter:drop-shadow(0 0 7px #facc15)}
     .wheel{width:min(284px,58vw,31vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 8px #5b390d,0 0 0 13px #113914,0 18px 60px #000d,0 0 34px #22c55e33}
     .wheelRotor{position:absolute;inset:0;border-radius:50%;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
-    .wheelRotor:before{content:"";position:absolute;inset:21px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 9px #0e612d,inset 0 0 18px #000}
+    .wheelRotor:before{content:"";position:absolute;inset:21px;border-radius:50%;background:var(--wheel-bg,repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg));box-shadow:inset 0 0 0 9px #0e612d,inset 0 0 18px #000}
     .wheelRotor:after{content:"";position:absolute;inset:76px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34,0 0 24px #0008}
     .wheelNumber{position:absolute;left:50%;top:50%;z-index:3;width:19px;height:12px;margin:-6px 0 0 -9.5px;display:grid;place-items:center;border-radius:2px;color:#fff;font-size:7.5px;font-weight:1000;text-shadow:0 1px 2px #000,0 0 5px #000;pointer-events:none;transform-origin:center center}
     .rouletteBall{position:absolute;left:50%;top:50%;z-index:8;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff,#e5e7eb 40%,#9ca3af 74%);box-shadow:0 4px 9px #000b,0 0 12px #fff9;transform:translate(-50%,-50%);transition:transform 3s cubic-bezier(.12,.8,.18,1)}
@@ -211,13 +211,21 @@
       const wheel = $("wheel");
       const rotor = $("rotor");
       rotor.querySelectorAll(".wheelNumber").forEach((node) => node.remove());
-      const radius = wheel.clientWidth * 0.365;
+      const sector = 360 / numbers.length;
+      const slices = numbers.map((n, index) => {
+        const start = (index * sector).toFixed(4);
+        const end = ((index + 1) * sector).toFixed(4);
+        const fill = color(n) === "green" ? "#0b8d42" : color(n) === "red" ? "#ca171e" : "#151515";
+        return `${fill} ${start}deg ${end}deg`;
+      }).join(",");
+      rotor.style.setProperty("--wheel-bg", `conic-gradient(${slices})`);
+      const radius = wheel.clientWidth * 0.355;
       numbers.forEach((n, index) => {
         const label = document.createElement("span");
-        const angle = index * (360 / numbers.length);
+        const angle = (index + 0.5) * sector;
         label.className = "wheelNumber";
         label.textContent = n;
-        label.style.transform = `rotate(${angle}deg) translateY(-${radius}px)`;
+        label.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(90deg)`;
         rotor.appendChild(label);
       });
     }
@@ -273,11 +281,12 @@
       const result = payload?.result ?? spinResult();
       lastBet = bet;
       const resultIndex = numbers.indexOf(result);
-      const pocketAngle = resultIndex * (360 / numbers.length);
+      const sector = 360 / numbers.length;
+      const pocketAngle = (resultIndex + 0.5) * sector;
       rotation += 1440 - pocketAngle;
-      ballRotation += 1080;
+      ballRotation = 0;
       $("rotor").style.transform = `rotate(${rotation}deg)`;
-      $("ball").style.transform = `translate(-50%,-50%) rotate(${ballRotation}deg) translateY(-${Math.max(72, $("wheel").clientWidth * 0.36)}px)`;
+      $("ball").style.transform = `translate(-50%,-50%) rotate(${ballRotation}deg) translateY(-${Math.max(72, $("wheel").clientWidth * 0.355)}px)`;
       const won = wins(result, bet);
       const multiplier = bet.type === "number" ? 36 : 2;
       const payout = won ? bet.amount * multiplier : 0;
