@@ -137,6 +137,7 @@
     let cardsData = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
     let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
+    const BALL_DRAW_INTERVAL_MS = 5000;
     const knownCardSignatures = new Set();
     const preset = (p.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
@@ -357,7 +358,7 @@
       paidPrizes = 0;
       roomLocked = true;
       roundActive = true;
-      nextDrawAt = Date.now() + 15000;
+      nextDrawAt = Date.now() + BALL_DRAW_INTERVAL_MS;
       setPhase("line");
       renderCalled();
       api.send("start", statePayload());
@@ -383,7 +384,7 @@
         return;
       }
       if (!called.includes(next)) called.push(next);
-      if (!local) nextDrawAt = Date.now() + 15000;
+      if (!local) nextDrawAt = Date.now() + BALL_DRAW_INTERVAL_MS;
       $("bigBall").classList.remove("pop");
       void $("bigBall").offsetWidth;
       $("bigBall").classList.add("pop");
