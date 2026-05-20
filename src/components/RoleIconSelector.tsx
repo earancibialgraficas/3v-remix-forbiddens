@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,9 @@ interface RoleIconSelectorProps {
 }
 
 export default function RoleIconSelector({ currentIcon, onSelect, onClose }: RoleIconSelectorProps) {
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[350] flex items-center justify-center animate-fade-in">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-card border border-border rounded-lg p-4 max-w-xs w-full mx-4 animate-scale-in">
@@ -36,6 +38,7 @@ export default function RoleIconSelector({ currentIcon, onSelect, onClose }: Rol
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

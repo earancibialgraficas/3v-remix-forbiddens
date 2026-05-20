@@ -1,16 +1,45 @@
-import { Gamepad2, Lock, Trophy } from "lucide-react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import { Gamepad2, Medal, X } from "lucide-react";
+import AchievementsTab from "@/components/profile/AchievementsTab";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { scoreAchievements, secretAchievements, getUnlockedScoreAchievements } from "@/lib/achievements";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
 export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, displayTier, isStaff, statColors }: any) {
-  const totalScore = Number(profile?.total_score || 0);
-  const unlockedScoreIds = new Set(getUnlockedScoreAchievements(totalScore).map((achievement) => achievement.id));
+  const [showAchievements, setShowAchievements] = useState(false);
 
   return (
     <div className="bg-card border border-border rounded p-4 space-y-3 animate-in fade-in">
-      <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">Estadísticas</h3>
+      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <h3 className="font-pixel text-[10px] text-muted-foreground text-center md:text-left uppercase">Estadísticas</h3>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowAchievements(true)}
+          className="h-8 gap-1.5 border-neon-yellow/30 bg-neon-yellow/10 text-[10px] text-neon-yellow hover:bg-neon-yellow/15 hover:text-neon-yellow"
+        >
+          <Medal className="h-3.5 w-3.5" /> Ver Logros
+        </Button>
+      </div>
+
+      {showAchievements && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[430] flex items-center justify-center p-3 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAchievements(false)} />
+          <div className="relative max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-lg border-2 border-neon-yellow/35 bg-[#101018] p-3 shadow-[0_18px_70px_rgba(0,0,0,0.75)] retro-scrollbar sm:p-4">
+            <button
+              onClick={() => setShowAchievements(false)}
+              className="sticky top-0 float-right z-10 rounded border border-border bg-black/50 p-1.5 text-muted-foreground hover:text-white"
+              aria-label="Cerrar logros"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <AchievementsTab totalScore={profile?.total_score || 0} />
+          </div>
+        </div>,
+        document.body
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[
           { val: profile?.total_score?.toLocaleString() || 0, label: "Puntos", color: statColors.points || "#39ff14" },
@@ -41,36 +70,6 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
           </div>
         </div>
       )}
-      <div className="mt-4 border-t border-border/50 pt-4">
-        <h4 className="font-pixel text-[10px] text-neon-yellow mb-2 flex items-center justify-center md:justify-start gap-1 uppercase">
-          <Trophy className="w-3 h-3" /> Logros
-        </h4>
-        <div className="grid gap-2 md:grid-cols-2">
-          {scoreAchievements.map((achievement) => {
-            const unlocked = unlockedScoreIds.has(achievement.id);
-            return (
-              <div key={achievement.id} className={cn("rounded border p-2.5 transition-colors", unlocked ? "border-neon-yellow/40 bg-neon-yellow/10" : "border-border/60 bg-muted/20 opacity-70")}>
-                <div className="flex items-center gap-2">
-                  <Trophy className={cn("h-3.5 w-3.5", unlocked ? "text-neon-yellow" : "text-muted-foreground")} />
-                  <p className="font-pixel text-[8px] uppercase text-foreground">{achievement.name}</p>
-                  <span className={cn("ml-auto font-pixel text-[7px]", unlocked ? "text-neon-green" : "text-muted-foreground")}>{unlocked ? "OK" : `${Math.min(99, Math.floor((totalScore / Number(achievement.threshold || 1)) * 100))}%`}</span>
-                </div>
-                <p className="mt-1 text-[10px] text-muted-foreground font-body">{achievement.description}</p>
-              </div>
-            );
-          })}
-          {secretAchievements.map((achievement) => (
-            <div key={achievement.id} className="rounded border border-neon-magenta/20 bg-neon-magenta/5 p-2.5">
-              <div className="flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 text-neon-magenta" />
-                <p className="font-pixel text-[8px] uppercase text-foreground">{achievement.name}</p>
-                <span className="ml-auto font-pixel text-[7px] text-neon-magenta">SECRETO</span>
-              </div>
-              <p className="mt-1 text-[10px] text-muted-foreground font-body">{achievement.secretHint}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

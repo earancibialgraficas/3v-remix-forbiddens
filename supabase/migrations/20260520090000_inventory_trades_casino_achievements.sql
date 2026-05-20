@@ -8,11 +8,6 @@ CREATE TABLE IF NOT EXISTS public.point_wallets (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-INSERT INTO public.point_wallets (user_id, balance)
-SELECT p.user_id::text, GREATEST(COALESCE(p.total_score, 0), 0)
-FROM public.profiles p
-ON CONFLICT (user_id) DO NOTHING;
-
 CREATE TABLE IF NOT EXISTS public.user_inventory (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id text NOT NULL,
@@ -102,9 +97,7 @@ DECLARE
   current_balance bigint;
 BEGIN
   INSERT INTO public.point_wallets (user_id, balance)
-  SELECT p.user_id::text, GREATEST(COALESCE(p.total_score, 0), 0)
-  FROM public.profiles p
-  WHERE p.user_id::text = p_user_id
+  VALUES (p_user_id, 0)
   ON CONFLICT (user_id) DO NOTHING;
 
   SELECT balance INTO current_balance
@@ -112,6 +105,64 @@ BEGIN
   WHERE user_id = p_user_id;
 
   RETURN COALESCE(current_balance, 0);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.convert_stat_points_to_fcoins(p_points bigint)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  uid_uuid uuid := auth.uid();
+  uid text := auth.uid()::text;
+  amount bigint := GREATEST(COALESCE(p_points, 0), 0);
+  current_stat bigint;
+  next_stat bigint;
+  next_wallet bigint;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'reason', 'not_authenticated');
+  END IF;
+
+  IF amount <= 0 THEN
+    RETURN json_build_object('ok', false, 'reason', 'invalid_amount');
+  END IF;
+
+  SELECT COALESCE(total_score, 0)
+  INTO current_stat
+  FROM public.profiles
+  WHERE user_id::text = uid
+  FOR UPDATE;
+
+  IF COALESCE(current_stat, 0) < amount THEN
+    RETURN json_build_object('ok', false, 'reason', 'insufficient_stat_points', 'stat_points', COALESCE(current_stat, 0));
+  END IF;
+
+  PERFORM public.ensure_point_wallet(uid);
+
+  INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
+  VALUES (uid_uuid, uid_uuid, 'stat_to_fcoin', gen_random_uuid(), -amount);
+
+  UPDATE public.profiles
+  SET total_score = COALESCE(total_score, 0) - amount,
+      updated_at = now()
+  WHERE user_id::text = uid
+  RETURNING total_score INTO next_stat;
+
+  UPDATE public.point_wallets
+  SET balance = balance + amount,
+      updated_at = now()
+  WHERE user_id = uid
+  RETURNING balance INTO next_wallet;
+
+  RETURN json_build_object(
+    'ok', true,
+    'converted', amount,
+    'stat_points', COALESCE(next_stat, 0),
+    'wallet_balance', COALESCE(next_wallet, 0)
+  );
 END;
 $$;
 
@@ -373,29 +424,8 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.credit_wallet_from_point_event()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF COALESCE(NEW.points, 0) > 0 THEN
-    PERFORM public.ensure_point_wallet(NEW.user_id::text);
-    UPDATE public.point_wallets
-    SET balance = balance + NEW.points,
-        updated_at = now()
-    WHERE user_id = NEW.user_id::text;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
 DROP TRIGGER IF EXISTS credit_wallet_after_point_event ON public.point_events;
-CREATE TRIGGER credit_wallet_after_point_event
-AFTER INSERT ON public.point_events
-FOR EACH ROW
-EXECUTE FUNCTION public.credit_wallet_from_point_event();
+DROP FUNCTION IF EXISTS public.credit_wallet_from_point_event();
 
 INSERT INTO public.achievement_definitions (id, name, description, kind, threshold, secret_hint) VALUES
   ('score_15k', 'Primer Tesoro', 'Alcanza 15.000 puntos.', 'score', 15000, NULL),
@@ -425,11 +455,13 @@ ON CONFLICT (id) DO UPDATE SET
 
 REVOKE EXECUTE ON FUNCTION public.ensure_point_wallet(text) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.grant_membership_boosters(text, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.convert_stat_points_to_fcoins(bigint) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.create_inventory_trade_offer(text, bigint, integer, text) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.accept_inventory_trade_offer(uuid) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.cancel_inventory_trade_offer(uuid) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.settle_casino_wager(text, text, bigint, bigint, jsonb) FROM anon, public;
 
+GRANT EXECUTE ON FUNCTION public.convert_stat_points_to_fcoins(bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_inventory_trade_offer(text, bigint, integer, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_inventory_trade_offer(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_inventory_trade_offer(uuid) TO authenticated;
@@ -496,7 +528,7 @@ BEGIN
   LIMIT 1;
 
   INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
-  VALUES (uid_text, uid_text, 'multiplayer_win', gen_random_uuid(), awarded);
+  VALUES (uid, uid, 'multiplayer_win', gen_random_uuid(), awarded);
 
   SELECT id, score
   INTO leaderboard_id, leaderboard_score
