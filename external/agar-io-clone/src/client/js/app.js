@@ -14,6 +14,7 @@ var forbiddensPlayerId = queryParams.get('playerId') || '';
 var forbiddensAvatarUrl = queryParams.get('avatarUrl') || '';
 var bestMassReached = 0;
 var playersEaten = 0;
+var lastReportedSessionScore = 0;
 
 function safePlayerName(value) {
     var clean = String(value || 'Jugador')
@@ -54,6 +55,25 @@ function publishForbiddensPresence(serverPlayers, fallbackLeaderboard) {
     }, '*');
 }
 
+function getForbiddensEstimatedScore() {
+    var bestMass = Math.max(bestMassReached, Math.floor(Number(player.massTotal || 0)));
+    return Math.max(0, Math.min(250, Math.floor((bestMass - 10) / 5) + playersEaten * 10));
+}
+
+function reportForbiddensSessionScore(force) {
+    if (!embedMode || !window.parent) return;
+    var score = getForbiddensEstimatedScore();
+    if (!force && score <= lastReportedSessionScore) return;
+    window.parent.postMessage({
+        type: 'game:sessionScore',
+        source: 'agar-server',
+        room: roomCode,
+        pointsDelta: Math.max(0, score - lastReportedSessionScore),
+        sessionPoints: score
+    }, '*');
+    lastReportedSessionScore = Math.max(lastReportedSessionScore, score);
+}
+
 var debug = function (args) {
     if (console && console.log) {
         console.log(args);
@@ -69,6 +89,7 @@ function startGame(type) {
     global.playerType = type;
     bestMassReached = 0;
     playersEaten = 0;
+    lastReportedSessionScore = 0;
 
     global.screen.width = window.innerWidth;
     global.screen.height = window.innerHeight;
@@ -225,11 +246,12 @@ function showDeathSummary(data) {
     const killsEl = document.getElementById('summaryKills');
     const killerEl = document.getElementById('summaryKiller');
     const bestMass = Math.max(bestMassReached, Math.floor(Number(player.massTotal || 0)));
-    const estimatedPoints = Math.max(0, Math.min(250, Math.floor((bestMass - 10) / 5) + playersEaten * 10));
+    const estimatedPoints = getForbiddensEstimatedScore();
     bestMassEl.textContent = String(bestMass);
     pointsEl.textContent = String(estimatedPoints);
     killsEl.textContent = String(playersEaten);
     killerEl.textContent = data.killerName ? 'Te comio ' + safePlayerName(data.killerName) + '.' : '';
+    reportForbiddensSessionScore(true);
     summary.classList.add('show');
 }
 
@@ -237,6 +259,7 @@ document.getElementById('summaryRestart').addEventListener('click', function () 
     document.getElementById('deathSummary').classList.remove('show');
     bestMassReached = 0;
     playersEaten = 0;
+    lastReportedSessionScore = 0;
     startGame('player');
 });
 
@@ -346,6 +369,7 @@ function setupSocket(socket) {
             player.massTotal = playerData.massTotal;
             player.cells = playerData.cells;
             bestMassReached = Math.max(bestMassReached, Math.floor(Number(player.massTotal || 0)));
+            reportForbiddensSessionScore(false);
         }
         users = userData;
         foods = foodsList;

@@ -92,7 +92,28 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [hasNewEvent, setHasNewEvent] = useState(false);
   const lastFetch = useRef(0);
+
+  useEffect(() => {
+    const fetchNewEvents = async () => {
+      try {
+        const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const now = new Date().toISOString();
+        const { count, error } = await (supabase as any)
+          .from("events")
+          .select("id", { count: "exact", head: true })
+          .or(`created_at.gt.${since},highlight_until.gt.${now}`);
+        if (!error) setHasNewEvent((count || 0) > 0);
+      } catch {
+        setHasNewEvent(false);
+      }
+    };
+
+    void fetchNewEvents();
+    const interval = window.setInterval(fetchNewEvents, 60000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // 🔥 SISTEMA DE CARGA PASIVA RESILIENTE (Evita el efecto dominó) 🔥
   useEffect(() => {
@@ -261,6 +282,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               const isExpanded = expandedItems.includes(item.label);
               const hasChildren = item.children && item.children.length > 0;
               const isLast = i === navItems.length - 1;
+              const isEventNew = item.label === "Eventos" && hasNewEvent;
 
               if (collapsed) {
                 return (
@@ -269,9 +291,10 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                       <TooltipTrigger asChild>
                         <Link 
                           to={item.to || "#"} onClick={(e) => { if (!item.to) e.preventDefault(); }}
-                          className={cn("flex items-center justify-center p-2 rounded transition-all mb-0.5", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
+                          className={cn("relative flex items-center justify-center p-2 rounded transition-all mb-0.5", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground", isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.15)]")}
                         >
                           <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
+                          {isEventNew && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-neon-yellow shadow-[0_0_8px_rgba(250,204,21,0.85)]" />}
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right" sideOffset={8} className="bg-card border-border shadow-2xl p-2 min-w-[140px] z-[9999]">
@@ -297,11 +320,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
               return (
                 <div key={item.label} className={cn(isLast && "mt-auto pt-2 pb-1")}>
-                  <button onClick={() => hasChildren ? toggleExpand(item.label) : null} className={cn("w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50")}>
+                  <button onClick={() => hasChildren ? toggleExpand(item.label) : null} className={cn("w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50", isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.12)]")}>
                     {item.to && !hasChildren ? (
                       <Link to={item.to} className="flex items-center gap-2.5 w-full">
                         <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
                         <span className="font-body text-xs xl:text-sm flex-1 text-left">{item.label}</span>
+                        {isEventNew && <span className="rounded border border-neon-yellow/50 bg-neon-yellow/10 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-neon-yellow">Nuevo</span>}
                       </Link>
                     ) : (
                       <>

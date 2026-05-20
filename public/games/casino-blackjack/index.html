@@ -36,11 +36,19 @@
     .playArea{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,480px) minmax(130px,1fr);gap:16px;align-items:end}
     .betSpot{min-height:130px;border:2px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 7px #0002,inset 0 0 28px #22c55e14,0 0 22px #0008}
     .betSpot strong{display:block;color:#d8eac799;font-size:clamp(18px,2.4vw,30px);line-height:1;font-weight:1000}
+    .playersRail{align-self:stretch;min-height:190px;border:1px solid #facc1533;border-radius:18px;background:#020806a6;padding:10px;box-shadow:inset 0 0 28px #0009,0 0 24px #facc1517}
+    .railTitle{color:#facc15;font-size:11px;font-weight:1000;margin-bottom:8px;text-transform:uppercase}
+    .seat{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;border:1px solid #ffffff14;border-radius:10px;background:#06170f;margin-bottom:7px;padding:6px;color:#d8eac7;font-size:11px;font-weight:900;overflow:hidden}
+    .seat img,.seatAvatar{width:26px;height:26px;border-radius:50%;border:1px solid #facc1570;background:#0f2417;object-fit:cover}
+    .seatCards{margin-left:auto;display:flex;gap:2px}.miniBack{width:16px;height:22px;border-radius:3px;background:repeating-linear-gradient(45deg,#5b210f 0 4px,#2f1007 4px 8px);border:1px solid #d7c19a}
     .handZone{align-self:stretch;display:grid;grid-template-rows:auto 1fr;gap:8px;border:1px solid #ffffff18;border-radius:16px;background:#03170d88;padding:10px;box-shadow:inset 0 0 30px #0007,0 0 30px #22c55e14}
     .zoneHead{display:flex;justify-content:space-between;gap:12px;color:#d8eac7;font-size:12px;font-weight:900}
     .total{color:#facc15}
     .hand{min-height:112px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
     .card{width:72px;height:104px;border-radius:8px;background:#f8fafc;color:#111827;border:2px solid #e5e7eb;box-shadow:0 8px 0 #0006,0 14px 22px #0007,0 0 14px #ffffff20;display:grid;grid-template-rows:auto 1fr auto;padding:6px;user-select:none;cursor:grab;transition:transform .15s ease,box-shadow .15s ease}
+    .card.dealt{animation:dealIn .42s ease both}
+    @keyframes dealIn{from{opacity:0;transform:translateY(-70px) scale(.72) rotate(-8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+    .dealGhost{position:fixed;z-index:20;width:38px;height:54px;border-radius:6px;background:repeating-linear-gradient(45deg,#5b210f 0 6px,#2f1007 6px 12px);border:2px solid #d7c19a;box-shadow:0 10px 22px #000b,0 0 16px #facc1540;pointer-events:none;transition:transform .5s cubic-bezier(.2,.8,.25,1),opacity .5s ease}
     .card:active{cursor:grabbing;transform:scale(1.04);box-shadow:0 18px 30px #0009}
     .card.red{color:#b91c1c}
     .card .rank{font-size:20px;font-weight:1000;line-height:1}
@@ -55,7 +63,7 @@
     .betBox{display:flex;gap:8px;align-items:center;background:#010803b8;border:1px solid #ffffff18;border-radius:10px;padding:6px;box-shadow:0 0 18px #0008}
     .betBox input{width:88px}
     .log{color:#d8eac7;font-size:12px;text-align:center;min-height:18px}
-    @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}}
+    @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.playersRail{min-height:auto}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}}
     @media(max-width:520px){.roomControls{width:100%;display:grid;grid-template-columns:1fr 1fr}.roomControls input{width:100%}.card{width:68px;height:98px}.card .rank{font-size:19px}.card .suit{font-size:26px}.hand{gap:8px}.rack{display:none}.logo b{font-size:24px}.arcText{font-size:12px}.roundBtn{width:62px;height:52px}.betBox{width:100%;display:grid;grid-template-columns:1fr 1fr}.betBox input{width:100%}}
   </style>
 </head>
@@ -92,7 +100,10 @@
           <div class="zoneHead"><span>Tu mano <span class="total" id="playerTotal">0</span></span><span id="dragHint">Arrastra para ordenar</span></div>
           <div class="hand" id="playerHand"></div>
         </div>
-        <div class="betSpot"><strong>COLOQUE<br />APUESTA</strong></div>
+        <div class="playersRail">
+          <div class="railTitle">Jugadores</div>
+          <div id="playersRail"></div>
+        </div>
       </div>
 
       <footer class="bottomBar">
@@ -101,7 +112,7 @@
           <div class="actions">
             <div class="betBox">
               <label for="bet">Apuesta</label>
-              <input id="bet" type="number" min="1" value="25" />
+              <input id="bet" type="number" min="1" max="5000" value="25" />
             </div>
             <button id="deal" class="roundBtn">Repartir</button>
             <button id="hit" class="roundBtn">Pedir</button>
@@ -131,7 +142,7 @@
       { code: "D", entity: "&diams;", red: true },
       { code: "C", entity: "&clubs;", red: false }
     ];
-    let api, connected = false, player = [], dealer = [], roundOpen = false, wallet = null;
+    let api, connected = false, player = [], dealer = [], roundOpen = false, lockedBet = 0, wallet = null, peers = [];
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -184,7 +195,7 @@
       area.innerHTML = "";
       hand.forEach((card, index) => {
         const el = document.createElement("div");
-        el.className = `card ${card.red ? "red" : ""}`;
+        el.className = `card dealt ${card.red ? "red" : ""}`;
         el.draggable = draggable;
         el.dataset.index = String(index);
         el.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${card.entity}</span><span class="foot">${card.rank}</span>`;
@@ -204,6 +215,45 @@
       });
     }
 
+    function renderPeers() {
+      const rail = $("playersRail");
+      if (!rail) return;
+      const list = peers.length ? peers : [{ displayName: profile.displayName, avatarUrl: profile.avatarUrl, userId: profile.userId || api?.playerId }];
+      rail.innerHTML = "";
+      list.slice(0, 5).forEach((peer) => {
+        const seat = document.createElement("div");
+        seat.className = "seat";
+        seat.dataset.playerId = peer.playerId || peer.userId || "";
+        const avatar = peer.avatarUrl
+          ? `<img src="${peer.avatarUrl}" alt="" />`
+          : `<span class="seatAvatar"></span>`;
+        seat.innerHTML = `${avatar}<span>${peer.displayName || peer.name || "Jugador"}</span><span class="seatCards"><i class="miniBack"></i><i class="miniBack"></i></span>`;
+        rail.appendChild(seat);
+      });
+    }
+
+    function animateDeal() {
+      const deck = document.querySelector(".deck") || document.querySelector(".logo");
+      const targets = [$("playerHand"), ...Array.from(document.querySelectorAll(".seat"))];
+      if (!deck || !targets.length) return;
+      const start = deck.getBoundingClientRect();
+      targets.slice(0, 6).forEach((target, targetIndex) => {
+        const end = target.getBoundingClientRect();
+        [0, 1].forEach((_, cardIndex) => {
+          const ghost = document.createElement("div");
+          ghost.className = "dealGhost";
+          ghost.style.left = `${start.left + start.width / 2 - 19}px`;
+          ghost.style.top = `${start.top + start.height / 2 - 27}px`;
+          document.body.appendChild(ghost);
+          window.setTimeout(() => {
+            ghost.style.transform = `translate(${end.left + end.width / 2 - start.left - start.width / 2 + cardIndex * 12}px, ${end.top + end.height / 2 - start.top - start.height / 2}px) rotate(${targetIndex % 2 ? 8 : -8}deg)`;
+            ghost.style.opacity = "0.35";
+          }, 30 + targetIndex * 120 + cardIndex * 70);
+          window.setTimeout(() => ghost.remove(), 760 + targetIndex * 120 + cardIndex * 70);
+        });
+      });
+    }
+
     function render() {
       drawHand("dealerHand", dealer, false);
       drawHand("playerHand", player, true);
@@ -211,10 +261,16 @@
       $("playerTotal").textContent = String(total(player));
       $("hit").disabled = !roundOpen;
       $("stand").disabled = !roundOpen;
+      $("deal").disabled = roundOpen;
+      $("bet").disabled = roundOpen;
+      renderPeers();
     }
 
     function getBet() {
-      return Math.max(1, Math.floor(Number($("bet").value) || 1));
+      if (lockedBet > 0 && roundOpen) return lockedBet;
+      const clamped = Math.min(5000, Math.max(1, Math.floor(Number($("bet").value) || 1)));
+      $("bet").value = String(clamped);
+      return clamped;
     }
 
     function payoutFor(bet, handPlayer = player, handDealer = dealer) {
@@ -240,19 +296,21 @@
     }
 
     function statePayload() {
-      return { player, dealer, roundOpen };
+      return { player, dealer, roundOpen, lockedBet };
     }
 
     function applyState(state) {
       player = Array.isArray(state?.player) ? state.player : player;
       dealer = Array.isArray(state?.dealer) ? state.dealer : dealer;
       roundOpen = Boolean(state?.roundOpen);
+      lockedBet = Number(state?.lockedBet || lockedBet || 0);
       render();
     }
 
     function newRound(local, state) {
       if (state) {
         applyState(state);
+        animateDeal();
         setLog("La mesa recibio una mano nueva.");
         return;
       }
@@ -260,11 +318,22 @@
         setLog("Primero crea o entra a una sala.");
         return;
       }
+      if (roundOpen) {
+        setLog("Ya hay una ronda en curso.");
+        return;
+      }
+      lockedBet = getBet();
+      if (wallet !== null && wallet < lockedBet) {
+        setLog("No tienes F-coin suficiente para esa apuesta.");
+        lockedBet = 0;
+        return;
+      }
       player = [makeCard(), makeCard()];
       dealer = [makeCard(), makeCard()];
       roundOpen = true;
       render();
-      setLog("Mano nueva. Puedes pedir carta o plantarte.");
+      animateDeal();
+      setLog(`Apuesta bloqueada: ${fmt(lockedBet)} F-coin.`);
       if (!local) api.send("deal", statePayload());
     }
 
@@ -289,11 +358,13 @@
         if (state.log) setLog(state.log);
         if (typeof state.lastNet === "number") $("lastNet").textContent = `${state.lastNet >= 0 ? "+" : ""}${fmt(state.lastNet)}`;
         if (connected && state.roundOpen === false) {
-          const bet = getBet();
+          const bet = Number(state.lockedBet || lockedBet || getBet());
           const outcome = payoutFor(bet, state.player || player, state.dealer || dealer);
           const settled = await api.casinoWager("casino-blackjack", bet, outcome.payout, { player: outcome.playerTotal, dealer: outcome.dealerTotal, natural: outcome.natural, source: "shared_settle" });
           if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
           if (settled.reason && settled.reason !== "ok") setLog(`${state.log || "Mano cerrada."} Wallet: ${settled.reason}`);
+          lockedBet = 0;
+          render();
         }
         return;
       }
@@ -306,7 +377,7 @@
       }
       roundOpen = false;
       render();
-      const bet = getBet();
+      const bet = lockedBet || getBet();
       const outcome = payoutFor(bet);
       const natural = outcome.natural;
       const push = outcome.push;
@@ -343,7 +414,11 @@
         api = await createRealtimeRoom({
           game: "casino-blackjack",
           profile,
-          onPeers: (count) => setStatus(connected ? `Sala ${api.room} / ${count || 1} jugador(es)` : "Listo para crear sala."),
+          onPeers: (count, players) => {
+            peers = Array.isArray(players) ? players : peers;
+            renderPeers();
+            setStatus(connected ? `Sala ${api.room} / ${count || 1} jugador(es)` : "Listo para crear sala.");
+          },
           onMessage: (message) => {
             if (message.type === "deal") newRound(true, message.payload);
             if (message.type === "state") applyState(message.payload);
@@ -368,6 +443,7 @@
       player = [];
       dealer = [];
       roundOpen = false;
+      lockedBet = 0;
       render();
       setLog("Mesa limpia.");
       api?.send("state", statePayload());

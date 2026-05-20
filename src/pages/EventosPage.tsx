@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Calendar, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit } from "lucide-react";
+import { Calendar, Coins, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +61,8 @@ export default function EventosPage() {
   const [crLocation, setCrLocation] = useState("");
   const [crDescription, setCrDescription] = useState("");
   const [crImageUrl, setCrImageUrl] = useState<string>("");
+  const [crHighlightDays, setCrHighlightDays] = useState("7");
+  const [crTicketPrice, setCrTicketPrice] = useState("0");
   const [uploadingImg, setUploadingImg] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -73,6 +75,16 @@ export default function EventosPage() {
 
   const allEvents = [...dbEvents, ...placeholderEvents.filter(pe => !dbEvents.some(de => de.title === pe.title))];
   const filtered = filter === "all" ? allEvents : allEvents.filter(e => e.event_type === filter);
+  const isFeaturedEvent = (event: any) => {
+    const createdAt = event.created_at ? new Date(event.created_at).getTime() : 0;
+    const highlightUntil = event.highlight_until ? new Date(event.highlight_until).getTime() : 0;
+    return (createdAt > 0 && Date.now() - createdAt < 7 * 24 * 60 * 60 * 1000) || highlightUntil > Date.now();
+  };
+  const daysUntil = (value?: string | null) => {
+    if (!value) return "0";
+    const diff = new Date(value).getTime() - Date.now();
+    return diff > 0 ? String(Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)))) : "0";
+  };
 
   const typeColors: Record<string, string> = { 
     torneo: "text-neon-green", 
@@ -146,6 +158,8 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrDescription("");
     setCrColor(COLOR_OPTIONS[0].value);
     setCrImageUrl("");
+    setCrHighlightDays("7");
+    setCrTicketPrice("0");
     setCreateOpen(true);
   };
 
@@ -171,6 +185,8 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrDescription(ev.description || "");
     setCrColor(ev.image_url || COLOR_OPTIONS[0].value);
     setCrImageUrl(ev.image_storage_url || "");
+    setCrHighlightDays(daysUntil(ev.highlight_until));
+    setCrTicketPrice(String(ev.ticket_price_fcoins || 0));
     setCreateOpen(true);
   };
 
@@ -208,6 +224,8 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCreating(true);
     try {
       const fullTitle = `${crIcon} ${crTitle}`.trim();
+      const highlightDays = Math.max(0, Math.floor(Number(crHighlightDays) || 0));
+      const ticketPrice = Math.max(0, Math.floor(Number(crTicketPrice) || 0));
       const payload = {
         title: fullTitle,
         description: crDescription,
@@ -217,6 +235,8 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         location: crLocation || null,
         image_url: crColor,
         image_storage_url: crImageUrl || null,
+        highlight_until: highlightDays > 0 ? new Date(Date.now() + highlightDays * 24 * 60 * 60 * 1000).toISOString() : null,
+        ticket_price_fcoins: ticketPrice,
       };
 
       if (editingId) {
@@ -234,6 +254,25 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setCreating(false); }
+  };
+
+  const buyTicket = async (event: any) => {
+    if (!user) {
+      toast({ title: "Inicia sesion", description: "Necesitas entrar para comprar entradas.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { data, error } = await (supabase as any).rpc("purchase_event_ticket", { p_event_id: event.id });
+      if (error) throw error;
+      const result = data as any;
+      if (result?.ok === false) {
+        toast({ title: "No se pudo comprar", description: result.reason || "F-coin insuficiente", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Entrada agregada al inventario", description: `${Number(result?.price || event.ticket_price_fcoins || 0).toLocaleString()} F-coin descontadas.` });
+    } catch (e: any) {
+      toast({ title: "No se pudo comprar", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -280,8 +319,10 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
         {filtered.map(event => {
           const Icon = typeIcons[event.event_type] || Calendar;
           const titleColor = (event.image_url && event.image_url.startsWith("text-")) ? event.image_url : null;
+          const featured = isFeaturedEvent(event);
+          const ticketPrice = Number(event.ticket_price_fcoins || 0);
           return (
-            <div key={event.id} className="bg-card border border-border rounded hover:border-neon-cyan/30 transition-all duration-300 group relative overflow-hidden">
+            <div key={event.id} className={cn("bg-card border rounded transition-all duration-300 group relative overflow-hidden", featured ? "border-neon-yellow/60 shadow-[0_0_18px_rgba(250,204,21,0.16)]" : "border-border hover:border-neon-cyan/30")}>
               {/* Imagen: arriba en mobile/tablet, derecha con degradado en PC */}
               {event.image_storage_url && (
                 <>
@@ -303,6 +344,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                   <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", typeColors[event.event_type] || "text-foreground")} />
                   <div className="min-w-0 flex-1">
                     <span className={cn("text-[9px] font-pixel", typeColors[event.event_type])}>{event.event_type?.toUpperCase()}</span>
+                    {featured && <span className="ml-2 rounded border border-neon-yellow/50 bg-neon-yellow/10 px-1.5 py-0.5 font-pixel text-[8px] uppercase text-neon-yellow">Nuevo</span>}
                     <h3 className={cn("text-sm font-body font-medium mt-0.5", titleColor || "text-foreground")}>{event.title}</h3>
                     <p className="text-xs text-muted-foreground font-body mt-1">{event.description}</p>
                     <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-body text-muted-foreground">
@@ -311,7 +353,18 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
                       {event.location && <span className="flex items-center gap-0.5">📍 {event.location}</span>}
                     </div>
 
-                    {isStaff && !event.id.startsWith("p") && (
+                    {ticketPrice > 0 && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex h-7 items-center gap-1 rounded border border-neon-yellow/40 bg-black/35 px-2 font-pixel text-[9px] text-neon-yellow">
+                          <Coins className="h-3.5 w-3.5" /> {ticketPrice.toLocaleString()} F-coin
+                        </span>
+                        <Button size="sm" variant="outline" onClick={() => buyTicket(event)} className="h-7 border-neon-cyan/40 px-2 text-[10px] text-neon-cyan hover:bg-neon-cyan/10">
+                          <Ticket className="mr-1 h-3.5 w-3.5" /> Comprar entrada
+                        </Button>
+                      </div>
+                    )}
+
+                    {isStaff && !String(event.id).startsWith("p") && (
                       <div className="flex gap-2 mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="sm" onClick={() => handleEditClick(event)} className="h-7 text-[10px] font-body px-2 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan">
                           <Edit className="w-3.5 h-3.5 mr-1" /> Editar
@@ -407,6 +460,16 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
             </div>
             <Input placeholder="Lugar / plataforma" value={crLocation} onChange={e => setCrLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
             <Textarea placeholder="Descripción del evento..." value={crDescription} onChange={e => setCrDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Destacado dias</label>
+                <Input type="number" min="0" value={crHighlightDays} onChange={e => setCrHighlightDays(e.target.value)} className="bg-black/40 text-xs" />
+              </div>
+              <div>
+                <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Entrada F-coin</label>
+                <Input type="number" min="0" value={crTicketPrice} onChange={e => setCrTicketPrice(e.target.value)} className="bg-black/40 text-xs" />
+              </div>
+            </div>
 
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Imagen del evento (opcional)</label>

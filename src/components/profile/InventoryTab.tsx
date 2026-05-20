@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Archive, ArrowLeftRight, Coins, Gem, Loader2, Search, Sparkles } from "lucide-react";
+import { Archive, ArrowLeftRight, Coins, Gem, Loader2, Search, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,12 +20,16 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [boosters, setBoosters] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [slotItems, setSlotItems] = useState<any[]>(Array(27).fill(null));
-  const [dragSlot, setDragSlot] = useState<number | null>(null);
+  const [cursorItem, setCursorItem] = useState<any | null>(null);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [tradeSlots, setTradeSlots] = useState<any[]>(Array(4).fill(null));
+  const [dragMode, setDragMode] = useState<"even" | "single" | null>(null);
+  const [dragTouched, setDragTouched] = useState<number[]>([]);
+  const [suppressClick, setSuppressClick] = useState(false);
   const [recipientSearch, setRecipientSearch] = useState("");
   const [recipientResults, setRecipientResults] = useState<any[]>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<any | null>(null);
   const [pointsToSend, setPointsToSend] = useState("");
-  const [boostersToSend, setBoostersToSend] = useState("0");
   const [statToConvert, setStatToConvert] = useState("100");
   const [fcoinToConvert, setFcoinToConvert] = useState("100");
   const [contextMenu, setContextMenu] = useState<{ item: any; slot: number; x: number; y: number } | null>(null);
@@ -35,8 +39,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [busy, setBusy] = useState(false);
 
   const totalBoosters = useMemo(
-    () => boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    () => boosters.filter((item) => item.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item.quantity || 0), 0),
     [boosters],
+  );
+  const tradeBoosters = useMemo(
+    () => tradeSlots.filter((item) => item?.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+    [tradeSlots],
   );
 
   const loadInventory = async () => {
@@ -66,7 +74,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       }
 
       setWallet(Number((walletRes.data as any)?.balance ?? profile?.total_score ?? 0));
-      setBoosters((inventoryRes.data || []).filter((item: any) => item.item_slug === "points_x3_week"));
+      setBoosters(inventoryRes.data || []);
       setOffers(offersRes.data || []);
     } catch {
       setSchemaReady(false);
@@ -80,6 +88,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   }, [userId]);
 
   useEffect(() => {
+    const trackCursor = (event: MouseEvent) => setCursorPos({ x: event.clientX, y: event.clientY });
+    window.addEventListener("mousemove", trackCursor);
+    return () => window.removeEventListener("mousemove", trackCursor);
+  }, []);
+
+  useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
     window.addEventListener("click", close);
@@ -89,6 +103,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       window.removeEventListener("scroll", close, true);
     };
   }, [contextMenu]);
+
+  useEffect(() => {
+    if (!dragMode) return;
+    window.addEventListener("mouseup", finishDistribution);
+    return () => window.removeEventListener("mouseup", finishDistribution);
+  }, [dragMode, cursorItem, dragTouched]);
 
   useEffect(() => {
     const nextSlots = Array(27).fill(null);
@@ -107,6 +127,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       if (slot >= 0) nextSlots[slot] = item;
     });
     setSlotItems(nextSlots);
+    setTradeSlots(Array(4).fill(null));
+    setCursorItem(null);
   }, [boosters, userId]);
 
   const searchUsers = async () => {
@@ -127,7 +149,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     }
 
     const points = Math.max(0, Math.floor(Number(pointsToSend) || 0));
-    const boosterQty = Math.max(0, Math.floor(Number(boostersToSend) || 0));
+    const boosterQty = Math.max(0, Math.floor(Number(tradeBoosters) || 0));
     if (points <= 0 && boosterQty <= 0) {
       toast({ title: "Agrega F-coin u objetos", variant: "destructive" });
       return;
@@ -152,7 +174,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     setRecipientSearch("");
     setRecipientResults([]);
     setPointsToSend("");
-    setBoostersToSend("0");
+    setTradeSlots(Array(4).fill(null));
     setNote("");
     void loadInventory();
   };
@@ -170,6 +192,207 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       next[from] = next[to];
       next[to] = moving;
       persistSlotOrder(next);
+      return next;
+    });
+  };
+
+  const cloneStack = (item: any, quantity = Number(item?.quantity || 0)) => item ? { ...item, quantity } : null;
+  const isBoosterItem = (item: any) => item?.item_slug === "points_x3_week";
+  const isEventTicketItem = (item: any) => String(item?.item_slug || "").startsWith("event_ticket:");
+  const itemLabel = (item: any) => item?.item_name || (isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
+  const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
+    isEventTicketItem(item)
+      ? <Ticket className={className} />
+      : isBoosterItem(item)
+        ? <Sparkles className={className} />
+        : <Archive className={className} />
+  );
+
+  const placeInFirstTradeSlot = (item: any) => {
+    if (!item) return false;
+    if (!isBoosterItem(item)) {
+      toast({ title: "Objeto no comerciable aun", description: "La barra de trueque por ahora acepta potenciadores.", variant: "destructive" });
+      return false;
+    }
+    let placed = false;
+    setTradeSlots((current) => {
+      const next = [...current];
+      const sameIndex = next.findIndex((slot) => slot?.item_slug === item.item_slug);
+      if (sameIndex >= 0) {
+        next[sameIndex] = { ...next[sameIndex], quantity: Number(next[sameIndex].quantity || 0) + Number(item.quantity || 0) };
+        placed = true;
+        return next;
+      }
+      const emptyIndex = next.findIndex((slot) => !slot);
+      if (emptyIndex >= 0) {
+        next[emptyIndex] = cloneStack(item);
+        placed = true;
+      }
+      return next;
+    });
+    return placed;
+  };
+
+  const quickMoveToTrade = (slotIndex: number) => {
+    const item = slotItems[slotIndex];
+    if (!item) return;
+    if (!placeInFirstTradeSlot(item)) {
+      toast({ title: "Barra de trueque llena", variant: "destructive" });
+      return;
+    }
+    setSlotItems((current) => {
+      const next = [...current];
+      next[slotIndex] = null;
+      persistSlotOrder(next);
+      return next;
+    });
+  };
+
+  const handleSlotLeftClick = (index: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    if (suppressClick) return;
+    setContextMenu(null);
+    const item = slotItems[index];
+    if (event.shiftKey && item) {
+      quickMoveToTrade(index);
+      return;
+    }
+    setSlotItems((current) => {
+      const next = [...current];
+      const target = next[index];
+      if (!cursorItem && target) {
+        setCursorItem(cloneStack(target));
+        next[index] = null;
+      } else if (cursorItem && !target) {
+        next[index] = cloneStack(cursorItem);
+        setCursorItem(null);
+      } else if (cursorItem && target) {
+        if (target.item_slug === cursorItem.item_slug) {
+          next[index] = { ...target, quantity: Number(target.quantity || 0) + Number(cursorItem.quantity || 0) };
+          setCursorItem(null);
+        } else {
+          next[index] = cloneStack(cursorItem);
+          setCursorItem(cloneStack(target));
+        }
+      }
+      persistSlotOrder(next);
+      return next;
+    });
+  };
+
+  const handleSlotRightClick = (index: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenu(null);
+    setSlotItems((current) => {
+      const next = [...current];
+      const target = next[index];
+      if (cursorItem) {
+        if (!target) {
+          next[index] = cloneStack(cursorItem, 1);
+          const remaining = Number(cursorItem.quantity || 0) - 1;
+          setCursorItem(remaining > 0 ? cloneStack(cursorItem, remaining) : null);
+        } else if (target.item_slug === cursorItem.item_slug) {
+          next[index] = { ...target, quantity: Number(target.quantity || 0) + 1 };
+          const remaining = Number(cursorItem.quantity || 0) - 1;
+          setCursorItem(remaining > 0 ? cloneStack(cursorItem, remaining) : null);
+        }
+      } else if (target && Number(target.quantity || 0) > 1) {
+        const picked = Math.floor(Number(target.quantity || 0) / 2);
+        const left = Number(target.quantity || 0) - picked;
+        next[index] = cloneStack(target, left);
+        setCursorItem(cloneStack(target, picked));
+      } else if (target) {
+        setContextMenu({ item: target, slot: index, x: event.clientX, y: event.clientY });
+      }
+      persistSlotOrder(next);
+      return next;
+    });
+  };
+
+  const handleSlotDoubleClick = (index: number) => {
+    const item = slotItems[index];
+    if (!item || cursorItem) return;
+    let collected = 0;
+    setSlotItems((current) => {
+      const next = current.map((slot) => {
+        if (slot?.item_slug === item.item_slug) {
+          collected += Number(slot.quantity || 0);
+          return null;
+        }
+        return slot;
+      });
+      setCursorItem(cloneStack(item, collected));
+      persistSlotOrder(next);
+      return next;
+    });
+  };
+
+  const beginDistribution = (index: number, mode: "even" | "single", event: React.MouseEvent) => {
+    if (!cursorItem) return;
+    event.preventDefault();
+    setDragMode(mode);
+    setDragTouched([index]);
+  };
+
+  const touchDistributionSlot = (index: number) => {
+    if (!dragMode) return;
+    setDragTouched((current) => current.includes(index) ? current : [...current, index]);
+  };
+
+  const finishDistribution = () => {
+    if (!dragMode || !cursorItem || dragTouched.length === 0) {
+      setDragMode(null);
+      setDragTouched([]);
+      return;
+    }
+    setSlotItems((current) => {
+      const next = [...current];
+      const emptyTouched = dragTouched.filter((index) => !next[index]);
+      if (emptyTouched.length === 0) return next;
+      const available = Number(cursorItem.quantity || 0);
+      if (dragMode === "single") {
+        const count = Math.min(available, emptyTouched.length);
+        emptyTouched.slice(0, count).forEach((index) => {
+          next[index] = cloneStack(cursorItem, 1);
+        });
+        const remaining = available - count;
+        setCursorItem(remaining > 0 ? cloneStack(cursorItem, remaining) : null);
+      } else {
+        const perSlot = Math.floor(available / emptyTouched.length);
+        if (perSlot > 0) {
+          emptyTouched.forEach((index) => {
+            next[index] = cloneStack(cursorItem, perSlot);
+          });
+          const remaining = available - (perSlot * emptyTouched.length);
+          setCursorItem(remaining > 0 ? cloneStack(cursorItem, remaining) : null);
+        }
+      }
+      persistSlotOrder(next);
+      return next;
+    });
+    setDragMode(null);
+    setDragTouched([]);
+    setSuppressClick(true);
+    window.setTimeout(() => setSuppressClick(false), 0);
+  };
+
+  const handleTradeSlotClick = (index: number) => {
+    setTradeSlots((current) => {
+      const next = [...current];
+      const target = next[index];
+      if (cursorItem && !target) {
+        next[index] = cloneStack(cursorItem);
+        setCursorItem(null);
+      } else if (cursorItem && target?.item_slug === cursorItem.item_slug) {
+        next[index] = { ...target, quantity: Number(target.quantity || 0) + Number(cursorItem.quantity || 0) };
+        setCursorItem(null);
+      } else if (cursorItem && target) {
+        next[index] = cloneStack(cursorItem);
+        setCursorItem(cloneStack(target));
+      } else if (!cursorItem && target) {
+        setCursorItem(cloneStack(target));
+        next[index] = null;
+      }
       return next;
     });
   };
@@ -218,9 +441,11 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     void loadInventory();
   };
 
-  const sendStackToTrade = (item: any) => {
-    const qty = Math.max(1, Number(item?.quantity || 1));
-    setBoostersToSend(String(qty));
+  const sendStackToTrade = (slotIndex: number) => {
+    const item = slotItems[slotIndex];
+    if (!item) return;
+    const qty = Math.max(1, Number(item.quantity || 1));
+    quickMoveToTrade(slotIndex);
     setContextMenu(null);
     toast({ title: "Potenciadores listos para trueque", description: `Se colocaron ${qty} en el cuadro de trueque.` });
   };
@@ -313,40 +538,32 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
             {slotItems.map((item, index) => (
               <div
                 key={index}
-                draggable={Boolean(item)}
-                onDragStart={(event) => {
-                  setDragSlot(index);
-                  event.dataTransfer.setData("text/plain", String(index));
-                  event.dataTransfer.effectAllowed = "move";
+                onClick={(event) => handleSlotLeftClick(index, event)}
+                onDoubleClick={() => handleSlotDoubleClick(index)}
+                onMouseDown={(event) => {
+                  if (event.button === 0 && cursorItem) beginDistribution(index, "even", event);
+                  if (event.button === 2 && cursorItem) beginDistribution(index, "single", event);
                 }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const from = dragSlot ?? Number(event.dataTransfer.getData("text/plain"));
-                  if (Number.isInteger(from)) moveSlot(from, index);
-                  setDragSlot(null);
-                }}
-                onDragEnd={() => setDragSlot(null)}
+                onMouseEnter={() => touchDistributionSlot(index)}
+                onMouseUp={finishDistribution}
                 onContextMenu={(event) => {
-                  if (!item) return;
-                  event.preventDefault();
-                  setContextMenu({ item, slot: index, x: event.clientX, y: event.clientY });
+                  handleSlotRightClick(index, event);
                 }}
                 className={cn(
-                  "relative aspect-square rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
-                  item ? "cursor-grab border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)] active:cursor-grabbing" : "border-[#6b5236]",
-                  dragSlot === index && "opacity-50 ring-2 ring-neon-cyan",
+                  "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
+                  item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
+                  dragTouched.includes(index) && "ring-2 ring-neon-cyan",
                 )}
-                title={item ? "Click derecho para acciones" : "Slot vacio"}
+                title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
               >
                 {item && (
                   <div className="flex h-full w-full items-center justify-center">
-                    <div className="relative grid h-[72%] w-[72%] place-items-center rounded-sm border border-[#f7d28b]/70 bg-[#6b4a1f] shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]">
+                    <div className={cn(
+                      "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
+                      isEventTicketItem(item) ? "border-neon-cyan/70 bg-[#14354a]" : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                    )}>
                       <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
-                      <Sparkles className="relative h-5 w-5 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                      <ItemIcon item={item} className={cn("relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]", isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
                     </div>
                     <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                   </div>
@@ -356,9 +573,9 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           </div>
 
           <div className="mt-3 grid gap-2 text-[10px] text-muted-foreground md:grid-cols-3">
-            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Stacks: {totalBoosters}</div>
+            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</div>
             <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Duracion: 7 dias</div>
-            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Efecto: x3 puntos</div>
+            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Potenciadores: {totalBoosters}</div>
           </div>
 
           <div className="mt-3 grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
@@ -415,9 +632,36 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
             </div>
           )}
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
             <Input type="number" min="0" value={pointsToSend} onChange={(e) => setPointsToSend(e.target.value)} placeholder="F-coin" className="h-8 bg-muted text-xs" />
-            <Input type="number" min="0" max={totalBoosters} value={boostersToSend} onChange={(e) => setBoostersToSend(e.target.value)} placeholder="Boosters" className="h-8 bg-muted text-xs" />
+            <div className="rounded border border-neon-cyan/20 bg-black/30 px-2 py-1 text-[10px] text-neon-cyan">
+              {tradeBoosters} boosters
+            </div>
+          </div>
+          <div className="mt-2 grid w-24 grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
+            {tradeSlots.map((item, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleTradeSlotClick(index)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  handleTradeSlotClick(index);
+                }}
+                className={cn(
+                  "relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
+                  item ? "border-[#d6b16f]" : "border-white/10",
+                )}
+                title="Barra de trueque"
+              >
+                {item && (
+                  <>
+                    <ItemIcon item={item} className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-neon-yellow" />
+                    <span className="absolute bottom-0 right-0.5 font-pixel text-[7px] text-white">x{item.quantity}</span>
+                  </>
+                )}
+              </button>
+            ))}
           </div>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota opcional..." className="mt-2 min-h-[62px] bg-muted text-xs" />
           <Button onClick={createOffer} disabled={busy || !schemaReady} className="mt-3 h-8 w-full text-xs">
@@ -460,19 +704,27 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(event) => event.stopPropagation()}
         >
-          <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15" onClick={() => sendStackToTrade(contextMenu.item)}>
-            Tradear stack
-          </button>
-          <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15" onClick={() => useBooster(contextMenu.item)}>
-            Usar 1
-          </button>
           <button
             className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={Number(contextMenu.item?.quantity || 0) <= 1}
-            onClick={() => openSplitStack(contextMenu.item)}
+            disabled={!isBoosterItem(contextMenu.item)}
+            onClick={() => sendStackToTrade(contextMenu.slot)}
           >
-            Separar
+            Tradear stack
           </button>
+          {isBoosterItem(contextMenu.item) && (
+            <>
+              <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15" onClick={() => useBooster(contextMenu.item)}>
+                Usar 1
+              </button>
+              <button
+                className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={Number(contextMenu.item?.quantity || 0) <= 1}
+                onClick={() => openSplitStack(contextMenu.item)}
+              >
+                Separar
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -501,6 +753,16 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {cursorItem && (
+        <div
+          className="pointer-events-none fixed z-[700] h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[#d6b16f] bg-[#3b2d21] shadow-2xl shadow-black/70"
+          style={{ left: cursorPos.x, top: cursorPos.y }}
+        >
+          <ItemIcon item={cursorItem} className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+          <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white">x{cursorItem.quantity}</span>
         </div>
       )}
     </div>

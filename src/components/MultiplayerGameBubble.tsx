@@ -161,7 +161,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const roomCodeRef = useRef(roomCode);
-  const isAgar = game?.id === "agar";
+  const isAgar = game?.id === "agar" || game?.id === "agar-server";
   const isMassiveDecks = game?.id === "massive-decks";
   const isWatchTogether = game?.id === "watch-together";
   const externalGameBaseUrl = (game?.externalUrl || "").trim().replace(/\/+$/, "");
