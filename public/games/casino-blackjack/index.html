@@ -10,47 +10,47 @@
     body{overflow:auto}
     button,input{font:inherit}
     button{cursor:pointer}
-    .scene{min-height:100vh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 18%,#176531 0,#0b341d 38%,#030504 72%)}
-    .scene:before{content:"";position:absolute;inset:-10% 4% auto;height:78vh;border:24px solid #1d1009;border-bottom-width:34px;border-radius:0 0 52% 52%/0 0 28% 28%;box-shadow:inset 0 -18px 28px #000b,0 18px 34px #000c;background:radial-gradient(ellipse at 50% 10%,#19713a 0,#0e4726 60%,#082414 100%)}
+    .scene{min-height:100vh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 14%,#1a7538 0,#0b341d 34%,#030504 72%);box-shadow:inset 0 0 80px #facc1510}
+    .scene:before{content:"";position:absolute;inset:-9% 4% auto;height:74vh;border:20px solid #1d1009;border-bottom-width:30px;border-radius:0 0 52% 52%/0 0 28% 28%;box-shadow:inset 0 -18px 28px #000b,inset 0 0 70px #22c55e18,0 18px 34px #000c,0 0 35px #facc151a;background:radial-gradient(ellipse at 50% 10%,#218447 0,#0e4726 60%,#082414 100%)}
     .scene:after{content:"";position:absolute;left:0;right:0;bottom:0;height:16vh;background:#010101}
-    .hud{position:relative;z-index:3;display:flex;align-items:center;gap:10px;min-height:58px;padding:10px 16px}
-    .iconBtn{width:42px;height:36px;border:2px solid #facc15;border-radius:7px;background:linear-gradient(#26313a,#080b10);color:#fff;font-weight:1000;box-shadow:0 2px 0 #8a5b00}
+    .hud{position:relative;z-index:3;display:flex;align-items:center;gap:8px;min-height:50px;padding:7px 12px}
+    .iconBtn{width:38px;height:32px;border:2px solid #facc15;border-radius:7px;background:linear-gradient(#26313a,#080b10);color:#fff;font-weight:1000;box-shadow:0 2px 0 #8a5b00,0 0 15px #facc1538}
     .roomControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .roomControls input,.betBox input{height:36px;border:1px solid #375244;background:#07120c;color:#fff;border-radius:8px;padding:0 10px}
+    .roomControls input,.betBox input{height:32px;border:1px solid #375244;background:#07120c;color:#fff;border-radius:8px;padding:0 10px;box-shadow:inset 0 0 12px #0008}
     .roomControls input{text-transform:uppercase;width:116px}
-    .roomControls button,.tableBtn{height:36px;border:1px solid #d9a300;background:#151a20;color:#fff;border-radius:8px;padding:0 12px;font-weight:900;box-shadow:0 2px 0 #8a5b00}
+    .roomControls button,.tableBtn{height:32px;border:1px solid #d9a300;background:#151a20;color:#fff;border-radius:8px;padding:0 10px;font-weight:900;box-shadow:0 2px 0 #8a5b00,0 0 13px #facc1526}
     .status{margin-left:auto;max-width:42vw;color:#facc15;font-size:12px;text-align:right}
-    .table{position:relative;z-index:2;min-height:calc(100vh - 58px);display:grid;grid-template-rows:auto 1fr auto;padding:6px clamp(14px,4vw,54px) 22px}
-    .dealerArea{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:22px;min-height:150px}
-    .deck,.shoe{width:76px;height:104px;border-radius:8px;background:linear-gradient(135deg,#5d260f,#2b1108);border:3px solid #d7c19a;box-shadow:0 8px 14px #0008;justify-self:center}
+    .table{position:relative;z-index:2;min-height:calc(100vh - 50px);display:grid;grid-template-rows:auto 1fr auto;padding:3px clamp(12px,3vw,42px) 14px}
+    .dealerArea{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:18px;min-height:116px}
+    .deck,.shoe{width:62px;height:86px;border-radius:7px;background:linear-gradient(135deg,#5d260f,#2b1108);border:3px solid #d7c19a;box-shadow:0 8px 14px #0008,0 0 18px #facc151c;justify-self:center}
     .shoe{transform:rotate(18deg);background:linear-gradient(135deg,#f8fafc,#d6d3d1)}
-    .rack{display:flex;gap:6px;align-items:flex-start;justify-content:center;margin-top:0}
-    .rackChip{width:18px;height:82px;border-radius:9px;background:#e5e7eb;border:2px dashed #94a3b8;box-shadow:0 3px 6px #0008}
+    .rack{display:flex;gap:5px;align-items:flex-start;justify-content:center;margin-top:0}
+    .rackChip{width:15px;height:62px;border-radius:9px;background:#e5e7eb;border:2px dashed #94a3b8;box-shadow:0 3px 6px #0008,0 0 12px #ffffff18}
     .rackChip:nth-child(3n){background:#dc2626;border-color:#fecaca}.rackChip:nth-child(4n){background:#facc15;border-color:#854d0e}.rackChip:nth-child(5n){background:#22d3ee;border-color:#cffafe}
     .logo{align-self:center;text-align:center;color:#d8eac7;text-shadow:0 2px 0 #0008;font-weight:1000}
-    .logo b{display:block;font-size:clamp(22px,3vw,38px);letter-spacing:0}.logo span{font-size:12px;color:#facc15}
-    .arcText{text-align:center;color:#d8eac799;font-weight:900;font-size:clamp(13px,1.7vw,22px);transform:rotate(-1deg);margin-top:8px}
-    .playArea{display:grid;grid-template-columns:minmax(160px,1fr) minmax(260px,520px) minmax(160px,1fr);gap:22px;align-items:end}
-    .betSpot{min-height:170px;border:3px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 8px #0002}
+    .logo b{display:block;font-size:clamp(20px,2.6vw,32px);letter-spacing:0;text-shadow:0 3px 0 #000,0 0 18px #d8eac733}.logo span{font-size:11px;color:#facc15}
+    .arcText{text-align:center;color:#d8eac799;font-weight:900;font-size:clamp(12px,1.5vw,18px);transform:rotate(-1deg);margin-top:5px;text-shadow:0 0 12px #d8eac744}
+    .playArea{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,480px) minmax(130px,1fr);gap:16px;align-items:end}
+    .betSpot{min-height:130px;border:2px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 7px #0002,inset 0 0 28px #22c55e14,0 0 22px #0008}
     .betSpot strong{display:block;color:#d8eac799;font-size:clamp(18px,2.4vw,30px);line-height:1;font-weight:1000}
-    .handZone{align-self:stretch;display:grid;grid-template-rows:auto 1fr;gap:10px;border:1px solid #ffffff18;border-radius:18px;background:#03170d88;padding:14px;box-shadow:inset 0 0 30px #0005}
+    .handZone{align-self:stretch;display:grid;grid-template-rows:auto 1fr;gap:8px;border:1px solid #ffffff18;border-radius:16px;background:#03170d88;padding:10px;box-shadow:inset 0 0 30px #0007,0 0 30px #22c55e14}
     .zoneHead{display:flex;justify-content:space-between;gap:12px;color:#d8eac7;font-size:12px;font-weight:900}
     .total{color:#facc15}
-    .hand{min-height:150px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
-    .card{width:86px;height:124px;border-radius:9px;background:#f8fafc;color:#111827;border:2px solid #e5e7eb;box-shadow:0 10px 0 #0006,0 16px 24px #0006;display:grid;grid-template-rows:auto 1fr auto;padding:7px;user-select:none;cursor:grab;transition:transform .15s ease,box-shadow .15s ease}
+    .hand{min-height:112px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+    .card{width:72px;height:104px;border-radius:8px;background:#f8fafc;color:#111827;border:2px solid #e5e7eb;box-shadow:0 8px 0 #0006,0 14px 22px #0007,0 0 14px #ffffff20;display:grid;grid-template-rows:auto 1fr auto;padding:6px;user-select:none;cursor:grab;transition:transform .15s ease,box-shadow .15s ease}
     .card:active{cursor:grabbing;transform:scale(1.04);box-shadow:0 18px 30px #0009}
     .card.red{color:#b91c1c}
-    .card .rank{font-size:24px;font-weight:1000;line-height:1}
-    .card .suit{font-size:34px;text-align:center;align-self:center}
-    .card .foot{text-align:right;font-size:18px;font-weight:1000}
+    .card .rank{font-size:20px;font-weight:1000;line-height:1}
+    .card .suit{font-size:28px;text-align:center;align-self:center}
+    .card .foot{text-align:right;font-size:16px;font-weight:1000}
     .back{background:repeating-linear-gradient(45deg,#5b210f 0 8px,#2f1007 8px 16px);border-color:#d7c19a;color:transparent}
-    .bottomBar{position:relative;z-index:4;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:14px;padding-top:14px}
+    .bottomBar{position:relative;z-index:4;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:12px;padding-top:8px}
     .balance,.outcome{font-weight:1000;text-shadow:0 2px 0 #000}.balance small,.outcome small{display:block;color:#cbd5e1;font-size:12px}.balance b,.outcome b{font-size:20px}
-    .actions{display:flex;gap:12px;align-items:end;justify-content:center;flex-wrap:wrap}
-    .roundBtn{width:72px;height:58px;border-radius:50% 50% 10px 10px;border:2px solid #d9a300;background:linear-gradient(#f9e7a4,#9a6b14);color:#1f1300;font-weight:1000;box-shadow:0 7px 0 #5c3700}
+    .actions{display:flex;gap:9px;align-items:end;justify-content:center;flex-wrap:wrap}
+    .roundBtn{width:64px;height:52px;border-radius:50% 50% 10px 10px;border:2px solid #d9a300;background:linear-gradient(#f9e7a4,#9a6b14);color:#1f1300;font-weight:1000;box-shadow:0 6px 0 #5c3700,0 0 20px #facc1540}
     .roundBtn:disabled,.tableBtn:disabled{opacity:.45;cursor:not-allowed}
-    .betBox{display:flex;gap:8px;align-items:center;background:#010803b8;border:1px solid #ffffff18;border-radius:12px;padding:8px}
-    .betBox input{width:96px}
+    .betBox{display:flex;gap:8px;align-items:center;background:#010803b8;border:1px solid #ffffff18;border-radius:10px;padding:6px;box-shadow:0 0 18px #0008}
+    .betBox input{width:88px}
     .log{color:#d8eac7;font-size:12px;text-align:center;min-height:18px}
     @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}}
     @media(max-width:520px){.roomControls{width:100%;display:grid;grid-template-columns:1fr 1fr}.roomControls input{width:100%}.card{width:68px;height:98px}.card .rank{font-size:19px}.card .suit{font-size:26px}.hand{gap:8px}.rack{display:none}.logo b{font-size:24px}.arcText{font-size:12px}.roundBtn{width:62px;height:52px}.betBox{width:100%;display:grid;grid-template-columns:1fr 1fr}.betBox input{width:100%}}

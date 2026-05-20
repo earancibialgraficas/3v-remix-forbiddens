@@ -10,47 +10,49 @@
     body{overflow:auto}
     button,input{font:inherit}
     button{cursor:pointer}
-    .shell{min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:10px 12px 14px;background:radial-gradient(circle at 48% 8%,#16351f 0,#090b13 34%,#070812 100%)}
+    .shell{min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:8px 10px 10px;background:radial-gradient(circle at 50% 6%,#1d6934 0,#0b1a17 30%,#070812 100%)}
     .top{display:flex;align-items:center;gap:10px;max-width:1500px;width:100%;margin:0 auto}
     .title{font-size:clamp(18px,2vw,26px);font-weight:1000;color:#fff;letter-spacing:0}
     .tag{border:1px solid #7f1d1d;background:#43191b;color:#fecaca;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:900}
     .status{margin-left:auto;color:#cbd5e1;font-size:12px;white-space:nowrap}
-    .layout{max-width:1500px;width:100%;min-height:0;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:16px}
-    .tableSide{min-width:0;display:grid;grid-template-rows:minmax(220px,32vh) auto auto minmax(260px,1fr) auto;gap:10px}
-    .panel,.sideCard{border:1px solid #2c3140;background:#11131cdd;border-radius:12px;box-shadow:0 22px 70px #0008}
-    .wheelPanel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
-    .wheelPanel:before{content:"";position:absolute;inset:auto 8% -44px;height:112px;border-radius:50%;background:#082912;filter:blur(18px);opacity:.8}
-    .pointer{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid #facc15;z-index:4;filter:drop-shadow(0 2px 4px #000)}
-    .wheel{width:min(310px,58vw,32vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 10px #5b390d,0 0 0 16px #113914,0 18px 60px #000c;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
-    .wheel:before{content:"";position:absolute;inset:24px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 10px #0e612d}
-    .wheel:after{content:"";position:absolute;inset:78px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34}
+    .layout{max-width:1440px;width:100%;min-height:0;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:12px}
+    .tableSide{min-width:0;display:grid;grid-template-rows:minmax(180px,28vh) auto auto minmax(220px,1fr) auto;gap:8px}
+    .panel,.sideCard{border:1px solid #374151;background:#10131ce6;border-radius:10px;box-shadow:0 18px 58px #0009,0 0 28px #0f70372b}
+    .wheelPanel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 45%,#15251f 0,#10131c 60%)}
+    .wheelPanel:before{content:"";position:absolute;inset:auto 8% -44px;height:112px;border-radius:50%;background:#0b4f25;filter:blur(20px);opacity:.9}
+    .wheelPanel:after{content:"";position:absolute;inset:12px;border-radius:10px;box-shadow:inset 0 0 52px #facc1514,inset 0 0 90px #22c55e12;pointer-events:none}
+    .pointer{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:20px solid #facc15;z-index:4;filter:drop-shadow(0 0 7px #facc15)}
+    .wheel{width:min(280px,56vw,29vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 8px #5b390d,0 0 0 13px #113914,0 18px 60px #000d,0 0 34px #22c55e33;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
+    .wheel:before{content:"";position:absolute;inset:22px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 9px #0e612d,inset 0 0 18px #000}
+    .wheel:after{content:"";position:absolute;inset:76px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34,0 0 24px #0008}
+    .wheelNumber{position:absolute;left:50%;top:50%;z-index:3;width:22px;height:14px;margin:-7px 0 0 -11px;display:grid;place-items:center;border-radius:3px;color:#fff;font-size:8px;font-weight:1000;text-shadow:0 1px 2px #000,0 0 5px #000;pointer-events:none}
     .hub{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0a8,#b47a05 72%);z-index:2;box-shadow:0 4px 14px #0009}
-    .lastPanel{display:flex;align-items:center;gap:10px;padding:8px 10px}
-    .lastBall{width:42px;height:36px;border-radius:8px;border:3px solid #facc15;background:#0b8f42;display:grid;place-items:center;font-weight:1000;color:#fff}
+    .lastPanel{display:flex;align-items:center;gap:10px;padding:7px 9px}
+    .lastBall{width:40px;height:32px;border-radius:8px;border:2px solid #facc15;background:#0b8f42;display:grid;place-items:center;font-weight:1000;color:#fff;box-shadow:0 0 18px #facc1544}
     .betText{min-width:0;color:#cbd5e1;font-size:12px}.betText b{color:#fff}
-    .roomBar{display:grid;grid-template-columns:auto minmax(90px,120px) auto auto 1fr;gap:8px;align-items:center;padding:8px 10px}
-    .roomBar input{height:34px;border:1px solid #374151;background:#090b12;color:#fff;border-radius:8px;padding:0 10px;text-transform:uppercase}
-    .roomBar button,.actionBtn{height:34px;border:1px solid #166534;background:#15803d;color:white;border-radius:8px;padding:0 12px;font-size:12px;font-weight:900}
+    .roomBar{display:grid;grid-template-columns:auto minmax(86px,116px) auto auto 1fr;gap:7px;align-items:center;padding:7px 9px}
+    .roomBar input{height:32px;border:1px solid #374151;background:#090b12;color:#fff;border-radius:7px;padding:0 9px;text-transform:uppercase}
+    .roomBar button,.actionBtn{height:32px;border:1px solid #16a34a;background:linear-gradient(#1aa34c,#0f672d);color:white;border-radius:7px;padding:0 10px;font-size:11px;font-weight:900;box-shadow:0 0 14px #22c55e22}
     .wallet{justify-self:end;display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px}.wallet b{color:#facc15;font-size:16px}
-    .betPanel{background:#075a28;border:3px solid #b88700;padding:10px;border-radius:14px;display:grid;gap:10px;box-shadow:inset 0 0 0 1px #2f8b47}
-    .numGrid{display:grid;grid-template-columns:58px repeat(12,minmax(42px,1fr)) 48px;grid-template-rows:repeat(3,44px);overflow:hidden;border:1px solid #2d7d41;border-radius:8px 8px 0 0}
+    .betPanel{background:#075a28;border:2px solid #b88700;padding:8px;border-radius:12px;display:grid;gap:8px;box-shadow:inset 0 0 0 1px #2f8b47,inset 0 0 28px #0006,0 0 28px #facc1524}
+    .numGrid{display:grid;grid-template-columns:52px repeat(12,minmax(38px,1fr)) 42px;grid-template-rows:repeat(3,38px);overflow:hidden;border:1px solid #2d7d41;border-radius:7px 7px 0 0}
     .outside{display:grid;grid-template-columns:58px repeat(6,1fr) 48px;overflow:hidden;border:1px solid #2d7d41;border-top:0;border-radius:0 0 8px 8px}
     .cell{min-width:0;border:1px solid #24462c;background:#161819;color:#fff;font-weight:1000;display:grid;place-items:center;position:relative}
-    .cell.red{background:#c8171d}.cell.black{background:#111318}.cell.green{background:#0b8d42}.cell.out{height:38px;background:#0d6630}.cell.selected{outline:3px solid #facc15;outline-offset:-5px;z-index:2}
+    .cell.red{background:#c8171d}.cell.black{background:#111318}.cell.green{background:#0b8d42}.cell.out{height:34px;background:#0d6630}.cell.selected{outline:3px solid #facc15;outline-offset:-5px;z-index:2;box-shadow:inset 0 0 18px #facc1566}
     .zeroA{grid-row:1/3;font-size:22px}.zeroB{grid-row:3/4;font-size:22px}.sidePay{font-size:11px;background:#0d6630;color:#d9ffe5}
-    .controls{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:2px 0}
-    .chip{width:56px;height:56px;border-radius:50%;border:5px dashed #a0a7b3;background:#4b5563;color:#fff;font-weight:1000;box-shadow:inset 0 0 0 3px #626b78,0 8px 20px #0007}
+    .controls{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:1px 0}
+    .chip{width:50px;height:50px;border-radius:50%;border:4px dashed #a0a7b3;background:#4b5563;color:#fff;font-weight:1000;box-shadow:inset 0 0 0 3px #626b78,0 8px 20px #0007}
     .chip.active{background:#f8fafc;color:#111827;border-color:#facc15;box-shadow:0 0 24px #facc1555}
-    .spin{width:72px;height:72px;border-radius:50%;border:3px solid #facc15;background:#16a34a;color:#fff;font-weight:1000;box-shadow:0 0 26px #facc1577;text-shadow:0 1px 2px #000}
+    .spin{width:64px;height:64px;border-radius:50%;border:3px solid #facc15;background:#16a34a;color:#fff;font-weight:1000;box-shadow:0 0 30px #facc1588,0 0 20px #22c55e66;text-shadow:0 1px 2px #000}
     .ghost{border:1px solid #1d4ed8;background:#172554;color:#bfdbfe;border-radius:10px;padding:10px 14px;font-weight:900}
     .side{min-width:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}
-    .sideCard{padding:12px;background:#171717e8}
+    .sideCard{padding:10px;background:#171717e8;box-shadow:0 18px 48px #0009,0 0 22px #facc1512}
     .sideHead{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2b2b2b;margin:-12px -12px 12px;padding:12px}
     .sideHead h2{margin:0;color:#facc15;font-size:13px;font-weight:1000;letter-spacing:.04em}
     .metric{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #293241;background:#0d111a;border-radius:9px;padding:10px;margin-top:8px;color:#cbd5e1;font-size:12px}.metric b{color:#fff;font-size:18px}
     .heat{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:7px 9px;background:#1f2937;color:#fff;font-weight:900;font-size:12px}.pill.red{background:#b91c1c}.pill.green{background:#047857}.pill.black{background:#020617}
     table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#9ca3af;padding:9px 4px}td{padding:9px 4px;border-top:1px solid #2a2a2a}.pos{color:#22c55e;font-weight:1000}.neg{color:#fb7185;font-weight:1000}
-    @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:240px auto auto auto auto}.wheel{width:220px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
+    @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:210px auto auto auto auto}.wheel{width:210px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
     @media(max-width:680px){.shell{padding:8px}.top{flex-wrap:wrap}.status{margin-left:0;width:100%}.roomBar{grid-template-columns:1fr 1fr;align-items:stretch}.wallet{justify-self:start}.betPanel{overflow-x:auto}.numGrid,.outside{min-width:760px}.side{grid-template-columns:1fr}.chip{width:48px;height:48px;font-size:12px}.spin{width:64px;height:64px}.controls{justify-content:flex-start}.tableSide{grid-template-rows:210px auto auto auto auto}}
   </style>
 </head>
@@ -204,6 +206,20 @@
       });
     }
 
+    function renderWheelNumbers() {
+      const wheel = $("wheel");
+      wheel.querySelectorAll(".wheelNumber").forEach((node) => node.remove());
+      const radius = wheel.clientWidth * 0.39;
+      numbers.forEach((n, index) => {
+        const label = document.createElement("span");
+        const angle = index * (360 / numbers.length);
+        label.className = "wheelNumber";
+        label.textContent = n;
+        label.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
+        wheel.appendChild(label);
+      });
+    }
+
     function wins(result, bet) {
       const n = Number(result);
       if (bet.type === "number") return String(result) === String(bet.value);
@@ -286,8 +302,10 @@
 
     async function setup() {
       renderTable();
+      renderWheelNumbers();
       renderHeat();
       updateBetText();
+      window.addEventListener("resize", renderWheelNumbers);
       document.querySelectorAll(".chip").forEach((btn) => {
         btn.onclick = () => {
           document.querySelectorAll(".chip").forEach((node) => node.classList.remove("active"));

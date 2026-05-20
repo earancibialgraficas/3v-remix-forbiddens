@@ -156,6 +156,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [reloadKey, setReloadKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [expandedInfoOpen, setExpandedInfoOpen] = useState(false);
+  const [windowInfoCollapsed, setWindowInfoCollapsed] = useState(false);
   const [externalFrameLoaded, setExternalFrameLoaded] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -453,6 +454,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setGameLaunched(activeGameId === "massive-decks");
     setLaunchedAsHost(true);
     setExpandedInfoOpen(false);
+    setWindowInfoCollapsed(false);
     sessionStartedAtRef.current = Date.now();
     sessionElapsedRef.current = 0;
     sessionTimePointsRef.current = 0;
@@ -1522,6 +1524,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           </button>
         )}
 
+        {!fullscreen && !minimized && (gameLaunched || isMassiveDecks) && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setWindowInfoCollapsed((value) => !value);
+            }}
+            aria-label={windowInfoCollapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
+            title={windowInfoCollapsed ? "Mostrar barra lateral" : "Ocultar barra lateral"}
+            className={cn(
+              "absolute z-[90] flex h-8 w-8 items-center justify-center rounded-full border border-neon-cyan/50 bg-black/80 text-neon-cyan shadow-lg shadow-black/50 transition-all hover:bg-neon-cyan hover:text-black",
+              compactGameFrame ? "right-2 top-14" : windowInfoCollapsed ? "right-2 top-14" : "right-[268px] top-14",
+            )}
+          >
+            {windowInfoCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        )}
+
         {!minimized && (
           <div className={cn("flex w-full relative", fullscreen ? "h-full" : "h-[calc(100%-44px)]", compactGameFrame && !fullscreen && "flex-col")}>
             {/* Área del Juego */}
@@ -1590,7 +1610,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             )}
             
             {/* 🏆 Panel de Jugadores (Leaderboard) en el Marco */}
-            {(gameLaunched || isMassiveDecks) && leaderboardPanel}
+            {(gameLaunched || isMassiveDecks) && (fullscreen || !windowInfoCollapsed) && leaderboardPanel}
           </div>
         )}
 
