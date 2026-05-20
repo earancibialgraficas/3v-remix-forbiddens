@@ -40,7 +40,7 @@ const tiers = [
   },
   {
     name: "Lite", basePrice: 5, boosters: 1, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
-    checkoutUrl: "https://mpago.li/11TpqQK", // 🔗 LINK MERCADO PAGO LITE
+    checkoutUrl: "https://mpago.li/11TpqQK", 
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -57,7 +57,7 @@ const tiers = [
   {
     name: "Miembro del Legado", basePrice: 18, boosters: 7, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
-    checkoutUrl: "https://mpago.li/16EaVeh", // 🔗 LINK MERCADO PAGO LEGADO
+    checkoutUrl: "https://mpago.li/16EaVeh", 
     features: [
       { label: "Emuladores", value: "6 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -77,7 +77,7 @@ const tiers = [
     name: "Creador de Contenido", basePrice: 25, boosters: 10, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
     requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
-    checkoutUrl: "https://mpago.li/1JWBWQb", // 🔗 LINK MERCADO PAGO CREADOR
+    checkoutUrl: "https://mpago.li/1JWBWQb", 
     features: [
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -95,7 +95,7 @@ const tiers = [
   },
   {
     name: "Entusiasta", basePrice: 10, boosters: 3, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
-    checkoutUrl: "https://mpago.li/2wzhSPp", // 🔗 LINK MERCADO PAGO ENTUSIASTA
+    checkoutUrl: "https://mpago.li/2wzhSPp", 
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -111,7 +111,7 @@ const tiers = [
   },
   {
     name: "Coleccionista", basePrice: 15, boosters: 5, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
-    checkoutUrl: "https://mpago.li/2Jckx8W", // 🔗 LINK MERCADO PAGO COLECCIONISTA
+    checkoutUrl: "https://mpago.li/2Jckx8W", 
     features: [
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -128,7 +128,7 @@ const tiers = [
   {
     name: "Leyenda Arcade", basePrice: 20, boosters: 9, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
     requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
-    checkoutUrl: "https://mpago.li/28qU5Gn", // 🔗 LINK MERCADO PAGO LEYENDA
+    checkoutUrl: "https://mpago.li/28qU5Gn", 
     features: [
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
@@ -146,11 +146,12 @@ const tiers = [
 ];
 
 export default function MembershipsPage() {
-  const [userCountry, setUserCountry] = useState("CL"); // Lo dejo en CL por defecto para Mercado Pago
+  const [userCountry, setUserCountry] = useState("CL");
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false); // 🚀 NUEVO: Estado de carga para el botón
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
-  const isUnderMaintenance = true;  // 🛠️ Puesto en false para que se vean las membresías
+  const isUnderMaintenance = false;
 
   const isStaff = isAdmin || isMasterWeb || (currentRoles || []).includes("moderator");
   const currentTier = isStaff ? "staff" : (profile?.membership_tier?.toLowerCase() || "novato");
@@ -160,7 +161,6 @@ export default function MembershipsPage() {
 
   useEffect(() => {
     if (!user) return;
-    // Cuenta real de seguidores desde la tabla follows
     supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
@@ -215,8 +215,8 @@ export default function MembershipsPage() {
     return { canBuy: true, reason: "" }; 
   };
 
-  const handleCheckout = (tierName: string, checkoutUrl: string | null) => {
-    if (!checkoutUrl) return;
+  // 🚀 NUEVA FUNCION DINAMICA DE COBRO:
+  const handleCheckout = async (tierName: string, basePrice: number) => {
     if (!user) {
       alert("Debes iniciar sesión para adquirir una membresía.");
       return;
@@ -228,8 +228,40 @@ export default function MembershipsPage() {
       return;
     }
 
-    // 🚀 REDIRECCIÓN LIMPIA PARA MERCADO PAGO
-    window.location.href = checkoutUrl;
+    try {
+      setIsProcessing(true);
+      const calculatedPrice = Math.round(basePrice * pricing.multiplier);
+      const rangoFormateado = tierName.toLowerCase();
+
+      // Envia los datos a tu Fabrica en Make.com
+      const response = await fetch("https://hook.us2.make.com/9l4vh61fdyrzbv7xrjq4ddfoqd2p193g", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rango: rangoFormateado,
+          precio: calculatedPrice,
+          user_id: user.id
+        }),
+      });
+
+      if (!response.ok) throw new Error("Error en el servidor de pagos");
+
+      const data = await response.json();
+      
+      // Si Make nos devuelve el link, enviamos al usuario
+      if (data && data.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        alert("Hubo un error al generar tu link de pago. Inténtalo de nuevo.");
+      }
+    } catch (error) {
+      console.error("Error en checkout:", error);
+      alert("Error de conexión. Revisa tu internet e intenta de nuevo.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -242,12 +274,10 @@ export default function MembershipsPage() {
           Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>
 
-        {/* ⚠️ AVISO IMPORTANTE PARA MERCADO PAGO */}
+        {/* 🚀 AVISO ACTUALIZADO: Ya no importa el correo */}
         {!isUnderMaintenance && user && (
-          <div className="bg-card/60 border border-neon-yellow/40 text-muted-foreground text-[10px] sm:text-xs px-5 py-4 rounded-2xl max-w-2xl mx-auto font-body tracking-wide leading-relaxed shadow-[0_0_15px_rgba(255,255,0,0.05)] backdrop-blur-md">
-            ⚠️ <span className="font-bold text-neon-yellow">¡Aviso Importante!</span> Al pagar en Mercado Pago, debes ingresar obligatoriamente este correo: <br />
-            <span className="text-neon-cyan font-mono font-bold bg-black/50 px-3 py-1 rounded mt-2 inline-block shadow-inner">{user.email}</span> <br />
-            <span className="text-[9px] sm:text-[10px] mt-2 block opacity-80">De lo contrario, el sistema no podrá encontrar tu cuenta para activar tu rango.</span>
+          <div className="bg-neon-cyan/10 border border-neon-cyan/40 text-neon-cyan text-[10px] sm:text-xs px-5 py-4 rounded-2xl max-w-2xl mx-auto font-body tracking-wide leading-relaxed shadow-[0_0_15px_rgba(0,255,255,0.05)] backdrop-blur-md">
+            🔒 <span className="font-bold text-white">¡Conexión Segura!</span> Tu cuenta ya está vinculada. No importa qué correo uses en la pantalla de pago de Mercado Pago, tu membresía se activará automáticamente en este perfil.
           </div>
         )}
         
@@ -346,8 +376,8 @@ export default function MembershipsPage() {
 
                   <div className="mt-8">
                     <Button 
-                      disabled={hasPlan || (!canBuy && !isStaff)} 
-                      onClick={() => handleCheckout(tier.name, tier.checkoutUrl)}
+                      disabled={hasPlan || (!canBuy && !isStaff) || isProcessing} 
+                      onClick={() => handleCheckout(tier.name, tier.basePrice)} // 🚀 AHORA ENVÍA EL PRECIO BASE
                       className={cn(
                         "w-full h-12 sm:h-14 font-pixel text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 border-none",
                         "bg-[#39FF14] text-black", 
@@ -355,7 +385,7 @@ export default function MembershipsPage() {
                         "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                       )}
                     >
-                      {hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
+                      {isProcessing ? "Procesando..." : hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
                     </Button>
 
                     {!canBuy && !hasPlan && !isStaff && (
