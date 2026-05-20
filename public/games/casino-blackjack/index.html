@@ -334,12 +334,12 @@
       if (typeof result.balance === "number") renderWallet(result.balance);
     }
 
-    function statePayload() {
-      return { player, dealer, roundOpen, lockedBet, stoodPlayers };
+    function statePayload(extra = {}) {
+      return { dealer, roundOpen, lockedBet, stoodPlayers, ...extra };
     }
 
     function applyState(state) {
-      player = Array.isArray(state?.player) ? state.player : player;
+      if (state?.resetPlayer) player = [];
       dealer = Array.isArray(state?.dealer) ? state.dealer : dealer;
       roundOpen = Boolean(state?.roundOpen);
       lockedBet = Number(state?.lockedBet || lockedBet || 0);
@@ -349,7 +349,12 @@
 
     function newRound(local, state) {
       if (state) {
+        const wasOpen = roundOpen;
         applyState(state);
+        if (state.roundOpen && !wasOpen) {
+          player = [makeCard(), makeCard()];
+          render();
+        }
         animateDeal();
         setLog("La mesa recibio una mano nueva.");
         return;
@@ -392,24 +397,27 @@
       player.push(makeCard());
       render();
       if (total(player) > 21) {
-        settle(false);
-      } else if (!local) {
-        api.send("state", statePayload());
+        setLog("Te pasaste. Quedas plantado para esta ronda.");
+        stand(false);
       }
     }
 
     async function settle(local, state) {
       if (state) {
         applyState(state);
-        if (state.log) setLog(state.log);
-        if (typeof state.lastNet === "number") $("lastNet").textContent = `${state.lastNet >= 0 ? "+" : ""}${fmt(state.lastNet)}`;
         if (connected && state.roundOpen === false) {
           const bet = Number(state.lockedBet || lockedBet || getBet());
-          const outcome = payoutFor(bet, state.player || player, state.dealer || dealer);
+          const outcome = payoutFor(bet, player, dealer);
+          const lastNet = outcome.payout - bet;
+          const label = outcome.natural ? "Blackjack natural." : outcome.push ? "Empate, vuelve la apuesta." : outcome.win ? "Ganaste la mano." : "La casa gana.";
+          $("lastNet").textContent = `${lastNet >= 0 ? "+" : ""}${fmt(lastNet)}`;
+          $("lastNet").style.color = lastNet >= 0 ? "#22c55e" : "#fb7185";
+          setLog(label);
           const settled = await api.casinoWager("casino-blackjack", bet, outcome.payout, { player: outcome.playerTotal, dealer: outcome.dealerTotal, natural: outcome.natural, source: "shared_settle" });
           if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
-          if (settled.reason && settled.reason !== "ok") setLog(`${state.log || "Mano cerrada."} Wallet: ${settled.reason}`);
+          if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
           lockedBet = 0;
+          unlockBet();
           render();
         }
         return;
@@ -439,7 +447,8 @@
         const settled = await api.casinoWager("casino-blackjack", bet, payout, { player: playerTotal, dealer: dealerTotal, natural });
         if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
         if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
-        api.send("settle", { ...statePayload(), log: label, lastNet });
+        unlockBet();
+        api.send("settle", statePayload());
       }
     }
 
@@ -527,7 +536,7 @@
       unlockBet();
       render();
       setLog("Mesa limpia.");
-      api?.send("state", statePayload());
+      api?.send("state", statePayload({ resetPlayer: true }));
     };
     $("bet").onchange = lockBetFromInput;
     $("bet").onblur = () => {

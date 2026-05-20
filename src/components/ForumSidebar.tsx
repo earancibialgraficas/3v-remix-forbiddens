@@ -39,7 +39,6 @@ const navItems: NavItem[] = [
     children: [
       { label: "Emuladores", to: "/arcade/salas" },
       { label: "Biblioteca", to: "/arcade/biblioteca" },
-      { label: "Juegos BET", to: "/arcade/bet" },
       { label: "Leaderboards", to: "/arcade/leaderboards" },
     ],
   },

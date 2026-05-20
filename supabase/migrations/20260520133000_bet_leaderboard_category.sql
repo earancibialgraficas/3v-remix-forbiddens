@@ -5,11 +5,8 @@ ALTER TABLE public.leaderboard_scores
 
 ALTER TABLE public.leaderboard_scores
   ADD CONSTRAINT leaderboard_scores_console_type_check
-  CHECK (console_type IN (
-    'nes', 'snes', 'gba', 'n64', 'ps1', 'arcade',
-    'gb', 'gbc', 'sega', 'megadrive',
-    'multiplayer', 'bet'
-  ));
+  CHECK (console_type IS NOT NULL AND btrim(console_type) <> '')
+  NOT VALID;
 
 CREATE OR REPLACE FUNCTION public.settle_casino_wager(
   p_game_slug text,
@@ -135,7 +132,7 @@ WITH wager_totals AS (
 ),
 named_totals AS (
   SELECT
-    wt.user_id,
+    wt.user_id::uuid AS user_id,
     COALESCE(p.display_name, 'Anonimo') AS display_name,
     wt.game_name,
     wt.score
@@ -149,7 +146,7 @@ FROM named_totals
 WHERE NOT EXISTS (
   SELECT 1
   FROM public.leaderboard_scores ls
-  WHERE ls.user_id::text = named_totals.user_id
+  WHERE ls.user_id = named_totals.user_id
     AND ls.game_name = named_totals.game_name
     AND ls.console_type = 'bet'
 );

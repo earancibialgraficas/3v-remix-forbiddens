@@ -820,6 +820,10 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       toast({ title: "Ingresa una cantidad", variant: "destructive" });
       return;
     }
+    if (amount % 5 !== 0) {
+      toast({ title: "Cantidad invalida", description: "Usa multiplos de 5 F-coin. Cada 5 F-coin valen 1 punto STAT.", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     const { data, error } = await (supabase as any).rpc("convert_fcoins_to_stat_points", { p_points: amount });
     setBusy(false);
@@ -832,7 +836,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       toast({ title: "Conversion rechazada", description: result.reason || "F-coin insuficiente", variant: "destructive" });
       return;
     }
-    toast({ title: "STAT recuperado", description: `+${amount.toLocaleString()} puntos STAT` });
+    const statAwarded = Number(result?.stat_awarded ?? Math.floor(amount / 5));
+    toast({ title: "STAT recuperado", description: `+${statAwarded.toLocaleString()} puntos STAT por ${amount.toLocaleString()} F-coin` });
     void loadInventory();
   };
 
@@ -1001,10 +1006,10 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">F-coin a STAT</p>
-                <p className="text-[10px] text-muted-foreground">Retira F-coin del inventario y conviertela de vuelta en puntos STAT.</p>
+                <p className="text-[10px] text-muted-foreground">Retira F-coin del inventario. Cada 5 F-coin valen 1 punto STAT.</p>
               </div>
               <div className="flex gap-1">
-                <Input type="number" min="1" value={fcoinToConvert} onChange={(e) => setFcoinToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
+                <Input type="number" min="5" step="5" value={fcoinToConvert} onChange={(e) => setFcoinToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
                 <Button size="sm" onClick={convertFcoinToStat} disabled={busy || !schemaReady} className="h-8 text-[10px]">
                   <ArrowLeftRight className="h-3.5 w-3.5" /> Retirar
                 </Button>

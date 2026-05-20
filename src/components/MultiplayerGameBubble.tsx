@@ -1306,7 +1306,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           gameId={activeGameId}
           roomCode={activeSessionRoomCode}
           userName={localDisplayName}
-          showListeners={isMassiveDecks}
+          showListeners
         />
       </div>
       )}

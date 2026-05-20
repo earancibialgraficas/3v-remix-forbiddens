@@ -54,6 +54,7 @@
     .metric{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #293241;background:#0d111a;border-radius:9px;padding:10px;margin-top:8px;color:#cbd5e1;font-size:12px}.metric b{color:#fff;font-size:18px}
     .heat{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:7px 9px;background:#1f2937;color:#fff;font-weight:900;font-size:12px}.pill.red{background:#b91c1c}.pill.green{background:#047857}.pill.black{background:#020617}
     table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#9ca3af;padding:9px 4px}td{padding:9px 4px;border-top:1px solid #2a2a2a}.pos{color:#22c55e;font-weight:1000}.neg{color:#fb7185;font-weight:1000}
+    .resultsBox{max-height:clamp(150px,34vh,310px);overflow:auto;padding-right:4px}.resultsBox::-webkit-scrollbar{width:10px}.resultsBox::-webkit-scrollbar-track{background:#0b0d12;border-radius:999px}.resultsBox::-webkit-scrollbar-thumb{background:linear-gradient(#facc15,#b45309);border:2px solid #0b0d12;border-radius:999px}
     @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:230px auto auto auto auto}.wheel{width:220px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
     @media(max-width:680px){.shell{padding:8px}.status{margin-left:0;width:100%}.roomBar{grid-template-columns:1fr 1fr;align-items:stretch}.wallet{justify-self:start}.betPanel{overflow-x:auto}.numGrid,.outside{min-width:760px}.side{grid-template-columns:1fr}.chip{width:48px;height:48px;font-size:12px}.spin{width:64px;height:64px}.controls{justify-content:flex-start}.tableSide{grid-template-rows:210px auto auto auto auto}}
   </style>
@@ -97,7 +98,6 @@
           <button class="chip" data-chip="250">250</button>
           <button class="chip" data-chip="500">500</button>
           <button id="spin" class="spin">GIRAR</button>
-          <button id="repeat" class="ghost">Repetir</button>
         </div>
       </section>
 
@@ -119,10 +119,12 @@
 
         <section class="sideCard">
           <div class="sideHead"><h2>RESULTADOS</h2><span id="net" class="pos">+0</span></div>
-          <table>
-            <thead><tr><th>Giro</th><th>Apuesta</th><th>Pago</th><th>Neto</th></tr></thead>
-            <tbody id="results"></tbody>
-          </table>
+          <div class="resultsBox">
+            <table>
+              <thead><tr><th>Giro</th><th>Apuesta</th><th>Pago</th><th>Neto</th></tr></thead>
+              <tbody id="results"></tbody>
+            </table>
+          </div>
         </section>
       </aside>
     </main>
@@ -140,8 +142,9 @@
     const red = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
     const $ = (id) => document.getElementById(id);
     const color = (n) => (n === 0 || n === "00") ? "green" : red.has(Number(n)) ? "red" : "black";
+    const hostParam = params.get("host") === "1";
     let api, connected = false, rotation = 0, chip = 25, wallet = null, net = 0, busy = false, ballFrame = 0;
-    let players = 1, lastBet = null, selected = { type: "number", value: 36, label: "36" };
+    let players = 1, peers = [], isLeader = hostParam, readyPlayers = new Set(), selected = { type: "number", value: 36, label: "36" };
     const spins = [];
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
@@ -175,6 +178,45 @@
       $("cold").innerHTML = cold.map(([n,c]) => `<span class="pill ${color(n)}">${n} ${c}x</span>`).join("");
       $("spinCount").textContent = String(spins.length);
       $("players").textContent = String(players);
+      renderSpinControl();
+    }
+
+    function localPlayerKey() {
+      return api?.playerId || profile.userId || "local";
+    }
+
+    function refreshLeadership() {
+      if (hostParam) {
+        isLeader = true;
+        return;
+      }
+      const list = peers.length ? peers : [{ playerId: api?.playerId, userId: profile.userId, joinedAt: Date.now() }];
+      const leader = [...list].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
+      isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
+    }
+
+    function readyCount() {
+      const leaderKey = localPlayerKey();
+      return [...readyPlayers].filter((key) => key !== leaderKey).length;
+    }
+
+    function everybodyReady() {
+      return players <= 1 || readyCount() >= Math.max(0, players - 1);
+    }
+
+    function renderSpinControl() {
+      const btn = $("spin");
+      if (!btn) return;
+      if (isLeader) {
+        btn.textContent = "GIRAR";
+        btn.disabled = busy || !connected || !everybodyReady();
+        btn.title = everybodyReady() ? "Girar la ruleta" : "Espera a que todos marquen LISTO";
+      } else {
+        const ready = readyPlayers.has(localPlayerKey());
+        btn.textContent = ready ? "LISTO ✓" : "LISTO";
+        btn.disabled = busy || !connected;
+        btn.title = "Marca que estas listo para el giro del lider";
+      }
     }
 
     function select(type, value, label, el) {
@@ -310,10 +352,24 @@
         setStatus("Crea o unete a una sala antes de girar.");
         return;
       }
+      if (!local && !isLeader) {
+        const key = localPlayerKey();
+        if (readyPlayers.has(key)) readyPlayers.delete(key);
+        else readyPlayers.add(key);
+        renderSpinControl();
+        api?.send("ready", { playerId: key, ready: readyPlayers.has(key), displayName: profile.displayName });
+        setStatus(readyPlayers.has(key) ? "Listo. Esperando al lider." : "Listo cancelado.");
+        return;
+      }
+      if (!local && !everybodyReady()) {
+        setStatus(`Faltan jugadores por marcar LISTO (${readyCount()}/${Math.max(0, players - 1)}).`);
+        renderSpinControl();
+        return;
+      }
       busy = true;
+      if (local) readyPlayers.clear();
       const bet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
       const result = payload?.result ?? spinResult();
-      lastBet = bet;
       const resultIndex = numbers.indexOf(result);
       const sector = 360 / numbers.length;
       const pocketAngle = (resultIndex + 0.5) * sector;
@@ -326,7 +382,10 @@
       const delta = payout - bet.amount;
       window.setTimeout(async () => {
         paintResult(result, bet, payout, delta);
-        if (!local) api.send("spin", { result });
+        if (!local) {
+          readyPlayers.clear();
+          api.send("spin", { result, bet });
+        }
         if (connected) {
           const settled = await api.casinoWager("casino-roulette", bet.amount, payout, { bet, result, source: local ? "shared_spin" : "own_spin" });
           if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
@@ -334,6 +393,7 @@
           else setStatus(`Sala ${api.room} / ${won ? "ganaste" : "sin premio"}`);
         }
         busy = false;
+        renderSpinControl();
       }, 3250);
     }
 
@@ -366,13 +426,28 @@
         api = await createRealtimeRoom({
           game: "casino-roulette",
           profile,
-          onPeers: (count) => { players = count || 1; renderHeat(); },
+          onPeers: (count, list) => {
+            players = count || 1;
+            peers = Array.isArray(list) ? list : peers;
+            refreshLeadership();
+            readyPlayers = new Set([...readyPlayers].filter((key) => peers.some((peer) => (peer.playerId || peer.userId) === key)));
+            renderHeat();
+          },
           onMessage: (message) => {
             if (message.type === "spin") spin(true, message.payload);
+            if (message.type === "ready") {
+              const key = message.payload?.playerId;
+              if (key) {
+                if (message.payload.ready) readyPlayers.add(key);
+                else readyPlayers.delete(key);
+                renderSpinControl();
+              }
+            }
             if (message.type === "wager") setStatus(`${message.payload.displayName} aposto ${fmt(message.payload.bet)} F-coin`);
           }
         });
         setStatus("Listo para crear sala.");
+        renderSpinControl();
         await refreshWallet();
         if (preset) connect(preset);
       } catch (error) {
@@ -384,7 +459,6 @@
     $("join").onclick = () => connect($("room").value);
     $("refreshWallet").onclick = refreshWallet;
     $("spin").onclick = () => spin(false);
-    $("repeat").onclick = () => { if (lastBet) spin(false, { bet: lastBet, result: spinResult() }); };
     setup();
   </script>
 </body>
