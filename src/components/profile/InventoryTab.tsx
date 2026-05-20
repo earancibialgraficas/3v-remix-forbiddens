@@ -21,6 +21,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
   const cursorItemRef = useRef<any | null>(null);
   const slotOrderPersistTimerRef = useRef<number | null>(null);
+  const tradeCompletedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [schemaReady, setSchemaReady] = useState(true);
   const [wallet, setWallet] = useState(0);
@@ -170,10 +171,28 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     tradeChannelRef.current = channel;
     channel.on("broadcast", { event: "trade_state" }, ({ payload }: any) => {
       if (payload?.from === userId) return;
+      if (tradeCompletedRef.current) return;
       setRemoteTradeSlots(Array.isArray(payload?.items) ? payload.items.concat(Array(4).fill(null)).slice(0, 4) : Array(4).fill(null));
       setRemotePoints(Number(payload?.points || 0));
       setRemoteReady(Boolean(payload?.ready));
       if (payload?.tradeId) setTradeId(String(payload.tradeId));
+    });
+    channel.on("broadcast", { event: "trade_completed" }, ({ payload }: any) => {
+      if (payload?.from === userId) return;
+      tradeCompletedRef.current = true;
+      toast({ title: "Trueque completado", description: "Items y F-coin intercambiados." });
+      setSelectedRecipient(null);
+      setRecipientSearch("");
+      setRecipientResults([]);
+      setPointsToSend("");
+      commitTradeSlots(Array(4).fill(null), false);
+      setRemoteTradeSlots(Array(4).fill(null));
+      setRemotePoints(0);
+      setLocalReady(false);
+      setRemoteReady(false);
+      setTradeId(null);
+      setNote("");
+      void loadInventory();
     });
     channel.subscribe();
     return () => {
@@ -301,6 +320,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       );
 
   const syncLiveTrade = async (ready = localReady, slots = tradeSlotsRef.current, pointsValue = pointsToSend) => {
+    if (tradeCompletedRef.current) return null;
     if (!selectedRecipient?.user_id || !schemaReady) return null;
     const points = Math.max(0, Math.floor(Number(pointsValue) || 0));
     const items = serializeTradeItems(slots);
@@ -342,6 +362,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   };
 
   const selectTradeRecipient = (target: any) => {
+    tradeCompletedRef.current = false;
     if (selectedRecipient?.user_id && selectedRecipient.user_id !== target.user_id) {
       returnTradeSlotsToInventory();
       setPointsToSend("");
@@ -407,6 +428,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   };
 
   const cancelTradeSession = () => {
+    tradeCompletedRef.current = false;
     void syncLiveTrade(false, Array(4).fill(null), "0");
     returnTradeSlotsToInventory();
     setPointsToSend("");
@@ -421,6 +443,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   };
 
   const createOffer = async () => {
+    if (tradeCompletedRef.current || busy) return;
     if (!selectedRecipient) {
       toast({ title: "Elige un usuario", variant: "destructive" });
       return;
@@ -438,8 +461,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       return;
     }
 
-    const synced = await syncLiveTrade(true);
-    const activeTradeId = synced?.trade_id || tradeId;
+    const synced = tradeId ? null : await syncLiveTrade(true);
+    const activeTradeId = tradeId || synced?.trade_id;
     if (!activeTradeId) {
       toast({ title: "Trueque no sincronizado", description: "Espera a que la mesa de trueque este lista.", variant: "destructive" });
       return;
@@ -458,10 +481,33 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
 
     const result = data as any;
     if (result?.ok === false) {
+      if (tradeCompletedRef.current || ["both_users_must_be_ready", "trade_not_pending"].includes(String(result.reason || ""))) {
+        tradeCompletedRef.current = true;
+        toast({ title: "Trueque actualizado", description: "La mesa ya fue cerrada. Recargando inventario." });
+        setSelectedRecipient(null);
+        setRecipientSearch("");
+        setRecipientResults([]);
+        setPointsToSend("");
+        commitTradeSlots(Array(4).fill(null), false);
+        setRemoteTradeSlots(Array(4).fill(null));
+        setRemotePoints(0);
+        setLocalReady(false);
+        setRemoteReady(false);
+        setTradeId(null);
+        setNote("");
+        void loadInventory();
+        return;
+      }
       toast({ title: "Trueque rechazado", description: result.reason || "Revisa saldos, items o confirmaciones.", variant: "destructive" });
       return;
     }
 
+    tradeCompletedRef.current = true;
+    void tradeChannelRef.current?.send({
+      type: "broadcast",
+      event: "trade_completed",
+      payload: { from: userId, tradeId: activeTradeId },
+    });
     toast({ title: "Trueque completado", description: "Items y F-coin intercambiados." });
     setSelectedRecipient(null);
     setRecipientSearch("");

@@ -72,12 +72,17 @@
     .cell.marked{background:#facc15;color:#2b1500;box-shadow:inset 0 0 0 3px #fff7,0 0 10px #facc1555}
     .cell.called:not(.marked){outline:3px solid #22d3ee;outline-offset:-4px}
     .claimBtn{position:absolute;right:8px;top:28px;z-index:2;min-height:26px;border-color:#facc15;background:linear-gradient(#facc15,#d97706);color:#220c00;font-size:10px;text-transform:uppercase;box-shadow:0 0 18px #facc1580}
-    .toastStage{position:fixed;inset:0;display:none;place-items:center;z-index:20;background:#02061788;backdrop-filter:blur(2px)}
+    .toastStage{position:fixed;inset:0;display:none;place-items:center;z-index:20;background:#02061788;backdrop-filter:blur(2px);pointer-events:none}
     .toastStage.show{display:grid;animation:fade .9s ease both}
     .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544}
     .toastStage b{display:block;font-size:34px;color:#facc15;text-shadow:0 0 20px #facc1580;text-transform:uppercase}
     .toastStage span{color:#cbd5e1}
+    .sideToast{position:fixed;right:16px;bottom:16px;z-index:30;display:none;max-width:min(320px,calc(100vw - 32px));border:1px solid #22d3ee66;border-radius:12px;background:#07111ff2;padding:10px 12px;box-shadow:0 14px 34px #000b,0 0 18px #22d3ee33;pointer-events:none}
+    .sideToast.show{display:block;animation:sidePop 2.4s ease both}
+    .sideToast b{display:block;color:#facc15;font-size:12px;text-transform:uppercase}
+    .sideToast span{display:block;margin-top:2px;color:#cbd5e1;font-size:11px}
     @keyframes fade{0%,100%{opacity:0}15%,82%{opacity:1}}
+    @keyframes sidePop{0%,100%{opacity:0;transform:translateY(10px)}12%,88%{opacity:1;transform:translateY(0)}}
     @media(max-width:860px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.left{min-height:560px}.cards{grid-template-columns:1fr}.status{width:100%;margin-left:0;text-align:left}.top{flex-wrap:wrap}.brand{width:100%}.right{max-height:none}.cell{height:34px;font-size:16px}}
   </style>
 </head>
@@ -126,6 +131,7 @@
   </main>
 
   <div class="toastStage" id="stageToast"><div><b id="stageTitle"></b><span id="stageText"></span></div></div>
+  <div class="sideToast" id="sideToast"><b id="sideToastTitle"></b><span id="sideToastText"></span></div>
 
   <script src="/games/realtime-room.js"></script>
   <script>
@@ -158,6 +164,13 @@
       void $("stageToast").offsetWidth;
       $("stageToast").classList.add("show");
       speak(`${title}. ${text}`);
+    }
+    function showSideToast(title, text){
+      $("sideToastTitle").textContent = title;
+      $("sideToastText").textContent = text;
+      $("sideToast").classList.remove("show");
+      void $("sideToast").offsetWidth;
+      $("sideToast").classList.add("show");
     }
     function renderWallet(next){
       if (typeof next === "number") wallet = next;
@@ -463,7 +476,7 @@
         updatePrizePool();
         renderCards();
         api.send("card_purchase", { amount: 100, cardFees, prizePool, cardSignature: signature });
-        showStage("Carton comprado", "-100 F-coin descontados.");
+        showSideToast("Carton comprado", "-100 F-coin descontados.");
         log(`Carton comprado: -100 F-coin. ${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
       } catch (error) {
         console.error("Bingo buyCard error", error);
