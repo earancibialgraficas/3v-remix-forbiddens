@@ -16,6 +16,9 @@ interface InventoryTabProps {
 export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
+  const slotItemsRef = useRef<any[]>(Array(27).fill(null));
+  const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
+  const cursorItemRef = useRef<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [schemaReady, setSchemaReady] = useState(true);
   const [wallet, setWallet] = useState(0);
@@ -99,6 +102,18 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   }, [userId]);
 
   useEffect(() => {
+    slotItemsRef.current = slotItems;
+  }, [slotItems]);
+
+  useEffect(() => {
+    tradeSlotsRef.current = tradeSlots;
+  }, [tradeSlots]);
+
+  useEffect(() => {
+    cursorItemRef.current = cursorItem;
+  }, [cursorItem]);
+
+  useEffect(() => {
     setLocalReady(false);
     setRemoteReady(false);
     setRemoteTradeSlots(Array(4).fill(null));
@@ -167,8 +182,11 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       if (slot >= 0) nextSlots[slot] = item;
     });
     setSlotItems(nextSlots);
+    slotItemsRef.current = nextSlots;
     setTradeSlots(Array(4).fill(null));
+    tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
+    cursorItemRef.current = null;
   }, [boosters, userId]);
 
   const searchUsers = async () => {
@@ -192,7 +210,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     return item?.id ? [{ id: item.id, quantity: Math.max(1, Math.floor(Number(item.quantity || 1))) }] : [];
   };
 
-  const serializeTradeItems = (slots = tradeSlots) =>
+  const serializeTradeItems = (slots = tradeSlotsRef.current) =>
     slots
       .filter(Boolean)
       .flatMap((item, index) =>
@@ -206,7 +224,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         })),
       );
 
-  const syncLiveTrade = async (ready = localReady, slots = tradeSlots, pointsValue = pointsToSend) => {
+  const syncLiveTrade = async (ready = localReady, slots = tradeSlotsRef.current, pointsValue = pointsToSend) => {
     if (!selectedRecipient?.user_id || !schemaReady) return null;
     const points = Math.max(0, Math.floor(Number(pointsValue) || 0));
     const items = serializeTradeItems(slots);
@@ -314,7 +332,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     setRecipientSearch("");
     setRecipientResults([]);
     setPointsToSend("");
-    setTradeSlots(Array(4).fill(null));
+    commitTradeSlots(Array(4).fill(null), false);
     setRemoteTradeSlots(Array(4).fill(null));
     setRemotePoints(0);
     setLocalReady(false);
@@ -327,6 +345,23 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const persistSlotOrder = (slots: any[]) => {
     const order = boosters.map((item) => slots.findIndex((slotItem) => slotItem?.id === item.id));
     localStorage.setItem(`inventory-slot-order:${userId}`, JSON.stringify(order));
+  };
+
+  const commitSlotItems = (next: any[]) => {
+    slotItemsRef.current = next;
+    setSlotItems(next);
+    persistSlotOrder(next);
+  };
+
+  const commitTradeSlots = (next: any[], changed = true) => {
+    tradeSlotsRef.current = next;
+    setTradeSlots(next);
+    if (changed) markTradeChanged();
+  };
+
+  const commitCursorItem = (next: any | null) => {
+    cursorItemRef.current = next;
+    setCursorItem(next);
   };
 
   const compactSources = (sources: any[]) => {
@@ -403,18 +438,30 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     return next;
   };
 
-  const returnTradeSlotsToInventory = (slots = tradeSlots) => {
+  const placeStackInTradeSlots = (slots: any[], item: any) => {
+    const next = [...slots];
+    const sameIndex = next.findIndex((slot) => canStackTogether(slot, item));
+    if (sameIndex >= 0) {
+      next[sameIndex] = combineStacks(next[sameIndex], item);
+      return { placed: true, slots: next };
+    }
+    const emptyIndex = next.findIndex((slot) => !slot);
+    if (emptyIndex >= 0) {
+      next[emptyIndex] = cloneStack(item);
+      return { placed: true, slots: next };
+    }
+    return { placed: false, slots };
+  };
+
+  const returnTradeSlotsToInventory = (slots = tradeSlotsRef.current) => {
     const returning = slots.filter(Boolean);
     if (returning.length === 0) return;
-    setSlotItems((current) => {
-      let next = [...current];
-      returning.forEach((item) => {
-        next = addStackToSlots(next, item);
-      });
-      persistSlotOrder(next);
-      return next;
+    let nextInventory = [...slotItemsRef.current];
+    returning.forEach((item) => {
+      nextInventory = addStackToSlots(nextInventory, item);
     });
-    setTradeSlots(Array(4).fill(null));
+    commitSlotItems(nextInventory);
+    commitTradeSlots(Array(4).fill(null), false);
     setLocalReady(false);
   };
 
@@ -424,14 +471,11 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
 
   const moveSlot = (from: number, to: number) => {
     if (from === to) return;
-    setSlotItems((current) => {
-      const next = [...current];
-      const moving = next[from];
-      next[from] = next[to];
-      next[to] = moving;
-      persistSlotOrder(next);
-      return next;
-    });
+    const next = [...slotItemsRef.current];
+    const moving = next[from];
+    next[from] = next[to];
+    next[to] = moving;
+    commitSlotItems(next);
   };
 
   const cloneStack = (item: any, quantity = Number(item?.quantity || 0)) => item ? {
@@ -455,45 +499,22 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         : <Archive className={className} />
   );
 
-  const placeInFirstTradeSlot = (item: any) => {
-    if (!item) return false;
+  const quickMoveToTrade = (slotIndex: number) => {
+    const item = slotItemsRef.current[slotIndex];
+    if (!item) return;
     if (!boosterCanBeTraded(item)) {
       toast({ title: "Objeto no comerciable aun", description: itemIsActive(item) ? "Ese potenciador esta activo; podra comerciarse cuando terminen sus 7 dias." : "La barra de trueque por ahora acepta potenciadores.", variant: "destructive" });
-      return false;
+      return;
     }
-    let placed = false;
-    setTradeSlots((current) => {
-      const next = [...current];
-      const sameIndex = next.findIndex((slot) => slot?.item_slug === item.item_slug);
-      if (sameIndex >= 0) {
-        next[sameIndex] = combineStacks(next[sameIndex], item);
-        placed = true;
-        return next;
-      }
-      const emptyIndex = next.findIndex((slot) => !slot);
-      if (emptyIndex >= 0) {
-        next[emptyIndex] = cloneStack(item);
-        placed = true;
-      }
-      return next;
-    });
-    return placed;
-  };
-
-  const quickMoveToTrade = (slotIndex: number) => {
-    const item = slotItems[slotIndex];
-    if (!item) return;
-    if (!placeInFirstTradeSlot(item)) {
+    const result = placeStackInTradeSlots(tradeSlotsRef.current, item);
+    if (!result.placed) {
       toast({ title: "Barra de trueque llena", variant: "destructive" });
       return;
     }
-    setSlotItems((current) => {
-      const next = [...current];
-      next[slotIndex] = null;
-      persistSlotOrder(next);
-      return next;
-    });
-    markTradeChanged();
+    const nextInventory = [...slotItemsRef.current];
+    nextInventory[slotIndex] = null;
+    commitTradeSlots(result.slots);
+    commitSlotItems(nextInventory);
   };
 
   const handleSlotLeftClick = (index: number, event: React.MouseEvent) => {
@@ -501,84 +522,79 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     moveCursorToEvent(event);
     if (suppressClick) return;
     setContextMenu(null);
-    const item = slotItems[index];
+    const item = slotItemsRef.current[index];
     if (event.shiftKey && item) {
       quickMoveToTrade(index);
       return;
     }
-    setSlotItems((current) => {
-      const next = [...current];
-      const target = next[index];
-      if (!cursorItem && target) {
-        setCursorItem(cloneStack(target));
-        next[index] = null;
-      } else if (cursorItem && !target) {
-        next[index] = cloneStack(cursorItem);
-        setCursorItem(null);
-      } else if (cursorItem && target) {
-        if (target.item_slug === cursorItem.item_slug) {
-          next[index] = combineStacks(target, cursorItem);
-          setCursorItem(null);
-        } else {
-          next[index] = cloneStack(cursorItem);
-          setCursorItem(cloneStack(target));
-        }
+    const next = [...slotItemsRef.current];
+    const target = next[index];
+    const hand = cursorItemRef.current;
+    if (!hand && target) {
+      commitCursorItem(cloneStack(target));
+      next[index] = null;
+    } else if (hand && !target) {
+      next[index] = cloneStack(hand);
+      commitCursorItem(null);
+    } else if (hand && target) {
+      if (canStackTogether(target, hand)) {
+        next[index] = combineStacks(target, hand);
+        commitCursorItem(null);
+      } else {
+        next[index] = cloneStack(hand);
+        commitCursorItem(cloneStack(target));
       }
-      persistSlotOrder(next);
-      return next;
-    });
+    }
+    commitSlotItems(next);
   };
 
   const handleSlotRightClick = (index: number, event: React.MouseEvent) => {
     event.preventDefault();
     moveCursorToEvent(event);
     setContextMenu(null);
-    setSlotItems((current) => {
-      const next = [...current];
-      const target = next[index];
-      if (cursorItem) {
-        if (!target) {
-          const { picked, remainder } = splitStackItem(cursorItem, 1);
-          next[index] = picked;
-          setCursorItem(remainder);
-        } else if (target.item_slug === cursorItem.item_slug) {
-          const { picked, remainder } = splitStackItem(cursorItem, 1);
-          next[index] = picked ? combineStacks(target, picked) : target;
-          setCursorItem(remainder);
-        }
-      } else if (target && Number(target.quantity || 0) > 1) {
-        const picked = Math.floor(Number(target.quantity || 0) / 2);
-        const split = splitStackItem(target, picked);
-        next[index] = split.remainder;
-        setCursorItem(split.picked);
-      } else if (target) {
-        setContextMenu({ item: target, slot: index, x: event.clientX, y: event.clientY });
+    const next = [...slotItemsRef.current];
+    const target = next[index];
+    const hand = cursorItemRef.current;
+    if (hand) {
+      if (!target) {
+        const { picked, remainder } = splitStackItem(hand, 1);
+        next[index] = picked;
+        commitCursorItem(remainder);
+      } else if (canStackTogether(target, hand)) {
+        const { picked, remainder } = splitStackItem(hand, 1);
+        next[index] = picked ? combineStacks(target, picked) : target;
+        commitCursorItem(remainder);
       }
-      persistSlotOrder(next);
-      return next;
-    });
+    } else if (target && Number(target.quantity || 0) > 1) {
+      const picked = Math.floor(Number(target.quantity || 0) / 2);
+      const split = splitStackItem(target, picked);
+      next[index] = split.remainder;
+      commitCursorItem(split.picked);
+    } else if (target) {
+      setContextMenu({ item: target, slot: index, x: event.clientX, y: event.clientY });
+    }
+    commitSlotItems(next);
   };
 
   const handleSlotDoubleClick = (index: number) => {
-    const item = slotItems[index];
-    if (!item || cursorItem) return;
+    const item = slotItemsRef.current[index] || cursorItemRef.current;
+    if (!item) return;
     let collected: any = null;
-    setSlotItems((current) => {
-      const next = current.map((slot) => {
-        if (slot?.item_slug === item.item_slug) {
-          collected = collected ? combineStacks(collected, slot) : cloneStack(slot);
-          return null;
-        }
-        return slot;
-      });
-      setCursorItem(collected);
-      persistSlotOrder(next);
-      return next;
+    if (cursorItemRef.current && !canStackTogether(cursorItemRef.current, item)) return;
+    if (cursorItemRef.current) collected = cloneStack(cursorItemRef.current);
+    const next = slotItemsRef.current.map((slot) => {
+      if (slot?.item_slug === item.item_slug) {
+        collected = collected ? combineStacks(collected, slot) : cloneStack(slot);
+        return null;
+      }
+      return slot;
     });
+    commitCursorItem(collected);
+    commitSlotItems(next);
   };
 
   const beginDistribution = (index: number, mode: "even" | "single", event: React.MouseEvent) => {
-    if (!cursorItem) return;
+    if (!cursorItemRef.current) return;
     event.preventDefault();
     moveCursorToEvent(event);
     setDragMode(mode);
@@ -591,67 +607,83 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   };
 
   const finishDistribution = () => {
-    if (!dragMode || !cursorItem || dragTouched.length === 0) {
+    const hand = cursorItemRef.current;
+    if (!dragMode || !hand || dragTouched.length === 0) {
       setDragMode(null);
       setDragTouched([]);
       return;
     }
-    setSlotItems((current) => {
-      const next = [...current];
-      const emptyTouched = dragTouched.filter((index) => !next[index]);
-      if (emptyTouched.length === 0) return next;
-      const available = Number(cursorItem.quantity || 0);
+    if (dragTouched.length <= 1) {
+      setDragMode(null);
+      setDragTouched([]);
+      return;
+    }
+
+    const next = [...slotItemsRef.current];
+    const emptyTouched = dragTouched.filter((index) => !next[index]);
+    let distributed = false;
+    if (emptyTouched.length > 0) {
+      const available = Number(hand.quantity || 0);
       if (dragMode === "single") {
         const count = Math.min(available, emptyTouched.length);
-        let hand = cursorItem;
-        emptyTouched.slice(0, count).forEach((index) => {
-          const split = splitStackItem(hand, 1);
-          next[index] = split.picked;
-          hand = split.remainder;
+        let currentHand = hand;
+        emptyTouched.slice(0, count).forEach((slotIndex) => {
+          const split = splitStackItem(currentHand, 1);
+          if (split.picked) {
+            next[slotIndex] = split.picked;
+            distributed = true;
+          }
+          currentHand = split.remainder;
         });
-        setCursorItem(hand);
+        commitCursorItem(currentHand);
       } else {
         const perSlot = Math.floor(available / emptyTouched.length);
         if (perSlot > 0) {
-          let hand = cursorItem;
-          emptyTouched.forEach((index) => {
-            const split = splitStackItem(hand, perSlot);
-            next[index] = split.picked;
-            hand = split.remainder;
+          let currentHand = hand;
+          emptyTouched.forEach((slotIndex) => {
+            const split = splitStackItem(currentHand, perSlot);
+            if (split.picked) {
+              next[slotIndex] = split.picked;
+              distributed = true;
+            }
+            currentHand = split.remainder;
           });
-          setCursorItem(hand);
+          commitCursorItem(currentHand);
         }
       }
-      persistSlotOrder(next);
-      return next;
-    });
+    }
+    if (distributed) commitSlotItems(next);
     setDragMode(null);
     setDragTouched([]);
-    setSuppressClick(true);
-    window.setTimeout(() => setSuppressClick(false), 0);
+    if (distributed) {
+      setSuppressClick(true);
+      window.setTimeout(() => setSuppressClick(false), 0);
+    }
   };
 
   const handleTradeSlotClick = (index: number, event?: React.MouseEvent) => {
     if (event) moveCursorToEvent(event);
-    setTradeSlots((current) => {
-      const next = [...current];
-      const target = next[index];
-      if (cursorItem && !target) {
-        next[index] = cloneStack(cursorItem);
-        setCursorItem(null);
-      } else if (cursorItem && target?.item_slug === cursorItem.item_slug) {
-        next[index] = combineStacks(target, cursorItem);
-        setCursorItem(null);
-      } else if (cursorItem && target) {
-        next[index] = cloneStack(cursorItem);
-        setCursorItem(cloneStack(target));
-      } else if (!cursorItem && target) {
-        setCursorItem(cloneStack(target));
-        next[index] = null;
-      }
-      return next;
-    });
-    markTradeChanged();
+    const next = [...tradeSlotsRef.current];
+    const target = next[index];
+    const hand = cursorItemRef.current;
+    if (hand && !boosterCanBeTraded(hand)) {
+      toast({ title: "Objeto no comerciable aun", description: itemIsActive(hand) ? "Ese potenciador esta activo; podra comerciarse cuando terminen sus 7 dias." : "La barra de trueque por ahora acepta potenciadores.", variant: "destructive" });
+      return;
+    }
+    if (hand && !target) {
+      next[index] = cloneStack(hand);
+      commitCursorItem(null);
+    } else if (hand && canStackTogether(target, hand)) {
+      next[index] = combineStacks(target, hand);
+      commitCursorItem(null);
+    } else if (hand && target) {
+      next[index] = cloneStack(hand);
+      commitCursorItem(cloneStack(target));
+    } else if (!hand && target) {
+      commitCursorItem(cloneStack(target));
+      next[index] = null;
+    }
+    commitTradeSlots(next);
   };
 
   const convertStatToFcoin = async () => {
@@ -699,7 +731,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   };
 
   const sendStackToTrade = (slotIndex: number) => {
-    const item = slotItems[slotIndex];
+    const item = slotItemsRef.current[slotIndex];
     if (!item) return;
     const qty = Math.max(1, Number(item.quantity || 1));
     quickMoveToTrade(slotIndex);
@@ -813,7 +845,6 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   if (event.button === 2 && cursorItem) beginDistribution(index, "single", event);
                 }}
                 onMouseEnter={() => touchDistributionSlot(index)}
-                onMouseUp={finishDistribution}
                 onContextMenu={(event) => {
                   handleSlotRightClick(index, event);
                 }}
