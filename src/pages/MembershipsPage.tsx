@@ -24,7 +24,7 @@ const countryPricing: PriceByCountry = {
 
 const tiers = [
   {
-    name: "Novato", basePrice: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
+    name: "Novato", basePrice: 0, boosters: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
     checkoutUrl: null,
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
@@ -39,7 +39,7 @@ const tiers = [
     ],
   },
   {
-    name: "Lite", basePrice: 5, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
+    name: "Lite", basePrice: 5, boosters: 1, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
     checkoutUrl: "https://mpago.li/11TpqQK", // 🔗 LINK MERCADO PAGO LITE
     features: [
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
@@ -55,7 +55,7 @@ const tiers = [
     ],
   },
   {
-    name: "Miembro del Legado", basePrice: 18, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
+    name: "Miembro del Legado", basePrice: 18, boosters: 7, color: "border-neon-green/80", textColor: "text-neon-green", isVIP: true,
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
     checkoutUrl: "https://mpago.li/16EaVeh", // 🔗 LINK MERCADO PAGO LEGADO
     features: [
@@ -74,7 +74,7 @@ const tiers = [
     ],
   },
   {
-    name: "Creador de Contenido", basePrice: 25, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
+    name: "Creador de Contenido", basePrice: 25, boosters: 10, color: "border-neon-cyan/80", textColor: "text-neon-cyan", isVIP: true,
     shadow: "shadow-[0_0_25px_rgba(0,255,255,0.2)]",
     requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
     checkoutUrl: "https://mpago.li/1JWBWQb", // 🔗 LINK MERCADO PAGO CREADOR
@@ -94,7 +94,7 @@ const tiers = [
     ],
   },
   {
-    name: "Entusiasta", basePrice: 10, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
+    name: "Entusiasta", basePrice: 10, boosters: 3, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
     checkoutUrl: "https://mpago.li/2wzhSPp", // 🔗 LINK MERCADO PAGO ENTUSIASTA
     features: [
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
@@ -110,7 +110,7 @@ const tiers = [
     ],
   },
   {
-    name: "Coleccionista", basePrice: 15, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
+    name: "Coleccionista", basePrice: 15, boosters: 5, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
     checkoutUrl: "https://mpago.li/2Jckx8W", // 🔗 LINK MERCADO PAGO COLECCIONISTA
     features: [
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
@@ -126,7 +126,7 @@ const tiers = [
     ],
   },
   {
-    name: "Leyenda Arcade", basePrice: 20, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
+    name: "Leyenda Arcade", basePrice: 20, boosters: 9, color: "border-neon-yellow/50", textColor: "text-neon-yellow", isVIP: false,
     requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
     checkoutUrl: "https://mpago.li/28qU5Gn", // 🔗 LINK MERCADO PAGO LEYENDA
     features: [
@@ -320,6 +320,13 @@ export default function MembershipsPage() {
                   <div className="my-6">
                     <p className="text-3xl sm:text-4xl font-bold font-body text-foreground tracking-tighter">
                       {formatPrice(tier.basePrice)}
+                    </p>
+                  </div>
+
+                  <div className="mb-4 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 px-3 py-2">
+                    <p className="font-pixel text-[9px] uppercase text-neon-yellow">Potenciadores x3</p>
+                    <p className="mt-1 text-[11px] font-body text-muted-foreground">
+                      {tier.boosters > 0 ? `${tier.boosters} stack${tier.boosters === 1 ? "" : "s"} semanales de puntos x3 por 7 dias.` : "Sin potenciadores incluidos."}
                     </p>
                   </div>
 

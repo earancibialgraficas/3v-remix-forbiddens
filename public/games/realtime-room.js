@@ -172,6 +172,31 @@
       return result;
     };
 
-    return { connect, disconnect, send, awardWin, playerId, getPlayers, get room() { return activeRoom; } };
+    const casinoWager = async (gameSlug, bet = 0, payout = 0, meta = {}) => {
+      const userId = profile.userId;
+      if (!userId) return { awarded: 0, reason: "anonymous" };
+      const safeBet = Math.max(0, Math.floor(Number(bet) || 0));
+      const safePayout = Math.max(0, Math.floor(Number(payout) || 0));
+      try {
+        const { data, error } = await client.rpc("settle_casino_wager", {
+          p_game_slug: gameSlug || options.game,
+          p_room_code: activeRoom,
+          p_bet: safeBet,
+          p_payout: safePayout,
+          p_meta: meta || {},
+        });
+        if (error) return { awarded: 0, reason: error.message };
+        const result = data || { awarded: 0, reason: "empty_response" };
+        if ((result.awarded || 0) > 0) {
+          window.parent?.postMessage({ type: "game:pointsAwarded", awarded: result.awarded || 0, total: result.wallet_balance || 0 }, "*");
+        }
+        send("wager", { userId, displayName: profile.displayName || "Jugador", gameSlug, bet: safeBet, payout: safePayout, awarded: result.awarded || 0 });
+        return result;
+      } catch (e) {
+        return { awarded: 0, reason: e?.message || "rpc_missing" };
+      }
+    };
+
+    return { connect, disconnect, send, awardWin, casinoWager, playerId, getPlayers, get room() { return activeRoom; } };
   };
 })();

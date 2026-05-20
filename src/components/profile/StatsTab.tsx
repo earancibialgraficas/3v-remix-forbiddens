@@ -1,9 +1,13 @@
-import { Gamepad2 } from "lucide-react";
+import { Gamepad2, Lock, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { scoreAchievements, secretAchievements, getUnlockedScoreAchievements } from "@/lib/achievements";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
 export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, displayTier, isStaff, statColors }: any) {
+  const totalScore = Number(profile?.total_score || 0);
+  const unlockedScoreIds = new Set(getUnlockedScoreAchievements(totalScore).map((achievement) => achievement.id));
+
   return (
     <div className="bg-card border border-border rounded p-4 space-y-3 animate-in fade-in">
       <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">Estadísticas</h3>
@@ -37,6 +41,36 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
           </div>
         </div>
       )}
+      <div className="mt-4 border-t border-border/50 pt-4">
+        <h4 className="font-pixel text-[10px] text-neon-yellow mb-2 flex items-center justify-center md:justify-start gap-1 uppercase">
+          <Trophy className="w-3 h-3" /> Logros
+        </h4>
+        <div className="grid gap-2 md:grid-cols-2">
+          {scoreAchievements.map((achievement) => {
+            const unlocked = unlockedScoreIds.has(achievement.id);
+            return (
+              <div key={achievement.id} className={cn("rounded border p-2.5 transition-colors", unlocked ? "border-neon-yellow/40 bg-neon-yellow/10" : "border-border/60 bg-muted/20 opacity-70")}>
+                <div className="flex items-center gap-2">
+                  <Trophy className={cn("h-3.5 w-3.5", unlocked ? "text-neon-yellow" : "text-muted-foreground")} />
+                  <p className="font-pixel text-[8px] uppercase text-foreground">{achievement.name}</p>
+                  <span className={cn("ml-auto font-pixel text-[7px]", unlocked ? "text-neon-green" : "text-muted-foreground")}>{unlocked ? "OK" : `${Math.min(99, Math.floor((totalScore / Number(achievement.threshold || 1)) * 100))}%`}</span>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground font-body">{achievement.description}</p>
+              </div>
+            );
+          })}
+          {secretAchievements.map((achievement) => (
+            <div key={achievement.id} className="rounded border border-neon-magenta/20 bg-neon-magenta/5 p-2.5">
+              <div className="flex items-center gap-2">
+                <Lock className="h-3.5 w-3.5 text-neon-magenta" />
+                <p className="font-pixel text-[8px] uppercase text-foreground">{achievement.name}</p>
+                <span className="ml-auto font-pixel text-[7px] text-neon-magenta">SECRETO</span>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground font-body">{achievement.secretHint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

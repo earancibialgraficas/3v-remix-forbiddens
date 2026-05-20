@@ -97,13 +97,13 @@ export default function ConfiguracionTab({ user, profile, refreshProfile, displa
   };
 
   return (
-    <div className="bg-card border border-border rounded p-4 space-y-4 animate-in fade-in">
+    <div className="bg-[#151520] border border-neon-cyan/20 rounded p-4 space-y-4 animate-in fade-in shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
          <h3 className="font-pixel text-[10px] text-neon-cyan uppercase">Ajustes de Perfil</h3>
          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs underline">Cerrar</button>
       </div>
       
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
         <div><label className="text-[10px] font-body text-muted-foreground block mb-0.5">Nombre</label><Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="h-8 bg-muted text-sm font-body w-full" /></div>
         <div><label className="text-[10px] font-body text-muted-foreground block mb-0.5">Bio</label><Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="bg-muted text-sm font-body min-h-[60px] w-full" placeholder="Cuéntanos sobre ti..." /></div>
         <div><label className="text-[10px] font-body text-muted-foreground block mb-0.5">Instagram URL</label><Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-8 bg-muted text-xs font-body w-full" /></div>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bingo Arcade">
+  <rect width="512" height="512" fill="#080910"/>
+  <rect x="66" y="92" width="380" height="340" rx="14" fill="#f8fafc" stroke="#67e8f9" stroke-width="8"/>
+  <text x="256" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="900" fill="#facc15">BINGO</text>
+  <g font-family="Arial" font-size="28" font-weight="900" text-anchor="middle">
+    <text x="120" y="150" fill="#ef4444">B</text><text x="188" y="150" fill="#0f766e">I</text><text x="256" y="150" fill="#7c3aed">N</text><text x="324" y="150" fill="#0f766e">G</text><text x="392" y="150" fill="#ef4444">O</text>
+  </g>
+  <g fill="#111827" font-family="Arial" font-size="24" text-anchor="middle">
+    <text x="120" y="206">7</text><text x="188" y="206">19</text><text x="256" y="206">33</text><text x="324" y="206">48</text><text x="392" y="206">71</text>
+    <text x="120" y="270">2</text><text x="188" y="270">24</text><text x="256" y="270">★</text><text x="324" y="270">52</text><text x="392" y="270">66</text>
+    <text x="120" y="334">14</text><text x="188" y="334">28</text><text x="256" y="334">39</text><text x="324" y="334">57</text><text x="392" y="334">75</text>
+  </g>
+  <text x="256" y="466" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="900" fill="#67e8f9">EXTRA PTS</text>
+</svg>

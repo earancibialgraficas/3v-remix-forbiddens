@@ -68,7 +68,7 @@ const regulatePoint = (point, borders) => ({
     y: valueInRange(borders.top, borders.bottom, point.y)
 });
 
-const drawCellWithLines = (cell, borders, graph) => {
+const traceCellPath = (cell, borders, graph) => {
     let pointCount = 30 + ~~(cell.mass / 5);
     let points = [];
     for (let theta = 0; theta < FULL_ANGLE; theta += FULL_ANGLE / pointCount) {
@@ -81,6 +81,10 @@ const drawCellWithLines = (cell, borders, graph) => {
         graph.lineTo(points[i].x, points[i].y);
     }
     graph.closePath();
+};
+
+const drawCellWithLines = (cell, borders, graph) => {
+    traceCellPath(cell, borders, graph);
     graph.fill();
     graph.stroke();
 }
@@ -99,15 +103,24 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
             // Border corrections are not needed, the cell can be drawn as a circle
             drawRoundObject(cell, cell.radius, graph);
         }
-        if (avatar && avatar.complete && avatar.naturalWidth > 0 && !cellTouchingBorders(cell, borders)) {
+        if (avatar && avatar.complete && avatar.naturalWidth > 0) {
+            const touchingBorders = cellTouchingBorders(cell, borders);
             graph.save();
-            graph.beginPath();
-            graph.arc(cell.x, cell.y, Math.max(0, cell.radius - 3), 0, FULL_ANGLE);
+            if (touchingBorders) {
+                traceCellPath(cell, borders, graph);
+            } else {
+                graph.beginPath();
+                graph.arc(cell.x, cell.y, Math.max(0, cell.radius - 3), 0, FULL_ANGLE);
+            }
             graph.clip();
             graph.drawImage(avatar, cell.x - cell.radius, cell.y - cell.radius, cell.radius * 2, cell.radius * 2);
             graph.restore();
-            graph.beginPath();
-            graph.arc(cell.x, cell.y, cell.radius, 0, FULL_ANGLE);
+            if (touchingBorders) {
+                traceCellPath(cell, borders, graph);
+            } else {
+                graph.beginPath();
+                graph.arc(cell.x, cell.y, cell.radius, 0, FULL_ANGLE);
+            }
             graph.strokeStyle = cell.borderColor;
             graph.lineWidth = 6;
             graph.stroke();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, Settings, X, Bell } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Archive } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import AlmacenamientoTab from "@/components/profile/AlmacenamientoTab";
 import GuardadosTab from "@/components/profile/GuardadosTab";
 import ModerationPanel from "@/components/profile/ModerationPanel";
 import EnergyBar from "@/components/profile/EnergyBar";
+import InventoryTab from "@/components/profile/InventoryTab";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -52,6 +53,7 @@ export default function ProfilePage() {
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   
   const [colorTarget, setColorTarget] = useState<"border" | "name" | "role" | "staff" | "stat_points" | "stat_followers" | "stat_following" | "stat_posts_forum" | "stat_posts_social" | "stat_games">("border");
   const [avatarBorderColor, setAvatarBorderColor] = useState("");
@@ -68,7 +70,7 @@ export default function ProfilePage() {
   const [localColorCache, setLocalColorCache] = useState("#ffffff");
 
   const tabFromUrl = searchParams.get("tab") as any;
-  const validTabs = ["avisos", "posts", "stats", "social", "storage", "moderation", "friends", "configuracion", "guardados"];
+  const validTabs = ["avisos", "posts", "stats", "social", "storage", "moderation", "friends", "guardados", "inventario"];
   const [activeTab, setActiveTab] = useState<any>(validTabs.includes(tabFromUrl) ? tabFromUrl : "avisos");
 
   const getValidHex = (val: string | null | undefined) => {
@@ -87,7 +89,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (searchParams.get("edit") === "true") {
-      handleTabChange("configuracion");
+      setShowConfigModal(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
     }
   }, [searchParams]);
 
@@ -350,8 +355,8 @@ export default function ProfilePage() {
     { id: "social" as const, label: "Redes", icon: Globe },
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     { id: "guardados" as const, label: "Guardados", icon: Bookmark },
+    { id: "inventario" as const, label: "Inventario", icon: Archive },
     ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
-    { id: "configuracion" as const, label: "Config", icon: Settings },
   ];
 
   if (!user) {
@@ -409,6 +414,27 @@ export default function ProfilePage() {
         document.body
       )}
 
+      {showConfigModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[420] flex items-center justify-center p-3 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowConfigModal(false)} />
+          <div className="relative w-full max-w-3xl max-h-[88vh] overflow-y-auto retro-scrollbar rounded-lg border-2 border-neon-cyan/35 bg-[#101018] shadow-[0_0_0_2px_rgba(255,255,255,0.04),0_18px_60px_rgba(0,0,0,0.7)]">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neon-cyan/20 bg-[#151520] px-4 py-3">
+              <div>
+                <p className="font-pixel text-[10px] uppercase text-neon-cyan">Configurar</p>
+                <p className="mt-1 text-[10px] text-muted-foreground font-body">Perfil, redes, seguridad y firma.</p>
+              </div>
+              <button onClick={() => setShowConfigModal(false)} className="rounded border border-border bg-black/30 p-1.5 text-muted-foreground hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-3 sm:p-4">
+              <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => setShowConfigModal(false)} />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <div className="bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
@@ -442,7 +468,7 @@ export default function ProfilePage() {
             )}
             
             <div className={cn("flex gap-2 mt-3 flex-wrap", isMobile ? "justify-center" : "")}>
-              <Button size="sm" variant="outline" onClick={() => handleTabChange("configuracion")} className={cn("text-xs gap-1", activeTab === "configuracion" && "bg-muted")}><Edit2 className="w-3 h-3" /> Configurar Perfil</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowConfigModal(true)} className="text-xs gap-1"><Edit2 className="w-3 h-3" /> Configurar</Button>
               {!isStaff && <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>}
               {!isStaff && userTierStr !== "novato" && (
                 <Button size="sm" variant="outline" onClick={async () => {
@@ -503,14 +529,14 @@ export default function ProfilePage() {
       </div>
 
       {/* CONTENIDO DE LAS PESTAÑAS */}
-      {activeTab === "configuracion" && <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => handleTabChange("avisos")} />}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
       {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
       {activeTab === "friends" && <FriendsTab userId={user.id} limits={limits} isStaff={isStaff} />}
-      {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => handleTabChange("configuracion")} limits={limits} isStaff={isStaff} />}
+      {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => setShowConfigModal(true)} limits={limits} isStaff={isStaff} />}
       {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}
       {activeTab === "guardados" && <GuardadosTab />}
+      {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} />}
       {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
       
     </div>

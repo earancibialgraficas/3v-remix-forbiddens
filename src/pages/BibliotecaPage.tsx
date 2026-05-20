@@ -117,7 +117,7 @@ export default function BibliotecaPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [vaultModalOpen, setVaultModalOpen] = useState(false);
   // Eliminamos el tab, todo será controlado por el dropdown
-  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string; externalUrl?: string; rewardSlug?: string } | null>(null);
+  const [selectedMultiGame, setSelectedMultiGame] = useState<{ id: string; label: string; maxPlayers?: number; playersLabel?: string; externalUrl?: string; rewardSlug?: string; extraPoints?: boolean; wagerGame?: boolean } | null>(null);
   
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -577,9 +577,13 @@ const handlePlayCloudGame = async (game: any) => {
 
   const multiplayerGames = [
     { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.svg', maxPlayers: 2, playersLabel: '2P' },
-    { id: 'agar', label: 'Agar.io-like', coverUrl: '/games/covers/agar-io-like.svg', maxPlayers: 10, playersLabel: '10P' },
-    { id: 'agar-server', label: 'Agar.io Server', coverUrl: '/games/covers/agar-io-like.svg', maxPlayers: 30, playersLabel: 'SERVER', externalUrl: import.meta.env.VITE_AGAR_SERVER_URL, rewardSlug: 'agar' },
+    { id: 'agar-server', label: 'Agar.io Clon', coverUrl: '/games/covers/agar-io-clon.svg', maxPlayers: 10, playersLabel: '10P', externalUrl: import.meta.env.VITE_AGAR_SERVER_URL, rewardSlug: 'agar' },
     { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
+    { id: 'casino-roulette', label: 'Ruleta Retro', coverUrl: '/games/covers/casino-roulette.svg', maxPlayers: 10, playersLabel: 'BET', extraPoints: true, wagerGame: true },
+    { id: 'casino-blackjack', label: 'Blackjack Drag', coverUrl: '/games/covers/casino-blackjack.svg', maxPlayers: 6, playersLabel: 'BET', extraPoints: true, wagerGame: true },
+    { id: 'casino-chess', label: 'Ajedrez con Apuesta', coverUrl: '/games/covers/casino-chess.svg', maxPlayers: 2, playersLabel: 'BET', extraPoints: true, wagerGame: true },
+    { id: 'casino-horses', label: 'Carrera de Caballos', coverUrl: '/games/covers/casino-horses.svg', maxPlayers: 10, playersLabel: 'BET', extraPoints: true, wagerGame: true },
+    { id: 'casino-bingo', label: 'Bingo Arcade', coverUrl: '/games/covers/casino-bingo.svg', maxPlayers: 20, playersLabel: 'BET', extraPoints: true, wagerGame: true },
     { id: 'massive-decks', label: 'Massive Decks', coverUrl: '/games/covers/massive-decks.svg', maxPlayers: 20, playersLabel: 'PARTY' },
     { id: 'watch-together', label: 'Watch Together', coverUrl: '/games/covers/watch-together.svg', maxPlayers: 20, playersLabel: 'WATCH' },
     { id: 'tic-tac-toe', label: 'Tic Tac Toe', coverUrl: '/games/covers/tic-tac-toe.svg', maxPlayers: 2, playersLabel: '2P' },
@@ -807,6 +811,11 @@ const handlePlayCloudGame = async (game: any) => {
                   <div className="absolute right-2 top-2 rounded border border-neon-cyan/40 bg-black/75 px-1.5 py-1 font-pixel text-[8px] text-neon-cyan shadow-lg">
                     {g.playersLabel}
                   </div>
+                  {g.extraPoints && (
+                    <div className="absolute left-2 top-2 rounded border border-neon-yellow/50 bg-black/80 px-1.5 py-1 font-pixel text-[7px] text-neon-yellow shadow-lg">
+                      EXTRA PTS
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2">
                     <div className="text-[11px] font-bold text-white drop-shadow">{g.label}</div>
                   </div>

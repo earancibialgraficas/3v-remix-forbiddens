@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ruleta Retro">
+  <rect width="512" height="512" fill="#080910"/>
+  <path d="M36 96h440v320H36z" fill="#12351f" stroke="#d6b16f" stroke-width="10"/>
+  <circle cx="256" cy="250" r="132" fill="#111827" stroke="#facc15" stroke-width="8"/>
+  <path d="M256 118a132 132 0 0 1 114 66L256 250z" fill="#b91c1c"/>
+  <path d="M370 184a132 132 0 0 1 0 132l-114-66z" fill="#0f766e"/>
+  <path d="M370 316a132 132 0 0 1-114 66V250z" fill="#111827"/>
+  <path d="M256 382a132 132 0 0 1-114-66l114-66z" fill="#b91c1c"/>
+  <path d="M142 316a132 132 0 0 1 0-132l114 66z" fill="#0f766e"/>
+  <path d="M142 184a132 132 0 0 1 114-66v132z" fill="#111827"/>
+  <circle cx="256" cy="250" r="42" fill="#d6b16f" stroke="#fff7ed" stroke-width="5"/>
+  <text x="256" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="900" fill="#facc15">RULETA</text>
+  <text x="256" y="452" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" font-weight="900" fill="#67e8f9">EXTRA PTS</text>
+</svg>

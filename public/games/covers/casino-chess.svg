@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ajedrez con Apuesta">
+  <rect width="512" height="512" fill="#071014"/>
+  <rect x="64" y="92" width="384" height="384" fill="#d7f7ee"/>
+  <g fill="#168071">
+    <path d="M64 92h48v48H64zM160 92h48v48h-48zM256 92h48v48h-48zM352 92h48v48h-48zM112 140h48v48h-48zM208 140h48v48h-48zM304 140h48v48h-48zM400 140h48v48h-48zM64 188h48v48H64zM160 188h48v48h-48zM256 188h48v48h-48zM352 188h48v48h-48zM112 236h48v48h-48zM208 236h48v48h-48zM304 236h48v48h-48zM400 236h48v48h-48zM64 284h48v48H64zM160 284h48v48h-48zM256 284h48v48h-48zM352 284h48v48h-48zM112 332h48v48h-48zM208 332h48v48h-48zM304 332h48v48h-48zM400 332h48v48h-48zM64 380h48v48H64zM160 380h48v48h-48zM256 380h48v48h-48zM352 380h48v48h-48zM112 428h48v48h-48zM208 428h48v48h-48zM304 428h48v48h-48zM400 428h48v48h-48z"/>
+  </g>
+  <text x="256" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="900" fill="#facc15">AJEDREZ BET</text>
+  <text x="256" y="304" text-anchor="middle" font-family="Arial" font-size="118" fill="#111827">♛</text>
+</svg>
