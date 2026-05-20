@@ -36,6 +36,12 @@
     .playArea{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,480px) minmax(130px,1fr);gap:16px;align-items:end}
     .betSpot{min-height:130px;border:2px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 7px #0002,inset 0 0 28px #22c55e14,0 0 22px #0008}
     .betSpot strong{display:block;color:#d8eac799;font-size:clamp(18px,2.4vw,30px);line-height:1;font-weight:1000}
+    .betSpot.locked{border-color:#facc1570;color:#facc15;background:radial-gradient(circle,#226c32 0,#062d18 62%);box-shadow:inset 0 0 0 7px #0002,inset 0 0 34px #facc1526,0 0 26px #facc1533}
+    .betChips{position:absolute;display:none;width:86px;height:58px;pointer-events:none}
+    .betSpot.locked .betChips{display:block;animation:handDrop .72s ease both}
+    .chipStack{position:absolute;left:36px;top:18px;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#facc15 38%,#92400e 41%,#facc15 54%,#7c2d12 57%);border:2px dashed #7c2d12;box-shadow:-18px 10px 0 -2px #ef4444,18px 11px 0 -2px #22d3ee,0 14px 14px #0008}
+    .chipHand{position:absolute;left:0;top:0;width:52px;height:26px;border-radius:18px 18px 20px 8px;background:linear-gradient(90deg,#f7c59f,#b77950);box-shadow:0 4px 10px #0008;transform-origin:right center}
+    @keyframes handDrop{0%{opacity:0;transform:translate(-65px,-38px) rotate(-18deg) scale(.9)}65%{opacity:1;transform:translate(-8px,-6px) rotate(-4deg) scale(1)}100%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}}
     .playersRail{align-self:stretch;min-height:190px;border:1px solid #facc1533;border-radius:18px;background:#020806a6;padding:10px;box-shadow:inset 0 0 28px #0009,0 0 24px #facc1517}
     .railTitle{color:#facc15;font-size:11px;font-weight:1000;margin-bottom:8px;text-transform:uppercase}
     .seat{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;border:1px solid #ffffff14;border-radius:10px;background:#06170f;margin-bottom:7px;padding:6px;color:#d8eac7;font-size:11px;font-weight:900;overflow:hidden}
@@ -93,7 +99,10 @@
       </div>
 
       <div class="playArea">
-        <div class="betSpot"><strong>COLOQUE<br />APUESTA</strong></div>
+        <div class="betSpot">
+          <div class="betChips" aria-hidden="true"><span class="chipHand"></span><span class="chipStack"></span></div>
+          <strong>COLOQUE<br />APUESTA</strong>
+        </div>
         <div class="handZone">
           <div class="zoneHead"><span>Dealer <span class="total" id="dealerTotal">0</span></span><span>Sala <span id="roomName">--</span></span></div>
           <div class="hand" id="dealerHand"></div>
@@ -142,7 +151,8 @@
       { code: "D", entity: "&diams;", red: true },
       { code: "C", entity: "&clubs;", red: false }
     ];
-    let api, connected = false, player = [], dealer = [], roundOpen = false, lockedBet = 0, wallet = null, peers = [];
+    let api, connected = false, player = [], dealer = [], roundOpen = false, lockedBet = 0, wallet = null, peers = [], stoodPlayers = [];
+    let isLeader = false;
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -232,6 +242,31 @@
       });
     }
 
+    function localPlayerKey() {
+      return api?.playerId || profile.userId || "local";
+    }
+
+    function refreshLeadership() {
+      const list = peers.length ? peers : [{ playerId: api?.playerId, userId: profile.userId, joinedAt: Date.now() }];
+      const leader = [...list].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
+      isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
+    }
+
+    function lockBetFromInput() {
+      if (roundOpen) return;
+      lockedBet = getBet();
+      $("bet").disabled = true;
+      document.querySelector(".betSpot")?.classList.add("locked");
+      setLog(`Apuesta colocada: ${fmt(lockedBet)} F-coin. Esperando reparto del lider.`);
+    }
+
+    function unlockBet() {
+      if (roundOpen) return;
+      lockedBet = 0;
+      $("bet").disabled = false;
+      document.querySelector(".betSpot")?.classList.remove("locked");
+    }
+
     function animateDeal() {
       const deck = document.querySelector(".deck") || document.querySelector(".logo");
       const targets = [$("playerHand"), ...Array.from(document.querySelectorAll(".seat"))];
@@ -260,9 +295,13 @@
       $("dealerTotal").textContent = String(total(dealer));
       $("playerTotal").textContent = String(total(player));
       $("hit").disabled = !roundOpen;
-      $("stand").disabled = !roundOpen;
-      $("deal").disabled = roundOpen;
-      $("bet").disabled = roundOpen;
+      $("stand").disabled = !roundOpen || stoodPlayers.includes(localPlayerKey());
+      $("deal").disabled = roundOpen || !isLeader;
+      $("clear").disabled = !isLeader;
+      if (roundOpen) $("bet").disabled = true;
+      document.querySelector(".betSpot")?.classList.toggle("locked", lockedBet > 0);
+      $("deal").title = isLeader ? "Repartir como lider de sala" : "Solo el lider de sala puede repartir";
+      $("clear").title = isLeader ? "Limpiar mesa" : "Solo el lider de sala puede limpiar";
       renderPeers();
     }
 
@@ -296,7 +335,7 @@
     }
 
     function statePayload() {
-      return { player, dealer, roundOpen, lockedBet };
+      return { player, dealer, roundOpen, lockedBet, stoodPlayers };
     }
 
     function applyState(state) {
@@ -304,6 +343,7 @@
       dealer = Array.isArray(state?.dealer) ? state.dealer : dealer;
       roundOpen = Boolean(state?.roundOpen);
       lockedBet = Number(state?.lockedBet || lockedBet || 0);
+      stoodPlayers = Array.isArray(state?.stoodPlayers) ? state.stoodPlayers : stoodPlayers;
       render();
     }
 
@@ -322,14 +362,20 @@
         setLog("Ya hay una ronda en curso.");
         return;
       }
-      lockedBet = getBet();
+      if (!isLeader) {
+        setLog("Solo el lider de la sala puede repartir.");
+        return;
+      }
+      lockedBet = lockedBet || getBet();
       if (wallet !== null && wallet < lockedBet) {
         setLog("No tienes F-coin suficiente para esa apuesta.");
         lockedBet = 0;
+        unlockBet();
         return;
       }
       player = [makeCard(), makeCard()];
       dealer = [makeCard(), makeCard()];
+      stoodPlayers = [];
       roundOpen = true;
       render();
       animateDeal();
@@ -376,6 +422,7 @@
         dealerTotal = total(dealer);
       }
       roundOpen = false;
+      stoodPlayers = [];
       render();
       const bet = lockedBet || getBet();
       const outcome = payoutFor(bet);
@@ -405,7 +452,32 @@
       $("roomName").textContent = code;
       setStatus(`Sala ${code}`);
       setLog("Mesa lista. Reparte cuando quieras apostar.");
+      unlockBet();
       await refreshWallet();
+    }
+
+    function stand(local, state) {
+      if (state) {
+        stoodPlayers = Array.isArray(state.stoodPlayers) ? state.stoodPlayers : stoodPlayers;
+        if (state.log) setLog(state.log);
+        render();
+        return;
+      }
+      if (!roundOpen) return;
+      const key = localPlayerKey();
+      if (!stoodPlayers.includes(key)) stoodPlayers.push(key);
+      const totalPlayers = Math.max(1, peers.length || 1);
+      const message = `${stoodPlayers.length}/${totalPlayers} jugadores plantados.`;
+      setLog(message);
+      api.send("stand", { ...statePayload(), log: message });
+      render();
+      if (stoodPlayers.length >= totalPlayers) {
+        if (isLeader) {
+          settle(false);
+        } else {
+          setLog("Todos se plantaron. Esperando cierre del lider.");
+        }
+      }
     }
 
     async function setup() {
@@ -416,12 +488,15 @@
           profile,
           onPeers: (count, players) => {
             peers = Array.isArray(players) ? players : peers;
+            refreshLeadership();
             renderPeers();
+            render();
             setStatus(connected ? `Sala ${api.room} / ${count || 1} jugador(es)` : "Listo para crear sala.");
           },
           onMessage: (message) => {
             if (message.type === "deal") newRound(true, message.payload);
             if (message.type === "state") applyState(message.payload);
+            if (message.type === "stand") stand(true, message.payload);
             if (message.type === "settle") settle(true, message.payload);
             if (message.type === "wager") setStatus(`${message.payload.displayName} jugo blackjack por ${fmt(message.payload.bet)} F-coin`);
           }
@@ -438,15 +513,25 @@
     $("join").onclick = () => connect($("room").value);
     $("deal").onclick = () => newRound(false);
     $("hit").onclick = () => hit(false);
-    $("stand").onclick = () => settle(false);
+    $("stand").onclick = () => stand(false);
     $("clear").onclick = () => {
+      if (!isLeader) {
+        setLog("Solo el lider puede limpiar la mesa.");
+        return;
+      }
       player = [];
       dealer = [];
       roundOpen = false;
       lockedBet = 0;
+      stoodPlayers = [];
+      unlockBet();
       render();
       setLog("Mesa limpia.");
       api?.send("state", statePayload());
+    };
+    $("bet").onchange = lockBetFromInput;
+    $("bet").onblur = () => {
+      if (Number($("bet").value || 0) > 0) lockBetFromInput();
     };
     setup();
   </script>

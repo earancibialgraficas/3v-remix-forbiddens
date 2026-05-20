@@ -17,6 +17,7 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   follow: { icon: <Heart className="w-3.5 h-3.5" />, color: "text-neon-magenta" },
   comment: { icon: <MessageSquare className="w-3.5 h-3.5" />, color: "text-neon-green" },
   mention: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-orange" },
+  trade_request: { icon: <Users className="w-3.5 h-3.5" />, color: "text-neon-cyan" },
   achievement: { icon: <Trophy className="w-3.5 h-3.5" />, color: "text-neon-yellow" },
   general: { icon: <Star className="w-3.5 h-3.5" />, color: "text-muted-foreground" },
 };

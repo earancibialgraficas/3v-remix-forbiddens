@@ -39,6 +39,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [recipientResults, setRecipientResults] = useState<any[]>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<any | null>(null);
+  const [incomingTradeRequest, setIncomingTradeRequest] = useState<any | null>(null);
+  const [outgoingTradeRequest, setOutgoingTradeRequest] = useState<any | null>(null);
   const [pointsToSend, setPointsToSend] = useState("");
   const [statToConvert, setStatToConvert] = useState("100");
   const [fcoinToConvert, setFcoinToConvert] = useState("100");
@@ -100,6 +102,36 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   useEffect(() => {
     if (userId) void loadInventory();
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase.channel(`inventory-trade-request:${userId}`, {
+      config: { broadcast: { self: false } },
+    });
+    channel.on("broadcast", { event: "trade_request" }, ({ payload }: any) => {
+      if (payload?.to !== userId || payload?.from === userId) return;
+      setIncomingTradeRequest(payload);
+      toast({
+        title: "Solicitud de trueque",
+        description: `${payload.fromName || "Un usuario"} quiere comerciar contigo.`,
+      });
+    });
+    channel.on("broadcast", { event: "trade_request_accepted" }, ({ payload }: any) => {
+      if (payload?.to !== userId || payload?.from === userId) return;
+      const target = {
+        user_id: payload.from,
+        display_name: payload.fromName || "Usuario",
+        avatar_url: payload.fromAvatar || "",
+      };
+      setSelectedRecipient(target);
+      setOutgoingTradeRequest(null);
+      toast({ title: "Trueque aceptado", description: `${target.display_name} entro a la mesa de trueque.` });
+    });
+    channel.subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [toast, userId]);
 
   useEffect(() => {
     slotItemsRef.current = slotItems;
@@ -271,6 +303,63 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       setPointsToSend("");
     }
     setSelectedRecipient(target);
+    setOutgoingTradeRequest(null);
+  };
+
+  const sendTradeRequest = async (target: any) => {
+    if (!target?.user_id) return;
+    setOutgoingTradeRequest(target);
+    const requesterName = profile?.display_name || profile?.username || "Un usuario";
+    const payload = {
+      from: userId,
+      fromName: requesterName,
+      fromAvatar: profile?.avatar_url || "",
+      to: target.user_id,
+      sentAt: Date.now(),
+    };
+    await supabase.from("notifications").insert({
+      id: crypto.randomUUID(),
+      user_id: target.user_id,
+      type: "trade_request",
+      title: "Solicitud de trueque",
+      body: `${requesterName} quiere comerciar contigo en el inventario.`,
+      related_id: userId,
+      is_read: false,
+    } as any);
+    const channel = supabase.channel(`inventory-trade-request:${target.user_id}`);
+    await channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.send({ type: "broadcast", event: "trade_request", payload });
+        void supabase.removeChannel(channel);
+      }
+    });
+    toast({ title: "Solicitud enviada", description: "Si el usuario esta viendo su inventario, podra aceptar al instante." });
+  };
+
+  const acceptTradeRequest = async () => {
+    if (!incomingTradeRequest?.from) return;
+    const target = {
+      user_id: incomingTradeRequest.from,
+      display_name: incomingTradeRequest.fromName || "Usuario",
+      avatar_url: incomingTradeRequest.fromAvatar || "",
+    };
+    selectTradeRecipient(target);
+    const payload = {
+      from: userId,
+      fromName: profile?.display_name || profile?.username || "Usuario",
+      fromAvatar: profile?.avatar_url || "",
+      to: incomingTradeRequest.from,
+      sentAt: Date.now(),
+    };
+    const channel = supabase.channel(`inventory-trade-request:${incomingTradeRequest.from}`);
+    await channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.send({ type: "broadcast", event: "trade_request_accepted", payload });
+        void supabase.removeChannel(channel);
+      }
+    });
+    setIncomingTradeRequest(null);
+    toast({ title: "Trueque iniciado", description: "Ambos deben mantenerse en inventario para comerciar en vivo." });
   };
 
   const cancelTradeSession = () => {
@@ -283,6 +372,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     setRemoteReady(false);
     setTradeId(null);
     setSelectedRecipient(null);
+    setIncomingTradeRequest(null);
+    setOutgoingTradeRequest(null);
   };
 
   const createOffer = async () => {
@@ -598,12 +689,17 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     event.preventDefault();
     moveCursorToEvent(event);
     setDragMode(mode);
-    setDragTouched([index]);
+    setDragTouched(slotItemsRef.current[index] ? [] : [index]);
   };
 
   const touchDistributionSlot = (index: number) => {
     if (!dragMode) return;
-    setDragTouched((current) => current.includes(index) ? current : [...current, index]);
+    setDragTouched((current) => {
+      if (current.includes(index) || slotItemsRef.current[index]) return current;
+      const available = Math.max(0, Math.floor(Number(cursorItemRef.current?.quantity || 0)));
+      if (available <= 0 || current.length >= available) return current;
+      return [...current, index];
+    });
   };
 
   const finishDistribution = () => {
@@ -923,13 +1019,26 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
               {recipientResults.map((target) => (
                 <button
                   key={target.user_id}
-                  onClick={() => selectTradeRecipient(target)}
+                  onClick={() => sendTradeRequest(target)}
                   className={cn("flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left text-xs", selectedRecipient?.user_id === target.user_id ? "border-neon-cyan bg-neon-cyan/10" : "border-border bg-muted/20")}
                 >
                   <span className="h-6 w-6 overflow-hidden rounded bg-muted">{target.avatar_url ? <img src={target.avatar_url} className="h-full w-full object-cover" /> : null}</span>
                   <span className="truncate">{target.display_name}</span>
+                  <span className="ml-auto rounded border border-neon-cyan/30 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-neon-cyan">Solicitar</span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {outgoingTradeRequest && !selectedRecipient && (
+            <div className="mt-2 rounded border border-neon-yellow/30 bg-neon-yellow/10 p-2 text-[10px] text-neon-yellow">
+              Solicitud enviada a {outgoingTradeRequest.display_name || "usuario"}. El trueque empieza cuando acepte desde inventario.
+            </div>
+          )}
+
+          {selectedRecipient && (
+            <div className="mt-2 rounded border border-neon-green/30 bg-neon-green/10 p-2 text-[10px] text-neon-green">
+              Trueque en vivo con {selectedRecipient.display_name || "usuario"}.
             </div>
           )}
 
@@ -1088,6 +1197,23 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {incomingTradeRequest && (
+        <div className="fixed bottom-4 right-4 z-[650] w-[min(92vw,340px)] rounded border border-neon-cyan/50 bg-[#0a1018] p-3 shadow-2xl shadow-neon-cyan/20">
+          <p className="font-pixel text-[9px] uppercase text-neon-cyan">Solicitud de trueque</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {incomingTradeRequest.fromName || "Un usuario"} quiere iniciar un trueque contigo.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-[10px]" onClick={() => setIncomingTradeRequest(null)}>
+              Rechazar
+            </Button>
+            <Button size="sm" className="h-8 text-[10px]" onClick={acceptTradeRequest}>
+              Aceptar
+            </Button>
+          </div>
         </div>
       )}
 
