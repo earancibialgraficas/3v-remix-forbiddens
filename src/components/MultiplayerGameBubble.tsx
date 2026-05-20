@@ -34,6 +34,7 @@ interface MultiplayerGame {
   playersLabel?: string;
   externalUrl?: string;
   rewardSlug?: string;
+  wagerGame?: boolean;
 }
 
 interface MultiplayerGameBubbleProps {
@@ -428,7 +429,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setMinimized(false);
     setPosition({ x: 0, y: 0 });
     setSize(
-      activeGameId === "watch-together"
+      activeGameId === "watch-together" || isWagerGame
         ? { w: availableWidth, h: availableHeight }
         : { w: Math.min(900, availableWidth), h: Math.min(640, availableHeight) },
     );
@@ -459,7 +460,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
     setSessionElapsedPreview(0);
-  }, [activeGameId]);
+  }, [activeGameId, isWagerGame]);
 
   useEffect(() => {
     if (!fullscreen) setExpandedInfoOpen(false);

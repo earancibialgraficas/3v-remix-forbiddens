@@ -1,5 +1,351 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Blackjack Drag</title><style>
-*{box-sizing:border-box}html,body{height:100%;margin:0;background:#07040f;color:#fff;font-family:Inter,Arial,sans-serif;overflow:hidden}body{display:grid;grid-template-rows:auto 1fr;gap:10px;padding:10px}.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,input{min-height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#fff;padding:7px 10px;font-size:12px}button{cursor:pointer;background:#7c3aed;border-color:#c084fc;font-weight:900}.status{margin-left:auto;color:#facc15;font-size:12px}.felt{min-height:0;border:2px solid #d6b16f;border-radius:16px;background:#17351f;padding:12px;display:grid;grid-template-rows:1fr auto;gap:12px}.zones{display:grid;grid-template-columns:1fr 1fr;gap:12px}.zone{border:2px dashed #ffffff55;border-radius:12px;background:#02061766;padding:10px;min-height:180px}.hand{display:flex;gap:10px;flex-wrap:wrap}.card{width:86px;height:122px;border-radius:10px;background:#f8fafc;color:#111827;border:3px solid #111827;display:grid;place-items:center;font-size:30px;font-weight:900;cursor:grab;box-shadow:0 6px 0 #0006}.controls{display:flex;gap:8px;flex-wrap:wrap}.total{font-size:13px;color:#cbd5e1;margin-bottom:8px}.log{font-size:12px;color:#e9d5ff}@media(max-width:680px){.zones{grid-template-columns:1fr}.zone{min-height:128px}.status{margin-left:0}.card{width:70px;height:98px;font-size:24px}}@media(max-width:430px){.bar{display:grid;grid-template-columns:1fr 1fr}.status{grid-column:1/-1;text-align:center}.card{width:58px;height:82px}}
-</style></head><body><div class="bar"><button id="create">Crear</button><input id="room" placeholder="Codigo"/><button id="join">Unirse</button><input id="bet" type="number" min="1" value="25"/><button id="deal">Repartir</button><button id="stand">Plantarse</button><span id="status" class="status">Conectando...</span></div><main class="felt"><section class="zones"><div class="zone" id="dealer"><div class="total">Dealer: <span id="dealerTotal">0</span></div><div class="hand" id="dealerHand"></div></div><div class="zone" id="player"><div class="total">Tu mano: <span id="playerTotal">0</span></div><div class="hand" id="playerHand"></div></div></section><div><div class="controls"><button id="hit">Pedir carta</button><span class="log" id="log">Arrastra cartas como iconos de Windows para ordenar tu mano.</span></div></div></main><script src="/games/realtime-room.js"></script><script>
-const p=new URLSearchParams(location.search),profile={userId:p.get('userId')||'',displayName:p.get('displayName')||'Jugador',avatarUrl:p.get('avatarUrl')||''};let api,connected=false,player=[],dealer=[];const roomEl=document.getElementById('room'),statusEl=document.getElementById('status'),logEl=document.getElementById('log');const preset=(p.get('room')||'').toUpperCase();if(preset)roomEl.value=preset;const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];function card(){return{r:ranks[Math.floor(Math.random()*ranks.length)],s:suits[Math.floor(Math.random()*4)],id:Math.random().toString(36).slice(2)}}function val(c){return c.r==='A'?11:['J','Q','K'].includes(c.r)?10:Number(c.r)}function total(h){let t=h.reduce((a,c)=>a+val(c),0),aces=h.filter(c=>c.r==='A').length;while(t>21&&aces--){t-=10}return t}function draw(id,h){const el=document.getElementById(id);el.innerHTML='';h.forEach((c,i)=>{const d=document.createElement('div');d.className='card';d.draggable=true;d.dataset.i=i;d.textContent=c.r+c.s;d.ondragstart=e=>e.dataTransfer.setData('i',i);d.ondragover=e=>e.preventDefault();d.ondrop=e=>{const from=Number(e.dataTransfer.getData('i')),to=i;const [m]=player.splice(from,1);player.splice(to,0,m);render()};el.appendChild(d)})}function render(){draw('playerHand',player);draw('dealerHand',dealer);dealerTotal.textContent=total(dealer);playerTotal.textContent=total(player)}async function settle(){let d=total(dealer),pl=total(player);while(d<17){dealer.push(card());d=total(dealer)}render();const win=pl<=21&&(d>21||pl>d),push=pl===d;const bet=Number(document.getElementById('bet').value)||1,payout=push?bet:(win?bet*2:0);logEl.textContent=win?'Blackjack ganado.':push?'Empate.':'Casa gana.';const r=await api.casinoWager('casino-blackjack',bet,payout,{player:pl,dealer:d});if(r.reason&&r.awarded===0)logEl.textContent+=' Wallet pendiente: '+r.reason}function deal(local){player=[card(),card()];dealer=[card(),card()];logEl.textContent='Mano nueva.';render();if(!local)api.send('deal',{})}async function connect(room){await api.connect(room);connected=true;roomEl.value=room;statusEl.textContent='Sala '+room}async function setup(){try{api=await createRealtimeRoom({game:'casino-blackjack',profile,onMessage:m=>{if(m.type==='deal')deal(true);if(m.type==='wager')statusEl.textContent=`${m.payload.displayName} jugo blackjack`}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}create.onclick=()=>connect(roomEl.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomEl.value.trim().toUpperCase());deal.onclick=()=>deal(false);hit.onclick=()=>{player.push(card());render();if(total(player)>21)settle()};stand.onclick=settle;setup();
-</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blackjack BET</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{min-height:100%;margin:0;background:#020403;color:#fff;font-family:Inter,Arial,sans-serif}
+    body{overflow:auto}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .scene{min-height:100vh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 18%,#176531 0,#0b341d 38%,#030504 72%)}
+    .scene:before{content:"";position:absolute;inset:-10% 4% auto;height:78vh;border:24px solid #1d1009;border-bottom-width:34px;border-radius:0 0 52% 52%/0 0 28% 28%;box-shadow:inset 0 -18px 28px #000b,0 18px 34px #000c;background:radial-gradient(ellipse at 50% 10%,#19713a 0,#0e4726 60%,#082414 100%)}
+    .scene:after{content:"";position:absolute;left:0;right:0;bottom:0;height:16vh;background:#010101}
+    .hud{position:relative;z-index:3;display:flex;align-items:center;gap:10px;min-height:58px;padding:10px 16px}
+    .iconBtn{width:42px;height:36px;border:2px solid #facc15;border-radius:7px;background:linear-gradient(#26313a,#080b10);color:#fff;font-weight:1000;box-shadow:0 2px 0 #8a5b00}
+    .roomControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .roomControls input,.betBox input{height:36px;border:1px solid #375244;background:#07120c;color:#fff;border-radius:8px;padding:0 10px}
+    .roomControls input{text-transform:uppercase;width:116px}
+    .roomControls button,.tableBtn{height:36px;border:1px solid #d9a300;background:#151a20;color:#fff;border-radius:8px;padding:0 12px;font-weight:900;box-shadow:0 2px 0 #8a5b00}
+    .status{margin-left:auto;max-width:42vw;color:#facc15;font-size:12px;text-align:right}
+    .table{position:relative;z-index:2;min-height:calc(100vh - 58px);display:grid;grid-template-rows:auto 1fr auto;padding:6px clamp(14px,4vw,54px) 22px}
+    .dealerArea{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:22px;min-height:150px}
+    .deck,.shoe{width:76px;height:104px;border-radius:8px;background:linear-gradient(135deg,#5d260f,#2b1108);border:3px solid #d7c19a;box-shadow:0 8px 14px #0008;justify-self:center}
+    .shoe{transform:rotate(18deg);background:linear-gradient(135deg,#f8fafc,#d6d3d1)}
+    .rack{display:flex;gap:6px;align-items:flex-start;justify-content:center;margin-top:0}
+    .rackChip{width:18px;height:82px;border-radius:9px;background:#e5e7eb;border:2px dashed #94a3b8;box-shadow:0 3px 6px #0008}
+    .rackChip:nth-child(3n){background:#dc2626;border-color:#fecaca}.rackChip:nth-child(4n){background:#facc15;border-color:#854d0e}.rackChip:nth-child(5n){background:#22d3ee;border-color:#cffafe}
+    .logo{align-self:center;text-align:center;color:#d8eac7;text-shadow:0 2px 0 #0008;font-weight:1000}
+    .logo b{display:block;font-size:clamp(22px,3vw,38px);letter-spacing:0}.logo span{font-size:12px;color:#facc15}
+    .arcText{text-align:center;color:#d8eac799;font-weight:900;font-size:clamp(13px,1.7vw,22px);transform:rotate(-1deg);margin-top:8px}
+    .playArea{display:grid;grid-template-columns:minmax(160px,1fr) minmax(260px,520px) minmax(160px,1fr);gap:22px;align-items:end}
+    .betSpot{min-height:170px;border:3px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 8px #0002}
+    .betSpot strong{display:block;color:#d8eac799;font-size:clamp(18px,2.4vw,30px);line-height:1;font-weight:1000}
+    .handZone{align-self:stretch;display:grid;grid-template-rows:auto 1fr;gap:10px;border:1px solid #ffffff18;border-radius:18px;background:#03170d88;padding:14px;box-shadow:inset 0 0 30px #0005}
+    .zoneHead{display:flex;justify-content:space-between;gap:12px;color:#d8eac7;font-size:12px;font-weight:900}
+    .total{color:#facc15}
+    .hand{min-height:150px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+    .card{width:86px;height:124px;border-radius:9px;background:#f8fafc;color:#111827;border:2px solid #e5e7eb;box-shadow:0 10px 0 #0006,0 16px 24px #0006;display:grid;grid-template-rows:auto 1fr auto;padding:7px;user-select:none;cursor:grab;transition:transform .15s ease,box-shadow .15s ease}
+    .card:active{cursor:grabbing;transform:scale(1.04);box-shadow:0 18px 30px #0009}
+    .card.red{color:#b91c1c}
+    .card .rank{font-size:24px;font-weight:1000;line-height:1}
+    .card .suit{font-size:34px;text-align:center;align-self:center}
+    .card .foot{text-align:right;font-size:18px;font-weight:1000}
+    .back{background:repeating-linear-gradient(45deg,#5b210f 0 8px,#2f1007 8px 16px);border-color:#d7c19a;color:transparent}
+    .bottomBar{position:relative;z-index:4;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:14px;padding-top:14px}
+    .balance,.outcome{font-weight:1000;text-shadow:0 2px 0 #000}.balance small,.outcome small{display:block;color:#cbd5e1;font-size:12px}.balance b,.outcome b{font-size:20px}
+    .actions{display:flex;gap:12px;align-items:end;justify-content:center;flex-wrap:wrap}
+    .roundBtn{width:72px;height:58px;border-radius:50% 50% 10px 10px;border:2px solid #d9a300;background:linear-gradient(#f9e7a4,#9a6b14);color:#1f1300;font-weight:1000;box-shadow:0 7px 0 #5c3700}
+    .roundBtn:disabled,.tableBtn:disabled{opacity:.45;cursor:not-allowed}
+    .betBox{display:flex;gap:8px;align-items:center;background:#010803b8;border:1px solid #ffffff18;border-radius:12px;padding:8px}
+    .betBox input{width:96px}
+    .log{color:#d8eac7;font-size:12px;text-align:center;min-height:18px}
+    @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}}
+    @media(max-width:520px){.roomControls{width:100%;display:grid;grid-template-columns:1fr 1fr}.roomControls input{width:100%}.card{width:68px;height:98px}.card .rank{font-size:19px}.card .suit{font-size:26px}.hand{gap:8px}.rack{display:none}.logo b{font-size:24px}.arcText{font-size:12px}.roundBtn{width:62px;height:52px}.betBox{width:100%;display:grid;grid-template-columns:1fr 1fr}.betBox input{width:100%}}
+  </style>
+</head>
+<body>
+  <main class="scene">
+    <header class="hud">
+      <button class="iconBtn" title="Mesa">BH</button>
+      <div class="roomControls">
+        <button id="create">Crear</button>
+        <input id="room" placeholder="Codigo" />
+        <button id="join">Unirse</button>
+      </div>
+      <span id="status" class="status">Conectando...</span>
+    </header>
+
+    <section class="table">
+      <div class="dealerArea">
+        <div class="deck"></div>
+        <div>
+          <div class="rack" aria-hidden="true">
+            <span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span><span class="rackChip"></span>
+          </div>
+          <div class="logo"><b>BLACKJACK BET</b><span>F-coin / multijugador</span></div>
+          <div class="arcText">BLACKJACK PAGA 3 A 2</div>
+        </div>
+        <div class="shoe"></div>
+      </div>
+
+      <div class="playArea">
+        <div class="betSpot"><strong>COLOQUE<br />APUESTA</strong></div>
+        <div class="handZone">
+          <div class="zoneHead"><span>Dealer <span class="total" id="dealerTotal">0</span></span><span>Sala <span id="roomName">--</span></span></div>
+          <div class="hand" id="dealerHand"></div>
+          <div class="zoneHead"><span>Tu mano <span class="total" id="playerTotal">0</span></span><span id="dragHint">Arrastra para ordenar</span></div>
+          <div class="hand" id="playerHand"></div>
+        </div>
+        <div class="betSpot"><strong>COLOQUE<br />APUESTA</strong></div>
+      </div>
+
+      <footer class="bottomBar">
+        <div class="balance"><small>SALDO F-coin</small><b id="wallet">...</b></div>
+        <div>
+          <div class="actions">
+            <div class="betBox">
+              <label for="bet">Apuesta</label>
+              <input id="bet" type="number" min="1" value="25" />
+            </div>
+            <button id="deal" class="roundBtn">Repartir</button>
+            <button id="hit" class="roundBtn">Pedir</button>
+            <button id="stand" class="roundBtn">Plantarse</button>
+            <button id="clear" class="tableBtn">Limpiar</button>
+          </div>
+          <p id="log" class="log">Crea o entra a una sala para comenzar.</p>
+        </div>
+        <div class="outcome"><small>ULTIMO NETO</small><b id="lastNet">+0</b></div>
+      </footer>
+    </section>
+  </main>
+
+  <script src="/games/realtime-room.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const profile = {
+      userId: params.get("userId") || "",
+      displayName: params.get("displayName") || "Jugador",
+      avatarUrl: params.get("avatarUrl") || ""
+    };
+    const $ = (id) => document.getElementById(id);
+    const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+    const suits = [
+      { code: "S", entity: "&spades;", red: false },
+      { code: "H", entity: "&hearts;", red: true },
+      { code: "D", entity: "&diams;", red: true },
+      { code: "C", entity: "&clubs;", red: false }
+    ];
+    let api, connected = false, player = [], dealer = [], roundOpen = false, wallet = null;
+    const preset = (params.get("room") || "").toUpperCase();
+    if (preset) $("room").value = preset;
+
+    function fmt(value) {
+      return Number(value || 0).toLocaleString("es-CL");
+    }
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function setLog(text) {
+      $("log").textContent = text;
+    }
+
+    function renderWallet(next) {
+      if (typeof next === "number") wallet = next;
+      $("wallet").textContent = wallet === null ? "..." : fmt(wallet);
+    }
+
+    function makeCard() {
+      const suit = suits[Math.floor(Math.random() * suits.length)];
+      return {
+        rank: ranks[Math.floor(Math.random() * ranks.length)],
+        suit: suit.code,
+        entity: suit.entity,
+        red: suit.red,
+        id: Math.random().toString(36).slice(2)
+      };
+    }
+
+    function cardValue(card) {
+      if (card.rank === "A") return 11;
+      if (["J","Q","K"].includes(card.rank)) return 10;
+      return Number(card.rank);
+    }
+
+    function total(hand) {
+      let value = hand.reduce((sum, card) => sum + cardValue(card), 0);
+      let aces = hand.filter((card) => card.rank === "A").length;
+      while (value > 21 && aces > 0) {
+        value -= 10;
+        aces -= 1;
+      }
+      return value;
+    }
+
+    function drawHand(id, hand, draggable) {
+      const area = $(id);
+      area.innerHTML = "";
+      hand.forEach((card, index) => {
+        const el = document.createElement("div");
+        el.className = `card ${card.red ? "red" : ""}`;
+        el.draggable = draggable;
+        el.dataset.index = String(index);
+        el.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${card.entity}</span><span class="foot">${card.rank}</span>`;
+        if (draggable) {
+          el.ondragstart = (event) => event.dataTransfer.setData("index", String(index));
+          el.ondragover = (event) => event.preventDefault();
+          el.ondrop = (event) => {
+            const from = Number(event.dataTransfer.getData("index"));
+            const to = index;
+            if (Number.isNaN(from) || from === to) return;
+            const moved = player.splice(from, 1)[0];
+            player.splice(to, 0, moved);
+            render();
+          };
+        }
+        area.appendChild(el);
+      });
+    }
+
+    function render() {
+      drawHand("dealerHand", dealer, false);
+      drawHand("playerHand", player, true);
+      $("dealerTotal").textContent = String(total(dealer));
+      $("playerTotal").textContent = String(total(player));
+      $("hit").disabled = !roundOpen;
+      $("stand").disabled = !roundOpen;
+    }
+
+    function getBet() {
+      return Math.max(1, Math.floor(Number($("bet").value) || 1));
+    }
+
+    async function refreshWallet() {
+      if (!api?.getWallet) return;
+      const result = await api.getWallet();
+      if (typeof result.balance === "number") renderWallet(result.balance);
+    }
+
+    function statePayload() {
+      return { player, dealer, roundOpen };
+    }
+
+    function applyState(state) {
+      player = Array.isArray(state?.player) ? state.player : player;
+      dealer = Array.isArray(state?.dealer) ? state.dealer : dealer;
+      roundOpen = Boolean(state?.roundOpen);
+      render();
+    }
+
+    function newRound(local, state) {
+      if (state) {
+        applyState(state);
+        setLog("La mesa recibio una mano nueva.");
+        return;
+      }
+      if (!connected) {
+        setLog("Primero crea o entra a una sala.");
+        return;
+      }
+      player = [makeCard(), makeCard()];
+      dealer = [makeCard(), makeCard()];
+      roundOpen = true;
+      render();
+      setLog("Mano nueva. Puedes pedir carta o plantarte.");
+      if (!local) api.send("deal", statePayload());
+    }
+
+    function hit(local, state) {
+      if (state) {
+        applyState(state);
+        return;
+      }
+      if (!roundOpen) return;
+      player.push(makeCard());
+      render();
+      if (total(player) > 21) {
+        settle(false);
+      } else if (!local) {
+        api.send("state", statePayload());
+      }
+    }
+
+    async function settle(local, state) {
+      if (state) {
+        applyState(state);
+        if (state.log) setLog(state.log);
+        if (typeof state.lastNet === "number") $("lastNet").textContent = `${state.lastNet >= 0 ? "+" : ""}${fmt(state.lastNet)}`;
+        return;
+      }
+      if (!roundOpen) return;
+      let dealerTotal = total(dealer);
+      const playerTotal = total(player);
+      while (dealerTotal < 17) {
+        dealer.push(makeCard());
+        dealerTotal = total(dealer);
+      }
+      roundOpen = false;
+      render();
+      const bet = getBet();
+      const natural = player.length === 2 && playerTotal === 21;
+      const push = playerTotal <= 21 && playerTotal === dealerTotal;
+      const win = playerTotal <= 21 && (dealerTotal > 21 || playerTotal > dealerTotal);
+      const payout = push ? bet : win ? Math.floor(bet * (natural ? 2.5 : 2)) : 0;
+      const lastNet = payout - bet;
+      const label = natural ? "Blackjack natural." : push ? "Empate, vuelve la apuesta." : win ? "Ganaste la mano." : "La casa gana.";
+      $("lastNet").textContent = `${lastNet >= 0 ? "+" : ""}${fmt(lastNet)}`;
+      $("lastNet").style.color = lastNet >= 0 ? "#22c55e" : "#fb7185";
+      setLog(label);
+      if (!local) {
+        const settled = await api.casinoWager("casino-blackjack", bet, payout, { player: playerTotal, dealer: dealerTotal, natural });
+        if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
+        if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
+        api.send("settle", { ...statePayload(), log: label, lastNet });
+      }
+    }
+
+    async function connect(room) {
+      const code = String(room || "").trim().toUpperCase();
+      if (!code) return;
+      await api.connect(code);
+      connected = true;
+      $("room").value = code;
+      $("roomName").textContent = code;
+      setStatus(`Sala ${code}`);
+      setLog("Mesa lista. Reparte cuando quieras apostar.");
+      await refreshWallet();
+    }
+
+    async function setup() {
+      render();
+      try {
+        api = await createRealtimeRoom({
+          game: "casino-blackjack",
+          profile,
+          onPeers: (count) => setStatus(connected ? `Sala ${api.room} / ${count || 1} jugador(es)` : "Listo para crear sala."),
+          onMessage: (message) => {
+            if (message.type === "deal") newRound(true, message.payload);
+            if (message.type === "state") applyState(message.payload);
+            if (message.type === "settle") settle(true, message.payload);
+            if (message.type === "wager") setStatus(`${message.payload.displayName} jugo blackjack por ${fmt(message.payload.bet)} F-coin`);
+          }
+        });
+        setStatus("Listo para crear sala.");
+        await refreshWallet();
+        if (preset) connect(preset);
+      } catch (error) {
+        setStatus(error.message || "Realtime no disponible.");
+      }
+    }
+
+    $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2,8).toUpperCase());
+    $("join").onclick = () => connect($("room").value);
+    $("deal").onclick = () => newRound(false);
+    $("hit").onclick = () => hit(false);
+    $("stand").onclick = () => settle(false);
+    $("clear").onclick = () => {
+      player = [];
+      dealer = [];
+      roundOpen = false;
+      render();
+      setLog("Mesa limpia.");
+      api?.send("state", statePayload());
+    };
+    setup();
+  </script>
+</body>
+</html>

@@ -3,62 +3,323 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ruleta Americana</title>
+  <title>Ruleta Retro</title>
   <style>
-    *{box-sizing:border-box}html,body{height:100%;margin:0;background:#0c0d17;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
-    body{display:grid;grid-template-rows:38px minmax(0,1fr);gap:8px;padding:0 12px 10px}
-    button,input,select{font:inherit}
-    .top{display:flex;align-items:center;gap:12px;max-width:1380px;width:100%;margin:0 auto;color:#cbd5e1}
-    .back{color:#94a3b8;font-size:13px}.title{font-weight:900;font-size:20px;color:#fff}.pill{border-radius:8px;background:#7f1d1d;color:#fecaca;padding:5px 10px;font-size:13px;font-weight:900}.sound{font-size:20px}
-    .app{min-height:0;max-width:1380px;width:100%;margin:0 auto;display:grid;grid-template-columns:minmax(620px,1fr) 424px;gap:24px}
-    .left{min-height:0;display:grid;grid-template-rows:292px 40px 48px minmax(210px,1fr) 58px;gap:8px}
-    .wheelPanel,.lastPanel,.chipsPanel,.betPanel,.sideCard{border:1px solid #2b2f3a;background:#151515;border-radius:14px}
-    .wheelPanel{display:flex;align-items:center;justify-content:center;position:relative;background:#12131b}
-    .wheel{width:274px;height:274px;border-radius:50%;position:relative;border:3px solid #214b16;background:#063f20;box-shadow:0 0 0 10px #4a330b,0 0 0 15px #0b3d1d,0 20px 60px #000b;transition:transform 3.4s cubic-bezier(.12,.8,.18,1)}
-    .wheel::before{content:"";position:absolute;inset:24px;border-radius:50%;background:conic-gradient(#0d8a43 0 9.47deg,#c81920 9.47deg 18.94deg,#1b1b1b 18.94deg 28.41deg,#c81920 28.41deg 37.88deg,#1b1b1b 37.88deg 47.35deg,#c81920 47.35deg 56.82deg,#1b1b1b 56.82deg 66.29deg,#c81920 66.29deg 75.76deg,#1b1b1b 75.76deg 85.23deg,#c81920 85.23deg 94.7deg,#1b1b1b 94.7deg 104.17deg,#c81920 104.17deg 113.64deg,#1b1b1b 113.64deg 123.11deg,#c81920 123.11deg 132.58deg,#1b1b1b 132.58deg 142.05deg,#c81920 142.05deg 151.52deg,#1b1b1b 151.52deg 160.99deg,#c81920 160.99deg 170.46deg,#1b1b1b 170.46deg 179.93deg,#c81920 179.93deg 189.4deg,#1b1b1b 189.4deg 198.87deg,#c81920 198.87deg 208.34deg,#1b1b1b 208.34deg 217.81deg,#c81920 217.81deg 227.28deg,#1b1b1b 227.28deg 236.75deg,#c81920 236.75deg 246.22deg,#1b1b1b 246.22deg 255.69deg,#c81920 255.69deg 265.16deg,#1b1b1b 265.16deg 274.63deg,#c81920 274.63deg 284.1deg,#1b1b1b 284.1deg 293.57deg,#c81920 293.57deg 303.04deg,#1b1b1b 303.04deg 312.51deg,#c81920 312.51deg 321.98deg,#1b1b1b 321.98deg 331.45deg,#c81920 331.45deg 340.92deg,#1b1b1b 340.92deg 350.39deg,#0d8a43 350.39deg 360deg)}
-    .wheel::after{content:"";position:absolute;inset:68px;border-radius:50%;background:#08451e;box-shadow:inset 0 0 0 1px #0b5f2c}
-    .hub{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe082,#b8860b 70%);z-index:2}
-    .lastPanel{display:flex;align-items:center;padding:0 10px;background:#12131b}.last{width:36px;height:36px;border-radius:7px;border:3px solid #facc15;background:#d71920;display:grid;place-items:center;font-weight:900;color:white}
-    .chipsPanel{display:flex;align-items:center;gap:16px;padding:0 12px}.chipsPanel b{color:#facc15}.add{background:#139340;border:0;border-radius:5px;color:#fff;font-weight:900;padding:8px 18px}
-    .betPanel{background:#075822;border:3px solid #bf8f00;padding:10px 12px;display:grid;gap:10px}.numGrid{display:grid;grid-template-columns:56px repeat(12,1fr) 50px;grid-template-rows:repeat(3,46px);border:1px solid #2c7a3f}.cell{border:1px solid #2b2f34;color:#fff;font-weight:900;background:#171717;display:grid;place-items:center;cursor:pointer;position:relative}.cell.red{background:#c81920}.cell.green{background:#0c8f42}.zero{grid-row:1/3;font-size:24px}.zero2{grid-row:3/4;font-size:24px}.side2{font-size:12px;background:#0b6c32}.selected{outline:3px solid #facc15;outline-offset:-4px}.outside{display:grid;grid-template-columns:56px repeat(6,1fr) 50px}.outside .cell{height:34px;background:#0d6630}.outside .red{background:#c81920}.outside .black{background:#111}
-    .controls{display:flex;align-items:center;justify-content:center;gap:10px}.chip{width:56px;height:56px;border-radius:50%;background:#4b5563;border:5px solid #777;color:white;font-weight:900}.chip.active{background:white;color:#111;border-color:#e5e7eb}.spin{width:64px;height:64px;border-radius:50%;border:3px solid #facc15;background:#16a34a;color:white;font-weight:1000;font-size:16px;box-shadow:0 0 24px #facc15}.ghost{border:1px solid #1d4ed8;background:#1e3a8a;color:#bfdbfe;border-radius:10px;padding:11px 18px;font-weight:900}
-    .right{display:grid;grid-template-rows:188px 300px 1fr;gap:20px}.sideCard{padding:14px;background:#1a1a1a}.sideHead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #303030;margin:-14px -14px 12px;padding:14px}.sideHead h2{margin:0;color:#facc15;font-size:16px}.statRow{display:flex;align-items:center;gap:10px;border:1px solid #6b2525;background:#351b1b;border-radius:8px;padding:10px 12px;margin-bottom:14px;color:#ff6b6b;font-weight:900}.statRow.cold{border-color:#1d4f7a;background:#142132;color:#60a5fa}.mini{margin-left:auto;display:flex;gap:6px}.badge{border-radius:6px;padding:8px 10px;background:#d71920;color:#fff}.cold .badge{background:#0f766e}.resultTable{width:100%;border-collapse:collapse;font-size:13px}.resultTable th{text-align:left;color:#9ca3af;padding:12px 4px}.resultTable td{padding:12px 4px;border-top:1px solid #252525}.greenText{color:#22c55e;font-weight:900}
-    @media(max-width:980px){body{overflow:auto}.app{grid-template-columns:1fr}.left{grid-template-rows:auto auto auto auto auto}.right{grid-template-rows:auto auto}.wheelPanel{height:260px}.numGrid{grid-template-columns:48px repeat(12,minmax(38px,1fr)) 42px}.cell{font-size:12px}}
+    *{box-sizing:border-box}
+    html,body{min-height:100%;margin:0;background:#080a12;color:#f8fafc;font-family:Inter,Arial,sans-serif}
+    body{overflow:auto}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .shell{min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:10px 12px 14px;background:radial-gradient(circle at 48% 8%,#16351f 0,#090b13 34%,#070812 100%)}
+    .top{display:flex;align-items:center;gap:10px;max-width:1500px;width:100%;margin:0 auto}
+    .title{font-size:clamp(18px,2vw,26px);font-weight:1000;color:#fff;letter-spacing:0}
+    .tag{border:1px solid #7f1d1d;background:#43191b;color:#fecaca;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:900}
+    .status{margin-left:auto;color:#cbd5e1;font-size:12px;white-space:nowrap}
+    .layout{max-width:1500px;width:100%;min-height:0;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:16px}
+    .tableSide{min-width:0;display:grid;grid-template-rows:minmax(220px,32vh) auto auto minmax(260px,1fr) auto;gap:10px}
+    .panel,.sideCard{border:1px solid #2c3140;background:#11131cdd;border-radius:12px;box-shadow:0 22px 70px #0008}
+    .wheelPanel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .wheelPanel:before{content:"";position:absolute;inset:auto 8% -44px;height:112px;border-radius:50%;background:#082912;filter:blur(18px);opacity:.8}
+    .pointer{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid #facc15;z-index:4;filter:drop-shadow(0 2px 4px #000)}
+    .wheel{width:min(310px,58vw,32vh);aspect-ratio:1;border-radius:50%;position:relative;border:4px solid #1b4d20;background:#083d1e;box-shadow:0 0 0 10px #5b390d,0 0 0 16px #113914,0 18px 60px #000c;transition:transform 3s cubic-bezier(.12,.8,.18,1)}
+    .wheel:before{content:"";position:absolute;inset:24px;border-radius:50%;background:repeating-conic-gradient(#ca171e 0 9.47deg,#151515 9.47deg 18.94deg);box-shadow:inset 0 0 0 10px #0e612d}
+    .wheel:after{content:"";position:absolute;inset:78px;border-radius:50%;background:radial-gradient(circle,#0d5f2b 0,#073d1b 72%);box-shadow:inset 0 0 0 1px #0b7a34}
+    .hub{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0a8,#b47a05 72%);z-index:2;box-shadow:0 4px 14px #0009}
+    .lastPanel{display:flex;align-items:center;gap:10px;padding:8px 10px}
+    .lastBall{width:42px;height:36px;border-radius:8px;border:3px solid #facc15;background:#0b8f42;display:grid;place-items:center;font-weight:1000;color:#fff}
+    .betText{min-width:0;color:#cbd5e1;font-size:12px}.betText b{color:#fff}
+    .roomBar{display:grid;grid-template-columns:auto minmax(90px,120px) auto auto 1fr;gap:8px;align-items:center;padding:8px 10px}
+    .roomBar input{height:34px;border:1px solid #374151;background:#090b12;color:#fff;border-radius:8px;padding:0 10px;text-transform:uppercase}
+    .roomBar button,.actionBtn{height:34px;border:1px solid #166534;background:#15803d;color:white;border-radius:8px;padding:0 12px;font-size:12px;font-weight:900}
+    .wallet{justify-self:end;display:flex;gap:8px;align-items:center;color:#cbd5e1;font-size:12px}.wallet b{color:#facc15;font-size:16px}
+    .betPanel{background:#075a28;border:3px solid #b88700;padding:10px;border-radius:14px;display:grid;gap:10px;box-shadow:inset 0 0 0 1px #2f8b47}
+    .numGrid{display:grid;grid-template-columns:58px repeat(12,minmax(42px,1fr)) 48px;grid-template-rows:repeat(3,44px);overflow:hidden;border:1px solid #2d7d41;border-radius:8px 8px 0 0}
+    .outside{display:grid;grid-template-columns:58px repeat(6,1fr) 48px;overflow:hidden;border:1px solid #2d7d41;border-top:0;border-radius:0 0 8px 8px}
+    .cell{min-width:0;border:1px solid #24462c;background:#161819;color:#fff;font-weight:1000;display:grid;place-items:center;position:relative}
+    .cell.red{background:#c8171d}.cell.black{background:#111318}.cell.green{background:#0b8d42}.cell.out{height:38px;background:#0d6630}.cell.selected{outline:3px solid #facc15;outline-offset:-5px;z-index:2}
+    .zeroA{grid-row:1/3;font-size:22px}.zeroB{grid-row:3/4;font-size:22px}.sidePay{font-size:11px;background:#0d6630;color:#d9ffe5}
+    .controls{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:2px 0}
+    .chip{width:56px;height:56px;border-radius:50%;border:5px dashed #a0a7b3;background:#4b5563;color:#fff;font-weight:1000;box-shadow:inset 0 0 0 3px #626b78,0 8px 20px #0007}
+    .chip.active{background:#f8fafc;color:#111827;border-color:#facc15;box-shadow:0 0 24px #facc1555}
+    .spin{width:72px;height:72px;border-radius:50%;border:3px solid #facc15;background:#16a34a;color:#fff;font-weight:1000;box-shadow:0 0 26px #facc1577;text-shadow:0 1px 2px #000}
+    .ghost{border:1px solid #1d4ed8;background:#172554;color:#bfdbfe;border-radius:10px;padding:10px 14px;font-weight:900}
+    .side{min-width:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:12px}
+    .sideCard{padding:12px;background:#171717e8}
+    .sideHead{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2b2b2b;margin:-12px -12px 12px;padding:12px}
+    .sideHead h2{margin:0;color:#facc15;font-size:13px;font-weight:1000;letter-spacing:.04em}
+    .metric{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #293241;background:#0d111a;border-radius:9px;padding:10px;margin-top:8px;color:#cbd5e1;font-size:12px}.metric b{color:#fff;font-size:18px}
+    .heat{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:7px 9px;background:#1f2937;color:#fff;font-weight:900;font-size:12px}.pill.red{background:#b91c1c}.pill.green{background:#047857}.pill.black{background:#020617}
+    table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#9ca3af;padding:9px 4px}td{padding:9px 4px;border-top:1px solid #2a2a2a}.pos{color:#22c55e;font-weight:1000}.neg{color:#fb7185;font-weight:1000}
+    @media(max-width:1080px){.layout{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.sideCard:last-child{grid-column:1/-1}.tableSide{grid-template-rows:240px auto auto auto auto}.wheel{width:220px}.numGrid{grid-template-columns:48px repeat(12,minmax(35px,1fr)) 38px}.cell{font-size:12px}}
+    @media(max-width:680px){.shell{padding:8px}.top{flex-wrap:wrap}.status{margin-left:0;width:100%}.roomBar{grid-template-columns:1fr 1fr;align-items:stretch}.wallet{justify-self:start}.betPanel{overflow-x:auto}.numGrid,.outside{min-width:760px}.side{grid-template-columns:1fr}.chip{width:48px;height:48px;font-size:12px}.spin{width:64px;height:64px}.controls{justify-content:flex-start}.tableSide{grid-template-rows:210px auto auto auto auto}}
   </style>
 </head>
 <body>
-  <header class="top"><span class="back">← Volver</span><span class="title">Ruleta Americana</span><span class="pill">Americana</span><span class="sound">🔊</span><span id="status" class="back">Conectando...</span></header>
-  <main class="app">
-    <section class="left">
-      <div class="wheelPanel"><div id="wheel" class="wheel"><div class="hub"></div></div></div>
-      <div class="lastPanel"><div id="last" class="last">36</div></div>
-      <div class="chipsPanel"><span>TABLE CHIPS: <b id="bank">2M</b></span><button class="add">+ Añadir monedas</button><input id="room" placeholder="Codigo" style="margin-left:auto;width:110px"><button id="create" class="add">Crear</button><button id="join" class="add">Unirse</button></div>
-      <div class="betPanel"><div id="numGrid" class="numGrid"></div><div id="outside" class="outside"></div></div>
-      <div class="controls"><button class="chip" data-chip="10">10k</button><button class="chip" data-chip="50">50k</button><button class="chip" data-chip="250">250k</button><button class="chip active" data-chip="1000">1M</button><button class="chip" data-chip="5000">5M</button><button id="spin" class="spin">GIRAR</button><button id="repeat" class="ghost">Repetir apuesta</button></div>
-    </section>
-    <aside class="right">
-      <div class="sideCard"><div class="sideHead"><h2>STATS</h2><span>1 spin</span></div><div class="statRow">🔥 HOT <div class="mini"><span class="badge">36 1x</span><span class="badge" style="background:#0f766e">0 0x</span><span class="badge">1 0x</span></div></div><div class="statRow cold">❄ COLD <div class="mini"><span class="badge">0 0x</span><span class="badge" style="background:#7f1d1d">1 0x</span><span class="badge" style="background:#172554">2 0x</span></div></div></div>
-      <div class="sideCard"><div class="sideHead"><h2 style="color:#fff">RESULTS</h2><span>1 spin</span></div><p style="color:#9ca3af;font-weight:900">NET P&L <span id="net" class="greenText" style="float:right;font-size:24px">+0</span></p><table class="resultTable"><thead><tr><th>SPIN</th><th>BET</th><th>WON</th><th>NET</th></tr></thead><tbody id="results"></tbody></table></div>
-    </aside>
-  </main>
+  <div class="shell">
+    <header class="top">
+      <span class="title">Ruleta Retro</span>
+      <span class="tag">BET / F-coin</span>
+      <span id="status" class="status">Conectando...</span>
+    </header>
+
+    <main class="layout">
+      <section class="tableSide">
+        <div class="panel wheelPanel">
+          <div class="pointer"></div>
+          <div id="wheel" class="wheel"><div class="hub"></div></div>
+        </div>
+
+        <div class="panel lastPanel">
+          <div id="last" class="lastBall">--</div>
+          <div class="betText">Apuesta: <b id="betLabel">36</b> por <b id="betAmount">25</b> F-coin</div>
+        </div>
+
+        <div class="panel roomBar">
+          <button id="create">Crear sala</button>
+          <input id="room" placeholder="Codigo" />
+          <button id="join">Unirse</button>
+          <button id="refreshWallet" class="actionBtn">Saldo</button>
+          <div class="wallet"><span>F-coin</span><b id="wallet">...</b></div>
+        </div>
+
+        <div class="betPanel">
+          <div id="numGrid" class="numGrid"></div>
+          <div id="outside" class="outside"></div>
+        </div>
+
+        <div class="controls">
+          <button class="chip" data-chip="10">10</button>
+          <button class="chip active" data-chip="25">25</button>
+          <button class="chip" data-chip="50">50</button>
+          <button class="chip" data-chip="100">100</button>
+          <button class="chip" data-chip="250">250</button>
+          <button class="chip" data-chip="500">500</button>
+          <button id="spin" class="spin">GIRAR</button>
+          <button id="repeat" class="ghost">Repetir</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="sideCard">
+          <div class="sideHead"><h2>SALA</h2><span id="roomName">Sin sala</span></div>
+          <div class="metric"><span>Jugadores conectados</span><b id="players">1</b></div>
+          <div class="metric"><span>Giros de la sesion</span><b id="spinCount">0</b></div>
+        </section>
+
+        <section class="sideCard">
+          <div class="sideHead"><h2>NUMEROS</h2><span>Sesion actual</span></div>
+          <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;font-weight:900">Mas repetidos</p>
+          <div id="hot" class="heat"></div>
+          <p style="margin:12px 0 8px;color:#9ca3af;font-size:12px;font-weight:900">Menos vistos</p>
+          <div id="cold" class="heat"></div>
+        </section>
+
+        <section class="sideCard">
+          <div class="sideHead"><h2>RESULTADOS</h2><span id="net" class="pos">+0</span></div>
+          <table>
+            <thead><tr><th>Giro</th><th>Apuesta</th><th>Pago</th><th>Neto</th></tr></thead>
+            <tbody id="results"></tbody>
+          </table>
+        </section>
+      </aside>
+    </main>
+  </div>
+
   <script src="/games/realtime-room.js"></script>
   <script>
-    const p=new URLSearchParams(location.search),profile={userId:p.get('userId')||'',displayName:p.get('displayName')||'Jugador',avatarUrl:p.get('avatarUrl')||''};
-    const numbers=['00',3,6,9,12,15,18,21,24,27,30,33,36,2,5,8,11,14,17,20,23,26,29,32,35,0,1,4,7,10,13,16,19,22,25,28,31,34];
-    const red=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-    const color=n=>(n===0||n==='00')?'green':red.has(Number(n))?'red':'black';
-    let api,connected=false,rotation=0,selected={type:'number',value:36},chip=1000,lastBet=null,net=0;
-    const roomEl=document.getElementById('room'),statusEl=document.getElementById('status'),lastEl=document.getElementById('last'),results=document.getElementById('results');
-    const preset=(p.get('room')||'').toUpperCase(); if(preset)roomEl.value=preset;
-    function renderTable(){numGrid.innerHTML='';numbers.forEach((n,i)=>{const d=document.createElement('button');d.className='cell '+color(n)+(n===0?' zero2':n==='00'?' zero':'');d.textContent=n;d.onclick=()=>select('number',n,d);numGrid.appendChild(d)});['1-18','PAR','ROJO','NEGRO','IMPAR','19-36'].forEach(v=>{const d=document.createElement('button');d.className='cell '+(v==='ROJO'?'red':v==='NEGRO'?'black':'');d.textContent=v;d.onclick=()=>select('outside',v,d);outside.appendChild(d)})}
-    function select(type,value,el){document.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));el?.classList.add('selected');selected={type,value}}
-    document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');chip=Number(b.dataset.chip)});
-    function status(t){statusEl.textContent=t} async function connect(r){await api.connect(r);connected=true;roomEl.value=r;status('Sala '+r)}
-    function spinResult(){return numbers[Math.floor(Math.random()*numbers.length)]}
-    function wins(result,bet){if(bet.type==='number')return String(result)===String(bet.value); if(bet.value==='ROJO')return color(result)==='red'; if(bet.value==='NEGRO')return color(result)==='black'; if(bet.value==='PAR')return Number(result)>0&&Number(result)%2===0; if(bet.value==='IMPAR')return Number(result)%2===1; if(bet.value==='1-18')return Number(result)>=1&&Number(result)<=18; if(bet.value==='19-36')return Number(result)>=19&&Number(result)<=36; return false}
-    async function spin(local,payload){if(!connected&&!local)return;const bet=payload?.bet||{...selected,amount:chip};const result=payload?.result??spinResult();lastBet=bet;rotation+=1440+numbers.indexOf(result)*9.47;wheel.style.transform=`rotate(${rotation}deg)`;lastEl.textContent=result;lastEl.style.background=color(result)==='green'?'#0f8f42':color(result)==='red'?'#d71920':'#111';const win=wins(result,bet);const mult=bet.type==='number'?36:2;const payout=win?bet.amount*mult:0;const delta=payout-bet.amount;net+=delta;document.getElementById('net').textContent=(net>=0?'+':'')+net.toLocaleString();results.insertAdjacentHTML('afterbegin',`<tr><td><span class="badge" style="background:${color(result)==='red'?'#d71920':color(result)==='green'?'#0f766e':'#111'}">${result}</span></td><td>${bet.amount.toLocaleString()}</td><td class="greenText">${payout.toLocaleString()}</td><td class="greenText">${(delta>=0?'+':'')+delta.toLocaleString()}</td></tr>`);if(!local){api.send('spin',{result,bet});const r=await api.casinoWager('casino-roulette',bet.amount,payout,{bet,result});if(r.reason&&r.awarded===0)status('Wallet: '+r.reason)}}
-    async function setup(){renderTable();try{api=await createRealtimeRoom({game:'casino-roulette',profile,onMessage:m=>{if(m.type==='spin')spin(true,m.payload);if(m.type==='wager')status(`${m.payload.displayName}: ${m.payload.bet}`)}});status('Listo');if(preset)connect(preset)}catch(e){status(e.message||'Sin realtime')}}
-    create.onclick=()=>connect(roomEl.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomEl.value.trim().toUpperCase());spin.onclick=()=>spin(false);repeat.onclick=()=>{if(lastBet)spin(false,{bet:lastBet,result:spinResult()})};setup();
+    const params = new URLSearchParams(location.search);
+    const profile = {
+      userId: params.get("userId") || "",
+      displayName: params.get("displayName") || "Jugador",
+      avatarUrl: params.get("avatarUrl") || ""
+    };
+    const numbers = ["00",3,6,9,12,15,18,21,24,27,30,33,36,2,5,8,11,14,17,20,23,26,29,32,35,0,1,4,7,10,13,16,19,22,25,28,31,34];
+    const red = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+    const $ = (id) => document.getElementById(id);
+    const color = (n) => (n === 0 || n === "00") ? "green" : red.has(Number(n)) ? "red" : "black";
+    let api, connected = false, rotation = 0, chip = 25, wallet = null, net = 0, busy = false;
+    let players = 1, lastBet = null, selected = { type: "number", value: 36, label: "36" };
+    const spins = [];
+    const preset = (params.get("room") || "").toUpperCase();
+    if (preset) $("room").value = preset;
+
+    function fmt(value) {
+      if (value === null || value === undefined) return "...";
+      return Number(value || 0).toLocaleString("es-CL");
+    }
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function renderWallet(next) {
+      if (typeof next === "number") wallet = next;
+      $("wallet").textContent = fmt(wallet);
+    }
+
+    function updateBetText() {
+      $("betLabel").textContent = selected.label;
+      $("betAmount").textContent = fmt(chip);
+    }
+
+    function renderHeat() {
+      const counts = new Map(numbers.map((n) => [String(n), 0]));
+      spins.forEach((n) => counts.set(String(n), (counts.get(String(n)) || 0) + 1));
+      const ranked = [...counts.entries()].sort((a,b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+      const hot = ranked.filter((x) => x[1] > 0).slice(0, 3);
+      const cold = ranked.slice(-3).reverse();
+      $("hot").innerHTML = (hot.length ? hot : [["--", 0]]).map(([n,c]) => `<span class="pill ${color(n)}">${n} ${c}x</span>`).join("");
+      $("cold").innerHTML = cold.map(([n,c]) => `<span class="pill ${color(n)}">${n} ${c}x</span>`).join("");
+      $("spinCount").textContent = String(spins.length);
+      $("players").textContent = String(players);
+    }
+
+    function select(type, value, label, el) {
+      document.querySelectorAll(".selected").forEach((node) => node.classList.remove("selected"));
+      el?.classList.add("selected");
+      selected = { type, value, label };
+      updateBetText();
+    }
+
+    function renderTable() {
+      const numGrid = $("numGrid");
+      const outside = $("outside");
+      numGrid.innerHTML = "";
+      outside.innerHTML = "";
+      numbers.forEach((n) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `cell ${color(n)}${n === "00" ? " zeroA" : ""}${n === 0 ? " zeroB" : ""}${String(n) === "36" ? " selected" : ""}`;
+        btn.textContent = n;
+        btn.onclick = () => select("number", n, String(n), btn);
+        numGrid.appendChild(btn);
+      });
+      [["side","2:1"],["outside","1-18"],["outside","PAR"],["outside","ROJO"],["outside","NEGRO"],["outside","IMPAR"],["outside","19-36"],["side","2:1"]].forEach(([type,label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `cell ${type === "side" ? "sidePay" : "out"} ${label === "ROJO" ? "red" : label === "NEGRO" ? "black" : ""}`;
+        btn.textContent = label;
+        if (type !== "side") btn.onclick = () => select("outside", label, label, btn);
+        outside.appendChild(btn);
+      });
+    }
+
+    function wins(result, bet) {
+      const n = Number(result);
+      if (bet.type === "number") return String(result) === String(bet.value);
+      if (bet.value === "ROJO") return color(result) === "red";
+      if (bet.value === "NEGRO") return color(result) === "black";
+      if (bet.value === "PAR") return n > 0 && n % 2 === 0;
+      if (bet.value === "IMPAR") return n > 0 && n % 2 === 1;
+      if (bet.value === "1-18") return n >= 1 && n <= 18;
+      if (bet.value === "19-36") return n >= 19 && n <= 36;
+      return false;
+    }
+
+    function spinResult() {
+      return numbers[Math.floor(Math.random() * numbers.length)];
+    }
+
+    function paintResult(result, bet, payout, delta) {
+      spins.push(result);
+      renderHeat();
+      $("last").textContent = result;
+      $("last").style.background = color(result) === "green" ? "#0b8d42" : color(result) === "red" ? "#c8171d" : "#111318";
+      net += delta;
+      $("net").textContent = `${net >= 0 ? "+" : ""}${fmt(net)}`;
+      $("net").className = net >= 0 ? "pos" : "neg";
+      $("results").insertAdjacentHTML("afterbegin", `
+        <tr>
+          <td><span class="pill ${color(result)}">${result}</span></td>
+          <td>${bet.label} / ${fmt(bet.amount)}</td>
+          <td>${fmt(payout)}</td>
+          <td class="${delta >= 0 ? "pos" : "neg"}">${delta >= 0 ? "+" : ""}${fmt(delta)}</td>
+        </tr>
+      `);
+    }
+
+    async function refreshWallet() {
+      if (!api?.getWallet) return;
+      const result = await api.getWallet();
+      if (typeof result.balance === "number") renderWallet(result.balance);
+    }
+
+    async function spin(local, payload) {
+      if (busy) return;
+      if (!local && !connected) {
+        setStatus("Crea o unete a una sala antes de girar.");
+        return;
+      }
+      busy = true;
+      const bet = payload?.bet || { ...selected, amount: chip };
+      const result = payload?.result ?? spinResult();
+      lastBet = bet;
+      rotation += 1440 + numbers.indexOf(result) * 9.47;
+      $("wheel").style.transform = `rotate(${rotation}deg)`;
+      const won = wins(result, bet);
+      const multiplier = bet.type === "number" ? 36 : 2;
+      const payout = won ? bet.amount * multiplier : 0;
+      const delta = payout - bet.amount;
+      window.setTimeout(async () => {
+        paintResult(result, bet, payout, delta);
+        if (!local) {
+          api.send("spin", { result, bet });
+          const settled = await api.casinoWager("casino-roulette", bet.amount, payout, { bet, result });
+          if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
+          if (settled.reason && settled.reason !== "ok") setStatus(`Wallet: ${settled.reason}`);
+          else setStatus(`Sala ${api.room} / ${won ? "ganaste" : "sin premio"}`);
+        }
+        busy = false;
+      }, 650);
+    }
+
+    async function connect(room) {
+      const code = String(room || "").trim().toUpperCase();
+      if (!code) return;
+      await api.connect(code);
+      connected = true;
+      $("room").value = code;
+      $("roomName").textContent = code;
+      setStatus(`Sala ${code}`);
+      await refreshWallet();
+    }
+
+    async function setup() {
+      renderTable();
+      renderHeat();
+      updateBetText();
+      document.querySelectorAll(".chip").forEach((btn) => {
+        btn.onclick = () => {
+          document.querySelectorAll(".chip").forEach((node) => node.classList.remove("active"));
+          btn.classList.add("active");
+          chip = Number(btn.dataset.chip || 25);
+          updateBetText();
+        };
+      });
+      try {
+        api = await createRealtimeRoom({
+          game: "casino-roulette",
+          profile,
+          onPeers: (count) => { players = count || 1; renderHeat(); },
+          onMessage: (message) => {
+            if (message.type === "spin") spin(true, message.payload);
+            if (message.type === "wager") setStatus(`${message.payload.displayName} aposto ${fmt(message.payload.bet)} F-coin`);
+          }
+        });
+        setStatus("Listo para crear sala.");
+        await refreshWallet();
+        if (preset) connect(preset);
+      } catch (error) {
+        setStatus(error.message || "Realtime no disponible.");
+      }
+    }
+
+    $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2, 8).toUpperCase());
+    $("join").onclick = () => connect($("room").value);
+    $("refreshWallet").onclick = refreshWallet;
+    $("spin").onclick = () => spin(false);
+    $("repeat").onclick = () => { if (lastBet) spin(false, { bet: lastBet, result: spinResult() }); };
+    setup();
   </script>
 </body>
 </html>

@@ -197,6 +197,22 @@
       }
     };
 
-    return { connect, disconnect, send, awardWin, casinoWager, playerId, getPlayers, get room() { return activeRoom; } };
+    const getWallet = async () => {
+      const userId = profile.userId;
+      if (!userId) return { balance: 0, reason: "anonymous" };
+      try {
+        const { data, error } = await client
+          .from("point_wallets")
+          .select("balance")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (error) return { balance: 0, reason: error.message };
+        return { balance: Number(data?.balance || 0), reason: data ? "ok" : "empty_wallet" };
+      } catch (e) {
+        return { balance: 0, reason: e?.message || "wallet_unavailable" };
+      }
+    };
+
+    return { connect, disconnect, send, awardWin, casinoWager, getWallet, playerId, getPlayers, get room() { return activeRoom; } };
   };
 })();
