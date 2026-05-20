@@ -1,3 +1,58 @@
-<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ajedrez con Apuesta</title><style>html,body{height:100%;margin:0;background:#071014;color:#fff;font-family:Inter,Arial;overflow:hidden}body{display:grid;grid-template-rows:auto 1fr;gap:10px;padding:10px}button,input{min-height:32px;border:1px solid #334155;border-radius:8px;background:#111827;color:#fff;padding:7px 10px}button{background:#0f766e;border-color:#2dd4bf;font-weight:900}.bar{display:flex;gap:8px;flex-wrap:wrap}.status{margin-left:auto;color:#facc15}.board{aspect-ratio:1;max-height:100%;max-width:100%;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);border:4px solid #2dd4bf}.sq{display:grid;place-items:center;font-size:min(8vmin,54px)}.l{background:#d7f7ee;color:#111}.d{background:#168071;color:#111}.panel{position:absolute;right:12px;bottom:12px;background:#020617dd;border:1px solid #334155;border-radius:12px;padding:12px;font-size:12px}@media(max-width:560px){.status{margin-left:0}.panel{position:static}.sq{font-size:9vmin}}</style></head><body><div class="bar"><button id="create">Crear</button><input id="room" placeholder="Codigo"/><button id="join">Unirse</button><input id="bet" type="number" value="50" min="1"/><button id="win">Declarar victoria</button><span id="status" class="status">Conectando...</span></div><main class="board" id="board"></main><aside class="panel" id="log">Usa esta mesa para pactar una partida con apuesta. El ajedrez completo sigue disponible en Ajedrez Arcade.</aside><script src="/games/realtime-room.js"></script><script>
-const p=new URLSearchParams(location.search),profile={userId:p.get('userId')||'',displayName:p.get('displayName')||'Jugador',avatarUrl:p.get('avatarUrl')||''};let api,connected=false;const roomEl=room,statusEl=status,preset=(p.get('room')||'').toUpperCase();if(preset)roomEl.value=preset;const pieces='♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟                                ♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖';board.innerHTML=Array.from({length:64},(_,i)=>`<div class="sq ${((Math.floor(i/8)+i)%2)?'d':'l'}">${pieces[i]||''}</div>`).join('');async function connect(r){await api.connect(r);connected=true;roomEl.value=r;statusEl.textContent='Sala '+r}async function settle(){const bet=Number(document.getElementById('bet').value)||1;const r=await api.casinoWager('casino-chess',bet,bet*2,{declared:'manual'});log.textContent='Victoria declarada. '+(r.reason&&r.awarded===0?'Wallet pendiente: '+r.reason:'Payout enviado.');api.send('chess-win',{bet})}async function setup(){try{api=await createRealtimeRoom({game:'casino-chess',profile,onMessage:m=>{if(m.type==='chess-win')statusEl.textContent='Victoria registrada en sala'}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}create.onclick=()=>connect(roomEl.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomEl.value.trim().toUpperCase());win.onclick=settle;setup();
-</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ajedrez Bet</title>
+  <style>
+    *{box-sizing:border-box}html,body{height:100%;margin:0;background:#05070d;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
+    body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:10px}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+    input,button{min-height:32px;border-radius:8px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:7px 10px;font:inherit;font-size:12px}
+    button{cursor:pointer;background:#0f766e;border-color:#2dd4bf;font-weight:900}button:disabled{opacity:.45;cursor:not-allowed}
+    input{min-width:90px;flex:0 1 120px}.status{margin-left:auto;color:#67e8f9;font-size:12px;white-space:nowrap}
+    .shell{width:min(900px,100%);height:100%;min-height:0;justify-self:center;display:grid;grid-template-columns:minmax(0,560px) minmax(190px,270px);gap:14px;align-items:stretch;container-type:size}
+    .board{width:min(100%,560px,100cqh);max-height:100%;aspect-ratio:1;border:2px solid #14b8a6;box-shadow:0 0 28px #14b8a633;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);overflow:hidden;border-radius:10px;background:#0f172a;align-self:center;justify-self:center}
+    .sq{display:flex;align-items:center;justify-content:center;font-size:clamp(22px,6.5vmin,58px);cursor:pointer;position:relative;transition:filter .16s ease,box-shadow .16s ease}.sq:hover{filter:brightness(1.08)}
+    .light{background:#d7f7ee}.dark{background:#168071}.selected{outline:4px solid #facc15;outline-offset:-4px;box-shadow:inset 0 0 22px #facc1588}.move::after{content:"";width:22%;height:22%;border-radius:999px;background:#facc15aa;position:absolute}.last{box-shadow:inset 0 0 24px #39ff14aa}
+    .piece{font-family:"Segoe UI Symbol","DejaVu Sans",serif;font-weight:900;filter:drop-shadow(0 3px 0 #0008);line-height:1}.white{color:#fff;text-shadow:0 1px 0 #020617,1px 0 0 #020617,0 -1px 0 #020617,-1px 0 0 #020617,0 0 10px #ffffffcc}.black{color:#020617;text-shadow:0 1px 0 #ffffff55,0 0 10px #000}
+    .panel{border:1px solid #334155;border-radius:10px;background:#020617d9;padding:12px;min-height:0;overflow:auto}h1{font-size:13px;margin:0 0 10px;color:#2dd4bf;text-transform:uppercase;letter-spacing:.08em}.meta{font-size:12px;color:#cbd5e1;line-height:1.6}.role{font-size:18px;font-weight:900;color:#facc15;margin:12px 0}.pot{border:1px solid #facc1540;border-radius:8px;background:#facc1510;padding:9px;margin:10px 0}.moves{margin-top:10px;max-height:230px;overflow:auto;border-top:1px solid #1e293b;padding-top:8px;font-size:11px;color:#94a3b8}
+    @media(max-width:760px){.shell{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.panel{max-height:180px}.sq{font-size:clamp(20px,9vmin,48px)}.status{margin-left:0}}
+    @media(max-width:430px){body{gap:8px;padding:8px}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.controls button,.controls input{width:100%;min-width:0}.status{grid-column:1/-1;text-align:center}.panel{max-height:142px;padding:10px}.moves{display:none}}
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="create">Crear sala</button><input id="room" maxlength="12" placeholder="Codigo" /><button id="join">Unirse</button>
+    <input id="bet" type="number" min="1" value="50" /><button id="reset">Reiniciar</button><button id="win">Declarar victoria</button><span id="status" class="status">Conectando...</span>
+  </div>
+  <main class="shell">
+    <section class="board" id="board"></section>
+    <aside class="panel">
+      <h1>Ajedrez Bet</h1>
+      <div class="meta" id="roomInfo">Crea una sala o usa el codigo de un amigo.</div>
+      <div class="role" id="roleInfo">Sin sala</div>
+      <div class="pot">Pozo: <b id="pot">0</b> F-coin<br/>Casa: +10% al ganador</div>
+      <div class="meta" id="turnInfo">Mesa visual estilo Ajedrez Arcade. Las apuestas se liquidan en F-coin.</div>
+      <div class="moves" id="moves"></div>
+    </aside>
+  </main>
+  <script src="/games/realtime-room.js"></script>
+  <script>
+    const params=new URLSearchParams(location.search),preset=(params.get('room')||'').toUpperCase(),shouldHost=params.get('host')==='1';
+    const profile={userId:params.get('userId')||'',displayName:params.get('displayName')||'Jugador',avatarUrl:params.get('avatarUrl')||''};
+    const roomInput=document.getElementById('room'),statusEl=document.getElementById('status'),boardEl=document.getElementById('board'),movesEl=document.getElementById('moves');
+    if(preset)roomInput.value=preset; let api,connected=false,role=shouldHost?'blancas':'negras',selected=-1,last=-1,pot=0;
+    const pieces=['&#9820;','&#9822;','&#9821;','&#9819;','&#9818;','&#9821;','&#9822;','&#9820;','&#9823;','&#9823;','&#9823;','&#9823;','&#9823;','&#9823;','&#9823;','&#9823;','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9814;','&#9816;','&#9815;','&#9813;','&#9812;','&#9815;','&#9816;','&#9814;'];
+    function render(){boardEl.innerHTML='';pieces.forEach((p,i)=>{const sq=document.createElement('button');sq.className='sq '+(((Math.floor(i/8)+i)%2)?'dark':'light')+(selected===i?' selected':'')+(last===i?' last':'');sq.onclick=()=>clickSq(i);sq.innerHTML=p?`<span class="piece ${i<16?'black':'white'}">${p}</span>`:'';boardEl.appendChild(sq)})}
+    function clickSq(i){if(selected<0&&pieces[i]){selected=i;render();return}if(selected>=0&&selected!==i){pieces[i]=pieces[selected];pieces[selected]='';last=i;movesEl.insertAdjacentHTML('afterbegin',`<div>${profile.displayName}: ${selected+1} -> ${i+1}</div>`);api?.send('move',{from:selected,to:i,name:profile.displayName});selected=-1;render();return}selected=-1;render()}
+    function applyMove(m){pieces[m.to]=pieces[m.from];pieces[m.from]='';last=m.to;movesEl.insertAdjacentHTML('afterbegin',`<div>${m.name||'Rival'}: ${m.from+1} -> ${m.to+1}</div>`);render()}
+    async function connect(room){await api.connect(room);connected=true;roomInput.value=room;statusEl.textContent='Sala '+room;roleInfo.textContent=role;placeBet()}
+    async function placeBet(){const bet=Math.max(1,Number(document.getElementById('bet').value)||1);pot+=bet;document.getElementById('pot').textContent=pot.toLocaleString();api?.send('bet',{bet,name:profile.displayName})}
+    async function settle(){const bet=Math.max(1,Number(document.getElementById('bet').value)||1),payout=Math.floor((pot||bet)*1.1);const r=await api.casinoWager('casino-chess',bet,payout,{pot,declared:'manual'});movesEl.insertAdjacentHTML('afterbegin',`<div>Victoria declarada. ${r.reason&&r.awarded===0?'Wallet pendiente: '+r.reason:'Payout '+payout+' F-coin'}</div>`);api.send('chess-win',{name:profile.displayName,payout})}
+    function resetBoard(local=false){selected=-1;last=-1;render();if(!local)api?.send('reset',{})}
+    async function setup(){render();try{api=await createRealtimeRoom({game:'casino-chess',profile,onMessage:m=>{if(m.type==='move')applyMove(m.payload);if(m.type==='reset')resetBoard(true);if(m.type==='bet'){pot+=Number(m.payload.bet||0);document.getElementById('pot').textContent=pot.toLocaleString()}if(m.type==='chess-win')statusEl.textContent=`${m.payload.name} gano la mesa`}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}
+    create.onclick=()=>connect(roomInput.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomInput.value.trim().toUpperCase());document.getElementById('reset').onclick=()=>resetBoard();win.onclick=()=>settle();setup();
+  </script>
+</body>
+</html>

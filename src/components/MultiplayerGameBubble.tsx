@@ -165,6 +165,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const externalGameBaseUrl = (game?.externalUrl || "").trim().replace(/\/+$/, "");
   const isExternalGame = Boolean(game?.externalUrl);
   const activeGameId = game?.id || "";
+  const isWagerGame = Boolean(game?.wagerGame || activeGameId.startsWith("casino-"));
   const rewardGameSlug = game?.rewardSlug || (game?.id === "agar-server" ? "agar" : activeGameId);
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
@@ -773,7 +774,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   }, [activeGameId, activeSessionRoomCode, applySessionPresenceState, buildLocalSessionPlayer, gameLaunched, isMassiveDecks, localSessionUserId, markSessionPlayerVisited, pruneStaleSessionPlayers, syncLocalSessionPlayer, upsertSessionPlayer]);
 
   useEffect(() => {
-    if (!activeGameId || minimized || (!gameLaunched && !isMassiveDecks)) return;
+    if (!activeGameId || isWagerGame || minimized || (!gameLaunched && !isMassiveDecks)) return;
 
     const awardTimePoints = async () => {
       sessionElapsedRef.current += TIME_REWARD_SECONDS;
@@ -787,7 +788,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     }, TIME_REWARD_SECONDS * 1000);
 
     return () => window.clearInterval(timer);
-  }, [activeGameId, gameLaunched, isMassiveDecks, minimized, syncLocalSessionPlayer, user?.id]);
+  }, [activeGameId, gameLaunched, isMassiveDecks, isWagerGame, minimized, syncLocalSessionPlayer, user?.id]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -919,6 +920,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const savePendingGamePoints = useCallback(async (updatePreview = true): Promise<SavePendingResult> => {
     const pendingPoints = Math.floor(pendingGamePointsRef.current);
+    if (isWagerGame) return { saved: 0, attempted: 0, reason: "wager_game" };
     if (pendingPoints <= 0) return { saved: 0, attempted: 0, reason: "no_points" };
     if (!user?.id) return { saved: 0, attempted: pendingPoints, reason: "not_authenticated_in_client" };
     if (!activeGameId) return { saved: 0, attempted: pendingPoints, reason: "missing_game" };
@@ -951,7 +953,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     } catch {
       return { saved: 0, attempted: pendingPoints, reason: "unexpected_error" };
     }
-  }, [activeGameId, activeSessionRoomCode, rewardGameSlug, user?.id]);
+  }, [activeGameId, activeSessionRoomCode, isWagerGame, rewardGameSlug, user?.id]);
 
   const broadcastLocalDisconnect = useCallback(async () => {
     const channel = sessionChannelRef.current;
