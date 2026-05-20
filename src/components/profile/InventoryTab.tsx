@@ -28,6 +28,9 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [boostersToSend, setBoostersToSend] = useState("0");
   const [statToConvert, setStatToConvert] = useState("100");
   const [fcoinToConvert, setFcoinToConvert] = useState("100");
+  const [contextMenu, setContextMenu] = useState<{ item: any; slot: number; x: number; y: number } | null>(null);
+  const [splitTarget, setSplitTarget] = useState<any | null>(null);
+  const [splitQuantity, setSplitQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -75,6 +78,17 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   useEffect(() => {
     if (userId) void loadInventory();
   }, [userId]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [contextMenu]);
 
   useEffect(() => {
     const nextSlots = Array(27).fill(null);
@@ -204,6 +218,65 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     void loadInventory();
   };
 
+  const sendStackToTrade = (item: any) => {
+    const qty = Math.max(1, Number(item?.quantity || 1));
+    setBoostersToSend(String(qty));
+    setContextMenu(null);
+    toast({ title: "Potenciadores listos para trueque", description: `Se colocaron ${qty} en el cuadro de trueque.` });
+  };
+
+  const useBooster = async (item: any) => {
+    setContextMenu(null);
+    setBusy(true);
+    const { data, error } = await (supabase as any).rpc("use_inventory_booster", { p_stack_id: item.id });
+    setBusy(false);
+    if (error) {
+      toast({ title: "No se pudo usar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (result?.ok === false) {
+      toast({ title: "No se pudo usar", description: result.reason || "Item no disponible", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Potenciador activado", description: "x3 puntos por 7 dias." });
+    void loadInventory();
+  };
+
+  const openSplitStack = (item: any) => {
+    setContextMenu(null);
+    setSplitTarget(item);
+    setSplitQuantity("1");
+  };
+
+  const splitStack = async () => {
+    if (!splitTarget) return;
+    const available = Number(splitTarget.quantity || 0);
+    const qty = Math.max(1, Math.floor(Number(splitQuantity) || 1));
+    if (qty >= available) {
+      toast({ title: "Cantidad invalida", description: `Puedes separar entre 1 y ${Math.max(1, available - 1)}.`, variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    const { data, error } = await (supabase as any).rpc("split_inventory_stack", {
+      p_stack_id: splitTarget.id,
+      p_quantity: qty,
+    });
+    setBusy(false);
+    if (error) {
+      toast({ title: "No se pudo separar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (result?.ok === false) {
+      toast({ title: "No se pudo separar", description: result.reason || "Cantidad invalida", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Stack separado", description: `${qty} potenciadores movidos a un nuevo slot.` });
+    setSplitTarget(null);
+    void loadInventory();
+  };
+
   const answerOffer = async (offerId: string, action: "accept" | "cancel") => {
     setBusy(true);
     const rpcName = action === "accept" ? "accept_inventory_trade_offer" : "cancel_inventory_trade_offer";
@@ -257,17 +330,25 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   setDragSlot(null);
                 }}
                 onDragEnd={() => setDragSlot(null)}
+                onContextMenu={(event) => {
+                  if (!item) return;
+                  event.preventDefault();
+                  setContextMenu({ item, slot: index, x: event.clientX, y: event.clientY });
+                }}
                 className={cn(
                   "relative aspect-square rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
-                  item ? "cursor-grab border-[#d6b16f] active:cursor-grabbing" : "border-[#6b5236]",
+                  item ? "cursor-grab border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)] active:cursor-grabbing" : "border-[#6b5236]",
                   dragSlot === index && "opacity-50 ring-2 ring-neon-cyan",
                 )}
-                title={item ? "Potenciador x3 por 1 semana" : "Slot vacio"}
+                title={item ? "Click derecho para acciones" : "Slot vacio"}
               >
                 {item && (
                   <div className="flex h-full w-full items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.65)]" />
-                    <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white">x{item.quantity}</span>
+                    <div className="relative grid h-[72%] w-[72%] place-items-center rounded-sm border border-[#f7d28b]/70 bg-[#6b4a1f] shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]">
+                      <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
+                      <Sparkles className="relative h-5 w-5 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                    </div>
+                    <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                   </div>
                 )}
               </div>
@@ -372,6 +453,56 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           </div>
         )}
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed z-[600] w-40 overflow-hidden rounded border border-[#d6b16f]/70 bg-[#1b140f] p-1 text-xs shadow-2xl shadow-black/70"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15" onClick={() => sendStackToTrade(contextMenu.item)}>
+            Tradear stack
+          </button>
+          <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15" onClick={() => useBooster(contextMenu.item)}>
+            Usar 1
+          </button>
+          <button
+            className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={Number(contextMenu.item?.quantity || 0) <= 1}
+            onClick={() => openSplitStack(contextMenu.item)}
+          >
+            Separar
+          </button>
+        </div>
+      )}
+
+      {splitTarget && (
+        <div className="fixed inset-0 z-[590] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xs rounded border border-[#d6b16f]/70 bg-[#2b2119] p-4 shadow-2xl">
+            <p className="font-pixel text-[10px] uppercase text-[#f7d28b]">Separar stack</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Tienes {Number(splitTarget.quantity || 0).toLocaleString()} potenciadores. Elige cuantos mover a otro slot.
+            </p>
+            <Input
+              type="number"
+              min="1"
+              max={Math.max(1, Number(splitTarget.quantity || 0) - 1)}
+              value={splitQuantity}
+              onChange={(event) => setSplitQuantity(event.target.value)}
+              className="mt-3 h-9 bg-[#1b140f] text-xs"
+              autoFocus
+            />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button size="sm" variant="outline" className="h-8 text-[10px]" onClick={() => setSplitTarget(null)}>
+                Cancelar
+              </Button>
+              <Button size="sm" className="h-8 text-[10px]" onClick={splitStack} disabled={busy}>
+                Separar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
