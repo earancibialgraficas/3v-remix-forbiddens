@@ -27,6 +27,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [pointsToSend, setPointsToSend] = useState("");
   const [boostersToSend, setBoostersToSend] = useState("0");
   const [statToConvert, setStatToConvert] = useState("100");
+  const [fcoinToConvert, setFcoinToConvert] = useState("100");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -181,6 +182,28 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     void loadInventory();
   };
 
+  const convertFcoinToStat = async () => {
+    const amount = Math.max(0, Math.floor(Number(fcoinToConvert) || 0));
+    if (amount <= 0) {
+      toast({ title: "Ingresa una cantidad", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    const { data, error } = await (supabase as any).rpc("convert_fcoins_to_stat_points", { p_points: amount });
+    setBusy(false);
+    if (error) {
+      toast({ title: "No se pudo convertir", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (result?.ok === false) {
+      toast({ title: "Conversion rechazada", description: result.reason || "F-coin insuficiente", variant: "destructive" });
+      return;
+    }
+    toast({ title: "STAT recuperado", description: `+${amount.toLocaleString()} puntos STAT` });
+    void loadInventory();
+  };
+
   const answerOffer = async (offerId: string, action: "accept" | "cancel") => {
     setBusy(true);
     const rpcName = action === "accept" ? "accept_inventory_trade_offer" : "cancel_inventory_trade_offer";
@@ -257,7 +280,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
             <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Efecto: x3 puntos</div>
           </div>
 
-          <div className="mt-3 rounded border border-[#8b6d46]/60 bg-black/25 p-2">
+          <div className="mt-3 grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">STAT a F-coin</p>
@@ -267,6 +290,18 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                 <Input type="number" min="1" value={statToConvert} onChange={(e) => setStatToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
                 <Button size="sm" onClick={convertStatToFcoin} disabled={busy || !schemaReady} className="h-8 text-[10px]">
                   <Coins className="h-3.5 w-3.5" /> Cambiar
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">F-coin a STAT</p>
+                <p className="text-[10px] text-muted-foreground">Retira F-coin del inventario y conviertela de vuelta en puntos STAT.</p>
+              </div>
+              <div className="flex gap-1">
+                <Input type="number" min="1" value={fcoinToConvert} onChange={(e) => setFcoinToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
+                <Button size="sm" onClick={convertFcoinToStat} disabled={busy || !schemaReady} className="h-8 text-[10px]">
+                  <ArrowLeftRight className="h-3.5 w-3.5" /> Retirar
                 </Button>
               </div>
             </div>

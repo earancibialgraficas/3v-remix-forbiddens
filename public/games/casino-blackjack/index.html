@@ -6,8 +6,11 @@
   <title>Blackjack BET</title>
   <style>
     *{box-sizing:border-box}
-    html,body{min-height:100%;margin:0;background:#020403;color:#fff;font-family:Inter,Arial,sans-serif}
+    html,body{min-height:100%;margin:0;background:#020403;color:#fff;font-family:Inter,Arial,sans-serif;scrollbar-color:#67e8f9 #050805;scrollbar-width:thin}
     body{overflow:auto}
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-track{background:#050805;border-left:1px solid #143121}
+    ::-webkit-scrollbar-thumb{background:linear-gradient(#facc15,#22c55e);border:2px solid #050805;border-radius:999px;box-shadow:0 0 12px #facc1566}
     button,input{font:inherit}
     button{cursor:pointer}
     .scene{min-height:100vh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 14%,#1a7538 0,#0b341d 34%,#030504 72%);box-shadow:inset 0 0 80px #facc1510}
@@ -214,6 +217,22 @@
       return Math.max(1, Math.floor(Number($("bet").value) || 1));
     }
 
+    function payoutFor(bet, handPlayer = player, handDealer = dealer) {
+      const playerTotal = total(handPlayer);
+      const dealerTotal = total(handDealer);
+      const natural = handPlayer.length === 2 && playerTotal === 21;
+      const push = playerTotal <= 21 && playerTotal === dealerTotal;
+      const win = playerTotal <= 21 && (dealerTotal > 21 || playerTotal > dealerTotal);
+      return {
+        playerTotal,
+        dealerTotal,
+        natural,
+        push,
+        win,
+        payout: push ? bet : win ? Math.floor(bet * (natural ? 2.5 : 2)) : 0,
+      };
+    }
+
     async function refreshWallet() {
       if (!api?.getWallet) return;
       const result = await api.getWallet();
@@ -269,6 +288,13 @@
         applyState(state);
         if (state.log) setLog(state.log);
         if (typeof state.lastNet === "number") $("lastNet").textContent = `${state.lastNet >= 0 ? "+" : ""}${fmt(state.lastNet)}`;
+        if (connected && state.roundOpen === false) {
+          const bet = getBet();
+          const outcome = payoutFor(bet, state.player || player, state.dealer || dealer);
+          const settled = await api.casinoWager("casino-blackjack", bet, outcome.payout, { player: outcome.playerTotal, dealer: outcome.dealerTotal, natural: outcome.natural, source: "shared_settle" });
+          if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
+          if (settled.reason && settled.reason !== "ok") setLog(`${state.log || "Mano cerrada."} Wallet: ${settled.reason}`);
+        }
         return;
       }
       if (!roundOpen) return;
@@ -281,10 +307,11 @@
       roundOpen = false;
       render();
       const bet = getBet();
-      const natural = player.length === 2 && playerTotal === 21;
-      const push = playerTotal <= 21 && playerTotal === dealerTotal;
-      const win = playerTotal <= 21 && (dealerTotal > 21 || playerTotal > dealerTotal);
-      const payout = push ? bet : win ? Math.floor(bet * (natural ? 2.5 : 2)) : 0;
+      const outcome = payoutFor(bet);
+      const natural = outcome.natural;
+      const push = outcome.push;
+      const win = outcome.win;
+      const payout = outcome.payout;
       const lastNet = payout - bet;
       const label = natural ? "Blackjack natural." : push ? "Empate, vuelve la apuesta." : win ? "Ganaste la mano." : "La casa gana.";
       $("lastNet").textContent = `${lastNet >= 0 ? "+" : ""}${fmt(lastNet)}`;
