@@ -32,6 +32,17 @@ const COLOR_OPTIONS = [
   { name: "Amarillo", value: "text-neon-yellow" },
   { name: "Blanco", value: "text-foreground" },
 ];
+const EVENT_GAME_OPTIONS = [
+  { value: "", label: "Lugar fisico / otro" },
+  { value: "pong", label: "Pong / Air Hockey" },
+  { value: "agar-server", label: "Agar.io Clon" },
+  { value: "massive-decks", label: "Massive Decks" },
+  { value: "casino-roulette", label: "Ruleta Retro" },
+  { value: "casino-blackjack", label: "Blackjack Drag" },
+  { value: "casino-chess", label: "Ajedrez con Apuesta" },
+  { value: "casino-horses", label: "Carrera de Caballos" },
+  { value: "casino-bingo", label: "Bingo Arcade" },
+];
 
 const placeholderEvents: any[] = [];
 
@@ -63,6 +74,7 @@ export default function EventosPage() {
   const [crImageUrl, setCrImageUrl] = useState<string>("");
   const [crHighlightDays, setCrHighlightDays] = useState("7");
   const [crTicketPrice, setCrTicketPrice] = useState("0");
+  const [crGameSlug, setCrGameSlug] = useState("");
   const [uploadingImg, setUploadingImg] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -160,6 +172,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrImageUrl("");
     setCrHighlightDays("7");
     setCrTicketPrice("0");
+    setCrGameSlug("");
     setCreateOpen(true);
   };
 
@@ -187,6 +200,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
     setCrImageUrl(ev.image_storage_url || "");
     setCrHighlightDays(daysUntil(ev.highlight_until));
     setCrTicketPrice(String(ev.ticket_price_fcoins || 0));
+    setCrGameSlug(ev.event_game_slug || "");
     setCreateOpen(true);
   };
 
@@ -226,17 +240,21 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
       const fullTitle = `${crIcon} ${crTitle}`.trim();
       const highlightDays = Math.max(0, Math.floor(Number(crHighlightDays) || 0));
       const ticketPrice = Math.max(0, Math.floor(Number(crTicketPrice) || 0));
+      const selectedGame = EVENT_GAME_OPTIONS.find((option) => option.value === crGameSlug);
       const payload = {
         title: fullTitle,
         description: crDescription,
         event_type: crType,
         event_date: crDate || null,
         event_time: crTime || null,
-        location: crLocation || null,
+        location: crGameSlug ? selectedGame?.label || crGameSlug : crLocation || null,
         image_url: crColor,
         image_storage_url: crImageUrl || null,
         highlight_until: highlightDays > 0 ? new Date(Date.now() + highlightDays * 24 * 60 * 60 * 1000).toISOString() : null,
         ticket_price_fcoins: ticketPrice,
+        event_platform_type: crGameSlug ? "game" : "manual",
+        event_game_slug: crGameSlug || null,
+        event_game_label: crGameSlug ? selectedGame?.label || crGameSlug : null,
       };
 
       if (editingId) {
@@ -459,6 +477,15 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
               <Input type="time" style={{ colorScheme: 'dark' }} value={crTime} onChange={e => setCrTime(e.target.value)} className="bg-black/40 text-xs" />
             </div>
             <Input placeholder="Lugar / plataforma" value={crLocation} onChange={e => setCrLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
+            <div>
+              <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Juego del evento / boleto</label>
+              <select value={crGameSlug} onChange={e => setCrGameSlug(e.target.value)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
+                {EVENT_GAME_OPTIONS.map(option => (
+                  <option key={option.value || "manual"} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-muted-foreground">Si eliges un juego, el boleto servira para entrar a salas especiales destacadas de ese juego.</p>
+            </div>
             <Textarea placeholder="Descripción del evento..." value={crDescription} onChange={e => setCrDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
             <div className="grid grid-cols-2 gap-2">
               <div>

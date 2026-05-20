@@ -199,8 +199,49 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     return () => window.removeEventListener("mouseup", finishDistribution);
   }, [dragMode, cursorItem, dragTouched]);
 
+  const persistSlotSnapshot = (slots: any[]) => {
+    const snapshot = slots.map((slot) => slot ? {
+      item_slug: slot.item_slug,
+      sources: stackSources(slot),
+    } : null);
+    localStorage.setItem(`inventory-slot-snapshot:${userId}`, JSON.stringify(snapshot));
+  };
+
   useEffect(() => {
     const nextSlots = Array(27).fill(null);
+    const savedSnapshot = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(`inventory-slot-snapshot:${userId}`) || "[]");
+      } catch {
+        return [];
+      }
+    })();
+    const availableById = new Map((boosters || []).map((item) => [String(item.id), item]));
+    const consumed = new Set<string>();
+
+    if (Array.isArray(savedSnapshot) && savedSnapshot.length > 0) {
+      savedSnapshot.slice(0, 27).forEach((entry: any, slotIndex: number) => {
+        if (!entry || !Array.isArray(entry.sources)) return;
+        const parts = entry.sources
+          .map((source: any) => {
+            const sourceItem = availableById.get(String(source.id));
+            if (!sourceItem || sourceItem.item_slug !== entry.item_slug || consumed.has(String(source.id))) return null;
+            const qty = Math.min(Number(source.quantity || 0), Number(sourceItem.quantity || 0));
+            if (qty <= 0) return null;
+            consumed.add(String(source.id));
+            return { item: sourceItem, source: { id: sourceItem.id, quantity: qty } };
+          })
+          .filter(Boolean);
+        if (parts.length === 0) return;
+        const base = parts[0].item;
+        nextSlots[slotIndex] = {
+          ...base,
+          quantity: parts.reduce((sum: number, part: any) => sum + Number(part.source.quantity || 0), 0),
+          sources: parts.map((part: any) => part.source),
+        };
+      });
+    }
+
     const savedOrder = (() => {
       try {
         return JSON.parse(localStorage.getItem(`inventory-slot-order:${userId}`) || "[]");
@@ -209,6 +250,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       }
     })();
     boosters.forEach((item, index) => {
+      if (consumed.has(String(item.id))) return;
       const preferred = Number(savedOrder[index]);
       const slot = Number.isInteger(preferred) && preferred >= 0 && preferred < 27 && !nextSlots[preferred]
         ? preferred
@@ -438,6 +480,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const persistSlotOrder = (slots: any[]) => {
     const order = boosters.map((item) => slots.findIndex((slotItem) => slotItem?.id === item.id));
     localStorage.setItem(`inventory-slot-order:${userId}`, JSON.stringify(order));
+    persistSlotSnapshot(slots);
   };
 
   const schedulePersistSlotOrder = (slots: any[]) => {
@@ -811,7 +854,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       return;
     }
     toast({ title: "F-coin cargada", description: `+${amount.toLocaleString()} F-coin` });
-    void loadInventory();
+    if (typeof result?.wallet_balance === "number") setWallet(Number(result.wallet_balance));
   };
 
   const convertFcoinToStat = async () => {
@@ -838,7 +881,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     }
     const statAwarded = Number(result?.stat_awarded ?? Math.floor(amount / 5));
     toast({ title: "STAT recuperado", description: `+${statAwarded.toLocaleString()} puntos STAT por ${amount.toLocaleString()} F-coin` });
-    void loadInventory();
+    if (typeof result?.wallet_balance === "number") setWallet(Number(result.wallet_balance));
   };
 
   const sendStackToTrade = (slotIndex: number) => {

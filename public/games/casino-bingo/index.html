@@ -14,11 +14,11 @@
     button,input,select{min-height:32px;border:1px solid #33506f;border-radius:8px;background:#0e1b2d;color:#fff;padding:6px 10px;font-size:12px;box-shadow:inset 0 0 12px #0008}
     button{cursor:pointer;border-color:#facc15;background:linear-gradient(#23334f,#111827);font-weight:1000;box-shadow:0 2px 0 #8a5b00,0 0 14px #facc152d}
     button:disabled,select:disabled{opacity:.5;cursor:not-allowed}
-    .top{display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 10px;background:#050914d9;border-bottom:1px solid #facc1526}
+    .top{display:flex;align-items:center;gap:8px;min-height:44px;padding:7px 10px;background:#050914d9;border-bottom:1px solid #facc1526}
     .brand{font-weight:1000;color:#facc15;text-shadow:0 0 14px #facc1544;white-space:nowrap}
     .roomControls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
     .roomControls input{text-transform:uppercase;width:108px}
-    .status{margin-left:auto;color:#cbd5e1;font-size:12px;text-align:right}
+    .status{margin-left:auto;color:#cbd5e1;font-size:12px;text-align:right}.roomBadge{display:inline-flex;align-items:center;gap:5px;border:1px solid #22d3ee55;border-radius:999px;background:#061a2c;padding:5px 9px;color:#22d3ee;font-weight:1000}
     .calledLine{display:flex;gap:6px;align-items:center;min-height:50px;padding:7px 10px;overflow-x:auto;background:linear-gradient(90deg,#08111f,#0b1e34,#08111f);border-bottom:1px solid #22d3ee24}
     .calledLabel{position:sticky;left:0;z-index:1;background:#08111f;color:#facc15;font-weight:1000;font-size:12px;padding-right:8px}
     .ballMini{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff 0 18%,#facc15 19% 58%,#b45309 59%);color:#311400;font-size:12px;font-weight:1000;border:2px solid #fff7;box-shadow:0 5px 12px #0008,0 0 14px #facc1545}
@@ -58,8 +58,9 @@
     .cardsPicker{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
     .wallet{font-size:12px;color:#cbd5e1}
     .right{display:grid;grid-template-rows:auto minmax(0,1fr);padding:10px}
-    .rightHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 10px}
+    .rightHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px}
     .rightHead h2{margin:0;color:#fff;font-size:18px;text-shadow:0 0 18px #22d3ee44}
+    .buyBar{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;margin:0 0 8px;padding:7px;border:1px solid #22d3ee35;border-radius:10px;background:#061a2c}.buyBar span{font-size:11px;color:#cbd5e1}.buyBar b{color:#facc15}
     .cards{min-height:0;overflow:auto;display:grid;grid-template-columns:1fr;align-content:start;gap:10px;padding-right:4px}
     .card{border:1px solid #22d3ee66;border-radius:10px;background:#eaf7ff;color:#172033;overflow:hidden;box-shadow:0 14px 28px #0008,0 0 18px #22d3ee25}
     .cardHead{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,#4c1d95,#a21caf);color:#fff;padding:5px 8px;font-size:11px;font-weight:1000}
@@ -103,15 +104,6 @@
         <div class="bigBall" id="bigBall">--</div>
       </div>
       <div class="controls">
-        <div class="cardsPicker">
-          <select id="cardCount">
-            <option value="1">1 carton</option>
-            <option value="2">2 cartones (+500 F)</option>
-            <option value="3">3 cartones (+1000 F)</option>
-            <option value="4">4 cartones (+1500 F)</option>
-          </select>
-          <button id="applyCards">Usar</button>
-        </div>
         <button id="claimLine">Cantar linea</button>
         <button id="claimTwo">Cantar 2 lineas</button>
         <button id="claimFull">Casa llena</button>
@@ -125,6 +117,10 @@
         <h2>Cartones</h2>
         <span id="players">0 jugador(es)</span>
       </div>
+      <div class="buyBar">
+        <span><b id="cardTotal">1/5</b> cartones · Premio <b id="prizePool">0</b> F</span>
+        <button id="buyCard">Comprar carton 100 F</button>
+      </div>
       <div class="cards" id="cards"></div>
     </section>
   </main>
@@ -137,8 +133,9 @@
     const profile = { userId: p.get("userId") || "", displayName: p.get("displayName") || "Jugador", avatarUrl: p.get("avatarUrl") || "" };
     const $ = (id) => document.getElementById(id);
     let api, connected = false, peers = [], isLeader = false, wallet = null;
-    let cardsData = [], called = [], deck = [], roundActive = false, roomLocked = false, phase = "line";
+    let cardsData = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
+    let cardFees = 0, prizePool = 0, paidPrizes = 0;
     const preset = (p.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -162,6 +159,12 @@
     function renderWallet(next){
       if (typeof next === "number") wallet = next;
       $("wallet").textContent = wallet === null ? "..." : fmt(wallet);
+    }
+    function updatePrizePool(){
+      prizePool = Math.min(10000, Math.floor(cardFees * 1.3));
+      $("prizePool").textContent = fmt(prizePool);
+      $("cardTotal").textContent = `${cardsData.length}/5`;
+      $("buyCard").disabled = roundActive || cardsData.length >= 5;
     }
     async function refreshWallet(){
       if (!api?.getWallet) return;
@@ -205,11 +208,13 @@
     function renderCards(){
       $("cards").innerHTML = cardsData.map((cardRows, cardIndex) => `
         <article class="card">
-          <div class="cardHead"><span>CARD ${cardIndex + 1}</span><span>${cardIndex === 0 ? "base" : "500 F"}</span></div>
+          <div class="cardHead"><span>CARTON N.${String(cardIndex + 1).padStart(4, "0")}</span><span>${cardIndex === 0 ? "base" : "100 F"}</span></div>
           <div class="grid">
             ${cardRows.flatMap((row, rowIndex) => row.map((value, colIndex) => {
-              const marked = value && called.includes(value);
-              return `<button class="cell ${value ? "" : "blank"} ${marked ? "called" : ""}" data-card="${cardIndex}" data-row="${rowIndex}" data-col="${colIndex}" ${value ? "" : "disabled"}>${value || ""}</button>`;
+              const key = `${cardIndex}:${rowIndex}:${colIndex}`;
+              const calledNumber = value && called.includes(value);
+              const marked = markedCells.has(key);
+              return `<button class="cell ${value ? "" : "blank"} ${calledNumber ? "called" : ""} ${marked ? "marked" : ""}" data-card="${cardIndex}" data-row="${rowIndex}" data-col="${colIndex}" data-key="${key}" ${value ? "" : "disabled"}>${value || ""}</button>`;
             })).join("")}
           </div>
         </article>
@@ -218,9 +223,14 @@
         cell.onclick = () => {
           if (!cell.textContent) return;
           if (!called.includes(Number(cell.textContent))) return;
-          cell.classList.toggle("marked");
+          const key = cell.dataset.key;
+          if (!key) return;
+          if (markedCells.has(key)) markedCells.delete(key);
+          else markedCells.add(key);
+          renderCards();
         };
       });
+      updatePrizePool();
     }
     function renderCalled(){
       $("calledLine").innerHTML = `<span class="calledLabel">Bolas</span>` + called.slice(-32).map((n) => `<span class="ballMini">${n}</span>`).join("");
@@ -244,7 +254,7 @@
       isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed };
+      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes };
     }
     function applyState(state){
       called = Array.isArray(state?.called) ? state.called : called;
@@ -253,7 +263,11 @@
       roomLocked = Boolean(state?.roomLocked);
       phase = state?.phase || phase;
       claimed = state?.claimed || claimed;
+      cardFees = Number(state?.cardFees || cardFees || 0);
+      prizePool = Number(state?.prizePool || prizePool || 0);
+      paidPrizes = Number(state?.paidPrizes || paidPrizes || 0);
       renderCalled();
+      updatePrizePool();
     }
     function startCountdown(){
       clearInterval(autoTimer);
@@ -277,14 +291,16 @@
       if (!isLeader || roundActive) return;
       deck = Array.from({ length: 90 }, (_, i) => i + 1).sort(() => Math.random() - .5);
       called = [];
+      markedCells = new Set();
       claimed = { line: false, two: false, full: false };
+      paidPrizes = 0;
       roomLocked = true;
       roundActive = true;
       setPhase("line");
       renderCalled();
       api.send("start", statePayload());
       clearInterval(drawTimer);
-      drawTimer = setInterval(() => drawBall(false), 4200);
+      drawTimer = setInterval(() => drawBall(false), 15000);
     }
     function drawBall(local, n){
       if (!roundActive && !local) return;
@@ -300,10 +316,10 @@
       if (!local) api.send("ball", { n: next, deck, called });
     }
     function rowCounts(){
-      return cardsData.map((cardRows) => cardRows.filter((row) => row.filter(Boolean).every((n) => called.includes(n))).length);
+      return cardsData.map((cardRows, cardIndex) => cardRows.filter((row, rowIndex) => row.every((n, colIndex) => !n || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`))).length);
     }
     function hasFull(){
-      return cardsData.some((cardRows) => cardRows.flat().filter(Boolean).every((n) => called.includes(n)));
+      return cardsData.some((cardRows, cardIndex) => cardRows.every((row, rowIndex) => row.every((n, colIndex) => !n || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`))));
     }
     async function claim(kind){
       if (!roundActive) return;
@@ -312,10 +328,11 @@
       if (!ok) { log("Todavia no cumple la jugada."); return; }
       if (claimed[kind]) { log("Ese premio ya fue cantado."); return; }
       claimed[kind] = true;
-      const payout = kind === "line" ? 500 : kind === "two" ? 1500 : 5000;
+      const payout = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
+      paidPrizes += payout;
       const result = await api.casinoWager("casino-bingo", 0, payout, { kind, cards: cardsData.length, called });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
-      api.send("claim", { name: profile.displayName, kind, claimed, phase, payout });
+      api.send("claim", { name: profile.displayName, kind, claimed, phase, payout, paidPrizes });
       log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
       if (kind === "line") setPhase("two");
       if (kind === "two") setPhase("full");
@@ -329,18 +346,19 @@
       if (!local) api.send("end", statePayload());
       startCountdown();
     }
-    async function applyCardCount(){
-      if (roundActive) { log("No puedes cambiar cartones durante la partida."); return; }
-      const count = Math.max(1, Math.min(4, Number($("cardCount").value) || 1));
-      const extra = Math.max(0, count - 1) * 500;
-      if (extra > 0) {
-        const result = await api.casinoWager("casino-bingo-card", extra, 0, { cards: count, source: "extra_cards" });
-        if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
-        if (result.reason && result.reason !== "ok") { log(`No se pudieron comprar cartones: ${result.reason}`); return; }
-      }
-      cardsData = Array.from({ length: count }, makeCard);
+    async function buyCard(){
+      if (!connected) { log("Primero crea o entra a una sala."); return; }
+      if (roundActive) { log("No puedes comprar cartones durante la partida."); return; }
+      if (cardsData.length >= 5) { log("Maximo 5 cartones por usuario."); return; }
+      const result = await api.casinoWager("casino-bingo-card", 100, 0, { cards: cardsData.length + 1, source: "extra_card" });
+      if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
+      if (result.reason && result.reason !== "ok") { log(`No se pudo comprar carton: ${result.reason}`); return; }
+      cardsData.push(makeCard());
+      cardFees += 100;
+      updatePrizePool();
       renderCards();
-      log(`${count} carton(es) listos.`);
+      api.send("card_purchase", { amount: 100, cardFees, prizePool });
+      log(`${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
     }
     async function connect(code){
       const next = String(code || "").trim().toUpperCase();
@@ -348,7 +366,7 @@
       await api.connect(next);
       connected = true;
       $("room").value = next;
-      $("status").textContent = `Sala ${next}`;
+      $("status").innerHTML = `<span class="roomBadge">Sala ${next}</span>`;
       if (!cardsData.length) cardsData = [makeCard()];
       renderCards();
       await refreshWallet();
@@ -366,18 +384,24 @@
             peers = Array.isArray(players) ? players : peers;
             refreshLeadership();
             $("players").textContent = `${count || 1} jugador(es)`;
-            $("status").textContent = connected ? `Sala ${api.room}${roomLocked ? " / partida en curso" : ""}` : "Listo";
+            $("status").innerHTML = connected ? `<span class="roomBadge">Sala ${api.room}${roomLocked ? " / en curso" : ""}</span>` : "Listo";
           },
           onMessage: (m) => {
             if (m.type === "start") startRound(true, m.payload);
             if (m.type === "ball") { deck = m.payload.deck || deck; called = m.payload.called || called; drawBall(true, m.payload.n); }
             if (m.type === "claim") {
               claimed = m.payload.claimed || claimed;
+              paidPrizes = Number(m.payload.paidPrizes || paidPrizes || 0);
               if (m.payload.kind === "line") setPhase("two");
               if (m.payload.kind === "two") setPhase("full");
               log(`${m.payload.name} canto premio por ${fmt(m.payload.payout)} F-coin.`);
             }
             if (m.type === "end") endRound(true);
+            if (m.type === "card_purchase") {
+              cardFees = Math.max(cardFees, Number(m.payload.cardFees || 0));
+              prizePool = Math.max(prizePool, Number(m.payload.prizePool || 0));
+              updatePrizePool();
+            }
           }
         });
         $("status").textContent = "Listo";
@@ -389,7 +413,7 @@
     }
     $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2,8).toUpperCase());
     $("join").onclick = () => roomLocked ? log("La partida ya inicio. Espera a la siguiente.") : connect($("room").value);
-    $("applyCards").onclick = applyCardCount;
+    $("buyCard").onclick = buyCard;
     $("claimLine").onclick = () => claim("line");
     $("claimTwo").onclick = () => claim("two");
     $("claimFull").onclick = () => claim("full");

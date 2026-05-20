@@ -76,6 +76,9 @@ interface MultiplayerLobbyRoom {
   updatedAt: number;
   passwordProtected?: boolean;
   passwordHash?: string;
+  eventId?: string;
+  eventTitle?: string;
+  requiresTicket?: boolean;
 }
 
 interface SessionPlayer {
@@ -120,7 +123,7 @@ const formatSessionTime = (seconds: number) => {
 
 export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGameBubbleProps) {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user, profile, isStaff } = useAuth();
   const popupRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const lobbyChannelRef = useRef<any>(null);
@@ -151,6 +154,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [roomPrivate, setRoomPrivate] = useState(false);
   const [roomPassword, setRoomPassword] = useState("");
   const [pendingPrivateRoom, setPendingPrivateRoom] = useState<MultiplayerLobbyRoom | null>(null);
+  const [eventRooms, setEventRooms] = useState<any[]>([]);
+  const [selectedEventRoomId, setSelectedEventRoomId] = useState("");
+  const [activeEventRoom, setActiveEventRoom] = useState<MultiplayerLobbyRoom | null>(null);
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -486,7 +492,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   }, [activeGameId, activeSessionRoomCode]);
 
   useEffect(() => {
-    if (!activeGameId || isMassiveDecks) {
+    if (!activeGameId) {
       setLobbyRooms([]);
       return;
     }
@@ -510,6 +516,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             updatedAt: Math.max(Number(current?.updatedAt || 0), Number(presence?.updatedAt || 0)),
             passwordProtected: Boolean(current?.passwordProtected || presence?.passwordProtected),
             passwordHash: current?.passwordHash || String(presence?.passwordHash || ""),
+            eventId: current?.eventId || String(presence?.eventId || ""),
+            eventTitle: current?.eventTitle || String(presence?.eventTitle || ""),
+            requiresTicket: Boolean(current?.requiresTicket || presence?.requiresTicket),
           });
         });
       setLobbyRooms(Array.from(rooms.values()).sort((a, b) => b.updatedAt - a.updatedAt || a.code.localeCompare(b.code)));
@@ -528,6 +537,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             hostName: launchedAsHost ? localDisplayName : undefined,
             passwordProtected: isWatchTogether && roomPrivate,
             passwordHash: isWatchTogether && roomPrivate ? hashRoomPassword(roomPassword.trim()) : "",
+            eventId: activeEventRoom?.eventId || "",
+            eventTitle: activeEventRoom?.eventTitle || "",
+            requiresTicket: Boolean(activeEventRoom?.requiresTicket),
             joinedAt: sessionStartedAtRef.current,
             updatedAt: Date.now(),
           });
@@ -539,7 +551,34 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [activeGameId, activeSessionRoomCode, gameLaunched, isMassiveDecks, isWatchTogether, launchedAsHost, localDisplayName, localSessionUserId, roomPassword, roomPrivate]);
+  }, [activeEventRoom?.eventId, activeEventRoom?.eventTitle, activeEventRoom?.requiresTicket, activeGameId, activeSessionRoomCode, gameLaunched, isWatchTogether, launchedAsHost, localDisplayName, localSessionUserId, roomPassword, roomPrivate]);
+
+  useEffect(() => {
+    if (!activeGameId) {
+      setEventRooms([]);
+      setSelectedEventRoomId("");
+      return;
+    }
+    let cancelled = false;
+    const loadEventRooms = async () => {
+      const { data, error } = await supabase
+        .from("events" as any)
+        .select("id,title,event_game_slug,ticket_price_fcoins,highlight_until,event_date")
+        .eq("event_game_slug", activeGameId)
+        .gt("ticket_price_fcoins", 0)
+        .order("event_date", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        setEventRooms([]);
+        return;
+      }
+      setEventRooms(data || []);
+    };
+    void loadEventRooms();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeGameId]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
@@ -1063,10 +1102,11 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     });
   }, [isWatchTogether, upsertSessionPlayer]);
 
-  const launchRoom = (code: string, asHost: boolean) => {
+  const launchRoom = (code: string, asHost: boolean, eventRoom: MultiplayerLobbyRoom | null = null) => {
     const nextCode = (code || makeRoomCode()).trim().toUpperCase();
     setRoomCode(isAgar ? normalizeAgarRoomCode(nextCode) : nextCode);
     setLaunchedAsHost(asHost);
+    setActiveEventRoom(eventRoom);
     setGameLaunched(true);
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
@@ -1086,7 +1126,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       toast({ title: "Contrasena requerida", description: "Escribe una contrasena o marca la sala como publica.", variant: "destructive" });
       return;
     }
-    launchRoom(roomCode, true);
+    const selectedEvent = eventRooms.find((event) => String(event.id) === selectedEventRoomId);
+    launchRoom(roomCode, true, selectedEvent ? {
+      code: roomCode,
+      count: 1,
+      hostName: localDisplayName,
+      updatedAt: Date.now(),
+      eventId: String(selectedEvent.id),
+      eventTitle: String(selectedEvent.title || "Evento"),
+      requiresTicket: true,
+    } : null);
   };
   const finishPrivateJoin = () => {
     if (!pendingPrivateRoom) return;
@@ -1099,7 +1148,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setPendingPrivateRoom(null);
     launchRoom(code, false);
   };
-  const joinLobbyRoom = (code = roomCode) => {
+  const joinLobbyRoom = async (code = roomCode) => {
     const nextCode = code.trim().toUpperCase();
     if (!nextCode) {
       toast({ title: "Codigo requerido", description: "Escribe o elige una sala para unirte.", variant: "destructive" });
@@ -1114,7 +1163,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
       setRoomPrivate(Boolean(targetRoom?.passwordProtected));
     }
-    launchRoom(nextCode, false);
+    const targetRoom = lobbyRooms.find((room) => room.code === nextCode);
+    if (targetRoom?.requiresTicket && targetRoom.eventId) {
+      const { data, error } = await (supabase as any).rpc("consume_event_ticket_for_room", {
+        p_event_id: targetRoom.eventId,
+        p_game_slug: activeGameId,
+      });
+      const result = data as any;
+      if (error || result?.ok === false) {
+        toast({
+          title: "Boleto requerido",
+          description: result?.reason || error?.message || "Necesitas comprar la entrada de este evento.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Entrada usada", description: `Entrando a ${targetRoom.eventTitle || "evento"}.` });
+    }
+    launchRoom(nextCode, false, targetRoom?.requiresTicket ? targetRoom : null);
   };
 
   if (!game) return null;
@@ -1206,6 +1272,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 )}
               </div>
             )}
+            {isStaff && eventRooms.length > 0 && (
+              <div className="mt-3 space-y-2 rounded border border-neon-yellow/30 bg-neon-yellow/10 p-2">
+                <label className="font-pixel text-[8px] uppercase text-neon-yellow">Sala destacada de evento</label>
+                <select
+                  value={selectedEventRoomId}
+                  onChange={(event) => setSelectedEventRoomId(event.target.value)}
+                  className="h-8 w-full rounded border border-white/10 bg-black/60 px-2 text-[10px] text-white outline-none"
+                >
+                  <option value="">Sala normal</option>
+                  {eventRooms.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {event.title} - {Number(event.ticket_price_fcoins || 0).toLocaleString()} F
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground">Solo staff puede crear estas salas; al entrar se consume el boleto del evento.</p>
+              </div>
+            )}
           </div>
           <div className="rounded border border-white/10 bg-white/[0.03] p-3">
             <p className="font-pixel text-[8px] uppercase text-neon-green">Como funciona</p>
@@ -1231,6 +1315,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 onClick={() => joinLobbyRoom(room.code)}
                 className={cn(
                   "mb-2 flex w-full items-center gap-3 rounded border border-white/10 bg-black/45 px-3 py-2 text-left transition-colors hover:border-neon-cyan/50 hover:bg-neon-cyan/10",
+                  room.requiresTicket && "border-neon-yellow/60 bg-neon-yellow/10 shadow-[0_0_18px_rgba(250,204,21,0.18)]",
                   isFull && "cursor-not-allowed opacity-45 hover:border-white/10 hover:bg-black/45",
                 )}
               >
@@ -1239,6 +1324,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                   <p className="truncate text-[10px] text-muted-foreground">
                     Host: {room.hostName}{room.passwordProtected ? " - privada" : " - publica"}
                   </p>
+                  {room.requiresTicket && (
+                    <p className="mt-1 truncate font-pixel text-[8px] uppercase text-neon-yellow">Evento: {room.eventTitle || "boleto requerido"}</p>
+                  )}
                 </div>
                 <span className="rounded border border-neon-green/30 px-2 py-1 font-pixel text-[8px] text-neon-green">
                   {room.count}/{game.maxPlayers || 10}
