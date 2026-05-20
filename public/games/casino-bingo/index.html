@@ -11,6 +11,8 @@
     ::-webkit-scrollbar-track{background:#08111f;border-left:1px solid #1d3552}
     ::-webkit-scrollbar-thumb{background:linear-gradient(#facc15,#22d3ee);border:2px solid #08111f;border-radius:999px;box-shadow:0 0 12px #22d3ee66}
     body{display:grid;grid-template-rows:auto auto minmax(0,1fr);background:radial-gradient(circle at 50% -10%,#15467a 0,#07111f 50%,#030712 100%)}
+    body.embedded{grid-template-rows:auto minmax(0,1fr)}
+    body.embedded .top{display:none}
     button,input,select{min-height:32px;border:1px solid #33506f;border-radius:8px;background:#0e1b2d;color:#fff;padding:6px 10px;font-size:12px;box-shadow:inset 0 0 12px #0008}
     button{cursor:pointer;border-color:#facc15;background:linear-gradient(#23334f,#111827);font-weight:1000;box-shadow:0 2px 0 #8a5b00,0 0 14px #facc152d}
     button:disabled,select:disabled{opacity:.5;cursor:not-allowed}
@@ -61,11 +63,11 @@
     .rightHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px}
     .rightHead h2{margin:0;color:#fff;font-size:18px;text-shadow:0 0 18px #22d3ee44}
     .buyBar{order:-1;display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;margin:0 0 8px;padding:7px;border:1px solid #22d3ee35;border-radius:10px;background:#061a2c}.buyBar.hidden{display:none}.buyBar span{font-size:11px;color:#cbd5e1}.buyBar b{color:#facc15}
-    .cards{min-height:0;overflow:auto;display:grid;grid-template-columns:1fr;align-content:start;gap:10px;padding-right:4px}
-    .card{position:relative;border:1px solid #22d3ee66;border-radius:10px;background:#eaf7ff;color:#172033;overflow:hidden;box-shadow:0 14px 28px #0008,0 0 18px #22d3ee25}
+    .cards{min-height:0;overflow:auto;display:grid;grid-template-columns:1fr;align-content:start;gap:12px;padding-right:4px}
+    .card{position:relative;min-width:560px;border:1px solid #22d3ee66;border-radius:10px;background:#eaf7ff;color:#172033;overflow:hidden;box-shadow:0 14px 28px #0008,0 0 18px #22d3ee25}
     .cardHead{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,#4c1d95,#a21caf);color:#fff;padding:5px 8px;font-size:11px;font-weight:1000}
     .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;padding:6px;background:#b8c7d9}
-    .cell{height:30px;display:grid;place-items:center;background:#fff;font-size:15px;font-weight:1000;color:#5b1025;border:1px solid #cad7e5;user-select:none}
+    .cell{height:40px;display:grid;place-items:center;background:#fff;font-size:18px;font-weight:1000;color:#5b1025;border:1px solid #cad7e5;user-select:none}
     .cell.blank{background:#edf2f7;color:transparent}
     .cell.marked{background:#facc15;color:#2b1500;box-shadow:inset 0 0 0 3px #fff7,0 0 10px #facc1555}
     .cell.called:not(.marked){outline:3px solid #22d3ee;outline-offset:-4px}
@@ -130,10 +132,12 @@
     const p = new URLSearchParams(location.search);
     const profile = { userId: p.get("userId") || "", displayName: p.get("displayName") || "Jugador", avatarUrl: p.get("avatarUrl") || "" };
     const $ = (id) => document.getElementById(id);
+    document.body.classList.toggle("embedded", p.get("embed") === "1");
     let api, connected = false, peers = [], isLeader = false, wallet = null;
     let cardsData = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
-    let cardFees = 0, prizePool = 0, paidPrizes = 0;
+    let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
+    const knownCardSignatures = new Set();
     const preset = (p.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -170,7 +174,26 @@
       const result = await api.getWallet();
       if (typeof result.balance === "number") renderWallet(result.balance);
     }
-    function makeCard(){
+    function seedHash(input){
+      let h = 2166136261;
+      for (let i = 0; i < String(input).length; i++) {
+        h ^= String(input).charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+    function seededRandom(seed){
+      let state = seedHash(seed) || 1;
+      return () => {
+        state = Math.imul(1664525, state) + 1013904223;
+        return ((state >>> 0) / 4294967296);
+      };
+    }
+    function cardSignature(cardRows){
+      return cardRows.map((row) => row.map((value) => value || "-").join(",")).join("|");
+    }
+    function makeCard(seed = `${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${cardNonce++}`){
+      const rand = seededRandom(seed);
       const rows = Array.from({ length: 3 }, () => Array(9).fill(null));
       const used = new Set();
       for (let col = 0; col < 9; col++) {
@@ -178,31 +201,42 @@
         const max = col === 8 ? 90 : col * 10 + 9;
         const colNums = [];
         while (colNums.length < 2) {
-          const n = Math.floor(Math.random() * (max - min + 1)) + min;
+          const n = Math.floor(rand() * (max - min + 1)) + min;
           if (!used.has(n)) { used.add(n); colNums.push(n); }
         }
-        const rowA = Math.floor(Math.random() * 3);
-        let rowB = Math.floor(Math.random() * 3);
-        while (rowB === rowA) rowB = Math.floor(Math.random() * 3);
+        const rowA = Math.floor(rand() * 3);
+        let rowB = Math.floor(rand() * 3);
+        while (rowB === rowA) rowB = Math.floor(rand() * 3);
         rows[rowA][col] = colNums[0];
         rows[rowB][col] = colNums[1];
       }
       rows.forEach((row) => {
         while (row.filter(Boolean).length > 5) {
           const filled = row.map((v, i) => v ? i : -1).filter((i) => i >= 0);
-          row[filled[Math.floor(Math.random() * filled.length)]] = null;
+          row[filled[Math.floor(rand() * filled.length)]] = null;
         }
         while (row.filter(Boolean).length < 5) {
           const empty = row.map((v, i) => v ? -1 : i).filter((i) => i >= 0);
-          const col = empty[Math.floor(Math.random() * empty.length)];
+          const col = empty[Math.floor(rand() * empty.length)];
           const min = col === 0 ? 1 : col * 10;
           const max = col === 8 ? 90 : col * 10 + 9;
-          let n = Math.floor(Math.random() * (max - min + 1)) + min;
-          while (used.has(n)) n = Math.floor(Math.random() * (max - min + 1)) + min;
+          let n = Math.floor(rand() * (max - min + 1)) + min;
+          while (used.has(n)) n = Math.floor(rand() * (max - min + 1)) + min;
           used.add(n); row[col] = n;
         }
       });
       return rows;
+    }
+    function makeUniqueCard(reason = "card"){
+      let card = null;
+      let signature = "";
+      for (let attempt = 0; attempt < 50; attempt++) {
+        card = makeCard(`${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${reason}:${cardNonce++}:${attempt}`);
+        signature = cardSignature(card);
+        if (!knownCardSignatures.has(signature)) break;
+      }
+      knownCardSignatures.add(signature);
+      return card;
     }
     function completedRowsForCard(cardRows, cardIndex){
       return cardRows.filter((row, rowIndex) => row.every((n, colIndex) => !n || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`))).length;
@@ -221,6 +255,7 @@
       return kind === "full" ? "Casa llena" : kind === "two" ? "Cantar 2 lineas" : "Cantar linea";
     }
     function renderCards(){
+      cardsData.forEach((cardRows) => knownCardSignatures.add(cardSignature(cardRows)));
       $("cards").innerHTML = cardsData.map((cardRows, cardIndex) => `
         <article class="card">
           <div class="cardHead"><span>CARTON N.${String(cardIndex + 1).padStart(4, "0")}</span><span>${cardIndex === 0 ? "base" : "100 F"}</span></div>
@@ -271,9 +306,13 @@
     function refreshLeadership(){
       const leader = [...peers].sort((a,b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
       isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
+      if (isLeader && connected && !roundActive && !prepareEndsAt) {
+        prepareEndsAt = Date.now() + 60000;
+        api?.send("state", statePayload());
+      }
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes };
+      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt };
     }
     function applyState(state){
       called = Array.isArray(state?.called) ? state.called : called;
@@ -285,19 +324,22 @@
       cardFees = Number(state?.cardFees || cardFees || 0);
       prizePool = Number(state?.prizePool || prizePool || 0);
       paidPrizes = Number(state?.paidPrizes || paidPrizes || 0);
+      prepareEndsAt = Number(state?.prepareEndsAt || prepareEndsAt || 0);
+      nextDrawAt = Number(state?.nextDrawAt || nextDrawAt || 0);
       renderCalled();
       updatePrizePool();
+      if (roundActive && isLeader) ensureDrawTimer();
     }
     function startCountdown(){
       clearInterval(autoTimer);
-      countdown = 60;
+      if (!prepareEndsAt) prepareEndsAt = Date.now() + 60000;
       autoTimer = setInterval(() => {
         try {
           if (!connected || roundActive) return;
+          countdown = Math.max(0, Math.ceil((prepareEndsAt - Date.now()) / 1000));
           $("phaseName").textContent = "Esperando";
           $("phaseHelp").textContent = `Inicio automatico en ${Math.max(0, countdown)}s.`;
-          countdown -= 1;
-          if (countdown < 0 && isLeader && Math.max(1, peers.length) >= 1) startRound(false);
+          if (countdown <= 0 && isLeader && Math.max(1, peers.length) >= 1) startRound(false);
         } catch (error) {
           console.error("Bingo timer error", error);
           clearInterval(autoTimer);
@@ -315,24 +357,40 @@
       paidPrizes = 0;
       roomLocked = true;
       roundActive = true;
+      nextDrawAt = Date.now() + 15000;
       setPhase("line");
       renderCalled();
       api.send("start", statePayload());
+      ensureDrawTimer();
+    }
+    function ensureDrawTimer(){
+      if (!isLeader || !roundActive) return;
       clearInterval(drawTimer);
-      drawTimer = setInterval(() => drawBall(false), 15000);
+      drawTimer = setInterval(() => {
+        if (!roundActive) {
+          clearInterval(drawTimer);
+          drawTimer = null;
+          return;
+        }
+        if (Date.now() >= nextDrawAt) drawBall(false);
+      }, 1000);
     }
     function drawBall(local, n){
       if (!roundActive && !local) return;
       const next = n || deck.shift();
-      if (!next) return;
+      if (!next) {
+        if (!local) endRound(false);
+        return;
+      }
       if (!called.includes(next)) called.push(next);
+      if (!local) nextDrawAt = Date.now() + 15000;
       $("bigBall").classList.remove("pop");
       void $("bigBall").offsetWidth;
       $("bigBall").classList.add("pop");
       renderCalled();
       speak(`Numero ${next}`);
       log(`Salio el numero ${next}.`);
-      if (!local) api.send("ball", { n: next, deck, called });
+      if (!local) api.send("ball", { n: next, deck, called, nextDrawAt });
     }
     function rowCounts(){
       return cardsData.map((cardRows, cardIndex) => completedRowsForCard(cardRows, cardIndex));
@@ -381,6 +439,9 @@
       roundActive = false;
       roomLocked = false;
       clearInterval(drawTimer);
+      drawTimer = null;
+      prepareEndsAt = Date.now() + 60000;
+      nextDrawAt = 0;
       log("Partida finalizada. La sala vuelve a aceptar jugadores.");
       if (!local) api.send("end", statePayload());
       startCountdown();
@@ -394,12 +455,15 @@
         const result = await api.casinoWager("casino-bingo-card", 100, 0, { cards: cardsData.length + 1, source: "extra_card" });
         if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
         if (result.reason && result.reason !== "ok") { log(`No se pudo comprar carton: ${result.reason}`); return; }
-        cardsData.push(makeCard());
+        const nextCard = makeUniqueCard(`buy:${cardsData.length + 1}`);
+        const signature = cardSignature(nextCard);
+        cardsData.push(nextCard);
         cardFees += 100;
         updatePrizePool();
         renderCards();
-        api.send("card_purchase", { amount: 100, cardFees, prizePool });
-        log(`${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
+        api.send("card_purchase", { amount: 100, cardFees, prizePool, cardSignature: signature });
+        showStage("Carton comprado", "-100 F-coin descontados.");
+        log(`Carton comprado: -100 F-coin. ${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
       } catch (error) {
         console.error("Bingo buyCard error", error);
         log(`No se pudo comprar carton: ${error?.message || "error inesperado"}`);
@@ -414,13 +478,14 @@
       connected = true;
       $("room").value = next;
       $("status").innerHTML = `<span class="roomBadge">Sala ${next}</span>`;
-      if (!cardsData.length) cardsData = [makeCard()];
+      if (!cardsData.length) cardsData = [makeUniqueCard("base")];
       renderCards();
       await refreshWallet();
       startCountdown();
+      api.send("state_request", { userId: profile.userId, playerId: api.playerId });
     }
     async function setup(){
-      cardsData = [makeCard()];
+      cardsData = [makeUniqueCard("preview")];
       renderCards();
       try {
         api = await createRealtimeRoom({
@@ -434,8 +499,13 @@
             $("status").innerHTML = connected ? `<span class="roomBadge">Sala ${api.room}${roomLocked ? " / en curso" : ""}</span>` : "Listo";
           },
           onMessage: (m) => {
+            if (m.type === "state_request" && isLeader) api.send("state", statePayload());
+            if (m.type === "state") {
+              applyState(m.payload);
+              startCountdown();
+            }
             if (m.type === "start") startRound(true, m.payload);
-            if (m.type === "ball") { deck = m.payload.deck || deck; called = m.payload.called || called; drawBall(true, m.payload.n); }
+            if (m.type === "ball") { deck = m.payload.deck || deck; called = m.payload.called || called; nextDrawAt = Number(m.payload.nextDrawAt || nextDrawAt || 0); drawBall(true, m.payload.n); }
             if (m.type === "claim") {
               claimed = m.payload.claimed || claimed;
               paidPrizes = Number(m.payload.paidPrizes || paidPrizes || 0);
@@ -446,6 +516,7 @@
             }
             if (m.type === "end") endRound(true);
             if (m.type === "card_purchase") {
+              if (m.payload.cardSignature) knownCardSignatures.add(String(m.payload.cardSignature));
               cardFees = Math.max(cardFees, Number(m.payload.cardFees || 0));
               prizePool = Math.max(prizePool, Number(m.payload.prizePool || 0));
               updatePrizePool();

@@ -180,6 +180,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";
   const localAvatarUrl = profile?.avatar_url || "";
+  const canCreateSpecialRooms = isStaff || String(profile?.membership_tier || "").toLowerCase() === "staff";
   const localSessionUserId = user?.id || lobbyPlayerIdRef.current;
   const compactGameFrame = !fullscreen && size.w < 720;
   const mobileGameFrame = !fullscreen && size.w < 460;
@@ -467,7 +468,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setRoomPrivate(false);
     setRoomPassword("");
     setPendingPrivateRoom(null);
-    setGameLaunched(activeGameId === "massive-decks");
+    setGameLaunched(false);
     setLaunchedAsHost(true);
     setExpandedInfoOpen(false);
     setWindowInfoCollapsed(false);
@@ -1305,7 +1306,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 )}
               </div>
             )}
-            {isStaff && eventRooms.length > 0 && (
+            {canCreateSpecialRooms && eventRooms.length > 0 && (
               <div className="mt-3 space-y-2 rounded border border-neon-yellow/30 bg-neon-yellow/10 p-2">
                 <label className="font-pixel text-[8px] uppercase text-neon-yellow">Sala destacada de evento</label>
                 <select
@@ -1578,7 +1579,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           <Gamepad2 className={cn("h-4 w-4 text-neon-green", mobileGameFrame && "hidden")} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-body font-medium text-foreground">
-              {isWatchTogether ? `${game.label} / Sala: ${activeRoomCode}` : game.label}
+              {(gameLaunched || isMassiveDecks)
+                ? `${game.label} / Sala: ${activeRoomCode}`
+                : game.label}
             </p>
             <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-body">
               <span className="font-pixel text-neon-cyan">MULTI</span>

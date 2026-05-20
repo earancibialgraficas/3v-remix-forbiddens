@@ -296,6 +296,17 @@
       return numbers[Math.floor(Math.random() * numbers.length)];
     }
 
+    function normalizeAngle(angle) {
+      return ((angle % 360) + 360) % 360;
+    }
+
+    function targetRotationForPocket(pocketAngle) {
+      const current = normalizeAngle(rotation);
+      const desired = normalizeAngle(-pocketAngle);
+      const delta = normalizeAngle(desired - current);
+      return rotation + 1440 + delta;
+    }
+
     function placeBall(angleDeg, radius, lift = 0, scale = 1) {
       $("ball").style.transform = `translate(-50%,-50%) rotate(${angleDeg}deg) translateY(-${radius + lift}px) rotate(${-angleDeg}deg) scale(${scale})`;
     }
@@ -385,7 +396,7 @@
       const resultIndex = numbers.indexOf(result);
       const sector = 360 / numbers.length;
       const pocketAngle = (resultIndex + 0.5) * sector;
-      rotation += 1440 - pocketAngle;
+      rotation = targetRotationForPocket(pocketAngle);
       $("rotor").style.transform = `rotate(${rotation}deg)`;
       animateBallToPocket(resultIndex);
       const won = wins(result, bet);
