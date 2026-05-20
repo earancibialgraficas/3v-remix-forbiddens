@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION public.upsert_live_inventory_trade(
   p_other_user_id text,
   p_points bigint DEFAULT 0,
   p_items jsonb DEFAULT '[]'::jsonb,
-  p_ready boolean DEFAULT false
+  p_ready boolean DEFAULT false   
 )
 RETURNS json
 LANGUAGE plpgsql

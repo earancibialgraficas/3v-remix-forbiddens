@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Archive, ArrowLeftRight, Check, Coins, Gem, Loader2, Search, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -771,6 +772,17 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     void loadInventory();
   };
 
+  const cursorOverlay = cursorItem && typeof document !== "undefined" ? createPortal(
+    <div
+      className="pointer-events-none fixed z-[10000] h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[#d6b16f] bg-[#3b2d21] shadow-2xl shadow-black/70"
+      style={{ left: cursorPos.x, top: cursorPos.y }}
+    >
+      <ItemIcon item={cursorItem} className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+      <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white">x{cursorItem.quantity}</span>
+    </div>,
+    document.body,
+  ) : null;
+
   return (
     <div className="space-y-4 animate-in fade-in">
       <div className="grid gap-3 md:grid-cols-[1fr_320px]">
@@ -896,13 +908,13 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
               {tradeBoosters} boosters
             </div>
           </div>
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            <div>
-              <div className="mb-1 flex items-center justify-between text-[9px] font-pixel uppercase text-neon-cyan">
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="rounded border border-neon-cyan/25 bg-black/25 p-1.5">
+              <div className="mb-1 grid gap-0.5 text-[9px] font-pixel uppercase leading-tight text-neon-cyan">
                 <span>Tu lado</span>
-                <span className={cn(localReady ? "text-neon-green" : "text-muted-foreground")}>{localReady ? "Listo" : "Editando"}</span>
+                <span className={cn("text-[8px]", localReady ? "text-neon-green" : "text-muted-foreground")}>{localReady ? "Listo" : "Editando"}</span>
               </div>
-              <div className="grid w-24 grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
+              <div className="grid w-full grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
                 {tradeSlots.map((item, index) => (
                   <button
                     key={index}
@@ -927,13 +939,16 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   </button>
                 ))}
               </div>
-            </div>
-            <div>
-              <div className="mb-1 flex items-center justify-between text-[9px] font-pixel uppercase text-neon-magenta">
-                <span>{selectedRecipient?.display_name ? "Su lado" : "Esperando"}</span>
-                <span className={cn(remoteReady ? "text-neon-green" : "text-muted-foreground")}>{remoteReady ? "Listo" : "Editando"}</span>
+              <div className="mt-1 rounded border border-neon-cyan/20 bg-black/25 px-1.5 py-1 text-[9px] text-muted-foreground">
+                Tú: {Number(pointsToSend || 0).toLocaleString()} F-coin
               </div>
-              <div className="grid w-24 grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1">
+            </div>
+            <div className="rounded border border-neon-magenta/25 bg-black/25 p-1.5">
+              <div className="mb-1 grid gap-0.5 text-[9px] font-pixel uppercase leading-tight text-neon-magenta">
+                <span>{selectedRecipient?.display_name ? "Su lado" : "Esperando"}</span>
+                <span className={cn("text-[8px]", remoteReady ? "text-neon-green" : "text-muted-foreground")}>{remoteReady ? "Listo" : "Editando"}</span>
+              </div>
+              <div className="grid w-full grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1">
                 {remoteTradeSlots.map((item, index) => (
                   <div
                     key={index}
@@ -952,11 +967,10 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   </div>
                 ))}
               </div>
+              <div className="mt-1 rounded border border-neon-magenta/20 bg-black/25 px-1.5 py-1 text-[9px] text-muted-foreground">
+                Otro: {remotePoints.toLocaleString()} F-coin
+              </div>
             </div>
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
-            <div className="rounded border border-neon-cyan/20 bg-black/25 p-2">Tú: {Number(pointsToSend || 0).toLocaleString()} F-coin</div>
-            <div className="rounded border border-neon-magenta/20 bg-black/25 p-2">Otro: {remotePoints.toLocaleString()} F-coin</div>
           </div>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota opcional..." className="mt-2 min-h-[62px] bg-muted text-xs" />
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1074,15 +1088,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         </div>
       )}
 
-      {cursorItem && (
-        <div
-          className="pointer-events-none fixed z-[700] h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[#d6b16f] bg-[#3b2d21] shadow-2xl shadow-black/70"
-          style={{ left: cursorPos.x, top: cursorPos.y }}
-        >
-          <ItemIcon item={cursorItem} className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-neon-yellow drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
-          <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white">x{cursorItem.quantity}</span>
-        </div>
-      )}
+      {cursorOverlay}
     </div>
   );
 }
