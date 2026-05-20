@@ -219,6 +219,14 @@
       }
     }
 
+    function publishReady(playerId, ready) {
+      window.parent?.postMessage({ type: "game:playerReady", playerId, ready: Boolean(ready) }, "*");
+    }
+
+    function clearPublishedReady() {
+      window.parent?.postMessage({ type: "game:readyClear" }, "*");
+    }
+
     function select(type, value, label, el) {
       document.querySelectorAll(".selected").forEach((node) => node.classList.remove("selected"));
       el?.classList.add("selected");
@@ -358,6 +366,7 @@
         else readyPlayers.add(key);
         renderSpinControl();
         api?.send("ready", { playerId: key, ready: readyPlayers.has(key), displayName: profile.displayName });
+        publishReady(key, readyPlayers.has(key));
         setStatus(readyPlayers.has(key) ? "Listo. Esperando al lider." : "Listo cancelado.");
         return;
       }
@@ -367,7 +376,10 @@
         return;
       }
       busy = true;
-      if (local) readyPlayers.clear();
+      if (local) {
+        readyPlayers.clear();
+        clearPublishedReady();
+      }
       const bet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
       const result = payload?.result ?? spinResult();
       const resultIndex = numbers.indexOf(result);
@@ -384,6 +396,7 @@
         paintResult(result, bet, payout, delta);
         if (!local) {
           readyPlayers.clear();
+          clearPublishedReady();
           api.send("spin", { result, bet });
         }
         if (connected) {
@@ -440,6 +453,7 @@
               if (key) {
                 if (message.payload.ready) readyPlayers.add(key);
                 else readyPlayers.delete(key);
+                publishReady(key, message.payload.ready);
                 renderSpinControl();
               }
             }

@@ -37,7 +37,7 @@
 
     let channel = null;
     let activeRoom = "";
-    const playerId = options.playerId || Math.random().toString(36).slice(2, 10);
+    const playerId = options.playerId || params.get("playerId") || Math.random().toString(36).slice(2, 10);
     const profile = options.profile || {};
     const localWins = {};
     const localPoints = {};

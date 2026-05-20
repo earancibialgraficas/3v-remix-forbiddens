@@ -157,6 +157,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [eventRooms, setEventRooms] = useState<any[]>([]);
   const [selectedEventRoomId, setSelectedEventRoomId] = useState("");
   const [activeEventRoom, setActiveEventRoom] = useState<MultiplayerLobbyRoom | null>(null);
+  const [readyPlayerKeys, setReadyPlayerKeys] = useState<Record<string, boolean>>({});
+  const [playerAwards, setPlayerAwards] = useState<Record<string, string>>({});
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -224,6 +226,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       });
       const existingKey = aliases.get(player.userId) || aliases.get(player.playerId) || player.userId;
       const existing = players.get(existingKey);
+      const incomingUpdatedAt = Number(player.updatedAt || Date.now());
+      if (existing?.status === "visited" && existing.leftAt && incomingUpdatedAt <= Number(existing.leftAt)) {
+        return current;
+      }
       if (disconnectGraceTimersRef.current[player.userId]) {
         window.clearTimeout(disconnectGraceTimersRef.current[player.userId]);
         delete disconnectGraceTimersRef.current[player.userId];
@@ -238,7 +244,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         timePoints: Math.max(Number(existing?.timePoints || 0), Number(player.timePoints || 0)),
         totalPoints: Math.max(Number(existing?.totalPoints || 0), Number(player.totalPoints || 0)),
         elapsedSeconds: Math.max(Number(existing?.elapsedSeconds || 0), Number(player.elapsedSeconds || 0)),
-        updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(player.updatedAt || 0)),
+        updatedAt: Math.max(Number(existing?.updatedAt || 0), incomingUpdatedAt),
       });
       const nextPlayers = Array.from(players.values()).sort((a, b) => {
         if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
@@ -337,6 +343,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         if (!userId) return;
         const current = latest.get(userId);
         const existing = existingById.get(userId) || existingById.get(String(presence?.playerId || ""));
+        const presenceUpdatedAt = Number(presence?.updatedAt || 0);
+        if (existing?.status === "visited" && existing.leftAt && presenceUpdatedAt <= Number(existing.leftAt)) return;
         const next: SessionPlayer = {
           userId,
           playerId: String(presence?.playerId || userId),
@@ -346,7 +354,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           totalPoints: 0,
           elapsedSeconds: 0,
           joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
-          updatedAt: Math.max(Number(existing?.updatedAt || 0), Number(presence?.updatedAt || 0)),
+          updatedAt: Math.max(Number(existing?.updatedAt || 0), presenceUpdatedAt),
           status: "online",
         };
         if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
@@ -449,6 +457,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     setExternalFrameLoaded(false);
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
+    setReadyPlayerKeys({});
+    setPlayerAwards({});
     connectedToastSeenRef.current = {};
     disconnectToastSeenRef.current = {};
     Object.values(disconnectGraceTimersRef.current).forEach((timer) => window.clearTimeout(timer));
@@ -478,6 +488,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     if (!activeGameId) return;
     setSessionPlayers([]);
     sessionPlayersRef.current = [];
+    setReadyPlayerKeys({});
+    setPlayerAwards({});
     connectedToastSeenRef.current = {};
     disconnectToastSeenRef.current = {};
     Object.values(disconnectGraceTimersRef.current).forEach((timer) => window.clearTimeout(timer));
@@ -606,6 +618,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
             const userId = String(player?.userId || player?.playerId || `external-${index}`);
             const playerId = String(player?.playerId || userId);
             const existing = sessionPlayersRef.current.find((item) => item.userId === userId || item.playerId === playerId);
+            if (existing?.status === "visited" && existing.leftAt && Date.now() - existing.leftAt < SESSION_VISITED_MS) {
+              return existing;
+            }
             return {
               userId,
               playerId,
@@ -623,6 +638,24 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         if (nextPlayers.length === 0 && sessionPlayersRef.current.length > 0) return;
         sessionPlayersRef.current = nextPlayers;
         setSessionPlayers(nextPlayers);
+      }
+      if (event.data?.type === "game:playerReady") {
+        const key = String(event.data.playerId || event.data.userId || "");
+        if (!key) return;
+        setReadyPlayerKeys((current) => {
+          const next = { ...current };
+          if (event.data.ready) next[key] = true;
+          else delete next[key];
+          return next;
+        });
+      }
+      if (event.data?.type === "game:readyClear") {
+        setReadyPlayerKeys({});
+      }
+      if (event.data?.type === "game:playerAward") {
+        const key = String(event.data.userId || event.data.playerId || "");
+        if (!key) return;
+        setPlayerAwards((current) => ({ ...current, [key]: String(event.data.award || "line") }));
       }
     };
     window.addEventListener("message", handleMessage);
@@ -1405,6 +1438,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         {presenceRows.length > 0 ? presenceRows.map((p, i) => {
           const playerName = p.name || "Jugador";
           const isOnline = (p.status || "online") === "online";
+          const isReady = Boolean(readyPlayerKeys[p.userId] || readyPlayerKeys[p.playerId]);
+          const award = playerAwards[p.userId] || playerAwards[p.playerId];
+          const awardIcon = award === "full" ? "🏆" : award === "two" ? "🥈" : award === "line" ? "🥉" : "";
           return (
             <div
               key={p.userId || i}
@@ -1435,6 +1471,16 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 {!isWatchTogether && (
                   <div className="absolute -top-1 -left-1 w-4 h-4 bg-black/90 border border-white/20 rounded flex items-center justify-center">
                     <span className="font-pixel text-[6px] text-white">{i + 1}</span>
+                  </div>
+                )}
+                {isReady && isOnline && (
+                  <div className="absolute -right-1 -bottom-1 grid h-4 w-4 place-items-center rounded-full border border-neon-green bg-black/90 text-[9px] font-bold text-neon-green shadow-[0_0_8px_rgba(57,255,20,0.55)]">
+                    ✓
+                  </div>
+                )}
+                {awardIcon && (
+                  <div className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full border border-neon-yellow bg-black/90 text-[9px] shadow-[0_0_8px_rgba(250,204,21,0.55)]" title={award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : "Linea"}>
+                    {awardIcon}
                   </div>
                 )}
               </div>
