@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Archive } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import GuardadosTab from "@/components/profile/GuardadosTab";
 import ModerationPanel from "@/components/profile/ModerationPanel";
 import EnergyBar from "@/components/profile/EnergyBar";
 import InventoryTab from "@/components/profile/InventoryTab";
+import { InventoryIcon } from "@/components/icons/InventoryIcon";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -355,7 +356,7 @@ export default function ProfilePage() {
     { id: "social" as const, label: "Redes", icon: Globe },
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     { id: "guardados" as const, label: "Guardados", icon: Bookmark },
-    { id: "inventario" as const, label: "Inventario", icon: Archive },
+    { id: "inventario" as const, label: "Inventario", icon: InventoryIcon },
     ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
   ];
 

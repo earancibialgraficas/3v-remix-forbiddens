@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { InventoryIcon } from "@/components/icons/InventoryIcon";
 
 interface InventoryTabProps {
   userId: string;
@@ -19,6 +20,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const slotItemsRef = useRef<any[]>(Array(27).fill(null));
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
   const cursorItemRef = useRef<any | null>(null);
+  const slotOrderPersistTimerRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [schemaReady, setSchemaReady] = useState(true);
   const [wallet, setWallet] = useState(0);
@@ -438,10 +440,18 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     localStorage.setItem(`inventory-slot-order:${userId}`, JSON.stringify(order));
   };
 
-  const commitSlotItems = (next: any[]) => {
+  const schedulePersistSlotOrder = (slots: any[]) => {
+    if (slotOrderPersistTimerRef.current) window.clearTimeout(slotOrderPersistTimerRef.current);
+    slotOrderPersistTimerRef.current = window.setTimeout(() => {
+      persistSlotOrder(slots);
+      slotOrderPersistTimerRef.current = null;
+    }, 90);
+  };
+
+  const commitSlotItems = (next: any[], persist = true) => {
     slotItemsRef.current = next;
     setSlotItems(next);
-    persistSlotOrder(next);
+    if (persist) schedulePersistSlotOrder(next);
   };
 
   const commitTradeSlots = (next: any[], changed = true) => {
@@ -917,7 +927,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         <div className="rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
-              <Archive className="h-4 w-4" /> Inventario
+              <InventoryIcon className="h-4 w-4" /> Inventario
             </h3>
             <div className="flex items-center gap-2 rounded border border-[#8b6d46] bg-black/30 px-2 py-1 text-[10px] font-body text-[#f7d28b]">
               <Gem className="h-3.5 w-3.5" /> {loading ? "..." : wallet.toLocaleString()} F-coin

@@ -22,17 +22,28 @@
     .calledLine{display:flex;gap:6px;align-items:center;min-height:50px;padding:7px 10px;overflow-x:auto;background:linear-gradient(90deg,#08111f,#0b1e34,#08111f);border-bottom:1px solid #22d3ee24}
     .calledLabel{position:sticky;left:0;z-index:1;background:#08111f;color:#facc15;font-weight:1000;font-size:12px;padding-right:8px}
     .ballMini{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff 0 18%,#facc15 19% 58%,#b45309 59%);color:#311400;font-size:12px;font-weight:1000;border:2px solid #fff7;box-shadow:0 5px 12px #0008,0 0 14px #facc1545}
-    .layout{min-height:0;display:grid;grid-template-columns:minmax(250px,360px) minmax(0,1fr);gap:12px;padding:12px}
+    .layout{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,40vw);gap:12px;padding:12px}
     .left,.right{min-height:0;border:1px solid #facc152b;background:#07111fd9;border-radius:14px;box-shadow:inset 0 0 32px #0008,0 0 28px #22d3ee12}
     .left{display:grid;grid-template-rows:auto 1fr auto;gap:10px;padding:12px}
     .phase{border:1px solid #22d3ee40;border-radius:12px;background:#061a2c;padding:10px;text-align:center}
     .phase b{display:block;color:#facc15;font-size:18px;text-transform:uppercase;text-shadow:0 0 14px #facc1555}
     .phase span{font-size:12px;color:#cbd5e1}
-    .tombola{position:relative;display:grid;place-items:center;min-height:260px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#193b64 0,#061526 64%,#02050a 65%);border:8px solid #144364;box-shadow:inset 0 0 40px #22d3ee35,0 20px 40px #000a,0 0 28px #22d3ee20;overflow:hidden}
-    .tombola:before{content:"";position:absolute;inset:26px;border-radius:50%;border:2px dashed #facc1555;animation:spin 8s linear infinite}
-    .tombola.playing:before{animation-duration:1.8s}
+    .tombola{position:relative;display:grid;place-items:center;min-height:300px;background:linear-gradient(#07111f,#09182a);border-radius:18px;border:1px solid #22d3ee33;box-shadow:inset 0 0 40px #0008,0 20px 40px #000a,0 0 28px #22d3ee20;overflow:hidden}
+    .tombola:before,.tombola:after{content:"";position:absolute;bottom:28px;width:46px;height:150px;background:linear-gradient(90deg,#d97706,#facc15,#b45309);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);filter:drop-shadow(0 8px 8px #0008)}
+    .tombola:before{left:15%}.tombola:after{right:15%}
+    .cage{position:absolute;z-index:1;width:min(68%,270px);aspect-ratio:1.28;border-radius:50%;border:8px solid #17375b;background:radial-gradient(circle at 50% 48%,#dff7ff1c 0,#0b223c55 64%,#06111f 100%);box-shadow:inset 0 0 28px #67e8f955,0 14px 22px #0009}
+    .cage:before{content:"";position:absolute;inset:-10px;border-radius:50%;background:repeating-conic-gradient(from 10deg,#17375b 0 5deg,transparent 5deg 16deg);opacity:.95;animation:spin 9s linear infinite}
+    .cage:after{content:"";position:absolute;left:-28px;right:-28px;top:50%;height:8px;background:#17375b;box-shadow:0 -56px 0 #17375b,0 56px 0 #17375b;transform:translateY(-50%)}
+    .tombola.playing .cage:before{animation-duration:2s}
+    .handle{position:absolute;z-index:2;right:8%;top:45%;width:70px;height:10px;background:#cbd5e1;border-radius:999px;box-shadow:0 3px 0 #64748b}
+    .handle:after{content:"";position:absolute;right:-18px;top:-7px;width:30px;height:24px;border-radius:12px;background:#ef4444;border:3px solid #fca5a5}
+    .base{position:absolute;z-index:2;bottom:22px;width:72%;height:16px;border-radius:8px;background:linear-gradient(90deg,#64748b,#facc15,#64748b);box-shadow:0 8px 12px #0009}
+    .innerBalls{position:absolute;inset:16%;z-index:1;animation:spin 12s linear infinite}
+    .tombola.playing .innerBalls{animation-duration:2.2s}
+    .innerBall{position:absolute;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 28%,#fff 0 18%,var(--ball,#facc15) 19% 62%,#334155 63%);color:#111827;font-size:10px;font-weight:1000;border:2px solid #fff9;box-shadow:0 4px 10px #0008}
+    .innerBall:nth-child(1){left:18%;top:18%;--ball:#22d3ee}.innerBall:nth-child(2){left:52%;top:12%;--ball:#f43f5e}.innerBall:nth-child(3){left:32%;top:42%;--ball:#a78bfa}.innerBall:nth-child(4){left:64%;top:46%;--ball:#facc15}.innerBall:nth-child(5){left:18%;top:62%;--ball:#22c55e}.innerBall:nth-child(6){left:47%;top:68%;--ball:#fb923c}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .bigBall{position:relative;z-index:2;width:118px;height:118px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 24%,#fff 0 17%,#facc15 18% 58%,#b45309 59% 100%);border:5px solid #fff9;color:#361600;font-size:42px;font-weight:1000;box-shadow:0 18px 30px #000a,0 0 34px #facc1566;transition:transform .45s ease}
+    .bigBall{position:absolute;right:16px;bottom:52px;z-index:4;width:86px;height:86px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 24%,#fff 0 17%,#facc15 18% 58%,#b45309 59% 100%);border:5px solid #fff9;color:#361600;font-size:32px;font-weight:1000;box-shadow:0 18px 30px #000a,0 0 34px #facc1566;transition:transform .45s ease}
     .bigBall.pop{animation:popBall .7s ease}
     @keyframes popBall{0%{transform:translateY(-60px) scale(.5);opacity:.2}70%{transform:translateY(6px) scale(1.08)}100%{transform:translateY(0) scale(1);opacity:1}}
     .controls{display:grid;gap:8px}
@@ -41,11 +52,11 @@
     .right{display:grid;grid-template-rows:auto minmax(0,1fr);padding:10px}
     .rightHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 10px}
     .rightHead h2{margin:0;color:#fff;font-size:18px;text-shadow:0 0 18px #22d3ee44}
-    .cards{min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;padding-right:4px}
+    .cards{min-height:0;overflow:auto;display:grid;grid-template-columns:1fr;align-content:start;gap:10px;padding-right:4px}
     .card{border:1px solid #22d3ee66;border-radius:10px;background:#eaf7ff;color:#172033;overflow:hidden;box-shadow:0 14px 28px #0008,0 0 18px #22d3ee25}
     .cardHead{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,#4c1d95,#a21caf);color:#fff;padding:5px 8px;font-size:11px;font-weight:1000}
     .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;padding:6px;background:#b8c7d9}
-    .cell{height:36px;display:grid;place-items:center;background:#fff;font-size:18px;font-weight:1000;color:#5b1025;border:1px solid #cad7e5;user-select:none}
+    .cell{height:30px;display:grid;place-items:center;background:#fff;font-size:15px;font-weight:1000;color:#5b1025;border:1px solid #cad7e5;user-select:none}
     .cell.blank{background:#edf2f7;color:transparent}
     .cell.marked{background:#facc15;color:#2b1500;box-shadow:inset 0 0 0 3px #fff7,0 0 10px #facc1555}
     .cell.called:not(.marked){outline:3px solid #22d3ee;outline-offset:-4px}
@@ -55,7 +66,7 @@
     .toastStage b{display:block;font-size:34px;color:#facc15;text-shadow:0 0 20px #facc1580;text-transform:uppercase}
     .toastStage span{color:#cbd5e1}
     @keyframes fade{0%,100%{opacity:0}15%,82%{opacity:1}}
-    @media(max-width:860px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.left{min-height:560px}.cards{grid-template-columns:1fr}.status{width:100%;margin-left:0;text-align:left}.top{flex-wrap:wrap}.brand{width:100%}}
+    @media(max-width:860px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.left{min-height:560px}.cards{grid-template-columns:1fr}.status{width:100%;margin-left:0;text-align:left}.top{flex-wrap:wrap}.brand{width:100%}.right{max-height:none}.cell{height:34px;font-size:16px}}
   </style>
 </head>
 <body>
@@ -78,6 +89,9 @@
         <span id="phaseHelp">La partida empieza automaticamente en 1 minuto.</span>
       </div>
       <div class="tombola" id="tombola">
+        <div class="cage"><div class="innerBalls"><span class="innerBall">18</span><span class="innerBall">27</span><span class="innerBall">44</span><span class="innerBall">75</span><span class="innerBall">29</span><span class="innerBall">71</span></div></div>
+        <div class="handle"></div>
+        <div class="base"></div>
         <div class="bigBall" id="bigBall">--</div>
       </div>
       <div class="controls">
@@ -202,7 +216,7 @@
     }
     function renderCalled(){
       $("calledLine").innerHTML = `<span class="calledLabel">Bolas</span>` + called.slice(-32).map((n) => `<span class="ballMini">${n}</span>`).join("");
-      $("bigBall").textContent = called.at(-1) || "--";
+      $("bigBall").textContent = called.length ? called[called.length - 1] : "--";
       $("tombola").classList.toggle("playing", roundActive);
       renderCards();
     }
@@ -237,11 +251,17 @@
       clearInterval(autoTimer);
       countdown = 60;
       autoTimer = setInterval(() => {
-        if (!connected || roundActive) return;
-        $("phaseName").textContent = "Esperando";
-        $("phaseHelp").textContent = `Inicio automatico en ${countdown}s.`;
-        countdown -= 1;
-        if (countdown < 0 && isLeader && peers.length >= 1) startRound(false);
+        try {
+          if (!connected || roundActive) return;
+          $("phaseName").textContent = "Esperando";
+          $("phaseHelp").textContent = `Inicio automatico en ${Math.max(0, countdown)}s.`;
+          countdown -= 1;
+          if (countdown < 0 && isLeader && Math.max(1, peers.length) >= 1) startRound(false);
+        } catch (error) {
+          console.error("Bingo timer error", error);
+          clearInterval(autoTimer);
+          log("El temporizador tuvo un problema, pero la mesa sigue abierta.");
+        }
       }, 1000);
     }
     function startRound(local, state){

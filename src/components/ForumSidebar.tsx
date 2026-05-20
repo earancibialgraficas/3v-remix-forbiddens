@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Gamepad2, Tv, Bike, ShoppingBag, Users, Home,
   Flame, Calendar, Star, HelpCircle, ChevronDown, ChevronRight,
-  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, Archive, MessageSquare, Bell
+  User, LogOut, PanelLeftClose, PanelLeft, Mail, AlertTriangle, BookOpen, MessageSquare, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNameStyle } from "@/lib/profileAppearance";
@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { InventoryIcon } from "@/components/icons/InventoryIcon";
 
 interface NavChild {
   label?: string;
@@ -261,7 +262,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
             </div>
             <div className="relative">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Inventario">
-                <Link to="/perfil?tab=inventario"><Archive className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
+                <Link to="/perfil?tab=inventario"><InventoryIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
               </Button>
             </div>
           </div>
