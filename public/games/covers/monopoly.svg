@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Monopolio Arcade</title>
+  <desc id="desc">Retro multiplayer board game cover with neon properties and dice.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06111f"/>
+      <stop offset=".52" stop-color="#12365e"/>
+      <stop offset="1" stop-color="#14091f"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="360" rx="18" fill="url(#bg)"/>
+  <g opacity=".28" stroke="#22d3ee" stroke-width="2">
+    <path d="M0 70h640M0 140h640M0 210h640M0 280h640"/>
+    <path d="M80 0v360M160 0v360M240 0v360M320 0v360M400 0v360M480 0v360M560 0v360"/>
+  </g>
+  <g transform="translate(170 68)" filter="url(#glow)">
+    <rect x="0" y="0" width="300" height="220" rx="18" fill="#07111f" stroke="#facc15" stroke-width="7"/>
+    <rect x="22" y="22" width="256" height="176" rx="12" fill="#0d2540" stroke="#22d3ee" stroke-width="3"/>
+    <g fill="#111827" stroke="#f8fafc" stroke-width="2">
+      <rect x="0" y="0" width="60" height="46" rx="10"/><rect x="60" y="0" width="60" height="46" rx="10"/><rect x="120" y="0" width="60" height="46" rx="10"/><rect x="180" y="0" width="60" height="46" rx="10"/><rect x="240" y="0" width="60" height="46" rx="10"/>
+      <rect x="0" y="174" width="60" height="46" rx="10"/><rect x="60" y="174" width="60" height="46" rx="10"/><rect x="120" y="174" width="60" height="46" rx="10"/><rect x="180" y="174" width="60" height="46" rx="10"/><rect x="240" y="174" width="60" height="46" rx="10"/>
+      <rect x="0" y="46" width="48" height="42" rx="9"/><rect x="0" y="88" width="48" height="42" rx="9"/><rect x="0" y="130" width="48" height="44" rx="9"/>
+      <rect x="252" y="46" width="48" height="42" rx="9"/><rect x="252" y="88" width="48" height="42" rx="9"/><rect x="252" y="130" width="48" height="44" rx="9"/>
+    </g>
+    <g>
+      <circle cx="92" cy="92" r="13" fill="#22d3ee" stroke="#fff" stroke-width="3"/>
+      <circle cx="160" cy="132" r="13" fill="#facc15" stroke="#fff" stroke-width="3"/>
+      <circle cx="205" cy="83" r="13" fill="#fb7185" stroke="#fff" stroke-width="3"/>
+    </g>
+  </g>
+  <g filter="url(#glow)">
+    <rect x="68" y="242" width="58" height="58" rx="11" fill="#f8fafc" stroke="#94a3b8" stroke-width="4" transform="rotate(-10 97 271)"/>
+    <circle cx="87" cy="260" r="5" fill="#111827"/><circle cx="107" cy="280" r="5" fill="#111827"/>
+    <rect x="512" y="228" width="62" height="62" rx="11" fill="#f8fafc" stroke="#94a3b8" stroke-width="4" transform="rotate(13 543 259)"/>
+    <circle cx="532" cy="246" r="5" fill="#111827"/><circle cx="554" cy="259" r="5" fill="#111827"/><circle cx="533" cy="274" r="5" fill="#111827"/>
+  </g>
+  <text x="32" y="58" fill="#f8fafc" font-family="Arial Black, Arial, sans-serif" font-size="36" font-weight="900">MONOPOLIO</text>
+  <text x="35" y="88" fill="#facc15" font-family="Arial, sans-serif" font-size="17" font-weight="900">ARCADE MULTI</text>
+  <rect x="508" y="28" width="98" height="34" rx="10" fill="#020617" stroke="#facc15" stroke-width="2"/>
+  <text x="557" y="51" text-anchor="middle" fill="#facc15" font-family="Arial Black, Arial, sans-serif" font-size="14">2-8P</text>
+</svg>
