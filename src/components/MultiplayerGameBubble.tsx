@@ -572,13 +572,20 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       setSelectedEventRoomId("");
       return;
     }
+    if (!canCreateSpecialRooms) {
+      setEventRooms([]);
+      setSelectedEventRoomId("");
+      return;
+    }
     let cancelled = false;
     const loadEventRooms = async () => {
+      const createdSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("events" as any)
-        .select("id,title,event_game_slug,ticket_price_fcoins,highlight_until,event_date")
+        .select("id,title,event_game_slug,ticket_price_fcoins,highlight_until,event_date,created_at")
         .eq("event_game_slug", activeGameId)
         .gt("ticket_price_fcoins", 0)
+        .gte("created_at", createdSince)
         .order("event_date", { ascending: true });
       if (cancelled) return;
       if (error) {
@@ -591,7 +598,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     return () => {
       cancelled = true;
     };
-  }, [activeGameId]);
+  }, [activeGameId, canCreateSpecialRooms]);
 
   // 📡 Escuchar actualizaciones del Leaderboard desde el juego (iframe)
   useEffect(() => {
@@ -1321,7 +1328,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-muted-foreground">Solo staff puede crear estas salas; al entrar se consume el boleto del evento.</p>
+                <p className="text-[10px] text-muted-foreground">Solo staff puede crear salas de eventos recientes. Al entrar se consume el boleto del inventario.</p>
               </div>
             )}
           </div>
@@ -1683,7 +1690,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         {!minimized && (
           <div className={cn("flex w-full relative", fullscreen ? "h-full" : "h-[calc(100%-44px)]", compactGameFrame && !fullscreen && "flex-col")}>
             {/* Área del Juego */}
-            {!gameLaunched && !isMassiveDecks ? (
+            {!gameLaunched ? (
               <div className="min-h-0 min-w-0 flex-1">
                 {lobbyPanel}
               </div>

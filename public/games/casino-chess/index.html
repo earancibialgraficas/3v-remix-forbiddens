@@ -10,6 +10,8 @@
     ::-webkit-scrollbar-track{background:#05070d;border-left:1px solid #1f2937}
     ::-webkit-scrollbar-thumb{background:linear-gradient(#67e8f9,#2dd4bf);border:2px solid #05070d;border-radius:999px;box-shadow:0 0 12px #67e8f966}
     body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:8px;background:radial-gradient(circle at 45% 10%,#153a35 0,#05070d 45%,#02030a 100%)}
+    body.embedded{grid-template-rows:minmax(0,1fr);gap:0;padding:0}
+    body.embedded #create,body.embedded #room,body.embedded #join{display:none}
     .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
     input,button{min-height:30px;border-radius:7px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:6px 9px;font:inherit;font-size:12px;box-shadow:inset 0 0 12px #0006}
     button{cursor:pointer;background:#0f766e;border-color:#2dd4bf;font-weight:900;box-shadow:0 0 16px #2dd4bf24}button:disabled{opacity:.45;cursor:not-allowed}
@@ -43,6 +45,7 @@
   <script src="/games/realtime-room.js"></script>
   <script>
     const params=new URLSearchParams(location.search),preset=(params.get('room')||'').toUpperCase(),shouldHost=params.get('host')==='1';
+    document.body.classList.toggle('embedded', params.get('embed') === '1');
     const profile={userId:params.get('userId')||'',displayName:params.get('displayName')||'Jugador',avatarUrl:params.get('avatarUrl')||''};
     const roomInput=document.getElementById('room'),statusEl=document.getElementById('status'),boardEl=document.getElementById('board'),movesEl=document.getElementById('moves');
     if(preset)roomInput.value=preset; let api,connected=false,role=shouldHost?'blancas':'negras',selected=-1,last=-1,pot=0;

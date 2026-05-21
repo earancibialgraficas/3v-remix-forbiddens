@@ -9,6 +9,8 @@
     :root{--board:min(78vw,430px);--line:#d8b4fe;--blue:#60a5fa;--red:#fb7185}
     html,body{height:100%;margin:0;background:#07051b;color:#f8fafc;font-family:Inter,Arial,sans-serif;overflow:hidden}
     body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:10px}
+    body.embedded{grid-template-rows:minmax(0,1fr);gap:0;padding:0}
+    body.embedded .controls{display:none}
     body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,#33105f88 0,#09072a 34%,#03020d 78%);z-index:-3}
     body::after{content:"";position:fixed;left:-12%;right:-12%;bottom:-20%;height:70%;background:linear-gradient(#d946ef55 2px,transparent 2px),linear-gradient(90deg,#d946ef66 2px,transparent 2px);background-size:100% 44px,64px 100%;transform:perspective(360px) rotateX(62deg);transform-origin:bottom;filter:drop-shadow(0 0 12px #d946ef);opacity:.58;z-index:-2}
     .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;z-index:3}
@@ -50,6 +52,7 @@
   <script src="/games/realtime-room.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
+    document.body.classList.toggle('embedded', params.get('embed') === '1');
     const presetRoom = (params.get('room') || '').toUpperCase();
     const shouldHost = params.get('host') === '1';
     const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };

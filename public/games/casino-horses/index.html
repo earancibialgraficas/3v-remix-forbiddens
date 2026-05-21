@@ -10,6 +10,8 @@
     ::-webkit-scrollbar-track{background:#071014;border-left:1px solid #1f2937}
     ::-webkit-scrollbar-thumb{background:linear-gradient(#facc15,#92400e);border:2px solid #071014;border-radius:999px;box-shadow:0 0 12px #facc1566}
     body{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;padding:8px;background:radial-gradient(circle at 50% 0,#24451f 0,#071014 48%,#03070a 100%)}
+    body.embedded{grid-template-rows:auto minmax(0,1fr) auto}
+    body.embedded #create,body.embedded #room,body.embedded #join{display:none}
     .bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}button,input,select{min-height:30px;border:1px solid #334155;border-radius:7px;background:#111827;color:#fff;padding:6px 9px;font-size:12px;box-shadow:inset 0 0 10px #0007}button{background:#92400e;border-color:#facc15;font-weight:900;cursor:pointer;box-shadow:0 0 16px #facc152c}.status{margin-left:auto;color:#67e8f9}
     .track{position:relative;border:2px solid #d6b16f;border-radius:12px;background:linear-gradient(180deg,#2c5b27,#1a3618);padding:10px;display:grid;grid-template-rows:repeat(5,1fr);gap:6px;min-height:0;overflow:hidden;box-shadow:inset 0 0 45px #0008,0 22px 60px #0009,0 0 26px #facc151d}.lane{position:relative;border-bottom:2px dashed #ffffff66}.lane::before{content:attr(data-lane);position:absolute;left:6px;top:8px;color:#facc15;font-weight:900;text-shadow:0 0 10px #facc15}.horse{position:absolute;left:42px;top:50%;transform:translateY(-50%);font-size:clamp(30px,6vh,40px);transition:left 3.4s cubic-bezier(.12,.8,.18,1);filter:drop-shadow(0 4px 0 #0008) drop-shadow(0 0 12px #facc1533)}.finish{position:absolute;right:30px;top:0;bottom:0;border-left:6px dashed #ef4444;z-index:2;filter:drop-shadow(0 0 10px #ef4444)}.hud{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:12px;color:#cbd5e1}.pot{border:1px solid #facc1540;background:#facc1510;border-radius:9px;padding:7px 10px;color:#facc15;font-weight:900;box-shadow:0 0 18px #facc151c}
     @media(max-width:560px){.status{margin-left:0}.horse{font-size:32px}.bar{display:grid;grid-template-columns:1fr 1fr}.status{grid-column:1/-1;text-align:center}.hud{grid-template-columns:1fr}.pot{width:max-content}}
@@ -26,6 +28,7 @@
   <script src="/games/realtime-room.js"></script>
   <script>
     const p=new URLSearchParams(location.search),profile={userId:p.get('userId')||'',displayName:p.get('displayName')||'Jugador',avatarUrl:p.get('avatarUrl')||''},shouldHost=p.get('host')==='1';
+    document.body.classList.toggle('embedded', p.get('embed') === '1');
     let api,connected=false,running=false,lastCount=0,autoTimer=0,bets={};const roomEl=room,statusEl=status,preset=(p.get('room')||'').toUpperCase();if(preset)roomEl.value=preset;
     track.innerHTML='<div class="finish"></div>'+Array.from({length:5},(_,i)=>`<div class="lane" data-lane="${i+1}"><span class="horse" id="h${i+1}">&#9822;</span></div>`).join('');
     function localBet(){return{userId:profile.userId||api?.playerId||'local',name:profile.displayName,bet:Math.max(1,Number(document.getElementById('bet').value)||1),pick:Number(pick.value)}}
