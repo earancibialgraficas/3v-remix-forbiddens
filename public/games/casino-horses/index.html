@@ -3,43 +3,346 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Carrera de Caballos</title>
+  <title>Carrera de Caballos BET</title>
   <style>
-    *{box-sizing:border-box;scrollbar-color:#facc15 #071014;scrollbar-width:thin}html,body{height:100%;margin:0;background:#071014;color:#fff;font-family:Inter,Arial;overflow:hidden}
+    *{box-sizing:border-box;scrollbar-color:#facc15 #071014;scrollbar-width:thin}
+    html,body{height:100%;margin:0;background:#071014;color:#fff;font-family:Inter,Arial,sans-serif;overflow:hidden}
     ::-webkit-scrollbar{width:10px;height:10px}
     ::-webkit-scrollbar-track{background:#071014;border-left:1px solid #1f2937}
     ::-webkit-scrollbar-thumb{background:linear-gradient(#facc15,#92400e);border:2px solid #071014;border-radius:999px;box-shadow:0 0 12px #facc1566}
-    body{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;padding:8px;background:radial-gradient(circle at 50% 0,#24451f 0,#071014 48%,#03070a 100%)}
-    body.embedded{grid-template-rows:auto minmax(0,1fr) auto}
-    body.embedded #create,body.embedded #room,body.embedded #join{display:none}
-    .bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}button,input,select{min-height:30px;border:1px solid #334155;border-radius:7px;background:#111827;color:#fff;padding:6px 9px;font-size:12px;box-shadow:inset 0 0 10px #0007}button{background:#92400e;border-color:#facc15;font-weight:900;cursor:pointer;box-shadow:0 0 16px #facc152c}.status{margin-left:auto;color:#67e8f9}
-    .track{position:relative;border:2px solid #d6b16f;border-radius:12px;background:linear-gradient(180deg,#2c5b27,#1a3618);padding:10px;display:grid;grid-template-rows:repeat(5,1fr);gap:6px;min-height:0;overflow:hidden;box-shadow:inset 0 0 45px #0008,0 22px 60px #0009,0 0 26px #facc151d}.lane{position:relative;border-bottom:2px dashed #ffffff66}.lane::before{content:attr(data-lane);position:absolute;left:6px;top:8px;color:#facc15;font-weight:900;text-shadow:0 0 10px #facc15}.horse{position:absolute;left:42px;top:50%;transform:translateY(-50%);font-size:clamp(30px,6vh,40px);transition:left 3.4s cubic-bezier(.12,.8,.18,1);filter:drop-shadow(0 4px 0 #0008) drop-shadow(0 0 12px #facc1533)}.finish{position:absolute;right:30px;top:0;bottom:0;border-left:6px dashed #ef4444;z-index:2;filter:drop-shadow(0 0 10px #ef4444)}.hud{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:12px;color:#cbd5e1}.pot{border:1px solid #facc1540;background:#facc1510;border-radius:9px;padding:7px 10px;color:#facc15;font-weight:900;box-shadow:0 0 18px #facc151c}
-    @media(max-width:560px){.status{margin-left:0}.horse{font-size:32px}.bar{display:grid;grid-template-columns:1fr 1fr}.status{grid-column:1/-1;text-align:center}.hud{grid-template-columns:1fr}.pot{width:max-content}}
+    body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:8px;background:radial-gradient(circle at 50% 0,#24451f 0,#071014 44%,#03070a 100%)}
+    body.embedded{grid-template-rows:minmax(0,1fr);padding:0}
+    button,input,select{min-height:32px;border:1px solid #3b4a3d;border-radius:8px;background:#111827;color:#fff;padding:7px 10px;font:inherit;font-size:12px;box-shadow:inset 0 0 12px #0008}
+    button{cursor:pointer;background:linear-gradient(#a65f12,#713409);border-color:#facc15;font-weight:1000;box-shadow:0 0 16px #facc152c}
+    button:disabled,input:disabled,select:disabled{opacity:.48;cursor:not-allowed}
+    .shell{height:100%;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:10px}
+    .stage,.sideCard{border:1px solid #d6b16f55;border-radius:12px;background:#10160fe6;box-shadow:0 22px 70px #000a,0 0 30px #facc1518}
+    .stage{min-width:0;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden;background:radial-gradient(circle at 50% 0,#1e4621 0,#0b1710 42%,#05080a 100%)}
+    .top{display:flex;align-items:center;gap:8px;min-width:0;padding:10px;border-bottom:1px solid #d6b16f26}
+    body.embedded .roomControls{display:none}
+    .roomControls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+    .roomControls input{text-transform:uppercase;width:112px}
+    .title{font-weight:1000;color:#facc15;text-shadow:0 0 18px #facc1538;white-space:nowrap}
+    .status{margin-left:auto;color:#67e8f9;font-size:12px;text-align:right}
+    .countdown{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 12px;background:#07130dcc;border-bottom:1px solid #d6b16f20}
+    .countdown b{color:#facc15;font-size:22px;text-shadow:0 0 14px #facc1555}
+    .track{position:relative;min-height:0;padding:12px 16px 12px 12px;display:grid;grid-template-rows:repeat(6,1fr);gap:7px;overflow:hidden;background:linear-gradient(180deg,#2a5f2b,#173817)}
+    .track:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 88%,#facc1528 88% 90%,transparent 90%),radial-gradient(circle at 18% 20%,#ffffff10,transparent 28%);pointer-events:none}
+    .finish{position:absolute;right:7.5%;top:0;bottom:0;width:10px;background:repeating-linear-gradient(0deg,#fff 0 10px,#111827 10px 20px);box-shadow:0 0 18px #fff8;z-index:3}
+    .lane{position:relative;min-height:58px;border:1px solid #ffffff18;border-radius:10px;background:linear-gradient(90deg,#234d20,#2f6a2b);box-shadow:inset 0 0 18px #0007;overflow:hidden}
+    .lane:after{content:"";position:absolute;left:0;right:0;bottom:8px;border-bottom:2px dashed #ffffff55}
+    .laneNo{position:absolute;left:8px;top:8px;z-index:2;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid #facc15;background:#111827;color:#facc15;font-weight:1000}
+    .horse{position:absolute;left:42px;bottom:11px;z-index:4;display:grid;place-items:center;width:52px;height:42px;font-size:34px;filter:drop-shadow(0 5px 0 #0008) drop-shadow(0 0 12px #facc1538);transition:left 5.4s cubic-bezier(.12,.78,.18,1)}
+    .horse.running{animation:gallop .34s steps(2,end) infinite}
+    .horse.win{filter:drop-shadow(0 5px 0 #0008) drop-shadow(0 0 24px #facc15)}
+    @keyframes gallop{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-5px) rotate(3deg)}}
+    .betBar{display:grid;grid-template-columns:repeat(4,auto) 1fr;gap:8px;align-items:center;padding:10px;border-top:1px solid #d6b16f26;background:#06100b}
+    .betBar input{width:92px}.betBar select{width:112px}.wallet{justify-self:end;color:#cbd5e1}.wallet b{color:#facc15;font-size:18px}
+    .side{min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:10px}
+    .sideCard{min-height:0;padding:12px;overflow:auto;background:#111315e8}
+    .sideHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;color:#facc15;font-weight:1000}
+    .metric{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #293241;background:#0b1117;border-radius:9px;padding:9px;margin-top:8px;color:#cbd5e1;font-size:12px}.metric b{color:#fff;font-size:17px}
+    .bets{display:grid;gap:7px}.betRow{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;border:1px solid #ffffff14;border-radius:9px;background:#07100c;padding:7px;font-size:12px}.betRow strong{color:#facc15}
+    .log{margin:0;color:#cbd5e1;font-size:12px;line-height:1.5}.winner{color:#facc15;font-size:18px;font-weight:1000;text-shadow:0 0 16px #facc1544}
+    @media(max-width:900px){.shell{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}.sideCard:last-child{grid-column:1/-1}.betBar{grid-template-columns:1fr 1fr}.wallet{justify-self:start}.track{min-height:520px}}
+    @media(max-width:560px){body{overflow:auto}.shell{height:auto}.top,.roomControls{align-items:stretch}.top{flex-wrap:wrap}.status{margin-left:0;width:100%;text-align:left}.betBar{grid-template-columns:1fr}.betBar input,.betBar select,.betBar button{width:100%}.side{grid-template-columns:1fr}.sideCard:last-child{grid-column:auto}.track{min-height:560px;padding-inline:8px}.horse{width:44px;font-size:30px}}
   </style>
 </head>
 <body>
-  <div class="bar">
-    <button id="create">Crear</button><input id="room" placeholder="Codigo"/><button id="join">Unirse</button>
-    <input id="bet" type="number" value="25" min="1"/><select id="pick"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
-    <button id="race">Correr manual</button><span id="status" class="status">Conectando...</span>
-  </div>
-  <main class="track" id="track"><div class="finish"></div></main>
-  <div class="hud"><p id="log" class="log">La carrera inicia automaticamente cuando hay minimo 3 personas en la sala. El pozo usa F-coin apostada + 10% de la casa.</p><div class="pot">Pozo: <span id="pot">0</span> F-coin</div></div>
+  <main class="shell">
+    <section class="stage">
+      <header class="top">
+        <div class="title">CABALLOS BET</div>
+        <div class="roomControls">
+          <button id="create">Crear sala</button>
+          <input id="room" placeholder="Codigo" />
+          <button id="join">Unirse</button>
+        </div>
+        <span id="status" class="status">Conectando...</span>
+      </header>
+      <div class="countdown">
+        <span id="phase">Crea o entra a una sala. La carrera inicia 1 minuto despues de que alguien entre.</span>
+        <b id="timer">--</b>
+      </div>
+      <section id="track" class="track">
+        <div class="finish"></div>
+      </section>
+      <footer class="betBar">
+        <label for="pick">Caballo</label>
+        <select id="pick"></select>
+        <label for="bet">Apuesta</label>
+        <input id="bet" type="number" min="1" max="1000" value="25" />
+        <button id="ready">Colocar apuesta</button>
+        <div class="wallet">F-coin <b id="wallet">...</b></div>
+      </footer>
+    </section>
+    <aside class="side">
+      <section class="sideCard">
+        <div class="sideHead"><span>SALA</span><span id="roomName">Sin sala</span></div>
+        <div class="metric"><span>Jugadores</span><b id="players">1</b></div>
+        <div class="metric"><span>Pozo + casa 10%</span><b id="pot">0</b></div>
+        <div class="metric"><span>Carreras</span><b id="raceCount">0</b></div>
+      </section>
+      <section class="sideCard">
+        <div class="sideHead"><span>APUESTAS</span><span>Max 1k</span></div>
+        <div id="bets" class="bets"></div>
+      </section>
+      <section class="sideCard">
+        <div class="sideHead"><span>RESULTADO</span><span id="lastNet">+0</span></div>
+        <p id="log" class="log">Elige caballo y coloca tu apuesta antes de que termine la preparacion.</p>
+      </section>
+    </aside>
+  </main>
   <script src="/games/realtime-room.js"></script>
   <script>
-    const p=new URLSearchParams(location.search),profile={userId:p.get('userId')||'',displayName:p.get('displayName')||'Jugador',avatarUrl:p.get('avatarUrl')||''},shouldHost=p.get('host')==='1';
-    document.body.classList.toggle('embedded', p.get('embed') === '1');
-    let api,connected=false,running=false,lastCount=0,autoTimer=0,bets={};const roomEl=room,statusEl=status,preset=(p.get('room')||'').toUpperCase();if(preset)roomEl.value=preset;
-    track.innerHTML='<div class="finish"></div>'+Array.from({length:5},(_,i)=>`<div class="lane" data-lane="${i+1}"><span class="horse" id="h${i+1}">&#9822;</span></div>`).join('');
-    function localBet(){return{userId:profile.userId||api?.playerId||'local',name:profile.displayName,bet:Math.max(1,Number(document.getElementById('bet').value)||1),pick:Number(pick.value)}}
-    function updatePot(){const mine=localBet();bets[mine.userId]=mine;const total=Object.values(bets).reduce((s,b)=>s+Number(b.bet||0),0);pot.textContent=total.toLocaleString();return total}
-    function broadcastBet(){const b=localBet();bets[b.userId]=b;updatePot();api?.send('bet',b)}
-    async function connect(r){await api.connect(r);connected=true;roomEl.value=r;statusEl.textContent='Sala '+r;broadcastBet()}
-    function resetTrack(){for(let i=1;i<=5;i++)document.getElementById('h'+i).style.left='42px'}
-    async function run(local,winner){if(running&&!local)return;running=true;winner=winner||Math.ceil(Math.random()*5);resetTrack();setTimeout(()=>{for(let i=1;i<=5;i++)document.getElementById('h'+i).style.left=(i===winner?86:Math.floor(Math.random()*68)+10)+'%'},60);const totalPot=updatePot(),mine=localBet(),win=mine.pick===winner,payout=win?Math.floor(totalPot*1.1):0;log.textContent=`Gano caballo ${winner}. ${win?'Cobraste':'Perdiste'} ${payout} F-coin. Pozo ${totalPot}.`;if(!local)api.send('race',{winner});const r=await api.casinoWager('casino-horses',mine.bet,payout,{chosen:mine.pick,winner,pot:totalPot,players:lastCount,houseBonus:0.1});if(r.reason&&r.awarded===0)log.textContent+=' Wallet pendiente: '+r.reason;setTimeout(()=>{running=false;resetTrack();if(shouldHost&&lastCount>=3)scheduleAuto()},4600)}
-    function scheduleAuto(){if(autoTimer||running)return;log.textContent='3+ jugadores conectados. Carrera automatica en 8 segundos...';autoTimer=setTimeout(()=>{autoTimer=0;if(shouldHost&&lastCount>=3)run(false)},8000)}
-    async function setup(){try{api=await createRealtimeRoom({game:'casino-horses',profile,onPeers:(count)=>{lastCount=count;statusEl.textContent=`${count} en sala`;if(shouldHost&&count>=3)scheduleAuto()},onMessage:m=>{if(m.type==='race')run(true,m.payload.winner);if(m.type==='bet'){bets[m.payload.userId||m.payload.name]=m.payload;updatePot()}}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}
-    create.onclick=()=>connect(roomEl.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomEl.value.trim().toUpperCase());race.onclick=()=>run(false);bet.onchange=broadcastBet;pick.onchange=broadcastBet;setup();
+    const params = new URLSearchParams(location.search);
+    document.body.classList.toggle("embedded", params.get("embed") === "1");
+    const profile = { userId: params.get("userId") || "", displayName: params.get("displayName") || "Jugador", avatarUrl: params.get("avatarUrl") || "" };
+    const hostParam = params.get("host") === "1";
+    const preset = (params.get("room") || "").toUpperCase();
+    const $ = (id) => document.getElementById(id);
+    const MAX_BET = 1000;
+    const HORSES = [
+      { id: 1, name: "Relampago", color: "#facc15" },
+      { id: 2, name: "Neblina", color: "#67e8f9" },
+      { id: 3, name: "Corazon", color: "#fb7185" },
+      { id: 4, name: "Sombra", color: "#c084fc" },
+      { id: 5, name: "Esmeralda", color: "#34d399" },
+      { id: 6, name: "Trueno", color: "#f97316" }
+    ];
+    let api, connected = false, peers = [], players = 1, isLeader = hostParam, running = false, wallet = null;
+    let prepareEndsAt = 0, countdownTimer = 0, raceCount = 0, raceTimer = 0, bets = {}, lastRace = null;
+    if (preset) $("room").value = preset;
+
+    function fmt(value){ return Number(value || 0).toLocaleString("es-CL"); }
+    function key(){ return profile.userId || api?.playerId || "local"; }
+    function setLog(text){ $("log").textContent = text; }
+    function setStatus(text){ $("status").textContent = text; }
+    function clampBet(value){ return Math.min(MAX_BET, Math.max(1, Math.floor(Number(value) || 1))); }
+    function renderWallet(next){ if (typeof next === "number") wallet = next; $("wallet").textContent = wallet === null ? "..." : fmt(wallet); }
+    function localBet(){
+      const bet = clampBet($("bet").value);
+      $("bet").value = String(bet);
+      return { userId: key(), name: profile.displayName, pick: Number($("pick").value || 1), bet };
+    }
+    function totalBet(){ return Object.values(bets).reduce((sum, b) => sum + Number(b.bet || 0), 0); }
+    function housePot(){ return Math.floor(totalBet() * 1.1); }
+    function statePayload(){ return { prepareEndsAt, running, bets, raceCount, lastRace }; }
+
+    function refreshLeadership(){
+      if (hostParam) { isLeader = true; return; }
+      const list = peers.length ? peers : [{ playerId: api?.playerId, userId: profile.userId, joinedAt: Date.now() }];
+      const leader = [...list].sort((a,b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
+      isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
+    }
+
+    function renderTrack(){
+      $("track").innerHTML = '<div class="finish"></div>' + HORSES.map((h) => `
+        <div class="lane">
+          <span class="laneNo">${h.id}</span>
+          <span class="horse" id="horse${h.id}" style="color:${h.color}">&#9822;</span>
+        </div>
+      `).join("");
+    }
+
+    function resetTrack(){
+      HORSES.forEach((h) => {
+        const el = $("horse" + h.id);
+        if (!el) return;
+        el.classList.remove("running", "win");
+        el.style.transitionDuration = "0ms";
+        el.style.left = "42px";
+        setTimeout(() => { el.style.transitionDuration = ""; }, 40);
+      });
+    }
+
+    function renderBets(){
+      const rows = Object.values(bets);
+      $("bets").innerHTML = rows.length ? rows.map((b) => {
+        const horse = HORSES.find((h) => h.id === Number(b.pick));
+        return `<div class="betRow"><strong>${b.pick}</strong><span>${b.name || "Jugador"}<br><small>${horse?.name || "Caballo"}</small></span><b>${fmt(b.bet)} F</b></div>`;
+      }).join("") : '<p class="log">Sin apuestas colocadas.</p>';
+      $("pot").textContent = fmt(housePot());
+      $("players").textContent = String(players);
+      $("raceCount").textContent = String(raceCount);
+    }
+
+    function applyState(state){
+      if (!state) return;
+      prepareEndsAt = Number(state.prepareEndsAt || prepareEndsAt || 0);
+      running = Boolean(state.running);
+      bets = state.bets && typeof state.bets === "object" ? state.bets : bets;
+      raceCount = Number(state.raceCount || raceCount || 0);
+      lastRace = state.lastRace || lastRace;
+      renderBets();
+      updateControls();
+      startCountdown();
+    }
+
+    function updateControls(){
+      $("bet").disabled = running;
+      $("pick").disabled = running;
+      $("ready").disabled = !connected || running;
+      $("ready").textContent = bets[key()] ? "Actualizar apuesta" : "Colocar apuesta";
+    }
+
+    function startCountdown(){
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        if (!connected) return;
+        if (!prepareEndsAt && isLeader && !running) {
+          prepareEndsAt = Date.now() + 60000;
+          api?.send("state", statePayload());
+        }
+        const left = running ? 0 : Math.max(0, Math.ceil((prepareEndsAt - Date.now()) / 1000));
+        $("timer").textContent = running ? "GO" : `${left}s`;
+        $("phase").textContent = running ? "Carrera en curso. Apuestas bloqueadas." : `Preparacion abierta. Inicio automatico en ${left}s.`;
+        if (!running && left <= 0 && isLeader && connected) startRace(false);
+      }, 500);
+    }
+
+    async function refreshWallet(){
+      if (!api?.getWallet) return;
+      const result = await api.getWallet();
+      if (typeof result.balance === "number") renderWallet(result.balance);
+    }
+
+    function placeBet(){
+      if (!connected) { setLog("Primero crea o entra a una sala."); return; }
+      if (running) return;
+      const bet = localBet();
+      bets[bet.userId] = bet;
+      renderBets();
+      updateControls();
+      api.send("bet", bet);
+      api.send("state", statePayload());
+      setLog(`${bet.name} aposto ${fmt(bet.bet)} F-coin al caballo ${bet.pick}.`);
+    }
+
+    function pickWinner(){
+      const weights = HORSES.map((h) => 1 + Math.random() * 2 + (Object.values(bets).filter((b) => Number(b.pick) === h.id).length * 0.08));
+      const total = weights.reduce((sum, n) => sum + n, 0);
+      let roll = Math.random() * total;
+      for (let i = 0; i < HORSES.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return HORSES[i].id;
+      }
+      return HORSES[0].id;
+    }
+
+    function animateRace(result){
+      resetTrack();
+      setTimeout(() => {
+        HORSES.forEach((h) => {
+          const el = $("horse" + h.id);
+          const won = h.id === Number(result.winner);
+          const distance = won ? 88 : 58 + Math.random() * 22;
+          el.classList.add("running");
+          if (won) el.classList.add("win");
+          el.style.transitionDuration = `${4.4 + Math.random() * 1.2}s`;
+          el.style.left = `${distance}%`;
+        });
+      }, 80);
+    }
+
+    async function settleRace(result){
+      const mine = bets[key()] || localBet();
+      const total = totalBet();
+      const winnerPool = Object.values(bets)
+        .filter((b) => Number(b.pick) === Number(result.winner))
+        .reduce((sum, b) => sum + Number(b.bet || 0), 0);
+      const won = Number(mine.pick) === Number(result.winner) && winnerPool > 0;
+      const payout = won ? Math.floor(housePot() * (Number(mine.bet || 0) / winnerPool)) : 0;
+      const net = payout - Number(mine.bet || 0);
+      $("lastNet").textContent = `${net >= 0 ? "+" : ""}${fmt(net)}`;
+      $("lastNet").style.color = net >= 0 ? "#22c55e" : "#fb7185";
+      setLog(`Gano ${HORSES.find((h) => h.id === Number(result.winner))?.name || "caballo " + result.winner}. ${won ? "Cobraste" : "Perdiste"} ${fmt(Math.abs(net))} F-coin. Pozo ${fmt(total)} + casa.`);
+      if (!connected) return;
+      const settled = await api.casinoWager("casino-horses", Number(mine.bet || 0), payout, { chosen: mine.pick, winner: result.winner, pot: total, housePot: housePot(), winnersPool: winnerPool });
+      if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
+      if (settled.reason && settled.reason !== "ok") setLog(`No se pudo liquidar: ${settled.reason}`);
+    }
+
+    async function startRace(local, payload){
+      if (running) return;
+      const result = payload || { winner: pickWinner(), seed: Math.random().toString(36).slice(2), at: Date.now() };
+      running = true;
+      lastRace = result;
+      raceCount += local ? 0 : 1;
+      renderBets();
+      updateControls();
+      animateRace(result);
+      if (!local) api.send("race", result);
+      await new Promise((resolve) => setTimeout(resolve, 5700));
+      await settleRace(result);
+      running = false;
+      prepareEndsAt = Date.now() + 60000;
+      updateControls();
+      if (!local) api.send("state", statePayload());
+      startCountdown();
+    }
+
+    async function connect(room){
+      const code = String(room || "").trim().toUpperCase();
+      if (!code) return;
+      await api.connect(code);
+      connected = true;
+      $("room").value = code;
+      $("roomName").textContent = code;
+      setStatus(`Sala ${code}`);
+      if (!prepareEndsAt) prepareEndsAt = Date.now() + 60000;
+      placeBet();
+      startCountdown();
+      await refreshWallet();
+      api.send("state_request", { userId: profile.userId, playerId: api.playerId });
+      if (isLeader) api.send("state", statePayload());
+    }
+
+    async function setup(){
+      $("pick").innerHTML = HORSES.map((h) => `<option value="${h.id}">${h.id} - ${h.name}</option>`).join("");
+      renderTrack();
+      renderBets();
+      updateControls();
+      try {
+        api = await createRealtimeRoom({
+          game: "casino-horses",
+          profile,
+          onPeers: (count, list) => {
+            players = Math.max(1, count || 1);
+            peers = Array.isArray(list) ? list : peers;
+            refreshLeadership();
+            setStatus(connected ? `Sala ${api.room}` : "Listo");
+            renderBets();
+            if (connected && isLeader && !prepareEndsAt && !running) {
+              prepareEndsAt = Date.now() + 60000;
+              api.send("state", statePayload());
+            }
+          },
+          onMessage: (message) => {
+            if (message.type === "state_request" && isLeader) api.send("state", statePayload());
+            if (message.type === "state") applyState(message.payload);
+            if (message.type === "bet") {
+              const bet = message.payload || {};
+              bets[bet.userId || bet.name] = bet;
+              renderBets();
+            }
+            if (message.type === "race") startRace(true, message.payload);
+          }
+        });
+        setStatus("Listo");
+        await refreshWallet();
+        if (preset) connect(preset);
+      } catch (error) {
+        setStatus(error.message || "Sin realtime");
+      }
+    }
+
+    $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2, 8).toUpperCase());
+    $("join").onclick = () => connect($("room").value);
+    $("ready").onclick = placeBet;
+    $("bet").onchange = placeBet;
+    $("pick").onchange = placeBet;
+    setup();
   </script>
 </body>
 </html>

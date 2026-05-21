@@ -29,7 +29,7 @@
 <body>
   <div class="controls">
     <button id="create">Crear sala</button><input id="room" maxlength="12" placeholder="Codigo" /><button id="join">Unirse</button>
-    <input id="bet" type="number" min="1" value="50" /><button id="reset">Reiniciar</button><button id="win">Declarar victoria</button><span id="status" class="status">Conectando...</span>
+    <input id="bet" type="number" min="1" max="1000" value="50" /><button id="reset">Reiniciar</button><button id="win">Declarar victoria</button><span id="status" class="status">Conectando...</span>
   </div>
   <main class="shell">
     <section class="board" id="board"></section>
@@ -48,15 +48,16 @@
     document.body.classList.toggle('embedded', params.get('embed') === '1');
     const profile={userId:params.get('userId')||'',displayName:params.get('displayName')||'Jugador',avatarUrl:params.get('avatarUrl')||''};
     const roomInput=document.getElementById('room'),statusEl=document.getElementById('status'),boardEl=document.getElementById('board'),movesEl=document.getElementById('moves');
-    if(preset)roomInput.value=preset; let api,connected=false,role=shouldHost?'blancas':'negras',selected=-1,last=-1,pot=0;
+    if(preset)roomInput.value=preset; const MAX_BET=1000; let api,connected=false,role=shouldHost?'blancas':'negras',selected=-1,last=-1,pot=0;
+    function getBet(){const input=document.getElementById('bet');const value=Math.min(MAX_BET,Math.max(1,Math.floor(Number(input.value)||1)));input.value=String(value);return value}
     const pieces=['&#9814;','&#9816;','&#9815;','&#9813;','&#9812;','&#9815;','&#9816;','&#9814;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9814;','&#9816;','&#9815;','&#9813;','&#9812;','&#9815;','&#9816;','&#9814;'];
     function render(){boardEl.innerHTML='';pieces.forEach((p,i)=>{const sq=document.createElement('button');sq.className='sq '+(((Math.floor(i/8)+i)%2)?'dark':'light')+(selected===i?' selected':'')+(last===i?' last':'');sq.onclick=()=>clickSq(i);sq.innerHTML=p?`<span class="piece ${i<16?'black':'white'}">${p}</span>`:'';boardEl.appendChild(sq)})}
     function clickSq(i){if(selected<0&&pieces[i]){selected=i;render();return}if(selected>=0&&selected!==i){pieces[i]=pieces[selected];pieces[selected]='';last=i;movesEl.insertAdjacentHTML('afterbegin',`<div>${profile.displayName}: ${selected+1} -> ${i+1}</div>`);api?.send('move',{from:selected,to:i,name:profile.displayName});selected=-1;render();return}selected=-1;render()}
     function applyMove(m){pieces[m.to]=pieces[m.from];pieces[m.from]='';last=m.to;movesEl.insertAdjacentHTML('afterbegin',`<div>${m.name||'Rival'}: ${m.from+1} -> ${m.to+1}</div>`);render()}
     async function connect(room){await api.connect(room);connected=true;roomInput.value=room;statusEl.textContent='Sala '+room;roleInfo.textContent=role;placeBet()}
-    async function placeBet(){const bet=Math.max(1,Number(document.getElementById('bet').value)||1);pot+=bet;document.getElementById('pot').textContent=pot.toLocaleString();api?.send('bet',{bet,name:profile.displayName})}
-    async function settle(){const bet=Math.max(1,Number(document.getElementById('bet').value)||1),payout=Math.floor((pot||bet)*1.1);const r=await api.casinoWager('casino-chess',bet,payout,{pot,declared:'manual'});movesEl.insertAdjacentHTML('afterbegin',`<div>Victoria declarada. ${r.reason&&r.awarded===0?'Wallet pendiente: '+r.reason:'Payout '+payout+' F-coin'}</div>`);api.send('chess-win',{name:profile.displayName,payout})}
-    async function loseStake(winner){const bet=Math.max(1,Number(document.getElementById('bet').value)||1);const r=await api.casinoWager('casino-chess',bet,0,{lostTo:winner||'rival'});movesEl.insertAdjacentHTML('afterbegin',`<div>${winner||'Rival'} gano. ${r.reason&&r.awarded===0?'Wallet: '+r.reason:'Perdiste '+bet+' F-coin'}</div>`)}
+    async function placeBet(){const bet=getBet();pot+=bet;document.getElementById('pot').textContent=pot.toLocaleString();api?.send('bet',{bet,name:profile.displayName})}
+    async function settle(){const bet=getBet(),payout=Math.floor((pot||bet)*1.1);const r=await api.casinoWager('casino-chess',bet,payout,{pot,declared:'manual'});movesEl.insertAdjacentHTML('afterbegin',`<div>Victoria declarada. ${r.reason&&r.awarded===0?'Wallet pendiente: '+r.reason:'Payout '+payout+' F-coin'}</div>`);api.send('chess-win',{name:profile.displayName,payout})}
+    async function loseStake(winner){const bet=getBet();const r=await api.casinoWager('casino-chess',bet,0,{lostTo:winner||'rival'});movesEl.insertAdjacentHTML('afterbegin',`<div>${winner||'Rival'} gano. ${r.reason&&r.awarded===0?'Wallet: '+r.reason:'Perdiste '+bet+' F-coin'}</div>`)}
     function resetBoard(local=false){selected=-1;last=-1;render();if(!local)api?.send('reset',{})}
     async function setup(){render();try{api=await createRealtimeRoom({game:'casino-chess',profile,onMessage:m=>{if(m.type==='move')applyMove(m.payload);if(m.type==='reset')resetBoard(true);if(m.type==='bet'){pot+=Number(m.payload.bet||0);document.getElementById('pot').textContent=pot.toLocaleString()}if(m.type==='chess-win'){statusEl.textContent=`${m.payload.name} gano la mesa`;loseStake(m.payload.name)}}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}
     create.onclick=()=>connect(roomInput.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomInput.value.trim().toUpperCase());document.getElementById('reset').onclick=()=>resetBoard();win.onclick=()=>settle();setup();

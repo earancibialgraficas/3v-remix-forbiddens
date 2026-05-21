@@ -98,6 +98,7 @@
           <button class="chip" data-chip="100">100</button>
           <button class="chip" data-chip="250">250</button>
           <button class="chip" data-chip="500">500</button>
+          <button class="chip" data-chip="1000">1k</button>
           <button id="spin" class="spin">GIRAR</button>
         </div>
       </section>
@@ -145,6 +146,7 @@
     const $ = (id) => document.getElementById(id);
     const color = (n) => (n === 0 || n === "00") ? "green" : red.has(Number(n)) ? "red" : "black";
     const hostParam = params.get("host") === "1";
+    const MAX_BET = 1000;
     let api, connected = false, rotation = 0, chip = 25, wallet = null, net = 0, busy = false, ballFrame = 0;
     let players = 1, peers = [], isLeader = hostParam, readyPlayers = new Set(), selected = { type: "number", value: 36, label: "36" };
     const spins = [];
@@ -393,7 +395,8 @@
         readyPlayers.clear();
         clearPublishedReady();
       }
-      const bet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
+      const rawBet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
+      const bet = { ...rawBet, amount: Math.min(MAX_BET, Math.max(1, Math.floor(Number(rawBet.amount) || 1))) };
       const result = payload?.result ?? spinResult();
       const resultIndex = numbers.indexOf(result);
       const sector = 360 / numbers.length;
@@ -444,7 +447,7 @@
         btn.onclick = () => {
           document.querySelectorAll(".chip").forEach((node) => node.classList.remove("active"));
           btn.classList.add("active");
-          chip = Number(btn.dataset.chip || 25);
+          chip = Math.min(MAX_BET, Math.max(1, Number(btn.dataset.chip || 25)));
           updateBetText();
         };
       });
