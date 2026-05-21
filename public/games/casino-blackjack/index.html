@@ -34,7 +34,13 @@
     .logo{align-self:center;text-align:center;color:#d8eac7;text-shadow:0 2px 0 #0008;font-weight:1000}
     .logo b{display:block;font-size:clamp(20px,2.6vw,32px);letter-spacing:0;text-shadow:0 3px 0 #000,0 0 18px #d8eac733}.logo span{font-size:11px;color:#facc15}
     .arcText{text-align:center;color:#d8eac799;font-weight:900;font-size:clamp(12px,1.5vw,18px);transform:rotate(-1deg);margin-top:5px;text-shadow:0 0 12px #d8eac744}
-    .playArea{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,480px) minmax(130px,1fr);gap:16px;align-items:end}
+    .playArea{display:grid;grid-template-columns:minmax(150px,1fr) minmax(240px,480px) minmax(150px,1fr);gap:16px;align-items:end}
+    .leftRail{display:grid;gap:10px;align-self:stretch}
+    .historyPanel{min-height:118px;max-height:180px;border:1px solid #facc1533;border-radius:14px;background:#020806b8;padding:9px;box-shadow:inset 0 0 22px #0009,0 0 20px #facc1514;overflow:hidden}
+    .historyTitle{color:#facc15;font-size:10px;font-weight:1000;text-transform:uppercase;margin-bottom:7px}
+    .historyList{max-height:138px;overflow:auto;padding-right:4px;scrollbar-color:#facc15 #06170f;scrollbar-width:thin}
+    .historyItem{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #ffffff10;padding:5px 0;color:#d8eac7;font-size:11px;font-weight:900}
+    .historyItem .win{color:#22c55e}.historyItem .loss{color:#fb7185}.historyItem .push{color:#facc15}
     .betSpot{min-height:130px;border:2px solid #ffffff25;border-radius:50%;display:grid;place-items:center;text-align:center;color:#d8eac766;background:#062d1855;box-shadow:inset 0 0 0 7px #0002,inset 0 0 28px #22c55e14,0 0 22px #0008}
     .betSpot strong{display:block;color:#d8eac799;font-size:clamp(18px,2.4vw,30px);line-height:1;font-weight:1000}
     .betSpot.locked{border-color:#facc1570;color:#facc15;background:radial-gradient(circle,#226c32 0,#062d18 62%);box-shadow:inset 0 0 0 7px #0002,inset 0 0 34px #facc1526,0 0 26px #facc1533}
@@ -45,9 +51,17 @@
     @keyframes handDrop{0%{opacity:0;transform:translate(-65px,-38px) rotate(-18deg) scale(.9)}65%{opacity:1;transform:translate(-8px,-6px) rotate(-4deg) scale(1)}100%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}}
     .playersRail{align-self:stretch;min-height:190px;border:1px solid #facc1533;border-radius:18px;background:#020806a6;padding:10px;box-shadow:inset 0 0 28px #0009,0 0 24px #facc1517}
     .railTitle{color:#facc15;font-size:11px;font-weight:1000;margin-bottom:8px;text-transform:uppercase}
-    .seat{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;border:1px solid #ffffff14;border-radius:10px;background:#06170f;margin-bottom:7px;padding:6px;color:#d8eac7;font-size:11px;font-weight:900;overflow:hidden}
+    .seat{position:relative;display:flex;align-items:center;gap:8px;min-height:46px;border:1px solid #ffffff14;border-radius:10px;background:#06170f;margin-bottom:7px;padding:6px;color:#d8eac7;font-size:11px;font-weight:900;overflow:hidden}
+    .seat.stood{border-color:#facc1570;background:#14200f}
+    .seat.busted{border-color:#fb718570;background:#22080b}
+    .seatMeta{display:flex;flex-direction:column;gap:2px;min-width:0}.seatName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:88px}.seatState{font-size:9px;color:#94a3b8;text-transform:uppercase}
     .seat img,.seatAvatar{width:26px;height:26px;border-radius:50%;border:1px solid #facc1570;background:#0f2417;object-fit:cover}
-    .seatCards{margin-left:auto;display:flex;gap:2px}.miniBack{width:16px;height:22px;border-radius:3px;background:repeating-linear-gradient(45deg,#5b210f 0 4px,#2f1007 4px 8px);border:1px solid #d7c19a}
+    .seatCards{margin-left:auto;display:flex;gap:2px;align-items:center;max-width:94px;overflow:hidden}.miniBack,.miniFront{width:16px;height:22px;border-radius:3px;border:1px solid #d7c19a;box-shadow:0 2px 5px #0007;display:grid;place-items:center;font-size:8px;font-weight:1000;flex:0 0 auto}
+    .miniBack{background:repeating-linear-gradient(45deg,#5b210f 0 4px,#2f1007 4px 8px)}
+    .miniFront{background:#f8fafc;color:#111827}.miniFront.red{color:#b91c1c}.seatTotal{margin-left:4px;color:#facc15;font-size:12px;font-weight:1000}
+    .seat.bump{animation:seatPulse .45s ease}.dealerArea.bump .logo{animation:dealerPulse .45s ease}
+    @keyframes seatPulse{0%{transform:scale(1)}45%{transform:scale(1.035);box-shadow:0 0 18px #facc1544}100%{transform:scale(1)}}
+    @keyframes dealerPulse{0%{transform:scale(1)}50%{transform:scale(1.05);text-shadow:0 0 24px #facc15}100%{transform:scale(1)}}
     .handZone{align-self:stretch;display:grid;grid-template-rows:auto 1fr;gap:8px;border:1px solid #ffffff18;border-radius:16px;background:#03170d88;padding:10px;box-shadow:inset 0 0 30px #0007,0 0 30px #22c55e14}
     .zoneHead{display:flex;justify-content:space-between;gap:12px;color:#d8eac7;font-size:12px;font-weight:900}
     .total{color:#facc15}
@@ -70,7 +84,7 @@
     .betBox{display:flex;gap:8px;align-items:center;background:#010803b8;border:1px solid #ffffff18;border-radius:10px;padding:6px;box-shadow:0 0 18px #0008}
     .betBox input{width:88px}
     .log{color:#d8eac7;font-size:12px;text-align:center;min-height:18px}
-    @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.playersRail{min-height:auto}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}}
+    @media(max-width:900px){.scene{overflow:auto}.scene:before{inset:-6% -16% auto;height:72vh}.hud{align-items:flex-start;flex-wrap:wrap}.status{margin-left:0;max-width:none;width:100%;text-align:left}.dealerArea{grid-template-columns:1fr}.deck,.shoe{display:none}.playArea{grid-template-columns:1fr}.betSpot{display:none}.playersRail{min-height:auto}.table{min-height:calc(100vh - 96px);padding-inline:12px}.bottomBar{grid-template-columns:1fr}.outcome{text-align:left}.actions{justify-content:flex-start}.handZone{min-height:220px}.historyPanel{max-height:126px}.historyList{max-height:84px}}
     @media(max-width:520px){.roomControls{width:100%;display:grid;grid-template-columns:1fr 1fr}.roomControls input{width:100%}.card{width:68px;height:98px}.card .rank{font-size:19px}.card .suit{font-size:26px}.hand{gap:8px}.rack{display:none}.logo b{font-size:24px}.arcText{font-size:12px}.roundBtn{width:62px;height:52px}.betBox{width:100%;display:grid;grid-template-columns:1fr 1fr}.betBox input{width:100%}}
   </style>
 </head>
@@ -100,9 +114,15 @@
       </div>
 
       <div class="playArea">
-        <div class="betSpot">
-          <div class="betChips" aria-hidden="true"><span class="chipHand"></span><span class="chipStack"></span></div>
-          <strong>COLOQUE<br />APUESTA</strong>
+        <div class="leftRail">
+          <div class="historyPanel">
+            <div class="historyTitle">Historial</div>
+            <div id="historyList" class="historyList"></div>
+          </div>
+          <div class="betSpot">
+            <div class="betChips" aria-hidden="true"><span class="chipHand"></span><span class="chipStack"></span></div>
+            <strong>COLOQUE<br />APUESTA</strong>
+          </div>
         </div>
         <div class="handZone">
           <div class="zoneHead"><span>Dealer <span class="total" id="dealerTotal">0</span></span><span>Sala <span id="roomName">--</span></span></div>
@@ -154,6 +174,11 @@
       { code: "C", entity: "&clubs;", red: false }
     ];
     let api, connected = false, player = [], dealer = [], roundOpen = false, lockedBet = 0, wallet = null, peers = [], stoodPlayers = [];
+    let peerHands = {};
+    let history = [];
+    let sessionNet = 0;
+    let settling = false;
+    let summaryAnnounced = false;
     let isLeader = false;
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
@@ -173,6 +198,48 @@
     function renderWallet(next) {
       if (typeof next === "number") wallet = next;
       $("wallet").textContent = wallet === null ? "..." : fmt(wallet);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    function peerKey(peer) {
+      return String(peer?.playerId || peer?.userId || "");
+    }
+
+    function publicHandState(extra = {}) {
+      const handTotal = total(player);
+      const revealed = Boolean(extra.revealed || extra.stood || !roundOpen || handTotal > 21);
+      return {
+        playerId: api?.playerId || profile.userId || "local",
+        userId: profile.userId || api?.playerId || "local",
+        displayName: profile.displayName || "Jugador",
+        avatarUrl: profile.avatarUrl || "",
+        count: player.length,
+        hand: revealed ? player : [],
+        total: revealed ? handTotal : null,
+        stood: Boolean(extra.stood || stoodPlayers.includes(localPlayerKey())),
+        busted: handTotal > 21,
+        bet: Number(extra.bet || lockedBet || getBet()),
+        lastNet: typeof extra.lastNet === "number" ? extra.lastNet : null,
+        roundOpen,
+        updatedAt: Date.now(),
+      };
+    }
+
+    function publishPlayerState(extra = {}) {
+      if (!api?.send) return;
+      const state = publicHandState(extra);
+      peerHands[localPlayerKey()] = state;
+      api.send("player_state", state);
+      renderPeers();
     }
 
     function makeCard() {
@@ -227,19 +294,66 @@
       });
     }
 
+    function renderHistory() {
+      const area = $("historyList");
+      if (!area) return;
+      if (!history.length) {
+        area.innerHTML = `<div class="historyItem"><span>Sin manos</span><span class="push">0</span></div>`;
+        return;
+      }
+      area.innerHTML = history.slice(0, 8).map((item) => {
+        const cls = item.net > 0 ? "win" : item.net < 0 ? "loss" : "push";
+        const sign = item.net > 0 ? "+" : "";
+        return `<div class="historyItem"><span>${escapeHtml(item.label)}</span><span class="${cls}">${sign}${fmt(item.net)}</span></div>`;
+      }).join("");
+    }
+
+    function addHistory(label, net) {
+      const nextNet = Number(net || 0);
+      sessionNet += nextNet;
+      history = [{ label, net: nextNet, at: Date.now() }, ...history].slice(0, 12);
+      renderHistory();
+    }
+
+    function announceSessionSummary(reason = "salida") {
+      if (!history.length || summaryAnnounced) return;
+      summaryAnnounced = true;
+      const sign = sessionNet >= 0 ? "+" : "";
+      window.parent?.postMessage({
+        type: "game:casinoSummary",
+        game: "Blackjack BET",
+        reason,
+        net: sessionNet,
+        text: `${sign}${fmt(sessionNet)} F-coin`,
+      }, "*");
+    }
+
     function renderPeers() {
       const rail = $("playersRail");
       if (!rail) return;
-      const list = peers.length ? peers : [{ displayName: profile.displayName, avatarUrl: profile.avatarUrl, userId: profile.userId || api?.playerId }];
+      const self = publicHandState({ revealed: !roundOpen || stoodPlayers.includes(localPlayerKey()) });
+      peerHands[localPlayerKey()] = self;
+      const list = peers.length ? peers : [{ displayName: profile.displayName, avatarUrl: profile.avatarUrl, userId: profile.userId || api?.playerId, playerId: api?.playerId }];
       rail.innerHTML = "";
       list.slice(0, 5).forEach((peer) => {
+        const key = peerKey(peer);
+        const handState = peerHands[key] || peerHands[String(peer.userId || "")] || {};
+        const isStood = Boolean(handState.stood);
+        const isBusted = Boolean(handState.busted);
+        const reveal = isStood || !roundOpen;
+        const visibleHand = reveal && Array.isArray(handState.hand) ? handState.hand : [];
+        const cardCount = Math.max(Number(handState.count || 0), visibleHand.length || 0, key === localPlayerKey() ? player.length : 0);
+        const stateText = isBusted ? "pasado" : isStood ? `plantado ${handState.total ?? ""}` : roundOpen ? `${cardCount} carta(s)` : "en mesa";
+        const cards = visibleHand.length
+          ? visibleHand.slice(0, 5).map((card) => `<i class="miniFront ${card.red ? "red" : ""}">${escapeHtml(card.rank)}</i>`).join("") + (typeof handState.total === "number" ? `<b class="seatTotal">${handState.total}</b>` : "")
+          : Array.from({ length: Math.min(cardCount || 2, 5) }, () => `<i class="miniBack"></i>`).join("");
         const seat = document.createElement("div");
-        seat.className = "seat";
-        seat.dataset.playerId = peer.playerId || peer.userId || "";
+        seat.className = `seat ${isStood ? "stood" : ""} ${isBusted ? "busted" : ""}`;
+        seat.dataset.playerId = key;
         const avatar = peer.avatarUrl
-          ? `<img src="${peer.avatarUrl}" alt="" />`
+          ? `<img src="${escapeHtml(peer.avatarUrl)}" alt="" />`
           : `<span class="seatAvatar"></span>`;
-        seat.innerHTML = `${avatar}<span>${peer.displayName || peer.name || "Jugador"}</span><span class="seatCards"><i class="miniBack"></i><i class="miniBack"></i></span>`;
+        seat.innerHTML = `${avatar}<span class="seatMeta"><span class="seatName">${escapeHtml(peer.displayName || peer.name || "Jugador")}</span><span class="seatState">${escapeHtml(stateText)}</span></span><span class="seatCards">${cards}</span>`;
         rail.appendChild(seat);
       });
     }
@@ -291,6 +405,32 @@
       });
     }
 
+    function animateCardToPlayer(playerId) {
+      const dealerArea = document.querySelector(".dealerArea");
+      dealerArea?.classList.add("bump");
+      window.setTimeout(() => dealerArea?.classList.remove("bump"), 460);
+      const deck = document.querySelector(".shoe") || document.querySelector(".deck") || document.querySelector(".logo");
+      const safePlayerId = String(playerId || "").replace(/"/g, "");
+      const target = playerId === localPlayerKey()
+        ? $("playerHand")
+        : document.querySelector(`.seat[data-player-id="${safePlayerId}"]`);
+      if (!deck || !target) return;
+      target.classList?.add("bump");
+      window.setTimeout(() => target.classList?.remove("bump"), 460);
+      const start = deck.getBoundingClientRect();
+      const end = target.getBoundingClientRect();
+      const ghost = document.createElement("div");
+      ghost.className = "dealGhost";
+      ghost.style.left = `${start.left + start.width / 2 - 19}px`;
+      ghost.style.top = `${start.top + start.height / 2 - 27}px`;
+      document.body.appendChild(ghost);
+      window.setTimeout(() => {
+        ghost.style.transform = `translate(${end.left + end.width / 2 - start.left - start.width / 2}px, ${end.top + end.height / 2 - start.top - start.height / 2}px) rotate(10deg)`;
+        ghost.style.opacity = "0.3";
+      }, 25);
+      window.setTimeout(() => ghost.remove(), 620);
+    }
+
     function render() {
       drawHand("dealerHand", dealer, false);
       drawHand("playerHand", player, true);
@@ -305,6 +445,7 @@
       $("deal").title = isLeader ? "Repartir como lider de sala" : "Solo el lider de sala puede repartir";
       $("clear").title = isLeader ? "Limpiar mesa" : "Solo el lider de sala puede limpiar";
       renderPeers();
+      renderHistory();
     }
 
     function getBet() {
@@ -337,7 +478,7 @@
     }
 
     function statePayload(extra = {}) {
-      return { dealer, roundOpen, lockedBet, stoodPlayers, ...extra };
+      return { dealer, roundOpen, lockedBet, stoodPlayers, peerHands, ...extra };
     }
 
     function applyState(state) {
@@ -346,6 +487,7 @@
       roundOpen = Boolean(state?.roundOpen);
       lockedBet = Number(state?.lockedBet || lockedBet || 0);
       stoodPlayers = Array.isArray(state?.stoodPlayers) ? state.stoodPlayers : stoodPlayers;
+      if (state?.peerHands && typeof state.peerHands === "object") peerHands = { ...peerHands, ...state.peerHands };
       render();
     }
 
@@ -355,6 +497,8 @@
         applyState(state);
         if (state.roundOpen && !wasOpen) {
           player = [makeCard(), makeCard()];
+          stoodPlayers = [];
+          publishPlayerState({ revealed: false, stood: false });
           render();
         }
         animateDeal();
@@ -383,9 +527,12 @@
       player = [makeCard(), makeCard()];
       dealer = [makeCard(), makeCard()];
       stoodPlayers = [];
+      peerHands = {};
       roundOpen = true;
+      peerHands[localPlayerKey()] = publicHandState({ revealed: false, stood: false });
       render();
       animateDeal();
+      publishPlayerState({ revealed: false, stood: false });
       setLog(`Apuesta bloqueada: ${fmt(lockedBet)} F-coin.`);
       if (!local) api.send("deal", statePayload());
     }
@@ -397,6 +544,9 @@
       }
       if (!roundOpen) return;
       player.push(makeCard());
+      animateCardToPlayer(localPlayerKey());
+      publishPlayerState({ revealed: false, stood: false });
+      api?.send("hit_fx", { playerId: localPlayerKey(), count: player.length });
       render();
       if (total(player) > 21) {
         setLog("Te pasaste. Quedas plantado para esta ronda.");
@@ -406,6 +556,8 @@
 
     async function settle(local, state) {
       if (state) {
+        if (settling) return;
+        settling = true;
         applyState(state);
         if (connected && state.roundOpen === false) {
           const bet = Number(state.lockedBet || lockedBet || getBet());
@@ -415,26 +567,31 @@
           $("lastNet").textContent = `${lastNet >= 0 ? "+" : ""}${fmt(lastNet)}`;
           $("lastNet").style.color = lastNet >= 0 ? "#22c55e" : "#fb7185";
           setLog(label);
+          addHistory(label, lastNet);
           const settled = await api.casinoWager("casino-blackjack", bet, outcome.payout, { player: outcome.playerTotal, dealer: outcome.dealerTotal, natural: outcome.natural, source: "shared_settle" });
           if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
           if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
+          publishPlayerState({ revealed: true, stood: true, lastNet, bet });
           lockedBet = 0;
           unlockBet();
           render();
         }
+        settling = false;
         return;
       }
-      if (!roundOpen) return;
+      if (!roundOpen || settling) return;
+      settling = true;
+      const bet = lockedBet || getBet();
       let dealerTotal = total(dealer);
       const playerTotal = total(player);
       while (dealerTotal < 17) {
         dealer.push(makeCard());
+        animateCardToPlayer("dealer");
         dealerTotal = total(dealer);
       }
       roundOpen = false;
       stoodPlayers = [];
       render();
-      const bet = lockedBet || getBet();
       const outcome = payoutFor(bet);
       const natural = outcome.natural;
       const push = outcome.push;
@@ -445,13 +602,17 @@
       $("lastNet").textContent = `${lastNet >= 0 ? "+" : ""}${fmt(lastNet)}`;
       $("lastNet").style.color = lastNet >= 0 ? "#22c55e" : "#fb7185";
       setLog(label);
+      addHistory(label, lastNet);
       if (!local) {
         const settled = await api.casinoWager("casino-blackjack", bet, payout, { player: playerTotal, dealer: dealerTotal, natural });
         if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
         if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
+        publishPlayerState({ revealed: true, stood: true, lastNet, bet });
+        api.send("settle", statePayload({ lockedBet: bet, roundOpen: false, peerHands }));
+        lockedBet = 0;
         unlockBet();
-        api.send("settle", statePayload());
       }
+      settling = false;
     }
 
     async function connect(room) {
@@ -465,18 +626,25 @@
       setLog("Mesa lista. Reparte cuando quieras apostar.");
       unlockBet();
       await refreshWallet();
+      publishPlayerState({ revealed: false, stood: false });
     }
 
     function stand(local, state) {
       if (state) {
         stoodPlayers = Array.isArray(state.stoodPlayers) ? state.stoodPlayers : stoodPlayers;
+        if (state.peerHands && typeof state.peerHands === "object") peerHands = { ...peerHands, ...state.peerHands };
         if (state.log) setLog(state.log);
         render();
+        const totalPlayers = Math.max(1, peers.length || 1);
+        if (roundOpen && isLeader && stoodPlayers.length >= totalPlayers) {
+          settle(false);
+        }
         return;
       }
       if (!roundOpen) return;
       const key = localPlayerKey();
       if (!stoodPlayers.includes(key)) stoodPlayers.push(key);
+      publishPlayerState({ revealed: true, stood: true });
       const totalPlayers = Math.max(1, peers.length || 1);
       const message = `${stoodPlayers.length}/${totalPlayers} jugadores plantados.`;
       setLog(message);
@@ -509,6 +677,19 @@
             if (message.type === "state") applyState(message.payload);
             if (message.type === "stand") stand(true, message.payload);
             if (message.type === "settle") settle(true, message.payload);
+            if (message.type === "player_state" && message.payload) {
+              const key = String(message.payload.playerId || message.payload.userId || "");
+              if (key) peerHands[key] = message.payload;
+              renderPeers();
+            }
+            if (message.type === "hit_fx" && message.payload) {
+              animateCardToPlayer(message.payload.playerId);
+              const key = String(message.payload.playerId || "");
+              if (key) {
+                peerHands[key] = { ...(peerHands[key] || {}), count: Number(message.payload.count || 0), stood: false, updatedAt: Date.now() };
+                renderPeers();
+              }
+            }
             if (message.type === "wager") setStatus(`${message.payload.displayName} jugo blackjack por ${fmt(message.payload.bet)} F-coin`);
           }
         });
@@ -535,6 +716,7 @@
       roundOpen = false;
       lockedBet = 0;
       stoodPlayers = [];
+      peerHands = {};
       unlockBet();
       render();
       setLog("Mesa limpia.");
@@ -544,6 +726,8 @@
     $("bet").onblur = () => {
       if (Number($("bet").value || 0) > 0) lockBetFromInput();
     };
+    window.addEventListener("pagehide", () => announceSessionSummary("salida"));
+    window.addEventListener("beforeunload", () => announceSessionSummary("salida"));
     setup();
   </script>
 </body>

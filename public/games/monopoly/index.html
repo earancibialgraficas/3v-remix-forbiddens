@@ -27,13 +27,17 @@
     .cell{position:relative;min-width:0;min-height:0;border:1px solid #ffffff20;border-radius:7px;background:#0b1524;padding:4px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
     .cell.corner{background:linear-gradient(135deg,#facc15,#d97706);color:#1f1300}.cell.tax{background:#42151b}.cell.chance{background:#34205f}.cell.jail{background:#3b2a18}.cell.goto{background:#4c1111}
     .stripe{height:7px;border-radius:4px;margin:-1px -1px 2px}.name{font-size:clamp(7px,1vw,10px);font-weight:1000;line-height:1.1;text-transform:uppercase}.price{font-size:clamp(7px,.9vw,9px);color:#cbd5e1}.cell.corner .price{color:#3b2500}
-    .owner{position:absolute;right:3px;bottom:3px;width:10px;height:10px;border-radius:50%;border:1px solid #fff8}.tokens{position:absolute;left:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap;max-width:70%}
-    .token{width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 5px #0009}.center{grid-column:2/8;grid-row:2/8;border:1px solid #22d3ee33;border-radius:16px;background:radial-gradient(circle at 50% 30%,#12365e,#07111f 62%);display:grid;place-items:center;text-align:center;padding:18px;box-shadow:inset 0 0 40px #0008}
-    .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.dice{margin-top:12px;display:flex;justify-content:center;gap:10px}.die{width:48px;height:48px;border-radius:10px;background:#f8fafc;color:#111827;display:grid;place-items:center;font-size:24px;font-weight:1000;box-shadow:0 7px 0 #64748b,0 0 16px #fff6}
+    .owner{position:absolute;right:3px;bottom:3px;width:10px;height:10px;border-radius:50%;border:1px solid #fff8}.tokens{position:absolute;left:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap;max-width:76%}
+    .token,.movingToken{width:18px;height:18px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important;box-shadow:0 2px 6px #000a,0 0 10px var(--p,#22d3ee)}.movingToken{position:absolute;z-index:40;pointer-events:none;transition:left .24s cubic-bezier(.2,1.5,.45,1),top .24s cubic-bezier(.2,1.5,.45,1);animation:tokenHop .24s ease-in-out infinite alternate}.center{grid-column:2/8;grid-row:2/8;border:1px solid #22d3ee33;border-radius:16px;background:radial-gradient(circle at 50% 30%,#12365e,#07111f 62%);display:grid;place-items:center;text-align:center;padding:18px;box-shadow:inset 0 0 40px #0008}
+    .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.dice{margin-top:12px;display:flex;justify-content:center;gap:10px}.die{width:48px;height:48px;border-radius:10px;background:#f8fafc;color:#111827;display:grid;place-items:center;font-size:24px;font-weight:1000;box-shadow:0 7px 0 #64748b,0 0 16px #fff6;transform-style:preserve-3d}.die.rolling{animation:diceRoll .72s cubic-bezier(.16,.8,.24,1.08) infinite}
+    .cell.spark:before,.cell.spark:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#facc15;box-shadow:22px 0 #22d3ee,-22px 0 #fb7185,0 22px #34d399,0 -22px #facc15,16px 16px #f97316,-16px -16px #c084fc,18px -14px #fff,-18px 14px #fff;z-index:10;animation:sparkBurst .78s ease-out both}.cell.spark:after{transform:rotate(45deg);animation-delay:.08s}
     .side{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:12px;overflow:hidden}.panel{border:1px solid #22d3ee26;border-radius:12px;background:#061a2c;padding:10px}.panel h2{margin:0 0 8px;color:#facc15;font-size:13px;text-transform:uppercase}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button.wide{grid-column:1/-1}
     .players{min-height:0;overflow:auto;display:grid;gap:8px;padding-right:3px}.player{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid #ffffff14;border-radius:10px;background:#0b1320;padding:8px}.player.active{border-color:#facc15;box-shadow:0 0 18px #facc1522}.avatar{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee)}.player b{font-size:12px}.player small{display:block;color:#cbd5e1;font-size:11px}.cash{color:#22c55e;font-weight:1000}.log{min-height:72px;max-height:120px;overflow:auto;color:#cbd5e1;font-size:12px;line-height:1.5}.hint{color:#9ca3af;font-size:11px;line-height:1.45;margin:0}
     @media(max-width:900px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.board{width:min(100%,92vw)}.side{min-height:520px}.top{flex-wrap:wrap}.status{margin-left:0;width:100%;text-align:left}}
     @media(max-width:560px){.layout{padding:8px}.board{gap:2px;padding:4px}.cell{border-radius:4px;padding:2px}.name{font-size:6px}.price{display:none}.token{width:10px;height:10px}.center{padding:8px}.center p{display:none}.die{width:38px;height:38px}.actions{grid-template-columns:1fr}}
+    @keyframes diceRoll{0%{transform:rotateX(0) rotateY(0) scale(1)}35%{transform:rotateX(180deg) rotateY(135deg) scale(1.12)}70%{transform:rotateX(360deg) rotateY(315deg) scale(.94)}100%{transform:rotateX(540deg) rotateY(540deg) scale(1)}}
+    @keyframes tokenHop{from{transform:translateY(0) scale(1)}to{transform:translateY(-13px) scale(1.08)}}
+    @keyframes sparkBurst{from{opacity:1;transform:translate(-50%,-50%) scale(.18)}to{opacity:0;transform:translate(-50%,-50%) scale(1.9)}}
   </style>
 </head>
 <body>
@@ -87,7 +91,8 @@
       { name:"Vault", price:320, rent:80, color:"#06b6d4" },{ name:"Suerte", type:"chance" },{ name:"Sala Final", price:350, rent:90, color:"#06b6d4" },{ name:"Forbidden", price:400, rent:110, color:"#ec4899" }
     ];
     const positions = [[7,7],[7,6],[7,5],[7,4],[7,3],[7,2],[7,1],[7,0],[6,0],[5,0],[4,0],[3,0],[2,0],[1,0],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]];
-    let api, connected = false, peers = [], isHost = hostParam, rolledThisTurn = false;
+    let api, connected = false, peers = [], isHost = hostParam, rolledThisTurn = false, diceRolling = false;
+    const hiddenMovingIds = new Set();
     let state = { phase:"lobby", players:[], turn:0, dice:[1,1], log:["Esperando jugadores."], owners:{}, ended:false };
     if (preset) $("room").value = preset;
 
@@ -102,6 +107,9 @@
     function sendState(){ api?.send("state", state); render(); }
     function applyState(next){ if (!next) return; state = next; render(); }
     function setStatus(text){ $("status").innerHTML = connected ? `<span class="roomBadge">${text}</span>` : text; }
+    function tokenBg(player){
+      return player?.avatarUrl ? `url('${String(player.avatarUrl).replace(/'/g, "%27")}') center/cover` : player?.color || "#22d3ee";
+    }
     function syncPlayersFromPresence(){
       if (!isHost || state.phase !== "lobby") return;
       peers.slice(0,8).forEach((peer, index) => {
@@ -116,28 +124,29 @@
     }
     function renderBoard(){
       const board = $("board");
-      board.innerHTML = '<div class="center"><div><h1>MONOPOLIO</h1><p>Compra barrios, cobra rentas y deja a tus rivales sin efectivo.</p><div class="dice"><div class="die">'+state.dice[0]+'</div><div class="die">'+state.dice[1]+'</div></div></div></div>';
+      board.innerHTML = '<div class="center"><div><h1>MONOPOLIO</h1><p>Compra barrios, cobra rentas y deja a tus rivales sin efectivo.</p><div class="dice"><div class="die '+(diceRolling?'rolling':'')+'">'+state.dice[0]+'</div><div class="die '+(diceRolling?'rolling':'')+'">'+state.dice[1]+'</div></div></div></div>';
       boardCells.forEach((cell, index) => {
         const [row, col] = positions[index];
         const owner = state.owners[index];
-        const tokens = state.players.filter((p) => !p.bankrupt && p.pos === index);
+        const tokens = state.players.filter((p) => !p.bankrupt && p.pos === index && !hiddenMovingIds.has(p.id));
         const div = document.createElement("div");
         div.className = `cell ${cell.type === "start" || cell.type === "free" ? "corner" : cell.type || ""}`;
         div.style.gridRow = String(row + 1);
         div.style.gridColumn = String(col + 1);
+        div.dataset.cell = String(index);
         div.innerHTML = `
           ${cell.color ? `<div class="stripe" style="background:${cell.color}"></div>` : ""}
           <div class="name">${cell.name}</div>
           <div class="price">${cell.price ? "$"+fmt(cell.price) : cell.amount ? "-$"+fmt(cell.amount) : ""}</div>
           ${owner ? `<span class="owner" style="background:${state.players.find((p)=>p.id===owner)?.color || "#fff"}"></span>` : ""}
-          <div class="tokens">${tokens.map((p)=>`<span class="token" title="${p.name}" style="background:${p.color}"></span>`).join("")}</div>
+          <div class="tokens">${tokens.map((p)=>`<span class="token" title="${p.name}" style="--p:${p.color};background:${tokenBg(p)}"></span>`).join("")}</div>
         `;
         board.appendChild(div);
       });
     }
     function renderPlayers(){
       $("players").innerHTML = state.players.length ? state.players.map((p, i) => {
-        const avatarBg = p.avatarUrl ? `url('${String(p.avatarUrl).replace(/'/g, "%27")}') center/cover` : p.color;
+        const avatarBg = tokenBg(p);
         return `
         <div class="player ${currentPlayer()?.id === p.id ? "active" : ""}">
           <span class="avatar" style="--p:${p.color};background:${avatarBg}"></span>
@@ -171,6 +180,82 @@
       const old = player.pos;
       player.pos = (player.pos + steps) % boardCells.length;
       if (player.pos < old) { player.money += 200; pushLog(`${player.name} paso por Salida y cobro $200.`); }
+      return old;
+    }
+    function animateDiceRoll(){
+      diceRolling = true;
+      render();
+      return new Promise((resolve) => setTimeout(() => {
+        diceRolling = false;
+        render();
+        resolve();
+      }, 820));
+    }
+    function cellCenter(index){
+      const cell = document.querySelector(`[data-cell="${index}"]`);
+      const wrap = document.querySelector(".boardWrap");
+      if (!cell || !wrap) return null;
+      const a = cell.getBoundingClientRect();
+      const b = wrap.getBoundingClientRect();
+      return { x: a.left - b.left + a.width / 2, y: a.top - b.top + a.height / 2 };
+    }
+    function sparkCell(index){
+      const cell = document.querySelector(`[data-cell="${index}"]`);
+      if (!cell) return;
+      cell.classList.remove("spark");
+      void cell.offsetWidth;
+      cell.classList.add("spark");
+      setTimeout(() => cell.classList.remove("spark"), 900);
+    }
+    function animateTokenPath(player, from, to){
+      const wrap = document.querySelector(".boardWrap");
+      if (!wrap) return Promise.resolve();
+      hiddenMovingIds.add(player.id);
+      renderBoard();
+      const start = cellCenter(from);
+      if (!start) {
+        hiddenMovingIds.delete(player.id);
+        renderBoard();
+        return Promise.resolve();
+      }
+      const token = document.createElement("span");
+      token.className = "movingToken";
+      token.style.setProperty("--p", player.color || "#22d3ee");
+      token.style.background = tokenBg(player);
+      token.style.left = `${start.x - 9}px`;
+      token.style.top = `${start.y - 9}px`;
+      wrap.appendChild(token);
+      const path = [];
+      let cursor = from;
+      while (cursor !== to && path.length <= boardCells.length) {
+        cursor = (cursor + 1) % boardCells.length;
+        path.push(cursor);
+      }
+      return new Promise((resolve) => {
+        path.forEach((idx, step) => {
+          setTimeout(() => {
+            const pos = cellCenter(idx);
+            if (!pos) return;
+            token.style.left = `${pos.x - 9}px`;
+            token.style.top = `${pos.y - 9}px`;
+          }, 70 + step * 180);
+        });
+        setTimeout(() => {
+          token.remove();
+          hiddenMovingIds.delete(player.id);
+          renderBoard();
+          sparkCell(to);
+          resolve();
+        }, 280 + path.length * 180);
+      });
+    }
+    async function playRollFx(payload){
+      if (!payload) return;
+      const player = payload.player || state.players.find((p) => p.id === payload.playerId);
+      if (!player) return;
+      if (Array.isArray(payload.dice)) state.dice = payload.dice;
+      await animateDiceRoll();
+      await animateTokenPath(player, Number(payload.from || 0), Number(payload.to || 0));
     }
     function chance(player){
       const deck = [
@@ -218,15 +303,19 @@
         if (result.reason && result.reason !== "ok") pushLog(`Puntos pendientes: ${result.reason}`);
       }
     }
-    function rollDice(){
+    async function rollDice(){
       const mine = localPlayer();
       if (!mine || currentPlayer()?.id !== mine.id || rolledThisTurn) return;
       state.dice = [Math.ceil(Math.random()*6), Math.ceil(Math.random()*6)];
       const steps = state.dice[0] + state.dice[1];
-      movePlayer(mine, steps);
+      const from = movePlayer(mine, steps);
       pushLog(`${mine.name} lanzo ${state.dice[0]} + ${state.dice[1]} y avanzo ${steps}.`);
-      resolveCell(mine);
       rolledThisTurn = true;
+      render();
+      api?.send("roll_fx", { playerId: mine.id, player: mine, from, to: mine.pos, dice: state.dice });
+      await animateDiceRoll();
+      await animateTokenPath(mine, from, mine.pos);
+      resolveCell(mine);
       sendState();
     }
     function buyProperty(){
@@ -279,6 +368,7 @@
           onMessage: (message) => {
             if (message.type === "state_request" && isHost) api.send("state", state);
             if (message.type === "state") applyState(message.payload);
+            if (message.type === "roll_fx") playRollFx(message.payload);
             if (message.type === "win") pushLog(`${message.payload.displayName || "Jugador"} guardo puntos de victoria.`);
           }
         });

@@ -626,6 +626,13 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           description: event.data.total ? `Total en este juego: ${event.data.total}` : "Puntaje multiplayer guardado",
         });
       }
+      if (event.data?.type === "game:casinoSummary") {
+        const net = Number(event.data.net || 0);
+        toast({
+          title: `${event.data.game || "Juego BET"} cerrado`,
+          description: `Resultado de la sesion: ${net >= 0 ? "+" : ""}${Math.trunc(net).toLocaleString("es-CL")} F-coin`,
+        });
+      }
       if (isExternalGame && event.data?.type === "game:updateLeaderboard" && Array.isArray(event.data.players)) {
         const now = Date.now();
         const nextPlayers: SessionPlayer[] = event.data.players

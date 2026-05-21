@@ -30,11 +30,11 @@
     .phase{border:1px solid #22d3ee40;border-radius:12px;background:#061a2c;padding:10px;text-align:center}
     .phase b{display:block;color:#facc15;font-size:18px;text-transform:uppercase;text-shadow:0 0 14px #facc1555}
     .phase span{font-size:12px;color:#cbd5e1}
-    .tombola{position:relative;display:grid;place-items:center;min-height:300px;background:radial-gradient(circle at 50% 18%,#f8fafc 0,#dbeafe 34%,#07111f 35%,#09182a 100%);border-radius:18px;border:1px solid #22d3ee33;box-shadow:inset 0 0 40px #0008,0 20px 40px #000a,0 0 28px #22d3ee20;overflow:hidden}
+    .tombola{position:relative;display:grid;place-items:center;min-height:300px;background:linear-gradient(#07111f,#09182a);border-radius:18px;border:1px solid #22d3ee33;box-shadow:inset 0 0 40px #0008,0 20px 40px #000a,0 0 28px #22d3ee20;overflow:hidden}
     .tombola:before,.tombola:after{content:"";position:absolute;z-index:0;bottom:35px;width:8px;height:142px;background:linear-gradient(90deg,#9ca3af,#f8fafc,#6b7280);border-radius:999px;box-shadow:0 5px 12px #0008,0 0 10px #ffffff55;transform-origin:50% 100%}
     .tombola:before{left:31%;transform:rotate(18deg)}.tombola:after{right:31%;transform:rotate(-18deg)}
-    .cage{position:absolute;z-index:2;width:min(76%,360px);aspect-ratio:1;border-radius:50%;border:11px solid #d1d5db;background:radial-gradient(circle at 36% 28%,#fff9 0 18%,#f8fafc70 19% 44%,#e5e7eb4d 45% 68%,#cbd5e140 100%);box-shadow:inset 0 0 30px #ffffffd9,inset 0 -20px 36px #94a3b84d,0 16px 24px #0008,0 0 0 4px #64748b55}
-    .cage:before{content:"";position:absolute;inset:-3px;border-radius:50%;background:radial-gradient(circle at 28% 20%,#fff 0 8%,transparent 24%),linear-gradient(110deg,#fff8 0 11%,transparent 28% 100%);opacity:.82;z-index:5;pointer-events:none}
+    .cage{position:absolute;z-index:2;width:min(76%,360px);aspect-ratio:1;border-radius:50%;border:11px solid #d1d5db;background:radial-gradient(circle at 36% 28%,#fff 0 11%,#f8fafca8 12% 45%,#e5e7eb63 46% 68%,#cbd5e140 100%);box-shadow:inset 0 0 30px #ffffffd9,inset 0 -20px 36px #94a3b84d,0 16px 24px #0008,0 0 0 4px #64748b55}
+    .cage:before{content:"";position:absolute;inset:-3px;border-radius:50%;background:radial-gradient(circle at 31% 22%,#fff 0 8%,transparent 24%),linear-gradient(110deg,#fff8 0 11%,transparent 28% 100%);opacity:.82;z-index:5;pointer-events:none}
     .cage:after{content:"";position:absolute;inset:5%;border-radius:50%;border:1px solid #ffffff66;box-shadow:inset 0 0 24px #fff8;z-index:6;pointer-events:none}
     .tombola.playing .cage{animation:wobbleCage 1.2s ease-in-out infinite}
     .spokes{position:absolute;inset:8%;z-index:3;border-radius:50%;animation:spin 10s linear infinite}
@@ -42,8 +42,8 @@
     .spokes span{position:absolute;left:50%;top:50%;width:44%;height:8px;border-radius:999px;background:linear-gradient(90deg,#f8fafc,#9ca3af 48%,#64748b);box-shadow:0 2px 5px #0005,0 0 8px #fff8;transform-origin:0 50%}
     .spokes span:nth-child(1){transform:rotate(-90deg)}.spokes span:nth-child(2){transform:rotate(30deg)}.spokes span:nth-child(3){transform:rotate(150deg)}.spokes span:nth-child(4){transform:rotate(70deg)}.spokes span:nth-child(5){transform:rotate(250deg)}
     .spokes:after{content:"";position:absolute;left:50%;top:50%;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d1d5db 42%,#9ca3af 68%,#6b7280);border:4px solid #e5e7eb;box-shadow:0 4px 14px #0007,0 0 10px #fff8;transform:translate(-50%,-50%)}
-    .handle{position:absolute;z-index:1;left:8%;bottom:42px;width:76px;height:9px;background:linear-gradient(90deg,#facc15,#b45309);border-radius:999px;box-shadow:0 3px 0 #713f12,0 0 10px #facc1566;transform:rotate(-38deg)}
-    .handle:after{content:"";position:absolute;left:-9px;top:-9px;width:22px;height:22px;border-radius:50%;background:#facc15;border:3px solid #fff7}
+    .handle{position:absolute;z-index:3;left:calc(50% - min(38%,180px) - 54px);top:54%;width:72px;height:9px;background:linear-gradient(90deg,#facc15,#b45309);border-radius:999px;box-shadow:0 3px 0 #713f12,0 0 10px #facc1566;transform:rotate(-36deg);transform-origin:100% 50%}
+    .handle:after{content:"";position:absolute;left:-10px;top:-10px;width:24px;height:24px;border-radius:50%;background:#facc15;border:3px solid #fff7}
     .base{position:absolute;z-index:1;bottom:23px;width:62%;height:14px;border-radius:999px;background:linear-gradient(#f8fafc,#94a3b8 58%,#64748b);box-shadow:0 8px 14px #0009,0 0 12px #ffffff55}
     .base:before{content:"";position:absolute;left:8%;right:8%;bottom:10px;height:120px;border-left:8px solid #cbd5e1;border-right:8px solid #cbd5e1;transform:perspective(160px) rotateX(20deg);clip-path:polygon(24% 0,76% 0,100% 100%,0 100%);opacity:.72;filter:drop-shadow(0 4px 6px #0008)}
     .innerBalls{position:absolute;inset:14%;z-index:2;animation:spin 12s linear infinite}
@@ -222,6 +222,29 @@
         : `<option value="">Sin cartones</option>`;
       if (options.includes(previous)) select.value = String(previous);
       $("buyCard").disabled = roundActive || cardsData.length >= 5 || options.length === 0;
+    }
+    function firstAvailableCardNumber(){
+      const owned = new Set(cardNumbers.map(Number));
+      const options = [];
+      for (let n = 1; n <= 100; n++) {
+        if (owned.has(n)) continue;
+        const owner = cardOwner(n);
+        if (!owner || cardIsMine(n)) options.push(n);
+      }
+      return options.length ? options[Math.floor(Math.random() * options.length)] : 0;
+    }
+    function addBaseCard(){
+      if (!connected || cardsData.length > 0) return;
+      const selectedNumber = firstAvailableCardNumber();
+      if (!selectedNumber) return;
+      const nextCard = makeNumberedCard(selectedNumber);
+      const signature = cardSignature(nextCard);
+      reservedCards[String(selectedNumber)] = { userId: profile.userId, playerId: api?.playerId, name: profile.displayName, base: true, at: Date.now() };
+      cardsData.push(nextCard);
+      cardNumbers.push(selectedNumber);
+      renderCards();
+      api?.send("card_purchase", { amount: 0, cardFees, prizePool, cardSignature: signature, cardNumber: selectedNumber, owner: reservedCards[String(selectedNumber)], base: true });
+      log(`Carton base ${selectedNumber} asignado gratis.`);
     }
     async function refreshWallet(){
       if (!api?.getWallet) return;
@@ -406,7 +429,7 @@
       paidPrizes = Number(state?.paidPrizes || paidPrizes || 0);
       prepareEndsAt = Number(state?.prepareEndsAt || prepareEndsAt || 0);
       nextDrawAt = Number(state?.nextDrawAt || nextDrawAt || 0);
-      reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? state.reservedCards : reservedCards;
+      reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? { ...state.reservedCards, ...reservedCards } : reservedCards;
       renderCalled();
       updatePrizePool();
       if (roundActive && isLeader) ensureDrawTimer();
@@ -592,6 +615,7 @@
       reservedCards = {};
       cardFees = 0;
       prizePool = 0;
+      addBaseCard();
       renderCards();
       updatePrizePool();
       await refreshWallet();
