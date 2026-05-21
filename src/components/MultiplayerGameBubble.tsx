@@ -1465,12 +1465,18 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           const isOnline = (p.status || "online") === "online";
           const isReady = Boolean(readyPlayerKeys[p.userId] || readyPlayerKeys[p.playerId]);
           const award = playerAwards[p.userId] || playerAwards[p.playerId];
-          const awardIcon = award === "full" ? "🏆" : award === "two" ? "🥈" : award === "line" ? "🥉" : "";
+          const awardLabel = award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : award === "line" ? "Linea" : "";
+          const awardTone = award === "full"
+            ? "border-neon-yellow/70 bg-neon-yellow/15 text-neon-yellow shadow-[0_0_14px_rgba(250,204,21,0.25)]"
+            : award === "two"
+              ? "border-slate-300/60 bg-slate-300/10 text-slate-100 shadow-[0_0_14px_rgba(226,232,240,0.16)]"
+              : "border-amber-700/70 bg-amber-700/15 text-amber-200 shadow-[0_0_14px_rgba(180,83,9,0.18)]";
           return (
             <div
               key={p.userId || i}
               className={cn(
                 "flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in transition-opacity",
+                awardLabel && "border-neon-yellow/30 bg-neon-yellow/[0.04]",
                 !isOnline && "opacity-45",
               )}
             >
@@ -1503,11 +1509,6 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                     ✓
                   </div>
                 )}
-                {awardIcon && (
-                  <div className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full border border-neon-yellow bg-black/90 text-[9px] shadow-[0_0_8px_rgba(250,204,21,0.55)]" title={award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : "Linea"}>
-                    {awardIcon}
-                  </div>
-                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
@@ -1522,6 +1523,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                   ))}
                 </div>
               </div>
+              {awardLabel && (
+                <div className={cn("ml-auto flex min-w-[104px] shrink-0 items-center justify-center gap-1.5 rounded border px-2.5 py-1.5 text-center", awardTone)} title={awardLabel}>
+                  <Trophy className="h-4 w-4" />
+                  <span className="font-pixel text-[6px] uppercase leading-tight sm:text-[7px]">{awardLabel}</span>
+                </div>
+              )}
             </div>
           );
         }) : (

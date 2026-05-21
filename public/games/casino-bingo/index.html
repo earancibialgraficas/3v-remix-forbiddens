@@ -62,7 +62,7 @@
     .right{display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;padding:10px}
     .rightHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px}
     .rightHead h2{margin:0;color:#fff;font-size:18px;text-shadow:0 0 18px #22d3ee44}
-    .buyBar{order:-1;display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;margin:0 0 8px;padding:7px;border:1px solid #22d3ee35;border-radius:10px;background:#061a2c}.buyBar.hidden{display:none}.buyBar span{font-size:11px;color:#cbd5e1}.buyBar b{color:#facc15}
+    .buyBar{order:-1;display:grid;grid-template-columns:1fr minmax(116px,150px) auto;gap:7px;align-items:center;margin:0 0 8px;padding:7px;border:1px solid #22d3ee35;border-radius:10px;background:#061a2c}.buyBar.hidden{display:none}.buyBar span{font-size:11px;color:#cbd5e1}.buyBar b{color:#facc15}.buyBar select{width:100%;min-height:32px;border:1px solid #33506f;border-radius:8px;background:#0e1b2d;color:#fff;padding:6px 8px;font-size:12px;box-shadow:inset 0 0 12px #0008}
     .cards{min-height:0;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:0 4px 8px 0;overscroll-behavior:contain}
     .card{position:relative;flex:0 0 auto;width:max(560px,100%);border:1px solid #22d3ee66;border-radius:10px;background:#eaf7ff;color:#172033;overflow:hidden;box-shadow:0 14px 28px #0008,0 0 18px #22d3ee25}
     .cardHead{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,#4c1d95,#a21caf);color:#fff;padding:5px 8px;font-size:11px;font-weight:1000}
@@ -123,7 +123,8 @@
         <span id="players">0 jugador(es)</span>
       </div>
       <div class="buyBar" id="buyBar">
-        <span><b id="cardTotal">1/5</b> cartones · Premio <b id="prizePool">0</b> F</span>
+        <span><b id="cardTotal">0/5</b> cartones · Premio <b id="prizePool">0</b> F</span>
+        <select id="cardNumber" aria-label="Numero de carton"></select>
         <button id="buyCard">Comprar carton 100 F</button>
       </div>
       <div class="cards" id="cards"></div>
@@ -140,11 +141,13 @@
     const $ = (id) => document.getElementById(id);
     document.body.classList.toggle("embedded", p.get("embed") === "1");
     let api, connected = false, peers = [], isLeader = false, wallet = null;
-    let cardsData = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
-    let autoTimer = null, drawTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
+    let cardsData = [], cardNumbers = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
+    let autoTimer = null, drawTimer = null, phasePauseTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
     let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
+    let reservedCards = {};
     const BALL_DRAW_INTERVAL_MS = 5000;
     const knownCardSignatures = new Set();
+    const cardCatalogCache = new Map();
     const preset = (p.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -182,6 +185,35 @@
       $("cardTotal").textContent = `${cardsData.length}/5`;
       $("buyCard").disabled = roundActive || cardsData.length >= 5;
       $("buyBar")?.classList.toggle("hidden", roundActive);
+      renderCardNumberOptions();
+    }
+    function playerKey(){
+      return profile.userId || api?.playerId || "local";
+    }
+    function cardOwner(cardNo){
+      return reservedCards[String(cardNo)] || null;
+    }
+    function cardIsMine(cardNo){
+      const owner = cardOwner(cardNo);
+      return owner && (owner.userId === profile.userId || owner.playerId === api?.playerId);
+    }
+    function renderCardNumberOptions(){
+      const select = $("cardNumber");
+      if (!select) return;
+      const previous = Number(select.value || 0);
+      const owned = new Set(cardNumbers.map(Number));
+      const options = [];
+      for (let n = 1; n <= 100; n++) {
+        if (owned.has(n)) continue;
+        const owner = cardOwner(n);
+        if (owner && !cardIsMine(n)) continue;
+        options.push(n);
+      }
+      select.innerHTML = options.length
+        ? options.map((n) => `<option value="${n}">Carton ${String(n).padStart(3, "0")}</option>`).join("")
+        : `<option value="">Sin cartones</option>`;
+      if (options.includes(previous)) select.value = String(previous);
+      $("buyCard").disabled = roundActive || cardsData.length >= 5 || options.length === 0;
     }
     async function refreshWallet(){
       if (!api?.getWallet) return;
@@ -252,6 +284,32 @@
       knownCardSignatures.add(signature);
       return card;
     }
+    function buildCardCatalog(){
+      const roomSeed = api?.room || preset || "LOCAL";
+      if (cardCatalogCache.has(roomSeed)) return cardCatalogCache.get(roomSeed);
+      const catalog = {};
+      const seen = new Set();
+      for (let n = 1; n <= 100; n++) {
+        let attempt = 0;
+        let card = makeCard(`${roomSeed}:carton:${n}:v0`);
+        let signature = cardSignature(card);
+        while (seen.has(signature) && attempt < 80) {
+          attempt += 1;
+          card = makeCard(`${roomSeed}:carton:${n}:v${attempt}`);
+          signature = cardSignature(card);
+        }
+        seen.add(signature);
+        catalog[n] = card;
+      }
+      cardCatalogCache.set(roomSeed, catalog);
+      return catalog;
+    }
+    function makeNumberedCard(cardNo){
+      const catalog = buildCardCatalog();
+      const card = catalog[Number(cardNo)] || makeCard(`${api?.room || preset || "LOCAL"}:carton:${Number(cardNo)}`);
+      knownCardSignatures.add(cardSignature(card));
+      return card.map((row) => row.slice());
+    }
     function completedRowsForCard(cardRows, cardIndex){
       return cardRows.filter((row, rowIndex) => row.every((n, colIndex) => !n || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`))).length;
     }
@@ -272,7 +330,7 @@
       cardsData.forEach((cardRows) => knownCardSignatures.add(cardSignature(cardRows)));
       $("cards").innerHTML = cardsData.map((cardRows, cardIndex) => `
         <article class="card">
-          <div class="cardHead"><span>CARTON N.${String(cardIndex + 1).padStart(4, "0")}</span><span>${cardIndex === 0 ? "base" : "100 F"}</span></div>
+          <div class="cardHead"><span>CARTON N.${String(cardNumbers[cardIndex] || cardIndex + 1).padStart(4, "0")}</span><span>100 F</span></div>
           <div class="grid">
             ${cardRows.flatMap((row, rowIndex) => row.map((value, colIndex) => {
               const key = `${cardIndex}:${rowIndex}:${colIndex}`;
@@ -326,7 +384,7 @@
       }
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt };
+      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards };
     }
     function applyState(state){
       called = Array.isArray(state?.called) ? state.called : called;
@@ -340,6 +398,7 @@
       paidPrizes = Number(state?.paidPrizes || paidPrizes || 0);
       prepareEndsAt = Number(state?.prepareEndsAt || prepareEndsAt || 0);
       nextDrawAt = Number(state?.nextDrawAt || nextDrawAt || 0);
+      reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? state.reservedCards : reservedCards;
       renderCalled();
       updatePrizePool();
       if (roundActive && isLeader) ensureDrawTimer();
@@ -364,6 +423,7 @@
     function startRound(local, state){
       if (state) { applyState(state); return; }
       if (!isLeader || roundActive) return;
+      clearTimeout(phasePauseTimer);
       deck = Array.from({ length: 90 }, (_, i) => i + 1).sort(() => Math.random() - .5);
       called = [];
       markedCells = new Set();
@@ -428,6 +488,28 @@
         payout,
       }, "*");
     }
+    function schedulePrizePause(kind, broadcast = true){
+      clearTimeout(phasePauseTimer);
+      if (kind === "full") {
+        nextDrawAt = Number(nextDrawAt || 0) > Date.now() ? nextDrawAt : Date.now() + 15000;
+        clearInterval(drawTimer);
+        drawTimer = null;
+        log("Casa llena cantada. La partida se cierra en 15 segundos.");
+        phasePauseTimer = setTimeout(() => {
+          if (broadcast) endRound(false);
+        }, 15000);
+        if (broadcast && isLeader) api?.send("state", statePayload());
+        return;
+      }
+      const nextPhase = kind === "line" ? "two" : "full";
+      nextDrawAt = Number(nextDrawAt || 0) > Date.now() ? nextDrawAt : Date.now() + 15000 + BALL_DRAW_INTERVAL_MS;
+      log(`Bingo cantado. La mesa continua con ${nextPhase === "two" ? "2 lineas" : "casa llena"} en 15 segundos.`);
+      phasePauseTimer = setTimeout(() => {
+        setPhase(nextPhase);
+        if (broadcast && isLeader) api?.send("state", statePayload());
+      }, 15000);
+      if (broadcast && isLeader) api?.send("state", statePayload());
+    }
     async function claim(kind, cardIndex = -1){
       if (!roundActive) return;
       const rows = rowCounts();
@@ -443,16 +525,15 @@
       const result = await api.casinoWager("casino-bingo", 0, payout, { kind, cards: cardsData.length, called });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
-      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes });
+      schedulePrizePause(kind);
+      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt });
       log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
-      if (kind === "line") setPhase("two");
-      if (kind === "two") setPhase("full");
-      if (kind === "full") endRound(false);
     }
     function endRound(local){
       roundActive = false;
       roomLocked = false;
       clearInterval(drawTimer);
+      clearTimeout(phasePauseTimer);
       drawTimer = null;
       prepareEndsAt = Date.now() + 60000;
       nextDrawAt = 0;
@@ -465,19 +546,24 @@
         if (!connected || !api) { log("Primero crea o entra a una sala."); return; }
         if (roundActive) { log("No puedes comprar cartones durante la partida."); return; }
         if (cardsData.length >= 5) { log("Maximo 5 cartones por usuario."); return; }
+        const selectedNumber = Number($("cardNumber")?.value || 0);
+        if (!selectedNumber || selectedNumber < 1 || selectedNumber > 100) { log("Escoge un numero de carton disponible."); return; }
+        if (cardOwner(selectedNumber) && !cardIsMine(selectedNumber)) { log("Ese carton ya no esta disponible en esta sala."); renderCardNumberOptions(); return; }
         $("buyCard").disabled = true;
-        const result = await api.casinoWager("casino-bingo-card", 100, 0, { cards: cardsData.length + 1, source: "extra_card" });
+        const result = await api.casinoWager("casino-bingo-card", 100, 0, { cards: cardsData.length + 1, cardNumber: selectedNumber, source: "numbered_card" });
         if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
         if (result.reason && result.reason !== "ok") { log(`No se pudo comprar carton: ${result.reason}`); return; }
-        const nextCard = makeUniqueCard(`buy:${cardsData.length + 1}`);
+        const nextCard = makeNumberedCard(selectedNumber);
         const signature = cardSignature(nextCard);
+        reservedCards[String(selectedNumber)] = { userId: profile.userId, playerId: api?.playerId, name: profile.displayName, at: Date.now() };
         cardsData.push(nextCard);
+        cardNumbers.push(selectedNumber);
         cardFees += 100;
         updatePrizePool();
         renderCards();
-        api.send("card_purchase", { amount: 100, cardFees, prizePool, cardSignature: signature });
+        api.send("card_purchase", { amount: 100, cardFees, prizePool, cardSignature: signature, cardNumber: selectedNumber, owner: reservedCards[String(selectedNumber)] });
         showSideToast("Carton comprado", "-100 F-coin descontados.");
-        log(`Carton comprado: -100 F-coin. ${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
+        log(`Carton ${selectedNumber} comprado: -100 F-coin. ${cardsData.length} carton(es) listos. Fondo: ${fmt(prizePool)} F-coin.`);
       } catch (error) {
         console.error("Bingo buyCard error", error);
         log(`No se pudo comprar carton: ${error?.message || "error inesperado"}`);
@@ -492,14 +578,21 @@
       connected = true;
       $("room").value = next;
       $("status").innerHTML = `<span class="roomBadge">Sala ${next}</span>`;
-      if (!cardsData.length) cardsData = [makeUniqueCard("base")];
+      cardsData = [];
+      cardNumbers = [];
+      markedCells = new Set();
+      reservedCards = {};
+      cardFees = 0;
+      prizePool = 0;
       renderCards();
+      updatePrizePool();
       await refreshWallet();
       startCountdown();
       api.send("state_request", { userId: profile.userId, playerId: api.playerId });
     }
     async function setup(){
-      cardsData = [makeUniqueCard("preview")];
+      cardsData = [];
+      cardNumbers = [];
       renderCards();
       try {
         api = await createRealtimeRoom({
@@ -523,14 +616,15 @@
             if (m.type === "claim") {
               claimed = m.payload.claimed || claimed;
               paidPrizes = Number(m.payload.paidPrizes || paidPrizes || 0);
+              nextDrawAt = Number(m.payload.nextDrawAt || nextDrawAt || 0);
               window.parent?.postMessage({ type: "game:playerAward", userId: m.payload.userId, playerId: m.payload.playerId, award: m.payload.kind, payout: m.payload.payout }, "*");
-              if (m.payload.kind === "line") setPhase("two");
-              if (m.payload.kind === "two") setPhase("full");
+              schedulePrizePause(m.payload.kind, false);
               log(`${m.payload.name} canto premio por ${fmt(m.payload.payout)} F-coin.`);
             }
             if (m.type === "end") endRound(true);
             if (m.type === "card_purchase") {
               if (m.payload.cardSignature) knownCardSignatures.add(String(m.payload.cardSignature));
+              if (m.payload.cardNumber && m.payload.owner) reservedCards[String(m.payload.cardNumber)] = m.payload.owner;
               cardFees = Math.max(cardFees, Number(m.payload.cardFees || 0));
               prizePool = Math.max(prizePool, Number(m.payload.prizePool || 0));
               updatePrizePool();
