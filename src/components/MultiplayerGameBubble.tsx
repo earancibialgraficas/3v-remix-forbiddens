@@ -658,10 +658,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               joinedAt: Number(existing?.joinedAt || player?.joinedAt || now + index),
               updatedAt: now,
               status: "online" as const,
-              statusText: String(player?.statusText || ""),
-              detailText: String(player?.detailText || ""),
-              subDetailText: String(player?.subDetailText || ""),
-              badgeText: String(player?.badgeText || ""),
+              statusText: String(player?.statusText || existing?.statusText || ""),
+              detailText: String(player?.detailText || existing?.detailText || ""),
+              subDetailText: String(player?.subDetailText || existing?.subDetailText || ""),
+              badgeText: String(player?.badgeText || existing?.badgeText || ""),
             };
           })
           .filter((player: SessionPlayer) => player.userId && player.playerId);
@@ -1483,7 +1483,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           const statusText = p.statusText || (isAgar ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui");
           const detailText = p.detailText || (!isAgar && (!isOnline && p.leftAt ? "visible 2 min" : "en la sala"));
           const subDetailText = p.subDetailText || "";
-          const badgeText = p.badgeText || "";
+          const badgeText = p.badgeText || (activeGameId === "monopoly" ? `$${Math.floor(p.totalPoints || 0).toLocaleString("es-CL")}` : "");
           const awardLabel = award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : award === "line" ? "Linea" : "";
           const awardTone = award === "full"
             ? "border-neon-yellow/70 bg-neon-yellow/15 text-neon-yellow shadow-[0_0_14px_rgba(250,204,21,0.25)]"
