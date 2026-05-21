@@ -374,6 +374,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           joinedAt: Number(presence?.joinedAt || existing?.joinedAt || 0),
           updatedAt: Math.max(Number(existing?.updatedAt || 0), presenceUpdatedAt),
           status: "online",
+          statusText: existing?.statusText,
+          detailText: existing?.detailText,
+          subDetailText: existing?.subDetailText,
+          badgeText: existing?.badgeText,
         };
         if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
         if (disconnectGraceTimersRef.current[userId]) {
