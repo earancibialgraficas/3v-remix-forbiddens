@@ -100,6 +100,10 @@ interface SessionPlayer {
   updatedAt: number;
   status?: "online" | "visited";
   leftAt?: number;
+  statusText?: string;
+  detailText?: string;
+  subDetailText?: string;
+  badgeText?: string;
 }
 
 interface SavePendingResult {
@@ -654,6 +658,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               joinedAt: Number(existing?.joinedAt || player?.joinedAt || now + index),
               updatedAt: now,
               status: "online" as const,
+              statusText: String(player?.statusText || ""),
+              detailText: String(player?.detailText || ""),
+              subDetailText: String(player?.subDetailText || ""),
+              badgeText: String(player?.badgeText || ""),
             };
           })
           .filter((player: SessionPlayer) => player.userId && player.playerId);
@@ -1472,6 +1480,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           const isOnline = (p.status || "online") === "online";
           const isReady = Boolean(readyPlayerKeys[p.userId] || readyPlayerKeys[p.playerId]);
           const award = playerAwards[p.userId] || playerAwards[p.playerId];
+          const statusText = p.statusText || (isAgar ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui");
+          const detailText = p.detailText || (!isAgar && (!isOnline && p.leftAt ? "visible 2 min" : "en la sala"));
+          const subDetailText = p.subDetailText || "";
+          const badgeText = p.badgeText || "";
           const awardLabel = award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : award === "line" ? "Linea" : "";
           const awardTone = award === "full"
             ? "border-neon-yellow/70 bg-neon-yellow/15 text-neon-yellow shadow-[0_0_14px_rgba(250,204,21,0.25)]"
@@ -1521,15 +1533,17 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   <span className={cn("font-pixel text-[7px] leading-none", isOnline ? "text-neon-green" : "text-muted-foreground")}>
-                    {isAgar ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui"}
+                    {statusText}
                   </span>
-                  {!isAgar && (!isOnline && p.leftAt ? (
-                    <span className="font-pixel text-[5px] text-muted-foreground leading-none">visible 2 min</span>
-                  ) : (
-                    <span className="font-pixel text-[5px] text-muted-foreground leading-none">en la sala</span>
-                  ))}
+                  {detailText && <span className="font-pixel text-[5px] text-muted-foreground leading-none">{detailText}</span>}
+                  {subDetailText && <span className="font-pixel text-[5px] text-muted-foreground leading-none">{subDetailText}</span>}
                 </div>
               </div>
+              {badgeText && (
+                <div className="ml-auto shrink-0 rounded border border-neon-green/40 bg-neon-green/10 px-1.5 py-1 text-right font-pixel text-[7px] text-neon-green shadow-[0_0_10px_rgba(57,255,20,0.16)]">
+                  {badgeText}
+                </div>
+              )}
               {awardLabel && (
                 <div className={cn("ml-auto flex min-w-[104px] shrink-0 items-center justify-center gap-1.5 rounded border px-2.5 py-1.5 text-center", awardTone)} title={awardLabel}>
                   <Trophy className="h-4 w-4" />

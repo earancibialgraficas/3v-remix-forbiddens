@@ -152,7 +152,9 @@
     let cardsData = [], cardNumbers = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, phasePauseTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
     let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
+    let claimWindowKind = "", claimWindowEndsAt = 0;
     let reservedCards = {};
+    const myClaimKeys = new Set();
     const BALL_DRAW_INTERVAL_MS = 5000;
     const knownCardSignatures = new Set();
     const cardCatalogCache = new Map();
@@ -168,13 +170,14 @@
         speechSynthesis.cancel(); speechSynthesis.speak(u);
       } catch {}
     }
-    function showStage(title, text){
+    function showStage(title, text, voiceDelay = 0){
       $("stageTitle").textContent = title;
       $("stageText").textContent = text;
       $("stageToast").classList.remove("show");
       void $("stageToast").offsetWidth;
       $("stageToast").classList.add("show");
-      speak(`${title}. ${text}`);
+      if (voiceDelay > 0) window.setTimeout(() => speak(`${title}. ${text}`), voiceDelay);
+      else speak(`${title}. ${text}`);
     }
     function showSideToast(title, text){
       $("sideToastTitle").textContent = title;
@@ -349,6 +352,12 @@
     }
     function claimKindForCard(cardRows, cardIndex){
       const rows = completedRowsForCard(cardRows, cardIndex);
+      const windowOpen = claimWindowKind && Date.now() < claimWindowEndsAt && !myClaimKeys.has(`${claimWindowKind}:${cardIndex}`);
+      if (windowOpen) {
+        if (claimWindowKind === "full" && cardHasFull(cardRows, cardIndex)) return "full";
+        if (claimWindowKind === "two" && rows >= 2) return "two";
+        if (claimWindowKind === "line" && rows >= 1) return "line";
+      }
       if (!claimed.full && cardHasFull(cardRows, cardIndex)) return "full";
       if (!claimed.two && rows >= 2 && phase !== "line") return "two";
       if (!claimed.line && rows >= 1) return "line";
@@ -415,7 +424,7 @@
       }
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards };
+      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards, claimWindowKind, claimWindowEndsAt };
     }
     function applyState(state){
       called = Array.isArray(state?.called) ? state.called : called;
@@ -429,6 +438,8 @@
       paidPrizes = Number(state?.paidPrizes || paidPrizes || 0);
       prepareEndsAt = Number(state?.prepareEndsAt || prepareEndsAt || 0);
       nextDrawAt = Number(state?.nextDrawAt || nextDrawAt || 0);
+      claimWindowKind = String(state?.claimWindowKind || claimWindowKind || "");
+      claimWindowEndsAt = Number(state?.claimWindowEndsAt || claimWindowEndsAt || 0);
       reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? { ...state.reservedCards, ...reservedCards } : reservedCards;
       renderCalled();
       updatePrizePool();
@@ -459,6 +470,9 @@
       called = [];
       markedCells = new Set();
       claimed = { line: false, two: false, full: false };
+      claimWindowKind = "";
+      claimWindowEndsAt = 0;
+      myClaimKeys.clear();
       paidPrizes = 0;
       roomLocked = true;
       roundActive = true;
@@ -510,6 +524,19 @@
         speechSynthesis.cancel(); speechSynthesis.speak(u);
       } catch {}
     }
+    function prizeVoice(kind){
+      return kind === "full" ? "BINGO!!" : kind === "two" ? "SEGUNDA LINEA" : "PRIMERA LINEA";
+    }
+    function prizeLabel(kind){
+      return kind === "full" ? "casa llena" : kind === "two" ? "segunda linea" : "primera linea";
+    }
+    function announcePrize(kind){
+      try {
+        const u = new SpeechSynthesisUtterance(prizeVoice(kind));
+        u.lang = "es-ES"; u.rate = kind === "full" ? .78 : .86; u.pitch = kind === "full" ? 1.22 : 1.08; u.volume = 1;
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
+      } catch {}
+    }
     function publishAward(kind, payout){
       window.parent?.postMessage({
         type: "game:playerAward",
@@ -521,22 +548,30 @@
     }
     function schedulePrizePause(kind, broadcast = true){
       clearTimeout(phasePauseTimer);
+      clearInterval(drawTimer);
+      drawTimer = null;
+      claimWindowKind = kind;
+      claimWindowEndsAt = Date.now() + 15000;
+      showStage("¿ALGUIEN MAS?", `15 segundos para cantar ${prizeLabel(kind)}.`, 1200);
       if (kind === "full") {
-        nextDrawAt = Number(nextDrawAt || 0) > Date.now() ? nextDrawAt : Date.now() + 15000;
-        clearInterval(drawTimer);
-        drawTimer = null;
+        nextDrawAt = claimWindowEndsAt;
         log("Casa llena cantada. La partida se cierra en 15 segundos.");
         phasePauseTimer = setTimeout(() => {
+          claimWindowKind = "";
+          claimWindowEndsAt = 0;
           if (broadcast) endRound(false);
         }, 15000);
         if (broadcast && isLeader) api?.send("state", statePayload());
         return;
       }
       const nextPhase = kind === "line" ? "two" : "full";
-      nextDrawAt = Number(nextDrawAt || 0) > Date.now() ? nextDrawAt : Date.now() + 15000 + BALL_DRAW_INTERVAL_MS;
+      nextDrawAt = claimWindowEndsAt + BALL_DRAW_INTERVAL_MS;
       log(`Bingo cantado. La mesa continua con ${nextPhase === "two" ? "2 lineas" : "casa llena"} en 15 segundos.`);
       phasePauseTimer = setTimeout(() => {
+        claimWindowKind = "";
+        claimWindowEndsAt = 0;
         setPhase(nextPhase);
+        if (isLeader && roundActive) ensureDrawTimer();
         if (broadcast && isLeader) api?.send("state", statePayload());
       }, 15000);
       if (broadcast && isLeader) api?.send("state", statePayload());
@@ -548,17 +583,23 @@
         ? (kind === "line" ? rows[cardIndex] >= 1 : kind === "two" ? rows[cardIndex] >= 2 : cardHasFull(cardsData[cardIndex], cardIndex))
         : (kind === "line" ? rows.some((n) => n >= 1) : kind === "two" ? rows.some((n) => n >= 2) : hasFull());
       if (!ok) { log("Todavia no cumple la jugada."); return; }
-      if (claimed[kind]) { log("Ese premio ya fue cantado."); return; }
+      const claimKey = `${kind}:${cardIndex}`;
+      const insideClaimWindow = claimWindowKind === kind && Date.now() < claimWindowEndsAt;
+      const opensPause = !claimed[kind];
+      if (myClaimKeys.has(claimKey)) { log("Ese carton ya canto este premio."); return; }
+      if (claimed[kind] && !insideClaimWindow) { log("Ese premio ya fue cantado."); return; }
       claimed[kind] = true;
-      shoutBingo();
+      myClaimKeys.add(claimKey);
+      announcePrize(kind);
       const payout = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
       paidPrizes += payout;
       const result = await api.casinoWager("casino-bingo", 0, payout, { kind, cards: cardsData.length, called });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
-      schedulePrizePause(kind);
-      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt });
+      if (opensPause) schedulePrizePause(kind);
+      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt, claimWindowKind, claimWindowEndsAt, opensPause });
       log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
+      renderCards();
     }
     function endRound(local){
       roundActive = false;
@@ -568,6 +609,8 @@
       drawTimer = null;
       prepareEndsAt = Date.now() + 60000;
       nextDrawAt = 0;
+      claimWindowKind = "";
+      claimWindowEndsAt = 0;
       log("Partida finalizada. La sala vuelve a aceptar jugadores.");
       if (!local) api.send("end", statePayload());
       startCountdown();
@@ -649,8 +692,12 @@
               claimed = m.payload.claimed || claimed;
               paidPrizes = Number(m.payload.paidPrizes || paidPrizes || 0);
               nextDrawAt = Number(m.payload.nextDrawAt || nextDrawAt || 0);
+              claimWindowKind = String(m.payload.claimWindowKind || claimWindowKind || "");
+              claimWindowEndsAt = Number(m.payload.claimWindowEndsAt || claimWindowEndsAt || 0);
               window.parent?.postMessage({ type: "game:playerAward", userId: m.payload.userId, playerId: m.payload.playerId, award: m.payload.kind, payout: m.payload.payout }, "*");
-              schedulePrizePause(m.payload.kind, false);
+              announcePrize(m.payload.kind);
+              if (m.payload.opensPause !== false) schedulePrizePause(m.payload.kind, false);
+              else renderCards();
               log(`${m.payload.name} canto premio por ${fmt(m.payload.payout)} F-coin.`);
             }
             if (m.type === "end") endRound(true);
