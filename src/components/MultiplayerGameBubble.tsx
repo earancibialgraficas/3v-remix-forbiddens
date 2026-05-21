@@ -637,7 +637,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           description: `Resultado de la sesion: ${net >= 0 ? "+" : ""}${Math.trunc(net).toLocaleString("es-CL")} F-coin`,
         });
       }
-      if (isExternalGame && event.data?.type === "game:updateLeaderboard" && Array.isArray(event.data.players)) {
+      if (event.data?.type === "game:updateLeaderboard" && Array.isArray(event.data.players)) {
         const now = Date.now();
         const nextPlayers: SessionPlayer[] = event.data.players
           .map((player: any, index: number) => {
@@ -690,7 +690,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isExternalGame, syncLocalSessionPlayer, toast]);
+  }, [syncLocalSessionPlayer, toast]);
 
   useEffect(() => {
     if (!isAgar || !gameLaunched) {
@@ -1483,7 +1483,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           const statusText = p.statusText || (isAgar ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui");
           const detailText = p.detailText || (!isAgar && (!isOnline && p.leftAt ? "visible 2 min" : "en la sala"));
           const subDetailText = p.subDetailText || "";
-          const badgeText = p.badgeText || (activeGameId === "monopoly" ? `$${Math.floor(p.totalPoints || 0).toLocaleString("es-CL")}` : "");
+          const badgeText = p.badgeText || "";
           const awardLabel = award === "full" ? "Casa llena" : award === "two" ? "2 lineas" : award === "line" ? "Linea" : "";
           const awardTone = award === "full"
             ? "border-neon-yellow/70 bg-neon-yellow/15 text-neon-yellow shadow-[0_0_14px_rgba(250,204,21,0.25)]"
