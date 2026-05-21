@@ -594,6 +594,7 @@ const handlePlayCloudGame = async (game: any) => {
     { id: 'pong', label: 'Pong / Air Hockey', coverUrl: '/games/covers/pong-air-hockey.svg', maxPlayers: 2, playersLabel: '2P' },
     { id: 'agar-server', label: 'Agar.io Clon', coverUrl: '/games/covers/agar-io-clon.svg', maxPlayers: 10, playersLabel: '10P', externalUrl: import.meta.env.VITE_AGAR_SERVER_URL, rewardSlug: 'agar' },
     { id: 'voidstrike', label: 'Voidstrike', coverUrl: '/games/covers/voidstrike.svg', maxPlayers: 8, playersLabel: 'RTS', externalUrl: 'https://voidstrike-five.vercel.app' },
+    { id: 'tosios', label: 'TOSIOS', coverUrl: '/games/covers/tosios.svg', maxPlayers: 16, playersLabel: 'SHOOTER', externalUrl: 'https://tosios.online' },
     { id: 'chess', label: 'Ajedrez Arcade', coverUrl: '/games/covers/chess.svg', maxPlayers: 10, playersLabel: '2P + 8 ESP' },
     { id: 'casino-roulette', label: 'Ruleta Retro', coverUrl: '/games/covers/casino-roulette.svg', maxPlayers: 10, playersLabel: 'BET', extraPoints: true, wagerGame: true },
     { id: 'casino-blackjack', label: 'Blackjack Drag', coverUrl: '/games/covers/casino-blackjack.svg', maxPlayers: 6, playersLabel: 'BET', extraPoints: true, wagerGame: true },

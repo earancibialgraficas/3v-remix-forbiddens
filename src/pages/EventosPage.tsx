@@ -37,6 +37,7 @@ const EVENT_GAME_OPTIONS = [
   { value: "pong", label: "Pong / Air Hockey" },
   { value: "agar-server", label: "Agar.io Clon" },
   { value: "voidstrike", label: "Voidstrike" },
+  { value: "tosios", label: "TOSIOS" },
   { value: "massive-decks", label: "Massive Decks" },
   { value: "casino-roulette", label: "Ruleta Retro" },
   { value: "casino-blackjack", label: "Blackjack Drag" },
