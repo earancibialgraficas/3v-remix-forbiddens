@@ -43,6 +43,13 @@ interface MultiplayerGameBubbleProps {
 }
 
 const makeRoomCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+const getLargeWindowSize = () => {
+  if (typeof window === "undefined") return { w: 1180, h: 760 };
+  return {
+    w: Math.max(320, window.innerWidth - 24),
+    h: Math.max(420, window.innerHeight - 24),
+  };
+};
 const AGAR_MAX_PLAYERS = 10;
 const AGAR_LOBBY_CHANNEL = "forbiddens:agar:lobby";
 const TIME_REWARD_SECONDS = 10;
@@ -142,7 +149,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const pendingGamePointsRef = useRef(0);
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({ w: 860, h: 620 });
+  const [size, setSize] = useState(() => getLargeWindowSize());
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [roomCode, setRoomCode] = useState(makeRoomCode);
@@ -202,6 +209,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       document.body.style.overscrollBehavior = previousBodyOverscroll;
       document.documentElement.style.overflow = previousHtmlOverflow;
     };
+  }, [activeGameId]);
+
+  useEffect(() => {
+    if (!activeGameId) return;
+    setPosition({ x: 0, y: 0 });
+    setSize(getLargeWindowSize());
   }, [activeGameId]);
 
   const notifyPlayerConnected = useCallback((player?: Partial<SessionPlayer>) => {
@@ -887,8 +900,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         const minWidth = Math.max(240, Math.min(420, window.innerWidth - 16));
         const minHeight = Math.max(220, Math.min(320, window.innerHeight - 16));
         setSize({
-          w: Math.max(minWidth, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)),
-          h: Math.max(minHeight, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)),
+          w: Math.min(window.innerWidth - 16, Math.max(minWidth, resizeRef.current.startW + (e.clientX - resizeRef.current.startX))),
+          h: Math.min(window.innerHeight - 16, Math.max(minHeight, resizeRef.current.startH + (e.clientY - resizeRef.current.startY))),
         });
       }
     };
@@ -906,10 +919,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   useEffect(() => {
     const clampToViewport = () => {
-      setSize((current) => ({
-        w: Math.min(current.w, Math.max(240, window.innerWidth - 16)),
-        h: Math.min(current.h, Math.max(220, window.innerHeight - 16)),
-      }));
+      setSize(getLargeWindowSize());
       setPosition({ x: 0, y: 0 });
     };
     window.addEventListener("resize", clampToViewport);
@@ -943,7 +953,12 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   useEffect(() => {
     const onFullscreenChange = () => {
-      setFullscreen(document.fullscreenElement === popupRef.current);
+      const nextFullscreen = document.fullscreenElement === popupRef.current;
+      setFullscreen(nextFullscreen);
+      if (!nextFullscreen && popupRef.current) {
+        setPosition({ x: 0, y: 0 });
+        setSize(getLargeWindowSize());
+      }
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
@@ -982,6 +997,8 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
+        setPosition({ x: 0, y: 0 });
+        setSize(getLargeWindowSize());
       } else {
         const popup = popupRef.current;
         if (popup) await popup.requestFullscreen();
@@ -993,7 +1010,10 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const exitOwnFullscreen = useCallback(() => {
     if (document.fullscreenElement === popupRef.current) {
-      void document.exitFullscreen().catch(() => undefined);
+      void document.exitFullscreen().then(() => {
+        setPosition({ x: 0, y: 0 });
+        setSize(getLargeWindowSize());
+      }).catch(() => undefined);
     }
   }, []);
 

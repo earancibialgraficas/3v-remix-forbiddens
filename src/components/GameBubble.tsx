@@ -94,6 +94,13 @@ interface SaveSlot {
 }
 
 const AFK_TIMEOUT_MS = 30 * 1000;
+const getLargeGameWindowSize = () => {
+  if (typeof window === "undefined") return { w: 1180, h: 760 };
+  return {
+    w: Math.max(360, window.innerWidth - 24),
+    h: Math.max(420, window.innerHeight - 24),
+  };
+};
 
 export default function GameBubble() {
   const location = useLocation();
@@ -116,7 +123,7 @@ export default function GameBubble() {
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
-  const [popupSize, setPopupSize] = useState({ w: 700, h: 520 });
+  const [popupSize, setPopupSize] = useState(() => getLargeGameWindowSize());
   const [resizing, setResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const nostalgistRef = useRef<any>(null);
@@ -206,7 +213,20 @@ export default function GameBubble() {
   }, []);
 
   useEffect(() => {
-    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFullscreenChange = () => {
+      const nextFullscreen = document.fullscreenElement === popupRef.current;
+      setIsFullscreen(nextFullscreen);
+      if (!nextFullscreen && popupRef.current) {
+        setPosition({ x: 0, y: 0 });
+        setPopupSize(getLargeGameWindowSize());
+        requestAnimationFrame(() => {
+          if (canvasRef.current) {
+            canvasRef.current.style.width = "100%";
+            canvasRef.current.style.height = "100%";
+          }
+        });
+      }
+    };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
@@ -248,11 +268,29 @@ export default function GameBubble() {
   useEffect(() => {
     setForceFloating(false);
     setExpandedControlsOpen(false);
+    setPosition({ x: 0, y: 0 });
+    setPopupSize(getLargeGameWindowSize());
   }, [activeGame?.romUrl]);
 
   // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
   const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2;
   const isExpanded = isTheaterActive || isFullscreen;
+
+  useEffect(() => {
+    if (!activeGame || minimized) return;
+    const resizeToLargeWindow = () => {
+      if (!document.fullscreenElement && !isTheaterActive) {
+        setPosition({ x: 0, y: 0 });
+        setPopupSize(getLargeGameWindowSize());
+      }
+    };
+    window.addEventListener("resize", resizeToLargeWindow);
+    window.addEventListener("orientationchange", resizeToLargeWindow);
+    return () => {
+      window.removeEventListener("resize", resizeToLargeWindow);
+      window.removeEventListener("orientationchange", resizeToLargeWindow);
+    };
+  }, [activeGame, isTheaterActive, minimized]);
 
   useEffect(() => {
     if (!isExpanded) setExpandedControlsOpen(false);
@@ -707,8 +745,19 @@ html.forbiddens-show-menu .ejs_menu_button[title*="Cargar estado" i]{display:non
 @media (orientation: landscape) and (max-height: 500px){
   #game canvas,.ejs_canvas_parent,div[class*="canvas_parent"]{height:100%!important;max-height:100%!important;width:100%!important;max-width:100%!important;object-fit:contain!important}
 }
+body.nds #game{padding:6px 0 12px!important}
+body.nds #game canvas,
+body.nds .ejs_canvas_parent,
+body.nds div[class*="canvas_parent"]{
+  height:calc(100% - 18px)!important;
+  max-height:calc(100% - 18px)!important;
+  width:100%!important;
+  max-width:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+}
 `;
-          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body><div id="game"></div><script>
+          const html = `<!doctype html><html><head><meta charset="utf-8" /><style>${ejsCss}</style></head><body class="${activeGame.consoleName === "ds" ? "nds" : ""}"><div id="game"></div><script>
 (function(){
   // Bloquea drag&drop nativo (evita el overlay "Suelta el estado guardado aquí")
   ['dragenter','dragover','dragleave','drop'].forEach(function(ev){
@@ -1268,6 +1317,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         await document.exitFullscreen();
         setIsFullscreen(false);
         setExpandedControlsOpen(false);
+        setForceFloating(true);
+        setPosition({ x: 0, y: 0 });
+        setPopupSize(getLargeGameWindowSize());
+        scheduleCanvasSurfaceSync();
 
         // 🔥 MAGIA: Liberar la rotación al salir de pantalla completa
         if (screen.orientation && screen.orientation.unlock) {
@@ -1509,8 +1562,8 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     const onMove = (e: MouseEvent) => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        const newW = Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX));
-        const newH = Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY));
+        const newW = Math.min(window.innerWidth - 16, Math.max(400, resizeRef.current.startW + (e.clientX - resizeRef.current.startX)));
+        const newH = Math.min(window.innerHeight - 16, Math.max(320, resizeRef.current.startH + (e.clientY - resizeRef.current.startY)));
         setPopupSize({ w: newW, h: newH });
       });
     };
@@ -1568,8 +1621,8 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         transform: `translate(${position.x}px, ${position.y}px)`,
         width: `${popupSize.w}px`,
         height: `${popupSize.h}px`,
-        maxWidth: "95vw",
-        maxHeight: "90vh",
+        maxWidth: "calc(100vw - 16px)",
+        maxHeight: "calc(100dvh - 16px)",
         willChange: dragging || resizing ? "transform, width, height" : "auto",
       };
     }
@@ -1653,6 +1706,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                   onClick={() => {
                     if (isFullscreen) document.exitFullscreen().catch(() => {});
                     setForceFloating(true);
+                    setPosition({ x: 0, y: 0 });
+                    setPopupSize(getLargeGameWindowSize());
+                    scheduleCanvasSurfaceSync();
                   }}
                   className="h-7 w-7 text-white hover:bg-white/20"
                   title="Restaurar a Ventana Flotante"
