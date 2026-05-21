@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Voidstrike</title>
+  <desc id="desc">Sci-fi RTS cover with neon battlefield and command ships.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050816"/>
+      <stop offset=".45" stop-color="#0c1934"/>
+      <stop offset="1" stop-color="#10071f"/>
+    </linearGradient>
+    <radialGradient id="rift" cx=".5" cy=".36" r=".48">
+      <stop offset="0" stop-color="#67e8f9" stop-opacity=".8"/>
+      <stop offset=".34" stop-color="#7c3aed" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="360" rx="18" fill="url(#bg)"/>
+  <rect width="640" height="360" rx="18" fill="url(#rift)"/>
+  <g opacity=".38" stroke="#1e3a8a" stroke-width="2">
+    <path d="M0 263h640M0 300h640M0 337h640"/>
+    <path d="M77 360 252 191M179 360 306 191M461 360 334 191M563 360 388 191"/>
+  </g>
+  <g filter="url(#glow)">
+    <path d="M319 64 423 178 319 292 216 178Z" fill="#08111f" stroke="#67e8f9" stroke-width="6"/>
+    <path d="M319 106 381 178 319 250 257 178Z" fill="#111827" stroke="#a78bfa" stroke-width="4"/>
+    <circle cx="319" cy="178" r="34" fill="#020617" stroke="#facc15" stroke-width="5"/>
+    <path d="M319 94v50M319 212v50M235 178h50M353 178h50" stroke="#67e8f9" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#glow)">
+    <path d="M91 250h92l42 35-42 35H91l-36-35Z" fill="#0f172a" stroke="#22d3ee" stroke-width="4"/>
+    <path d="M548 250h-92l-42 35 42 35h92l36-35Z" fill="#1f102a" stroke="#f472b6" stroke-width="4"/>
+    <circle cx="142" cy="285" r="13" fill="#22d3ee"/>
+    <circle cx="497" cy="285" r="13" fill="#f472b6"/>
+  </g>
+  <g fill="#e5e7eb" opacity=".72">
+    <circle cx="96" cy="68" r="2"/>
+    <circle cx="151" cy="42" r="1.7"/>
+    <circle cx="513" cy="56" r="2.4"/>
+    <circle cx="579" cy="110" r="1.6"/>
+    <circle cx="439" cy="34" r="1.8"/>
+  </g>
+  <text x="32" y="58" fill="#f8fafc" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900">VOIDSTRIKE</text>
+  <text x="34" y="87" fill="#67e8f9" font-family="Arial, sans-serif" font-size="16" font-weight="800">MULTI RTS</text>
+  <rect x="522" y="28" width="82" height="34" rx="10" fill="#020617" stroke="#facc15" stroke-width="2"/>
+  <text x="563" y="51" text-anchor="middle" fill="#facc15" font-family="Arial Black, Arial, sans-serif" font-size="15">RTS</text>
+</svg>
