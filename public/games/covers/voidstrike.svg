@@ -46,7 +46,7 @@
     <circle cx="439" cy="34" r="1.8"/>
   </g>
   <text x="32" y="58" fill="#f8fafc" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900">VOIDSTRIKE</text>
-  <text x="34" y="87" fill="#67e8f9" font-family="Arial, sans-serif" font-size="16" font-weight="800">MULTI RTS</text>
+  <text x="34" y="87" fill="#67e8f9" font-family="Arial, sans-serif" font-size="16" font-weight="800">MULTI RTS 2P</text>
   <rect x="522" y="28" width="82" height="34" rx="10" fill="#020617" stroke="#facc15" stroke-width="2"/>
-  <text x="563" y="51" text-anchor="middle" fill="#facc15" font-family="Arial Black, Arial, sans-serif" font-size="15">RTS</text>
+  <text x="563" y="51" text-anchor="middle" fill="#facc15" font-family="Arial Black, Arial, sans-serif" font-size="15">2P</text>
 </svg>

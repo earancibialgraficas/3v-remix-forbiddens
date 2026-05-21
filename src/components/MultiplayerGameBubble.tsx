@@ -1279,7 +1279,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       return Date.now() - player.leftAt < SESSION_VISITED_MS;
     })
     .sort((a, b) => {
-      if (isExternalGame) return Number(b.totalPoints || 0) - Number(a.totalPoints || 0);
+      if (isAgar) return Number(b.totalPoints || 0) - Number(a.totalPoints || 0);
       if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
@@ -1514,9 +1514,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 <p className="font-pixel text-[6px] text-white truncate" title={playerName}>{playerName}</p>
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   <span className={cn("font-pixel text-[7px] leading-none", isOnline ? "text-neon-green" : "text-muted-foreground")}>
-                    {isExternalGame ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui"}
+                    {isAgar ? `${Math.floor(p.totalPoints || 0)} masa` : isOnline ? "online" : "estuvo aqui"}
                   </span>
-                  {!isExternalGame && (!isOnline && p.leftAt ? (
+                  {!isAgar && (!isOnline && p.leftAt ? (
                     <span className="font-pixel text-[5px] text-muted-foreground leading-none">visible 2 min</span>
                   ) : (
                     <span className="font-pixel text-[5px] text-muted-foreground leading-none">en la sala</span>
