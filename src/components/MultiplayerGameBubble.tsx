@@ -453,15 +453,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   useEffect(() => {
     if (!activeGameId) return;
-    const availableWidth = Math.max(280, window.innerWidth - 32);
-    const availableHeight = Math.max(260, window.innerHeight - 32);
     setMinimized(false);
     setPosition({ x: 0, y: 0 });
-    setSize(
-      activeGameId === "watch-together" || isWagerGame
-        ? { w: availableWidth, h: availableHeight }
-        : { w: Math.min(900, availableWidth), h: Math.min(640, availableHeight) },
-    );
+    setSize(getLargeWindowSize());
     setFullscreen(false);
     lobbyJoinedAtRef.current = Date.now();
     lobbyTrackedRoomRef.current = "";
@@ -492,7 +486,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     pendingGamePointsRef.current = 0;
     setSessionPointPreview(0);
     setSessionElapsedPreview(0);
-  }, [activeGameId, isWagerGame]);
+  }, [activeGameId]);
 
   useEffect(() => {
     if (!fullscreen) setExpandedInfoOpen(false);
@@ -1165,6 +1159,9 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
 
   const launchRoom = (code: string, asHost: boolean, eventRoom: MultiplayerLobbyRoom | null = null) => {
     const nextCode = (code || makeRoomCode()).trim().toUpperCase();
+    setMinimized(false);
+    setPosition({ x: 0, y: 0 });
+    setSize(getLargeWindowSize());
     setRoomCode(isAgar ? normalizeAgarRoomCode(nextCode) : nextCode);
     setLaunchedAsHost(asHost);
     setActiveEventRoom(eventRoom);
