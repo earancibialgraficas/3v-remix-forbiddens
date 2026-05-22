@@ -23,18 +23,19 @@
     .layout{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,340px);gap:12px;padding:12px}
     .boardWrap,.side{min-height:0;border:1px solid #facc152b;background:#07111fd9;border-radius:14px;box-shadow:inset 0 0 32px #0008,0 0 28px #22d3ee12}
     .boardWrap{position:relative;display:grid;place-items:center;padding:10px;overflow:hidden}
-    .board{--n:8;width:min(100%,calc(100vh - 78px));max-width:820px;aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);gap:3px;padding:7px;border:3px solid #facc15;border-radius:16px;background:linear-gradient(135deg,#0f2d2f,#11213b);box-shadow:0 22px 60px #000b,0 0 34px #facc1524}
+    .board{--n:11;width:min(100%,calc(100vh - 78px));max-width:860px;aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);gap:3px;padding:7px;border:3px solid #facc15;border-radius:16px;background:linear-gradient(135deg,#0f2d2f,#11213b);box-shadow:0 22px 60px #000b,0 0 34px #facc1524}
     .cell{position:relative;min-width:0;min-height:0;border:1px solid #ffffff20;border-radius:7px;background:#0b1524;padding:4px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
     .cell.corner{background:linear-gradient(135deg,#facc15,#d97706);color:#1f1300}.cell.tax{background:#42151b}.cell.chance{background:#34205f}.cell.jail{background:#3b2a18}.cell.goto{background:#4c1111}
     .stripe{height:7px;border-radius:4px;margin:-1px -1px 2px}.name{font-size:clamp(7px,1vw,10px);font-weight:1000;line-height:1.1;text-transform:uppercase}.price{font-size:clamp(7px,.9vw,9px);color:#cbd5e1}.cell.corner .price{color:#3b2500}
     .owner{position:absolute;right:3px;bottom:3px;width:10px;height:10px;border-radius:50%;border:1px solid #fff8}.tokens{position:absolute;left:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap;max-width:86%}
-    .token,.movingToken{width:var(--token-size,24px);height:var(--token-size,24px);border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important;box-shadow:0 3px 9px #000c,0 0 14px var(--p,#22d3ee),inset 0 0 0 1px #0006}.movingToken{position:absolute;z-index:40;pointer-events:none;transition:left .24s cubic-bezier(.2,1.5,.45,1),top .24s cubic-bezier(.2,1.5,.45,1);animation:tokenHop .24s ease-in-out infinite alternate}.center{grid-column:2/8;grid-row:2/8;border:1px solid #22d3ee33;border-radius:16px;background:radial-gradient(circle at 50% 30%,#12365e,#07111f 62%);display:grid;place-items:center;text-align:center;padding:18px;box-shadow:inset 0 0 40px #0008}
+    .token,.movingToken{width:var(--token-size,24px);height:var(--token-size,24px);border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important;box-shadow:0 3px 9px #000c,0 0 14px var(--p,#22d3ee),inset 0 0 0 1px #0006}.movingToken{position:absolute;z-index:40;pointer-events:none;transition:left .24s cubic-bezier(.2,1.5,.45,1),top .24s cubic-bezier(.2,1.5,.45,1);animation:tokenHop .24s ease-in-out infinite alternate}.center{grid-column:2/11;grid-row:2/11;border:1px solid #22d3ee33;border-radius:16px;background:radial-gradient(circle at 50% 30%,#12365e,#07111f 62%);display:grid;place-items:center;text-align:center;padding:18px;box-shadow:inset 0 0 40px #0008}
     .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.dicePanel{position:relative;margin:14px auto 0;min-height:120px;display:flex;align-items:center;justify-content:center;gap:34px;padding:14px 72px 14px 20px;border-radius:14px;background:linear-gradient(135deg,#2b3140,#161b28);box-shadow:inset 0 0 24px #0007,0 14px 30px #0008}.dice{display:flex;justify-content:center;gap:34px}.die{--rx:-22deg;--ry:0deg;position:relative;width:66px;height:66px;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(-45deg);display:grid;place-items:center;color:#ecfeff;font-size:28px;font-weight:1000;text-shadow:0 2px 0 #075985,0 0 12px #22d3ee;filter:drop-shadow(0 16px 12px #0008)}
     .die:before,.die:after{content:"";position:absolute;inset:0;border-radius:2px}.die:before{background:linear-gradient(135deg,#22d3ee,#0891b2);transform:translateZ(22px);box-shadow:inset 0 -18px 22px #0891b2,0 0 18px #22d3ee55}.die:after{background:#075985;transform:rotateX(90deg) translateZ(-22px);filter:brightness(.8)}
     .die .value{position:relative;z-index:2;opacity:1;transform:rotateZ(45deg);line-height:1}.die.rolling .value{opacity:0}.die.rolling{animation:diceRoll3d .72s cubic-bezier(.16,.8,.24,1.08) infinite}.die:nth-child(2){--rx:-14deg;--ry:18deg}.diceTotal{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:7px;border-radius:8px;background:#111827d9;padding:6px 9px;box-shadow:0 8px 18px #0008;color:#fff}.diceTotal span{font-size:13px;font-weight:1000}.diceTotal b{font-size:30px;line-height:.9}
     .cell.spark:before,.cell.spark:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#facc15;box-shadow:22px 0 #22d3ee,-22px 0 #fb7185,0 22px #34d399,0 -22px #facc15,16px 16px #f97316,-16px -16px #c084fc,18px -14px #fff,-18px 14px #fff;z-index:10;animation:sparkBurst .78s ease-out both}.cell.spark:after{transform:rotate(45deg);animation-delay:.08s}
     .side{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:12px;overflow:hidden}.panel{border:1px solid #22d3ee26;border-radius:12px;background:#061a2c;padding:10px}.panel h2{margin:0 0 8px;color:#facc15;font-size:13px;text-transform:uppercase}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button.wide{grid-column:1/-1}
-    .assets{min-height:0;overflow:auto;display:grid;gap:8px;padding-right:3px}.assetPlayer{border:1px solid #ffffff14;border-radius:10px;background:#0b1320;padding:8px}.assetHead{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}.assetPlayer.active{border-color:#facc15;box-shadow:0 0 18px #facc1522}.avatar{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important}.assetPlayer b{font-size:12px}.assetPlayer small{display:block;color:#cbd5e1;font-size:11px}.deeds{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.deed{min-width:42px;border:1px solid #ffffff1c;border-radius:7px;background:#07111f;padding:4px 5px;font-size:9px;color:#e5e7eb}.deed i{display:block;height:5px;border-radius:4px;margin:-1px -1px 3px}.emptyDeeds{margin-top:8px;color:#64748b;font-size:10px}.log{min-height:72px;max-height:120px;overflow:auto;color:#cbd5e1;font-size:12px;line-height:1.5}.hint{color:#9ca3af;font-size:11px;line-height:1.45;margin:0}
+    .auctionOverlay,.tradeOverlay{position:absolute;z-index:70;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92%);border:2px solid #facc15;border-radius:16px;background:#07111ff2;padding:16px;box-shadow:0 24px 60px #000d,0 0 30px #facc1533;text-align:center}.auctionOverlay.hidden,.tradeOverlay.hidden{display:none}.auctionOverlay h3,.tradeOverlay h3{margin:0;color:#facc15;font-size:18px}.auctionOverlay p,.tradeOverlay p{color:#cbd5e1;font-size:12px}.auctionActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.auctionActions button{min-height:38px}.auctionBid{font-size:26px;color:#22c55e;font-weight:1000}.tradeMenu{position:fixed;z-index:500;border:1px solid #22d3ee55;border-radius:8px;background:#050914;padding:6px;box-shadow:0 18px 38px #000b}.tradeMenu.hidden{display:none}.tradeMenu button{width:130px;text-align:left}
+    .assets{min-height:0;overflow:auto;display:grid;gap:8px;padding-right:3px}.assetPlayer{border:1px solid #ffffff14;border-radius:10px;background:#0b1320;padding:8px}.assetHead{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}.assetPlayer.active{border-color:#facc15;box-shadow:0 0 18px #facc1522}.avatar{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important}.assetPlayer b{font-size:12px}.assetPlayer small{display:block;color:#cbd5e1;font-size:11px}.deeds{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:7px;margin-top:10px}.deed{position:relative;min-height:64px;border:1px solid #ffffff1c;border-radius:8px;background:linear-gradient(180deg,#101b2d,#07111f);padding:18px 7px 6px;font-size:9px;color:#e5e7eb;box-shadow:inset 0 0 16px #0007,0 8px 18px #0004;overflow:hidden}.deed i{position:absolute;left:0;right:0;top:0;height:13px;box-shadow:0 3px 10px #0007}.deed b{display:block;font-size:9px;line-height:1.1;text-transform:uppercase}.deed span{display:block;margin-top:5px;color:#cbd5e1;font-size:8px}.deed em{position:absolute;right:6px;bottom:5px;color:#facc15;font-style:normal;font-size:8px}.emptyDeeds{margin-top:10px;border:1px dashed #365273;border-radius:8px;background:#07111f99;padding:10px;color:#64748b;font-size:10px;text-align:center}.log{min-height:72px;max-height:120px;overflow:auto;color:#cbd5e1;font-size:12px;line-height:1.5}.hint{color:#9ca3af;font-size:11px;line-height:1.45;margin:0}
     @media(max-width:900px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.board{width:min(100%,92vw)}.side{min-height:520px}.top{flex-wrap:wrap}.status{margin-left:0;width:100%;text-align:left}}
     @media(max-width:560px){.layout{padding:8px}.board{gap:2px;padding:4px}.cell{border-radius:4px;padding:2px}.name{font-size:6px}.price{display:none}.board{--token-size:16px!important}.center{padding:8px}.center p{display:none}.dicePanel{min-height:86px;gap:16px;padding:10px 58px 10px 10px}.dice{gap:18px}.die{width:46px;height:46px;font-size:20px}.diceTotal b{font-size:22px}.actions{grid-template-columns:1fr}}
     @keyframes diceRoll3d{0%{transform:rotateX(-22deg) rotateY(0) rotateZ(-45deg) scale(1)}30%{transform:rotateX(135deg) rotateY(160deg) rotateZ(24deg) scale(1.08)}65%{transform:rotateX(300deg) rotateY(320deg) rotateZ(-18deg) scale(.95)}100%{transform:rotateX(520deg) rotateY(540deg) rotateZ(-45deg) scale(1)}}
@@ -67,6 +68,9 @@
           <button id="start" class="wide">Iniciar partida</button>
           <button id="roll">Lanzar dados</button>
           <button id="buy">Comprar</button>
+          <button id="auction">Subastar</button>
+          <button id="build">Construir</button>
+          <button id="mortgage">Hipotecar</button>
           <button id="end">Terminar turno</button>
         </div>
       </section>
@@ -76,6 +80,22 @@
         <div id="log" class="log">Esperando sala...</div>
       </section>
     </aside>
+    <section id="auctionOverlay" class="auctionOverlay hidden">
+      <h3 id="auctionTitle">Subasta</h3>
+      <p id="auctionText">La propiedad se adjudica al mejor postor.</p>
+      <div class="auctionBid" id="auctionBid">$0</div>
+      <p id="auctionLeader">Sin pujas.</p>
+      <div class="auctionActions">
+        <button id="bid10">+10</button>
+        <button id="bid50">+50</button>
+        <button id="passAuction">Pasar</button>
+      </div>
+    </section>
+    <section id="tradeOverlay" class="tradeOverlay hidden">
+      <h3>Trueque</h3>
+      <p id="tradeText">Selecciona un jugador desde el marcador con click derecho para iniciar.</p>
+      <button id="closeTrade">Cerrar</button>
+    </section>
   </main>
   <script src="/games/realtime-room.js"></script>
   <script>
@@ -86,16 +106,33 @@
     const hostParam = params.get("host") === "1";
     const $ = (id) => document.getElementById(id);
     const colors = ["#22d3ee","#facc15","#fb7185","#34d399","#c084fc","#f97316","#a3e635","#f472b6"];
+    const groupMeta = {
+      brown:{ color:"#8b5a2b", house:50 }, lightblue:{ color:"#22d3ee", house:50 }, pink:{ color:"#ec4899", house:100 }, orange:{ color:"#f97316", house:100 },
+      red:{ color:"#ef4444", house:150 }, yellow:{ color:"#facc15", house:150 }, green:{ color:"#22c55e", house:200 }, blue:{ color:"#3b82f6", house:200 }
+    };
     const boardCells = [
-      { name:"Salida", type:"start" },{ name:"Neon Norte", price:60, rent:10, color:"#8b5cf6" },{ name:"Suerte", type:"chance" },{ name:"Pixel Plaza", price:70, rent:12, color:"#8b5cf6" },{ name:"Impuesto", type:"tax", amount:100 },{ name:"Metro Cian", price:120, rent:24, color:"#22d3ee" },{ name:"Foro Viejo", price:100, rent:18, color:"#22d3ee" },{ name:"Arcade 404", price:110, rent:20, color:"#22d3ee" },
-      { name:"Carcel", type:"jail" },{ name:"Calle Lava", price:140, rent:26, color:"#ef4444" },{ name:"Cofre", type:"chance" },{ name:"Distrito Rojo", price:150, rent:28, color:"#ef4444" },{ name:"Puerto Bit", price:160, rent:32, color:"#ef4444" },{ name:"Linea Turbo", price:180, rent:36, color:"#f97316" },{ name:"Zona Glitch", price:190, rent:38, color:"#f97316" },{ name:"Casino Luz", price:200, rent:42, color:"#f97316" },
-      { name:"Parking", type:"free" },{ name:"Bosque RGB", price:220, rent:48, color:"#22c55e" },{ name:"Suerte", type:"chance" },{ name:"Jardin Loop", price:230, rent:50, color:"#22c55e" },{ name:"Torre Staff", price:260, rent:58, color:"#facc15" },{ name:"Nube Gold", price:280, rent:64, color:"#facc15" },{ name:"Portal VIP", price:300, rent:72, color:"#facc15" },{ name:"Ir carcel", type:"goto" },
-      { name:"Vault", price:320, rent:80, color:"#06b6d4" },{ name:"Suerte", type:"chance" },{ name:"Sala Final", price:350, rent:90, color:"#06b6d4" },{ name:"Forbidden", price:400, rent:110, color:"#ec4899" }
+      { name:"Salida", type:"start" },
+      { name:"Mediterraneo", type:"property", group:"brown", price:60, rents:[2,10,30,90,160,250] },{ name:"Arca Comunal", type:"chest" },{ name:"Baltic", type:"property", group:"brown", price:60, rents:[4,20,60,180,320,450] },{ name:"Impuesto Renta", type:"tax", amount:200 },{ name:"Estacion Lectura", type:"railroad", price:200 },
+      { name:"Oriental", type:"property", group:"lightblue", price:100, rents:[6,30,90,270,400,550] },{ name:"Suerte", type:"chance" },{ name:"Vermont", type:"property", group:"lightblue", price:100, rents:[6,30,90,270,400,550] },{ name:"Connecticut", type:"property", group:"lightblue", price:120, rents:[8,40,100,300,450,600] },
+      { name:"Carcel / Visita", type:"jail" },
+      { name:"St. Charles", type:"property", group:"pink", price:140, rents:[10,50,150,450,625,750] },{ name:"Electricidad", type:"utility", price:150 },{ name:"States", type:"property", group:"pink", price:140, rents:[10,50,150,450,625,750] },{ name:"Virginia", type:"property", group:"pink", price:160, rents:[12,60,180,500,700,900] },{ name:"Estacion Penn", type:"railroad", price:200 },
+      { name:"St. James", type:"property", group:"orange", price:180, rents:[14,70,200,550,750,950] },{ name:"Arca Comunal", type:"chest" },{ name:"Tennessee", type:"property", group:"orange", price:180, rents:[14,70,200,550,750,950] },{ name:"New York", type:"property", group:"orange", price:200, rents:[16,80,220,600,800,1000] },
+      { name:"Parking Libre", type:"free" },
+      { name:"Kentucky", type:"property", group:"red", price:220, rents:[18,90,250,700,875,1050] },{ name:"Suerte", type:"chance" },{ name:"Indiana", type:"property", group:"red", price:220, rents:[18,90,250,700,875,1050] },{ name:"Illinois", type:"property", group:"red", price:240, rents:[20,100,300,750,925,1100] },{ name:"B&O Rail", type:"railroad", price:200 },
+      { name:"Atlantic", type:"property", group:"yellow", price:260, rents:[22,110,330,800,975,1150] },{ name:"Ventnor", type:"property", group:"yellow", price:260, rents:[22,110,330,800,975,1150] },{ name:"Agua", type:"utility", price:150 },{ name:"Marvin Gardens", type:"property", group:"yellow", price:280, rents:[24,120,360,850,1025,1200] },
+      { name:"Ir a Carcel", type:"goto" },
+      { name:"Pacific", type:"property", group:"green", price:300, rents:[26,130,390,900,1100,1275] },{ name:"North Carolina", type:"property", group:"green", price:300, rents:[26,130,390,900,1100,1275] },{ name:"Arca Comunal", type:"chest" },{ name:"Pennsylvania", type:"property", group:"green", price:320, rents:[28,150,450,1000,1200,1400] },{ name:"Short Line", type:"railroad", price:200 },
+      { name:"Suerte", type:"chance" },{ name:"Park Place", type:"property", group:"blue", price:350, rents:[35,175,500,1100,1300,1500] },{ name:"Impuesto Lujo", type:"tax", amount:100 },{ name:"Boardwalk", type:"property", group:"blue", price:400, rents:[50,200,600,1400,1700,2000] }
     ];
-    const positions = [[7,7],[7,6],[7,5],[7,4],[7,3],[7,2],[7,1],[7,0],[6,0],[5,0],[4,0],[3,0],[2,0],[1,0],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]];
+    const positions = Array.from({ length: 40 }, (_, index) => {
+      if (index <= 10) return [10, 10 - index];
+      if (index <= 20) return [20 - index, 0];
+      if (index <= 30) return [0, index - 20];
+      return [index - 30, 10];
+    });
     let api, connected = false, peers = [], isHost = hostParam, rolledThisTurn = false, diceRolling = false;
     const hiddenMovingIds = new Set();
-    let state = { phase:"lobby", players:[], turn:0, dice:[1,1], log:["Esperando jugadores."], owners:{}, ended:false };
+    let state = { phase:"lobby", players:[], turn:0, dice:[1,1], lastRoll:0, doubles:0, extraRollFor:null, log:["Esperando jugadores."], owners:{}, buildings:{}, mortgages:{}, houses:32, hotels:12, chanceDeck:[], chestDeck:[], auction:null, trade:null, ended:false };
     if (preset) $("room").value = preset;
 
     function key(){ return profile.userId || api?.playerId || "local"; }
@@ -104,10 +141,29 @@
     function localPlayer(){ return state.players.find((p) => p.id === key()); }
     function currentPlayer(){ return state.players[state.turn % Math.max(1, state.players.length)]; }
     function currentCell(player = currentPlayer()){ return boardCells[player?.pos || 0]; }
+    function isOwnable(cell){ return ["property","railroad","utility"].includes(cell?.type); }
+    function groupColor(cell){ return cell?.group ? groupMeta[cell.group]?.color : cell?.type === "railroad" ? "#94a3b8" : cell?.type === "utility" ? "#06b6d4" : ""; }
+    function groupIndexes(group){ if (!group) return []; return boardCells.map((cell, idx) => cell.group === group ? idx : -1).filter((idx) => idx >= 0); }
     function propertyIndexesOf(id){ return Object.entries(state.owners).filter(([,owner]) => owner === id).map(([idx]) => Number(idx)); }
     function netWorth(player){ return Number(player.money || 0) + propertyIndexesOf(player.id).reduce((sum, idx) => sum + Math.floor((boardCells[idx].price || 0) * .7), 0); }
+    function ownsGroup(playerId, group){ const indexes = groupIndexes(group); return indexes.length > 0 && indexes.every((idx) => state.owners[idx] === playerId); }
+    function ownedOfType(playerId, type){ return propertyIndexesOf(playerId).filter((idx) => boardCells[idx].type === type).length; }
+    function buildingCount(idx){ return Number(state.buildings[idx] || 0); }
+    function isMortgaged(idx){ return Boolean(state.mortgages[idx]); }
+    function rentAmount(idx, diceTotal = state.lastRoll || 0){
+      const cell = boardCells[idx];
+      const ownerId = state.owners[idx];
+      if (!cell || !ownerId || isMortgaged(idx)) return 0;
+      if (cell.type === "railroad") return [0,25,50,100,200][ownedOfType(ownerId, "railroad")] || 25;
+      if (cell.type === "utility") return diceTotal * (ownedOfType(ownerId, "utility") >= 2 ? 10 : 4);
+      const built = buildingCount(idx);
+      let rent = cell.rents?.[built] || cell.rents?.[0] || 0;
+      if (!built && cell.group && ownsGroup(ownerId, cell.group)) rent *= 2;
+      return rent;
+    }
+    function rentLabel(idx){ return `Renta $${fmt(rentAmount(idx, 7))}`; }
     function sendState(){ api?.send("state", state); render(); }
-    function applyState(next){ if (!next) return; state = next; render(); }
+    function applyState(next){ if (!next) return; state = { ...state, ...next }; render(); }
     function setStatus(text){ $("status").innerHTML = connected ? `<span class="roomBadge">${text}</span>` : text; }
     function tokenBg(player){
       return player?.avatarUrl ? `url('${String(player.avatarUrl).replace(/'/g, "%27")}') center/cover` : player?.color || "#22d3ee";
@@ -145,7 +201,7 @@
       peers.slice(0,8).forEach((peer, index) => {
         const id = peer.userId || peer.playerId;
         if (!state.players.some((p) => p.id === id)) {
-          state.players.push({ id, playerId: peer.playerId, name: peer.displayName || "Jugador", avatarUrl: peer.avatarUrl || "", money: 1500, pos: 0, bankrupt: false, color: colors[index % colors.length] });
+          state.players.push({ id, playerId: peer.playerId, name: peer.displayName || "Jugador", avatarUrl: peer.avatarUrl || "", money: 1500, pos: 0, bankrupt: false, inJail:false, jailTurns:0, jailCards:0, doubles:0, color: colors[index % colors.length] });
           pushLog(`${peer.displayName || "Jugador"} entro a la mesa.`);
         }
       });
@@ -160,6 +216,9 @@
       boardCells.forEach((cell, index) => {
         const [row, col] = positions[index];
         const owner = state.owners[index];
+        const built = buildingCount(index);
+        const mortgaged = isMortgaged(index);
+        const stripeColor = groupColor(cell);
         const tokens = state.players.filter((p) => !p.bankrupt && p.pos === index && !hiddenMovingIds.has(p.id));
         const div = document.createElement("div");
         div.className = `cell ${cell.type === "start" || cell.type === "free" ? "corner" : cell.type || ""}`;
@@ -167,9 +226,9 @@
         div.style.gridColumn = String(col + 1);
         div.dataset.cell = String(index);
         div.innerHTML = `
-          ${cell.color ? `<div class="stripe" style="background:${cell.color}"></div>` : ""}
+          ${stripeColor ? `<div class="stripe" style="background:${stripeColor}"></div>` : ""}
           <div class="name">${cell.name}</div>
-          <div class="price">${cell.price ? "$"+fmt(cell.price) : cell.amount ? "-$"+fmt(cell.amount) : ""}</div>
+          <div class="price">${cell.price ? "$"+fmt(cell.price) : cell.amount ? "-$"+fmt(cell.amount) : ""}${built ? " · "+(built===5?"Hotel":built+" casa(s)") : ""}${mortgaged ? " · Hip." : ""}</div>
           ${owner ? `<span class="owner" style="background:${state.players.find((p)=>p.id===owner)?.color || "#fff"}"></span>` : ""}
           <div class="tokens">${tokens.map((p)=>`<span class="token" title="${p.name}" style="--p:${p.color};background:${tokenBg(p)}"></span>`).join("")}</div>
         `;
@@ -181,8 +240,8 @@
         const avatarBg = tokenBg(p);
         const properties = propertyIndexesOf(p.id).map((idx) => ({ idx, ...boardCells[idx] }));
         const deeds = properties.length
-          ? `<div class="deeds">${properties.map((item) => `<span class="deed" title="${item.name}"><i style="background:${item.color || p.color}"></i>${item.name}</span>`).join("")}</div>`
-          : `<div class="emptyDeeds">Aun no tiene compras.</div>`;
+          ? `<div class="deeds">${properties.map((item) => `<span class="deed" title="${item.name}"><i style="background:${groupColor(item) || p.color}"></i><b>${item.name}</b><span>${isMortgaged(item.idx) ? "Hipotecada" : rentLabel(item.idx)}</span><em>${buildingCount(item.idx) ? (buildingCount(item.idx) === 5 ? "HOTEL" : buildingCount(item.idx)+"C") : "$"+fmt(item.price || 0)}</em></span>`).join("")}</div>`
+          : `<div class="emptyDeeds">Aun no tiene propiedades.</div>`;
         return `
         <div class="assetPlayer ${currentPlayer()?.id === p.id ? "active" : ""}">
           <div class="assetHead">
@@ -193,6 +252,38 @@
         </div>
       `}).join("") : '<p class="hint">Sin compras todavia.</p>';
     }
+    function canBuildSomething(player){
+      if (!player) return false;
+      return propertyIndexesOf(player.id).some((idx) => {
+        const cell = boardCells[idx];
+        if (cell.type !== "property" || !ownsGroup(player.id, cell.group) || isMortgaged(idx)) return false;
+        const group = groupIndexes(cell.group);
+        const built = buildingCount(idx);
+        const minBuilt = Math.min(...group.map((g) => buildingCount(g)));
+        return built < 5 && built === minBuilt && player.money >= (groupMeta[cell.group]?.house || 0) && (built === 4 ? state.hotels > 0 : state.houses > 0);
+      });
+    }
+    function canMortgageSomething(player){
+      if (!player) return false;
+      return propertyIndexesOf(player.id).some((idx) => !isMortgaged(idx) && !groupIndexes(boardCells[idx].group).some((g) => buildingCount(g) > 0));
+    }
+    function renderAuction(){
+      const overlay = $("auctionOverlay");
+      const auction = state.auction;
+      overlay.classList.toggle("hidden", !auction);
+      if (!auction) return;
+      const cell = boardCells[auction.property];
+      const bidder = state.players.find((p) => p.id === auction.highBidder);
+      $("auctionTitle").textContent = `Subasta: ${cell.name}`;
+      $("auctionText").textContent = "Todos pueden pujar. El mejor postor se queda la propiedad.";
+      $("auctionBid").textContent = `$${fmt(auction.bid || 0)}`;
+      $("auctionLeader").textContent = bidder ? `Mejor puja: ${bidder.name}` : "Sin pujas.";
+      const mine = localPlayer();
+      const active = mine && !auction.passed?.includes(mine.id) && !mine.bankrupt;
+      $("bid10").disabled = !active || mine.money < (auction.bid || 0) + 10;
+      $("bid50").disabled = !active || mine.money < (auction.bid || 0) + 50;
+      $("passAuction").disabled = !active;
+    }
     function render(){
       renderBoard();
       renderAssets();
@@ -200,25 +291,38 @@
       const mine = localPlayer();
       const current = currentPlayer();
       const myTurn = mine && current?.id === mine.id && state.phase === "playing" && !mine.bankrupt;
+      const cell = mine ? currentCell(mine) : null;
+      const canBuy = myTurn && rolledThisTurn && isOwnable(cell) && !state.owners[mine.pos] && mine.money >= cell.price;
+      const canAuction = myTurn && rolledThisTurn && isOwnable(cell) && !state.owners[mine.pos];
       $("roomInfo").textContent = connected ? `Sala ${api.room} - ${state.players.length}/8 jugadores. Turno: ${current?.name || "-"}` : "Crea o entra a una sala.";
       $("log").innerHTML = state.log.map((line) => `<div>${line}</div>`).join("");
       $("start").disabled = !isHost || state.phase !== "lobby" || state.players.length < 2;
-      $("roll").disabled = !myTurn || rolledThisTurn;
-      $("buy").disabled = !myTurn || !rolledThisTurn || !currentCell(mine).price || state.owners[mine.pos] || mine.money < currentCell(mine).price;
-      $("end").disabled = !myTurn || !rolledThisTurn;
+      $("roll").disabled = !myTurn || rolledThisTurn || Boolean(state.auction);
+      $("buy").disabled = !canBuy || Boolean(state.auction);
+      $("auction").disabled = !canAuction || Boolean(state.auction);
+      $("build").disabled = !myTurn || !canBuildSomething(mine);
+      $("mortgage").disabled = !myTurn || !canMortgageSomething(mine);
+      $("end").disabled = !myTurn || (!rolledThisTurn && !mine?.inJail) || Boolean(state.auction);
+      renderAuction();
     }
     function startGame(){
       if (!isHost || state.players.length < 2) return;
       state.phase = "playing";
+      state.players.forEach((p) => { p.startRoll = Math.ceil(Math.random()*6) + Math.ceil(Math.random()*6); });
+      state.players.sort((a,b) => b.startRoll - a.startRoll);
       state.turn = 0;
+      state.chanceDeck = shuffle(chanceCards().map((_, i) => i));
+      state.chestDeck = shuffle(chestCards().map((_, i) => i));
       rolledThisTurn = false;
+      pushLog(`Orden definido por dados: ${state.players.map((p)=>`${p.name} (${p.startRoll})`).join(", ")}.`);
       pushLog("La partida comenzo.");
       sendState();
     }
-    function movePlayer(player, steps){
+    function shuffle(list){ return [...list].sort(() => Math.random() - .5); }
+    function movePlayer(player, steps, collectGo = true){
       const old = player.pos;
       player.pos = (player.pos + steps) % boardCells.length;
-      if (player.pos < old) { player.money += 200; pushLog(`${player.name} paso por Salida y cobro $200.`); }
+      if (collectGo && player.pos < old) { player.money += 200; pushLog(`${player.name} paso por Salida y cobro $200.`); }
       return old;
     }
     function animateDiceRoll(){
@@ -299,38 +403,90 @@
       await animateDiceRoll();
       await animateTokenPath(player, Number(payload.from || 0), Number(payload.to || 0));
     }
-    function chance(player){
-      const deck = [
-        ["Recibes bonus de stream.", 120],
-        ["Pagas mantenimiento arcade.", -90],
-        ["Tu post se hizo viral.", 150],
-        ["Multa por lag.", -60],
-        ["Avanzas hasta Salida.", "start"],
-        ["Te mandan a Carcel.", "jail"]
-      ];
-      const card = deck[Math.floor(Math.random() * deck.length)];
-      if (card[1] === "start") { player.pos = 0; player.money += 200; }
-      else if (card[1] === "jail") player.pos = 8;
-      else player.money += Number(card[1]);
-      pushLog(`${player.name}: ${card[0]}`);
+    function chanceCards(){ return [
+      ["Avanza a Salida", (p)=>{ p.pos = 0; p.money += 200; }],
+      ["Ve a la carcel", (p)=>goToJail(p)],
+      ["Avanza a Illinois", (p)=>advanceTo(p, 24)],
+      ["Avanza a Boardwalk", (p)=>advanceTo(p, 39)],
+      ["Avanza al ferrocarril mas cercano", (p)=>advanceToNearest(p, "railroad", true)],
+      ["Avanza al servicio mas cercano", (p)=>advanceToNearest(p, "utility", false)],
+      ["El banco te paga $50", (p)=>p.money += 50],
+      ["Salga gratis de la carcel", (p)=>p.jailCards = (p.jailCards || 0) + 1],
+      ["Retrocede 3 casillas", (p)=>{ p.pos = (p.pos + boardCells.length - 3) % boardCells.length; resolveCell(p); }],
+      ["Paga $15", (p)=>p.money -= 15],
+      ["Reparaciones: $25 por casa y $100 por hotel", (p)=>p.money -= repairCost(p,25,100)],
+      ["Avanza a St. Charles", (p)=>advanceTo(p, 11)],
+      ["Avanza a Estacion Lectura", (p)=>advanceTo(p, 5)],
+      ["Cobra dividendo $150", (p)=>p.money += 150],
+      ["Paga a cada jugador $50", (p)=>payEachPlayer(p,50)],
+      ["Tu prestamo vence, paga $150", (p)=>p.money -= 150],
+    ]; }
+    function chestCards(){ return [
+      ["Avanza a Salida", (p)=>{ p.pos = 0; p.money += 200; }],
+      ["Error bancario a tu favor, cobra $200", (p)=>p.money += 200],
+      ["Honorarios medicos, paga $50", (p)=>p.money -= 50],
+      ["Venta de acciones, cobra $50", (p)=>p.money += 50],
+      ["Salga gratis de la carcel", (p)=>p.jailCards = (p.jailCards || 0) + 1],
+      ["Ve a la carcel", (p)=>goToJail(p)],
+      ["Cobra $50 de cada jugador", (p)=>collectFromEach(p,50)],
+      ["Cobra $100", (p)=>p.money += 100],
+      ["Impuesto escolar, paga $150", (p)=>p.money -= 150],
+      ["Reparaciones: $40 por casa y $115 por hotel", (p)=>p.money -= repairCost(p,40,115)],
+      ["Ganas segundo premio de belleza, cobra $10", (p)=>p.money += 10],
+      ["Heredas $100", (p)=>p.money += 100],
+      ["Seguro de vida, cobra $100", (p)=>p.money += 100],
+      ["Paga hospital $100", (p)=>p.money -= 100],
+      ["Paga medico $50", (p)=>p.money -= 50],
+      ["Fondo de vacaciones, cobra $100", (p)=>p.money += 100],
+    ]; }
+    function drawDeck(kind, player){
+      const deckKey = kind === "chance" ? "chanceDeck" : "chestDeck";
+      const cards = kind === "chance" ? chanceCards() : chestCards();
+      if (!state[deckKey]?.length) state[deckKey] = shuffle(cards.map((_, i) => i));
+      const cardIndex = state[deckKey].shift();
+      const card = cards[cardIndex];
+      if (!/Salga gratis/.test(card[0])) state[deckKey].push(cardIndex);
+      pushLog(`${player.name}: ${card[0]}.`);
+      card[1](player);
     }
+    function goToJail(player){ player.pos = 10; player.inJail = true; player.jailTurns = 0; player.doubles = 0; rolledThisTurn = true; pushLog(`${player.name} fue a la carcel.`); }
+    function advanceTo(player, idx){ if (idx < player.pos) player.money += 200; player.pos = idx; resolveCell(player); }
+    function advanceToNearest(player, type, doubleRent){
+      let idx = player.pos;
+      do { idx = (idx + 1) % boardCells.length; if (idx === 0) player.money += 200; } while (boardCells[idx].type !== type);
+      player.pos = idx;
+      state.doubleRent = doubleRent ? idx : null;
+      resolveCell(player);
+      state.doubleRent = null;
+    }
+    function repairCost(player, house, hotel){ return propertyIndexesOf(player.id).reduce((sum, idx) => sum + (buildingCount(idx) === 5 ? hotel : buildingCount(idx) * house), 0); }
+    function payEachPlayer(player, amount){ state.players.forEach((p)=>{ if(p.id!==player.id && !p.bankrupt){ player.money -= amount; p.money += amount; } }); }
+    function collectFromEach(player, amount){ state.players.forEach((p)=>{ if(p.id!==player.id && !p.bankrupt){ p.money -= amount; player.money += amount; if(p.money < 0) bankrupt(p, player.id); } }); }
     function resolveCell(player){
       const cell = currentCell(player);
       if (cell.type === "tax") { player.money -= cell.amount; pushLog(`${player.name} pago impuesto de $${fmt(cell.amount)}.`); }
-      if (cell.type === "chance") chance(player);
-      if (cell.type === "goto") { player.pos = 8; pushLog(`${player.name} fue a la carcel.`); }
-      if (cell.price && state.owners[player.pos] && state.owners[player.pos] !== player.id) {
+      if (cell.type === "chance") drawDeck("chance", player);
+      if (cell.type === "chest") drawDeck("chest", player);
+      if (cell.type === "goto") goToJail(player);
+      if (isOwnable(cell) && state.owners[player.pos] && state.owners[player.pos] !== player.id) {
         const owner = state.players.find((p) => p.id === state.owners[player.pos]);
-        const rent = cell.rent || 10;
+        let rent = rentAmount(player.pos, state.lastRoll);
+        if (state.doubleRent === player.pos) rent *= 2;
         player.money -= rent;
         if (owner) owner.money += rent;
         pushLog(`${player.name} pago $${fmt(rent)} de renta a ${owner?.name || "la banca"}.`);
       }
-      if (player.money < 0) bankrupt(player);
+      if (player.money < 0) bankrupt(player, state.owners[player.pos] || null);
     }
-    function bankrupt(player){
+    function bankrupt(player, creditorId = null){
       player.bankrupt = true;
-      Object.keys(state.owners).forEach((idx) => { if (state.owners[idx] === player.id) delete state.owners[idx]; });
+      if (creditorId) {
+        const creditor = state.players.find((p)=>p.id===creditorId);
+        if (creditor) creditor.money += Math.max(0, player.money);
+        Object.keys(state.owners).forEach((idx) => { if (state.owners[idx] === player.id) state.owners[idx] = creditorId; });
+      } else {
+        Object.keys(state.owners).forEach((idx) => { if (state.owners[idx] === player.id) startAuction(Number(idx)); });
+      }
       pushLog(`${player.name} quedo en bancarrota.`);
       const alive = state.players.filter((p) => !p.bankrupt);
       if (alive.length === 1) finishGame(alive[0]);
@@ -350,27 +506,131 @@
       if (!mine || currentPlayer()?.id !== mine.id || rolledThisTurn) return;
       state.dice = [Math.ceil(Math.random()*6), Math.ceil(Math.random()*6)];
       const steps = state.dice[0] + state.dice[1];
+      state.lastRoll = steps;
+      const isDouble = state.dice[0] === state.dice[1];
+      const wasInJail = Boolean(mine.inJail);
+      if (mine.inJail) {
+        mine.jailTurns = Number(mine.jailTurns || 0) + 1;
+        if (mine.jailCards > 0) { mine.jailCards -= 1; mine.inJail = false; pushLog(`${mine.name} uso tarjeta para salir de la carcel.`); }
+        else if (isDouble) { mine.inJail = false; pushLog(`${mine.name} saco dobles y salio de la carcel.`); }
+        else if (mine.jailTurns >= 3) { mine.money -= 50; mine.inJail = false; pushLog(`${mine.name} pago $50 obligatorios y salio de la carcel.`); }
+        else { rolledThisTurn = true; pushLog(`${mine.name} no saco dobles. Turno ${mine.jailTurns}/3 en carcel.`); sendState(); return; }
+      }
+      mine.doubles = isDouble ? Number(mine.doubles || 0) + 1 : 0;
+      if (mine.doubles >= 3) {
+        pushLog(`${mine.name} saco 3 dobles seguidos y va directo a la carcel.`);
+        goToJail(mine);
+        sendState();
+        return;
+      }
       const from = movePlayer(mine, steps);
       pushLog(`${mine.name} lanzo ${state.dice[0]} + ${state.dice[1]} y avanzo ${steps}.`);
       rolledThisTurn = true;
+      state.extraRollFor = null;
       render();
       api?.send("roll_fx", { playerId: mine.id, player: mine, from, to: mine.pos, dice: state.dice });
       await animateDiceRoll();
       await animateTokenPath(mine, from, mine.pos);
       resolveCell(mine);
+      if (isDouble && !wasInJail && !mine.inJail && !mine.bankrupt) { state.extraRollFor = mine.id; pushLog(`${mine.name} saco dobles y puede volver a tirar despues de resolver la casilla.`); }
       sendState();
     }
     function buyProperty(){
       const mine = localPlayer();
       const cell = currentCell(mine);
-      if (!mine || !cell.price || state.owners[mine.pos] || mine.money < cell.price) return;
+      if (!mine || !isOwnable(cell) || state.owners[mine.pos] || mine.money < cell.price) return;
       mine.money -= cell.price;
       state.owners[mine.pos] = mine.id;
       pushLog(`${mine.name} compro ${cell.name} por $${fmt(cell.price)}.`);
       sendState();
     }
+    function startAuction(idx = currentPlayer()?.pos){
+      const cell = boardCells[idx];
+      if (!isOwnable(cell) || state.owners[idx]) return;
+      state.auction = { property: idx, bid: 0, highBidder: "", passed: [], createdAt: Date.now() };
+      pushLog(`Subasta abierta por ${cell.name}.`);
+      sendState();
+    }
+    function bidAuction(amount){
+      const mine = localPlayer();
+      const auction = state.auction;
+      if (!mine || !auction || auction.passed.includes(mine.id)) return;
+      const nextBid = Number(auction.bid || 0) + amount;
+      if (mine.money < nextBid) return;
+      auction.bid = nextBid;
+      auction.highBidder = mine.id;
+      pushLog(`${mine.name} pujo $${fmt(nextBid)} por ${boardCells[auction.property].name}.`);
+      sendState();
+    }
+    function passAuction(){
+      const mine = localPlayer();
+      const auction = state.auction;
+      if (!mine || !auction) return;
+      if (!auction.passed.includes(mine.id)) auction.passed.push(mine.id);
+      const active = state.players.filter((p)=>!p.bankrupt && !auction.passed.includes(p.id));
+      if (active.length <= 1) finishAuction();
+      else sendState();
+    }
+    function finishAuction(){
+      const auction = state.auction;
+      if (!auction) return;
+      const winner = state.players.find((p)=>p.id===auction.highBidder);
+      if (winner && auction.bid > 0) {
+        winner.money -= auction.bid;
+        state.owners[auction.property] = winner.id;
+        pushLog(`${winner.name} gano la subasta de ${boardCells[auction.property].name} por $${fmt(auction.bid)}.`);
+      } else {
+        pushLog(`Subasta de ${boardCells[auction.property].name} termino sin comprador.`);
+      }
+      state.auction = null;
+      sendState();
+    }
+    function buildOnFirstAvailable(){
+      const mine = localPlayer();
+      if (!mine) return;
+      const idx = propertyIndexesOf(mine.id).find((i) => {
+        const cell = boardCells[i];
+        if (cell.type !== "property" || !ownsGroup(mine.id, cell.group) || isMortgaged(i)) return false;
+        const group = groupIndexes(cell.group);
+        const built = buildingCount(i);
+        const minBuilt = Math.min(...group.map((g)=>buildingCount(g)));
+        return built < 5 && built === minBuilt && mine.money >= (groupMeta[cell.group]?.house || 0);
+      });
+      if (idx === undefined) return;
+      const cell = boardCells[idx];
+      const cost = groupMeta[cell.group]?.house || 0;
+      const built = buildingCount(idx);
+      if (built === 4) {
+        if (state.hotels <= 0) return;
+        state.hotels -= 1; state.houses += 4; state.buildings[idx] = 5;
+      } else {
+        if (state.houses <= 0) return;
+        state.houses -= 1; state.buildings[idx] = built + 1;
+      }
+      mine.money -= cost;
+      pushLog(`${mine.name} construyo en ${cell.name} por $${fmt(cost)}.`);
+      sendState();
+    }
+    function mortgageFirstAvailable(){
+      const mine = localPlayer();
+      if (!mine) return;
+      const idx = propertyIndexesOf(mine.id).find((i) => !isMortgaged(i) && !groupIndexes(boardCells[i].group).some((g)=>buildingCount(g)>0));
+      if (idx === undefined) return;
+      state.mortgages[idx] = true;
+      mine.money += Math.floor((boardCells[idx].price || 0) / 2);
+      pushLog(`${mine.name} hipoteco ${boardCells[idx].name}.`);
+      sendState();
+    }
     function endTurn(){
       if (!rolledThisTurn) return;
+      const mine = localPlayer();
+      if (mine && state.extraRollFor === mine.id) {
+        state.extraRollFor = null;
+        rolledThisTurn = false;
+        pushLog(`${mine.name} repite turno por dobles.`);
+        sendState();
+        return;
+      }
       let next = state.turn + 1;
       for (let i = 0; i < state.players.length; i++) {
         const candidate = state.players[next % state.players.length];
@@ -378,6 +638,7 @@
         next++;
       }
       state.turn = next % state.players.length;
+      currentPlayer().doubles = 0;
       rolledThisTurn = false;
       sendState();
     }
@@ -425,7 +686,24 @@
     $("start").onclick = startGame;
     $("roll").onclick = rollDice;
     $("buy").onclick = buyProperty;
+    $("auction").onclick = () => startAuction();
+    $("build").onclick = buildOnFirstAvailable;
+    $("mortgage").onclick = mortgageFirstAvailable;
     $("end").onclick = endTurn;
+    $("bid10").onclick = () => bidAuction(10);
+    $("bid50").onclick = () => bidAuction(50);
+    $("passAuction").onclick = passAuction;
+    $("closeTrade").onclick = () => $("tradeOverlay").classList.add("hidden");
+    window.addEventListener("message", (event) => {
+      if (event.data?.type !== "monopoly:tradeRequest") return;
+      const mine = localPlayer();
+      if (!mine || currentPlayer()?.id !== mine.id) return;
+      const targetName = event.data.targetName || "jugador";
+      $("tradeText").textContent = `Trueque solicitado con ${targetName}. Puedes intercambiar dinero, propiedades sin construcciones y tarjetas de carcel en la siguiente version del panel.`;
+      $("tradeOverlay").classList.remove("hidden");
+      pushLog(`${mine.name} abrio trueque con ${targetName}.`);
+      render();
+    });
     setup();
   </script>
 </body>

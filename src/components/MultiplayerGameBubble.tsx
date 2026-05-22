@@ -170,6 +170,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const [activeEventRoom, setActiveEventRoom] = useState<MultiplayerLobbyRoom | null>(null);
   const [readyPlayerKeys, setReadyPlayerKeys] = useState<Record<string, boolean>>({});
   const [playerAwards, setPlayerAwards] = useState<Record<string, string>>({});
+  const [monopolyTradeMenu, setMonopolyTradeMenu] = useState<{ x: number; y: number; player: SessionPlayer } | null>(null);
   const [gameLaunched, setGameLaunched] = useState(false);
   const [launchedAsHost, setLaunchedAsHost] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -1302,6 +1303,21 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;
       return Number(a.joinedAt || 0) - Number(b.joinedAt || 0);
     });
+  const openMonopolyTradeMenu = (event: any, player: SessionPlayer) => {
+    if (activeGameId !== "monopoly") return;
+    event.preventDefault();
+    setMonopolyTradeMenu({ x: event.clientX, y: event.clientY, player });
+  };
+  const requestMonopolyTrade = () => {
+    if (!monopolyTradeMenu) return;
+    frameRef.current?.contentWindow?.postMessage({
+      type: "monopoly:tradeRequest",
+      targetId: monopolyTradeMenu.player.userId,
+      targetPlayerId: monopolyTradeMenu.player.playerId,
+      targetName: monopolyTradeMenu.player.name,
+    }, "*");
+    setMonopolyTradeMenu(null);
+  };
 
   const lobbyPanel = (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black/80">
@@ -1497,6 +1513,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           return (
             <div
               key={p.userId || i}
+              onContextMenu={(event) => openMonopolyTradeMenu(event, p)}
               className={cn(
                 "flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] p-1.5 animate-fade-in transition-opacity",
                 awardLabel && "border-neon-yellow/30 bg-neon-yellow/[0.04]",
@@ -1569,7 +1586,22 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   return createPortal(
     <>
       {!minimized && (
-        <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md animate-fade-in" onClick={minimizeBubble} />
+        <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md animate-fade-in" onClick={() => { setMonopolyTradeMenu(null); minimizeBubble(); }} />
+      )}
+
+      {monopolyTradeMenu && (
+        <div
+          className="fixed z-[520] rounded border border-neon-cyan/50 bg-black/95 p-1 shadow-2xl"
+          style={{ left: monopolyTradeMenu.x, top: monopolyTradeMenu.y }}
+        >
+          <button
+            type="button"
+            onClick={requestMonopolyTrade}
+            className="block w-32 rounded px-2 py-1.5 text-left font-pixel text-[8px] uppercase text-neon-cyan hover:bg-neon-cyan/10"
+          >
+            Tradear
+          </button>
+        </div>
       )}
 
       {pendingPrivateRoom && (
