@@ -659,6 +659,20 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     setCursorPos({ x: event.clientX, y: event.clientY });
   };
 
+  const getAnchoredMenuPosition = (event: React.MouseEvent) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const width = 160;
+    const height = 136;
+    const margin = 8;
+    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 768;
+    const preferredX = rect.left + rect.width + 8;
+    const fallbackX = rect.left - width - 8;
+    const x = Math.min(Math.max(preferredX + width > viewportWidth - margin ? fallbackX : preferredX, margin), viewportWidth - width - margin);
+    const y = Math.min(Math.max(rect.top, margin), viewportHeight - height - margin);
+    return { x, y };
+  };
+
   const moveSlot = (from: number, to: number) => {
     if (from === to) return;
     const next = [...slotItemsRef.current];
@@ -759,7 +773,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       next[index] = split.remainder;
       commitCursorItem(split.picked);
     } else if (target) {
-      setContextMenu({ item: target, slot: index, x: event.clientX, y: event.clientY });
+      setContextMenu({ item: target, slot: index, ...getAnchoredMenuPosition(event) });
     }
     commitSlotItems(next);
   };
