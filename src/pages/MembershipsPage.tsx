@@ -150,7 +150,7 @@ const tiers = [
 export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("CL");
   const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false); // 🚀 NUEVO: Estado de carga para el botón
+  const [processingTier, setProcessingTier] = useState<string | null>(null);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
   const isUnderMaintenance = false;
@@ -231,7 +231,7 @@ export default function MembershipsPage() {
     }
 
     try {
-      setIsProcessing(true);
+      setProcessingTier(tierName);
       const calculatedPrice = Math.round(basePrice * pricing.multiplier);
       const rangoFormateado = tierName.toLowerCase();
       const { data: checkoutSession, error: checkoutError } = await (supabase as any).rpc("create_membership_checkout_session", {
@@ -267,22 +267,31 @@ export default function MembershipsPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Error en el servidor de pagos");
+      const rawResponse = await response.text();
+      if (!response.ok) {
+        throw new Error(`Make respondio ${response.status}: ${rawResponse || "sin detalle"}`);
+      }
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        data = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch {
+        throw new Error(`Make no devolvio JSON valido: ${rawResponse.slice(0, 220)}`);
+      }
       
       // Si Make nos devuelve el link, enviamos al usuario
       const paymentUrl = data?.init_point || data?.sandbox_init_point || data?.payment_url || data?.url;
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        alert("Hubo un error al generar tu link de pago. Inténtalo de nuevo.");
+        throw new Error(`Make no devolvio init_point. Respuesta: ${rawResponse.slice(0, 220)}`);
       }
     } catch (error) {
       console.error("Error en checkout:", error);
-      alert("Error de conexión. Revisa tu internet e intenta de nuevo.");
+      const message = error instanceof Error ? error.message : "Error desconocido";
+      alert(`No se pudo generar el pago: ${message}`);
     } finally {
-      setIsProcessing(false);
+      setProcessingTier(null);
     }
   };
 
@@ -398,7 +407,7 @@ export default function MembershipsPage() {
 
                   <div className="mt-8">
                     <Button 
-                      disabled={hasPlan || (!canBuy && !isStaff) || isProcessing} 
+                      disabled={hasPlan || (!canBuy && !isStaff) || processingTier !== null} 
                       onClick={() => handleCheckout(tier.name, tier.basePrice)} // 🚀 AHORA ENVÍA EL PRECIO BASE
                       className={cn(
                         "w-full h-12 sm:h-14 font-pixel text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 border-none",
@@ -407,7 +416,7 @@ export default function MembershipsPage() {
                         "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                       )}
                     >
-                      {isProcessing ? "Procesando..." : hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
+                      {processingTier === tier.name ? "Procesando..." : hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
                     </Button>
 
                     {!canBuy && !hasPlan && !isStaff && (
