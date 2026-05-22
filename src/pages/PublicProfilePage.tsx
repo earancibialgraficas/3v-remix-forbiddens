@@ -23,6 +23,7 @@ interface PublicProfile {
   avatar_url: string | null;
   bio: string | null;
   membership_tier: string;
+  membership_expires_at?: string | null;
   total_score: number;
   instagram_url: string | null;
   youtube_url: string | null;
@@ -46,6 +47,18 @@ const getProxyUrl = (url: string) => {
   if (!url) return '';
   if (url.includes('wsrv.nl') || url.includes('supabase.co') || url.includes('pollinations.ai')) return url;
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
+};
+
+const formatMembershipRemaining = (expiresAt?: string | null) => {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return "Expirada";
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  if (days > 0) return `${days}d ${hours}h restantes`;
+  const mins = Math.floor((ms % 3600000) / 60000);
+  return `${hours}h ${mins}m restantes`;
 };
 
 const getPostThumbnail = (post: any) => {
@@ -313,6 +326,7 @@ export default function PublicProfilePage() {
   }, {}));
   const totalScoreValue = bestScores.reduce((sum, gs) => sum + gs.score, 0);
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
+  const membershipRemaining = !isStaffVisual && profile.membership_tier?.toLowerCase() !== "novato" ? formatMembershipRemaining(profile.membership_expires_at) : null;
 
   const getSafePostDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
@@ -344,6 +358,7 @@ export default function PublicProfilePage() {
             <p className="text-sm text-muted-foreground font-body italic mb-3">"{profile.bio || "Este usuario prefiere mantener el misterio..."}"</p>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                {isStaffVisual ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile.color_staff_role)}><Star className="w-3.5 h-3.5" /> STAFF</span> : <MembershipBadge tier={profile.membership_tier} size="md" colorRole={profile.color_role} />}
+               {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {membershipRemaining}</span>}
                <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> {Math.max(profile.total_score, totalScoreValue).toLocaleString()} pts</span>
                <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Miembro desde {memberSince}</span>
             </div>

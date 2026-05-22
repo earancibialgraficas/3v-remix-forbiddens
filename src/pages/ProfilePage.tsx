@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Clock } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,18 @@ import InventoryTab from "@/components/profile/InventoryTab";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 
 const safeStr = (val: any) => (val ? String(val) : "");
+
+const formatMembershipRemaining = (expiresAt?: string | null) => {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return "Expirada";
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  if (days > 0) return `${days}d ${hours}h restantes`;
+  const mins = Math.floor((ms % 3600000) / 60000);
+  return `${hours}h ${mins}m restantes`;
+};
 
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
@@ -340,6 +352,7 @@ export default function ProfilePage() {
   const maxFriends = limits.maxFriends;
   const maxStorage = limits.storageMB;
   const displayTier = isStaff ? "STAFF" : userTier.toUpperCase();
+  const membershipRemaining = !isStaff && userTierStr !== "novato" ? formatMembershipRemaining((profile as any)?.membership_expires_at) : null;
   const canUseColors = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
   const canUseSignature = isStaff || userTier !== 'novato';
   const canAdvancedSignature = isStaff || ['coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'].includes(userTier);
@@ -455,6 +468,7 @@ export default function ProfilePage() {
             
             <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
               {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
+              {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3 h-3" /> {membershipRemaining}</span>}
               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
               <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores · {followingCount} siguiendo</span>
@@ -495,7 +509,6 @@ export default function ProfilePage() {
           totalScore={profile?.total_score || 0}
           isStaff={isStaff}
           membershipTier={userTierStr}
-          membershipExpiresAt={(profile as any)?.membership_expires_at}
           onClaimed={refreshProfile}
         />
       )}

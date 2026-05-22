@@ -24,11 +24,17 @@ const countryPricing: PriceByCountry = {
 
 const MAKE_MEMBERSHIP_CHECKOUT_WEBHOOK = "https://hook.us2.make.com/d0btggh83pj91o020ezq18hl1yqs7td7";
 
+const boosterText = (count: number) =>
+  count > 0
+    ? `${count} stack${count === 1 ? "" : "s"} semanales de puntos x3 por 7 dias`
+    : "Sin potenciadores incluidos";
+
 const tiers = [
   {
     name: "Novato", basePrice: 0, boosters: 0, color: "border-muted-foreground/30", textColor: "text-muted-foreground", isVIP: false,
     checkoutUrl: null,
     features: [
+      { label: "Potenciadores x3", value: boosterText(0) },
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Avatar/Perfil", value: "25 Avatares Pixel-Art" },
       { label: "Subir Avatar", value: "No", bad: true },
@@ -44,6 +50,7 @@ const tiers = [
     name: "Lite", basePrice: 5, boosters: 1, color: "border-neon-cyan/50", textColor: "text-neon-cyan", isVIP: false,
     checkoutUrl: "https://mpago.li/11TpqQK", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(1) },
       { label: "Emuladores", value: "3 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "28 Avatares Pixel-Art" },
@@ -61,6 +68,7 @@ const tiers = [
     shadow: "shadow-[0_0_20px_rgba(57,255,20,0.15)]",
     checkoutUrl: "https://mpago.li/16EaVeh", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(7) },
       { label: "Emuladores", value: "6 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
@@ -81,6 +89,7 @@ const tiers = [
     requirements: "Requisitos: 1000+ Seguidores y 100.000 Puntos",
     checkoutUrl: "https://mpago.li/1JWBWQb", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(10) },
       { label: "Emuladores", value: "10 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
@@ -99,6 +108,7 @@ const tiers = [
     name: "Entusiasta", basePrice: 10, boosters: 3, color: "border-neon-orange/50", textColor: "text-neon-orange", isVIP: false,
     checkoutUrl: "https://mpago.li/2wzhSPp", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(3) },
       { label: "Emuladores", value: "4 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "55 Avatares" },
@@ -115,6 +125,7 @@ const tiers = [
     name: "Coleccionista", basePrice: 15, boosters: 5, color: "border-foreground/30", textColor: "text-foreground", isVIP: false,
     checkoutUrl: "https://mpago.li/2Jckx8W", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(5) },
       { label: "Emuladores", value: "5 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "60 Avatares" },
@@ -132,6 +143,7 @@ const tiers = [
     requirements: "Requisitos: 750+ Seguidores y 50.000 Puntos",
     checkoutUrl: "https://mpago.li/28qU5Gn", 
     features: [
+      { label: "Potenciadores x3", value: boosterText(9) },
       { label: "Emuladores", value: "8 Juegos en simultaneo" },
       { label: "Consolas Extra", value: "✅ N64 / PS1 / PS2" },
       { label: "Avatar/Perfil", value: "Avatares Desbloqueados" },
@@ -305,13 +317,6 @@ export default function MembershipsPage() {
           Elige el plan que mejor se adapte a tu estilo. Todos los planes incluyen navegación libre de publicidad.
         </p>
 
-        {/* 🚀 AVISO ACTUALIZADO: Ya no importa el correo */}
-        {!isUnderMaintenance && user && (
-          <div className="bg-neon-cyan/10 border border-neon-cyan/40 text-neon-cyan text-[10px] sm:text-xs px-5 py-4 rounded-2xl max-w-2xl mx-auto font-body tracking-wide leading-relaxed shadow-[0_0_15px_rgba(0,255,255,0.05)] backdrop-blur-md">
-            🔒 <span className="font-bold text-white">¡Conexión Segura!</span> Tu cuenta ya está vinculada. No importa qué correo uses en la pantalla de pago de Mercado Pago, tu membresía se activará automáticamente en este perfil.
-          </div>
-        )}
-        
         <div className="flex items-center justify-center gap-2 mt-4 bg-card/40 border border-border/50 w-fit mx-auto px-4 py-2 rounded-full backdrop-blur-md">
           <Globe className="w-4 h-4 text-neon-cyan" />
           <select 
@@ -381,13 +386,6 @@ export default function MembershipsPage() {
                   <div className="my-6">
                     <p className="text-3xl sm:text-4xl font-bold font-body text-foreground tracking-tighter">
                       {formatPrice(tier.basePrice)}
-                    </p>
-                  </div>
-
-                  <div className="mb-4 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 px-3 py-2">
-                    <p className="font-pixel text-[9px] uppercase text-neon-yellow">Potenciadores x3</p>
-                    <p className="mt-1 text-[11px] font-body text-muted-foreground">
-                      {tier.boosters > 0 ? `${tier.boosters} stack${tier.boosters === 1 ? "" : "s"} semanales de puntos x3 por 7 dias.` : "Sin potenciadores incluidos."}
                     </p>
                   </div>
 

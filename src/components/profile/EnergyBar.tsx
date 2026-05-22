@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, Sparkles, Clock } from "lucide-react";
+import { Zap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,23 +8,12 @@ interface Props {
   totalScore: number;
   isStaff: boolean;
   membershipTier: string;
-  membershipExpiresAt?: string | null;
   onClaimed?: () => void;
 }
 
 const TARGET = 100000;
 
-function formatRemaining(expiresAt: string) {
-  const ms = new Date(expiresAt).getTime() - Date.now();
-  if (ms <= 0) return "Expirada";
-  const days = Math.floor(ms / 86400000);
-  const hours = Math.floor((ms % 86400000) / 3600000);
-  if (days > 0) return `${days}d ${hours}h restantes`;
-  const mins = Math.floor((ms % 3600000) / 60000);
-  return `${hours}h ${mins}m restantes`;
-}
-
-export default function EnergyBar({ totalScore, isStaff, membershipTier, membershipExpiresAt, onClaimed }: Props) {
+export default function EnergyBar({ totalScore, isStaff, membershipTier, onClaimed }: Props) {
   const { toast } = useToast();
   const [claiming, setClaiming] = useState(false);
   const tier = (membershipTier || "novato").toLowerCase();
@@ -74,11 +63,6 @@ export default function EnergyBar({ totalScore, isStaff, membershipTier, members
         </Button>
       )}
 
-      {!isStaff && membershipExpiresAt && tier !== "novato" && (
-        <div className="flex items-center gap-1.5 text-[10px] font-body text-neon-yellow">
-          <Clock className="w-3 h-3" /> {formatRemaining(membershipExpiresAt)}
-        </div>
-      )}
     </div>
   );
 }
