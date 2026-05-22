@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bingo BET">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset=".52" stop-color="#15467a"/>
+      <stop offset="1" stop-color="#2b0f4f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="34" fill="url(#bg)"/>
+  <circle cx="128" cy="128" r="62" fill="#facc15" stroke="#fff" stroke-width="10"/>
+  <circle cx="384" cy="128" r="62" fill="#22d3ee" stroke="#fff" stroke-width="10"/>
+  <text x="128" y="144" text-anchor="middle" font-family="Arial,sans-serif" font-size="46" font-weight="900" fill="#361600">90</text>
+  <text x="384" y="144" text-anchor="middle" font-family="Arial,sans-serif" font-size="46" font-weight="900" fill="#062233">75</text>
+  <rect x="54" y="220" width="176" height="176" rx="14" fill="#eaf7ff" stroke="#22d3ee" stroke-width="6"/>
+  <g fill="#5b1025" font-family="Arial,sans-serif" font-size="22" font-weight="900" text-anchor="middle">
+    <text x="91" y="264">7</text><text x="128" y="264">18</text><text x="165" y="264">42</text><text x="202" y="264">69</text>
+    <text x="91" y="316">3</text><text x="128" y="316">25</text><text x="165" y="316">51</text><text x="202" y="316">88</text>
+    <text x="91" y="368">11</text><text x="128" y="368">34</text><text x="165" y="368">57</text><text x="202" y="368">90</text>
+  </g>
+  <rect x="282" y="220" width="176" height="176" rx="14" fill="#eaf7ff" stroke="#facc15" stroke-width="6"/>
+  <g font-family="Arial,sans-serif" font-weight="900" text-anchor="middle">
+    <g fill="#2b0f4f" font-size="24">
+      <text x="311" y="255">B</text><text x="345" y="255">I</text><text x="380" y="255">N</text><text x="415" y="255">G</text><text x="445" y="255">O</text>
+    </g>
+    <g fill="#5b1025" font-size="18">
+      <text x="311" y="294">4</text><text x="345" y="294">21</text><text x="380" y="294">FREE</text><text x="415" y="294">54</text><text x="445" y="294">73</text>
+      <text x="311" y="345">12</text><text x="345" y="345">30</text><text x="380" y="345">44</text><text x="415" y="345">60</text><text x="445" y="345">69</text>
+    </g>
+  </g>
+  <text x="256" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="44" font-weight="900" fill="#fff">BINGO BET</text>
+</svg>

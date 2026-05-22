@@ -67,7 +67,12 @@ BEGIN
   p_bet := GREATEST(COALESCE(p_bet, 0), 0);
   p_payout := GREATEST(COALESCE(p_payout, 0), 0);
 
+  IF COALESCE(p_game_slug, '') = 'casino-roulette' AND p_bet > 3000 THEN
+    RETURN json_build_object('awarded', 0, 'reason', 'bet_limit_exceeded', 'max_bet', 3000);
+  END IF;
+
   IF p_bet > 1000 AND COALESCE(p_game_slug, '') NOT IN (
+    'casino-roulette',
     'casino-bingo',
     'casino-bingo-card',
     'casino-bingo-american',

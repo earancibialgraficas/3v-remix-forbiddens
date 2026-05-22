@@ -438,8 +438,8 @@
         return;
       }
       const betTotal = totalBetAmount(bets);
-      if (betTotal > MAX_BET) {
-        setStatus(`Maximo ${fmt(MAX_BET)} F-coin en total por giro.`);
+      if (betTotal > MAX_BET * 3) {
+        setStatus(`Maximo 3 apuestas de ${fmt(MAX_BET)} F-coin por giro.`);
         busy = false;
         renderSpinControl();
         return;

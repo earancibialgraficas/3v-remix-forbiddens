@@ -11,7 +11,8 @@
     ::-webkit-scrollbar-thumb{background:linear-gradient(#67e8f9,#2dd4bf);border:2px solid #05070d;border-radius:999px;box-shadow:0 0 12px #67e8f966}
     body{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:8px;background:radial-gradient(circle at 45% 10%,#153a35 0,#05070d 45%,#02030a 100%)}
     body.embedded{grid-template-rows:minmax(0,1fr);gap:0;padding:0}
-    body.embedded #create,body.embedded #room,body.embedded #join{display:none}
+    body.embedded{grid-template-rows:minmax(0,1fr)}
+    body.embedded .controls{display:none}
     .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
     input,button{min-height:30px;border-radius:7px;border:1px solid #334155;background:#111827;color:#f8fafc;padding:6px 9px;font:inherit;font-size:12px;box-shadow:inset 0 0 12px #0006}
     button{cursor:pointer;background:#0f766e;border-color:#2dd4bf;font-weight:900;box-shadow:0 0 16px #2dd4bf24}button:disabled{opacity:.45;cursor:not-allowed}
@@ -80,6 +81,10 @@
     function inside(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
     function idx(r, c) { return r * 8 + c; }
     function squareName(i) { return `${'abcdefgh'[col(i)]}${8 - row(i)}`; }
+    function boardIndexForView(viewIndex) {
+      if (role !== 'black') return viewIndex;
+      return idx(7 - row(viewIndex), 7 - col(viewIndex));
+    }
     function cloneBoard(src = board) { return src.map((p) => p ? { ...p } : null); }
     function opponent(color) { return color === 'white' ? 'black' : 'white'; }
     function pathClear(from, to, b = board) {
@@ -165,13 +170,15 @@
     function render() {
       const targets = selected >= 0 ? new Set(legalTargets(selected)) : new Set();
       boardEl.innerHTML = '';
-      board.forEach((piece, i) => {
+      for (let viewIndex = 0; viewIndex < 64; viewIndex += 1) {
+        const i = boardIndexForView(viewIndex);
+        const piece = board[i];
         const sq = document.createElement('button');
-        sq.className = 'sq ' + (((row(i) + i) % 2) ? 'dark' : 'light') + (selected === i ? ' selected' : '') + (last === i ? ' last' : '') + (targets.has(i) ? ' move' : '');
+        sq.className = 'sq ' + (((row(viewIndex) + viewIndex) % 2) ? 'dark' : 'light') + (selected === i ? ' selected' : '') + (last === i ? ' last' : '') + (targets.has(i) ? ' move' : '');
         sq.onclick = () => clickSq(i);
         sq.innerHTML = piece ? `<span class="piece ${piece.color}">${glyphs[piece.color][piece.type]}</span>` : '';
         boardEl.appendChild(sq);
-      });
+      }
       updateInfo();
     }
     function addMoveLog(text) {

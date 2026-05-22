@@ -180,6 +180,7 @@
     let settling = false;
     let summaryAnnounced = false;
     let isLeader = false;
+    const seenCardIds = new Set();
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
@@ -274,7 +275,9 @@
       area.innerHTML = "";
       hand.forEach((card, index) => {
         const el = document.createElement("div");
-        el.className = `card dealt ${card.red ? "red" : ""}`;
+        const isNewCard = card.id && !seenCardIds.has(card.id);
+        if (card.id) seenCardIds.add(card.id);
+        el.className = `card ${isNewCard ? "dealt" : ""} ${card.red ? "red" : ""}`;
         el.draggable = draggable;
         el.dataset.index = String(index);
         el.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${card.entity}</span><span class="foot">${card.rank}</span>`;
@@ -502,6 +505,7 @@
         const wasOpen = roundOpen;
         applyState(state);
         if (state.roundOpen && !wasOpen) {
+          seenCardIds.clear();
           player = [makeCard(), makeCard()];
           stoodPlayers = [];
           publishPlayerState({ revealed: false, stood: false });
@@ -532,6 +536,7 @@
       }
       player = [makeCard(), makeCard()];
       dealer = [makeCard(), makeCard()];
+      seenCardIds.clear();
       stoodPlayers = [];
       peerHands = {};
       roundOpen = true;
@@ -719,6 +724,7 @@
       }
       player = [];
       dealer = [];
+      seenCardIds.clear();
       roundOpen = false;
       lockedBet = 0;
       stoodPlayers = [];

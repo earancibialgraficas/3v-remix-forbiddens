@@ -44,8 +44,7 @@ const EVENT_GAME_OPTIONS = [
   { value: "casino-blackjack", label: "Blackjack Drag" },
   { value: "casino-chess", label: "Ajedrez con Apuesta" },
   { value: "casino-horses", label: "Carrera de Caballos" },
-  { value: "casino-bingo", label: "Bingo Britanico" },
-  { value: "casino-bingo-american", label: "Bingo Americano" },
+  { value: "casino-bingo", label: "Bingo BET" },
 ];
 
 const placeholderEvents: any[] = [];

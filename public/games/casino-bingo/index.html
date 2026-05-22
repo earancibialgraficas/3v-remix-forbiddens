@@ -82,15 +82,25 @@
     .cell.called:not(.marked){outline:3px solid #22d3ee;outline-offset:-4px}
     .claimBtn{position:static;z-index:2;min-height:24px;border-color:#facc15;background:linear-gradient(#facc15,#d97706);color:#220c00;font-size:9px;text-transform:uppercase;box-shadow:0 0 18px #facc1580;padding:4px 7px}
     .toastStage{position:fixed;inset:0;display:none;place-items:center;z-index:20;background:#02061788;backdrop-filter:blur(2px);pointer-events:none}
-    .toastStage.show{display:grid;animation:fade .9s ease both}
-    .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544}
+    .toastStage.show{display:grid;animation:fade 7.8s ease both}
+    .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544;animation:stageCard 7.8s ease both}
     .toastStage b{display:block;font-size:34px;color:#facc15;text-shadow:0 0 20px #facc1580;text-transform:uppercase}
     .toastStage span{color:#cbd5e1}
+    .modeChoice{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:radial-gradient(circle at 50% 12%,#15467af2,#07111ff7 54%,#020617);padding:18px}
+    .modeChoice.show{display:grid}
+    .modePanel{width:min(680px,100%);border:2px solid #facc15;border-radius:18px;background:#07111ff4;padding:22px;box-shadow:0 0 46px #facc1544,0 24px 70px #000}
+    .modePanel h2{margin:0 0 8px;color:#facc15;font-size:24px;text-transform:uppercase;text-shadow:0 0 18px #facc1566}
+    .modePanel p{margin:0 0 16px;color:#cbd5e1;font-size:13px}
+    .modeButtons{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modeButtons button{min-height:98px;text-align:left;border-radius:12px;padding:14px;background:linear-gradient(135deg,#061a2c,#25104a);box-shadow:inset 0 0 22px #0008,0 0 18px #22d3ee18}
+    .modeButtons b{display:block;color:#fff;font-size:16px}
+    .modeButtons span{display:block;margin-top:6px;color:#cbd5e1;font-size:12px;line-height:1.35}
     .sideToast{position:fixed;right:16px;bottom:16px;z-index:30;display:none;max-width:min(320px,calc(100vw - 32px));border:1px solid #22d3ee66;border-radius:12px;background:#07111ff2;padding:10px 12px;box-shadow:0 14px 34px #000b,0 0 18px #22d3ee33;pointer-events:none}
     .sideToast.show{display:block;animation:sidePop 2.4s ease both}
     .sideToast b{display:block;color:#facc15;font-size:12px;text-transform:uppercase}
     .sideToast span{display:block;margin-top:2px;color:#cbd5e1;font-size:11px}
     @keyframes fade{0%,100%{opacity:0}15%,82%{opacity:1}}
+    @keyframes stageCard{0%{opacity:0;transform:translateY(22px) scale(.92)}12%,82%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-12px) scale(.98)}}
     @keyframes sidePop{0%,100%{opacity:0;transform:translateY(10px)}12%,88%{opacity:1;transform:translateY(0)}}
     @media(max-width:860px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.left{min-height:560px}.status{width:100%;margin-left:0;text-align:left}.top{flex-wrap:wrap}.brand{width:100%}.right{min-height:520px;max-height:72vh}.grid{grid-auto-rows:36px}.cell{min-height:36px;font-size:16px}}
   </style>
@@ -145,10 +155,21 @@
 
   <div class="toastStage" id="stageToast"><div><b id="stageTitle"></b><span id="stageText"></span></div></div>
   <div class="sideToast" id="sideToast"><b id="sideToastTitle"></b><span id="sideToastText"></span></div>
+  <div class="modeChoice" id="modeChoice">
+    <div class="modePanel">
+      <h2>Elige tu Bingo</h2>
+      <p>Escoge el tipo de carton antes de entrar a la sala.</p>
+      <div class="modeButtons">
+        <button id="modeBritish"><b>Bingo Britanico</b><span>Carton 3x9, bolas 1-90, linea, dos lineas y casa llena.</span></button>
+        <button id="modeAmerican"><b>Bingo Americano</b><span>Carton B-I-N-G-O 5x5 con FREE, bolas 1-75 y lineas horizontales, verticales o diagonales.</span></button>
+      </div>
+    </div>
+  </div>
 
   <script src="/games/realtime-room.js"></script>
   <script>
     const p = new URLSearchParams(location.search);
+    const NEED_MODE_CHOICE = !p.get("mode") && !location.pathname.includes("casino-bingo-american");
     const BINGO_MODE = p.get("mode") === "american" || location.pathname.includes("casino-bingo-american");
     const GAME_SLUG = BINGO_MODE ? "casino-bingo-american" : "casino-bingo";
     const CARD_SLUG = BINGO_MODE ? "casino-bingo-american-card" : "casino-bingo-card";
@@ -189,6 +210,11 @@
       $("stageToast").classList.add("show");
       if (voiceDelay > 0) window.setTimeout(() => speak(`${title}. ${text}`), voiceDelay);
       else speak(`${title}. ${text}`);
+    }
+    function chooseMode(mode){
+      const next = new URL(location.href);
+      next.searchParams.set("mode", mode);
+      location.replace(next.toString());
     }
     function showSideToast(title, text){
       $("sideToastTitle").textContent = title;
@@ -798,7 +824,15 @@
     $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2,8).toUpperCase());
     $("join").onclick = () => roomLocked ? log("La partida ya inicio. Espera a la siguiente.") : connect($("room").value);
     $("buyCard").onclick = buyCard;
-    setup();
+    $("modeBritish").onclick = () => chooseMode("british");
+    $("modeAmerican").onclick = () => chooseMode("american");
+    if (NEED_MODE_CHOICE) {
+      $("modeChoice").classList.add("show");
+      $("status").textContent = "Elige modo de bingo";
+      renderWallet(null);
+    } else {
+      setup();
+    }
   </script>
 </body>
 </html>
