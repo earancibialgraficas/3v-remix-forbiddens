@@ -475,6 +475,25 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
     });
   };
 
+  const seekTo = (seconds: number) => {
+    if (!current) return;
+    const maxTime = Math.max(duration, currentTime, seconds, 1);
+    const target = Math.max(0, Math.min(Number(seconds || 0), maxTime));
+    setCurrentTime(target);
+    if (currentIsYoutube) {
+      sendYoutubeCommand("seekTo", [target, true]);
+      requestYoutubeStatus();
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(target, audioRef.current.duration || target);
+      if (isPlaying) void audioRef.current.play().catch(() => setIsPlaying(false));
+    }
+    publishState({
+      isPlaying,
+      position: target,
+      startedAt: Date.now(),
+    });
+  };
+
   const jumpTo = (index: number) => {
     if (!playlist.length) return;
     const nextIndex = (index + playlist.length) % playlist.length;
@@ -507,6 +526,7 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   };
 
   const roomLabel = useMemo(() => MUSIC_ROOMS.find((room) => room.id === selectedRoom)?.label || "Mesa", [selectedRoom]);
+  const seekMax = Math.max(duration, currentTime, 1);
 
   return (
     <div className="bg-black/35 p-2">
@@ -571,6 +591,27 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
           </p>
         </div>
       </div>
+
+      {current && (
+        <div className="mt-1.5 flex items-center gap-1.5 px-0.5">
+          <span className="w-8 shrink-0 text-right font-pixel text-[6px] text-neon-cyan">
+            {formatTime(currentTime)}
+          </span>
+          <Slider
+            value={[Math.min(currentTime, seekMax)]}
+            min={0}
+            max={seekMax}
+            step={1}
+            onValueChange={([next]) => setCurrentTime(Number(next || 0))}
+            onValueCommit={([next]) => seekTo(Number(next || 0))}
+            className="min-w-0 flex-1"
+            aria-label="Mover cancion"
+          />
+          <span className="w-8 shrink-0 font-pixel text-[6px] text-muted-foreground">
+            {formatTime(seekMax)}
+          </span>
+        </div>
+      )}
 
       <div className="mt-1.5 flex items-center justify-center gap-1.5">
         <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior">

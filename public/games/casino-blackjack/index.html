@@ -368,18 +368,23 @@
       isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
     }
 
+    function canEditBet() {
+      return !roundOpen && dealer.length === 0 && player.length === 0;
+    }
+
     function lockBetFromInput() {
-      if (roundOpen) return;
+      if (!canEditBet()) {
+        $("bet").disabled = true;
+        return;
+      }
       lockedBet = getBet();
-      $("bet").disabled = true;
       document.querySelector(".betSpot")?.classList.add("locked");
-      setLog(`Apuesta colocada: ${fmt(lockedBet)} F-coin. Esperando reparto del lider.`);
+      setLog(`Apuesta preparada: ${fmt(lockedBet)} F-coin. Puedes cambiarla mientras la mesa siga limpia.`);
     }
 
     function unlockBet() {
-      if (roundOpen) return;
       lockedBet = 0;
-      $("bet").disabled = false;
+      $("bet").disabled = !canEditBet();
       document.querySelector(".betSpot")?.classList.remove("locked");
     }
 
@@ -436,11 +441,12 @@
       drawHand("playerHand", player, true);
       $("dealerTotal").textContent = String(total(dealer));
       $("playerTotal").textContent = String(total(player));
-      $("hit").disabled = !roundOpen;
-      $("stand").disabled = !roundOpen || stoodPlayers.includes(localPlayerKey());
+      const localStood = stoodPlayers.includes(localPlayerKey());
+      $("hit").disabled = !roundOpen || localStood;
+      $("stand").disabled = !roundOpen || localStood;
       $("deal").disabled = roundOpen || !isLeader;
       $("clear").disabled = !isLeader;
-      if (roundOpen) $("bet").disabled = true;
+      $("bet").disabled = !canEditBet();
       document.querySelector(".betSpot")?.classList.toggle("locked", lockedBet > 0);
       $("deal").title = isLeader ? "Repartir como lider de sala" : "Solo el lider de sala puede repartir";
       $("clear").title = isLeader ? "Limpiar mesa" : "Solo el lider de sala puede limpiar";
@@ -517,7 +523,7 @@
         setLog("Solo el lider de la sala puede repartir.");
         return;
       }
-      lockedBet = lockedBet || getBet();
+      lockedBet = getBet();
       if (wallet !== null && wallet < lockedBet) {
         setLog("No tienes F-coin suficiente para esa apuesta.");
         lockedBet = 0;
@@ -543,6 +549,7 @@
         return;
       }
       if (!roundOpen) return;
+      if (stoodPlayers.includes(localPlayerKey())) return;
       player.push(makeCard());
       animateCardToPlayer(localPlayerKey());
       publishPlayerState({ revealed: false, stood: false });
@@ -573,7 +580,6 @@
           if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
           publishPlayerState({ revealed: true, stood: true, lastNet, bet });
           lockedBet = 0;
-          unlockBet();
           render();
         }
         settling = false;
@@ -610,7 +616,7 @@
         publishPlayerState({ revealed: true, stood: true, lastNet, bet });
         api.send("settle", statePayload({ lockedBet: bet, roundOpen: false, peerHands }));
         lockedBet = 0;
-        unlockBet();
+        render();
       }
       settling = false;
     }
@@ -721,6 +727,9 @@
       render();
       setLog("Mesa limpia.");
       api?.send("state", statePayload({ resetPlayer: true }));
+    };
+    $("bet").oninput = () => {
+      if (canEditBet()) lockedBet = getBet();
     };
     $("bet").onchange = lockBetFromInput;
     $("bet").onblur = () => {

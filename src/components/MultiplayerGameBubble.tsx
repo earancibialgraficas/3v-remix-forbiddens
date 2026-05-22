@@ -104,6 +104,15 @@ interface SessionPlayer {
   detailText?: string;
   subDetailText?: string;
   badgeText?: string;
+  properties?: Array<{
+    id?: string;
+    name: string;
+    price?: number;
+    rent?: number;
+    color?: string;
+    mortgaged?: boolean;
+    buildings?: number;
+  }>;
 }
 
 interface SavePendingResult {
@@ -379,6 +388,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
           detailText: existing?.detailText,
           subDetailText: existing?.subDetailText,
           badgeText: existing?.badgeText,
+          properties: existing?.properties,
         };
         if ((!existing || existing.status === "visited") && userId !== localSessionUserId) notifyPlayerConnected(next);
         if (disconnectGraceTimersRef.current[userId]) {
@@ -667,6 +677,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
               detailText: String(player?.detailText || existing?.detailText || ""),
               subDetailText: String(player?.subDetailText || existing?.subDetailText || ""),
               badgeText: String(player?.badgeText || existing?.badgeText || ""),
+              properties: Array.isArray(player?.properties) ? player.properties : existing?.properties,
             };
           })
           .filter((player: SessionPlayer) => player.userId && player.playerId);
@@ -1256,7 +1267,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         });
         return;
       }
-      toast({ title: "Entrada usada", description: `Entrando a ${targetRoom.eventTitle || "evento"}.` });
+      toast({ title: "Entrada verificada", description: `Pase activo para ${targetRoom.eventTitle || "evento"}.` });
     }
     launchRoom(nextCode, false, targetRoom?.requiresTicket ? targetRoom : null);
   };
@@ -1558,6 +1569,28 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                   </span>
                   {detailText && <span className="font-pixel text-[5px] text-muted-foreground leading-none">{detailText}</span>}
                   {subDetailText && <span className="font-pixel text-[5px] text-muted-foreground leading-none">{subDetailText}</span>}
+                  {activeGameId === "monopoly" && Array.isArray(p.properties) && p.properties.length > 0 && (
+                    <details className="mt-1 rounded border border-white/10 bg-black/25 px-1.5 py-1">
+                      <summary className="cursor-pointer list-none font-pixel text-[5px] uppercase leading-none text-neon-cyan">
+                        Propiedades ({p.properties.length})
+                      </summary>
+                      <div className="mt-1 max-h-20 space-y-1 overflow-y-auto pr-1 retro-scrollbar">
+                        {p.properties.map((property) => (
+                          <div
+                            key={property.id || property.name}
+                            className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-1"
+                            style={{ borderLeft: `3px solid ${property.color || "#22d3ee"}` }}
+                          >
+                            <p className="truncate font-pixel text-[5px] uppercase text-white" title={property.name}>{property.name}</p>
+                            <p className="mt-0.5 text-[8px] leading-none text-muted-foreground">
+                              {property.mortgaged ? "Hipotecada" : `Renta $${Number(property.rent || 0).toLocaleString("es-CL")}`}
+                              {property.price ? ` - $${Number(property.price).toLocaleString("es-CL")}` : ""}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               </div>
               {badgeText && (

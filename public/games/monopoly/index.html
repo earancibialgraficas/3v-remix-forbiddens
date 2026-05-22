@@ -25,6 +25,7 @@
     .boardWrap{position:relative;display:grid;place-items:center;padding:10px;overflow:hidden}
     .board{--n:11;width:min(100%,calc(100vh - 78px));max-width:860px;aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);gap:3px;padding:7px;border:3px solid #facc15;border-radius:16px;background:linear-gradient(135deg,#0f2d2f,#11213b);box-shadow:0 22px 60px #000b,0 0 34px #facc1524}
     .cell{position:relative;min-width:0;min-height:0;border:1px solid #ffffff20;border-radius:7px;background:#0b1524;padding:4px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+    .cell>*:not(.ownerBg):not(.cellBubble){position:relative;z-index:2}.ownerBg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.18;filter:saturate(1.2) contrast(1.08);pointer-events:none}.ownerBg:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#07111f44,#07111fcc)}
     .cell.corner{background:linear-gradient(135deg,#facc15,#d97706);color:#1f1300}.cell.tax{background:#42151b}.cell.chance{background:#34205f}.cell.jail{background:#3b2a18}.cell.goto{background:#4c1111}
     .stripe{height:7px;border-radius:4px;margin:-1px -1px 2px}.name{font-size:clamp(7px,1vw,10px);font-weight:1000;line-height:1.1;text-transform:uppercase}.price{font-size:clamp(7px,.9vw,9px);color:#cbd5e1}.cell.corner .price{color:#3b2500}
     .owner{position:absolute;right:3px;bottom:3px;width:10px;height:10px;border-radius:50%;border:1px solid #fff8}.tokens{position:absolute;left:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap;max-width:86%}
@@ -32,7 +33,7 @@
     .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.dicePanel{position:relative;margin:14px auto 0;min-height:120px;display:flex;align-items:center;justify-content:center;gap:34px;padding:14px 72px 14px 20px;border-radius:14px;background:linear-gradient(135deg,#2b3140,#161b28);box-shadow:inset 0 0 24px #0007,0 14px 30px #0008}.dice{display:flex;justify-content:center;gap:34px}.die{--rx:-22deg;--ry:0deg;position:relative;width:66px;height:66px;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(-45deg);display:grid;place-items:center;color:#ecfeff;font-size:28px;font-weight:1000;text-shadow:0 2px 0 #075985,0 0 12px #22d3ee;filter:drop-shadow(0 16px 12px #0008)}
     .die:before,.die:after{content:"";position:absolute;inset:0;border-radius:2px}.die:before{background:linear-gradient(135deg,#22d3ee,#0891b2);transform:translateZ(22px);box-shadow:inset 0 -18px 22px #0891b2,0 0 18px #22d3ee55}.die:after{background:#075985;transform:rotateX(90deg) translateZ(-22px);filter:brightness(.8)}
     .die .value{position:relative;z-index:2;opacity:1;transform:rotateZ(45deg);line-height:1}.die.rolling .value{opacity:0}.die.rolling{animation:diceRoll3d .72s cubic-bezier(.16,.8,.24,1.08) infinite}.die:nth-child(2){--rx:-14deg;--ry:18deg}.diceTotal{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:7px;border-radius:8px;background:#111827d9;padding:6px 9px;box-shadow:0 8px 18px #0008;color:#fff}.diceTotal span{font-size:13px;font-weight:1000}.diceTotal b{font-size:30px;line-height:.9}
-    .cell.spark:before,.cell.spark:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#facc15;box-shadow:22px 0 #22d3ee,-22px 0 #fb7185,0 22px #34d399,0 -22px #facc15,16px 16px #f97316,-16px -16px #c084fc,18px -14px #fff,-18px 14px #fff;z-index:10;animation:sparkBurst .78s ease-out both}.cell.spark:after{transform:rotate(45deg);animation-delay:.08s}
+    .cell.spark{animation:landGlow 1s ease-out both}.cell.spark:before,.cell.spark:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#facc15;box-shadow:22px 0 #22d3ee,-22px 0 #fb7185,0 22px #34d399,0 -22px #facc15,16px 16px #f97316,-16px -16px #c084fc,18px -14px #fff,-18px 14px #fff;z-index:10;animation:sparkBurst .78s ease-out both}.cell.spark:after{transform:rotate(45deg);animation-delay:.08s}.cellBubble{position:absolute;left:50%;bottom:calc(100% + 6px);z-index:60;width:max-content;max-width:170px;transform:translateX(-50%);border:1px solid #facc15;border-radius:10px;background:#07111ff2;padding:7px 9px;color:#fff;box-shadow:0 10px 28px #000c,0 0 16px #facc1533;pointer-events:none;animation:bubblePop .25s ease-out both}.cellBubble b{display:block;color:#facc15;font-size:10px;line-height:1.1;text-transform:uppercase}.cellBubble span{display:block;margin-top:3px;color:#cbd5e1;font-size:9px;line-height:1.25}.cellBubble:after{content:"";position:absolute;left:50%;top:100%;width:10px;height:10px;background:#07111ff2;border-right:1px solid #facc15;border-bottom:1px solid #facc15;transform:translate(-50%,-5px) rotate(45deg)}
     .side{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:12px;overflow:hidden}.panel{border:1px solid #22d3ee26;border-radius:12px;background:#061a2c;padding:10px}.panel h2{margin:0 0 8px;color:#facc15;font-size:13px;text-transform:uppercase}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button.wide{grid-column:1/-1}
     .auctionOverlay,.tradeOverlay{position:absolute;z-index:70;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92%);border:2px solid #facc15;border-radius:16px;background:#07111ff2;padding:16px;box-shadow:0 24px 60px #000d,0 0 30px #facc1533;text-align:center}.auctionOverlay.hidden,.tradeOverlay.hidden{display:none}.auctionOverlay h3,.tradeOverlay h3{margin:0;color:#facc15;font-size:18px}.auctionOverlay p,.tradeOverlay p{color:#cbd5e1;font-size:12px}.auctionActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.auctionActions button{min-height:38px}.auctionBid{font-size:26px;color:#22c55e;font-weight:1000}.tradeMenu{position:fixed;z-index:500;border:1px solid #22d3ee55;border-radius:8px;background:#050914;padding:6px;box-shadow:0 18px 38px #000b}.tradeMenu.hidden{display:none}.tradeMenu button{width:130px;text-align:left}
     .assets{min-height:0;overflow:auto;display:grid;gap:8px;padding-right:3px}.assetPlayer{border:1px solid #ffffff14;border-radius:10px;background:#0b1320;padding:8px}.assetHead{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}.assetPlayer.active{border-color:#facc15;box-shadow:0 0 18px #facc1522}.avatar{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important}.assetPlayer b{font-size:12px}.assetPlayer small{display:block;color:#cbd5e1;font-size:11px}.deeds{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:7px;margin-top:10px}.deed{position:relative;min-height:64px;border:1px solid #ffffff1c;border-radius:8px;background:linear-gradient(180deg,#101b2d,#07111f);padding:18px 7px 6px;font-size:9px;color:#e5e7eb;box-shadow:inset 0 0 16px #0007,0 8px 18px #0004;overflow:hidden}.deed i{position:absolute;left:0;right:0;top:0;height:13px;box-shadow:0 3px 10px #0007}.deed b{display:block;font-size:9px;line-height:1.1;text-transform:uppercase}.deed span{display:block;margin-top:5px;color:#cbd5e1;font-size:8px}.deed em{position:absolute;right:6px;bottom:5px;color:#facc15;font-style:normal;font-size:8px}.emptyDeeds{margin-top:10px;border:1px dashed #365273;border-radius:8px;background:#07111f99;padding:10px;color:#64748b;font-size:10px;text-align:center}.log{min-height:72px;max-height:120px;overflow:auto;color:#cbd5e1;font-size:12px;line-height:1.5}.hint{color:#9ca3af;font-size:11px;line-height:1.45;margin:0}
@@ -41,6 +42,8 @@
     @keyframes diceRoll3d{0%{transform:rotateX(-22deg) rotateY(0) rotateZ(-45deg) scale(1)}30%{transform:rotateX(135deg) rotateY(160deg) rotateZ(24deg) scale(1.08)}65%{transform:rotateX(300deg) rotateY(320deg) rotateZ(-18deg) scale(.95)}100%{transform:rotateX(520deg) rotateY(540deg) rotateZ(-45deg) scale(1)}}
     @keyframes tokenHop{from{transform:translateY(0) scale(1)}to{transform:translateY(-13px) scale(1.08)}}
     @keyframes sparkBurst{from{opacity:1;transform:translate(-50%,-50%) scale(.18)}to{opacity:0;transform:translate(-50%,-50%) scale(1.9)}}
+    @keyframes landGlow{0%{box-shadow:0 0 0 0 #facc1500,0 0 0 #22d3ee00}35%{box-shadow:0 0 0 5px #facc1544,0 0 28px #22d3ee66}100%{box-shadow:0 0 0 16px #facc1500,0 0 0 #22d3ee00}}
+    @keyframes bubblePop{from{opacity:0;transform:translate(-50%,8px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
   </style>
 </head>
 <body>
@@ -168,6 +171,18 @@
     function tokenBg(player){
       return player?.avatarUrl ? `url('${String(player.avatarUrl).replace(/'/g, "%27")}') center/cover` : player?.color || "#22d3ee";
     }
+    function propertyPayload(idx){
+      const cell = boardCells[idx];
+      return {
+        id: String(idx),
+        name: cell.name,
+        price: Number(cell.price || 0),
+        rent: rentAmount(idx, state.lastRoll || 7),
+        color: groupColor(cell) || "#22d3ee",
+        mortgaged: isMortgaged(idx),
+        buildings: buildingCount(idx),
+      };
+    }
     function tokenSize(){
       const count = Math.max(1, state.players.filter((p) => !p.bankrupt).length);
       if (count <= 2) return 32;
@@ -181,6 +196,7 @@
         type: "game:updateLeaderboard",
         players: state.players.map((p) => {
           const props = propertyIndexesOf(p.id);
+          const ownedProperties = props.map(propertyPayload);
           return {
             userId: p.id,
             playerId: p.playerId || p.id,
@@ -191,6 +207,7 @@
             detailText: `Casilla ${p.pos} - ${boardCells[p.pos]?.name || ""}`,
             subDetailText: `${props.length} compra(s)`,
             badgeText: `$${fmt(p.money)}`,
+            properties: ownedProperties,
             joinedAt: peers.find((peer) => (peer.userId || peer.playerId) === p.id)?.joinedAt || 0,
           };
         }),
@@ -225,18 +242,27 @@
         div.style.gridRow = String(row + 1);
         div.style.gridColumn = String(col + 1);
         div.dataset.cell = String(index);
+        const ownerPlayer = state.players.find((p) => p.id === owner);
         div.innerHTML = `
           ${stripeColor ? `<div class="stripe" style="background:${stripeColor}"></div>` : ""}
           <div class="name">${cell.name}</div>
           <div class="price">${cell.price ? "$"+fmt(cell.price) : cell.amount ? "-$"+fmt(cell.amount) : ""}${built ? " · "+(built===5?"Hotel":built+" casa(s)") : ""}${mortgaged ? " · Hip." : ""}</div>
-          ${owner ? `<span class="owner" style="background:${state.players.find((p)=>p.id===owner)?.color || "#fff"}"></span>` : ""}
+          ${owner ? `<span class="owner" style="background:${ownerPlayer?.color || "#fff"}"></span>` : ""}
           <div class="tokens">${tokens.map((p)=>`<span class="token" title="${p.name}" style="--p:${p.color};background:${tokenBg(p)}"></span>`).join("")}</div>
         `;
+        if (ownerPlayer?.avatarUrl) {
+          const bg = document.createElement("span");
+          bg.className = "ownerBg";
+          bg.style.backgroundImage = `url("${ownerPlayer.avatarUrl}")`;
+          div.prepend(bg);
+        }
         board.appendChild(div);
       });
     }
     function renderAssets(){
-      $("assets").innerHTML = state.players.length ? state.players.map((p) => {
+      const mine = localPlayer();
+      const visiblePlayers = mine ? [mine] : [];
+      $("assets").innerHTML = visiblePlayers.length ? visiblePlayers.map((p) => {
         const avatarBg = tokenBg(p);
         const properties = propertyIndexesOf(p.id).map((idx) => ({ idx, ...boardCells[idx] }));
         const deeds = properties.length
@@ -250,7 +276,7 @@
           </div>
           ${deeds}
         </div>
-      `}).join("") : '<p class="hint">Sin compras todavia.</p>';
+      `}).join("") : '<p class="hint">Tus tarjetas apareceran aqui cuando compres propiedades.</p>';
     }
     function canBuildSomething(player){
       if (!player) return false;
@@ -350,6 +376,34 @@
       cell.classList.add("spark");
       setTimeout(() => cell.classList.remove("spark"), 900);
     }
+    function cellDetails(index){
+      const cell = boardCells[index];
+      if (!cell) return "";
+      const owner = state.players.find((p) => p.id === state.owners[index]);
+      if (isOwnable(cell)) {
+        const ownerText = owner ? `Dueno: ${owner.name}` : "Libre para comprar";
+        const priceText = cell.price ? `Precio $${fmt(cell.price)}` : "";
+        const rentText = owner ? `Renta $${fmt(rentAmount(index, state.lastRoll || 7))}` : rentLabel(index);
+        return `${priceText} - ${rentText} - ${ownerText}`;
+      }
+      if (cell.type === "tax") return `Paga $${fmt(cell.amount || 0)} al banco`;
+      if (cell.type === "chance") return "Suerte: roba una carta";
+      if (cell.type === "chest") return "Arca comunal: roba una carta";
+      if (cell.type === "goto") return "Vas directo a la carcel";
+      if (cell.type === "start") return "Cobra $200 al pasar";
+      return "Casilla especial";
+    }
+    function showCellBubble(index){
+      const cell = document.querySelector(`[data-cell="${index}"]`);
+      const data = boardCells[index];
+      if (!cell || !data) return;
+      cell.querySelectorAll(".cellBubble").forEach((bubble) => bubble.remove());
+      const bubble = document.createElement("span");
+      bubble.className = "cellBubble";
+      bubble.innerHTML = `<b>${data.name}</b><span>${cellDetails(index)}</span>`;
+      cell.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 3600);
+    }
     function animateTokenPath(player, from, to){
       const wrap = document.querySelector(".boardWrap");
       if (!wrap) return Promise.resolve();
@@ -391,6 +445,7 @@
           hiddenMovingIds.delete(player.id);
           renderBoard();
           sparkCell(to);
+          showCellBubble(to);
           resolve();
         }, 280 + path.length * 180);
       });

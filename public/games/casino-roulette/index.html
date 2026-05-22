@@ -148,7 +148,8 @@
     const hostParam = params.get("host") === "1";
     const MAX_BET = 1000;
     let api, connected = false, rotation = 0, chip = 25, wallet = null, net = 0, busy = false, ballFrame = 0;
-    let players = 1, peers = [], isLeader = hostParam, readyPlayers = new Set(), selected = { type: "number", value: 36, label: "36" };
+    let players = 1, peers = [], isLeader = hostParam, readyPlayers = new Set();
+    let selectedBets = [{ type: "number", value: 36, label: "36", amount: 25 }];
     const spins = [];
     const preset = (params.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
@@ -167,9 +168,18 @@
       $("wallet").textContent = fmt(wallet);
     }
 
+    function betKey(bet) {
+      return `${bet.type}:${String(bet.value)}`;
+    }
+
+    function totalBetAmount(bets = selectedBets) {
+      return bets.reduce((sum, bet) => sum + Math.min(MAX_BET, Math.max(1, Math.floor(Number(bet.amount) || 1))), 0);
+    }
+
     function updateBetText() {
-      $("betLabel").textContent = selected.label;
-      $("betAmount").textContent = fmt(chip);
+      $("betLabel").textContent = selectedBets.map((bet) => bet.label).join(" + ") || "Sin apuesta";
+      $("betAmount").textContent = fmt(totalBetAmount());
+      syncSelectedCells();
     }
 
     function renderHeat() {
@@ -231,10 +241,26 @@
       window.parent?.postMessage({ type: "game:readyClear" }, "*");
     }
 
-    function select(type, value, label, el) {
-      document.querySelectorAll(".selected").forEach((node) => node.classList.remove("selected"));
-      el?.classList.add("selected");
-      selected = { type, value, label };
+    function syncSelectedCells() {
+      const keys = new Set(selectedBets.map(betKey));
+      document.querySelectorAll("[data-bet-key]").forEach((node) => {
+        node.classList.toggle("selected", keys.has(node.dataset.betKey || ""));
+      });
+    }
+
+    function select(type, value, label) {
+      const nextBet = { type, value, label, amount: Math.min(MAX_BET, Math.max(1, Math.floor(Number(chip) || 1))) };
+      const key = betKey(nextBet);
+      const existingIndex = selectedBets.findIndex((bet) => betKey(bet) === key);
+      if (existingIndex >= 0) {
+        selectedBets = selectedBets.filter((_, index) => index !== existingIndex);
+        setStatus("Apuesta quitada.");
+      } else if (selectedBets.length < 3) {
+        selectedBets = [...selectedBets, nextBet];
+      } else {
+        setStatus("Maximo 3 apuestas simultaneas por giro.");
+        return;
+      }
       updateBetText();
     }
 
@@ -246,9 +272,10 @@
       numbers.forEach((n) => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = `cell ${color(n)}${n === "00" ? " zeroA" : ""}${n === 0 ? " zeroB" : ""}${String(n) === "36" ? " selected" : ""}`;
+        btn.className = `cell ${color(n)}${n === "00" ? " zeroA" : ""}${n === 0 ? " zeroB" : ""}`;
+        btn.dataset.betKey = `number:${String(n)}`;
         btn.textContent = n;
-        btn.onclick = () => select("number", n, String(n), btn);
+        btn.onclick = () => select("number", n, String(n));
         numGrid.appendChild(btn);
       });
       [["side","2:1"],["outside","1-18"],["outside","PAR"],["outside","ROJO"],["outside","NEGRO"],["outside","IMPAR"],["outside","19-36"],["side","2:1"]].forEach(([type,label]) => {
@@ -256,9 +283,13 @@
         btn.type = "button";
         btn.className = `cell ${type === "side" ? "sidePay" : "out"} ${label === "ROJO" ? "red" : label === "NEGRO" ? "black" : ""}`;
         btn.textContent = label;
-        if (type !== "side") btn.onclick = () => select("outside", label, label, btn);
+        if (type !== "side") {
+          btn.dataset.betKey = `outside:${label}`;
+          btn.onclick = () => select("outside", label, label);
+        }
         outside.appendChild(btn);
       });
+      syncSelectedCells();
     }
 
     function renderWheelNumbers() {
@@ -345,7 +376,7 @@
       ballFrame = requestAnimationFrame(step);
     }
 
-    function paintResult(result, bet, payout, delta) {
+    function paintResult(result, bets, payout, delta) {
       spins.push(result);
       renderHeat();
       $("last").textContent = result;
@@ -353,10 +384,11 @@
       net += delta;
       $("net").textContent = `${net >= 0 ? "+" : ""}${fmt(net)}`;
       $("net").className = net >= 0 ? "pos" : "neg";
+      const betLabel = bets.map((bet) => `${bet.label}/${fmt(bet.amount)}`).join(" + ");
       $("results").insertAdjacentHTML("afterbegin", `
         <tr>
           <td><span class="pill ${color(result)}">${result}</span></td>
-          <td>${bet.label} / ${fmt(bet.amount)}</td>
+          <td>${betLabel}</td>
           <td>${fmt(payout)}</td>
           <td class="${delta >= 0 ? "pos" : "neg"}">${delta >= 0 ? "+" : ""}${fmt(delta)}</td>
         </tr>
@@ -395,8 +427,23 @@
         readyPlayers.clear();
         clearPublishedReady();
       }
-      const rawBet = !local && payload?.bet ? payload.bet : { ...selected, amount: chip };
-      const bet = { ...rawBet, amount: Math.min(MAX_BET, Math.max(1, Math.floor(Number(rawBet.amount) || 1))) };
+      const bets = selectedBets.map((rawBet) => ({
+        ...rawBet,
+        amount: Math.min(MAX_BET, Math.max(1, Math.floor(Number(rawBet.amount) || 1))),
+      })).slice(0, 3);
+      if (!bets.length) {
+        setStatus("Selecciona al menos 1 apuesta.");
+        busy = false;
+        renderSpinControl();
+        return;
+      }
+      const betTotal = totalBetAmount(bets);
+      if (wallet !== null && betTotal > wallet) {
+        setStatus("No tienes F-coin suficiente para esas apuestas.");
+        busy = false;
+        renderSpinControl();
+        return;
+      }
       const result = payload?.result ?? spinResult();
       const resultIndex = numbers.indexOf(result);
       const sector = 360 / numbers.length;
@@ -404,22 +451,27 @@
       rotation = targetRotationForPocket(pocketAngle);
       $("rotor").style.transform = `rotate(${rotation}deg)`;
       animateBallToPocket(resultIndex);
-      const won = wins(result, bet);
-      const multiplier = bet.type === "number" ? 36 : 2;
-      const payout = won ? bet.amount * multiplier : 0;
-      const delta = payout - bet.amount;
+      const settledBets = bets.map((bet) => {
+        const won = wins(result, bet);
+        const multiplier = bet.type === "number" ? 36 : 2;
+        const payout = won ? bet.amount * multiplier : 0;
+        return { ...bet, won, payout, delta: payout - bet.amount };
+      });
+      const payout = settledBets.reduce((sum, bet) => sum + bet.payout, 0);
+      const delta = payout - betTotal;
+      const anyWon = settledBets.some((bet) => bet.won);
       window.setTimeout(async () => {
-        paintResult(result, bet, payout, delta);
+        paintResult(result, settledBets, payout, delta);
         if (!local) {
           readyPlayers.clear();
           clearPublishedReady();
-          api.send("spin", { result, bet });
+          api.send("spin", { result });
         }
         if (connected) {
-          const settled = await api.casinoWager("casino-roulette", bet.amount, payout, { bet, result, source: local ? "shared_spin" : "own_spin" });
+          const settled = await api.casinoWager("casino-roulette", betTotal, payout, { bets: settledBets, result, source: local ? "shared_spin" : "own_spin" });
           if (typeof settled.wallet_balance === "number") renderWallet(settled.wallet_balance);
           if (settled.reason && settled.reason !== "ok") setStatus(`Wallet: ${settled.reason}`);
-          else setStatus(`Sala ${api.room} / ${won ? "ganaste" : "sin premio"}`);
+          else setStatus(`Sala ${api.room} / ${anyWon ? "ganaste" : "sin premio"}`);
         }
         busy = false;
         renderSpinControl();
@@ -448,6 +500,7 @@
           document.querySelectorAll(".chip").forEach((node) => node.classList.remove("active"));
           btn.classList.add("active");
           chip = Math.min(MAX_BET, Math.max(1, Number(btn.dataset.chip || 25)));
+          selectedBets = selectedBets.map((bet) => ({ ...bet, amount: chip }));
           updateBetText();
         };
       });
