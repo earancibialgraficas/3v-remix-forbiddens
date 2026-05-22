@@ -160,6 +160,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const sessionTimePointsRef = useRef(0);
   const sessionTotalPointsRef = useRef(0);
   const pendingGamePointsRef = useRef(0);
+  const sessionCasinoNetRef = useRef(0);
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState(() => getLargeWindowSize());
@@ -503,6 +504,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
+    sessionCasinoNetRef.current = 0;
     setSessionPointPreview(0);
     setSessionElapsedPreview(0);
   }, [activeGameId]);
@@ -647,10 +649,14 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       }
       if (event.data?.type === "game:casinoSummary") {
         const net = Number(event.data.net || 0);
+        sessionCasinoNetRef.current = net;
         toast({
           title: `${event.data.game || "Juego BET"} cerrado`,
           description: `Resultado de la sesion: ${net >= 0 ? "+" : ""}${Math.trunc(net).toLocaleString("es-CL")} F-coin`,
         });
+      }
+      if (event.data?.type === "game:casinoWagerSettled") {
+        sessionCasinoNetRef.current += Number(event.data.net || 0);
       }
       if (event.data?.type === "game:updateLeaderboard" && Array.isArray(event.data.players)) {
         const now = Date.now();
@@ -1102,9 +1108,20 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const closeBubble = useCallback(() => {
     const visiblePointsAtClose = sessionTotalPointsRef.current + pendingGamePointsRef.current;
     const gameLabel = game?.label || "Juego";
+    const casinoNetAtClose = Math.trunc(sessionCasinoNetRef.current || 0);
     exitOwnFullscreen();
     void broadcastLocalDisconnect();
     onClose();
+    if (isWagerGame) {
+      toast({
+        title: "Sesion BET finalizada",
+        description: casinoNetAtClose === 0
+          ? `${gameLabel}: sin cambios de F-coin en esta sesion.`
+          : `${gameLabel}: ${casinoNetAtClose > 0 ? "ganaste" : "perdiste"} ${Math.abs(casinoNetAtClose).toLocaleString("es-CL")} F-coin en esta sesion.`,
+        variant: casinoNetAtClose < 0 ? "destructive" : "default",
+      });
+      return;
+    }
     void savePendingGamePoints(false).then((result) => {
       toast({
         title: result.saved > 0 || result.attempted === 0 ? "Sesion finalizada" : "No se pudo guardar el puntaje",
@@ -1116,7 +1133,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
         variant: result.saved > 0 || result.attempted === 0 ? "default" : "destructive",
       });
     });
-  }, [broadcastLocalDisconnect, exitOwnFullscreen, game?.label, onClose, savePendingGamePoints, toast]);
+  }, [broadcastLocalDisconnect, exitOwnFullscreen, game?.label, isWagerGame, onClose, savePendingGamePoints, toast]);
 
   const copyRoom = async () => {
     const codeToCopy = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
@@ -1204,6 +1221,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
     sessionTimePointsRef.current = 0;
     sessionTotalPointsRef.current = 0;
     pendingGamePointsRef.current = 0;
+    sessionCasinoNetRef.current = 0;
     setSessionPointPreview(0);
     setSessionElapsedPreview(0);
     setExternalFrameLoaded(false);

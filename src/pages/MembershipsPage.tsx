@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Globe, Sparkles, Hammer } from "lucide-react";
+import { Globe, Sparkles, Hammer, Crown, Ticket, Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -163,6 +163,7 @@ export default function MembershipsPage() {
   const [userCountry, setUserCountry] = useState("CL");
   const [loading, setLoading] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
+  const [pendingPurchaseTier, setPendingPurchaseTier] = useState<any | null>(null);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   
   const isUnderMaintenance = false;
@@ -230,7 +231,41 @@ export default function MembershipsPage() {
   };
 
   // 🚀 NUEVA FUNCION DINAMICA DE COBRO:
+  const speakPurchaseInfo = (tierName: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const text = `Antes de comprar ${tierName}, recuerda: la suscripcion es mensual. Recibiras un ticket en tu inventario, ese ticket no expira y puedes activarlo cuando quieras. Al usarlo, tu membresia quedara activa por treinta dias.`;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "es-CL";
+    utterance.rate = 0.95;
+    utterance.pitch = 1.05;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const openPurchaseInfo = (tier: any) => {
+    if (processingTier) return;
+    if (!user) {
+      alert("Debes iniciar sesiÃ³n para adquirir una membresÃ­a.");
+      return;
+    }
+
+    const validation = checkRequirements(tier.name);
+    if (!validation.canBuy) {
+      alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
+      return;
+    }
+
+    setPendingPurchaseTier(tier);
+    speakPurchaseInfo(tier.name);
+  };
+
+  const closePurchaseInfo = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setPendingPurchaseTier(null);
+  };
+
   const handleCheckout = async (tierName: string, basePrice: number) => {
+    if (processingTier) return;
     if (!user) {
       alert("Debes iniciar sesión para adquirir una membresía.");
       return;
@@ -244,6 +279,7 @@ export default function MembershipsPage() {
 
     try {
       setProcessingTier(tierName);
+      setPendingPurchaseTier(null);
       const calculatedPrice = Math.round(basePrice * pricing.multiplier);
       const rangoFormateado = tierName.toLowerCase();
       const { data: checkoutSession, error: checkoutError } = await (supabase as any).rpc("create_membership_checkout_session", {
@@ -309,6 +345,41 @@ export default function MembershipsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
+      {pendingPurchaseTier && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[#101018] p-5 shadow-2xl shadow-neon-cyan/20">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-yellow" />
+            <button onClick={closePurchaseInfo} className="absolute right-3 top-3 rounded border border-border bg-black/30 p-1.5 text-muted-foreground hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-start gap-3 pr-8">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-neon-yellow/50 bg-neon-yellow/10 text-neon-yellow shadow-[0_0_18px_rgba(250,204,21,0.18)]">
+                <Ticket className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="font-pixel text-[11px] uppercase text-neon-cyan">Antes de comprar</p>
+                <h2 className="mt-1 font-pixel text-sm uppercase text-foreground">{pendingPurchaseTier.name}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Tu compra genera un ticket de membresia en el inventario. Ese ticket no tiene fecha de expiracion: puedes guardarlo, comerciarlo o activarlo cuando quieras con click derecho. Al usarlo, la membresia queda activa por 30 dias y recibes los potenciadores incluidos en el plan.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 rounded-lg border border-neon-magenta/25 bg-neon-magenta/10 p-3 text-xs text-foreground sm:grid-cols-3">
+              <div className="flex items-center gap-2"><Crown className="h-4 w-4 text-neon-magenta" /> 30 dias activos</div>
+              <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-neon-yellow" /> {boosterText(pendingPurchaseTier.boosters)}</div>
+              <button type="button" onClick={() => speakPurchaseInfo(pendingPurchaseTier.name)} className="flex items-center gap-2 text-left text-neon-cyan hover:text-white">
+                <Volume2 className="h-4 w-4" /> Repetir voz
+              </button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={closePurchaseInfo} className="h-10 text-xs">Cancelar</Button>
+              <Button onClick={() => handleCheckout(pendingPurchaseTier.name, pendingPurchaseTier.basePrice)} disabled={processingTier === pendingPurchaseTier.name} className="h-10 bg-neon-green text-black hover:bg-neon-cyan">
+                {processingTier === pendingPurchaseTier.name ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar al pago"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">
@@ -405,16 +476,17 @@ export default function MembershipsPage() {
 
                   <div className="mt-8">
                     <Button 
-                      disabled={hasPlan || (!canBuy && !isStaff) || processingTier !== null} 
-                      onClick={() => handleCheckout(tier.name, tier.basePrice)} // 🚀 AHORA ENVÍA EL PRECIO BASE
+                      disabled={hasPlan || (!canBuy && !isStaff) || processingTier === tier.name} 
+                      onClick={() => openPurchaseInfo(tier)}
                       className={cn(
                         "w-full h-12 sm:h-14 font-pixel text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 border-none",
                         "bg-[#39FF14] text-black", 
                         "hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95",
+                        processingTier === tier.name && "scale-[0.98] bg-neon-cyan shadow-[0_0_22px_rgba(0,255,255,0.55)]",
                         "disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:cursor-not-allowed"
                       )}
                     >
-                      {processingTier === tier.name ? "Procesando..." : hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
+                      {processingTier === tier.name ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Procesando...</span> : hasPlan ? "Plan Actual" : (!canBuy && !isStaff) ? "Bloqueado" : tier.basePrice === 0 ? "Gratis" : "Obtener Rango"}
                     </Button>
 
                     {!canBuy && !hasPlan && !isStaff && (

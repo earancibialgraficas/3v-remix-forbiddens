@@ -29,6 +29,7 @@ import ModerationPanel from "@/components/profile/ModerationPanel";
 import EnergyBar from "@/components/profile/EnergyBar";
 import InventoryTab from "@/components/profile/InventoryTab";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
+import { INVENTORY_SEEN_EVENT, hasUnseenInventoryItems } from "@/lib/inventorySeen";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -52,6 +53,7 @@ export default function ProfilePage() {
   
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
+  const [bingoFcoinNet, setBingoFcoinNet] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
@@ -62,6 +64,7 @@ export default function ProfilePage() {
   const [storageItems, setStorageItems] = useState<{type: string; name: string; size: number; id?: string; created_at?: string}[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [hasNewInventoryItems, setHasNewInventoryItems] = useState(false);
 
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showRoleIconSelector, setShowRoleIconSelector] = useState(false);
@@ -157,13 +160,37 @@ export default function ProfilePage() {
     } catch (e) {}
   };
 
+  const fetchInventorySeenState = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("user_inventory" as any)
+        .select("id, created_at")
+        .eq("user_id", user.id);
+      if (!error) setHasNewInventoryItems(hasUnseenInventoryItems(user.id, data || []));
+    } catch {
+      setHasNewInventoryItems(false);
+    }
+  };
+
   useEffect(() => {
     if (!user?.id) return;
     fetchNotifs();
     fetchPendingRequests();
+    fetchInventorySeenState();
     const channel1 = supabase.channel("profile-notifs").on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => fetchNotifs()).subscribe();
     const channel2 = supabase.channel("profile-reqs").on("postgres_changes", { event: "*", schema: "public", table: "friend_requests", filter: `receiver_id=eq.${user.id}` }, () => fetchPendingRequests()).subscribe();
-    return () => { supabase.removeChannel(channel1); supabase.removeChannel(channel2); };
+    const channel3 = supabase.channel("profile-inventory-seen").on("postgres_changes", { event: "*", schema: "public", table: "user_inventory", filter: `user_id=eq.${user.id}` }, () => fetchInventorySeenState()).subscribe();
+    const refreshInventorySeen = () => fetchInventorySeenState();
+    window.addEventListener(INVENTORY_SEEN_EVENT, refreshInventorySeen);
+    window.addEventListener("storage", refreshInventorySeen);
+    return () => {
+      supabase.removeChannel(channel1);
+      supabase.removeChannel(channel2);
+      supabase.removeChannel(channel3);
+      window.removeEventListener(INVENTORY_SEEN_EVENT, refreshInventorySeen);
+      window.removeEventListener("storage", refreshInventorySeen);
+    };
   }, [activeTab, user?.id]);
 
   // 🔄 Auto-expirar membresías vencidas al entrar al perfil
@@ -198,6 +225,13 @@ export default function ProfilePage() {
         
         const { data: scores } = await supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", user.id).order("score", { ascending: false });
         if (scores) setGameScores(scores as any);
+
+        const { data: bingoWagers } = await (supabase as any)
+          .from("casino_wagers")
+          .select("game_slug, net")
+          .eq("user_id", user.id)
+          .in("game_slug", ["casino-bingo", "casino-bingo-card"]);
+        setBingoFcoinNet((bingoWagers || []).reduce((sum: number, wager: any) => sum + Number(wager?.net || 0), 0));
         
         const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);
         setFollowerCount(followers || 0);
@@ -538,6 +572,9 @@ export default function ProfilePage() {
           >
             <tab.icon className={cn("w-3.5 h-3.5", tab.id === "avisos" && unreadCount > 0 && "animate-pulse text-destructive")} /> 
             <span>{tab.label}</span>
+            {tab.id === "inventario" && hasNewInventoryItems && (
+              <span className="absolute right-2 top-1.5 h-2.5 w-2.5 rounded-full border border-background bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
+            )}
           </button>
         ))}
       </div>
@@ -545,7 +582,7 @@ export default function ProfilePage() {
       {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
-      {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
+      {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} bingoFcoinNet={bingoFcoinNet} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
       {activeTab === "friends" && <FriendsTab userId={user.id} limits={limits} isStaff={isStaff} />}
       {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => setShowConfigModal(true)} limits={limits} isStaff={isStaff} />}
       {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}

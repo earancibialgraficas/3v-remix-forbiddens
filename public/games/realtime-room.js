@@ -187,6 +187,16 @@
         });
         if (error) return { awarded: 0, reason: error.message };
         const result = data || { awarded: 0, reason: "empty_response" };
+        const net = Number.isFinite(Number(result.net)) ? Number(result.net) : safePayout - safeBet;
+        window.parent?.postMessage({
+          type: "game:casinoWagerSettled",
+          game: options.game || gameSlug,
+          gameSlug,
+          bet: safeBet,
+          payout: safePayout,
+          net,
+          wallet_balance: result.wallet_balance,
+        }, "*");
         if ((result.awarded || 0) > 0) {
           window.parent?.postMessage({ type: "game:pointsAwarded", awarded: result.awarded || 0, total: result.wallet_balance || 0 }, "*");
         }

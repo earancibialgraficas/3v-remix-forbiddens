@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
+import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen, markInventoryItemIdsSeen } from "@/lib/inventorySeen";
 
 interface InventoryTabProps {
   userId: string;
@@ -50,6 +51,8 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const [contextMenu, setContextMenu] = useState<{ item: any; slot: number; x: number; y: number } | null>(null);
   const [splitTarget, setSplitTarget] = useState<any | null>(null);
   const [splitQuantity, setSplitQuantity] = useState("1");
+  const [discardTarget, setDiscardTarget] = useState<{ item: any; slot: number | null; fromCursor?: boolean } | null>(null);
+  const [seenVersion, setSeenVersion] = useState(0);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -105,6 +108,16 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   useEffect(() => {
     if (userId) void loadInventory();
   }, [userId]);
+
+  useEffect(() => {
+    const refreshSeenState = () => setSeenVersion((value) => value + 1);
+    window.addEventListener(INVENTORY_SEEN_EVENT, refreshSeenState);
+    window.addEventListener("storage", refreshSeenState);
+    return () => {
+      window.removeEventListener(INVENTORY_SEEN_EVENT, refreshSeenState);
+      window.removeEventListener("storage", refreshSeenState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -695,6 +708,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
   const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
   const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
+  const markStackSeen = (item: any) => {
+    const ids = getInventoryItemSourceIds(item);
+    if (ids.length === 0) return;
+    markInventoryItemIdsSeen(userId, ids);
+    setSeenVersion((value) => value + 1);
+  };
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
     isMembershipItem(item)
       ? <Crown className={className} />
@@ -725,6 +744,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     if (suppressClick) return;
     setContextMenu(null);
     const item = slotItemsRef.current[index];
+    if (item) markStackSeen(item);
     if (event.shiftKey && item) {
       quickMoveToTrade(index);
       return;
@@ -757,6 +777,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     const next = [...slotItemsRef.current];
     const target = next[index];
     const hand = cursorItemRef.current;
+    if (target) markStackSeen(target);
     if (hand) {
       if (!target) {
         const { picked, remainder } = splitStackItem(hand, 1);
@@ -781,6 +802,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const handleSlotDoubleClick = (index: number) => {
     const item = slotItemsRef.current[index] || cursorItemRef.current;
     if (!item) return;
+    markStackSeen(item);
     let collected: any = null;
     if (cursorItemRef.current && !canStackTogether(cursorItemRef.current, item)) return;
     if (cursorItemRef.current) collected = cloneStack(cursorItemRef.current);
@@ -994,6 +1016,45 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     setSplitQuantity("1");
   };
 
+  const openDiscardStack = (item: any, slot: number | null, fromCursor = false) => {
+    if (!item) return;
+    markStackSeen(item);
+    setContextMenu(null);
+    setDiscardTarget({ item: cloneStack(item), slot, fromCursor });
+  };
+
+  const discardStack = async () => {
+    if (!discardTarget?.item || busy) return;
+    const items = stackSources(discardTarget.item).map((source: any) => ({
+      id: source.id,
+      quantity: source.quantity,
+    }));
+    if (items.length === 0) return;
+    setBusy(true);
+    const { data, error } = await (supabase as any).rpc("discard_inventory_items", { p_items: items });
+    setBusy(false);
+    if (error) {
+      toast({ title: "No se pudo desechar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (result?.ok === false) {
+      toast({ title: "No se pudo desechar", description: result.reason || "Item no disponible", variant: "destructive" });
+      return;
+    }
+
+    if (discardTarget.fromCursor) {
+      commitCursorItem(null);
+    } else if (typeof discardTarget.slot === "number") {
+      const next = [...slotItemsRef.current];
+      next[discardTarget.slot] = null;
+      commitSlotItems(next, false);
+    }
+    toast({ title: "Item desechado", description: "El objeto fue eliminado de tu inventario." });
+    setDiscardTarget(null);
+    void loadInventory();
+  };
+
   const splitStack = async () => {
     if (!splitTarget) return;
     const available = Number(splitTarget.quantity || 0);
@@ -1054,8 +1115,21 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
               <InventoryIcon className="h-4 w-4" /> Inventario
             </h3>
-            <div className="flex items-center gap-2 rounded border border-[#8b6d46] bg-black/30 px-2 py-1 text-[10px] font-body text-[#f7d28b]">
-              <Gem className="h-3.5 w-3.5" /> {loading ? "..." : wallet.toLocaleString()} F-coin
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded border border-[#8b6d46] bg-black/30 px-2 py-1 text-[10px] font-body text-[#f7d28b]">
+                <Gem className="h-3.5 w-3.5" /> {loading ? "..." : wallet.toLocaleString()} F-coin
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={!cursorItem || busy}
+                onClick={() => openDiscardStack(cursorItem, null, true)}
+                className="h-8 w-8 border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-100 disabled:opacity-35"
+                title={cursorItem ? "Desechar item en el cursor" : "Toma un item y presiona aqui para desecharlo"}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
 
@@ -1086,7 +1160,10 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                 )}
                 title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
               >
-                {item && (
+                {item && (() => {
+                  const itemIsNew = isInventoryItemUnseen(userId, item);
+                  void seenVersion;
+                  return (
                   <div className="flex h-full w-full items-center justify-center">
                     <div className={cn(
                       "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
@@ -1108,9 +1185,11 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                     {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
                     {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
                     {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
+                    {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
                     <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -1351,6 +1430,40 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           >
             Separar
           </button>
+          <button
+            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-300 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={busy}
+            onClick={() => openDiscardStack(contextMenu.item, contextMenu.slot)}
+          >
+            <Trash2 className="h-3 w-3" /> Desechar
+          </button>
+        </div>
+      )}
+
+      {discardTarget && (
+        <div className="fixed inset-0 z-[620] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-lg border-2 border-red-500/50 bg-[#1b1010] p-4 shadow-2xl shadow-red-950/60">
+            <div className="flex items-center gap-2">
+              <div className="grid h-10 w-10 place-items-center rounded border border-red-400/50 bg-red-500/15 text-red-200">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-pixel text-[10px] uppercase text-red-200">Desechar item</p>
+                <p className="mt-1 text-xs text-muted-foreground">{itemLabel(discardTarget.item)} x{Number(discardTarget.item?.quantity || 1).toLocaleString()}</p>
+              </div>
+            </div>
+            <p className="mt-3 rounded border border-red-500/30 bg-red-500/10 p-3 text-[11px] leading-relaxed text-red-100/90">
+              Esta accion es irreversible. El item se eliminara permanentemente de tu inventario y no podra recuperarse.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button size="sm" variant="outline" className="h-8 text-[10px]" disabled={busy} onClick={() => setDiscardTarget(null)}>
+                Cancelar
+              </Button>
+              <Button size="sm" variant="destructive" className="h-8 text-[10px]" disabled={busy} onClick={discardStack}>
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Desechar
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

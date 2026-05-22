@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
+import { INVENTORY_SEEN_EVENT, hasUnseenInventoryItems } from "@/lib/inventorySeen";
 
 interface NavChild {
   label?: string;
@@ -93,6 +94,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
   
   const [unreadPublic, setUnreadPublic] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [hasNewInventoryItems, setHasNewInventoryItems] = useState(false);
   const [hasNewEvent, setHasNewEvent] = useState(false);
   const lastFetch = useRef(0);
 
@@ -152,6 +154,15 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
         if (!error) reqCount = count || 0;
       } catch (e) { console.error("Error friends:", e); }
 
+      // 4. Items nuevos en inventario
+      try {
+        const { data, error } = await supabase
+          .from("user_inventory" as any)
+          .select("id, created_at")
+          .eq("user_id", user.id);
+        if (!error) setHasNewInventoryItems(hasUnseenInventoryItems(user.id, data || []));
+      } catch (e) { console.error("Error inventory:", e); }
+
       // Actualizamos los estados visuales
       setUnreadPublic(inboxCount);
       setUnreadNotifications(notifCount + reqCount);
@@ -172,12 +183,16 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
     window.addEventListener("click", passiveRefresh);
     window.addEventListener("focus", passiveRefresh);
     window.addEventListener("scroll", passiveRefresh, { passive: true });
+    window.addEventListener(INVENTORY_SEEN_EVENT, passiveRefresh);
+    window.addEventListener("storage", passiveRefresh);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("click", passiveRefresh);
       window.removeEventListener("focus", passiveRefresh);
       window.removeEventListener("scroll", passiveRefresh);
+      window.removeEventListener(INVENTORY_SEEN_EVENT, passiveRefresh);
+      window.removeEventListener("storage", passiveRefresh);
     };
   }, [user?.id, location.pathname]); 
 
@@ -264,6 +279,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Inventario">
                 <Link to="/perfil?tab=inventario"><InventoryIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" /></Link>
               </Button>
+              {hasNewInventoryItems && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)] pointer-events-none" />}
             </div>
           </div>
           {!collapsed && user && (

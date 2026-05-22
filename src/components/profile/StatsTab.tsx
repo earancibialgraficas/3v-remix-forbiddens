@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
-export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, displayTier, isStaff, statColors }: any) {
+export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, bingoFcoinNet = 0, displayTier, isStaff, statColors }: any) {
   const [showAchievements, setShowAchievements] = useState(false);
+  const bingoNet = Math.trunc(Number(bingoFcoinNet || 0));
 
   return (
     <div className="bg-card border border-border rounded p-4 space-y-3 animate-in fade-in">
@@ -48,6 +49,7 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
           { val: userPosts.length, label: "Posts Foro", color: statColors.forum || "#00ffff" },
           { val: socialContentCount, label: "Posts Social", color: statColors.social || "#ffff00" },
           { val: bestScores.length, label: "Juegos", color: statColors.games || "#ff8c00" },
+          { val: `${bingoNet >= 0 ? "+" : ""}${bingoNet.toLocaleString("es-CL")}`, label: "Bingo F-coin", color: bingoNet >= 0 ? "#39ff14" : "#fb7185" },
           { val: displayTier, label: "Membresía", color: isStaff ? "#39ff14" : "#a1a1aa", isStaffTier: isStaff },
         ].map((s, i) => (
           <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
