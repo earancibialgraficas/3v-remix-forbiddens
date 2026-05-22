@@ -1304,11 +1304,59 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
       : ""
     : `/games/${game.id}/index.html?${srcParams.toString()}`;
   const infoPanelWidthClass = "w-64";
-  const presenceRows = sessionPlayers
+  const normalizeIdentityText = (value: string) => value.trim().toLowerCase();
+  const isLocalLikePlayer = (player: SessionPlayer) => {
+    const playerName = normalizeIdentityText(player.name || "");
+    const localName = normalizeIdentityText(localDisplayName || "");
+    return player.userId === localSessionUserId
+      || player.playerId === lobbyPlayerIdRef.current
+      || (Boolean(localName) && playerName === localName && (!localAvatarUrl || player.avatarUrl === localAvatarUrl));
+  };
+  const playerIdentityKey = (player: SessionPlayer) => {
+    if (isLocalLikePlayer(player)) return `local:${localSessionUserId}`;
+    if (player.userId && !player.userId.startsWith("external-")) return `user:${player.userId}`;
+    if (player.playerId && !player.playerId.startsWith("external-")) return `player:${player.playerId}`;
+    if (player.avatarUrl) return `avatar:${player.avatarUrl}`;
+    return `name:${normalizeIdentityText(player.name || "jugador")}`;
+  };
+  const mergePresencePlayer = (current: SessionPlayer | undefined, incoming: SessionPlayer) => {
+    if (!current) return incoming;
+    const currentOnline = (current.status || "online") === "online";
+    const incomingOnline = (incoming.status || "online") === "online";
+    const primary = incomingOnline && !currentOnline
+      ? incoming
+      : currentOnline && !incomingOnline
+        ? current
+        : Number(incoming.updatedAt || 0) >= Number(current.updatedAt || 0)
+          ? incoming
+          : current;
+    const secondary = primary === incoming ? current : incoming;
+    return {
+      ...secondary,
+      ...primary,
+      timePoints: Math.max(Number(current.timePoints || 0), Number(incoming.timePoints || 0)),
+      totalPoints: Math.max(Number(current.totalPoints || 0), Number(incoming.totalPoints || 0)),
+      elapsedSeconds: Math.max(Number(current.elapsedSeconds || 0), Number(incoming.elapsedSeconds || 0)),
+      joinedAt: Math.min(Number(current.joinedAt || Date.now()), Number(incoming.joinedAt || Date.now())),
+      updatedAt: Math.max(Number(current.updatedAt || 0), Number(incoming.updatedAt || 0)),
+      statusText: primary.statusText || secondary.statusText,
+      detailText: primary.detailText || secondary.detailText,
+      subDetailText: primary.subDetailText || secondary.subDetailText,
+      badgeText: primary.badgeText || secondary.badgeText,
+      properties: primary.properties || secondary.properties,
+    };
+  };
+  const presenceRows = Array.from(sessionPlayers
     .filter((player) => {
       if (!player.leftAt) return true;
       return Date.now() - player.leftAt < SESSION_VISITED_MS;
     })
+    .reduce((rows, player) => {
+      const key = playerIdentityKey(player);
+      rows.set(key, mergePresencePlayer(rows.get(key), player));
+      return rows;
+    }, new Map<string, SessionPlayer>())
+    .values())
     .sort((a, b) => {
       if (isAgar) return Number(b.totalPoints || 0) - Number(a.totalPoints || 0);
       if ((a.status || "online") !== (b.status || "online")) return (a.status || "online") === "online" ? -1 : 1;

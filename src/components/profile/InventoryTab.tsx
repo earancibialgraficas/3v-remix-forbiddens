@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Gem, Loader2, Search, Sparkles, Ticket } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,12 +57,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     () => boosters.filter((item) => item.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item.quantity || 0), 0),
     [boosters],
   );
-  const tradeBoosters = useMemo(
-    () => tradeSlots.filter((item) => item?.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+  const tradeItemCount = useMemo(
+    () => tradeSlots.filter(Boolean).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
     [tradeSlots],
   );
-  const remoteTradeBoosters = useMemo(
-    () => remoteTradeSlots.filter((item) => item?.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+  const remoteTradeItemCount = useMemo(
+    () => remoteTradeSlots.filter(Boolean).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
     [remoteTradeSlots],
   );
 
@@ -450,9 +450,9 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     }
 
     const points = Math.max(0, Math.floor(Number(pointsToSend) || 0));
-    const boosterQty = Math.max(0, Math.floor(Number(tradeBoosters) || 0));
-    const remoteHasOffer = remotePoints > 0 || remoteTradeBoosters > 0;
-    if (points <= 0 && boosterQty <= 0 && !remoteHasOffer) {
+    const itemQty = Math.max(0, Math.floor(Number(tradeItemCount) || 0));
+    const remoteHasOffer = remotePoints > 0 || remoteTradeItemCount > 0;
+    if (points <= 0 && itemQty <= 0 && !remoteHasOffer) {
       toast({ title: "Agreguen F-coin u objetos", variant: "destructive" });
       return;
     }
@@ -675,14 +675,16 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   } : null;
   const isBoosterItem = (item: any) => item?.item_slug === "points_x3_week";
   const isEventTicketItem = (item: any) => String(item?.item_slug || "").startsWith("event_ticket:");
+  const isMembershipItem = (item: any) => String(item?.item_slug || "").startsWith("membership:");
   const itemActiveUntil = (item: any) => item?.metadata?.active_until ? new Date(item.metadata.active_until).getTime() : 0;
   const itemIsActive = (item: any) => itemActiveUntil(item) > Date.now();
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
   const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
-  const boosterCanBeTraded = (item: any) => isBoosterItem(item) && !itemIsActive(item);
-  const itemLabel = (item: any) => item?.item_name || (isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
+  const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
-    isEventTicketItem(item)
+    isMembershipItem(item)
+      ? <Crown className={className} />
+      : isEventTicketItem(item)
       ? <Ticket className={className} />
       : isBoosterItem(item)
         ? <Sparkles className={className} />
@@ -692,10 +694,6 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
   const quickMoveToTrade = (slotIndex: number) => {
     const item = slotItemsRef.current[slotIndex];
     if (!item) return;
-    if (!boosterCanBeTraded(item)) {
-      toast({ title: "Objeto no comerciable aun", description: itemIsActive(item) ? "Ese potenciador esta activo; podra comerciarse cuando terminen sus 7 dias." : "La barra de trueque por ahora acepta potenciadores.", variant: "destructive" });
-      return;
-    }
     const result = placeStackInTradeSlots(tradeSlotsRef.current, item);
     if (!result.placed) {
       toast({ title: "Barra de trueque llena", variant: "destructive" });
@@ -861,10 +859,6 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     const next = [...tradeSlotsRef.current];
     const target = next[index];
     const hand = cursorItemRef.current;
-    if (hand && !boosterCanBeTraded(hand)) {
-      toast({ title: "Objeto no comerciable aun", description: itemIsActive(hand) ? "Ese potenciador esta activo; podra comerciarse cuando terminen sus 7 dias." : "La barra de trueque por ahora acepta potenciadores.", variant: "destructive" });
-      return;
-    }
     if (hand && !target) {
       next[index] = cloneStack(hand);
       commitCursorItem(null);
@@ -936,7 +930,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     const qty = Math.max(1, Number(item.quantity || 1));
     quickMoveToTrade(slotIndex);
     setContextMenu(null);
-    toast({ title: "Potenciadores listos para trueque", description: `Se colocaron ${qty} en el cuadro de trueque.` });
+    toast({ title: "Item listo para trueque", description: `Se colocaron ${qty} en el cuadro de trueque.` });
   };
 
   const useBooster = async (item: any) => {
@@ -954,6 +948,29 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       return;
     }
     toast({ title: "Potenciador activado", description: "x3 puntos por 7 dias." });
+    void loadInventory();
+  };
+
+  const useMembership = async (item: any) => {
+    setContextMenu(null);
+    setBusy(true);
+    const { data, error } = await (supabase as any).rpc("use_inventory_membership", { p_stack_id: item.id });
+    setBusy(false);
+    if (error) {
+      toast({ title: "No se pudo activar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (result?.ok === false) {
+      toast({ title: "No se pudo activar", description: result.reason || "Membresia no disponible", variant: "destructive" });
+      return;
+    }
+    const expires = result?.expires_at ? new Date(result.expires_at).toLocaleDateString() : "30 dias";
+    const boosters = Number(result?.boosters_granted || 0);
+    toast({
+      title: "Membresia activada",
+      description: `${result?.tier_label || itemLabel(item)} activa hasta ${expires}.${boosters > 0 ? ` +${boosters} potenciadores en inventario.` : ""}`,
+    });
     void loadInventory();
   };
 
@@ -986,7 +1003,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       toast({ title: "No se pudo separar", description: result.reason || "Cantidad invalida", variant: "destructive" });
       return;
     }
-    toast({ title: "Stack separado", description: `${qty} potenciadores movidos a un nuevo slot.` });
+    toast({ title: "Stack separado", description: `${qty} item(s) movidos a un nuevo slot.` });
     setSplitTarget(null);
     void loadInventory();
   };
@@ -1059,13 +1076,24 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   <div className="flex h-full w-full items-center justify-center">
                     <div className={cn(
                       "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
-                      isEventTicketItem(item) ? "border-neon-cyan/70 bg-[#14354a]" : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                      isMembershipItem(item)
+                        ? "border-neon-magenta/70 bg-[#4a235e]"
+                        : isEventTicketItem(item)
+                          ? "border-neon-cyan/70 bg-[#14354a]"
+                          : "border-[#f7d28b]/70 bg-[#6b4a1f]",
                     )}>
                       <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
-                      <ItemIcon item={item} className={cn("relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]", isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
+                      <ItemIcon
+                        item={item}
+                        className={cn(
+                          "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                          isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                        )}
+                      />
                     </div>
                     {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
                     {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
+                    {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
                     <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                   </div>
                 )}
@@ -1149,7 +1177,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
             <Input type="number" min="0" value={pointsToSend} onChange={(e) => { setPointsToSend(e.target.value); markTradeChanged(); }} placeholder="F-coin" className="h-8 bg-muted text-xs" />
             <div className="rounded border border-neon-cyan/20 bg-black/30 px-2 py-1 text-[10px] text-neon-cyan">
-              {tradeBoosters} boosters
+              {tradeItemCount} item(s)
             </div>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1176,7 +1204,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   >
                     {item && (
                       <>
-                        <ItemIcon item={item} className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-neon-yellow" />
+                        <ItemIcon item={item} className={cn("absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
                         <span className="absolute bottom-0 right-0.5 font-pixel text-[7px] text-white">x{item.quantity}</span>
                       </>
                     )}
@@ -1204,7 +1232,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
                   >
                     {item && (
                       <>
-                        <ItemIcon item={item} className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-neon-yellow" />
+                        <ItemIcon item={item} className={cn("absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2", isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow")} />
                         <span className="absolute bottom-0 right-0.5 font-pixel text-[7px] text-white">x{item.quantity}</span>
                       </>
                     )}
@@ -1278,11 +1306,19 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         >
           <button
             className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={!boosterCanBeTraded(contextMenu.item)}
             onClick={() => sendStackToTrade(contextMenu.slot)}
           >
             Tradear stack
           </button>
+          {isMembershipItem(contextMenu.item) && (
+            <button
+              className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
+              disabled={busy}
+              onClick={() => useMembership(contextMenu.item)}
+            >
+              Usar membresia
+            </button>
+          )}
           {isBoosterItem(contextMenu.item) && (
             <>
               <button
@@ -1292,15 +1328,15 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
               >
                 Usar 1
               </button>
-              <button
-                className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
-                disabled={Number(contextMenu.item?.quantity || 0) <= 1}
-                onClick={() => openSplitStack(contextMenu.item)}
-              >
-                Separar
-              </button>
             </>
           )}
+          <button
+            className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={Number(contextMenu.item?.quantity || 0) <= 1}
+            onClick={() => openSplitStack(contextMenu.item)}
+          >
+            Separar
+          </button>
         </div>
       )}
 
@@ -1326,7 +1362,7 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
           <div className="w-full max-w-xs rounded border border-[#d6b16f]/70 bg-[#2b2119] p-4 shadow-2xl">
             <p className="font-pixel text-[10px] uppercase text-[#f7d28b]">Separar stack</p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Tienes {Number(splitTarget.quantity || 0).toLocaleString()} potenciadores. Elige cuantos mover a otro slot.
+              Tienes {Number(splitTarget.quantity || 0).toLocaleString()} de {itemLabel(splitTarget)}. Elige cuantos mover a otro slot.
             </p>
             <Input
               type="number"

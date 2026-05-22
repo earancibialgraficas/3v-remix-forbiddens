@@ -7,20 +7,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PriceByCountry {
-  [country: string]: { symbol: string; multiplier: number };
+  [country: string]: { symbol: string; multiplier: number; currency: string };
 }
 
 const countryPricing: PriceByCountry = {
-  US: { symbol: "$", multiplier: 1 },
-  MX: { symbol: "MX$", multiplier: 17 },
-  AR: { symbol: "ARS$", multiplier: 900 },
-  CL: { symbol: "CLP$", multiplier: 950 },
-  CO: { symbol: "COP$", multiplier: 4000 },
-  PE: { symbol: "S/", multiplier: 3.7 },
-  ES: { symbol: "€", multiplier: 0.92 },
-  BR: { symbol: "R$", multiplier: 5 },
-  GB: { symbol: "£", multiplier: 0.79 },
+  US: { symbol: "$", multiplier: 1, currency: "USD" },
+  MX: { symbol: "MX$", multiplier: 17, currency: "MXN" },
+  AR: { symbol: "ARS$", multiplier: 900, currency: "ARS" },
+  CL: { symbol: "CLP$", multiplier: 950, currency: "CLP" },
+  CO: { symbol: "COP$", multiplier: 4000, currency: "COP" },
+  PE: { symbol: "S/", multiplier: 3.7, currency: "PEN" },
+  ES: { symbol: "€", multiplier: 0.92, currency: "EUR" },
+  BR: { symbol: "R$", multiplier: 5, currency: "BRL" },
+  GB: { symbol: "£", multiplier: 0.79, currency: "GBP" },
 };
+
+const MAKE_MEMBERSHIP_CHECKOUT_WEBHOOK = "https://hook.us2.make.com/d0btggh83pj91o020ezq18hl1yqs7td7";
 
 const tiers = [
   {
@@ -232,17 +234,36 @@ export default function MembershipsPage() {
       setIsProcessing(true);
       const calculatedPrice = Math.round(basePrice * pricing.multiplier);
       const rangoFormateado = tierName.toLowerCase();
+      const { data: checkoutSession, error: checkoutError } = await (supabase as any).rpc("create_membership_checkout_session", {
+        p_tier: rangoFormateado,
+        p_amount: calculatedPrice,
+        p_currency: pricing.currency,
+      });
+
+      if (checkoutError) throw checkoutError;
+      if (!checkoutSession?.ok) {
+        throw new Error(checkoutSession?.reason || "No se pudo crear la orden de membresia");
+      }
 
       // Envia los datos a tu Fabrica en Make.com
-      const response = await fetch("https://hook.us2.make.com/9l4vh61fdyrzbv7xrjq4ddfoqd2p193g", {
+      const response = await fetch(MAKE_MEMBERSHIP_CHECKOUT_WEBHOOK, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          rango: rangoFormateado,
-          precio: calculatedPrice,
-          user_id: user.id
+          action: "create_membership_checkout",
+          checkout_id: checkoutSession.checkout_id,
+          external_reference: checkoutSession.external_reference,
+          user_id: checkoutSession.user_id,
+          rango: checkoutSession.tier,
+          tier_label: checkoutSession.tier_label,
+          precio: checkoutSession.amount,
+          currency: checkoutSession.currency,
+          site_url: window.location.origin,
+          success_url: `${window.location.origin}/membresias?payment=success`,
+          pending_url: `${window.location.origin}/membresias?payment=pending`,
+          failure_url: `${window.location.origin}/membresias?payment=failure`,
         }),
       });
 
@@ -251,8 +272,9 @@ export default function MembershipsPage() {
       const data = await response.json();
       
       // Si Make nos devuelve el link, enviamos al usuario
-      if (data && data.init_point) {
-        window.location.href = data.init_point;
+      const paymentUrl = data?.init_point || data?.sandbox_init_point || data?.payment_url || data?.url;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
       } else {
         alert("Hubo un error al generar tu link de pago. Inténtalo de nuevo.");
       }
