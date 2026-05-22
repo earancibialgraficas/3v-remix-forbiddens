@@ -438,6 +438,12 @@
         return;
       }
       const betTotal = totalBetAmount(bets);
+      if (betTotal > MAX_BET) {
+        setStatus(`Maximo ${fmt(MAX_BET)} F-coin en total por giro.`);
+        busy = false;
+        renderSpinControl();
+        return;
+      }
       if (wallet !== null && betTotal > wallet) {
         setStatus("No tienes F-coin suficiente para esas apuestas.");
         busy = false;

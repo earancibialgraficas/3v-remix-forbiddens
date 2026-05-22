@@ -44,23 +44,241 @@
   </main>
   <script src="/games/realtime-room.js"></script>
   <script>
-    const params=new URLSearchParams(location.search),preset=(params.get('room')||'').toUpperCase(),shouldHost=params.get('host')==='1';
+    const params = new URLSearchParams(location.search);
+    const preset = (params.get('room') || '').toUpperCase();
+    const shouldHost = params.get('host') === '1';
     document.body.classList.toggle('embedded', params.get('embed') === '1');
-    const profile={userId:params.get('userId')||'',displayName:params.get('displayName')||'Jugador',avatarUrl:params.get('avatarUrl')||''};
-    const roomInput=document.getElementById('room'),statusEl=document.getElementById('status'),boardEl=document.getElementById('board'),movesEl=document.getElementById('moves');
-    if(preset)roomInput.value=preset; const MAX_BET=1000; let api,connected=false,role=shouldHost?'blancas':'negras',selected=-1,last=-1,pot=0;
-    function getBet(){const input=document.getElementById('bet');const value=Math.min(MAX_BET,Math.max(1,Math.floor(Number(input.value)||1)));input.value=String(value);return value}
-    const pieces=['&#9814;','&#9816;','&#9815;','&#9813;','&#9812;','&#9815;','&#9816;','&#9814;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9817;','&#9814;','&#9816;','&#9815;','&#9813;','&#9812;','&#9815;','&#9816;','&#9814;'];
-    function render(){boardEl.innerHTML='';pieces.forEach((p,i)=>{const sq=document.createElement('button');sq.className='sq '+(((Math.floor(i/8)+i)%2)?'dark':'light')+(selected===i?' selected':'')+(last===i?' last':'');sq.onclick=()=>clickSq(i);sq.innerHTML=p?`<span class="piece ${i<16?'black':'white'}">${p}</span>`:'';boardEl.appendChild(sq)})}
-    function clickSq(i){if(selected<0&&pieces[i]){selected=i;render();return}if(selected>=0&&selected!==i){pieces[i]=pieces[selected];pieces[selected]='';last=i;movesEl.insertAdjacentHTML('afterbegin',`<div>${profile.displayName}: ${selected+1} -> ${i+1}</div>`);api?.send('move',{from:selected,to:i,name:profile.displayName});selected=-1;render();return}selected=-1;render()}
-    function applyMove(m){pieces[m.to]=pieces[m.from];pieces[m.from]='';last=m.to;movesEl.insertAdjacentHTML('afterbegin',`<div>${m.name||'Rival'}: ${m.from+1} -> ${m.to+1}</div>`);render()}
-    async function connect(room){await api.connect(room);connected=true;roomInput.value=room;statusEl.textContent='Sala '+room;roleInfo.textContent=role;placeBet()}
-    async function placeBet(){const bet=getBet();pot+=bet;document.getElementById('pot').textContent=pot.toLocaleString();api?.send('bet',{bet,name:profile.displayName})}
-    async function settle(){const bet=getBet(),payout=Math.floor((pot||bet)*1.1);const r=await api.casinoWager('casino-chess',bet,payout,{pot,declared:'manual'});movesEl.insertAdjacentHTML('afterbegin',`<div>Victoria declarada. ${r.reason&&r.awarded===0?'Wallet pendiente: '+r.reason:'Payout '+payout+' F-coin'}</div>`);api.send('chess-win',{name:profile.displayName,payout})}
-    async function loseStake(winner){const bet=getBet();const r=await api.casinoWager('casino-chess',bet,0,{lostTo:winner||'rival'});movesEl.insertAdjacentHTML('afterbegin',`<div>${winner||'Rival'} gano. ${r.reason&&r.awarded===0?'Wallet: '+r.reason:'Perdiste '+bet+' F-coin'}</div>`)}
-    function resetBoard(local=false){selected=-1;last=-1;render();if(!local)api?.send('reset',{})}
-    async function setup(){render();try{api=await createRealtimeRoom({game:'casino-chess',profile,onMessage:m=>{if(m.type==='move')applyMove(m.payload);if(m.type==='reset')resetBoard(true);if(m.type==='bet'){pot+=Number(m.payload.bet||0);document.getElementById('pot').textContent=pot.toLocaleString()}if(m.type==='chess-win'){statusEl.textContent=`${m.payload.name} gano la mesa`;loseStake(m.payload.name)}}});statusEl.textContent='Listo';if(preset)connect(preset)}catch(e){statusEl.textContent=e.message||'Sin realtime'}}
-    create.onclick=()=>connect(roomInput.value.trim().toUpperCase()||Math.random().toString(36).slice(2,8).toUpperCase());join.onclick=()=>connect(roomInput.value.trim().toUpperCase());document.getElementById('reset').onclick=()=>resetBoard();win.onclick=()=>settle();setup();
+    const profile = { userId: params.get('userId') || '', displayName: params.get('displayName') || 'Jugador', avatarUrl: params.get('avatarUrl') || '' };
+    const roomInput = document.getElementById('room'), statusEl = document.getElementById('status'), boardEl = document.getElementById('board'), movesEl = document.getElementById('moves');
+    if (preset) roomInput.value = preset;
+    const MAX_BET = 1000;
+    const glyphs = {
+      white: { k: '&#9812;', q: '&#9813;', r: '&#9814;', b: '&#9815;', n: '&#9816;', p: '&#9817;' },
+      black: { k: '&#9818;', q: '&#9819;', r: '&#9820;', b: '&#9821;', n: '&#9822;', p: '&#9823;' },
+    };
+    let api, connected = false, role = shouldHost ? 'white' : 'black', selected = -1, last = -1, pot = 0, turn = 'white', gameOver = false;
+    let board = startBoard();
+
+    function getBet() {
+      const input = document.getElementById('bet');
+      const value = Math.min(MAX_BET, Math.max(1, Math.floor(Number(input.value) || 1)));
+      input.value = String(value);
+      return value;
+    }
+    function startBoard() {
+      const back = ['r','n','b','q','k','b','n','r'];
+      return [
+        ...back.map((type) => ({ type, color: 'black' })),
+        ...Array.from({ length: 8 }, () => ({ type: 'p', color: 'black' })),
+        ...Array.from({ length: 32 }, () => null),
+        ...Array.from({ length: 8 }, () => ({ type: 'p', color: 'white' })),
+        ...back.map((type) => ({ type, color: 'white' })),
+      ];
+    }
+    function row(i) { return Math.floor(i / 8); }
+    function col(i) { return i % 8; }
+    function inside(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+    function idx(r, c) { return r * 8 + c; }
+    function squareName(i) { return `${'abcdefgh'[col(i)]}${8 - row(i)}`; }
+    function cloneBoard(src = board) { return src.map((p) => p ? { ...p } : null); }
+    function opponent(color) { return color === 'white' ? 'black' : 'white'; }
+    function pathClear(from, to, b = board) {
+      const dr = Math.sign(row(to) - row(from));
+      const dc = Math.sign(col(to) - col(from));
+      let r = row(from) + dr, c = col(from) + dc;
+      while (r !== row(to) || c !== col(to)) {
+        if (b[idx(r, c)]) return false;
+        r += dr; c += dc;
+      }
+      return true;
+    }
+    function attacksSquare(from, to, b = board) {
+      const piece = b[from];
+      if (!piece) return false;
+      const fr = row(from), fc = col(from), tr = row(to), tc = col(to);
+      const dr = tr - fr, dc = tc - fc;
+      const adr = Math.abs(dr), adc = Math.abs(dc);
+      if (piece.type === 'p') {
+        const dir = piece.color === 'white' ? -1 : 1;
+        return dr === dir && adc === 1;
+      }
+      if (piece.type === 'n') return (adr === 2 && adc === 1) || (adr === 1 && adc === 2);
+      if (piece.type === 'b') return adr === adc && pathClear(from, to, b);
+      if (piece.type === 'r') return (dr === 0 || dc === 0) && pathClear(from, to, b);
+      if (piece.type === 'q') return ((adr === adc) || dr === 0 || dc === 0) && pathClear(from, to, b);
+      if (piece.type === 'k') return Math.max(adr, adc) === 1;
+      return false;
+    }
+    function kingIndex(color, b = board) {
+      return b.findIndex((p) => p?.type === 'k' && p.color === color);
+    }
+    function inCheck(color, b = board) {
+      const king = kingIndex(color, b);
+      if (king < 0) return true;
+      return b.some((p, i) => p?.color === opponent(color) && attacksSquare(i, king, b));
+    }
+    function canMoveRaw(from, to, b = board) {
+      const piece = b[from], target = b[to];
+      if (!piece || from === to || target?.color === piece.color) return false;
+      const fr = row(from), fc = col(from), tr = row(to), tc = col(to);
+      const dr = tr - fr, dc = tc - fc, adr = Math.abs(dr), adc = Math.abs(dc);
+      if (piece.type === 'p') {
+        const dir = piece.color === 'white' ? -1 : 1;
+        const start = piece.color === 'white' ? 6 : 1;
+        if (dc === 0 && dr === dir && !target) return true;
+        if (dc === 0 && fr === start && dr === dir * 2 && !target && !b[idx(fr + dir, fc)]) return true;
+        return adc === 1 && dr === dir && Boolean(target && target.color !== piece.color);
+      }
+      if (piece.type === 'n') return (adr === 2 && adc === 1) || (adr === 1 && adc === 2);
+      if (piece.type === 'b') return adr === adc && pathClear(from, to, b);
+      if (piece.type === 'r') return (dr === 0 || dc === 0) && pathClear(from, to, b);
+      if (piece.type === 'q') return ((adr === adc) || dr === 0 || dc === 0) && pathClear(from, to, b);
+      if (piece.type === 'k') return Math.max(adr, adc) === 1;
+      return false;
+    }
+    function legalMove(from, to, b = board) {
+      const piece = b[from];
+      if (!canMoveRaw(from, to, b)) return false;
+      const next = cloneBoard(b);
+      next[to] = { ...piece };
+      next[from] = null;
+      if (next[to].type === 'p' && (row(to) === 0 || row(to) === 7)) next[to].type = 'q';
+      return !inCheck(piece.color, next);
+    }
+    function legalTargets(from) {
+      return board.map((_, i) => i).filter((to) => legalMove(from, to));
+    }
+    function hasAnyLegalMove(color) {
+      return board.some((p, from) => p?.color === color && legalTargets(from).length > 0);
+    }
+    function updateInfo() {
+      const check = inCheck(turn);
+      const noMoves = !hasAnyLegalMove(turn);
+      if (noMoves) {
+        gameOver = true;
+        turnInfo.textContent = check ? `Jaque mate. Ganan ${opponent(turn) === 'white' ? 'blancas' : 'negras'}.` : 'Tablas por ahogado.';
+      } else {
+        turnInfo.textContent = `${turn === 'white' ? 'Blancas' : 'Negras'} juegan${check ? ' / jaque' : ''}.`;
+      }
+      roleInfo.textContent = role === 'white' ? 'Blancas' : 'Negras';
+    }
+    function render() {
+      const targets = selected >= 0 ? new Set(legalTargets(selected)) : new Set();
+      boardEl.innerHTML = '';
+      board.forEach((piece, i) => {
+        const sq = document.createElement('button');
+        sq.className = 'sq ' + (((row(i) + i) % 2) ? 'dark' : 'light') + (selected === i ? ' selected' : '') + (last === i ? ' last' : '') + (targets.has(i) ? ' move' : '');
+        sq.onclick = () => clickSq(i);
+        sq.innerHTML = piece ? `<span class="piece ${piece.color}">${glyphs[piece.color][piece.type]}</span>` : '';
+        boardEl.appendChild(sq);
+      });
+      updateInfo();
+    }
+    function addMoveLog(text) {
+      movesEl.insertAdjacentHTML('afterbegin', `<div>${text}</div>`);
+    }
+    function makeMove(from, to, remote = false, name = profile.displayName) {
+      const piece = board[from];
+      const captured = board[to];
+      board[to] = { ...piece };
+      board[from] = null;
+      if (board[to].type === 'p' && (row(to) === 0 || row(to) === 7)) board[to].type = 'q';
+      last = to;
+      selected = -1;
+      const notation = `${squareName(from)} -> ${squareName(to)}${captured ? ' x' : ''}${board[to].type === 'q' && piece.type === 'p' ? ' =D' : ''}`;
+      addMoveLog(`${name || 'Jugador'}: ${notation}`);
+      turn = opponent(turn);
+      if (!remote) api?.send('move', { from, to, name: profile.displayName });
+      render();
+      if (gameOver && inCheck(turn) && !remote && board[to]?.color === role) settle('checkmate');
+    }
+    function clickSq(i) {
+      if (gameOver) return;
+      const piece = board[i];
+      if (selected < 0) {
+        if (!piece) return;
+        if (piece.color !== role) { statusEl.textContent = 'Solo puedes mover tus piezas.'; return; }
+        if (piece.color !== turn) { statusEl.textContent = 'Espera tu turno.'; return; }
+        selected = i; render(); return;
+      }
+      if (selected === i) { selected = -1; render(); return; }
+      if (piece?.color === board[selected]?.color) { selected = i; render(); return; }
+      if (!legalMove(selected, i)) { statusEl.textContent = 'Movimiento ilegal.'; return; }
+      makeMove(selected, i);
+    }
+    function applyMove(m) {
+      if (!Number.isInteger(m?.from) || !Number.isInteger(m?.to)) return;
+      if (!legalMove(m.from, m.to)) { addMoveLog('Movimiento remoto rechazado por ilegal.'); return; }
+      makeMove(m.from, m.to, true, m.name || 'Rival');
+    }
+    async function connect(room) {
+      const code = String(room || '').trim().toUpperCase();
+      if (!code) return;
+      await api.connect(code);
+      connected = true;
+      roomInput.value = code;
+      statusEl.textContent = 'Sala ' + code;
+      placeBet();
+      render();
+    }
+    async function placeBet() {
+      const bet = getBet();
+      pot += bet;
+      document.getElementById('pot').textContent = pot.toLocaleString('es-CL');
+      api?.send('bet', { bet, name: profile.displayName });
+    }
+    async function settle(reason = 'manual') {
+      if (!connected || gameOver && reason === 'manual') return;
+      const bet = getBet(), payout = Math.floor((pot || bet) * 1.1);
+      const r = await api.casinoWager('casino-chess', bet, payout, { pot, declared: reason, winnerColor: role });
+      addMoveLog(`Victoria declarada. ${r.reason && r.reason !== 'ok' ? 'Wallet pendiente: ' + r.reason : 'Ganancia neta ' + (payout - bet).toLocaleString('es-CL') + ' F-coin'}`);
+      api.send('chess-win', { name: profile.displayName, payout, winnerColor: role });
+      gameOver = true;
+      render();
+    }
+    async function loseStake(winner) {
+      if (gameOver) return;
+      gameOver = true;
+      const bet = getBet();
+      const r = await api.casinoWager('casino-chess', bet, 0, { lostTo: winner || 'rival' });
+      addMoveLog(`${winner || 'Rival'} gano. ${r.reason && r.reason !== 'ok' ? 'Wallet: ' + r.reason : 'Perdiste ' + bet.toLocaleString('es-CL') + ' F-coin'}`);
+      render();
+    }
+    function resetBoard(local = false) {
+      selected = -1; last = -1; turn = 'white'; gameOver = false; board = startBoard();
+      render();
+      if (!local) api?.send('reset', {});
+    }
+    async function setup() {
+      render();
+      try {
+        api = await createRealtimeRoom({
+          game: 'casino-chess',
+          profile,
+          onMessage: (m) => {
+            if (m.type === 'move') applyMove(m.payload);
+            if (m.type === 'reset') resetBoard(true);
+            if (m.type === 'bet') {
+              pot += Number(m.payload.bet || 0);
+              document.getElementById('pot').textContent = pot.toLocaleString('es-CL');
+            }
+            if (m.type === 'chess-win') {
+              statusEl.textContent = `${m.payload.name} gano la mesa`;
+              loseStake(m.payload.name);
+            }
+          }
+        });
+        statusEl.textContent = 'Listo';
+        if (preset) connect(preset);
+      } catch (e) {
+        statusEl.textContent = e.message || 'Sin realtime';
+      }
+    }
+    create.onclick = () => connect(roomInput.value.trim().toUpperCase() || Math.random().toString(36).slice(2, 8).toUpperCase());
+    join.onclick = () => connect(roomInput.value.trim().toUpperCase());
+    document.getElementById('reset').onclick = () => resetBoard();
+    win.onclick = () => settle();
+    setup();
   </script>
 </body>
 </html>

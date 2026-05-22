@@ -230,7 +230,7 @@ export default function ProfilePage() {
           .from("casino_wagers")
           .select("game_slug, net")
           .eq("user_id", user.id)
-          .in("game_slug", ["casino-bingo", "casino-bingo-card"]);
+          .in("game_slug", ["casino-bingo", "casino-bingo-card", "casino-bingo-american", "casino-bingo-american-card"]);
         setBingoFcoinNet((bingoWagers || []).reduce((sum: number, wager: any) => sum + Number(wager?.net || 0), 0));
         
         const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);

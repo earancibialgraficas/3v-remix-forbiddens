@@ -44,7 +44,8 @@ const EVENT_GAME_OPTIONS = [
   { value: "casino-blackjack", label: "Blackjack Drag" },
   { value: "casino-chess", label: "Ajedrez con Apuesta" },
   { value: "casino-horses", label: "Carrera de Caballos" },
-  { value: "casino-bingo", label: "Bingo Arcade" },
+  { value: "casino-bingo", label: "Bingo Britanico" },
+  { value: "casino-bingo-american", label: "Bingo Americano" },
 ];
 
 const placeholderEvents: any[] = [];
@@ -91,9 +92,8 @@ export default function EventosPage() {
   const allEvents = [...dbEvents, ...placeholderEvents.filter(pe => !dbEvents.some(de => de.title === pe.title))];
   const filtered = filter === "all" ? allEvents : allEvents.filter(e => e.event_type === filter);
   const isFeaturedEvent = (event: any) => {
-    const createdAt = event.created_at ? new Date(event.created_at).getTime() : 0;
     const highlightUntil = event.highlight_until ? new Date(event.highlight_until).getTime() : 0;
-    return (createdAt > 0 && Date.now() - createdAt < 7 * 24 * 60 * 60 * 1000) || highlightUntil > Date.now();
+    return highlightUntil > Date.now();
   };
   const daysUntil = (value?: string | null) => {
     if (!value) return "0";

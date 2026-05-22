@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bingo Americano BET</title>
+</head>
+<body>
+  <script>
+    const url = new URL("/games/casino-bingo/index.html", location.origin);
+    const current = new URLSearchParams(location.search);
+    current.set("mode", "american");
+    url.search = current.toString();
+    location.replace(url.toString());
+  </script>
+</body>
+</html>

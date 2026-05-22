@@ -196,10 +196,8 @@
           payout: safePayout,
           net,
           wallet_balance: result.wallet_balance,
+          reason: result.reason || "ok",
         }, "*");
-        if ((result.awarded || 0) > 0) {
-          window.parent?.postMessage({ type: "game:pointsAwarded", awarded: result.awarded || 0, total: result.wallet_balance || 0 }, "*");
-        }
         send("wager", { userId, displayName: profile.displayName || "Jugador", gameSlug, bet: safeBet, payout: safePayout, awarded: result.awarded || 0 });
         return result;
       } catch (e) {

@@ -74,6 +74,8 @@
     .cardHeadRight{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
     .missingPrize{display:inline-flex;align-items:center;min-height:22px;border:1px solid #facc1555;border-radius:999px;background:#12091f99;padding:3px 7px;color:#facc15;font-size:9px;white-space:nowrap;box-shadow:inset 0 0 10px #0008}
     .grid{display:grid;grid-template-columns:repeat(9,1fr);grid-auto-rows:40px;gap:1px;padding:6px;background:#b8c7d9}
+    body.american-bingo .grid{grid-template-columns:repeat(5,1fr)}
+    .bingoHeader{display:grid;place-items:center;background:#2b0f4f;color:#facc15;font-size:17px;font-weight:1000;border:1px solid #7c3aed}
     .cell{height:auto;min-height:40px;display:grid;place-items:center;background:#fff;font-size:18px;font-weight:1000;color:#5b1025;border:1px solid #cad7e5;user-select:none}
     .cell.blank{background:#edf2f7;color:transparent}
     .cell.marked{background:#facc15;color:#2b1500;box-shadow:inset 0 0 0 3px #fff7,0 0 10px #facc1555}
@@ -147,9 +149,16 @@
   <script src="/games/realtime-room.js"></script>
   <script>
     const p = new URLSearchParams(location.search);
+    const BINGO_MODE = p.get("mode") === "american" || location.pathname.includes("casino-bingo-american");
+    const GAME_SLUG = BINGO_MODE ? "casino-bingo-american" : "casino-bingo";
+    const CARD_SLUG = BINGO_MODE ? "casino-bingo-american-card" : "casino-bingo-card";
+    const BALL_COUNT = BINGO_MODE ? 75 : 90;
+    document.body.classList.toggle("american-bingo", BINGO_MODE);
+    document.title = BINGO_MODE ? "Bingo Americano BET" : "Bingo Britanico BET";
     const profile = { userId: p.get("userId") || "", displayName: p.get("displayName") || "Jugador", avatarUrl: p.get("avatarUrl") || "" };
     const $ = (id) => document.getElementById(id);
     document.body.classList.toggle("embedded", p.get("embed") === "1");
+    document.querySelector(".brand").textContent = BINGO_MODE ? "BINGO USA BET" : "BINGO BET";
     let api, connected = false, peers = [], isLeader = false, wallet = null;
     let cardsData = [], cardNumbers = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, phasePauseTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
@@ -274,7 +283,7 @@
     function cardSignature(cardRows){
       return cardRows.map((row) => row.map((value) => value || "-").join(",")).join("|");
     }
-    function makeCard(seed = `${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${cardNonce++}`){
+    function makeBritishCard(seed = `${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${cardNonce++}`){
       const rand = seededRandom(seed);
       const rows = Array.from({ length: 3 }, () => Array(9).fill(null));
       const used = new Set();
@@ -308,6 +317,20 @@
         }
       });
       return rows;
+    }
+    function makeAmericanCard(seed = `${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${cardNonce++}`){
+      const rand = seededRandom(seed);
+      const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+      const cols = ranges.map(([min, max]) => {
+        const pool = Array.from({ length: max - min + 1 }, (_, i) => min + i).sort(() => rand() - .5);
+        return pool.slice(0, 5).sort((a, b) => a - b);
+      });
+      const rows = Array.from({ length: 5 }, (_, row) => cols.map((col) => col[row]));
+      rows[2][2] = null;
+      return rows;
+    }
+    function makeCard(seed = `${api?.room || preset || "LOCAL"}:${profile.userId || api?.playerId || "anon"}:${cardNonce++}`){
+      return BINGO_MODE ? makeAmericanCard(seed) : makeBritishCard(seed);
     }
     function makeUniqueCard(reason = "card"){
       let card = null;
@@ -347,9 +370,29 @@
       return card.map((row) => row.slice());
     }
     function completedRowsForCard(cardRows, cardIndex){
+      if (BINGO_MODE) return completedAmericanLines(cardRows, cardIndex);
       return cardRows.filter((row, rowIndex) => row.every((n, colIndex) => !n || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`))).length;
     }
+    function americanLineSets(){
+      const lines = [];
+      for (let row = 0; row < 5; row++) lines.push(Array.from({ length: 5 }, (_, col) => [row, col]));
+      for (let col = 0; col < 5; col++) lines.push(Array.from({ length: 5 }, (_, row) => [row, col]));
+      lines.push(Array.from({ length: 5 }, (_, i) => [i, i]));
+      lines.push(Array.from({ length: 5 }, (_, i) => [i, 4 - i]));
+      return lines;
+    }
+    function isAmericanMarked(cardIndex, rowIndex, colIndex, value){
+      return value === null || markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`);
+    }
+    function completedAmericanLines(cardRows, cardIndex){
+      return americanLineSets().filter((line) => line.every(([row, col]) => isAmericanMarked(cardIndex, row, col, cardRows[row]?.[col]))).length;
+    }
     function missingRowsForCard(cardRows, cardIndex){
+      if (BINGO_MODE) {
+        return americanLineSets().map((line) =>
+          line.reduce((sum, [row, col]) => sum + (isAmericanMarked(cardIndex, row, col, cardRows[row]?.[col]) ? 0 : 1), 0)
+        );
+      }
       return cardRows.map((row, rowIndex) =>
         row.reduce((sum, n, colIndex) => sum + (n && !markedCells.has(`${cardIndex}:${rowIndex}:${colIndex}`) ? 1 : 0), 0)
       );
@@ -405,11 +448,13 @@
             </div>
           </div>
           <div class="grid">
+            ${BINGO_MODE ? ["B","I","N","G","O"].map((letter) => `<div class="bingoHeader">${letter}</div>`).join("") : ""}
             ${cardRows.flatMap((row, rowIndex) => row.map((value, colIndex) => {
               const key = `${cardIndex}:${rowIndex}:${colIndex}`;
               const calledNumber = value && called.includes(value);
               const marked = markedCells.has(key);
-              return `<button class="cell ${value ? "" : "blank"} ${calledNumber ? "called" : ""} ${marked ? "marked" : ""}" data-card="${cardIndex}" data-row="${rowIndex}" data-col="${colIndex}" data-key="${key}" ${value ? "" : "disabled"}>${value || ""}</button>`;
+              const free = BINGO_MODE && value === null;
+              return `<button class="cell ${value || free ? "" : "blank"} ${calledNumber || free ? "called" : ""} ${marked || free ? "marked" : ""}" data-card="${cardIndex}" data-row="${rowIndex}" data-col="${colIndex}" data-key="${key}" ${value ? "" : "disabled"}>${free ? "FREE" : value || ""}</button>`;
             })).join("")}
           </div>
         </article>
@@ -440,8 +485,8 @@
     function setPhase(next){
       phase = next;
       const labels = {
-        line: ["1 linea", "Marca una fila completa en cualquier carton."],
-        two: ["2 lineas", "Ahora se premian dos filas completas."],
+        line: BINGO_MODE ? ["1 linea", "Completa una fila, columna o diagonal."] : ["1 linea", "Marca una fila completa en cualquier carton."],
+        two: BINGO_MODE ? ["2 lineas", "Ahora se premian dos lineas completas."] : ["2 lineas", "Ahora se premian dos filas completas."],
         full: ["Casa llena", "Completa todas las casillas numeradas."]
       };
       $("phaseName").textContent = labels[next]?.[0] || "Esperando";
@@ -499,7 +544,7 @@
       if (state) { applyState(state); return; }
       if (!isLeader || roundActive) return;
       clearTimeout(phasePauseTimer);
-      deck = Array.from({ length: 90 }, (_, i) => i + 1).sort(() => Math.random() - .5);
+      deck = Array.from({ length: BALL_COUNT }, (_, i) => i + 1).sort(() => Math.random() - .5);
       called = [];
       markedCells = new Set();
       claimed = { line: false, two: false, full: false };
@@ -626,7 +671,7 @@
       announcePrize(kind);
       const payout = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
       paidPrizes += payout;
-      const result = await api.casinoWager("casino-bingo", 0, payout, { kind, cards: cardsData.length, called });
+      const result = await api.casinoWager(GAME_SLUG, 0, payout, { mode: BINGO_MODE ? "american" : "british", kind, cards: cardsData.length, called });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
       if (opensPause) schedulePrizePause(kind);
@@ -657,7 +702,7 @@
         if (!selectedNumber || selectedNumber < 1 || selectedNumber > 100) { log("Escoge un numero de carton disponible."); return; }
         if (cardOwner(selectedNumber) && !cardIsMine(selectedNumber)) { log("Ese carton ya no esta disponible en esta sala."); renderCardNumberOptions(); return; }
         $("buyCard").disabled = true;
-        const result = await api.casinoWager("casino-bingo-card", 100, 0, { cards: cardsData.length + 1, cardNumber: selectedNumber, source: "numbered_card" });
+        const result = await api.casinoWager(CARD_SLUG, 100, 0, { mode: BINGO_MODE ? "american" : "british", cards: cardsData.length + 1, cardNumber: selectedNumber, source: "numbered_card" });
         if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
         if (result.reason && result.reason !== "ok") { log(`No se pudo comprar carton: ${result.reason}`); return; }
         const nextCard = makeNumberedCard(selectedNumber);
@@ -704,7 +749,7 @@
       renderCards();
       try {
         api = await createRealtimeRoom({
-          game: "casino-bingo",
+          game: GAME_SLUG,
           profile,
           maxPlayers: 20,
           onPeers: (count, players) => {
