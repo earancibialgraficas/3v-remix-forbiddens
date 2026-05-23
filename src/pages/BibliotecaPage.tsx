@@ -415,6 +415,7 @@ const handlePlayCloudGame = async (game: any) => {
       if (g.console_type === 'Game Boy Advance') mId = 'gba';
       if (g.console_type === 'Nintendo 64') mId = 'n64';
       if (g.console_type === 'PlayStation 1') mId = 'ps1';
+      if (g.console_type === 'PlayStation Portable') mId = 'psp';
       if (g.console_type === 'Arcade') mId = 'arcade';
       const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
       return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
