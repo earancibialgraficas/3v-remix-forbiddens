@@ -272,13 +272,9 @@ export default function BibliotecaPage() {
         const uniqueDriveConsoles = [...new Set(validGames.map((g: any) => g.console_type))];
 
         uniqueDriveConsoles.forEach((consoleName: any) => {
-          let id = consoleName.toLowerCase().replace(/\s+/g, '');
-          let color = "text-white";
+          const id = consoleTypeToId(consoleName);
+          let color = "text-foreground";
 
-          if (consoleName === 'Super Nintendo') id = 'snes';
-          if (consoleName === 'Nintendo Entertainment System') id = 'nes';
-          if (consoleName === 'Game Boy Advance') id = 'gba';
-          if (consoleName === 'Nintendo 64') id = 'n64';
           if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
           if (consoleName === 'PlayStation Portable') { id = 'psp'; color = 'text-neon-cyan'; }
           if (consoleName === 'Arcade') { id = 'arcade'; color = 'text-neon-orange'; }
@@ -423,14 +419,7 @@ const handlePlayCloudGame = async (game: any) => {
     const dedupedDriveGames = [...dedupMap.values()];
 
     const cloud = dedupedDriveGames.filter(g => {
-      let mId = g.console_type.toLowerCase().replace(/\s+/g, '');
-      if (g.console_type === 'Super Nintendo') mId = 'snes';
-      if (g.console_type === 'Nintendo Entertainment System') mId = 'nes';
-      if (g.console_type === 'Game Boy Advance') mId = 'gba';
-      if (g.console_type === 'Nintendo 64') mId = 'n64';
-      if (g.console_type === 'PlayStation 1') mId = 'ps1';
-      if (g.console_type === 'PlayStation Portable') mId = 'psp';
-      if (g.console_type === 'Arcade') mId = 'arcade';
+      const mId = consoleTypeToId(g.console_type);
       const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
       return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
     }).map(g => {
