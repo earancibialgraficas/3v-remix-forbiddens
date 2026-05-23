@@ -557,6 +557,12 @@ const handlePlayCloudGame = async (game: any) => {
 
       // 2. Guardar en nueva tabla (Evitando el UPSERT problemático)
       if (editingGame.fileName) {
+        saveLocalCoverBackups(user.id, [{
+          file_name: editingGame.fileName,
+          custom_name: newName,
+          custom_cover_url: newCover,
+        }]);
+
         // Primero buscamos si ya existe el registro para este usuario y archivo
         const { data: existingRaw } = await supabase
           .from("user_game_covers" as any)
