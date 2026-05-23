@@ -158,9 +158,10 @@ ${message}[/COLOR]`;
               <li className="flex items-start gap-3">
                 <span className="font-pixel text-neon-cyan shrink-0">2.</span>
                 <div>
-                  <div className="font-medium">Organización por consola</div>
+                  <div className="font-medium">Organización por consola (subcarpetas)</div>
                   <p className="text-muted-foreground mt-1">
-                    No organices tus ROMs por consola en subcarpetas </p>
+                    Puedes organizar tus ROMs en subcarpetas por consola dentro de <strong>RetroRoms</strong> (recomendado). Crea carpetas como <code className="bg-muted px-1 rounded text-neon-yellow">NES</code>, <code className="bg-muted px-1 rounded text-neon-yellow">SNES</code>, <code className="bg-muted px-1 rounded text-neon-yellow">GBA</code>, <code className="bg-muted px-1 rounded text-neon-yellow">N64</code>, <code className="bg-muted px-1 rounded text-neon-yellow">PS1</code>, <code className="bg-muted px-1 rounded text-neon-yellow">PSP</code>, <code className="bg-muted px-1 rounded text-neon-yellow">Arcade</code>, etc. El sistema detectará la consola automáticamente por carpeta o extensión.
+                  </p>
                 </div>
               </li>
               <li className="flex items-start gap-3">
