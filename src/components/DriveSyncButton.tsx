@@ -128,14 +128,20 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       return;
     }
 
-    // Aviso si estamos en un iframe (preview de Lovable) — el popup OAuth de Google
-    // suele ser bloqueado o nunca dispara el callback dentro de un iframe cross-origin.
-    if (window.self !== window.top) {
+    // El popup OAuth de Google falla en:
+    //  1) iframes cross-origin (preview embebido de Lovable dentro del editor)
+    //  2) dominios de preview de Lovable (id-preview--*.lovable.app) donde los
+    //     headers COOP/COEP que aplica la plataforma bloquean el postMessage
+    //     del popup, por lo que Google reporta `popup_closed` sin entregar el token.
+    const host = window.location.hostname;
+    const isLovablePreview = /lovable\.(app|dev)$/.test(host) && host.includes('preview--');
+    const inIframe = window.self !== window.top;
+    if (inIframe || isLovablePreview) {
       toast({
-        title: 'Abre la app en pestaña propia',
-        description: 'La vinculación con Google Drive no funciona dentro del preview embebido. Abre la app publicada o en una pestaña nueva e intenta de nuevo.',
+        title: 'Abre la app publicada para vincular Drive',
+        description: 'La autorización de Google no puede completarse en el preview de Lovable (los headers COOP bloquean el popup). Publica la app (o ábrela en su dominio final / Vercel) y vuelve a intentarlo desde ahí.',
         variant: 'destructive',
-        duration: 8000,
+        duration: 10000,
       });
       return;
     }
