@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FORBIDDENS PSP</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;background:#020617;color:#e5faff;font-family:Inter,Arial,sans-serif;overflow:hidden}
+    body{display:grid;grid-template-rows:auto minmax(0,1fr);background:radial-gradient(circle at 50% -10%,#063747 0,#020617 48%,#000 100%)}
+    .top{height:42px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(34,211,238,.22);background:rgba(0,0,0,.72);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+    .brand{font:900 12px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85);letter-spacing:.08em}
+    .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:12px}
+    .status{font:900 10px/1 "Courier New",monospace;color:#39ff14;text-shadow:0 0 10px rgba(57,255,20,.5)}
+    #game{position:relative;width:100%;height:100%;background:#000}
+    #loading{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(8,47,73,.45),rgba(0,0,0,.96) 62%)}
+    .loadCard{width:min(520px,calc(100vw - 32px));border:1px solid rgba(34,211,238,.42);border-radius:14px;background:rgba(2,6,23,.86);padding:24px;text-align:center;box-shadow:0 0 36px rgba(34,211,238,.18),inset 0 0 22px rgba(0,0,0,.55)}
+    .spinner{width:42px;height:42px;margin:0 auto 16px;border-radius:999px;border:3px solid rgba(34,211,238,.22);border-top-color:#00f2fe;animation:spin .9s linear infinite;box-shadow:0 0 22px rgba(34,211,238,.45)}
+    h1{margin:0 0 10px;font:900 15px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85)}
+    p{margin:0;color:#94a3b8;font-size:13px;line-height:1.45}
+    .file{margin-top:8px;color:#e5e7eb;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bar{height:7px;margin-top:16px;border-radius:999px;background:#0f172a;overflow:hidden;border:1px solid rgba(34,211,238,.24)}
+    .bar span{display:block;height:100%;width:8%;background:linear-gradient(90deg,#00f2fe,#39ff14);box-shadow:0 0 18px rgba(34,211,238,.7);transition:width .18s ease}
+    .error h1{color:#fb7185;text-shadow:0 0 12px rgba(251,113,133,.7)}
+    .error .spinner{display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">FORBIDDENS PSP</div>
+    <div class="title" id="topTitle">PPSSPP</div>
+    <div class="status" id="topStatus">BOOT</div>
+  </header>
+  <main id="game">
+    <div id="loading">
+      <div class="loadCard" id="loadCard">
+        <div class="spinner"></div>
+        <h1>PSP | PPSSPP</h1>
+        <p id="message">Preparando emulador...</p>
+        <div class="file" id="fileName"></div>
+        <div class="bar"><span id="progress"></span></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    (function(){
+      var params = new URLSearchParams(location.search);
+      var fileId = params.get("file") || "";
+      var gameName = params.get("name") || "Juego PSP";
+      var token = localStorage.getItem("drive_access_token") || "";
+      var expiry = Number(localStorage.getItem("drive_token_expiry") || 0);
+      var objectUrl = "";
+      var loading = document.getElementById("loading");
+      var loadCard = document.getElementById("loadCard");
+      var message = document.getElementById("message");
+      var fileName = document.getElementById("fileName");
+      var progress = document.getElementById("progress");
+      var topTitle = document.getElementById("topTitle");
+      var topStatus = document.getElementById("topStatus");
+
+      topTitle.textContent = gameName;
+      fileName.textContent = gameName;
+
+      function setProgress(pct){
+        progress.style.width = Math.max(8, Math.min(100, pct || 8)) + "%";
+      }
+      function setMessage(text, pct){
+        message.textContent = text;
+        topStatus.textContent = pct >= 100 ? "RUN" : "LOAD";
+        if (typeof pct === "number") setProgress(pct);
+      }
+      function fail(text){
+        loadCard.classList.add("error");
+        message.textContent = text;
+        topStatus.textContent = "ERROR";
+        setProgress(100);
+      }
+      function formatBytes(bytes){
+        if (!Number.isFinite(bytes) || bytes <= 0) return "";
+        var mb = bytes / (1024 * 1024);
+        return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : mb.toFixed(0) + " MB";
+      }
+      function prefetchAssets(){
+        [
+          "/emulatorjs-data/loader.js",
+          "/emulatorjs-data/emulator.min.js",
+          "/emulatorjs-data/cores/reports/ppsspp.json",
+          "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
+          "/emulatorjs-data/cores/ppsspp-assets.zip"
+        ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
+      }
+      async function readResponseBlob(response){
+        var total = Number(response.headers.get("content-length") || 0);
+        if (!response.body || !total) return response.blob();
+        var reader = response.body.getReader();
+        var chunks = [];
+        var received = 0;
+        while (true) {
+          var next = await reader.read();
+          if (next.done) break;
+          if (!next.value) continue;
+          chunks.push(next.value);
+          received += next.value.byteLength;
+          var pct = Math.max(8, Math.min(96, Math.round((received / total) * 96)));
+          setMessage("Descargando ROM desde Drive... " + pct + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", pct);
+        }
+        return new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
+      }
+      async function boot(){
+        if (!fileId) return fail("No se recibio el archivo PSP.");
+        if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
+          return fail("Esta ventana no tiene aislamiento activo para PPSSPP. Revisa headers COOP/COEP del dominio.");
+        }
+        if (!token || Date.now() >= expiry) {
+          return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive y abre el juego otra vez.");
+        }
+        try {
+          prefetchAssets();
+          setMessage("Descargando ROM desde Drive...", 12);
+          var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          if (!response.ok) throw new Error("Drive respondio " + response.status);
+          var blob = await readResponseBlob(response);
+          objectUrl = URL.createObjectURL(blob);
+          setMessage("Cargando PPSSPP...", 98);
+
+          window.EJS_player = "#game";
+          window.EJS_core = "psp";
+          window.EJS_gameUrl = objectUrl;
+          window.EJS_gameName = gameName;
+          window.EJS_pathtodata = location.origin + "/emulatorjs-data/";
+          window.EJS_startOnLoaded = true;
+          window.EJS_threads = true;
+          window.EJS_language = "es-ES";
+          window.EJS_CacheLimit = 134217728;
+          window.EJS_disableDatabases = false;
+          window.EJS_volume = 0.8;
+          window.EJS_onGameStart = function(){
+            setMessage("PSP en ejecucion", 100);
+            setTimeout(function(){ loading.style.display = "none"; }, 450);
+          };
+
+          var script = document.createElement("script");
+          script.src = "/emulatorjs-data/loader.js";
+          script.onerror = function(){ fail("No se pudo cargar EmulatorJS."); };
+          document.body.appendChild(script);
+        } catch (error) {
+          fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
+        }
+      }
+      window.addEventListener("beforeunload", function(){
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      });
+      boot();
+    })();
+  </script>
+</body>
+</html>

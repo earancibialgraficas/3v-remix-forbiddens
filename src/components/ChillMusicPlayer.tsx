@@ -880,15 +880,13 @@ export default function ChillMusicPlayer() {
           <button onClick={next} className="p-1 text-muted-foreground hover:text-foreground"><SkipForward className="w-3.5 h-3.5" /></button>
         </div>
 
-        {current?.type !== 'youtube' && (
-          <div className="px-3 pb-1">
-            <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
-            <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
-              <span>{formatTime(displayTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
+        <div className="px-3 pb-1">
+          <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
+          <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
+            <span>{formatTime(displayTime)}</span>
+            <span>{duration ? formatTime(duration) : current?.type === 'youtube' ? "cargando" : "0:00"}</span>
           </div>
-        )}
+        </div>
 
         <div className="px-3 pb-2 flex items-center gap-2">
           <button onClick={() => setVolume(v => v === 0 ? 80 : 0)} className="text-muted-foreground shrink-0">

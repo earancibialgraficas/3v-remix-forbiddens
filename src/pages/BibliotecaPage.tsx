@@ -374,14 +374,33 @@ const handlePlayCloudGame = async (game: any) => {
     
     // Guardamos la ID del juego específico que clickeó el usuario
     setLaunchingGameId(game.id);
-    toast({ title: "Iniciando...", description: "Conectando al servidor en la nube." });
+    const isPspCloudGame = game.console === "psp";
+    let pspWindow: Window | null = null;
+    toast({
+      title: "Iniciando...",
+      description: isPspCloudGame ? "Abriendo PPSSPP en una ventana dedicada." : "Conectando al servidor en la nube.",
+    });
 
     try {
+      if (isPspCloudGame) {
+        pspWindow = window.open("", "_blank", "popup=yes,width=1280,height=820");
+        if (pspWindow) {
+          pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>Preparando PPSSPP...</div></body></html>`);
+          pspWindow.document.close();
+        }
+      }
+
       const accessToken = await requestGoogleToken();
 
-      if (game.console === "psp") {
+      if (isPspCloudGame) {
         sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: game.name }));
-        window.location.assign(`/arcade/psp-player?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`);
+        const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`;
+        if (pspWindow && !pspWindow.closed) {
+          pspWindow.location.replace(pspUrl);
+          pspWindow.focus();
+        } else {
+          window.open(pspUrl, "_blank") || window.location.assign(pspUrl);
+        }
         return;
       }
 
@@ -408,10 +427,11 @@ const handlePlayCloudGame = async (game: any) => {
 
     } catch (e: any) {
       console.error(e);
+      if (pspWindow && !pspWindow.closed) pspWindow.close();
       toast({ title: "Acceso denegado", description: "Hubo un error al leer la ROM desde tu Drive.", variant: "destructive" });
     } finally {
       // Cuando termina de cargar, limpiamos la ID
-      setLaunchingGameId(null);
+      window.setTimeout(() => setLaunchingGameId(null), isPspCloudGame ? 900 : 0);
     }
   };
 
@@ -828,16 +848,20 @@ const handlePlayCloudGame = async (game: any) => {
                     </>
                   )}
                   <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center relative">
-                    {launchingGameId === game.id ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    ) : (
-                      <GameCover 
-                        gameName={game.originalName || game.name} 
-                        consoleId={game.console} 
-                        isCloud={game.isCloud} 
-                        defaultCover={game.coverUrl} 
-                        customCover={game.customCover}
-                      />
+                    <GameCover 
+                      gameName={game.originalName || game.name} 
+                      consoleId={game.console} 
+                      isCloud={game.isCloud} 
+                      defaultCover={game.coverUrl} 
+                      customCover={game.customCover}
+                    />
+                    {launchingGameId === game.id && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/72 backdrop-blur-[2px]">
+                        <Loader2 className="h-6 w-6 animate-spin text-neon-cyan drop-shadow-[0_0_10px_rgba(34,211,238,0.75)]" />
+                        <span className="font-pixel text-[8px] uppercase tracking-wider text-neon-cyan">
+                          {game.console === "psp" ? "Abriendo PPSSPP" : "Cargando"}
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div className="p-1.5 flex items-center gap-1">

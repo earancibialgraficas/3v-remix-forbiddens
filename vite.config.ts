@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
       name: "forbiddens-psp-isolation",
       configureServer(server: ViteDevServer) {
         server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
-          if (req.url?.startsWith("/arcade/psp-player")) {
+          if (req.url?.startsWith("/arcade/psp-player") || req.url?.startsWith("/psp-standalone.html")) {
             res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
             res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
             res.setHeader("Permissions-Policy", "cross-origin-isolated=(self)");

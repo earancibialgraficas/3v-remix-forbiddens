@@ -86,6 +86,11 @@
     .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544;animation:stageCard var(--stageMs,7800ms) ease both}
     .toastStage b{display:block;font-size:34px;color:#facc15;text-shadow:0 0 20px #facc1580;text-transform:uppercase}
     .toastStage span{color:#cbd5e1}
+    .tutorialCard{margin:14px auto 0;width:min(310px,76vw);display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#180f3d,#061a2c);border:1px solid #22d3ee55;box-shadow:inset 0 0 18px #0008,0 0 24px #22d3ee22}
+    .tutorialCell{height:26px;border-radius:7px;background:#dbeafe22;border:1px solid #e0f2fe22;box-shadow:inset 0 0 8px #0005}
+    .tutorialCell.hot{background:linear-gradient(135deg,#facc15,#fb7185);border-color:#fff7;box-shadow:0 0 18px #facc1588, inset 0 0 8px #fff8;animation:tutorialPop .82s ease-in-out infinite}
+    .tutorialCell.hot:nth-child(2n){animation-delay:.12s}.tutorialCell.hot:nth-child(3n){animation-delay:.24s}
+    @keyframes tutorialPop{0%,100%{transform:scale(.92);filter:saturate(1)}50%{transform:scale(1.1);filter:saturate(1.5) brightness(1.15)}}
     .modeChoice{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:radial-gradient(circle at 50% 12%,#15467af2,#07111ff7 54%,#020617);padding:18px}
     .modeChoice.show{display:grid}
     .modePanel{width:min(680px,100%);border:2px solid #facc15;border-radius:18px;background:#07111ff4;padding:22px;box-shadow:0 0 46px #facc1544,0 24px 70px #000}
@@ -161,7 +166,7 @@
     </section>
   </main>
 
-  <div class="toastStage" id="stageToast"><div><b id="stageTitle"></b><span id="stageText"></span></div></div>
+  <div class="toastStage" id="stageToast"><div><b id="stageTitle"></b><span id="stageText"></span><div id="stageTutorial"></div></div></div>
   <div class="sideToast" id="sideToast"><b id="sideToastTitle"></b><span id="sideToastText"></span></div>
   <div class="modeChoice" id="modeChoice">
     <div class="modePanel">
@@ -212,9 +217,18 @@
     }
     function stageVisible(){ return Date.now() < stageUntil; }
     function claimOpen(){ return claimWindowKind && Date.now() >= claimWindowOpensAt && Date.now() < claimWindowEndsAt && !stageVisible(); }
-    function showStage(title, text, voiceDelay = 0, durationMs = 7800){
+    function tutorialMarkup(kind){
+      if (!kind) return "";
+      const hot = new Set();
+      if (kind === "line") [10,11,12,13,14].forEach((n) => hot.add(n));
+      if (kind === "two") [5,6,7,8,9,15,16,17,18,19].forEach((n) => hot.add(n));
+      if (kind === "full") Array.from({ length: 25 }, (_, i) => i).forEach((n) => hot.add(n));
+      return `<div class="tutorialCard" aria-hidden="true">${Array.from({ length: 25 }, (_, i) => `<span class="tutorialCell ${hot.has(i) ? "hot" : ""}"></span>`).join("")}</div>`;
+    }
+    function showStage(title, text, voiceDelay = 0, durationMs = 7800, tutorialKind = ""){
       $("stageTitle").textContent = title;
       $("stageText").textContent = text;
+      $("stageTutorial").innerHTML = tutorialMarkup(tutorialKind);
       $("stageToast").style.setProperty("--stageMs", `${durationMs}ms`);
       stageUntil = Date.now() + durationMs;
       $("stageToast").classList.remove("show");
@@ -557,7 +571,7 @@
       };
       $("phaseName").textContent = labels[next]?.[0] || "Esperando";
       $("phaseHelp").textContent = labels[next]?.[1] || "La partida empieza automaticamente en 1 minuto.";
-      showStage(labels[next]?.[0] || "Bingo", labels[next]?.[1] || "");
+      showStage(labels[next]?.[0] || "Bingo", labels[next]?.[1] || "", 0, 7800, next);
     }
     function refreshLeadership(){
       const leader = [...peers].sort((a,b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
@@ -770,6 +784,15 @@
       claimWindowOpensAt = 0;
       claimWindowEndsAt = 0;
       updateClaimTimer();
+      cardsData = [];
+      cardNumbers = [];
+      markedCells = new Set();
+      reservedCards = {};
+      cardFees = 0;
+      prizePool = 0;
+      myClaimKeys.clear();
+      addBaseCard();
+      renderCards();
       log("Partida finalizada. La sala vuelve a aceptar jugadores.");
       if (!local) api.send("end", statePayload());
       startCountdown();
