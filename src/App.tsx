@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import EmulatorPage from "./pages/EmulatorPage";
 import BibliotecaPage from "./pages/BibliotecaPage";
+import PspPlayerPage from "./pages/PspPlayerPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ConsejosPage from "./pages/ConsejosPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -79,6 +80,7 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/arcade/salas" element={<EmulatorPage />} />
                   <Route path="/arcade/biblioteca" element={<BibliotecaPage />} />
+                  <Route path="/arcade/psp-player" element={<PspPlayerPage />} />
                   <Route path="/arcade/bet" element={<BibliotecaPage />} />
                   <Route path="/arcade/leaderboards" element={<LeaderboardPage />} />
                   <Route path="/arcade/consejos" element={<ConsejosPage />} />
