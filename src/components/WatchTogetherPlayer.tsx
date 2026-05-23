@@ -130,7 +130,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hudTimerRef = useRef<number | null>(null);
   const channelRef = useRef<any>(null);
-  const pollRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const pollRef = useRef<number | null>(null);
   const stateRef = useRef<WatchState>(emptyState());
   const effectiveVolumeRef = useRef(80);
   const captionsEnabledRef = useRef(false);
