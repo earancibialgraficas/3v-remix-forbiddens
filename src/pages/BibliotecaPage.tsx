@@ -408,7 +408,17 @@ const handlePlayCloudGame = async (game: any) => {
   const currentGames = useMemo(() => {
     const official = allGames.filter(g => g.console === selectedConsole && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const cloud = driveGames.filter(g => {
+    // 🧹 Dedup por file_name (mismo ROM en raíz + subcarpeta = dos drive_file_id)
+    const dedupMap = new Map<string, any>();
+    for (const g of driveGames) {
+      const prev = dedupMap.get(g.file_name);
+      // Preferimos el que tenga consola "específica" (no Arcade fallback) si el otro es Arcade
+      if (!prev) dedupMap.set(g.file_name, g);
+      else if (prev.console_type === 'Arcade' && g.console_type !== 'Arcade') dedupMap.set(g.file_name, g);
+    }
+    const dedupedDriveGames = [...dedupMap.values()];
+
+    const cloud = dedupedDriveGames.filter(g => {
       let mId = g.console_type.toLowerCase().replace(/\s+/g, '');
       if (g.console_type === 'Super Nintendo') mId = 'snes';
       if (g.console_type === 'Nintendo Entertainment System') mId = 'nes';
