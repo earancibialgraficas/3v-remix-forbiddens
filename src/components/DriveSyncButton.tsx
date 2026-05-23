@@ -5,6 +5,7 @@ import { CloudUpload, CloudOff, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
+import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from '@/lib/driveCoverBackup';
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -65,6 +66,8 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           custom_cover_url: g.custom_cover_url,
           updated_at: new Date().toISOString(),
         }));
+
+      saveLocalCoverBackups(user.id, toBackup);
 
       if (toBackup.length > 0) {
         await supabase
@@ -216,13 +219,13 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           .from('user_game_covers' as any)
           .select('file_name, custom_name, custom_cover_url')
           .eq('user_id', user!.id);
-        const coverMap = new Map<string, { custom_name: string | null; custom_cover_url: string | null }>();
-        (savedCovers || []).forEach((c: any) => {
-          coverMap.set(c.file_name, { custom_name: c.custom_name, custom_cover_url: c.custom_cover_url });
-        });
+        const coverMap = buildCoverBackupMap([
+          ...((savedCovers || []) as any[]),
+          ...loadLocalCoverBackups(user!.id),
+        ]);
 
         const mapped = validFiles.map((file) => {
-          const restored = coverMap.get(file.name);
+          const restored = getCoverBackup(coverMap, file.name);
           return {
             drive_file_id: file.id,
             file_name: file.name,

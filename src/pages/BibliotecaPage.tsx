@@ -17,6 +17,7 @@ import { useSearchParams, Link, useLocation } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
+import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -203,17 +204,28 @@ export default function BibliotecaPage() {
             const driveFiles = await listDriveRomFiles(token, folderId);
             const validFiles = driveFiles.filter((f) => ROM_FILE_REGEX.test(f.name));
             if (validFiles.length > 0) {
+              const { data: savedCovers } = await supabase
+                .from('user_game_covers' as any)
+                .select('file_name, custom_name, custom_cover_url')
+                .eq('user_id', user.id);
+              const coverMap = buildCoverBackupMap([
+                ...((savedCovers || []) as any[]),
+                ...loadLocalCoverBackups(user.id),
+              ]);
               const dedupedFiles = dedupeDriveRomCandidates(validFiles.map((f) => ({
                 ...f,
                 file_name: f.name,
                 console_type: getConsoleType(f.name, f.parentHint),
                 hasHint: !!f.parentHint,
+                restored: getCoverBackup(coverMap, f.name),
               })));
               const gamesToSave = dedupedFiles.map((f) => ({
                 user_id: user.id,
                 drive_file_id: f.id,
                 file_name: f.name,
                 console_type: f.console_type,
+                ...(f.restored?.custom_name ? { custom_name: f.restored.custom_name } : {}),
+                ...(f.restored?.custom_cover_url ? { custom_cover_url: f.restored.custom_cover_url } : {}),
               }));
               const keepIds = new Set(gamesToSave.map((g) => g.drive_file_id));
               const { data: existingRows } = await supabase
@@ -254,11 +266,15 @@ export default function BibliotecaPage() {
       }
 
       if (driveData) {
+        const coverMap = buildCoverBackupMap([
+          ...((coverData || []) as any[]),
+          ...loadLocalCoverBackups(user.id),
+        ]);
         const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         }).map((g: any) => {
-            const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
+            const customData: any = getCoverBackup(coverMap, g.file_name);
             return {
                 ...g,
                 custom_name: customData?.custom_name || g.custom_name,
@@ -545,6 +561,12 @@ const handlePlayCloudGame = async (game: any) => {
 
       // 2. Guardar en nueva tabla (Evitando el UPSERT problemático)
       if (editingGame.fileName) {
+        saveLocalCoverBackups(user.id, [{
+          file_name: editingGame.fileName,
+          custom_name: newName,
+          custom_cover_url: newCover,
+        }]);
+
         // Primero buscamos si ya existe el registro para este usuario y archivo
         const { data: existingRaw } = await supabase
           .from("user_game_covers" as any)
