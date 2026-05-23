@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!assets|roms|placeholder|robots|favicon).*)", "destination": "/index.html" }
+    { "source": "/:path*", "destination": "/index.html" }
   ],
   "headers": [
     {
@@ -14,13 +14,6 @@
       "source": "/arcade/psp-player",
       "headers": [
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" }
-      ]
-    },
-    {
-      "source": "/((?!arcade/(salas|psp-player)).*)",
-      "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" }
       ]
     }
