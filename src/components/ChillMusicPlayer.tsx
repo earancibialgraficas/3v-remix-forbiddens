@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter, Save, FolderOpen } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter, Save, FolderOpen, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -27,6 +27,39 @@ const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.ge
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
 const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
 const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
+
+const getSongOrderKey = (song: Song) => `${song.type}:${song.id}:${song.url}`;
+const getPlaylistOrderStorageKey = (category: string) => `forbiddens_music_order_${category || "Personal"}`;
+
+const applyStoredPlaylistOrder = (songs: Song[], category: string) => {
+  if (typeof window === "undefined" || songs.length < 2) return songs;
+  try {
+    const stored = JSON.parse(localStorage.getItem(getPlaylistOrderStorageKey(category)) || "[]");
+    if (!Array.isArray(stored) || !stored.length) return songs;
+    const buckets = new Map<string, Song[]>();
+    songs.forEach((song) => {
+      const key = getSongOrderKey(song);
+      buckets.set(key, [...(buckets.get(key) || []), song]);
+    });
+    const ordered: Song[] = [];
+    stored.forEach((key) => {
+      const bucket = buckets.get(key);
+      const song = bucket?.shift();
+      if (song) ordered.push(song);
+    });
+    songs.forEach((song) => {
+      if (!ordered.includes(song)) ordered.push(song);
+    });
+    return ordered;
+  } catch {
+    return songs;
+  }
+};
+
+const storePlaylistOrder = (songs: Song[], category: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(getPlaylistOrderStorageKey(category), JSON.stringify(songs.map(getSongOrderKey)));
+};
 
 const getYoutubeId = (url: string) => {
   try {
@@ -116,6 +149,9 @@ export default function ChillMusicPlayer() {
   const [playlistName, setPlaylistName] = useState("");
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [savingPlaylist, setSavingPlaylist] = useState(false);
+  const [activePersonalPlaylistId, setActivePersonalPlaylistId] = useState<string | null>(null);
+  const [draggedSongIndex, setDraggedSongIndex] = useState<number | null>(null);
+  const [dragOverSongIndex, setDragOverSongIndex] = useState<number | null>(null);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
@@ -246,6 +282,7 @@ export default function ChillMusicPlayer() {
       if (savedCat !== "Todos") {
         initialPlaylist = fetchedSongs.filter(s => s.category === savedCat);
       }
+      initialPlaylist = applyStoredPlaylistOrder(initialPlaylist, savedCat);
       setPlaylist(initialPlaylist);
 
       if (savedIndex !== null && parseInt(savedIndex) < initialPlaylist.length) {
@@ -304,10 +341,11 @@ export default function ChillMusicPlayer() {
 
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
+    setActivePersonalPlaylistId(null);
     if (cat === "Todos") {
-      setPlaylist(allSongs);
+      setPlaylist(applyStoredPlaylistOrder(allSongs, cat));
     } else {
-      setPlaylist(allSongs.filter(s => s.category === cat));
+      setPlaylist(applyStoredPlaylistOrder(allSongs.filter(s => s.category === cat), cat));
     }
     setCurrentIndex(0);
     setIsPlaying(true);
@@ -456,9 +494,54 @@ export default function ChillMusicPlayer() {
     setIsPlaying(true);
   };
 
+  const serializeYoutubeSongs = (songs: Song[]) => songs
+    .filter((song) => song.type === "youtube")
+    .map((song) => ({
+      id: song.id,
+      title: song.title,
+      url: song.url,
+      type: "youtube",
+      category: "Custom",
+    }));
+
+  const persistPersonalPlaylistOrder = useCallback(async (playlistId: string | null, name: string, songs: Song[]) => {
+    if (!user || !playlistId) return;
+    const youtubeSongs = serializeYoutubeSongs(songs);
+    if (!youtubeSongs.length) return;
+    try {
+      const { error } = await (supabase as any)
+        .from("user_music_playlists")
+        .update({ songs: youtubeSongs })
+        .eq("id", playlistId)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setSavedPlaylists((items) => items.map((item) => (
+        item.id === playlistId ? { ...item, name, songs: youtubeSongs as Song[] } : item
+      )));
+    } catch (error) {
+      console.error("No se pudo guardar el orden de la playlist", error);
+    }
+  }, [user]);
+
+  const reorderPlaylist = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= playlist.length || toIndex >= playlist.length) return;
+    const nextList = [...playlist];
+    const [moved] = nextList.splice(fromIndex, 1);
+    nextList.splice(toIndex, 0, moved);
+    let nextCurrentIndex = currentIndex;
+    if (fromIndex === currentIndex) nextCurrentIndex = toIndex;
+    else if (fromIndex < currentIndex && toIndex >= currentIndex) nextCurrentIndex = currentIndex - 1;
+    else if (fromIndex > currentIndex && toIndex <= currentIndex) nextCurrentIndex = currentIndex + 1;
+    setPlaylist(nextList);
+    setCurrentIndex(nextCurrentIndex);
+    storePlaylistOrder(nextList, currentCategory);
+    void persistPersonalPlaylistOrder(activePersonalPlaylistId, playlistName.trim() || currentCategory, nextList);
+  };
+
   const removeSong = (idx: number) => {
     const newList = playlist.filter((_, i) => i !== idx);
     setPlaylist(newList);
+    storePlaylistOrder(newList, currentCategory);
     if (idx === currentIndex) setCurrentIndex(0);
     else if (idx < currentIndex) setCurrentIndex(p => p - 1);
   };
@@ -477,12 +560,14 @@ export default function ChillMusicPlayer() {
     };
     setPlaylist(prev => [...prev, newSong]);
     setCurrentCategory("Personal");
+    setActivePersonalPlaylistId(null);
     setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
   };
 
   const loadPersonalPlaylist = (saved: SavedPlaylist) => {
     setPlaylist(saved.songs);
     setCurrentCategory(saved.name);
+    setActivePersonalPlaylistId(saved.id);
     setCurrentIndex(0);
     setCurrentTime(0);
     setDuration(0);
@@ -500,24 +585,24 @@ export default function ChillMusicPlayer() {
     setSavingPlaylist(true);
     try {
       const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
+      let nextActiveId = selected?.id || null;
       const payload = {
         user_id: user.id,
         name,
-        songs: youtubeSongs.map((song) => ({
-          id: song.id,
-          title: song.title,
-          url: song.url,
-          type: "youtube",
-          category: "Custom",
-        })),
+        songs: serializeYoutubeSongs(youtubeSongs),
       };
       if (selected) {
-        await (supabase as any).from("user_music_playlists").update(payload).eq("id", selected.id).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("user_music_playlists").update(payload).eq("id", selected.id).eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await (supabase as any).from("user_music_playlists").insert(payload);
+        const { data, error } = await (supabase as any).from("user_music_playlists").insert(payload).select("id").single();
+        if (error) throw error;
+        nextActiveId = data?.id || null;
       }
       await loadSavedPlaylists();
       setCurrentCategory(name);
+      setActivePersonalPlaylistId(nextActiveId);
+      storePlaylistOrder(youtubeSongs, name);
     } catch (error) {
       console.error("No se pudo guardar la playlist", error);
     } finally {
@@ -529,6 +614,7 @@ export default function ChillMusicPlayer() {
     if (!user) return;
     try {
       await (supabase as any).from("user_music_playlists").delete().eq("id", id).eq("user_id", user.id);
+      if (activePersonalPlaylistId === id) setActivePersonalPlaylistId(null);
       await loadSavedPlaylists();
     } catch (error) {
       console.error("No se pudo borrar la playlist", error);
@@ -902,7 +988,47 @@ export default function ChillMusicPlayer() {
         {expanded && (
           <div className="max-h-40 overflow-y-auto retro-scrollbar border-t border-border/30">
             {playlist.map((song, i) => (
-              <div key={`${song.id}-${i}`} className={cn("flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group", i === currentIndex && "bg-neon-cyan/10 text-neon-cyan")}>
+              <div
+                key={`${song.id}-${i}`}
+                onDragEnter={() => draggedSongIndex !== null && setDragOverSongIndex(i)}
+                onDragOver={(e) => {
+                  if (draggedSongIndex !== null) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedSongIndex !== null) reorderPlaylist(draggedSongIndex, i);
+                  setDraggedSongIndex(null);
+                  setDragOverSongIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedSongIndex(null);
+                  setDragOverSongIndex(null);
+                }}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1.5 text-[10px] font-body hover:bg-muted/30 transition-colors group",
+                  i === currentIndex && "bg-neon-cyan/10 text-neon-cyan",
+                  dragOverSongIndex === i && draggedSongIndex !== i && "outline outline-1 outline-neon-cyan/60 bg-neon-cyan/5",
+                  draggedSongIndex === i && "opacity-60"
+                )}
+              >
+                {playlist.length > 1 && (
+                  <button
+                    type="button"
+                    draggable
+                    onClick={(e) => e.preventDefault()}
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", String(i));
+                      setDraggedSongIndex(i);
+                      setDragOverSongIndex(i);
+                    }}
+                    className="shrink-0 cursor-grab text-muted-foreground/70 hover:text-neon-cyan active:cursor-grabbing"
+                    title="Arrastrar para ordenar"
+                    aria-label="Arrastrar para ordenar"
+                  >
+                    <GripVertical className="h-3 w-3" />
+                  </button>
+                )}
                 <button onClick={() => { setCurrentIndex(i); setIsPlaying(true); setCurrentTime(0); }} className="flex-1 text-left truncate cursor-pointer">
                   <span className={i === currentIndex ? "text-neon-cyan" : "text-foreground"}>{song.title}</span>
                 </button>
