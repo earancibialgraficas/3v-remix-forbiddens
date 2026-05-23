@@ -77,13 +77,14 @@ const consoleIcons: Record<string, string> = {
   arcade: "🕹️",
 };
 
-const emulatorJsConsoles = new Set(["n64", "ps1", "arcade", "ds"]);
+const emulatorJsConsoles = new Set(["n64", "ps1", "arcade", "ds", "psp"]);
 
 const getEmulatorJsCore = (consoleName: string) => {
   if (consoleName === "n64") return "n64";
   if (consoleName === "ps1") return "psx";
   if (consoleName === "arcade") return "arcade";
   if (consoleName === "ds") return "nds";
+  if (consoleName === "psp") return "psp";
   return consoleName;
 };
 
@@ -146,7 +147,7 @@ export default function GameBubble() {
   const activeGame = activeGames[currentGameIndex] || null;
   const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
-  const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2"].includes(activeGame.consoleName);
+  const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2", "psp"].includes(activeGame.consoleName);
 
   // 🔐 Namespace por usuario para que las partidas no se filtren entre cuentas en el mismo navegador
   const getSaveKey = useCallback((gameName: string) => {
@@ -409,7 +410,7 @@ export default function GameBubble() {
     const slotsJson = JSON.stringify(safeSlots);
 
     // ☁️ Para EmulatorJS cores (N64/PS1/Arcade): subir a Google Drive en lugar de DB.
-    const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+    const useDrive = ["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName);
     if (useDrive) {
       try {
         const { isDriveLinked, uploadSaveSlotsToDrive } = await import("@/lib/driveSaves");
@@ -482,7 +483,7 @@ export default function GameBubble() {
         }
 
         if (user) {
-          const useDrive = ["n64", "ps1", "arcade"].includes(activeGame.consoleName);
+          const useDrive = ["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName);
           try {
             let cloudJson: string | null = null;
             if (useDrive) {
@@ -1428,7 +1429,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
     // 🚫 N64/PS1/Arcade: NO autoguardar estado al cerrar (el usuario lo gestiona localmente con .state).
-    if (["n64", "ps1", "arcade"].includes(activeGame.consoleName)) return;
+    if (["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName)) return;
     try {
       const result = await nostalgistRef.current.saveState();
       const stateBlob: Blob = result.state;
