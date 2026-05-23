@@ -163,7 +163,7 @@ ${tipDesc}[/COLOR]
             <span className="font-pixel text-neon-cyan shrink-0">5.</span>
             <div>
               <div className="font-medium">Formatos soportados</div>
-                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd (PS1), .zip (Arcade).</p>
+                  <p className="text-muted-foreground mt-1">.nes, .smc/.sfc, .gba, .n64/.z64, .bin/.cue/.chd/.iso (PS1), .iso/.cso/.pbp (PSP), .zip (Arcade).</p>
             </div>
           </li>
         </ol>
