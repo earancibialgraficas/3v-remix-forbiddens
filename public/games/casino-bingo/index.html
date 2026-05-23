@@ -100,6 +100,7 @@
     .modeButtons button{min-height:98px;text-align:left;border-radius:12px;padding:14px;background:linear-gradient(135deg,#061a2c,#25104a);box-shadow:inset 0 0 22px #0008,0 0 18px #22d3ee18}
     .modeButtons b{display:block;color:#fff;font-size:16px}
     .modeButtons span{display:block;margin-top:6px;color:#cbd5e1;font-size:12px;line-height:1.35}
+    .modeJoin{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid #22d3ee33}
     .sideToast{position:fixed;right:16px;bottom:16px;z-index:30;display:none;max-width:min(320px,calc(100vw - 32px));border:1px solid #22d3ee66;border-radius:12px;background:#07111ff2;padding:10px 12px;box-shadow:0 14px 34px #000b,0 0 18px #22d3ee33;pointer-events:none}
     .sideToast.show{display:block;animation:sidePop 2.4s ease both}
     .sideToast b{display:block;color:#facc15;font-size:12px;text-transform:uppercase}
@@ -176,24 +177,51 @@
         <button id="modeBritish"><b>Bingo Britanico</b><span>Carton 3x9, bolas 1-90, linea, dos lineas y casa llena.</span></button>
         <button id="modeAmerican"><b>Bingo Americano</b><span>Carton B-I-N-G-O 5x5 con FREE, bolas 1-75 y lineas horizontales, verticales o diagonales.</span></button>
       </div>
+      <div class="modeJoin">
+        <input id="modeJoinRoom" placeholder="Codigo de sala" />
+        <button id="modeJoin">Unirse sin elegir</button>
+      </div>
     </div>
   </div>
 
   <script src="/games/realtime-room.js"></script>
   <script>
     const p = new URLSearchParams(location.search);
-    const NEED_MODE_CHOICE = !p.get("mode") && !location.pathname.includes("casino-bingo-american");
-    const BINGO_MODE = p.get("mode") === "american" || location.pathname.includes("casino-bingo-american");
-    const GAME_SLUG = BINGO_MODE ? "casino-bingo-american" : "casino-bingo";
-    const CARD_SLUG = BINGO_MODE ? "casino-bingo-american-card" : "casino-bingo-card";
-    const BALL_COUNT = BINGO_MODE ? 75 : 90;
-    document.body.classList.toggle("american-bingo", BINGO_MODE);
-    document.title = BINGO_MODE ? "Bingo Americano BET" : "Bingo Britanico BET";
+    const preset = (p.get("room") || "").toUpperCase();
+    const initialMode = p.get("mode") === "american" || location.pathname.includes("casino-bingo-american") ? "american" : "british";
+    const NEED_MODE_CHOICE = !p.get("mode") && !location.pathname.includes("casino-bingo-american") && !preset;
+    let BINGO_MODE = initialMode === "american";
+    let modeReady = !NEED_MODE_CHOICE;
+    let hostClockOffset = 0;
+    const ROOM_SLUG = "casino-bingo-room";
+    const gameSlug = () => BINGO_MODE ? "casino-bingo-american" : "casino-bingo";
+    const cardSlug = () => BINGO_MODE ? "casino-bingo-american-card" : "casino-bingo-card";
+    const ballCount = () => BINGO_MODE ? 75 : 90;
+    const roomMode = () => BINGO_MODE ? "american" : "british";
+    const hostNow = () => Date.now() + hostClockOffset;
+    function applyRoomMode(mode, fromHost = false){
+      const nextMode = mode === "american";
+      const changed = BINGO_MODE !== nextMode;
+      BINGO_MODE = nextMode;
+      modeReady = true;
+      document.body.classList.toggle("american-bingo", BINGO_MODE);
+      document.title = BINGO_MODE ? "Bingo Americano BET" : "Bingo Britanico BET";
+      document.querySelector(".brand").textContent = BINGO_MODE ? "BINGO USA BET" : "BINGO BET";
+      if (changed) {
+        cardCatalogCache.clear();
+        knownCardSignatures.clear();
+        cardsData = [];
+        cardNumbers = [];
+        markedCells = new Set();
+      }
+      if (fromHost) $("modeChoice").classList.remove("show");
+    }
+    applyRoomMode(initialMode);
+    if (NEED_MODE_CHOICE) modeReady = false;
     const profile = { userId: p.get("userId") || "", displayName: p.get("displayName") || "Jugador", avatarUrl: p.get("avatarUrl") || "" };
     const $ = (id) => document.getElementById(id);
     document.body.classList.toggle("embedded", p.get("embed") === "1");
-    document.querySelector(".brand").textContent = BINGO_MODE ? "BINGO USA BET" : "BINGO BET";
-    let api, connected = false, peers = [], isLeader = false, wallet = null;
+    let api, connected = false, peers = [], isLeader = false, wallet = null, setupPromise = null;
     let cardsData = [], cardNumbers = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
     let autoTimer = null, drawTimer = null, phasePauseTimer = null, claimUiTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
     let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
@@ -203,7 +231,6 @@
     const BALL_DRAW_INTERVAL_MS = 5000;
     const knownCardSignatures = new Set();
     const cardCatalogCache = new Map();
-    const preset = (p.get("room") || "").toUpperCase();
     if (preset) $("room").value = preset;
 
     function fmt(n){ return Number(n || 0).toLocaleString("es-CL"); }
@@ -216,7 +243,7 @@
       } catch {}
     }
     function stageVisible(){ return Date.now() < stageUntil; }
-    function claimOpen(){ return claimWindowKind && Date.now() >= claimWindowOpensAt && Date.now() < claimWindowEndsAt && !stageVisible(); }
+    function claimOpen(){ return claimWindowKind && hostNow() >= claimWindowOpensAt && hostNow() < claimWindowEndsAt && !stageVisible(); }
     function tutorialMarkup(kind){
       if (!kind) return "";
       const hot = new Set();
@@ -257,7 +284,7 @@
       prizePool = Math.min(10000, Math.floor(cardFees * 1.3));
       $("prizePool").textContent = fmt(prizePool);
       $("cardTotal").textContent = `${cardsData.length}/5`;
-      $("buyCard").disabled = roundActive || cardsData.length >= 5;
+      $("buyCard").disabled = !modeReady || roundActive || cardsData.length >= 5;
       $("buyBar")?.classList.toggle("hidden", roundActive);
       renderCardNumberOptions();
     }
@@ -267,7 +294,7 @@
     function updateClaimTimer(){
       const box = $("claimTimer");
       if (!box) return;
-      const now = Date.now();
+      const now = hostNow();
       if (!claimWindowKind || now >= claimWindowEndsAt || now < claimWindowOpensAt || stageVisible()) {
         box.hidden = true;
         return;
@@ -281,7 +308,7 @@
       if (claimUiTimer) return;
       claimUiTimer = setInterval(() => {
         updateClaimTimer();
-        if (!claimWindowKind || Date.now() >= claimWindowEndsAt) {
+        if (!claimWindowKind || hostNow() >= claimWindowEndsAt) {
           clearInterval(claimUiTimer);
           claimUiTimer = null;
           updateClaimTimer();
@@ -314,7 +341,7 @@
         ? options.map((n) => `<option value="${n}">Carton ${String(n).padStart(3, "0")}</option>`).join("")
         : `<option value="">Sin cartones</option>`;
       if (options.includes(previous)) select.value = String(previous);
-      $("buyCard").disabled = roundActive || cardsData.length >= 5 || options.length === 0;
+      $("buyCard").disabled = !modeReady || roundActive || cardsData.length >= 5 || options.length === 0;
     }
     function firstAvailableCardNumber(){
       const owned = new Set(cardNumbers.map(Number));
@@ -327,7 +354,7 @@
       return options.length ? options[Math.floor(Math.random() * options.length)] : 0;
     }
     function addBaseCard(){
-      if (!connected || cardsData.length > 0) return;
+      if (!connected || !modeReady || roundActive || cardsData.length > 0) return;
       const selectedNumber = firstAvailableCardNumber();
       if (!selectedNumber) return;
       const nextCard = makeNumberedCard(selectedNumber);
@@ -477,7 +504,7 @@
       );
     }
     function currentPrizeKind(){
-      if (claimWindowKind && Date.now() < claimWindowEndsAt) return claimWindowKind;
+      if (claimWindowKind && hostNow() < claimWindowEndsAt) return claimWindowKind;
       return phase || "line";
     }
     function missingForPrize(cardRows, cardIndex){
@@ -562,29 +589,43 @@
       $("tombola").classList.toggle("playing", roundActive);
       renderCards();
     }
-    function setPhase(next){
-      phase = next;
+    function phaseLabels(){
       const labels = {
         line: BINGO_MODE ? ["1 linea", "Completa una fila, columna o diagonal."] : ["1 linea", "Marca una fila completa en cualquier carton."],
         two: BINGO_MODE ? ["2 lineas", "Ahora se premian dos lineas completas."] : ["2 lineas", "Ahora se premian dos filas completas."],
         full: ["Casa llena", "Completa todas las casillas numeradas."]
       };
+      return labels;
+    }
+    function renderPhaseText(next = phase){
+      const labels = phaseLabels();
       $("phaseName").textContent = labels[next]?.[0] || "Esperando";
-      $("phaseHelp").textContent = labels[next]?.[1] || "La partida empieza automaticamente en 1 minuto.";
+      $("phaseHelp").textContent = labels[next]?.[1] || "Sincronizando fase con el dueno de la sala.";
+    }
+    function setPhase(next, announce = true){
+      phase = next;
+      const labels = phaseLabels();
+      $("phaseName").textContent = labels[next]?.[0] || "Esperando";
+      $("phaseHelp").textContent = labels[next]?.[1] || "Sincronizando fase con el dueño de la sala.";
+      if (!announce) return;
       showStage(labels[next]?.[0] || "Bingo", labels[next]?.[1] || "", 0, 7800, next);
     }
     function refreshLeadership(){
       const leader = [...peers].sort((a,b) => (a.joinedAt || 0) - (b.joinedAt || 0))[0];
       isLeader = Boolean(leader && (leader.playerId === api?.playerId || leader.userId === profile.userId));
-      if (isLeader && connected && !roundActive && !prepareEndsAt) {
+      $("modeBritish").disabled = connected && !isLeader;
+      $("modeAmerican").disabled = connected && !isLeader;
+      if (isLeader && connected && modeReady && !roundActive && !prepareEndsAt) {
         prepareEndsAt = Date.now() + 60000;
         api?.send("state", statePayload());
       }
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt };
+      return { roomMode: roomMode(), hostNow: Date.now(), called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt };
     }
     function applyState(state){
+      if (typeof state?.hostNow === "number") hostClockOffset = Number(state.hostNow) - Date.now();
+      if (state?.roomMode) applyRoomMode(state.roomMode, true);
       called = Array.isArray(state?.called) ? state.called : called;
       deck = Array.isArray(state?.deck) ? state.deck : deck;
       roundActive = Boolean(state?.roundActive);
@@ -600,10 +641,12 @@
       claimWindowOpensAt = Number(state?.claimWindowOpensAt || claimWindowOpensAt || 0);
       claimWindowEndsAt = Number(state?.claimWindowEndsAt || claimWindowEndsAt || 0);
       reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? { ...state.reservedCards, ...reservedCards } : reservedCards;
+      renderPhaseText();
       renderCalled();
-      if (claimWindowKind && Date.now() < claimWindowEndsAt) ensureClaimUiTimer();
+      if (claimWindowKind && hostNow() < claimWindowEndsAt) ensureClaimUiTimer();
       updatePrizePool();
       if (roundActive && isLeader) ensureDrawTimer();
+      if (connected && modeReady && !roundActive && cardsData.length === 0) addBaseCard();
     }
     function startCountdown(){
       clearInterval(autoTimer);
@@ -611,9 +654,14 @@
       autoTimer = setInterval(() => {
         try {
           if (!connected || roundActive) return;
+          if (!isLeader) {
+            $("phaseName").textContent = "Esperando";
+            $("phaseHelp").textContent = "Sincronizado con el dueno de la sala.";
+            return;
+          }
           countdown = Math.max(0, Math.ceil((prepareEndsAt - Date.now()) / 1000));
-          $("phaseName").textContent = "Esperando";
-          $("phaseHelp").textContent = `Inicio automatico en ${Math.max(0, countdown)}s.`;
+          $("phaseName").textContent = "Preparando";
+          $("phaseHelp").textContent = `El dueno iniciara la partida en ${Math.max(0, countdown)}s.`;
           if (countdown <= 0 && isLeader && Math.max(1, peers.length) >= 1) startRound(false);
         } catch (error) {
           console.error("Bingo timer error", error);
@@ -626,7 +674,7 @@
       if (state) { applyState(state); return; }
       if (!isLeader || roundActive) return;
       clearTimeout(phasePauseTimer);
-      deck = Array.from({ length: BALL_COUNT }, (_, i) => i + 1).sort(() => Math.random() - .5);
+      deck = Array.from({ length: ballCount() }, (_, i) => i + 1).sort(() => Math.random() - .5);
       called = [];
       markedCells = new Set();
       claimed = { line: false, two: false, full: false };
@@ -764,10 +812,13 @@
       announcePrize(kind);
       const payout = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
       paidPrizes += payout;
-      const result = await api.casinoWager(GAME_SLUG, 0, payout, { mode: BINGO_MODE ? "american" : "british", kind, cards: cardsData.length, called });
+      const result = await api.casinoWager(gameSlug(), 0, payout, { mode: roomMode(), kind, cards: cardsData.length, called });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
-      if (opensPause) schedulePrizePause(kind);
+      if (opensPause) {
+        if (isLeader) schedulePrizePause(kind);
+        else log("Premio cantado. Esperando temporizador del dueno de la sala.");
+      }
       api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt, opensPause });
       log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
       renderCards();
@@ -800,13 +851,14 @@
     async function buyCard(){
       try {
         if (!connected || !api) { log("Primero crea o entra a una sala."); return; }
+        if (!modeReady) { log("Esperando el modo elegido por el dueno de la sala."); return; }
         if (roundActive) { log("No puedes comprar cartones durante la partida."); return; }
         if (cardsData.length >= 5) { log("Maximo 5 cartones por usuario."); return; }
         const selectedNumber = Number($("cardNumber")?.value || 0);
         if (!selectedNumber || selectedNumber < 1 || selectedNumber > 100) { log("Escoge un numero de carton disponible."); return; }
         if (cardOwner(selectedNumber) && !cardIsMine(selectedNumber)) { log("Ese carton ya no esta disponible en esta sala."); renderCardNumberOptions(); return; }
         $("buyCard").disabled = true;
-        const result = await api.casinoWager(CARD_SLUG, 100, 0, { mode: BINGO_MODE ? "american" : "british", cards: cardsData.length + 1, cardNumber: selectedNumber, source: "numbered_card" });
+        const result = await api.casinoWager(cardSlug(), 100, 0, { mode: roomMode(), cards: cardsData.length + 1, cardNumber: selectedNumber, source: "numbered_card" });
         if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
         if (result.reason && result.reason !== "ok") { log(`No se pudo comprar carton: ${result.reason}`); return; }
         const nextCard = makeNumberedCard(selectedNumber);
@@ -827,9 +879,14 @@
         updatePrizePool();
       }
     }
-    async function connect(code){
+    async function connect(code, creating = false){
       const next = String(code || "").trim().toUpperCase();
       if (!next) return;
+      if (creating && !modeReady) {
+        log("Elige bingo britanico o americano antes de crear la sala.");
+        $("modeChoice").classList.add("show");
+        return;
+      }
       await api.connect(next);
       connected = true;
       $("room").value = next;
@@ -840,20 +897,33 @@
       reservedCards = {};
       cardFees = 0;
       prizePool = 0;
-      addBaseCard();
       renderCards();
       updatePrizePool();
       await refreshWallet();
-      startCountdown();
+      if ((creating || isLeader) && modeReady) {
+        addBaseCard();
+        startCountdown();
+        api.send("state", statePayload());
+      } else if (isLeader && !modeReady) {
+        $("phaseName").textContent = "Sin modo";
+        $("phaseHelp").textContent = "Esta sala no tiene dueno con modo elegido. Crea una sala nueva eligiendo el bingo.";
+        log("No hay modo de sala para sincronizar. Crea una sala nueva eligiendo britanico o americano.");
+      } else {
+        $("phaseName").textContent = "Sincronizando";
+        $("phaseHelp").textContent = "Esperando fase y modo del dueno de la sala.";
+        log("Entrando a sala existente. Sincronizando con el dueno.");
+      }
       api.send("state_request", { userId: profile.userId, playerId: api.playerId });
     }
     async function setup(){
+      if (setupPromise) return setupPromise;
+      setupPromise = (async () => {
       cardsData = [];
       cardNumbers = [];
       renderCards();
       try {
         api = await createRealtimeRoom({
-          game: GAME_SLUG,
+          game: ROOM_SLUG,
           profile,
           maxPlayers: 20,
           onPeers: (count, players) => {
@@ -879,8 +949,10 @@
               claimWindowEndsAt = Number(m.payload.claimWindowEndsAt || claimWindowEndsAt || 0);
               window.parent?.postMessage({ type: "game:playerAward", userId: m.payload.userId, playerId: m.payload.playerId, award: m.payload.kind, payout: m.payload.payout }, "*");
               announcePrize(m.payload.kind);
-              if (m.payload.opensPause !== false) schedulePrizePause(m.payload.kind, false);
-              else renderCards();
+              if (m.payload.opensPause !== false) {
+                if (isLeader) schedulePrizePause(m.payload.kind, true);
+                else renderCards();
+              } else renderCards();
               log(`${m.payload.name} canto premio por ${fmt(m.payload.payout)} F-coin.`);
             }
             if (m.type === "end") endRound(true);
@@ -895,16 +967,27 @@
         });
         $("status").textContent = "Listo";
         await refreshWallet();
-        if (preset) connect(preset);
+        if (preset) connect(preset, false);
       } catch (e) {
         $("status").textContent = e.message || "Sin realtime";
       }
+      })();
+      return setupPromise;
     }
-    $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2,8).toUpperCase());
-    $("join").onclick = () => roomLocked ? log("La partida ya inicio. Espera a la siguiente.") : connect($("room").value);
+    $("create").onclick = () => connect($("room").value || Math.random().toString(36).slice(2,8).toUpperCase(), true);
+    $("join").onclick = () => connect($("room").value, false);
     $("buyCard").onclick = buyCard;
     $("modeBritish").onclick = () => chooseMode("british");
     $("modeAmerican").onclick = () => chooseMode("american");
+    $("modeJoin").onclick = async () => {
+      const code = String($("modeJoinRoom").value || "").trim().toUpperCase();
+      if (!code) return;
+      $("modeChoice").classList.remove("show");
+      $("room").value = code;
+      modeReady = false;
+      await setup();
+      await connect(code, false);
+    };
     if (NEED_MODE_CHOICE) {
       $("modeChoice").classList.add("show");
       $("status").textContent = "Elige modo de bingo";
