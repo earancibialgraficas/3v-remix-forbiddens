@@ -138,6 +138,13 @@ const systems = [
     glow: "rgba(34,211,238,0.7)", year: "2004"
   },
   {
+    // 🆕 PSP — EmulatorJS ppsspp core
+    id: "psp", name: "PlayStation Portable", short: "PSP", core: "ppsspp", extensions: ".iso,.cso,.pbp,.chd",
+    bg: "https://image.pollinations.ai/prompt/psp%20playstation%20portable%20handheld%20console%20neon%20cyberpunk?width=1280&height=720&nologo=true",
+    consoleImg: "/consolasimg/PSP.png",
+    glow: "rgba(96,165,250,0.7)", year: "2004"
+  },
+  {
     // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
     id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
     bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",

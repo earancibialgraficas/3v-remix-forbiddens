@@ -2,9 +2,9 @@
 
 export type MembershipTier = 'novato' | 'lite' | 'entusiasta' | 'coleccionista' | 'miembro del legado' | 'leyenda arcade' | 'creador de contenido';
 
-// Tiers que tienen acceso a las consolas extra (N64, PS1, PS2). LITE es el mínimo.
+// Tiers que tienen acceso a las consolas extra (N64, PS1, PS2, PSP). LITE es el mínimo.
 export const EXTRA_CONSOLE_TIERS: MembershipTier[] = ['lite', 'entusiasta', 'coleccionista', 'miembro del legado', 'leyenda arcade', 'creador de contenido'];
-export const EXTRA_CONSOLES = ['n64', 'ps1', 'ps2'] as const;
+export const EXTRA_CONSOLES = ['n64', 'ps1', 'ps2', 'psp'] as const;
 export const canPlayExtraConsole = (tier: string | null | undefined, isStaff: boolean): boolean => {
   if (isStaff) return true;
   const t = (tier || 'novato').toLowerCase() as MembershipTier;
