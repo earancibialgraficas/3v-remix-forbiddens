@@ -272,7 +272,7 @@ export default function BibliotecaPage() {
         const uniqueDriveConsoles = [...new Set(validGames.map((g: any) => g.console_type))];
 
         uniqueDriveConsoles.forEach((consoleName: any) => {
-          const id = consoleTypeToId(consoleName);
+          let id = consoleTypeToId(consoleName);
           let color = "text-foreground";
 
           if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
