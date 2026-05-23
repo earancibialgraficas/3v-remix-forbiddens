@@ -16,6 +16,7 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link, useLocation } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
+import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -183,16 +184,6 @@ export default function BibliotecaPage() {
     }
   }, []);
 
-  const getConsoleType = (fileName: string) => {
-    const ext = fileName.toLowerCase().split('.').pop() || '';
-    if (['smc', 'sfc'].includes(ext)) return 'Super Nintendo';
-    if (['nes'].includes(ext)) return 'Nintendo Entertainment System';
-    if (['gba'].includes(ext)) return 'Game Boy Advance';
-    if (['z64', 'n64', 'v64'].includes(ext)) return 'Nintendo 64';
-    if (['bin', 'iso', 'cue', 'chd'].includes(ext)) return 'PlayStation 1';
-    return 'Arcade';
-  };
-
   const fetchDriveGames = useCallback(async (rescan = false) => {
     if (!user) return;
     if (rescan) setIsRefreshing(true);
@@ -209,19 +200,32 @@ export default function BibliotecaPage() {
 
           if (folderData.files && folderData.files.length > 0) {
             const folderId = folderData.files[0].id;
-            const filesQuery = `'${folderId}' in parents and trashed = false`;
-            const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name)&pageSize=1000`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const filesData = await filesRes.json();
-            const validFiles = (filesData.files || []).filter((f: any) => /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(f.name));
+            const driveFiles = await listDriveRomFiles(token, folderId);
+            const validFiles = driveFiles.filter((f) => ROM_FILE_REGEX.test(f.name));
             if (validFiles.length > 0) {
-              const gamesToSave = validFiles.map((f: any) => ({
+              const dedupedFiles = dedupeDriveRomCandidates(validFiles.map((f) => ({
+                ...f,
+                file_name: f.name,
+                console_type: getConsoleType(f.name, f.parentHint),
+                hasHint: !!f.parentHint,
+              })));
+              const gamesToSave = dedupedFiles.map((f) => ({
                 user_id: user.id,
                 drive_file_id: f.id,
                 file_name: f.name,
-                console_type: getConsoleType(f.name)
+                console_type: f.console_type,
               }));
+              const keepIds = new Set(gamesToSave.map((g) => g.drive_file_id));
+              const { data: existingRows } = await supabase
+                .from('user_drive_games' as any)
+                .select('drive_file_id')
+                .eq('user_id', user.id);
+              const stale = (existingRows || [])
+                .map((r: any) => r.drive_file_id)
+                .filter((id: string) => !keepIds.has(id));
+              if (stale.length > 0) {
+                await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id).in('drive_file_id', stale);
+              }
               await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
             }
           } else {
@@ -268,13 +272,9 @@ export default function BibliotecaPage() {
         const uniqueDriveConsoles = [...new Set(validGames.map((g: any) => g.console_type))];
 
         uniqueDriveConsoles.forEach((consoleName: any) => {
-          let id = consoleName.toLowerCase().replace(/\s+/g, '');
-          let color = "text-white";
+          let id = consoleTypeToId(consoleName);
+          let color = "text-foreground";
 
-          if (consoleName === 'Super Nintendo') id = 'snes';
-          if (consoleName === 'Nintendo Entertainment System') id = 'nes';
-          if (consoleName === 'Game Boy Advance') id = 'gba';
-          if (consoleName === 'Nintendo 64') id = 'n64';
           if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
           if (consoleName === 'PlayStation Portable') { id = 'psp'; color = 'text-neon-cyan'; }
           if (consoleName === 'Arcade') { id = 'arcade'; color = 'text-neon-orange'; }
@@ -363,6 +363,12 @@ const handlePlayCloudGame = async (game: any) => {
     try {
       const accessToken = await requestGoogleToken();
 
+      if (game.console === "psp") {
+        sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: game.name }));
+        window.location.assign(`/arcade/psp-player?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`);
+        return;
+      }
+
       const response = await fetch(`https://www.googleapis.com/drive/v3/files/${game.id}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -408,25 +414,10 @@ const handlePlayCloudGame = async (game: any) => {
   const currentGames = useMemo(() => {
     const official = allGames.filter(g => g.console === selectedConsole && g.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    // 🧹 Dedup por file_name (mismo ROM en raíz + subcarpeta = dos drive_file_id)
-    const dedupMap = new Map<string, any>();
-    for (const g of driveGames) {
-      const prev = dedupMap.get(g.file_name);
-      // Preferimos el que tenga consola "específica" (no Arcade fallback) si el otro es Arcade
-      if (!prev) dedupMap.set(g.file_name, g);
-      else if (prev.console_type === 'Arcade' && g.console_type !== 'Arcade') dedupMap.set(g.file_name, g);
-    }
-    const dedupedDriveGames = [...dedupMap.values()];
+    const dedupedDriveGames = dedupeDriveRomCandidates(driveGames);
 
     const cloud = dedupedDriveGames.filter(g => {
-      let mId = g.console_type.toLowerCase().replace(/\s+/g, '');
-      if (g.console_type === 'Super Nintendo') mId = 'snes';
-      if (g.console_type === 'Nintendo Entertainment System') mId = 'nes';
-      if (g.console_type === 'Game Boy Advance') mId = 'gba';
-      if (g.console_type === 'Nintendo 64') mId = 'n64';
-      if (g.console_type === 'PlayStation 1') mId = 'ps1';
-      if (g.console_type === 'PlayStation Portable') mId = 'psp';
-      if (g.console_type === 'Arcade') mId = 'arcade';
+      const mId = consoleTypeToId(g.console_type);
       const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
       return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
     }).map(g => {

@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CloudUpload, CloudOff, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -87,33 +88,6 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     } finally {
       setIsSyncing(false);
     }
-  };
-
-  // Normaliza nombre de carpeta (PSP, PS1, NES…) a console_type canónico
-  const folderNameToConsole = (rawName: string): string | null => {
-    const n = rawName.trim().toLowerCase().replace(/[\s_\-]/g, '');
-    if (['psp', 'playstationportable'].includes(n)) return 'PlayStation Portable';
-    if (['ps1', 'psx', 'playstation', 'playstation1'].includes(n)) return 'PlayStation 1';
-    if (['n64', 'nintendo64'].includes(n)) return 'Nintendo 64';
-    if (['snes', 'supernintendo', 'supernes'].includes(n)) return 'Super Nintendo';
-    if (['nes', 'nintendoentertainmentsystem'].includes(n)) return 'Nintendo Entertainment System';
-    if (['gba', 'gameboyadvance'].includes(n)) return 'Game Boy Advance';
-    if (['arcade', 'mame', 'fbneo'].includes(n)) return 'Arcade';
-    return null;
-  };
-
-  const getConsoleType = (fileName: string, parentHint?: string | null) => {
-    if (parentHint) return parentHint;
-    const ext = fileName.toLowerCase().split('.').pop();
-    if (['smc', 'sfc'].includes(ext || '')) return 'Super Nintendo';
-    if (['nes'].includes(ext || '')) return 'Nintendo Entertainment System';
-    if (['gba'].includes(ext || '')) return 'Game Boy Advance';
-    if (['z64', 'n64', 'v64'].includes(ext || '')) return 'Nintendo 64';
-    // Extensiones EXCLUSIVAS de PSP
-    if (['cso', 'pbp'].includes(ext || '')) return 'PlayStation Portable';
-    // PS1 (bin/iso/cue/chd son ambiguas — se usa carpeta padre PSP/ vs PS1/ para diferenciar)
-    if (['bin', 'iso', 'cue', 'chd'].includes(ext || '')) return 'PlayStation 1';
-    return 'Arcade';
   };
 
   const handleSync = () => {
@@ -223,35 +197,11 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
       const folderId = folderData.files[0].id;
 
-      // 2a. Buscamos SUBCARPETAS dentro de RetroRoms (PSP/, PS1/, NES/, etc.)
-      const subfoldersQuery = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-      const subfoldersRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(subfoldersQuery)}&fields=files(id,name)&pageSize=100`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const subfoldersData = await subfoldersRes.json();
-      const subfolders: Array<{ id: string; name: string; console: string | null }> = (subfoldersData.files || []).map((f: any) => ({
-        id: f.id,
-        name: f.name,
-        console: folderNameToConsole(f.name),
-      }));
-      const parentToConsole = new Map<string, string>();
-      subfolders.forEach((sf) => { if (sf.console) parentToConsole.set(sf.id, sf.console); });
+      const driveFiles = await listDriveRomFiles(token, folderId);
 
-      // 2b. Buscamos juegos en la carpeta raíz y en TODAS las subcarpetas
-      const parentIds = [folderId, ...subfolders.map((s) => s.id)];
-      const filesQuery = parentIds.map((pid) => `'${pid}' in parents`).join(' or ') + ' and trashed = false and mimeType != \'application/vnd.google-apps.folder\'';
-      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name,parents)&pageSize=1000`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const data = await filesRes.json();
-      
-      if (data.files && data.files.length > 0) {
+      if (driveFiles.length > 0) {
         // Filtramos por extensiones válidas (incluyendo .cso y .pbp para PSP)
-        const validFiles = data.files.filter((file: any) => {
-          const name = file.name.toLowerCase();
-          return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
-        });
+        const validFiles = driveFiles.filter((file) => ROM_FILE_REGEX.test(file.name));
 
         if (validFiles.length === 0) {
           toast({ title: 'Carpeta vacía', description: 'Tu carpeta RetroRoms no tiene juegos compatibles.' });
@@ -271,27 +221,18 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           coverMap.set(c.file_name, { custom_name: c.custom_name, custom_cover_url: c.custom_cover_url });
         });
 
-        // Mapeamos con parentHint cuando exista
-        const mapped = validFiles.map((file: any) => {
+        const mapped = validFiles.map((file) => {
           const restored = coverMap.get(file.name);
-          const parentHint = (file.parents || []).map((p: string) => parentToConsole.get(p)).find(Boolean) || null;
           return {
             drive_file_id: file.id,
             file_name: file.name,
-            console_type: getConsoleType(file.name, parentHint),
-            hasHint: !!parentHint,
+            console_type: getConsoleType(file.name, file.parentHint),
+            hasHint: !!file.parentHint,
             restored,
           };
         });
 
-        // 🧹 Dedup por file_name: si el mismo ROM aparece en raíz y en subcarpeta,
-        // nos quedamos con la versión que tiene hint de subcarpeta (consola fiable).
-        const byName = new Map<string, typeof mapped[number]>();
-        for (const m of mapped) {
-          const prev = byName.get(m.file_name);
-          if (!prev || (m.hasHint && !prev.hasHint)) byName.set(m.file_name, m);
-        }
-        const deduped = [...byName.values()];
+        const deduped = dedupeDriveRomCandidates(mapped);
 
         const gamesToSave = deduped.map((m) => ({
           user_id: user?.id,
