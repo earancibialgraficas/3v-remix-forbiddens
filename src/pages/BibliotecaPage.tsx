@@ -16,6 +16,7 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { useSearchParams, Link, useLocation } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
+import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -183,16 +184,6 @@ export default function BibliotecaPage() {
     }
   }, []);
 
-  const getConsoleType = (fileName: string) => {
-    const ext = fileName.toLowerCase().split('.').pop() || '';
-    if (['smc', 'sfc'].includes(ext)) return 'Super Nintendo';
-    if (['nes'].includes(ext)) return 'Nintendo Entertainment System';
-    if (['gba'].includes(ext)) return 'Game Boy Advance';
-    if (['z64', 'n64', 'v64'].includes(ext)) return 'Nintendo 64';
-    if (['bin', 'iso', 'cue', 'chd'].includes(ext)) return 'PlayStation 1';
-    return 'Arcade';
-  };
-
   const fetchDriveGames = useCallback(async (rescan = false) => {
     if (!user) return;
     if (rescan) setIsRefreshing(true);
@@ -209,19 +200,32 @@ export default function BibliotecaPage() {
 
           if (folderData.files && folderData.files.length > 0) {
             const folderId = folderData.files[0].id;
-            const filesQuery = `'${folderId}' in parents and trashed = false`;
-            const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name)&pageSize=1000`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const filesData = await filesRes.json();
-            const validFiles = (filesData.files || []).filter((f: any) => /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(f.name));
+            const driveFiles = await listDriveRomFiles(token, folderId);
+            const validFiles = driveFiles.filter((f) => ROM_FILE_REGEX.test(f.name));
             if (validFiles.length > 0) {
-              const gamesToSave = validFiles.map((f: any) => ({
+              const dedupedFiles = dedupeDriveRomCandidates(validFiles.map((f) => ({
+                ...f,
+                file_name: f.name,
+                console_type: getConsoleType(f.name, f.parentHint),
+                hasHint: !!f.parentHint,
+              })));
+              const gamesToSave = dedupedFiles.map((f) => ({
                 user_id: user.id,
                 drive_file_id: f.id,
                 file_name: f.name,
-                console_type: getConsoleType(f.name)
+                console_type: f.console_type,
               }));
+              const keepIds = new Set(gamesToSave.map((g) => g.drive_file_id));
+              const { data: existingRows } = await supabase
+                .from('user_drive_games' as any)
+                .select('drive_file_id')
+                .eq('user_id', user.id);
+              const stale = (existingRows || [])
+                .map((r: any) => r.drive_file_id)
+                .filter((id: string) => !keepIds.has(id));
+              if (stale.length > 0) {
+                await supabase.from('user_drive_games' as any).delete().eq('user_id', user.id).in('drive_file_id', stale);
+              }
               await supabase.from('user_drive_games' as any).upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
             }
           } else {
