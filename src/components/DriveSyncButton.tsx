@@ -252,8 +252,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           .from('user_drive_games' as any)
           .upsert(gamesToSave, { onConflict: 'user_id,drive_file_id' });
 
-        if (error) throw error;
+        if (error) {
+          console.error('[DriveSync] upsert error', error);
+          throw error;
+        }
 
+        await checkLinkedState();
         setIsLinked(true);
         const restoredCount = gamesToSave.filter((g: any) => g.custom_name || g.custom_cover_url).length;
         toast({
@@ -268,8 +272,8 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         toast({ title: 'Carpeta Vacía', description: 'Tu carpeta "RetroRoms" está vacía.' });
       }
     } catch (error: any) {
-      console.error(error);
-      toast({ title: 'Error de red', description: 'Hubo un problema leyendo tu Drive.', variant: 'destructive' });
+      console.error('[DriveSync] fetchAndSaveRoms failed', error);
+      toast({ title: 'Error de red', description: error?.message || 'Hubo un problema leyendo tu Drive.', variant: 'destructive' });
     } finally {
       setIsSyncing(false);
     }
