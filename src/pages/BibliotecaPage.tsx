@@ -266,11 +266,15 @@ export default function BibliotecaPage() {
       }
 
       if (driveData) {
+        const coverMap = buildCoverBackupMap([
+          ...((coverData || []) as any[]),
+          ...loadLocalCoverBackups(user.id),
+        ]);
         const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
           return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         }).map((g: any) => {
-            const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
+            const customData: any = getCoverBackup(coverMap, g.file_name);
             return {
                 ...g,
                 custom_name: customData?.custom_name || g.custom_name,
