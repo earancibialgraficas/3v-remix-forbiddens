@@ -395,13 +395,13 @@ const handlePlayCloudGame = async (game: any) => {
 
   const getCoreForConsole = (consoleId: string) => {
     const cores: Record<string, string> = {
-      nes: "fceumm", snes: "snes9x", gba: "mgba", n64: "mupen64plus_next", ps1: "pcsx_rearmed", arcade: "fbneo"
+      nes: "fceumm", snes: "snes9x", gba: "mgba", n64: "mupen64plus_next", ps1: "pcsx_rearmed", psp: "ppsspp", arcade: "fbneo"
     };
     return cores[consoleId] || "fceumm";
   };
 
   const isLocked = (consoleId: string) => {
-    const premiumConsoles = ["n64", "ps1", "arcade"];
+    const premiumConsoles = ["n64", "ps1", "psp", "arcade"];
     return premiumConsoles.includes(consoleId) && !canExtra;
   };
 
