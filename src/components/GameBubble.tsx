@@ -682,6 +682,11 @@ export default function GameBubble() {
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
           const safeRomFileName = romFileName || activeGame.gameName || "Game";
+          const emulatorDataPath =
+            activeGame.consoleName === "psp"
+              ? `${window.location.origin}/emulatorjs-data/`
+              : "https://cdn.emulatorjs.org/stable/data/";
+          const emulatorLoaderSrc = `${emulatorDataPath}loader.js`;
           // Mantiene los controles nativos de EmulatorJS en su posición original.
           // Solo limpiamos overlays basura y hacemos que el canvas quepa en pantalla.
           const ejsCss = `
@@ -921,8 +926,8 @@ body.nds div[class*="canvas_parent"]{
   // Avisar al padre que el bridge está listo
   parent.postMessage({type:'forbiddens-gamepad-ready'}, '*');
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && activeGame.consoleName==="psp" ? "true" : "false"};window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
-</script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script></body></html>`;
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata=${JSON.stringify(emulatorDataPath)};window.EJS_startOnLoaded=true;window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && activeGame.consoleName==="psp" ? "true" : "false"};window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_disableDatabases=true;window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+</script><script src=${JSON.stringify(emulatorLoaderSrc)}></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
             if (event.data?.type !== "forbiddens-emulator-started") return;
