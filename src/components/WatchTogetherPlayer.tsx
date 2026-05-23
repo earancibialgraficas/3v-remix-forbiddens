@@ -128,9 +128,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const [newTitle, setNewTitle] = useState("");
   const [controlsElement, setControlsElement] = useState<HTMLElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const hudTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const hudTimerRef = useRef<number | null>(null);
   const channelRef = useRef<any>(null);
-  const pollRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const pollRef = useRef<number | null>(null);
   const stateRef = useRef<WatchState>(emptyState());
   const effectiveVolumeRef = useRef(80);
   const captionsEnabledRef = useRef(false);
