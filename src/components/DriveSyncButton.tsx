@@ -220,7 +220,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           .select('file_name, custom_name, custom_cover_url')
           .eq('user_id', user!.id);
         const coverMap = buildCoverBackupMap([
-          ...(savedCovers || []),
+          ...((savedCovers || []) as any[]),
           ...loadLocalCoverBackups(user!.id),
         ]);
 
