@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CloudUpload, CloudOff, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -87,33 +88,6 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     } finally {
       setIsSyncing(false);
     }
-  };
-
-  // Normaliza nombre de carpeta (PSP, PS1, NES…) a console_type canónico
-  const folderNameToConsole = (rawName: string): string | null => {
-    const n = rawName.trim().toLowerCase().replace(/[\s_\-]/g, '');
-    if (['psp', 'playstationportable'].includes(n)) return 'PlayStation Portable';
-    if (['ps1', 'psx', 'playstation', 'playstation1'].includes(n)) return 'PlayStation 1';
-    if (['n64', 'nintendo64'].includes(n)) return 'Nintendo 64';
-    if (['snes', 'supernintendo', 'supernes'].includes(n)) return 'Super Nintendo';
-    if (['nes', 'nintendoentertainmentsystem'].includes(n)) return 'Nintendo Entertainment System';
-    if (['gba', 'gameboyadvance'].includes(n)) return 'Game Boy Advance';
-    if (['arcade', 'mame', 'fbneo'].includes(n)) return 'Arcade';
-    return null;
-  };
-
-  const getConsoleType = (fileName: string, parentHint?: string | null) => {
-    if (parentHint) return parentHint;
-    const ext = fileName.toLowerCase().split('.').pop();
-    if (['smc', 'sfc'].includes(ext || '')) return 'Super Nintendo';
-    if (['nes'].includes(ext || '')) return 'Nintendo Entertainment System';
-    if (['gba'].includes(ext || '')) return 'Game Boy Advance';
-    if (['z64', 'n64', 'v64'].includes(ext || '')) return 'Nintendo 64';
-    // Extensiones EXCLUSIVAS de PSP
-    if (['cso', 'pbp'].includes(ext || '')) return 'PlayStation Portable';
-    // PS1 (bin/iso/cue/chd son ambiguas — se usa carpeta padre PSP/ vs PS1/ para diferenciar)
-    if (['bin', 'iso', 'cue', 'chd'].includes(ext || '')) return 'PlayStation 1';
-    return 'Arcade';
   };
 
   const handleSync = () => {
