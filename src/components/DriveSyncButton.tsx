@@ -7,6 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from '@/lib/driveCoverBackup';
 
+const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
+const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
+
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -98,6 +101,29 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       toast({ title: 'Error', description: 'Debes iniciar sesión primero.', variant: 'destructive' });
       return;
     }
+
+    if (window.crossOriginIsolated) {
+      if (!sessionStorage.getItem(DRIVE_SYNC_RELOAD_KEY) && !window.location.pathname.startsWith('/arcade/psp-player')) {
+        sessionStorage.setItem(DRIVE_SYNC_RELOAD_KEY, '1');
+        sessionStorage.setItem(DRIVE_SYNC_RESUME_KEY, '1');
+        toast({
+          title: 'Preparando Google Drive',
+          description: 'Recargando la vista fuera del modo PSP para completar la autorizaciÃ³n de Google.',
+        });
+        window.setTimeout(() => window.location.reload(), 350);
+        return;
+      }
+
+      toast({
+        title: 'Abre almacenamiento en una pestaÃ±a normal',
+        description: 'Google Drive no puede vincularse desde una vista aislada de PSP. Vuelve a Perfil > Almacenamiento y recarga la pÃ¡gina.',
+        variant: 'destructive',
+        duration: 9000,
+      });
+      return;
+    }
+
+    sessionStorage.removeItem(DRIVE_SYNC_RELOAD_KEY);
 
     const google = (window as any).google;
     if (!isGoogleLoaded || !google) {
@@ -294,6 +320,14 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       setIsSyncing(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || isLoadingState || isSyncing || !isGoogleLoaded) return;
+    if (sessionStorage.getItem(DRIVE_SYNC_RESUME_KEY) !== '1') return;
+
+    sessionStorage.removeItem(DRIVE_SYNC_RESUME_KEY);
+    window.setTimeout(() => handleSync(), 150);
+  }, [user, isLoadingState, isSyncing, isGoogleLoaded]);
 
   if (isLoadingState) {
     return <Button disabled variant="outline" className="h-9 text-[10px]"><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Verificando...</Button>

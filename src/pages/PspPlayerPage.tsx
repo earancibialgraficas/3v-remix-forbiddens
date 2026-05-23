@@ -7,6 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 
 type PlayerState = "loading" | "ready" | "running" | "error";
 
+const PSP_PREFETCH_ASSETS = [
+  "/emulatorjs-data/loader.js",
+  "/emulatorjs-data/emulator.min.js",
+  "/emulatorjs-data/cores/reports/ppsspp.json",
+  "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
+  "/emulatorjs-data/cores/ppsspp-assets.zip",
+];
+
 const getStoredGameName = (fileId: string) => {
   if (typeof window === "undefined") return null;
   try {
@@ -14,6 +22,18 @@ const getStoredGameName = (fileId: string) => {
   } catch {
     return null;
   }
+};
+
+const prefetchPspAssets = () => {
+  PSP_PREFETCH_ASSETS.forEach((url) => {
+    fetch(url, { cache: "force-cache" }).catch(() => {});
+  });
+};
+
+const formatBytes = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
 };
 
 export default function PspPlayerPage() {
@@ -56,6 +76,7 @@ export default function PspPlayerPage() {
       }
 
       try {
+        prefetchPspAssets();
         setMessage("Descargando ROM PSP desde Drive...");
         const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -63,7 +84,29 @@ export default function PspPlayerPage() {
 
         if (!response.ok) throw new Error("No se pudo leer la ROM PSP desde Drive.");
 
-        const blob = await response.blob();
+        const totalBytes = Number(response.headers.get("content-length") || 0);
+        let blob: Blob;
+
+        if (response.body && totalBytes > 0) {
+          const reader = response.body.getReader();
+          const chunks: Uint8Array[] = [];
+          let receivedBytes = 0;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+            chunks.push(value);
+            receivedBytes += value.byteLength;
+            const pct = Math.max(1, Math.min(99, Math.round((receivedBytes / totalBytes) * 100)));
+            setMessage(`Descargando ROM PSP desde Drive... ${pct}% (${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)})`);
+          }
+
+          blob = new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
+        } else {
+          blob = await response.blob();
+        }
+
         const file = new File([blob], gameName, { type: blob.type || "application/octet-stream" });
 
         if (!(window as any).__localRoms) (window as any).__localRoms = {};
