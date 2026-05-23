@@ -13,7 +13,7 @@ import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole } from "@/lib/membershipLimits";
 import { supabase } from "@/integrations/supabase/client";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
-import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
+import { useSearchParams, Link, useLocation } from "react-router-dom";
 import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
@@ -119,7 +119,6 @@ export default function BibliotecaPage() {
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
   const location = useLocation();
-  const navigate = useNavigate();
   const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
   
   const [activeConsoles, setActiveConsoles] = useState(baseConsoles);
@@ -366,7 +365,7 @@ const handlePlayCloudGame = async (game: any) => {
 
       if (game.console === "psp") {
         sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: game.name }));
-        navigate(`/arcade/psp-player?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`);
+        window.location.assign(`/arcade/psp-player?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`);
         return;
       }
 
