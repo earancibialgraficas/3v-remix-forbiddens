@@ -121,7 +121,9 @@ export default function PspPlayerPage() {
         w.EJS_core = "psp";
         w.EJS_gameUrl = romUrl;
         w.EJS_gameName = gameName;
-        w.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+        // PSP/PPSSPP is fragile when the public CDN changes under us.
+        // Use the pinned self-hosted EmulatorJS 4.2.0 files from /public instead.
+        w.EJS_pathtodata = "/emulatorjs-data/";
         w.EJS_startOnLoaded = true;
         w.EJS_threads = true;
         w.EJS_language = "es-ES";
@@ -141,12 +143,12 @@ export default function PspPlayerPage() {
         if (existing) existing.remove();
 
         const script = document.createElement("script");
-        script.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+        script.src = "/emulatorjs-data/loader.js";
         script.async = true;
         script.dataset.ejsLoader = "psp";
         script.onerror = () => {
           setState("error");
-          setMessage("No se pudo cargar PPSSPP desde el CDN de EmulatorJS.");
+          setMessage("No se pudo cargar PPSSPP autohospedado.");
         };
         document.body.appendChild(script);
       } catch (error: any) {
