@@ -623,6 +623,7 @@ const handlePlayCloudGame = async (game: any) => {
       gbc: "GBC",
       sega: "SEGA",
       ps1: "PS1",
+      psp: "PSP",
       arcade: "ARC",
     };
     return shortLabels[consoleId] || label;
