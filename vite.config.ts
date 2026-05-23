@@ -1,4 +1,5 @@
-import { defineConfig } from "vite";
+import { defineConfig, type ViteDevServer } from "vite";
+import type { IncomingMessage, ServerResponse } from "http";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
@@ -16,8 +17,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     {
       name: "forbiddens-psp-isolation",
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
+      configureServer(server: ViteDevServer) {
+        server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
           if (req.url?.startsWith("/arcade/psp-player")) {
             res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
             res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
