@@ -217,21 +217,34 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
       const folderId = folderData.files[0].id;
 
-      // 2. BUSCAMOS JUEGOS SOLO DENTRO DE ESA CARPETA
-      const filesQuery = `'${folderId}' in parents and trashed = false`;
-      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id, name)&pageSize=1000`, {
+      // 2a. Buscamos SUBCARPETAS dentro de RetroRoms (PSP/, PS1/, NES/, etc.)
+      const subfoldersQuery = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+      const subfoldersRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(subfoldersQuery)}&fields=files(id,name)&pageSize=100`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const subfoldersData = await subfoldersRes.json();
+      const subfolders: Array<{ id: string; name: string; console: string | null }> = (subfoldersData.files || []).map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        console: folderNameToConsole(f.name),
+      }));
+      const parentToConsole = new Map<string, string>();
+      subfolders.forEach((sf) => { if (sf.console) parentToConsole.set(sf.id, sf.console); });
+
+      // 2b. Buscamos juegos en la carpeta raíz y en TODAS las subcarpetas
+      const parentIds = [folderId, ...subfolders.map((s) => s.id)];
+      const filesQuery = parentIds.map((pid) => `'${pid}' in parents`).join(' or ') + ' and trashed = false and mimeType != \'application/vnd.google-apps.folder\'';
+      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name,parents)&pageSize=1000`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const data = await filesRes.json();
       
       if (data.files && data.files.length > 0) {
-        // Filtramos por si el usuario metió un PDF por error en la carpeta
+        // Filtramos por extensiones válidas (incluyendo .cso y .pbp para PSP)
         const validFiles = data.files.filter((file: any) => {
           const name = file.name.toLowerCase();
-          return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
-                 name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
+          return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         });
 
         if (validFiles.length === 0) {
@@ -242,7 +255,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
         toast({ title: 'Detectando juegos...', description: `Guardando ${validFiles.length} juegos de tu carpeta RetroRoms...` });
 
-        // 🎨 Recuperamos portadas/nombres personalizados guardados de vinculaciones anteriores
+        // 🎨 Recuperamos portadas/nombres personalizados guardados
         const { data: savedCovers } = await supabase
           .from('user_game_covers' as any)
           .select('file_name, custom_name, custom_cover_url')
@@ -254,11 +267,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
         const gamesToSave = validFiles.map((file: any) => {
           const restored = coverMap.get(file.name);
+          const parentHint = (file.parents || []).map((p: string) => parentToConsole.get(p)).find(Boolean) || null;
           return {
             user_id: user?.id,
             drive_file_id: file.id,
             file_name: file.name,
-            console_type: getConsoleType(file.name),
+            console_type: getConsoleType(file.name, parentHint),
             ...(restored?.custom_name ? { custom_name: restored.custom_name } : {}),
             ...(restored?.custom_cover_url ? { custom_cover_url: restored.custom_cover_url } : {}),
           };
