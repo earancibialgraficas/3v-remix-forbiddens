@@ -161,7 +161,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           setIsSyncing(false);
           const type = err?.type || 'unknown';
           const msg = type === 'popup_closed'
-            ? 'Cerraste la ventana de Google antes de autorizar.'
+            ? 'Google cerró la ventana antes de entregar permisos. Si estás en el preview, abre la app en pestaña propia o publicada e inténtalo otra vez.'
             : type === 'popup_failed_to_open'
               ? 'El navegador bloqueó el popup de Google. Permite popups para este sitio e intenta de nuevo.'
               : (err?.message || 'No se pudo abrir Google.');
@@ -169,7 +169,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         },
       });
 
-      client.requestAccessToken({ prompt: '' });
+      client.requestAccessToken({ prompt: 'consent select_account' });
     } catch (e: any) {
       window.clearTimeout(safetyTimer);
       console.error('[DriveSync] requestAccessToken threw', e);
