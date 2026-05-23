@@ -276,6 +276,7 @@ export default function BibliotecaPage() {
           if (consoleName === 'Game Boy Advance') id = 'gba';
           if (consoleName === 'Nintendo 64') id = 'n64';
           if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
+          if (consoleName === 'PlayStation Portable') { id = 'psp'; color = 'text-neon-cyan'; }
           if (consoleName === 'Arcade') { id = 'arcade'; color = 'text-neon-orange'; }
 
           if (!newConsolesList.some(c => c.id === id)) {
