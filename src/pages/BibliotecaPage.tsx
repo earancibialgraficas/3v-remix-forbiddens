@@ -252,7 +252,7 @@ export default function BibliotecaPage() {
       if (driveData) {
         const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
-          return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
+          return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         }).map((g: any) => {
             const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
             return {
