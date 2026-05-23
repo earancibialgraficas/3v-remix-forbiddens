@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
           if (req.url?.startsWith("/arcade/psp-player")) {
             res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
             res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+            res.setHeader("Permissions-Policy", "cross-origin-isolated=(self)");
           }
           next();
         });

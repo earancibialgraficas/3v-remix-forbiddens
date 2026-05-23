@@ -926,7 +926,7 @@ body.nds div[class*="canvas_parent"]{
   // Avisar al padre que el bridge está listo
   parent.postMessage({type:'forbiddens-gamepad-ready'}, '*');
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata=${JSON.stringify(emulatorDataPath)};window.EJS_startOnLoaded=true;window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && activeGame.consoleName==="psp" ? "true" : "false"};window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_CacheLimit=${activeGame.consoleName === "psp" ? "0" : "undefined"};window.EJS_disableDatabases=${activeGame.consoleName === "psp" ? "false" : "true"};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata=${JSON.stringify(emulatorDataPath)};window.EJS_startOnLoaded=true;window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && activeGame.consoleName==="psp" ? "true" : "false"};window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_CacheLimit=${activeGame.consoleName === "psp" ? "134217728" : "undefined"};window.EJS_disableDatabases=${activeGame.consoleName === "psp" ? "false" : "true"};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
 </script><script src=${JSON.stringify(emulatorLoaderSrc)}></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
@@ -1786,7 +1786,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               ref={emulatorFrameRef}
               title="EmulatorJS"
               className="absolute inset-0 h-full w-full border-0 bg-black"
-              allow="autoplay; gamepad; fullscreen"
+              allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
             />
           )}
 
