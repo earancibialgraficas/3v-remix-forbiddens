@@ -375,6 +375,10 @@
       return !roundOpen && dealer.length === 0 && player.length === 0;
     }
 
+    function canClearTable() {
+      return isLeader && !roundOpen && !settling;
+    }
+
     function lockBetFromInput() {
       if (!canEditBet()) {
         $("bet").disabled = true;
@@ -448,11 +452,11 @@
       $("hit").disabled = !roundOpen || localStood;
       $("stand").disabled = !roundOpen || localStood;
       $("deal").disabled = roundOpen || !isLeader;
-      $("clear").disabled = !isLeader;
+      $("clear").disabled = !canClearTable();
       $("bet").disabled = !canEditBet();
       document.querySelector(".betSpot")?.classList.toggle("locked", lockedBet > 0);
       $("deal").title = isLeader ? "Repartir como lider de sala" : "Solo el lider de sala puede repartir";
-      $("clear").title = isLeader ? "Limpiar mesa" : "Solo el lider de sala puede limpiar";
+      $("clear").title = !isLeader ? "Solo el lider de sala puede limpiar" : roundOpen || settling ? "Espera a que termine la mano para limpiar" : "Limpiar mesa";
       renderPeers();
       renderHistory();
     }
@@ -585,9 +589,9 @@
           if (settled.reason && settled.reason !== "ok") setLog(`${label} Wallet: ${settled.reason}`);
           publishPlayerState({ revealed: true, stood: true, lastNet, bet });
           lockedBet = 0;
-          render();
         }
         settling = false;
+        render();
         return;
       }
       if (!roundOpen || settling) return;
@@ -621,9 +625,9 @@
         publishPlayerState({ revealed: true, stood: true, lastNet, bet });
         api.send("settle", statePayload({ lockedBet: bet, roundOpen: false, peerHands }));
         lockedBet = 0;
-        render();
       }
       settling = false;
+      render();
     }
 
     async function connect(room) {
@@ -720,6 +724,11 @@
     $("clear").onclick = () => {
       if (!isLeader) {
         setLog("Solo el lider puede limpiar la mesa.");
+        return;
+      }
+      if (roundOpen || settling) {
+        setLog("Espera a que todos ganen o pierdan antes de limpiar.");
+        render();
         return;
       }
       player = [];

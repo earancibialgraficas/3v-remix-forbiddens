@@ -176,6 +176,11 @@ export default function ChillMusicPlayer() {
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("forbiddens_music_current_title", current?.title || "FORBIDDENS Player");
+  }, [current?.title]);
+
+  useEffect(() => {
     if (!inEmulator) return;
     if (!current?.id) return;
     if (!isPlaying) return;
@@ -493,6 +498,46 @@ export default function ChillMusicPlayer() {
     timeToRestoreRef.current = null; 
     setIsPlaying(true);
   };
+
+  const runExternalMusicCommand = useCallback((command: string) => {
+    if (command === "playPause") {
+      setIsPlaying((playing) => !playing);
+      return;
+    }
+    if (command === "next") {
+      next();
+      return;
+    }
+    if (command === "prev") {
+      if (playlist.length === 0) return;
+      setCurrentIndex((i) => (i - 1 + playlist.length) % playlist.length);
+      setCurrentTime(0);
+      setSeekDisplayValue(0);
+      setDuration(0);
+      timeToRestoreRef.current = null;
+      setIsPlaying(true);
+    }
+  }, [next, playlist.length]);
+
+  useEffect(() => {
+    const handlePayload = (payload: any) => {
+      if (!payload || payload.type !== "forbiddens-music-command" || typeof payload.command !== "string") return;
+      runExternalMusicCommand(payload.command);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== "forbiddens_music_command" || !event.newValue) return;
+      try {
+        handlePayload(JSON.parse(event.newValue));
+      } catch {}
+    };
+    const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("forbiddens_music_player") : null;
+    channel?.addEventListener("message", (event) => handlePayload(event.data));
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      channel?.close();
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [runExternalMusicCommand]);
 
   const serializeYoutubeSongs = (songs: Song[]) => songs
     .filter((song) => song.type === "youtube")

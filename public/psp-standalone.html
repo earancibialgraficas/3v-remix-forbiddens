@@ -12,7 +12,19 @@
     .brand{font:900 12px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85);letter-spacing:.08em}
     .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:12px}
     .status{font:900 10px/1 "Courier New",monospace;color:#39ff14;text-shadow:0 0 10px rgba(57,255,20,.5)}
-    #game{position:relative;width:100%;height:100%;background:#000}
+    .shell{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 220px;background:#000}
+    #game{position:relative;width:100%;height:100%;min-height:0;background:#000}
+    .tools{min-width:0;border-left:1px solid rgba(34,211,238,.24);background:linear-gradient(180deg,rgba(2,6,23,.98),rgba(0,0,0,.96));padding:10px;overflow-y:auto}
+    .toolGroup{border:1px solid rgba(34,211,238,.24);border-radius:8px;background:rgba(15,23,42,.62);padding:9px;margin-bottom:10px;box-shadow:inset 0 0 14px rgba(34,211,238,.05)}
+    .toolTitle{margin:0 0 8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe;letter-spacing:.08em;text-transform:uppercase}
+    .toolBtn{width:100%;height:30px;margin-top:6px;border:1px solid rgba(34,211,238,.38);border-radius:6px;background:rgba(34,211,238,.1);color:#e5faff;font:800 10px/1 "Courier New",monospace;cursor:pointer}
+    .toolBtn:hover{background:rgba(34,211,238,.18);box-shadow:0 0 12px rgba(34,211,238,.18)}
+    .toolBtn.danger{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1)}
+    .miniRow{display:flex;gap:6px}
+    .miniRow .toolBtn{flex:1}
+    .toolText{min-height:16px;margin-top:7px;color:#94a3b8;font-size:11px;line-height:1.35}
+    .range{width:100%;accent-color:#00f2fe}
+    .songTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e5faff;font-size:11px}
     #loading{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(8,47,73,.45),rgba(0,0,0,.96) 62%)}
     .loadCard{width:min(520px,calc(100vw - 32px));border:1px solid rgba(34,211,238,.42);border-radius:14px;background:rgba(2,6,23,.86);padding:24px;text-align:center;box-shadow:0 0 36px rgba(34,211,238,.18),inset 0 0 22px rgba(0,0,0,.55)}
     .spinner{width:42px;height:42px;margin:0 auto 16px;border-radius:999px;border:3px solid rgba(34,211,238,.22);border-top-color:#00f2fe;animation:spin .9s linear infinite;box-shadow:0 0 22px rgba(34,211,238,.45)}
@@ -24,6 +36,10 @@
     .error h1{color:#fb7185;text-shadow:0 0 12px rgba(251,113,133,.7)}
     .error .spinner{display:none}
     @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:900px){
+      .shell{grid-template-columns:minmax(0,1fr)}
+      .tools{position:absolute;right:8px;top:50px;z-index:30;width:190px;max-height:calc(100vh - 58px);border:1px solid rgba(34,211,238,.3);border-radius:8px}
+    }
   </style>
 </head>
 <body>
@@ -32,25 +48,59 @@
     <div class="title" id="topTitle">PPSSPP</div>
     <div class="status" id="topStatus">BOOT</div>
   </header>
-  <main id="game">
-    <div id="loading">
-      <div class="loadCard" id="loadCard">
-        <div class="spinner"></div>
-        <h1>PSP | PPSSPP</h1>
-        <p id="message">Preparando emulador...</p>
-        <div class="file" id="fileName"></div>
-        <div class="bar"><span id="progress"></span></div>
+  <main class="shell">
+    <section id="game">
+      <div id="loading">
+        <div class="loadCard" id="loadCard">
+          <div class="spinner"></div>
+          <h1>PSP | PPSSPP</h1>
+          <p id="message">Preparando emulador...</p>
+          <div class="file" id="fileName"></div>
+          <div class="bar"><span id="progress"></span></div>
+        </div>
       </div>
-    </div>
+    </section>
+    <aside class="tools" aria-label="Opciones PSP">
+      <div class="toolGroup">
+        <p class="toolTitle">Emulador</p>
+        <button class="toolBtn" id="menuBtn" type="button">Menu PPSSPP</button>
+        <button class="toolBtn" id="fullBtn" type="button">Pantalla completa</button>
+      </div>
+      <div class="toolGroup">
+        <p class="toolTitle">Volumen</p>
+        <input class="range" id="volumeRange" type="range" min="0" max="100" step="5" value="80" />
+        <div class="toolText" id="volumeLabel">80%</div>
+      </div>
+      <div class="toolGroup">
+        <p class="toolTitle">Guardado</p>
+        <button class="toolBtn" id="quickSaveBtn" type="button">Guardar estado</button>
+        <button class="toolBtn" id="quickLoadBtn" type="button">Cargar estado</button>
+        <div class="toolText" id="saveStatus">Sin estado cargado.</div>
+      </div>
+      <div class="toolGroup">
+        <p class="toolTitle">FORBIDDENS Player</p>
+        <div class="songTitle" id="musicTitle">Cargando musica...</div>
+        <div class="miniRow">
+          <button class="toolBtn" id="musicPrevBtn" type="button">Prev</button>
+          <button class="toolBtn" id="musicPlayBtn" type="button">Play</button>
+          <button class="toolBtn" id="musicNextBtn" type="button">Next</button>
+        </div>
+      </div>
+      <div class="toolGroup">
+        <button class="toolBtn danger" id="closeBtn" type="button">Cerrar ventana</button>
+      </div>
+    </aside>
   </main>
   <script>
     (function(){
       var params = new URLSearchParams(location.search);
       var fileId = params.get("file") || "";
+      var romUrl = params.get("rom") || "";
       var gameName = params.get("name") || "Juego PSP";
       var token = localStorage.getItem("drive_access_token") || "";
       var expiry = Number(localStorage.getItem("drive_token_expiry") || 0);
       var objectUrl = "";
+      var initialVolume = Number(localStorage.getItem("forbiddens_psp_volume") || 80) / 100;
       var loading = document.getElementById("loading");
       var loadCard = document.getElementById("loadCard");
       var message = document.getElementById("message");
@@ -58,9 +108,25 @@
       var progress = document.getElementById("progress");
       var topTitle = document.getElementById("topTitle");
       var topStatus = document.getElementById("topStatus");
+      var menuBtn = document.getElementById("menuBtn");
+      var fullBtn = document.getElementById("fullBtn");
+      var closeBtn = document.getElementById("closeBtn");
+      var volumeRange = document.getElementById("volumeRange");
+      var volumeLabel = document.getElementById("volumeLabel");
+      var quickSaveBtn = document.getElementById("quickSaveBtn");
+      var quickLoadBtn = document.getElementById("quickLoadBtn");
+      var saveStatus = document.getElementById("saveStatus");
+      var musicTitle = document.getElementById("musicTitle");
+      var musicPrevBtn = document.getElementById("musicPrevBtn");
+      var musicPlayBtn = document.getElementById("musicPlayBtn");
+      var musicNextBtn = document.getElementById("musicNextBtn");
+      var musicChannel = "BroadcastChannel" in window ? new BroadcastChannel("forbiddens_music_player") : null;
+      var saveKey = "psp:" + gameName;
 
       topTitle.textContent = gameName;
       fileName.textContent = gameName;
+      volumeRange.value = String(Math.round(initialVolume * 100));
+      volumeLabel.textContent = volumeRange.value + "%";
 
       function setProgress(pct){
         progress.style.width = Math.max(8, Math.min(100, pct || 8)) + "%";
@@ -90,6 +156,112 @@
           "/emulatorjs-data/cores/ppsspp-assets.zip"
         ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
       }
+      function getEjs(){
+        return window.EJS_emulator || null;
+      }
+      function setToolStatus(text){
+        saveStatus.textContent = text;
+      }
+      function setEmulatorVolume(value){
+        var clamped = Math.max(0, Math.min(1, value));
+        localStorage.setItem("forbiddens_psp_volume", String(Math.round(clamped * 100)));
+        volumeLabel.textContent = Math.round(clamped * 100) + "%";
+        var ejs = getEjs();
+        try { ejs && ejs.setVolume && ejs.setVolume(clamped); } catch (_) {}
+      }
+      function openSaveDb(){
+        return new Promise(function(resolve, reject){
+          var request = indexedDB.open("forbiddens-psp-standalone-saves", 1);
+          request.onupgradeneeded = function(){ request.result.createObjectStore("states"); };
+          request.onsuccess = function(){ resolve(request.result); };
+          request.onerror = function(){ reject(request.error || new Error("IndexedDB no disponible")); };
+        });
+      }
+      async function putState(blob){
+        var db = await openSaveDb();
+        return new Promise(function(resolve, reject){
+          var tx = db.transaction("states", "readwrite");
+          tx.objectStore("states").put(blob, saveKey);
+          tx.oncomplete = function(){ db.close(); resolve(); };
+          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo guardar")); };
+        });
+      }
+      async function getState(){
+        var db = await openSaveDb();
+        return new Promise(function(resolve, reject){
+          var tx = db.transaction("states", "readonly");
+          var request = tx.objectStore("states").get(saveKey);
+          request.onsuccess = function(){ resolve(request.result || null); };
+          request.onerror = function(){ reject(request.error || new Error("No se pudo cargar")); };
+          tx.oncomplete = function(){ db.close(); };
+        });
+      }
+      async function captureState(){
+        var ejs = getEjs();
+        if (!ejs) throw new Error("Emulador no listo");
+        var gm = ejs.gameManager;
+        if (typeof ejs.getState === "function") {
+          var st = ejs.getState();
+          if (st && typeof st.then === "function") st = await st;
+          if (st && (st.byteLength > 0 || st.size > 0 || st.length > 0)) return st instanceof Blob ? st : new Blob([st]);
+        }
+        if (gm && typeof gm.getState === "function") {
+          var state = gm.getState();
+          if (state && typeof state.then === "function") state = await state;
+          if (state && (state.byteLength > 0 || state.length > 0 || state.size > 0)) return state instanceof Blob ? state : new Blob([state]);
+        }
+        if (gm && typeof gm.quickSave === "function") {
+          try { gm.quickSave("/save.state"); } catch (_) {}
+          await new Promise(function(r){ setTimeout(r, 300); });
+          try {
+            var FS = gm.FS || window.FS;
+            var data = FS && FS.readFile("/save.state");
+            if (data && data.length > 0) return new Blob([data]);
+          } catch (_) {}
+        }
+        throw new Error("Guardado no disponible para este core");
+      }
+      async function restoreState(blob){
+        var ejs = getEjs();
+        if (!ejs) throw new Error("Emulador no listo");
+        var gm = ejs.gameManager;
+        var bytes = new Uint8Array(await blob.arrayBuffer());
+        var loaded = false;
+        if (gm && typeof gm.loadState === "function") {
+          try { gm.loadState(bytes); loaded = true; } catch (_) {}
+          if (!loaded) {
+            try { gm.loadState("/save.state", bytes); loaded = true; } catch (_) {}
+          }
+        }
+        if (!loaded && gm && typeof gm.quickLoad === "function") {
+          try {
+            var FS = gm.FS || window.FS;
+            if (FS) FS.writeFile("/save.state", bytes);
+            gm.quickLoad("/save.state");
+            loaded = true;
+          } catch (_) {}
+        }
+        if (!loaded && typeof ejs.loadState === "function") {
+          try {
+            var result = ejs.loadState(bytes);
+            if (result && typeof result.then === "function") await Promise.race([result, new Promise(function(r){ setTimeout(r, 1500); })]);
+            loaded = true;
+          } catch (_) {}
+        }
+        if (!loaded) throw new Error("Carga no disponible");
+        try { ejs.play && ejs.play(); } catch (_) {}
+      }
+      function sendMusicCommand(command){
+        var payload = { type:"forbiddens-music-command", command:command, at:Date.now() };
+        try { musicChannel && musicChannel.postMessage(payload); } catch (_) {}
+        try { localStorage.setItem("forbiddens_music_command", JSON.stringify(payload)); } catch (_) {}
+      }
+      function refreshMusicInfo(){
+        var title = localStorage.getItem("forbiddens_music_current_title") || "FORBIDDENS Player";
+        var playing = localStorage.getItem("forbiddens_music_playing") === "true";
+        musicTitle.textContent = title;
+        musicPlayBtn.textContent = playing ? "Pause" : "Play";
+      }
       async function readResponseBlob(response){
         var total = Number(response.headers.get("content-length") || 0);
         if (!response.body || !total) return response.blob();
@@ -108,22 +280,27 @@
         return new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
       }
       async function boot(){
-        if (!fileId) return fail("No se recibio el archivo PSP.");
+        if (!fileId && !romUrl) return fail("No se recibio el archivo PSP.");
         if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
           return fail("Esta ventana no tiene aislamiento activo para PPSSPP. Revisa headers COOP/COEP del dominio.");
         }
-        if (!token || Date.now() >= expiry) {
+        if (fileId && (!token || Date.now() >= expiry)) {
           return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive y abre el juego otra vez.");
         }
         try {
           prefetchAssets();
-          setMessage("Descargando ROM desde Drive...", 12);
-          var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
-            headers: { Authorization: "Bearer " + token }
-          });
-          if (!response.ok) throw new Error("Drive respondio " + response.status);
-          var blob = await readResponseBlob(response);
-          objectUrl = URL.createObjectURL(blob);
+          if (romUrl) {
+            objectUrl = romUrl;
+            setMessage("Preparando ROM local...", 92);
+          } else {
+            setMessage("Descargando ROM desde Drive...", 12);
+            var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
+              headers: { Authorization: "Bearer " + token }
+            });
+            if (!response.ok) throw new Error("Drive respondio " + response.status);
+            var blob = await readResponseBlob(response);
+            objectUrl = URL.createObjectURL(blob);
+          }
           setMessage("Cargando PPSSPP...", 98);
 
           window.EJS_player = "#game";
@@ -134,11 +311,12 @@
           window.EJS_startOnLoaded = true;
           window.EJS_threads = true;
           window.EJS_language = "es-ES";
-          window.EJS_CacheLimit = 134217728;
+          window.EJS_CacheLimit = 1073741824;
           window.EJS_disableDatabases = false;
-          window.EJS_volume = 0.8;
+          window.EJS_volume = initialVolume;
           window.EJS_onGameStart = function(){
             setMessage("PSP en ejecucion", 100);
+            setEmulatorVolume(Number(volumeRange.value) / 100);
             setTimeout(function(){ loading.style.display = "none"; }, 450);
           };
 
@@ -150,8 +328,55 @@
           fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
         }
       }
+      menuBtn.addEventListener("click", function(){
+        var ejs = getEjs();
+        try { ejs && ejs.menu && ejs.menu.open && ejs.menu.open(); } catch (_) {}
+      });
+      fullBtn.addEventListener("click", function(){
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(function(){});
+        } else {
+          document.documentElement.requestFullscreen().catch(function(){});
+        }
+      });
+      closeBtn.addEventListener("click", function(){ window.close(); });
+      volumeRange.addEventListener("input", function(){
+        setEmulatorVolume(Number(volumeRange.value) / 100);
+      });
+      quickSaveBtn.addEventListener("click", async function(){
+        try {
+          setToolStatus("Guardando...");
+          quickSaveBtn.disabled = true;
+          await putState(await captureState());
+          setToolStatus("Estado guardado.");
+        } catch (error) {
+          setToolStatus(error && error.message ? error.message : "No se pudo guardar.");
+        } finally {
+          quickSaveBtn.disabled = false;
+        }
+      });
+      quickLoadBtn.addEventListener("click", async function(){
+        try {
+          setToolStatus("Cargando...");
+          quickLoadBtn.disabled = true;
+          var state = await getState();
+          if (!state) throw new Error("No hay estado guardado.");
+          await restoreState(state);
+          setToolStatus("Estado cargado.");
+        } catch (error) {
+          setToolStatus(error && error.message ? error.message : "No se pudo cargar.");
+        } finally {
+          quickLoadBtn.disabled = false;
+        }
+      });
+      musicPrevBtn.addEventListener("click", function(){ sendMusicCommand("prev"); });
+      musicPlayBtn.addEventListener("click", function(){ sendMusicCommand("playPause"); });
+      musicNextBtn.addEventListener("click", function(){ sendMusicCommand("next"); });
+      refreshMusicInfo();
+      setInterval(refreshMusicInfo, 1000);
       window.addEventListener("beforeunload", function(){
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        if (objectUrl && objectUrl.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+        try { musicChannel && musicChannel.close(); } catch (_) {}
       });
       boot();
     })();
