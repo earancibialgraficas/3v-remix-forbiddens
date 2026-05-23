@@ -139,7 +139,7 @@ export default function BibliotecaPage() {
   const savedTab = routeTab || searchParams.get("tab") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:activeTab") : null);
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   
-  const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
+  const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "psp", "arcade"];
   const initialConsoleParam = savedTab === "multi" || savedTab === "bet"
     ? "multiplayer"
     : validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
@@ -252,7 +252,7 @@ export default function BibliotecaPage() {
       if (driveData) {
         const validGames = driveData.filter((g: any) => {
           const name = g.file_name.toLowerCase();
-          return /\.(sfc|smc|nes|gba|z64|n64|bin|iso|cue|chd)$/i.test(name);
+          return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         }).map((g: any) => {
             const customData: any = (coverData as any[] | null)?.find((c: any) => c.file_name === g.file_name);
             return {
@@ -276,6 +276,7 @@ export default function BibliotecaPage() {
           if (consoleName === 'Game Boy Advance') id = 'gba';
           if (consoleName === 'Nintendo 64') id = 'n64';
           if (consoleName === 'PlayStation 1') { id = 'ps1'; color = 'text-gray-400'; }
+          if (consoleName === 'PlayStation Portable') { id = 'psp'; color = 'text-neon-cyan'; }
           if (consoleName === 'Arcade') { id = 'arcade'; color = 'text-neon-orange'; }
 
           if (!newConsolesList.some(c => c.id === id)) {
@@ -394,13 +395,13 @@ const handlePlayCloudGame = async (game: any) => {
 
   const getCoreForConsole = (consoleId: string) => {
     const cores: Record<string, string> = {
-      nes: "fceumm", snes: "snes9x", gba: "mgba", n64: "mupen64plus_next", ps1: "pcsx_rearmed", arcade: "fbneo"
+      nes: "fceumm", snes: "snes9x", gba: "mgba", n64: "mupen64plus_next", ps1: "pcsx_rearmed", psp: "ppsspp", arcade: "fbneo"
     };
     return cores[consoleId] || "fceumm";
   };
 
   const isLocked = (consoleId: string) => {
-    const premiumConsoles = ["n64", "ps1", "arcade"];
+    const premiumConsoles = ["n64", "ps1", "psp", "arcade"];
     return premiumConsoles.includes(consoleId) && !canExtra;
   };
 
@@ -414,6 +415,7 @@ const handlePlayCloudGame = async (game: any) => {
       if (g.console_type === 'Game Boy Advance') mId = 'gba';
       if (g.console_type === 'Nintendo 64') mId = 'n64';
       if (g.console_type === 'PlayStation 1') mId = 'ps1';
+      if (g.console_type === 'PlayStation Portable') mId = 'psp';
       if (g.console_type === 'Arcade') mId = 'arcade';
       const displayName = (g.custom_name || g.file_name.replace(/\.[^/.]+$/, "")).toLowerCase();
       return mId === selectedConsole && displayName.includes(searchQuery.toLowerCase());
@@ -621,6 +623,7 @@ const handlePlayCloudGame = async (game: any) => {
       gbc: "GBC",
       sega: "SEGA",
       ps1: "PS1",
+      psp: "PSP",
       arcade: "ARC",
     };
     return shortLabels[consoleId] || label;

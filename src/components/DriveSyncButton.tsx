@@ -89,13 +89,29 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }
   };
 
-  const getConsoleType = (fileName: string) => {
+  // Normaliza nombre de carpeta (PSP, PS1, NES…) a console_type canónico
+  const folderNameToConsole = (rawName: string): string | null => {
+    const n = rawName.trim().toLowerCase().replace(/[\s_\-]/g, '');
+    if (['psp', 'playstationportable'].includes(n)) return 'PlayStation Portable';
+    if (['ps1', 'psx', 'playstation', 'playstation1'].includes(n)) return 'PlayStation 1';
+    if (['n64', 'nintendo64'].includes(n)) return 'Nintendo 64';
+    if (['snes', 'supernintendo', 'supernes'].includes(n)) return 'Super Nintendo';
+    if (['nes', 'nintendoentertainmentsystem'].includes(n)) return 'Nintendo Entertainment System';
+    if (['gba', 'gameboyadvance'].includes(n)) return 'Game Boy Advance';
+    if (['arcade', 'mame', 'fbneo'].includes(n)) return 'Arcade';
+    return null;
+  };
+
+  const getConsoleType = (fileName: string, parentHint?: string | null) => {
+    if (parentHint) return parentHint;
     const ext = fileName.toLowerCase().split('.').pop();
     if (['smc', 'sfc'].includes(ext || '')) return 'Super Nintendo';
     if (['nes'].includes(ext || '')) return 'Nintendo Entertainment System';
     if (['gba'].includes(ext || '')) return 'Game Boy Advance';
     if (['z64', 'n64', 'v64'].includes(ext || '')) return 'Nintendo 64';
-    // Se agregan extensiones de PS1 más modernas como chd y cue
+    // Extensiones EXCLUSIVAS de PSP
+    if (['cso', 'pbp'].includes(ext || '')) return 'PlayStation Portable';
+    // PS1 (bin/iso/cue/chd son ambiguas — se usa carpeta padre PSP/ vs PS1/ para diferenciar)
     if (['bin', 'iso', 'cue', 'chd'].includes(ext || '')) return 'PlayStation 1';
     return 'Arcade';
   };
@@ -201,21 +217,34 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
       const folderId = folderData.files[0].id;
 
-      // 2. BUSCAMOS JUEGOS SOLO DENTRO DE ESA CARPETA
-      const filesQuery = `'${folderId}' in parents and trashed = false`;
-      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id, name)&pageSize=1000`, {
+      // 2a. Buscamos SUBCARPETAS dentro de RetroRoms (PSP/, PS1/, NES/, etc.)
+      const subfoldersQuery = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+      const subfoldersRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(subfoldersQuery)}&fields=files(id,name)&pageSize=100`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const subfoldersData = await subfoldersRes.json();
+      const subfolders: Array<{ id: string; name: string; console: string | null }> = (subfoldersData.files || []).map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        console: folderNameToConsole(f.name),
+      }));
+      const parentToConsole = new Map<string, string>();
+      subfolders.forEach((sf) => { if (sf.console) parentToConsole.set(sf.id, sf.console); });
+
+      // 2b. Buscamos juegos en la carpeta raíz y en TODAS las subcarpetas
+      const parentIds = [folderId, ...subfolders.map((s) => s.id)];
+      const filesQuery = parentIds.map((pid) => `'${pid}' in parents`).join(' or ') + ' and trashed = false and mimeType != \'application/vnd.google-apps.folder\'';
+      const filesRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,name,parents)&pageSize=1000`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       const data = await filesRes.json();
       
       if (data.files && data.files.length > 0) {
-        // Filtramos por si el usuario metió un PDF por error en la carpeta
+        // Filtramos por extensiones válidas (incluyendo .cso y .pbp para PSP)
         const validFiles = data.files.filter((file: any) => {
           const name = file.name.toLowerCase();
-          return name.endsWith('.sfc') || name.endsWith('.smc') || name.endsWith('.nes') || 
-                 name.endsWith('.gba') || name.endsWith('.z64') || name.endsWith('.n64') ||
-                 name.endsWith('.bin') || name.endsWith('.iso') || name.endsWith('.cue') || name.endsWith('.chd');
+          return /\.(sfc|smc|nes|gba|z64|n64|v64|bin|iso|cue|chd|cso|pbp)$/i.test(name);
         });
 
         if (validFiles.length === 0) {
@@ -226,7 +255,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
         toast({ title: 'Detectando juegos...', description: `Guardando ${validFiles.length} juegos de tu carpeta RetroRoms...` });
 
-        // 🎨 Recuperamos portadas/nombres personalizados guardados de vinculaciones anteriores
+        // 🎨 Recuperamos portadas/nombres personalizados guardados
         const { data: savedCovers } = await supabase
           .from('user_game_covers' as any)
           .select('file_name, custom_name, custom_cover_url')
@@ -238,11 +267,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
         const gamesToSave = validFiles.map((file: any) => {
           const restored = coverMap.get(file.name);
+          const parentHint = (file.parents || []).map((p: string) => parentToConsole.get(p)).find(Boolean) || null;
           return {
             user_id: user?.id,
             drive_file_id: file.id,
             file_name: file.name,
-            console_type: getConsoleType(file.name),
+            console_type: getConsoleType(file.name, parentHint),
             ...(restored?.custom_name ? { custom_name: restored.custom_name } : {}),
             ...(restored?.custom_cover_url ? { custom_cover_url: restored.custom_cover_url } : {}),
           };
