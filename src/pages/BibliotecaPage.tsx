@@ -139,7 +139,7 @@ export default function BibliotecaPage() {
   const savedTab = routeTab || searchParams.get("tab") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:activeTab") : null);
   const rawInitialConsole = searchParams.get("console") || (typeof window !== "undefined" ? localStorage.getItem("biblioteca:console") : null) || "snes";
   
-  const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "arcade"];
+  const validConsoleIds = ["nes", "snes", "gba", "n64", "ps1", "psp", "arcade"];
   const initialConsoleParam = savedTab === "multi" || savedTab === "bet"
     ? "multiplayer"
     : validConsoleIds.includes(rawInitialConsole) ? rawInitialConsole : "snes";
