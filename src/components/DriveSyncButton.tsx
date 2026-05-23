@@ -107,32 +107,75 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }
 
     const google = (window as any).google;
-    if (!isGoogleLoaded || !google) return;
+    if (!isGoogleLoaded || !google) {
+      toast({ title: 'Google aún no cargó', description: 'Espera un momento e inténtalo de nuevo.', variant: 'destructive' });
+      return;
+    }
+
+    // Aviso si estamos en un iframe (preview de Lovable) — el popup OAuth de Google
+    // suele ser bloqueado o nunca dispara el callback dentro de un iframe cross-origin.
+    if (window.self !== window.top) {
+      toast({
+        title: 'Abre la app en pestaña propia',
+        description: 'La vinculación con Google Drive no funciona dentro del preview embebido. Abre la app publicada o en una pestaña nueva e intenta de nuevo.',
+        variant: 'destructive',
+        duration: 8000,
+      });
+      return;
+    }
 
     setIsSyncing(true);
 
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
-      callback: async (tokenResponse: any) => {
-        if (tokenResponse.error) {
+    // Failsafe: si Google no responde en 90s, desbloqueamos el botón
+    const safetyTimer = window.setTimeout(() => {
+      console.warn('[DriveSync] safety timeout reached, resetting state');
+      setIsSyncing(false);
+      toast({ title: 'Tiempo agotado', description: 'No se recibió respuesta de Google. Intenta de nuevo.', variant: 'destructive' });
+    }, 90_000);
+
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        callback: async (tokenResponse: any) => {
+          window.clearTimeout(safetyTimer);
+          if (tokenResponse.error) {
+            console.error('[DriveSync] token error', tokenResponse);
+            setIsSyncing(false);
+            toast({ title: 'Permiso denegado', description: tokenResponse.error_description || 'No se pudo conectar con Google.', variant: 'destructive' });
+            return;
+          }
+
+          const ttlMs = (tokenResponse.expires_in ? tokenResponse.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
+          localStorage.setItem('drive_access_token', tokenResponse.access_token);
+          localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+          localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
+          sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
+          sessionStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+
+          await fetchAndSaveRoms(tokenResponse.access_token);
+        },
+        error_callback: (err: any) => {
+          window.clearTimeout(safetyTimer);
+          console.error('[DriveSync] error_callback', err);
           setIsSyncing(false);
-          toast({ title: 'Permiso denegado', description: 'No se pudo conectar con Google.', variant: 'destructive' });
-          return;
-        }
-        
-        const ttlMs = (tokenResponse.expires_in ? tokenResponse.expires_in * 1000 : 55 * 60 * 1000) - 60_000;
-        localStorage.setItem('drive_access_token', tokenResponse.access_token);
-        localStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
-        localStorage.setItem('drive_linked_until', (Date.now() + 24 * 60 * 60 * 1000).toString());
-        sessionStorage.setItem('drive_access_token', tokenResponse.access_token);
-        sessionStorage.setItem('drive_token_expiry', (Date.now() + ttlMs).toString());
+          const type = err?.type || 'unknown';
+          const msg = type === 'popup_closed'
+            ? 'Cerraste la ventana de Google antes de autorizar.'
+            : type === 'popup_failed_to_open'
+              ? 'El navegador bloqueó el popup de Google. Permite popups para este sitio e intenta de nuevo.'
+              : (err?.message || 'No se pudo abrir Google.');
+          toast({ title: 'Vinculación cancelada', description: msg, variant: 'destructive' });
+        },
+      });
 
-        await fetchAndSaveRoms(tokenResponse.access_token);
-      },
-    });
-
-    client.requestAccessToken();
+      client.requestAccessToken({ prompt: '' });
+    } catch (e: any) {
+      window.clearTimeout(safetyTimer);
+      console.error('[DriveSync] requestAccessToken threw', e);
+      setIsSyncing(false);
+      toast({ title: 'Error', description: e?.message || 'No se pudo iniciar el proceso.', variant: 'destructive' });
+    }
   };
 
   const fetchAndSaveRoms = async (token: string) => {
