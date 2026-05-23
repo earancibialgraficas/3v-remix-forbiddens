@@ -82,8 +82,8 @@
     .cell.called:not(.marked){outline:3px solid #22d3ee;outline-offset:-4px}
     .claimBtn{position:static;z-index:2;min-height:24px;border-color:#facc15;background:linear-gradient(#facc15,#d97706);color:#220c00;font-size:9px;text-transform:uppercase;box-shadow:0 0 18px #facc1580;padding:4px 7px}
     .toastStage{position:fixed;inset:0;display:none;place-items:center;z-index:20;background:#02061788;backdrop-filter:blur(2px);pointer-events:none}
-    .toastStage.show{display:grid;animation:fade 7.8s ease both}
-    .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544;animation:stageCard 7.8s ease both}
+    .toastStage.show{display:grid;animation:fade var(--stageMs,7800ms) ease both}
+    .toastStage div{border:2px solid #facc15;border-radius:16px;background:#07111f;padding:22px 32px;text-align:center;box-shadow:0 0 40px #facc1544;animation:stageCard var(--stageMs,7800ms) ease both}
     .toastStage b{display:block;font-size:34px;color:#facc15;text-shadow:0 0 20px #facc1580;text-transform:uppercase}
     .toastStage span{color:#cbd5e1}
     .modeChoice{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:radial-gradient(circle at 50% 12%,#15467af2,#07111ff7 54%,#020617);padding:18px}
@@ -99,6 +99,10 @@
     .sideToast.show{display:block;animation:sidePop 2.4s ease both}
     .sideToast b{display:block;color:#facc15;font-size:12px;text-transform:uppercase}
     .sideToast span{display:block;margin-top:2px;color:#cbd5e1;font-size:11px}
+    .claimTimer{border:1px solid #facc1555;border-radius:12px;background:linear-gradient(90deg,#35160d,#061a2c);padding:9px 12px;text-align:center;box-shadow:0 0 20px #facc1528}
+    .claimTimer[hidden]{display:none}
+    .claimTimer b{display:block;color:#facc15;font-size:18px;text-transform:uppercase;text-shadow:0 0 14px #facc1566}
+    .claimTimer span{display:block;margin-top:2px;color:#cbd5e1;font-size:12px}
     @keyframes fade{0%,100%{opacity:0}15%,82%{opacity:1}}
     @keyframes stageCard{0%{opacity:0;transform:translateY(22px) scale(.92)}12%,82%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-12px) scale(.98)}}
     @keyframes sidePop{0%,100%{opacity:0;transform:translateY(10px)}12%,88%{opacity:1;transform:translateY(0)}}
@@ -123,6 +127,10 @@
       <div class="phase">
         <b id="phaseName">Esperando</b>
         <span id="phaseHelp">La partida empieza automaticamente en 1 minuto.</span>
+      </div>
+      <div class="claimTimer" id="claimTimer" hidden>
+        <b id="claimTimerTitle">Cantar premio</b>
+        <span id="claimTimerText">10s restantes</span>
       </div>
       <div class="tombola" id="tombola">
         <div class="cage">
@@ -182,9 +190,9 @@
     document.querySelector(".brand").textContent = BINGO_MODE ? "BINGO USA BET" : "BINGO BET";
     let api, connected = false, peers = [], isLeader = false, wallet = null;
     let cardsData = [], cardNumbers = [], called = [], deck = [], markedCells = new Set(), roundActive = false, roomLocked = false, phase = "line";
-    let autoTimer = null, drawTimer = null, phasePauseTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
+    let autoTimer = null, drawTimer = null, phasePauseTimer = null, claimUiTimer = null, countdown = 60, claimed = { line: false, two: false, full: false };
     let cardFees = 0, prizePool = 0, paidPrizes = 0, prepareEndsAt = 0, nextDrawAt = 0, cardNonce = 0;
-    let claimWindowKind = "", claimWindowEndsAt = 0;
+    let claimWindowKind = "", claimWindowOpensAt = 0, claimWindowEndsAt = 0, stageUntil = 0;
     let reservedCards = {};
     const myClaimKeys = new Set();
     const BALL_DRAW_INTERVAL_MS = 5000;
@@ -202,9 +210,13 @@
         speechSynthesis.cancel(); speechSynthesis.speak(u);
       } catch {}
     }
-    function showStage(title, text, voiceDelay = 0){
+    function stageVisible(){ return Date.now() < stageUntil; }
+    function claimOpen(){ return claimWindowKind && Date.now() >= claimWindowOpensAt && Date.now() < claimWindowEndsAt && !stageVisible(); }
+    function showStage(title, text, voiceDelay = 0, durationMs = 7800){
       $("stageTitle").textContent = title;
       $("stageText").textContent = text;
+      $("stageToast").style.setProperty("--stageMs", `${durationMs}ms`);
+      stageUntil = Date.now() + durationMs;
       $("stageToast").classList.remove("show");
       void $("stageToast").offsetWidth;
       $("stageToast").classList.add("show");
@@ -234,6 +246,33 @@
       $("buyCard").disabled = roundActive || cardsData.length >= 5;
       $("buyBar")?.classList.toggle("hidden", roundActive);
       renderCardNumberOptions();
+    }
+    function prizeTimerLabel(kind){
+      return kind === "full" ? "Casa llena" : kind === "two" ? "2 lineas" : "1 linea";
+    }
+    function updateClaimTimer(){
+      const box = $("claimTimer");
+      if (!box) return;
+      const now = Date.now();
+      if (!claimWindowKind || now >= claimWindowEndsAt || now < claimWindowOpensAt || stageVisible()) {
+        box.hidden = true;
+        return;
+      }
+      const remaining = Math.max(0, Math.ceil((claimWindowEndsAt - now) / 1000));
+      box.hidden = false;
+      $("claimTimerTitle").textContent = `Cantar ${prizeTimerLabel(claimWindowKind)}`;
+      $("claimTimerText").textContent = `${remaining}s restantes para cantar premio`;
+    }
+    function ensureClaimUiTimer(){
+      if (claimUiTimer) return;
+      claimUiTimer = setInterval(() => {
+        updateClaimTimer();
+        if (!claimWindowKind || Date.now() >= claimWindowEndsAt) {
+          clearInterval(claimUiTimer);
+          claimUiTimer = null;
+          updateClaimTimer();
+        }
+      }, 250);
     }
     function playerKey(){
       return profile.userId || api?.playerId || "local";
@@ -445,12 +484,13 @@
     }
     function claimKindForCard(cardRows, cardIndex){
       const rows = completedRowsForCard(cardRows, cardIndex);
-      const windowOpen = claimWindowKind && Date.now() < claimWindowEndsAt && !myClaimKeys.has(`${claimWindowKind}:${cardIndex}`);
+      const windowOpen = claimOpen() && !myClaimKeys.has(`${claimWindowKind}:${cardIndex}`);
       if (windowOpen) {
         if (claimWindowKind === "full" && cardHasFull(cardRows, cardIndex)) return "full";
         if (claimWindowKind === "two" && rows >= 2) return "two";
         if (claimWindowKind === "line" && rows >= 1) return "line";
       }
+      if (stageVisible()) return "";
       if (!claimed.full && cardHasFull(cardRows, cardIndex)) return "full";
       if (!claimed.two && rows >= 2 && phase !== "line") return "two";
       if (!claimed.line && rows >= 1) return "line";
@@ -528,7 +568,7 @@
       }
     }
     function statePayload(){
-      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards, claimWindowKind, claimWindowEndsAt };
+      return { called, deck, roundActive, roomLocked, phase, claimed, cardFees, prizePool, paidPrizes, prepareEndsAt, nextDrawAt, reservedCards, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt };
     }
     function applyState(state){
       called = Array.isArray(state?.called) ? state.called : called;
@@ -543,9 +583,11 @@
       prepareEndsAt = Number(state?.prepareEndsAt || prepareEndsAt || 0);
       nextDrawAt = Number(state?.nextDrawAt || nextDrawAt || 0);
       claimWindowKind = String(state?.claimWindowKind || claimWindowKind || "");
+      claimWindowOpensAt = Number(state?.claimWindowOpensAt || claimWindowOpensAt || 0);
       claimWindowEndsAt = Number(state?.claimWindowEndsAt || claimWindowEndsAt || 0);
       reservedCards = state?.reservedCards && typeof state.reservedCards === "object" ? { ...state.reservedCards, ...reservedCards } : reservedCards;
       renderCalled();
+      if (claimWindowKind && Date.now() < claimWindowEndsAt) ensureClaimUiTimer();
       updatePrizePool();
       if (roundActive && isLeader) ensureDrawTimer();
     }
@@ -575,6 +617,7 @@
       markedCells = new Set();
       claimed = { line: false, two: false, full: false };
       claimWindowKind = "";
+      claimWindowOpensAt = 0;
       claimWindowEndsAt = 0;
       myClaimKeys.clear();
       paidPrizes = 0;
@@ -651,44 +694,54 @@
       }, "*");
     }
     function schedulePrizePause(kind, broadcast = true){
+      const NOTICE_MS = 5000;
+      const CLAIM_MS = 10000;
       clearTimeout(phasePauseTimer);
       clearInterval(drawTimer);
       drawTimer = null;
       claimWindowKind = kind;
-      claimWindowEndsAt = Date.now() + 15000;
-      showStage("¿ALGUIEN MAS?", `15 segundos para cantar ${prizeLabel(kind)}.`, 1200);
+      claimWindowOpensAt = Date.now() + NOTICE_MS;
+      claimWindowEndsAt = claimWindowOpensAt + CLAIM_MS;
+      showStage("ALGUIEN MAS?", `Luego tendran 10 segundos para cantar ${prizeLabel(kind)}.`, 1200, NOTICE_MS);
+      ensureClaimUiTimer();
       if (kind === "full") {
         nextDrawAt = claimWindowEndsAt;
-        log("Casa llena cantada. La partida se cierra en 15 segundos.");
+        log("Casa llena cantada. Aviso 5s y luego 10s para reclamos.");
         phasePauseTimer = setTimeout(() => {
           claimWindowKind = "";
+          claimWindowOpensAt = 0;
           claimWindowEndsAt = 0;
+          updateClaimTimer();
           if (broadcast) endRound(false);
-        }, 15000);
+        }, NOTICE_MS + CLAIM_MS);
         if (broadcast && isLeader) api?.send("state", statePayload());
         return;
       }
       const nextPhase = kind === "line" ? "two" : "full";
       nextDrawAt = claimWindowEndsAt + BALL_DRAW_INTERVAL_MS;
-      log(`Bingo cantado. La mesa continua con ${nextPhase === "two" ? "2 lineas" : "casa llena"} en 15 segundos.`);
+      log(`Bingo cantado. Aviso 5s y 10s para reclamos antes de ${nextPhase === "two" ? "2 lineas" : "casa llena"}.`);
       phasePauseTimer = setTimeout(() => {
         claimWindowKind = "";
+        claimWindowOpensAt = 0;
         claimWindowEndsAt = 0;
+        updateClaimTimer();
         setPhase(nextPhase);
         if (isLeader && roundActive) ensureDrawTimer();
         if (broadcast && isLeader) api?.send("state", statePayload());
-      }, 15000);
+      }, NOTICE_MS + CLAIM_MS);
       if (broadcast && isLeader) api?.send("state", statePayload());
     }
     async function claim(kind, cardIndex = -1){
       if (!roundActive) return;
+      if (stageVisible()) { log("Espera a que termine el aviso antes de cantar."); return; }
+      if (claimWindowKind && !claimOpen()) { log("Espera al temporizador para cantar este premio."); return; }
       const rows = rowCounts();
       const ok = cardIndex >= 0
         ? (kind === "line" ? rows[cardIndex] >= 1 : kind === "two" ? rows[cardIndex] >= 2 : cardHasFull(cardsData[cardIndex], cardIndex))
         : (kind === "line" ? rows.some((n) => n >= 1) : kind === "two" ? rows.some((n) => n >= 2) : hasFull());
       if (!ok) { log("Todavia no cumple la jugada."); return; }
       const claimKey = `${kind}:${cardIndex}`;
-      const insideClaimWindow = claimWindowKind === kind && Date.now() < claimWindowEndsAt;
+      const insideClaimWindow = claimWindowKind === kind && claimOpen();
       const opensPause = !claimed[kind];
       if (myClaimKeys.has(claimKey)) { log("Ese carton ya canto este premio."); return; }
       if (claimed[kind] && !insideClaimWindow) { log("Ese premio ya fue cantado."); return; }
@@ -701,7 +754,7 @@
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
       if (opensPause) schedulePrizePause(kind);
-      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt, claimWindowKind, claimWindowEndsAt, opensPause });
+      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt, opensPause });
       log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
       renderCards();
     }
@@ -714,7 +767,9 @@
       prepareEndsAt = Date.now() + 60000;
       nextDrawAt = 0;
       claimWindowKind = "";
+      claimWindowOpensAt = 0;
       claimWindowEndsAt = 0;
+      updateClaimTimer();
       log("Partida finalizada. La sala vuelve a aceptar jugadores.");
       if (!local) api.send("end", statePayload());
       startCountdown();
@@ -797,6 +852,7 @@
               paidPrizes = Number(m.payload.paidPrizes || paidPrizes || 0);
               nextDrawAt = Number(m.payload.nextDrawAt || nextDrawAt || 0);
               claimWindowKind = String(m.payload.claimWindowKind || claimWindowKind || "");
+              claimWindowOpensAt = Number(m.payload.claimWindowOpensAt || claimWindowOpensAt || 0);
               claimWindowEndsAt = Number(m.payload.claimWindowEndsAt || claimWindowEndsAt || 0);
               window.parent?.postMessage({ type: "game:playerAward", userId: m.payload.userId, playerId: m.payload.playerId, award: m.payload.kind, payout: m.payload.payout }, "*");
               announcePrize(m.payload.kind);

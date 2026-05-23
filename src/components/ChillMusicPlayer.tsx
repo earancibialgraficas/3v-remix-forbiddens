@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter, Save, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -17,13 +17,52 @@ interface Song {
   category: string;
 }
 
+interface SavedPlaylist {
+  id: string;
+  name: string;
+  songs: Song[];
+}
+
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
 const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
 const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
 
+const getYoutubeId = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtu.be")) return parsed.pathname.replace("/", "").slice(0, 32) || "";
+    if (parsed.hostname.includes("youtube.com")) {
+      if (parsed.pathname.startsWith("/shorts/")) return parsed.pathname.split("/")[2] || "";
+      if (parsed.pathname.startsWith("/embed/")) return parsed.pathname.split("/")[2] || "";
+      return parsed.searchParams.get("v") || "";
+    }
+  } catch {
+    const match = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{6,})/);
+    return match?.[1] || "";
+  }
+  return "";
+};
+
+const fetchYoutubeTitle = async (url: string) => {
+  for (const endpoint of [
+    `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+    `https://noembed.com/embed?url=${encodeURIComponent(url)}`,
+  ]) {
+    try {
+      const response = await fetch(endpoint);
+      if (!response.ok) continue;
+      const data = await response.json();
+      if (typeof data?.title === "string" && data.title.trim()) return data.title.trim();
+    } catch {
+      // Try the next metadata endpoint.
+    }
+  }
+  return "";
+};
+
 export default function ChillMusicPlayer() {
-  const { onPauseMusic } = useAuth();
+  const { onPauseMusic, user } = useAuth();
   const isMobile = useIsMobile();
   const { activeGames, minimized: gameMinimized } = useGameBubble();
 
@@ -74,6 +113,9 @@ export default function ChillMusicPlayer() {
   const [showAddSong, setShowAddSong] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
+  const [playlistName, setPlaylistName] = useState("");
+  const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
+  const [savingPlaylist, setSavingPlaylist] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
@@ -222,6 +264,33 @@ export default function ChillMusicPlayer() {
 
     fetchMusic();
   }, []);
+
+  const loadSavedPlaylists = useCallback(async () => {
+    if (!user) {
+      setSavedPlaylists([]);
+      return;
+    }
+    try {
+      const { data, error } = await (supabase as any)
+        .from("user_music_playlists")
+        .select("id,name,songs")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      setSavedPlaylists((data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        songs: Array.isArray(row.songs) ? row.songs : [],
+      })));
+    } catch (error) {
+      console.warn("No se pudieron cargar playlists personales", error);
+      setSavedPlaylists([]);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSavedPlaylists();
+  }, [loadSavedPlaylists]);
 
   const handleLocalLoadedMeta = () => {
     if (audioRef.current) {
@@ -394,19 +463,76 @@ export default function ChillMusicPlayer() {
     else if (idx < currentIndex) setCurrentIndex(p => p - 1);
   };
 
-  const addSong = () => {
+  const addSong = async () => {
     if (!newSongUrl.trim()) return;
-    const ytMatch = newSongUrl.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]+)/);
-    if (!ytMatch) return;
+    const youtubeId = getYoutubeId(newSongUrl.trim());
+    if (!youtubeId) return;
+    const resolvedTitle = newSongTitle.trim() || await fetchYoutubeTitle(newSongUrl.trim());
     const newSong: Song = {
-      id: ytMatch[1],
-      title: newSongTitle.trim() || `YouTube Track`,
+      id: youtubeId,
+      title: resolvedTitle || `YouTube Track`,
       url: newSongUrl,
       type: 'youtube',
       category: 'Custom'
     };
     setPlaylist(prev => [...prev, newSong]);
+    setCurrentCategory("Personal");
     setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
+  };
+
+  const loadPersonalPlaylist = (saved: SavedPlaylist) => {
+    setPlaylist(saved.songs);
+    setCurrentCategory(saved.name);
+    setCurrentIndex(0);
+    setCurrentTime(0);
+    setDuration(0);
+    setSeekDisplayValue(0);
+    timeToRestoreRef.current = null;
+    setIsPlaying(saved.songs.length > 0);
+    setPlaylistName(saved.name);
+  };
+
+  const savePersonalPlaylist = async () => {
+    if (!user || savingPlaylist) return;
+    const youtubeSongs = playlist.filter((song) => song.type === "youtube");
+    const name = playlistName.trim() || (currentCategory && currentCategory !== "Todos" ? currentCategory : "Mi playlist");
+    if (!youtubeSongs.length || !name.trim()) return;
+    setSavingPlaylist(true);
+    try {
+      const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
+      const payload = {
+        user_id: user.id,
+        name,
+        songs: youtubeSongs.map((song) => ({
+          id: song.id,
+          title: song.title,
+          url: song.url,
+          type: "youtube",
+          category: "Custom",
+        })),
+      };
+      if (selected) {
+        await (supabase as any).from("user_music_playlists").update(payload).eq("id", selected.id).eq("user_id", user.id);
+      } else {
+        await (supabase as any).from("user_music_playlists").insert(payload);
+      }
+      await loadSavedPlaylists();
+      setCurrentCategory(name);
+    } catch (error) {
+      console.error("No se pudo guardar la playlist", error);
+    } finally {
+      setSavingPlaylist(false);
+    }
+  };
+
+  const deletePersonalPlaylist = async (id: string) => {
+    if (!user) return;
+    try {
+      await (supabase as any).from("user_music_playlists").delete().eq("id", id).eq("user_id", user.id);
+      await loadSavedPlaylists();
+    } catch (error) {
+      console.error("No se pudo borrar la playlist", error);
+    }
   };
 
   const handleSeekChange = (v: number[]) => {
@@ -798,10 +924,57 @@ export default function ChillMusicPlayer() {
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
               <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
               <Input placeholder="Título (opcional)" value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
-              <button onClick={addSong} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body">Agregar al final</button>
+              <button onClick={() => void addSong()} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body">Agregar al final</button>
             </div>
           )}
         </div>
+
+        {user && (
+          <div className="border-t border-border/50 px-2.5 py-2 space-y-1.5">
+            <div className="flex gap-1.5">
+              <Input
+                placeholder="Nombre de lista"
+                value={playlistName}
+                onChange={(e) => setPlaylistName(e.target.value)}
+                className="h-6 min-w-0 bg-muted text-[10px] font-body"
+              />
+              <button
+                onClick={() => void savePersonalPlaylist()}
+                disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube")}
+                className="h-6 shrink-0 rounded border border-neon-green/40 bg-neon-green/15 px-2 text-neon-green"
+                title="Guardar lista"
+              >
+                <Save className="w-3 h-3" />
+              </button>
+            </div>
+            {savedPlaylists.length > 0 && (
+              <div className="max-h-24 overflow-y-auto rounded border border-border/40 bg-black/20 retro-scrollbar">
+                {savedPlaylists.map((saved) => (
+                  <div key={saved.id} className="flex items-center gap-1 border-b border-border/25 px-1.5 py-1 last:border-0">
+                    <button
+                      type="button"
+                      onClick={() => loadPersonalPlaylist(saved)}
+                      className="flex min-w-0 flex-1 items-center gap-1 text-left text-[9px] text-muted-foreground hover:text-neon-cyan"
+                      title={saved.name}
+                    >
+                      <FolderOpen className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{saved.name}</span>
+                      <span className="shrink-0 text-[8px] opacity-70">{saved.songs.length}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deletePersonalPlaylist(saved.id)}
+                      className="shrink-0 text-destructive/70 hover:text-destructive"
+                      title="Borrar lista"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

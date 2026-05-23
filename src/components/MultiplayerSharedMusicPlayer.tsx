@@ -121,6 +121,8 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const [newSongTitle, setNewSongTitle] = useState("");
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playlistListRef = useRef<HTMLDivElement>(null);
+  const activeSongRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientIdRef = useRef(`music_${Math.random().toString(36).slice(2, 10)}`);
@@ -528,6 +530,13 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
   const roomLabel = useMemo(() => MUSIC_ROOMS.find((room) => room.id === selectedRoom)?.label || "Mesa", [selectedRoom]);
   const seekMax = Math.max(duration, currentTime, 1);
 
+  useEffect(() => {
+    if (!playlistOpen) return;
+    window.requestAnimationFrame(() => {
+      activeSongRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [playlistOpen, currentIndex, playlist.length]);
+
   return (
     <div className="bg-black/35 p-2">
       <audio
@@ -682,10 +691,11 @@ export default function MultiplayerSharedMusicPlayer({ gameId, roomCode, userNam
       )}
 
       {playlistOpen && playlist.length > 0 && (
-        <div className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
+        <div ref={playlistListRef} className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
           {playlist.map((song, index) => (
             <div
               key={song.id}
+              ref={index === currentIndex ? activeSongRef : undefined}
               className={cn(
                 "flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors",
                 index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white"

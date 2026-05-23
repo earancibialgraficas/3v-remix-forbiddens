@@ -128,6 +128,8 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const [newTitle, setNewTitle] = useState("");
   const [controlsElement, setControlsElement] = useState<HTMLElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playlistListRef = useRef<HTMLDivElement>(null);
+  const activeVideoRef = useRef<HTMLButtonElement>(null);
   const hudTimerRef = useRef<number | null>(null);
   const channelRef = useRef<any>(null);
   const pollRef = useRef<number | null>(null);
@@ -149,6 +151,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const localWatchPlayerId = playerId || clientIdRef.current;
   const localWatchUserId = userId || localWatchPlayerId;
   const effectiveDuration = duration || (current?.youtubeId ? durationByVideoRef.current[current.youtubeId] || 0 : 0);
+
+  useEffect(() => {
+    if (!playlistOpen) return;
+    window.requestAnimationFrame(() => {
+      activeVideoRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [playlistOpen, currentIndex, playlist.length]);
 
   const closeTransientPanels = useCallback(() => {
     setVolumeOpen(false);
@@ -658,9 +667,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       )}
 
       {playlistOpen && playlist.length > 0 && (
-        <div className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
+        <div ref={playlistListRef} className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
           {playlist.map((song, index) => (
-            <button key={song.id} type="button" onClick={() => jumpTo(index)} className={cn("flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors", index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white")} title={song.title}>
+            <button key={song.id} ref={index === currentIndex ? activeVideoRef : undefined} type="button" onClick={() => jumpTo(index)} className={cn("flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors", index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white")} title={song.title}>
               <span className="w-4 shrink-0 font-pixel text-[6px]">{index + 1}</span>
               <span className="min-w-0 flex-1 truncate text-[8px]">{song.title}</span>
               <span className="shrink-0 font-pixel text-[5px] text-red-300">YT</span>
