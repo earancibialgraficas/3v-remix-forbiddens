@@ -271,18 +271,54 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           coverMap.set(c.file_name, { custom_name: c.custom_name, custom_cover_url: c.custom_cover_url });
         });
 
-        const gamesToSave = validFiles.map((file: any) => {
+        // Mapeamos con parentHint cuando exista
+        const mapped = validFiles.map((file: any) => {
           const restored = coverMap.get(file.name);
           const parentHint = (file.parents || []).map((p: string) => parentToConsole.get(p)).find(Boolean) || null;
           return {
-            user_id: user?.id,
             drive_file_id: file.id,
             file_name: file.name,
             console_type: getConsoleType(file.name, parentHint),
-            ...(restored?.custom_name ? { custom_name: restored.custom_name } : {}),
-            ...(restored?.custom_cover_url ? { custom_cover_url: restored.custom_cover_url } : {}),
+            hasHint: !!parentHint,
+            restored,
           };
         });
+
+        // 🧹 Dedup por file_name: si el mismo ROM aparece en raíz y en subcarpeta,
+        // nos quedamos con la versión que tiene hint de subcarpeta (consola fiable).
+        const byName = new Map<string, typeof mapped[number]>();
+        for (const m of mapped) {
+          const prev = byName.get(m.file_name);
+          if (!prev || (m.hasHint && !prev.hasHint)) byName.set(m.file_name, m);
+        }
+        const deduped = [...byName.values()];
+
+        const gamesToSave = deduped.map((m) => ({
+          user_id: user?.id,
+          drive_file_id: m.drive_file_id,
+          file_name: m.file_name,
+          console_type: m.console_type,
+          ...(m.restored?.custom_name ? { custom_name: m.restored.custom_name } : {}),
+          ...(m.restored?.custom_cover_url ? { custom_cover_url: m.restored.custom_cover_url } : {}),
+        }));
+
+        // 🧹 Borramos filas previas del usuario que no estén en este snapshot
+        // (limpia duplicados de syncs anteriores cuando había mismo ROM en 2 carpetas)
+        const keepIds = new Set(gamesToSave.map((g: any) => g.drive_file_id));
+        const { data: existingRows } = await supabase
+          .from('user_drive_games' as any)
+          .select('drive_file_id')
+          .eq('user_id', user!.id);
+        const stale = (existingRows || [])
+          .map((r: any) => r.drive_file_id)
+          .filter((id: string) => !keepIds.has(id));
+        if (stale.length > 0) {
+          await supabase
+            .from('user_drive_games' as any)
+            .delete()
+            .eq('user_id', user!.id)
+            .in('drive_file_id', stale);
+        }
 
         const { error } = await supabase
           .from('user_drive_games' as any)
