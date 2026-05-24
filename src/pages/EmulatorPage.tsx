@@ -186,7 +186,6 @@ export default function EmulatorPage() {
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pspPendingWindowRef = useRef<Window | null>(null);
 
   // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
   const requiresLite = (consoleId: string) => (EXTRA_CONSOLES as readonly string[]).includes(consoleId);
@@ -350,94 +349,25 @@ export default function EmulatorPage() {
 
     if (blockIfLocked(currentSystem.id)) return;
 
-    if (currentSystem.id === "psp") {
-      void openPspFilePicker();
-      return;
-    }
     fileInputRef.current?.click();
   }
 
-  const writePspPendingWindow = (pspWindow: Window, message = "Selecciona una ROM PSP...") => {
-    try {
-      pspWindow.document.open();
-      pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>${message}</div></body></html>`);
-      pspWindow.document.close();
-    } catch {
-      // La ventana puede quedar fuera de alcance si el navegador la aisla; navegarla sigue funcionando.
-    }
-  };
-
-  const openPspPendingWindow = () => {
-    const pspWindow = window.open("", "_blank", "popup=yes,width=1440,height=860");
-    if (pspWindow && !pspWindow.closed) {
-      writePspPendingWindow(pspWindow);
-      pspWindow.focus();
-      return pspWindow;
-    }
-    toast({
-      title: "Ventana bloqueada",
-      description: "No pude abrir la ventana PSP. Revisa que el permiso sea para este dominio exacto y vuelve a intentar.",
-      variant: "destructive",
-    });
-    return null;
-  };
-
-  const launchPspFile = (file: File, pendingWindow?: Window | null) => {
+  const launchPspFile = (file: File) => {
     const romUrl = URL.createObjectURL(file);
     (window as any).__forbiddensPspObjectUrls = [...((window as any).__forbiddensPspObjectUrls || []), romUrl];
-    openPspStandalone(romUrl, file.name, pendingWindow);
+    openPspStandalone(romUrl, file.name);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const openPspFilePicker = async () => {
-    const pendingWindow = openPspPendingWindow();
-    if (!pendingWindow) return;
-
-    const showOpenFilePicker = (window as any).showOpenFilePicker;
-    if (typeof showOpenFilePicker !== "function") {
-      pspPendingWindowRef.current = pendingWindow;
-      fileInputRef.current?.click();
-      return;
-    }
-
-    try {
-      const [handle] = await showOpenFilePicker({
-        multiple: false,
-        types: [{
-          description: "ROM PSP",
-          accept: {
-            "application/octet-stream": [".iso", ".cso", ".pbp", ".chd"],
-          },
-        }],
-      });
-      const file = await handle.getFile();
-      launchPspFile(file, pendingWindow);
-    } catch (error: any) {
-      if (error?.name === "AbortError") {
-        pendingWindow.close();
-      } else {
-        pspPendingWindowRef.current = pendingWindow;
-        fileInputRef.current?.click();
-      }
-    }
-  };
-
-  const openPspStandalone = (romUrl: string, gameName: string, pendingWindow?: Window | null) => {
+  const openPspStandalone = (romUrl: string, gameName: string) => {
     const pspUrl = `/psp-standalone.html?rom=${encodeURIComponent(romUrl)}&name=${encodeURIComponent(gameName)}`;
-    const pspWindow = pendingWindow && !pendingWindow.closed
-      ? pendingWindow
-      : window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
+    const pspWindow = window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
     if (pspWindow && !pspWindow.closed) {
-      if (pspWindow.location.href === "about:blank") {
-        pspWindow.location.replace(pspUrl);
-      } else if (pspWindow === pendingWindow) {
-        pspWindow.location.href = pspUrl;
-      }
       pspWindow.focus();
     } else {
       toast({
         title: "Ventana bloqueada",
-        description: "Permite ventanas emergentes para abrir PSP despues de elegir la ROM.",
+        description: "El selector de ROM si funciono, pero el navegador bloqueo la ventana PSP. Permite ventanas emergentes para este dominio exacto.",
         variant: "destructive",
       });
     }
@@ -456,9 +386,7 @@ export default function EmulatorPage() {
       return;
     }
     if (currentSystem.id === "psp") {
-      const pendingWindow = pspPendingWindowRef.current;
-      pspPendingWindowRef.current = null;
-      launchPspFile(file, pendingWindow);
+      launchPspFile(file);
       return;
     }
 
