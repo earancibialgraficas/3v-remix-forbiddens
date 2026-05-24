@@ -389,8 +389,11 @@ export default function EmulatorPage() {
 
     if (blockIfLocked(currentSystem.id)) return;
 
+    if (currentSystem.id === "psp") {
+      if (!preparePspWindow(false)) return;
+      window.focus();
+    }
     fileInputRef.current?.click();
-    if (currentSystem.id === "psp" && !preparePspWindow(false)) return;
   }
 
   const openPspStandalone = (romUrl: string, gameName: string) => {
