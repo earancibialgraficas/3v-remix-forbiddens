@@ -393,8 +393,9 @@ const handlePlayCloudGame = async (game: any) => {
       const accessToken = await requestGoogleToken();
 
       if (isPspCloudGame) {
-        sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: game.name }));
-        const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(game.name)}`;
+        const pspFileName = game.fileName || game.originalName || game.name;
+        sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: pspFileName }));
+        const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(pspFileName)}`;
         if (pspWindow && !pspWindow.closed) {
           pspWindow.location.replace(pspUrl);
           pspWindow.focus();
@@ -463,7 +464,7 @@ const handlePlayCloudGame = async (game: any) => {
       return {
         id: g.drive_file_id,
         name: g.custom_name || rawName,
-        originalName: rawName,
+        originalName: g.file_name,
         console: selectedConsole,
         coverUrl: "/placeholder.svg",
         customCover: g.custom_cover_url || null,

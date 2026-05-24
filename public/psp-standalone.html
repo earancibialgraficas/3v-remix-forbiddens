@@ -7,30 +7,49 @@
   <style>
     *{box-sizing:border-box}
     html,body{width:100%;height:100%;margin:0;background:#020617;color:#e5faff;font-family:Inter,Arial,sans-serif;overflow:hidden}
-    body{display:grid;grid-template-rows:auto minmax(0,1fr);background:radial-gradient(circle at 50% -10%,#063747 0,#020617 48%,#000 100%)}
-    .top{height:42px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(34,211,238,.22);background:rgba(0,0,0,.72);box-shadow:0 8px 22px rgba(0,0,0,.45)}
-    .brand{font:900 12px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85);letter-spacing:.08em}
-    .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:12px}
-    .status{font:900 10px/1 "Courier New",monospace;color:#39ff14;text-shadow:0 0 10px rgba(57,255,20,.5)}
+    body{display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(circle at 50% -10%,rgba(8,47,73,.55) 0,rgba(2,6,23,.96) 46%,#000 100%)}
+    body::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);pointer-events:none}
+    .bubble{position:relative;z-index:1;width:min(1180px,calc(100vw - 24px));height:min(720px,calc(100vh - 24px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#05070d;box-shadow:0 24px 80px rgba(0,0,0,.72),0 0 42px rgba(34,211,238,.12)}
+    .top{height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(24,24,28,.78)}
+    .brand{font:900 10px/1 "Courier New",monospace;color:#39ff14;text-shadow:0 0 12px rgba(57,255,20,.45);letter-spacing:.08em}
+    .brand::before{content:"+";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border-radius:6px;background:rgba(57,255,20,.12);border:1px solid rgba(57,255,20,.35);color:#39ff14}
+    .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f8fafc;font-size:12px;font-weight:700}
+    .title::after{content:"  PSP  |  00:00";margin-left:8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe}
+    .status{font:900 9px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 10px rgba(34,211,238,.55)}
     .topControls{display:flex;align-items:center;gap:6px}
     .iconTool{width:30px;height:28px;border:1px solid rgba(34,211,238,.35);border-radius:7px;background:rgba(15,23,42,.88);color:#e5faff;font:900 13px/1 "Courier New",monospace;cursor:pointer}
     .iconTool:hover{border-color:#00f2fe;background:rgba(34,211,238,.16);box-shadow:0 0 14px rgba(34,211,238,.25)}
     .iconTool.danger{border-color:rgba(251,113,133,.45);color:#fb7185}
-    .shell{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 260px;background:#000}
+    .shell{min-height:0;flex:1;display:grid;grid-template-columns:minmax(0,1fr) 56px;background:#000}
     #game{position:relative;width:100%;height:100%;min-height:0;background:#000}
-    .tools{min-width:0;border-left:1px solid rgba(34,211,238,.24);background:linear-gradient(180deg,rgba(2,6,23,.98),rgba(0,0,0,.96));padding:10px;overflow-y:auto}
-    .toolGroup{border:1px solid rgba(34,211,238,.24);border-radius:8px;background:rgba(15,23,42,.62);padding:9px;margin-bottom:10px;box-shadow:inset 0 0 14px rgba(34,211,238,.05)}
-    .toolTitle{margin:0 0 8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe;letter-spacing:.08em;text-transform:uppercase}
-    .toolBtn{width:100%;height:30px;margin-top:6px;border:1px solid rgba(34,211,238,.38);border-radius:6px;background:rgba(34,211,238,.1);color:#e5faff;font:800 10px/1 "Courier New",monospace;cursor:pointer}
-    .toolBtn:hover{background:rgba(34,211,238,.18);box-shadow:0 0 12px rgba(34,211,238,.18)}
+    .tools{min-width:0;border-left:1px solid rgba(255,255,255,.1);background:rgba(24,24,28,.72);padding:8px;overflow:visible;display:flex;flex-direction:column;align-items:center;gap:8px}
+    .toolGroup{position:relative;width:40px;min-height:40px;border:0;border-radius:8px;background:transparent;padding:0;margin:0;box-shadow:none}
+    .toolGroup:hover,.toolGroup:focus-within{z-index:80;width:220px;min-height:auto;right:180px;border:1px solid rgba(34,211,238,.28);border-radius:9px;background:rgba(5,7,13,.96);padding:9px;box-shadow:0 18px 36px rgba(0,0,0,.45),0 0 22px rgba(34,211,238,.12)}
+    .toolTitle{display:none;margin:0 0 8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe;letter-spacing:.08em;text-transform:uppercase}
+    .toolGroup:hover .toolTitle,.toolGroup:focus-within .toolTitle{display:block}
+    .toolBtn{width:40px;height:40px;margin:0;border:0;border-radius:8px;background:transparent;color:#94a3b8;font:800 0/1 "Courier New",monospace;cursor:pointer}
+    .toolBtn:hover{background:rgba(255,255,255,.08);color:#fff;box-shadow:none}
+    .toolGroup:hover .toolBtn,.toolGroup:focus-within .toolBtn{width:100%;height:30px;margin-top:6px;border:1px solid rgba(34,211,238,.38);border-radius:6px;background:rgba(34,211,238,.1);color:#e5faff;font-size:10px}
     .toolBtn.danger{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1)}
     .miniRow{display:flex;gap:6px}
     .miniRow .toolBtn{flex:1}
-    .toolText{min-height:16px;margin-top:7px;color:#94a3b8;font-size:11px;line-height:1.35}
-    .range{width:100%;accent-color:#00f2fe}
-    .songTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e5faff;font-size:11px}
-    .saveName{width:100%;height:28px;border:1px solid rgba(34,211,238,.26);border-radius:6px;background:#020617;color:#e5faff;padding:5px 7px;font-size:11px;outline:none}
-    .slotList{display:grid;gap:6px;max-height:145px;overflow:auto;margin-top:8px;padding-right:2px}
+    .toolText{display:none;min-height:16px;margin-top:7px;color:#94a3b8;font-size:11px;line-height:1.35}
+    .range{display:none;width:100%;accent-color:#00f2fe}
+    .songTitle{display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e5faff;font-size:11px}
+    .saveName{display:none;width:100%;height:28px;border:1px solid rgba(34,211,238,.26);border-radius:6px;background:#020617;color:#e5faff;padding:5px 7px;font-size:11px;outline:none}
+    .slotList{display:none;gap:6px;max-height:145px;overflow:auto;margin-top:8px;padding-right:2px}
+    .toolGroup:hover .toolText,.toolGroup:focus-within .toolText,.toolGroup:hover .range,.toolGroup:focus-within .range,.toolGroup:hover .songTitle,.toolGroup:focus-within .songTitle,.toolGroup:hover .saveName,.toolGroup:focus-within .saveName{display:block}
+    .toolGroup:hover .slotList,.toolGroup:focus-within .slotList{display:grid}
+    #sidePauseBtn::before{content:"II";font-size:13px}
+    #sideMenuBtn::before{content:"M";font-size:13px}
+    #sideFullBtn::before{content:"[]";font-size:13px}
+    #saveSlotBtn::before{content:"S";font-size:13px}
+    #quickLoadBtn::before{content:"L";font-size:13px}
+    #musicPrevBtn::before{content:"<<";font-size:13px}
+    #musicPlayBtn::before{content:">";font-size:13px}
+    #musicNextBtn::before{content:">>";font-size:13px}
+    #sideCloseBtn::before{content:"X";font-size:13px;color:#fb7185}
+    .toolGroup:hover .toolBtn::before,.toolGroup:focus-within .toolBtn::before{content:none!important}
     .slotItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:rgba(0,0,0,.28);padding:6px}
     .slotMeta{min-width:0}
     .slotMeta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5faff;font-size:10px}
@@ -50,69 +69,74 @@
     .error .spinner{display:none}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (max-width:900px){
-      .shell{grid-template-columns:minmax(0,1fr)}
-      .tools{position:absolute;right:8px;top:50px;z-index:30;width:190px;max-height:calc(100vh - 58px);border:1px solid rgba(34,211,238,.3);border-radius:8px}
+      body{padding:0}
+      .bubble{width:100vw;height:100vh;border-radius:0;border:0}
+      .shell{grid-template-columns:minmax(0,1fr) 52px}
+      .tools{width:52px;padding:6px}
+      .toolGroup:hover,.toolGroup:focus-within{right:168px;width:208px}
     }
   </style>
 </head>
 <body>
-  <header class="top">
-    <div class="brand">FORBIDDENS EMULATOR</div>
-    <div class="title" id="topTitle">EmulatorJS PSP</div>
-    <div class="status" id="topStatus">BOOT</div>
-    <div class="topControls">
-      <button class="iconTool" id="pauseBtn" type="button" title="Pausar/Reanudar">II</button>
-      <button class="iconTool" id="menuBtn" type="button" title="Menu EmulatorJS">M</button>
-      <button class="iconTool" id="fullBtn" type="button" title="Pantalla completa">[]</button>
-      <button class="iconTool danger" id="closeBtn" type="button" title="Cerrar">X</button>
-    </div>
-  </header>
-  <main class="shell">
-    <section id="game">
-      <div id="loading">
-        <div class="loadCard" id="loadCard">
-          <div class="spinner"></div>
-          <h1>PSP | EmulatorJS</h1>
-          <p id="message">Preparando emulador...</p>
-          <div class="file" id="fileName"></div>
-          <div class="bar"><span id="progress"></span></div>
+  <div class="bubble">
+    <header class="top">
+      <div class="brand">FORBIDDENS EMULATOR</div>
+      <div class="title" id="topTitle">EmulatorJS PSP</div>
+      <div class="status" id="topStatus">BOOT</div>
+      <div class="topControls">
+        <button class="iconTool" id="pauseBtn" type="button" title="Pausar/Reanudar">II</button>
+        <button class="iconTool" id="menuBtn" type="button" title="Menu EmulatorJS">M</button>
+        <button class="iconTool" id="fullBtn" type="button" title="Pantalla completa">[]</button>
+        <button class="iconTool danger" id="closeBtn" type="button" title="Cerrar">X</button>
+      </div>
+    </header>
+    <main class="shell">
+      <section id="game">
+        <div id="loading">
+          <div class="loadCard" id="loadCard">
+            <div class="spinner"></div>
+            <h1>PSP | EmulatorJS</h1>
+            <p id="message">Preparando emulador...</p>
+            <div class="file" id="fileName"></div>
+            <div class="bar"><span id="progress"></span></div>
+          </div>
         </div>
-      </div>
-    </section>
-    <aside class="tools" aria-label="Opciones PSP">
-      <div class="toolGroup">
-        <p class="toolTitle">Emulador</p>
-        <div class="miniRow">
-          <button class="toolBtn" id="sidePauseBtn" type="button">Pausar</button>
-          <button class="toolBtn" id="sideMenuBtn" type="button">Menu</button>
+      </section>
+      <aside class="tools" aria-label="Opciones PSP">
+        <div class="toolGroup">
+          <p class="toolTitle">Emulador</p>
+          <div class="miniRow">
+            <button class="toolBtn" id="sidePauseBtn" type="button">Pausar</button>
+            <button class="toolBtn" id="sideMenuBtn" type="button">Menu</button>
+          </div>
+          <button class="toolBtn" id="sideFullBtn" type="button">Pantalla completa</button>
         </div>
-        <button class="toolBtn" id="sideFullBtn" type="button">Pantalla completa</button>
-      </div>
-      <div class="toolGroup">
-        <p class="toolTitle">Volumen</p>
-        <input class="range" id="volumeRange" type="range" min="0" max="100" step="5" value="80" />
-        <div class="toolText" id="volumeLabel">80%</div>
-      </div>
-      <div class="toolGroup">
-        <p class="toolTitle">Guardado</p>
-        <input class="saveName" id="slotName" placeholder="Nombre del slot" />
-        <button class="toolBtn" id="saveSlotBtn" type="button">Guardar slot</button>
-        <button class="toolBtn" id="quickLoadBtn" type="button">Cargar ultimo</button>
-        <div class="toolText" id="saveStatus">Sin estado cargado.</div>
-        <div class="slotList" id="slotList"></div>
-      </div>
-      <div class="toolGroup">
-        <p class="toolTitle">FORBIDDENS Player</p>
-        <div class="songTitle" id="musicTitle">Cargando musica...</div>
-        <div class="miniRow">
-          <button class="toolBtn" id="musicPrevBtn" type="button">Prev</button>
-          <button class="toolBtn" id="musicPlayBtn" type="button">Play</button>
-          <button class="toolBtn" id="musicNextBtn" type="button">Next</button>
+        <div class="toolGroup">
+          <p class="toolTitle">Volumen</p>
+          <input class="range" id="volumeRange" type="range" min="0" max="100" step="5" value="80" />
+          <div class="toolText" id="volumeLabel">80%</div>
         </div>
-      </div>
-      <div class="toolGroup"><button class="toolBtn danger" id="sideCloseBtn" type="button">Cerrar ventana</button></div>
-    </aside>
-  </main>
+        <div class="toolGroup">
+          <p class="toolTitle">Guardado</p>
+          <input class="saveName" id="slotName" placeholder="Nombre del slot" />
+          <button class="toolBtn" id="saveSlotBtn" type="button">Guardar slot</button>
+          <button class="toolBtn" id="quickLoadBtn" type="button">Cargar ultimo</button>
+          <div class="toolText" id="saveStatus">Sin estado cargado.</div>
+          <div class="slotList" id="slotList"></div>
+        </div>
+        <div class="toolGroup">
+          <p class="toolTitle">FORBIDDENS Player</p>
+          <div class="songTitle" id="musicTitle">Cargando musica...</div>
+          <div class="miniRow">
+            <button class="toolBtn" id="musicPrevBtn" type="button">Prev</button>
+            <button class="toolBtn" id="musicPlayBtn" type="button">Play</button>
+            <button class="toolBtn" id="musicNextBtn" type="button">Next</button>
+          </div>
+        </div>
+        <div class="toolGroup"><button class="toolBtn danger" id="sideCloseBtn" type="button">Cerrar ventana</button></div>
+      </aside>
+    </main>
+  </div>
   <script>
     (function(){
       var params = new URLSearchParams(location.search);
@@ -186,6 +210,29 @@
           "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
           "/emulatorjs-data/cores/ppsspp-assets.zip"
         ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
+      }
+      function deleteDb(name){
+        return new Promise(function(resolve){
+          if (!window.indexedDB) return resolve();
+          try {
+            var req = indexedDB.deleteDatabase(name);
+            req.onsuccess = req.onerror = req.onblocked = function(){ resolve(); };
+          } catch (_) {
+            resolve();
+          }
+        });
+      }
+      async function clearOldEmulatorCache(){
+        var cacheVersion = "psp-emulatorjs-20250614";
+        if (localStorage.getItem("forbiddens_psp_core_cache_version") === cacheVersion) return;
+        setMessage("Limpiando cache antiguo de PSP...", 6);
+        await Promise.all([
+          deleteDb("EmulatorJS-core"),
+          deleteDb("EmulatorJS-roms"),
+          deleteDb("EmulatorJS-bios"),
+          deleteDb("EmulatorJS-cache")
+        ]);
+        localStorage.setItem("forbiddens_psp_core_cache_version", cacheVersion);
       }
       function getEjs(){
         return window.EJS_emulator || null;
@@ -413,6 +460,7 @@
           return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive y abre el juego otra vez.");
         }
         try {
+          await clearOldEmulatorCache();
           prefetchAssets();
           if (romUrl) {
             objectUrl = romUrl;
@@ -436,8 +484,9 @@
           window.EJS_startOnLoaded = true;
           window.EJS_threads = true;
           window.EJS_language = "es-ES";
-          window.EJS_CacheLimit = 1073741824;
+          window.EJS_CacheLimit = 134217728;
           window.EJS_disableDatabases = false;
+          window.EJS_dontExtractRom = true;
           window.EJS_volume = initialVolume;
           window.EJS_color = "#00f2fe";
           window.EJS_backgroundColor = "#000000";

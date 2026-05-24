@@ -303,6 +303,21 @@ export default function EmulatorPage() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const closeCancelledPspPicker = () => {
+      window.setTimeout(() => {
+        const pendingWindow = pendingPspWindowRef.current;
+        if (currentSystem.id !== "psp" || !pendingWindow || pendingWindow.closed) return;
+        if ((fileInputRef.current?.files?.length || 0) > 0) return;
+        pendingWindow.close();
+        pendingPspWindowRef.current = null;
+      }, 500);
+    };
+
+    window.addEventListener("focus", closeCancelledPspPicker);
+    return () => window.removeEventListener("focus", closeCancelledPspPicker);
+  }, [currentSystem.id]);
+
   const handleTimezoneChange = (tz: string) => {
     setTimezone(tz);
     localStorage.setItem("emulator_timezone", tz);
@@ -337,10 +352,10 @@ export default function EmulatorPage() {
     pspWindow.document.close();
   };
 
-  const preparePspWindow = () => {
+  const preparePspWindow = (focusWindow = false) => {
     const pendingWindow = pendingPspWindowRef.current;
     if (pendingWindow && !pendingWindow.closed) {
-      pendingWindow.focus();
+      if (focusWindow) pendingWindow.focus();
       return pendingWindow;
     }
 
@@ -356,6 +371,7 @@ export default function EmulatorPage() {
 
     writePspPreparingWindow(pspWindow);
     pendingPspWindowRef.current = pspWindow;
+    if (focusWindow) pspWindow.focus();
     return pspWindow;
   };
 
@@ -373,8 +389,8 @@ export default function EmulatorPage() {
 
     if (blockIfLocked(currentSystem.id)) return;
 
-    if (currentSystem.id === "psp" && !preparePspWindow()) return;
     fileInputRef.current?.click();
+    if (currentSystem.id === "psp" && !preparePspWindow(false)) return;
   }
 
   const openPspStandalone = (romUrl: string, gameName: string) => {
@@ -419,7 +435,7 @@ export default function EmulatorPage() {
     if (currentSystem.id === "psp") {
       const romUrl = URL.createObjectURL(file);
       (window as any).__forbiddensPspObjectUrls = [...((window as any).__forbiddensPspObjectUrls || []), romUrl];
-      openPspStandalone(romUrl, file.name.replace(/\.[^/.]+$/, ""));
+      openPspStandalone(romUrl, file.name);
       toast({
         title: "EmulatorJS PSP abierto",
         description: "El juego PSP se inicio en una ventana dedicada.",
