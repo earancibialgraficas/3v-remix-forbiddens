@@ -182,6 +182,7 @@ export default function EmulatorPage() {
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingPspWindowRef = useRef<Window | null>(null);
 
   // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
   const requiresLite = (consoleId: string) => (EXTRA_CONSOLES as readonly string[]).includes(consoleId);
@@ -271,17 +272,19 @@ export default function EmulatorPage() {
     return () => clearInterval(interval);
   }, [effectiveTz]);
 
+  const currentSystem = systems[currentIndex];
+
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (hasActiveGame) return;
       if (e.key === "ArrowRight") setCurrentIndex((prev) => (prev + 1) % systems.length);
       else if (e.key === "ArrowLeft") setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length);
-      else if (e.key === "Enter") fileInputRef.current?.click();
+      else if (e.key === "Enter") openRomPicker();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasActiveGame]);
+  }, [hasActiveGame, currentSystem.id, user, profile?.membership_tier, isStaff]);
 
   useEffect(() => {
     const el = carouselRef.current;
@@ -299,8 +302,6 @@ export default function EmulatorPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  const currentSystem = systems[currentIndex];
 
   const handleTimezoneChange = (tz: string) => {
     setTimezone(tz);
@@ -331,24 +332,82 @@ export default function EmulatorPage() {
     }
   };
 
-  const openPspStandalone = (romUrl: string, gameName: string) => {
-    const pspWindow = window.open("", "_blank", "popup=yes,width=1440,height=860");
-    if (pspWindow) {
-      pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>Preparando EmulatorJS PSP...</div></body></html>`);
-      pspWindow.document.close();
+  const writePspPreparingWindow = (pspWindow: Window) => {
+    pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>Preparando EmulatorJS PSP...</div></body></html>`);
+    pspWindow.document.close();
+  };
+
+  const preparePspWindow = () => {
+    const pendingWindow = pendingPspWindowRef.current;
+    if (pendingWindow && !pendingWindow.closed) {
+      pendingWindow.focus();
+      return pendingWindow;
     }
+
+    const pspWindow = window.open("", "_blank", "popup=yes,width=1440,height=860");
+    if (!pspWindow) {
+      toast({
+        title: "Ventana bloqueada",
+        description: "Permite ventanas emergentes para abrir PSP en una ventana dedicada.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    writePspPreparingWindow(pspWindow);
+    pendingPspWindowRef.current = pspWindow;
+    return pspWindow;
+  };
+
+  function openRomPicker() {
+    if (currentSystem.id === "ps2") {
+      launchPs2();
+      return;
+    }
+
+    if (!user) {
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesiÃ³n para emular tus juegos.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (blockIfLocked(currentSystem.id)) return;
+
+    if (currentSystem.id === "psp" && !preparePspWindow()) return;
+    fileInputRef.current?.click();
+  }
+
+  const openPspStandalone = (romUrl: string, gameName: string) => {
+    const pendingWindow = pendingPspWindowRef.current;
+    const pspWindow = pendingWindow && !pendingWindow.closed
+      ? pendingWindow
+      : window.open("", "_blank", "popup=yes,width=1440,height=860");
+    pendingPspWindowRef.current = null;
+
+    if (pspWindow && !pspWindow.closed) writePspPreparingWindow(pspWindow);
+
     const pspUrl = `/psp-standalone.html?rom=${encodeURIComponent(romUrl)}&name=${encodeURIComponent(gameName)}`;
     if (pspWindow && !pspWindow.closed) {
       pspWindow.location.replace(pspUrl);
       pspWindow.focus();
     } else {
-      const opened = window.open(pspUrl, "_blank");
-      if (opened) opened.focus();
-      else toast({ title: "Ventana bloqueada", description: "Permite ventanas emergentes para abrir PSP sin reemplazar el sitio.", variant: "destructive" });
+      toast({
+        title: "Ventana bloqueada",
+        description: "Permite ventanas emergentes para abrir PSP sin reemplazar el sitio.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      const pendingWindow = pendingPspWindowRef.current;
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
+      pendingPspWindowRef.current = null;
+      return;
+    }
+
     if (!user) {
       toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
       return;
@@ -357,9 +416,6 @@ export default function EmulatorPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    const file = e.target.files?.[0];
-    if (!file) return;
-
     if (currentSystem.id === "psp") {
       const romUrl = URL.createObjectURL(file);
       (window as any).__forbiddensPspObjectUrls = [...((window as any).__forbiddensPspObjectUrls || []), romUrl];
@@ -691,10 +747,7 @@ export default function EmulatorPage() {
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
                <button
-                 onClick={() => {
-                   if (currentSystem.id === "ps2") return launchPs2();
-                   fileInputRef.current?.click();
-                 }}
+                 onClick={openRomPicker}
                  className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
                >
                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
@@ -731,7 +784,7 @@ export default function EmulatorPage() {
                <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
-               <button onClick={() => currentSystem.id === "ps2" ? launchPs2() : fileInputRef.current?.click()} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
+               <button onClick={openRomPicker} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
                  {currentSystem.id === "ps2" ? "INICIAR PS2" : "SUBIR JUEGO"}
                </button>
                <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
