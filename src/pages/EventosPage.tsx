@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import VaultHint from "@/components/VaultHint";
-import { Calendar, Coins, Gamepad2, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit, Ticket } from "lucide-react";
+import { Calendar, ChevronDown, Coins, Gamepad2, ImagePlus, Tv, Bike, Plus, Send, X, Sparkles, MonitorPlay, Gift, Users, Mic, Star, Trash2, Edit, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -121,6 +121,8 @@ export default function EventosPage() {
     podcast: Mic,
     otro: Star
   };
+
+  const staffPanelClass = "rounded-2xl border border-white/10 bg-white/[0.035] p-3 shadow-inner shadow-black/25";
 
   // 🔥 SOLUCIÓN: Cambiado a send_system_staff_message 🔥
   const handleSuggest = async () => {
@@ -409,7 +411,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
               <Sparkles className="w-4 h-4" /> SUGERIR EVENTO
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="grid max-h-[72vh] gap-4 overflow-y-auto p-5 custom-scrollbar">
             <Input placeholder="Título del evento *" value={sgTitle} onChange={e => setSgTitle(e.target.value)} className="bg-black/40 text-xs" maxLength={120} />
             <select value={sgType} onChange={e => setSgType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
               {eventTabs.filter(t => t.id !== "all").map(t => (
@@ -417,7 +419,7 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
               ))}
             </select>
             {/* 🔥 SOLUCIÓN ICONOS OSCUROS: style={{ colorScheme: 'dark' }} 🔥 */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <Input type="date" style={{ colorScheme: 'dark' }} value={sgDate} onChange={e => setSgDate(e.target.value)} className="bg-black/40 text-xs" />
               <Input type="time" style={{ colorScheme: 'dark' }} value={sgTime} onChange={e => setSgTime(e.target.value)} className="bg-black/40 text-xs" />
             </div>
@@ -434,20 +436,22 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
       </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-card border-neon-magenta/30 max-w-lg shadow-[0_0_50px_rgba(236,72,153,0.15)]">
-          <DialogHeader>
-            <DialogTitle className="font-pixel text-[11px] text-neon-magenta flex items-center gap-2">
-              {editingId ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />} 
-              {editingId ? "EDITAR EVENTO" : "CREAR EVENTO"}
+        <DialogContent className="max-w-2xl overflow-hidden border-neon-magenta/35 bg-[#070a14]/95 p-0 text-foreground shadow-[0_0_60px_rgba(236,72,153,0.22),inset_0_0_36px_rgba(34,211,238,0.05)] backdrop-blur-xl [&_input]:h-10 [&_input]:rounded-xl [&_input]:border-white/10 [&_input]:bg-black/45 [&_input]:text-sm [&_select]:h-10 [&_select]:rounded-xl [&_select]:border-white/10 [&_select]:bg-black/45 [&_select]:text-sm [&_textarea]:rounded-xl [&_textarea]:border-white/10 [&_textarea]:bg-black/45 [&_textarea]:text-sm [&_label]:font-body [&_label]:text-[10px] [&_label]:font-semibold [&_label]:tracking-[0.18em]">
+          <DialogHeader className="relative border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(236,72,153,0.26),transparent_32%),linear-gradient(90deg,rgba(34,211,238,0.13),rgba(250,204,21,0.08),rgba(236,72,153,0.13))] px-5 py-4">
+            <DialogTitle className="flex items-center gap-3 text-base font-semibold tracking-wide text-foreground">
+              <span className="grid h-9 w-9 place-items-center rounded-xl border border-neon-magenta/45 bg-neon-magenta/15 text-neon-magenta shadow-[0_0_18px_rgba(236,72,153,0.28)]">
+                {editingId ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </span>
+              {editingId ? "Editar evento" : "Crear evento"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="grid max-h-[72vh] gap-4 overflow-y-auto p-5 custom-scrollbar">
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Icono del título</label>
-              <div className="flex flex-wrap gap-1 p-2 bg-black/40 rounded border border-border">
+              <div className={cn(staffPanelClass, "grid grid-cols-10 gap-1.5")}>
                 {TITLE_ICONS.map(ic => (
                   <button key={ic} type="button" onClick={() => setCrIcon(ic)}
-                    className={cn("w-8 h-8 rounded text-base hover:bg-white/10 transition", crIcon === ic && "bg-neon-magenta/20 ring-1 ring-neon-magenta")}>
+                    className={cn("grid h-9 w-full place-items-center rounded-xl border border-white/10 bg-black/35 text-base shadow-inner shadow-black/30 transition hover:border-neon-cyan/45 hover:bg-neon-cyan/10", crIcon === ic && "border-neon-magenta bg-neon-magenta/20 text-white shadow-[0_0_16px_rgba(236,72,153,0.22)]")}>
                     {ic}
                   </button>
                 ))}
@@ -455,41 +459,49 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
             </div>
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Color del título</label>
-              <div className="flex flex-wrap gap-2">
+              <div className={cn(staffPanelClass, "flex flex-wrap gap-2")}>
                 {COLOR_OPTIONS.map(c => (
                   <button key={c.value} type="button" onClick={() => setCrColor(c.value)}
-                    className={cn("px-3 h-7 rounded border text-[10px] font-pixel transition", c.value, crColor === c.value ? "border-neon-magenta bg-white/5" : "border-border")}>
+                    className={cn("flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-semibold transition hover:border-neon-cyan/45 hover:bg-white/[0.06]", c.value, crColor === c.value ? "border-neon-magenta/70 bg-neon-magenta/10 shadow-[0_0_14px_rgba(236,72,153,0.16)]" : "")}>
+                    <span className="h-2.5 w-2.5 rounded-full bg-current shadow-[0_0_10px_currentColor]" />
                     {c.name}
                   </button>
                 ))}
               </div>
             </div>
             <Input placeholder="Título *" value={crTitle} onChange={e => setCrTitle(e.target.value)} className="bg-black/40 text-xs" maxLength={120} />
-            <div className="text-[10px] text-muted-foreground font-body">
-              Vista previa: <span className={cn("font-medium text-sm", crColor)}>{crIcon} {crTitle || "Tu evento"}</span>
+            <div className="rounded-2xl border border-neon-cyan/20 bg-neon-cyan/5 px-3 py-2 shadow-[inset_0_0_18px_rgba(34,211,238,0.04)]">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Vista previa</div>
+              <div className={cn("mt-1 truncate text-base font-semibold", crColor)}>{crIcon} {crTitle || "Tu evento"}</div>
             </div>
-            <select value={crType} onChange={e => setCrType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
-              {eventTabs.filter(t => t.id !== "all").map(t => (
-                 <option key={t.id} value={t.id}>{t.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select value={crType} onChange={e => setCrType(e.target.value as any)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 pr-10 text-foreground outline-none appearance-none">
+                {eventTabs.filter(t => t.id !== "all").map(t => (
+                   <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neon-cyan/80" />
+            </div>
             {/* 🔥 SOLUCIÓN ICONOS OSCUROS: style={{ colorScheme: 'dark' }} 🔥 */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <Input type="date" style={{ colorScheme: 'dark' }} value={crDate} onChange={e => setCrDate(e.target.value)} className="bg-black/40 text-xs" />
               <Input type="time" style={{ colorScheme: 'dark' }} value={crTime} onChange={e => setCrTime(e.target.value)} className="bg-black/40 text-xs" />
             </div>
             <Input placeholder="Lugar / plataforma" value={crLocation} onChange={e => setCrLocation(e.target.value)} className="bg-black/40 text-xs" maxLength={200} />
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Juego del evento / boleto</label>
-              <select value={crGameSlug} onChange={e => setCrGameSlug(e.target.value)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 text-foreground outline-none">
-                {EVENT_GAME_OPTIONS.map(option => (
-                  <option key={option.value || "manual"} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select value={crGameSlug} onChange={e => setCrGameSlug(e.target.value)} className="w-full h-9 rounded-md border border-border bg-black/40 text-xs px-3 pr-10 text-foreground outline-none appearance-none">
+                  {EVENT_GAME_OPTIONS.map(option => (
+                    <option key={option.value || "manual"} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neon-magenta/80" />
+              </div>
               <p className="mt-1 text-[10px] text-muted-foreground">Si eliges un juego, el boleto servira para entrar a salas especiales destacadas de ese juego.</p>
             </div>
             <Textarea placeholder="Descripción del evento..." value={crDescription} onChange={e => setCrDescription(e.target.value)} className="bg-black/40 text-xs min-h-[100px]" maxLength={1000} />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Destacado dias</label>
                 <Input type="number" min="0" value={crHighlightDays} onChange={e => setCrHighlightDays(e.target.value)} className="bg-black/40 text-xs" />
@@ -503,25 +515,29 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
             <div>
               <label className="text-[10px] font-pixel text-muted-foreground uppercase tracking-widest block mb-1">Imagen del evento (opcional)</label>
               {crImageUrl ? (
-                <div className="relative rounded border border-border overflow-hidden bg-black/40">
-                  <img src={crImageUrl} alt="" className="w-full max-h-48 object-cover" />
-                  <button type="button" onClick={() => setCrImageUrl("")} className="absolute top-1 right-1 p-1 rounded bg-black/70 hover:bg-black border border-white/20 text-white">
-                    <X className="w-3 h-3" />
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/45">
+                  <img src={crImageUrl} alt="" className="h-48 w-full object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
+                  <button type="button" onClick={() => setCrImageUrl("")} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-xl border border-white/15 bg-black/75 text-white shadow-lg transition hover:border-destructive/70 hover:bg-destructive/20">
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
-                <label className="flex items-center justify-center gap-2 h-20 rounded border border-dashed border-border bg-black/20 cursor-pointer hover:border-neon-magenta/50 hover:bg-black/40 transition text-[11px] font-body text-muted-foreground">
+                <label className="flex h-24 cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-neon-cyan/35 bg-black/25 text-sm font-medium text-muted-foreground transition hover:border-neon-magenta/60 hover:bg-neon-magenta/10 hover:text-foreground">
                   <input type="file" accept="image/*" className="hidden" disabled={uploadingImg}
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = ""; }} />
+                  <span className="grid h-10 w-10 place-items-center rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan">
+                    <ImagePlus className="h-5 w-5" />
+                  </span>
                   {uploadingImg ? "Subiendo..." : "📷 Subir imagen del evento"}
                 </label>
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
-            <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={handleCreate} disabled={creating} className="text-xs font-pixel bg-neon-magenta text-background hover:bg-neon-magenta/80">
-              {editingId ? <Edit className="w-3 h-3 mr-1" /> : <Plus className="w-3 h-3 mr-1" />} 
+          <div className="flex flex-col-reverse gap-2 border-t border-white/10 bg-black/35 px-5 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="h-10 rounded-xl border-white/15 bg-white/[0.03] text-sm hover:bg-white/[0.08]">Cancelar</Button>
+            <Button size="sm" onClick={handleCreate} disabled={creating} className="h-10 rounded-xl bg-neon-magenta px-5 text-sm font-semibold text-background shadow-[0_0_18px_rgba(236,72,153,0.38)] hover:bg-neon-magenta/85">
+              {editingId ? <Edit className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />} 
               {creating ? "Guardando..." : (editingId ? "Actualizar" : "Crear")}
             </Button>
           </div>
