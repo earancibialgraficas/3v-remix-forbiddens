@@ -230,6 +230,28 @@
           } catch (_) {}
         }, 1000);
       }
+      function installDriveFetchAuth(){
+        if (!fileId || !token || window.__forbiddensDriveFetchAuthInstalled) return;
+        window.__forbiddensDriveFetchAuthInstalled = true;
+        var originalFetch = window.fetch.bind(window);
+        window.fetch = function(input, init){
+          try {
+            var url = typeof input === "string" ? input : input && input.url;
+            if (url && url.indexOf("https://www.googleapis.com/drive/v3/files/") === 0 && url.indexOf("alt=media") !== -1) {
+              var cleanUrl = new URL(url);
+              cleanUrl.searchParams.delete("access_token");
+              var headers = new Headers((init && init.headers) || {});
+              headers.set("Authorization", "Bearer " + token);
+              return originalFetch(cleanUrl.toString(), Object.assign({}, init || {}, {
+                headers: headers,
+                mode: "cors",
+                credentials: "omit"
+              }));
+            }
+          } catch (_) {}
+          return originalFetch(input, init);
+        };
+      }
       async function boot(){
         if (pickLocal && !objectUrl) return showLocalPicker();
         if (!fileId && !romUrl && !objectUrl) return fail("No se recibio el archivo PSP.");
@@ -256,7 +278,8 @@
               document.title = gameName;
             }
             if (directDrive) {
-              objectUrl = "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media&access_token=" + encodeURIComponent(token);
+              installDriveFetchAuth();
+              objectUrl = "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media";
               setMessage("Entregando ROM de Drive a EmulatorJS" + (meta && meta.size ? " (" + formatBytes(Number(meta.size)) + ")" : "") + "...", 28);
             } else {
               setMessage("Descargando ROM...", 12);
@@ -297,9 +320,6 @@
           script.src = "/emulatorjs-data/loader.js";
           script.onerror = function(){ fail("No se pudo cargar EmulatorJS."); };
           document.body.appendChild(script);
-          if (fileId && directDrive) {
-            setTimeout(function(){ loading.style.display = "none"; }, 900);
-          }
         } catch (error) {
           fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
         }
