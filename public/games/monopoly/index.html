@@ -30,12 +30,12 @@
     .stripe{height:7px;border-radius:4px;margin:-1px -1px 2px}.name{font-size:clamp(7px,1vw,10px);font-weight:1000;line-height:1.1;text-transform:uppercase}.price{font-size:clamp(7px,.9vw,9px);color:#cbd5e1}.cell.corner .price{color:#3b2500}
     .owner{position:absolute;right:3px;bottom:3px;width:10px;height:10px;border-radius:50%;border:1px solid #fff8}.tokens{position:absolute;left:3px;bottom:3px;display:flex;gap:2px;flex-wrap:wrap;max-width:86%}
     .token,.movingToken{width:var(--token-size,24px);height:var(--token-size,24px);border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important;box-shadow:0 3px 9px #000c,0 0 14px var(--p,#22d3ee),inset 0 0 0 1px #0006}.movingToken{position:absolute;z-index:40;pointer-events:none;transition:left .24s cubic-bezier(.2,1.5,.45,1),top .24s cubic-bezier(.2,1.5,.45,1);animation:tokenHop .24s ease-in-out infinite alternate}.center{grid-column:2/11;grid-row:2/11;border:1px solid #22d3ee33;border-radius:16px;background:radial-gradient(circle at 50% 30%,#12365e,#07111f 62%);display:grid;place-items:center;text-align:center;padding:18px;box-shadow:inset 0 0 40px #0008}
-    .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.dicePanel{position:relative;margin:14px auto 0;min-height:120px;display:flex;align-items:center;justify-content:center;gap:34px;padding:14px 72px 14px 20px;border-radius:14px;background:linear-gradient(135deg,#2b3140,#161b28);box-shadow:inset 0 0 24px #0007,0 14px 30px #0008}.dice{display:flex;justify-content:center;gap:34px}.die{--rx:-22deg;--ry:0deg;position:relative;width:66px;height:66px;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(-45deg);display:grid;place-items:center;color:#ecfeff;font-size:28px;font-weight:1000;text-shadow:0 2px 0 #075985,0 0 12px #22d3ee;filter:drop-shadow(0 16px 12px #0008)}
+    .center h1{margin:0;color:#facc15;font-size:clamp(24px,4vw,46px);text-shadow:0 0 24px #facc1555}.center p{margin:8px 0 0;color:#cbd5e1;font-size:12px;line-height:1.5}.deckStage{display:flex;justify-content:center;gap:22px;margin:12px auto 0}.deck{position:relative;width:72px;height:98px;border:2px solid #f8fafc;border-radius:8px;display:grid;place-items:center;padding:8px;background:linear-gradient(135deg,#1e1b4b,#7c3aed);box-shadow:0 12px 26px #0008,0 0 18px #c084fc44;transform:rotate(-8deg);font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.04em}.deck.chestDeck{background:linear-gradient(135deg,#064e3b,#22c55e);box-shadow:0 12px 26px #0008,0 0 18px #34d39944;transform:rotate(8deg)}.deck:before,.deck:after{content:"";position:absolute;inset:5px;border:1px solid #ffffff66;border-radius:5px}.deck:after{inset:10px;border-style:dashed}.dicePanel{position:relative;margin:14px auto 0;min-height:120px;display:flex;align-items:center;justify-content:center;gap:34px;padding:14px 72px 14px 20px;border-radius:14px;background:linear-gradient(135deg,#2b3140,#161b28);box-shadow:inset 0 0 24px #0007,0 14px 30px #0008}.dice{display:flex;justify-content:center;gap:34px}.die{--rx:-22deg;--ry:0deg;position:relative;width:66px;height:66px;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(-45deg);display:grid;place-items:center;color:#ecfeff;font-size:28px;font-weight:1000;text-shadow:0 2px 0 #075985,0 0 12px #22d3ee;filter:drop-shadow(0 16px 12px #0008)}
     .die:before,.die:after{content:"";position:absolute;inset:0;border-radius:2px}.die:before{background:linear-gradient(135deg,#22d3ee,#0891b2);transform:translateZ(22px);box-shadow:inset 0 -18px 22px #0891b2,0 0 18px #22d3ee55}.die:after{background:#075985;transform:rotateX(90deg) translateZ(-22px);filter:brightness(.8)}
     .die .value{position:relative;z-index:2;opacity:1;transform:rotateZ(45deg);line-height:1}.die.rolling .value{opacity:0}.die.rolling{animation:diceRoll3d .72s cubic-bezier(.16,.8,.24,1.08) infinite}.die:nth-child(2){--rx:-14deg;--ry:18deg}.diceTotal{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:7px;border-radius:8px;background:#111827d9;padding:6px 9px;box-shadow:0 8px 18px #0008;color:#fff}.diceTotal span{font-size:13px;font-weight:1000}.diceTotal b{font-size:30px;line-height:.9}
     .cell.spark{animation:landGlow 1s ease-out both}.cell.spark:before,.cell.spark:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#facc15;box-shadow:22px 0 #22d3ee,-22px 0 #fb7185,0 22px #34d399,0 -22px #facc15,16px 16px #f97316,-16px -16px #c084fc,18px -14px #fff,-18px 14px #fff;z-index:10;animation:sparkBurst .78s ease-out both}.cell.spark:after{transform:rotate(45deg);animation-delay:.08s}.cellBubble{position:absolute;left:50%;bottom:calc(100% + 6px);z-index:60;width:max-content;max-width:170px;transform:translateX(-50%);border:1px solid #facc15;border-radius:10px;background:#07111ff2;padding:7px 9px;color:#fff;box-shadow:0 10px 28px #000c,0 0 16px #facc1533;pointer-events:none;animation:bubblePop .25s ease-out both}.cellBubble b{display:block;color:#facc15;font-size:10px;line-height:1.1;text-transform:uppercase}.cellBubble span{display:block;margin-top:3px;color:#cbd5e1;font-size:9px;line-height:1.25}.cellBubble:after{content:"";position:absolute;left:50%;top:100%;width:10px;height:10px;background:#07111ff2;border-right:1px solid #facc15;border-bottom:1px solid #facc15;transform:translate(-50%,-5px) rotate(45deg)}
     .side{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:12px;overflow:hidden}.panel{border:1px solid #22d3ee26;border-radius:12px;background:#061a2c;padding:10px}.panel h2{margin:0 0 8px;color:#facc15;font-size:13px;text-transform:uppercase}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button.wide{grid-column:1/-1}
-    .auctionOverlay,.tradeOverlay{position:absolute;z-index:70;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92%);border:2px solid #facc15;border-radius:16px;background:#07111ff2;padding:16px;box-shadow:0 24px 60px #000d,0 0 30px #facc1533;text-align:center}.auctionOverlay.hidden,.tradeOverlay.hidden{display:none}.auctionOverlay h3,.tradeOverlay h3{margin:0;color:#facc15;font-size:18px}.auctionOverlay p,.tradeOverlay p{color:#cbd5e1;font-size:12px}.auctionActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.auctionActions button{min-height:38px}.auctionBid{font-size:26px;color:#22c55e;font-weight:1000}.tradeMenu{position:fixed;z-index:500;border:1px solid #22d3ee55;border-radius:8px;background:#050914;padding:6px;box-shadow:0 18px 38px #000b}.tradeMenu.hidden{display:none}.tradeMenu button{width:130px;text-align:left}
+    .auctionOverlay,.tradeOverlay{position:absolute;z-index:70;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92%);border:2px solid #facc15;border-radius:16px;background:#07111ff2;padding:16px;box-shadow:0 24px 60px #000d,0 0 30px #facc1533;text-align:center}.auctionOverlay.hidden,.tradeOverlay.hidden{display:none}.auctionOverlay h3,.tradeOverlay h3{margin:0;color:#facc15;font-size:18px}.auctionOverlay p,.tradeOverlay p{color:#cbd5e1;font-size:12px}.auctionActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.auctionActions button{min-height:38px}.auctionBid{font-size:26px;color:#22c55e;font-weight:1000}.cardOverlay{position:absolute;inset:0;z-index:95;display:grid;place-items:center;background:#02061799;backdrop-filter:blur(2px);pointer-events:none}.cardOverlay.hidden{display:none}.drawnCard{width:min(300px,78vw);min-height:190px;border:3px solid #f8fafc;border-radius:14px;background:linear-gradient(160deg,#f8fafc,#dbeafe);color:#111827;padding:18px;display:grid;align-content:center;gap:10px;text-align:center;box-shadow:0 30px 80px #000e,0 0 42px #facc1566;transform-style:preserve-3d;animation:cardFlipIn .72s cubic-bezier(.2,1.2,.24,1) both}.drawnCard.chest{background:linear-gradient(160deg,#ecfdf5,#bbf7d0)}.drawnCard b{font-size:12px;text-transform:uppercase;color:#7c2d12}.drawnCard span{font-size:18px;font-weight:1000;line-height:1.25}.drawnCard small{color:#475569;font-weight:800}.tradeMenu{position:fixed;z-index:500;border:1px solid #22d3ee55;border-radius:8px;background:#050914;padding:6px;box-shadow:0 18px 38px #000b}.tradeMenu.hidden{display:none}.tradeMenu button{width:130px;text-align:left}
     .assets{min-height:0;overflow:auto;display:grid;gap:8px;padding-right:3px}.assetPlayer{border:1px solid #ffffff14;border-radius:10px;background:#0b1320;padding:8px}.assetHead{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}.assetPlayer.active{border-color:#facc15;box-shadow:0 0 18px #facc1522}.avatar{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--p,#22d3ee);background-size:cover!important;background-position:center!important}.assetPlayer b{font-size:12px}.assetPlayer small{display:block;color:#cbd5e1;font-size:11px}.deeds{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:7px;margin-top:10px}.deed{position:relative;min-height:64px;border:1px solid #ffffff1c;border-radius:8px;background:linear-gradient(180deg,#101b2d,#07111f);padding:18px 7px 6px;font-size:9px;color:#e5e7eb;box-shadow:inset 0 0 16px #0007,0 8px 18px #0004;overflow:hidden}.deed i{position:absolute;left:0;right:0;top:0;height:13px;box-shadow:0 3px 10px #0007}.deed b{display:block;font-size:9px;line-height:1.1;text-transform:uppercase}.deed span{display:block;margin-top:5px;color:#cbd5e1;font-size:8px}.deed em{position:absolute;right:6px;bottom:5px;color:#facc15;font-style:normal;font-size:8px}.emptyDeeds{margin-top:10px;border:1px dashed #365273;border-radius:8px;background:#07111f99;padding:10px;color:#64748b;font-size:10px;text-align:center}.log{min-height:72px;max-height:120px;overflow:auto;color:#cbd5e1;font-size:12px;line-height:1.5}.hint{color:#9ca3af;font-size:11px;line-height:1.45;margin:0}
     @media(max-width:900px){html,body{overflow:auto}.layout{grid-template-columns:1fr}.board{width:min(100%,92vw)}.side{min-height:520px}.top{flex-wrap:wrap}.status{margin-left:0;width:100%;text-align:left}}
     @media(max-width:560px){.layout{padding:8px}.board{gap:2px;padding:4px}.cell{border-radius:4px;padding:2px}.name{font-size:6px}.price{display:none}.board{--token-size:16px!important}.center{padding:8px}.center p{display:none}.dicePanel{min-height:86px;gap:16px;padding:10px 58px 10px 10px}.dice{gap:18px}.die{width:46px;height:46px;font-size:20px}.diceTotal b{font-size:22px}.actions{grid-template-columns:1fr}}
@@ -44,6 +44,7 @@
     @keyframes sparkBurst{from{opacity:1;transform:translate(-50%,-50%) scale(.18)}to{opacity:0;transform:translate(-50%,-50%) scale(1.9)}}
     @keyframes landGlow{0%{box-shadow:0 0 0 0 #facc1500,0 0 0 #22d3ee00}35%{box-shadow:0 0 0 5px #facc1544,0 0 28px #22d3ee66}100%{box-shadow:0 0 0 16px #facc1500,0 0 0 #22d3ee00}}
     @keyframes bubblePop{from{opacity:0;transform:translate(-50%,8px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+    @keyframes cardFlipIn{0%{opacity:0;transform:translateY(80px) rotateY(88deg) rotateZ(-5deg) scale(.72)}55%{opacity:1;transform:translateY(-10px) rotateY(-10deg) rotateZ(2deg) scale(1.04)}100%{opacity:1;transform:translateY(0) rotateY(0) rotateZ(0) scale(1)}}
   </style>
 </head>
 <body>
@@ -98,6 +99,13 @@
       <h3>Trueque</h3>
       <p id="tradeText">Selecciona un jugador desde el marcador con click derecho para iniciar.</p>
       <button id="closeTrade">Cerrar</button>
+    </section>
+    <section id="cardOverlay" class="cardOverlay hidden">
+      <div id="drawnCard" class="drawnCard">
+        <b id="cardKind">Suerte</b>
+        <span id="cardText">Carta</span>
+        <small id="cardPlayer">Jugador</small>
+      </div>
     </section>
   </main>
   <script src="/games/realtime-room.js"></script>
@@ -229,7 +237,7 @@
       const board = $("board");
       board.style.setProperty("--token-size", `${tokenSize()}px`);
       const diceTotal = Number(state.dice[0] || 0) + Number(state.dice[1] || 0);
-      board.innerHTML = '<div class="center"><div><h1>MONOPOLIO</h1><p>Compra barrios, cobra rentas y deja a tus rivales sin efectivo.</p><div class="dicePanel"><div class="dice"><div class="die '+(diceRolling?'rolling':'')+'"><span class="value">'+state.dice[0]+'</span></div><div class="die '+(diceRolling?'rolling':'')+'"><span class="value">'+state.dice[1]+'</span></div></div><div class="diceTotal"><span>Total</span><b>'+diceTotal+'</b></div></div></div></div>';
+      board.innerHTML = '<div class="center"><div><h1>MONOPOLIO</h1><p>Compra barrios, cobra rentas y deja a tus rivales sin efectivo.</p><div class="deckStage"><div class="deck chanceDeck">Suerte</div><div class="deck chestDeck">Arca comunal</div></div><div class="dicePanel"><div class="dice"><div class="die '+(diceRolling?'rolling':'')+'"><span class="value">'+state.dice[0]+'</span></div><div class="die '+(diceRolling?'rolling':'')+'"><span class="value">'+state.dice[1]+'</span></div></div><div class="diceTotal"><span>Total</span><b>'+diceTotal+'</b></div></div></div></div>';
       boardCells.forEach((cell, index) => {
         const [row, col] = positions[index];
         const owner = state.owners[index];
@@ -265,8 +273,10 @@
       $("assets").innerHTML = visiblePlayers.length ? visiblePlayers.map((p) => {
         const avatarBg = tokenBg(p);
         const properties = propertyIndexesOf(p.id).map((idx) => ({ idx, ...boardCells[idx] }));
-        const deeds = properties.length
-          ? `<div class="deeds">${properties.map((item) => `<span class="deed" title="${item.name}"><i style="background:${groupColor(item) || p.color}"></i><b>${item.name}</b><span>${isMortgaged(item.idx) ? "Hipotecada" : rentLabel(item.idx)}</span><em>${buildingCount(item.idx) ? (buildingCount(item.idx) === 5 ? "HOTEL" : buildingCount(item.idx)+"C") : "$"+fmt(item.price || 0)}</em></span>`).join("")}</div>`
+        const jailCards = Array.from({ length: Number(p.jailCards || 0) }, (_, i) => ({ idx:`jail-${i}`, name:"Salir de la carcel", special:true }));
+        const cards = [...properties, ...jailCards];
+        const deeds = cards.length
+          ? `<div class="deeds">${cards.map((item) => item.special ? `<span class="deed" title="${item.name}"><i style="background:#34d399"></i><b>${item.name}</b><span>Usala estando en carcel</span><em>CARTA</em></span>` : `<span class="deed" title="${item.name}"><i style="background:${groupColor(item) || p.color}"></i><b>${item.name}</b><span>${isMortgaged(item.idx) ? "Hipotecada" : rentLabel(item.idx)}</span><em>${buildingCount(item.idx) ? (buildingCount(item.idx) === 5 ? "HOTEL" : buildingCount(item.idx)+"C") : "$"+fmt(item.price || 0)}</em></span>`).join("")}</div>`
           : `<div class="emptyDeeds">Aun no tiene propiedades.</div>`;
         return `
         <div class="assetPlayer ${currentPlayer()?.id === p.id ? "active" : ""}">
@@ -458,6 +468,16 @@
       await animateDiceRoll();
       await animateTokenPath(player, Number(payload.from || 0), Number(payload.to || 0));
     }
+    function showCardAnimation(kind, text, playerName){
+      const overlay = $("cardOverlay");
+      const card = $("drawnCard");
+      $("cardKind").textContent = kind === "chance" ? "Suerte" : "Arca comunal";
+      $("cardText").textContent = text;
+      $("cardPlayer").textContent = playerName || "";
+      card.className = `drawnCard ${kind === "chest" ? "chest" : ""}`;
+      overlay.classList.remove("hidden");
+      setTimeout(() => overlay.classList.add("hidden"), 4600);
+    }
     function chanceCards(){ return [
       ["Avanza a Salida", (p)=>{ p.pos = 0; p.money += 200; }],
       ["Ve a la carcel", (p)=>goToJail(p)],
@@ -502,6 +522,8 @@
       const card = cards[cardIndex];
       if (!/Salga gratis/.test(card[0])) state[deckKey].push(cardIndex);
       pushLog(`${player.name}: ${card[0]}.`);
+      showCardAnimation(kind, card[0], player.name);
+      api?.send("card_fx", { kind, text: card[0], playerName: player.name });
       card[1](player);
     }
     function goToJail(player){ player.pos = 10; player.inJail = true; player.jailTurns = 0; player.doubles = 0; rolledThisTurn = true; pushLog(`${player.name} fue a la carcel.`); }
@@ -727,6 +749,7 @@
             if (message.type === "state_request" && isHost) api.send("state", state);
             if (message.type === "state") applyState(message.payload);
             if (message.type === "roll_fx") playRollFx(message.payload);
+            if (message.type === "card_fx") showCardAnimation(message.payload?.kind, message.payload?.text, message.payload?.playerName);
             if (message.type === "win") pushLog(`${message.payload.displayName || "Jugador"} guardo puntos de victoria.`);
           }
         });

@@ -36,7 +36,9 @@
       <div class="bar"><span id="progress"></span></div>
       <div class="picker" id="picker" hidden>
         <input id="romInput" type="file" accept=".iso,.cso,.pbp,.chd,application/octet-stream" />
+        <input id="cheatInput" type="file" accept=".ini,.db,.txt,text/plain" />
         <button id="pickButton" type="button">Cargar ROM PSP</button>
+        <button id="cheatButton" type="button">Cheats .ini/.db</button>
       </div>
     </div>
   </div>
@@ -62,6 +64,8 @@
       var picker = document.getElementById("picker");
       var romInput = document.getElementById("romInput");
       var pickButton = document.getElementById("pickButton");
+      var cheatInput = document.getElementById("cheatInput");
+      var cheatButton = document.getElementById("cheatButton");
 
       document.title = gameName;
 
@@ -87,6 +91,16 @@
         setMessage("Selecciona una ROM PSP para iniciar.", 8);
         picker.hidden = false;
         pickButton.onclick = function(){ romInput.click(); };
+        cheatButton.onclick = function(){ cheatInput.click(); };
+        cheatInput.onchange = function(){
+          var file = cheatInput.files && cheatInput.files[0];
+          if (!file) return;
+          file.text().then(function(text){
+            var parsed = parseCheatText(text, gameName);
+            localStorage.setItem("forbiddens_psp_cheats", JSON.stringify(parsed));
+            setMessage(parsed.length ? "Cheats cargados: " + parsed.length + ". Ahora carga la ROM." : "No encontre cheats compatibles en ese archivo.", 8);
+          }).catch(function(){ setMessage("No pude leer ese archivo de cheats.", 8); });
+        };
         romInput.onchange = function(){
           var file = romInput.files && romInput.files[0];
           if (!file) return;
@@ -97,6 +111,49 @@
           picker.hidden = true;
           boot();
         };
+      }
+      function normalizeName(value){
+        return String(value || "").toLowerCase().replace(/\.[^.]+$/,"").replace(/\([^)]*\)|\[[^\]]*\]/g," ").replace(/[^a-z0-9]+/g," ").trim();
+      }
+      function parseCheatText(text, nameHint){
+        var lines = String(text || "").replace(/\r/g, "").split("\n");
+        var sections = [];
+        var currentGame = "";
+        var active = [];
+        var wanted = normalizeName(nameHint);
+        function flush(){
+          if (!active.length) return;
+          sections.push({ game: currentGame, cheats: active });
+          active = [];
+        }
+        var current = null;
+        lines.forEach(function(raw){
+          var line = raw.trim();
+          if (!line) return;
+          if (line.indexOf("_S ") === 0) { flush(); currentGame = ""; current = null; return; }
+          if (line.indexOf("_G ") === 0) { currentGame = line.slice(3).trim(); return; }
+          if (line.indexOf("_C0 ") === 0 || line.indexOf("_C1 ") === 0) {
+            current = { desc: line.slice(4).trim() || "Cheat PSP", code: "", checked: line.indexOf("_C1 ") === 0 };
+            active.push(current);
+            return;
+          }
+          if (line.indexOf("_L ") === 0 && current) current.code += (current.code ? "\n" : "") + line.slice(3).trim();
+        });
+        flush();
+        var matching = sections.filter(function(section){
+          var game = normalizeName(section.game);
+          return wanted && game && (wanted.indexOf(game) !== -1 || game.indexOf(wanted) !== -1);
+        });
+        var selected = matching.length ? matching : sections.length === 1 ? sections : sections.slice(0, 1);
+        return selected.flatMap(function(section){ return section.cheats; }).filter(function(cheat){ return cheat.code; }).slice(0, 80);
+      }
+      function loadStoredCheats(){
+        try {
+          var cheats = JSON.parse(localStorage.getItem("forbiddens_psp_cheats") || "[]");
+          return Array.isArray(cheats) ? cheats : [];
+        } catch (_) {
+          return [];
+        }
       }
       function deleteDb(name){
         return new Promise(function(resolve){
@@ -310,6 +367,7 @@
           window.EJS_color = "#00f2fe";
           window.EJS_backgroundColor = "#000000";
           window.EJS_defaultOptions = getPspOptions();
+          window.EJS_cheats = loadStoredCheats();
           window.EJS_onGameStart = function(){
             startPerfSampler();
             setMessage("PSP en ejecucion", 100);
