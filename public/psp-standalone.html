@@ -3,122 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FORBIDDENS PSP</title>
+  <title>PSP</title>
   <style>
     *{box-sizing:border-box}
-    html,body{width:100%;height:100%;margin:0;background:#020617;color:#e5faff;font-family:Inter,Arial,sans-serif;overflow:hidden}
-    body{display:flex;align-items:center;justify-content:center;padding:12px;background:#050507}
-    .bubble{position:relative;width:min(1240px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#030303;box-shadow:0 24px 70px rgba(0,0,0,.72)}
-    .top{height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,.1);background:#18181b}
-    .brand{font:900 10px/1 "Courier New",monospace;color:#39ff14;letter-spacing:.08em}
-    .brand::before{content:"+";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border-radius:6px;background:rgba(57,255,20,.12);border:1px solid rgba(57,255,20,.35);color:#39ff14}
-    .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f8fafc;font-size:12px;font-weight:700}
-    .title::after{content:"  PSP  |  00:00";margin-left:8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe}
-    .status{font:900 9px/1 "Courier New",monospace;color:#00f2fe}
-    .topControls{display:flex;align-items:center;gap:6px}
-    .iconTool{width:30px;height:28px;border:0;border-radius:7px;background:transparent;color:#a1a1aa;font:900 13px/1 "Courier New",monospace;cursor:pointer}
-    .iconTool:hover{background:rgba(255,255,255,.08);color:#fff}
-    .iconTool.danger{border-color:rgba(251,113,133,.45);color:#fb7185}
-    .shell{min-height:0;flex:1;display:grid;grid-template-columns:minmax(0,1fr) 236px;background:#000}
-    #game{position:relative;width:100%;height:100%;min-height:0;background:#000}
-    .tools{min-width:0;border-left:1px solid rgba(255,255,255,.1);background:#18181b;padding:10px;overflow:auto;display:flex;flex-direction:column;gap:10px}
-    .toolGroup{border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(0,0,0,.26);padding:9px;margin:0;box-shadow:none}
-    .toolTitle{display:block;margin:0 0 8px;font:900 9px/1 "Courier New",monospace;color:#00f2fe;letter-spacing:.08em;text-transform:uppercase}
-    .toolBtn{width:100%;height:30px;margin-top:6px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(255,255,255,.04);color:#e5e7eb;font:800 10px/1 "Courier New",monospace;cursor:pointer}
-    .toolBtn:hover{background:rgba(255,255,255,.09);color:#fff}
-    .toolBtn.danger{border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1)}
-    .miniRow{display:flex;gap:6px}
-    .miniRow .toolBtn{flex:1}
-    .toolText{display:block;min-height:16px;margin-top:7px;color:#94a3b8;font-size:11px;line-height:1.35}
-    .range{display:block;width:100%;accent-color:#00f2fe}
-    .songTitle{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e5faff;font-size:11px}
-    .saveName{display:block;width:100%;height:28px;border:1px solid rgba(34,211,238,.26);border-radius:6px;background:#020617;color:#e5faff;padding:5px 7px;font-size:11px;outline:none}
-    .slotList{display:grid;gap:6px;max-height:145px;overflow:auto;margin-top:8px;padding-right:2px}
-    .slotItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:rgba(0,0,0,.28);padding:6px}
-    .slotMeta{min-width:0}
-    .slotMeta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5faff;font-size:10px}
-    .slotMeta span{display:block;color:#94a3b8;font-size:9px;margin-top:2px}
-    .slotActions{display:flex;gap:4px}
-    .slotActions button{width:26px;height:24px;border-radius:5px;border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.08);color:#e5faff;cursor:pointer}
-    .slotActions button:last-child{border-color:rgba(251,113,133,.35);color:#fb7185}
-    #loading{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(8,47,73,.45),rgba(0,0,0,.96) 62%)}
-    .loadCard{width:min(520px,calc(100vw - 32px));border:1px solid rgba(34,211,238,.42);border-radius:14px;background:rgba(2,6,23,.86);padding:24px;text-align:center;box-shadow:0 0 36px rgba(34,211,238,.18),inset 0 0 22px rgba(0,0,0,.55)}
-    .spinner{width:42px;height:42px;margin:0 auto 16px;border-radius:999px;border:3px solid rgba(34,211,238,.22);border-top-color:#00f2fe;animation:spin .9s linear infinite;box-shadow:0 0 22px rgba(34,211,238,.45)}
-    h1{margin:0 0 10px;font:900 15px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85)}
-    p{margin:0;color:#94a3b8;font-size:13px;line-height:1.45}
-    .file{margin-top:8px;color:#e5e7eb;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .bar{height:7px;margin-top:16px;border-radius:999px;background:#0f172a;overflow:hidden;border:1px solid rgba(34,211,238,.24)}
-    .bar span{display:block;height:100%;width:8%;background:linear-gradient(90deg,#00f2fe,#39ff14);box-shadow:0 0 18px rgba(34,211,238,.7);transition:width .18s ease}
-    .error h1{color:#fb7185;text-shadow:0 0 12px rgba(251,113,133,.7)}
+    html,body,#game{width:100%;height:100%;margin:0;background:#000;overflow:hidden}
+    body{font-family:Inter,Arial,sans-serif;color:#e5faff}
+    #game{position:fixed;inset:0}
+    #loading{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:#000}
+    .loadCard{width:min(420px,calc(100vw - 32px));padding:20px;text-align:center}
+    .spinner{width:34px;height:34px;margin:0 auto 14px;border-radius:999px;border:3px solid rgba(34,211,238,.18);border-top-color:#00f2fe;animation:spin .9s linear infinite}
+    h1{margin:0 0 8px;font:900 13px/1 "Courier New",monospace;color:#00f2fe}
+    p{margin:0;color:#94a3b8;font-size:12px;line-height:1.45}
+    .bar{height:5px;margin-top:14px;border-radius:999px;background:#111827;overflow:hidden}
+    .bar span{display:block;height:100%;width:8%;background:#00f2fe;transition:width .18s ease}
+    .error h1{color:#fb7185}
     .error .spinner{display:none}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @media (max-width:900px){
-      body{padding:0}
-      .bubble{width:100vw;height:100vh;border-radius:0;border:0}
-      .shell{grid-template-columns:minmax(0,1fr)}
-      .tools{display:none}
-    }
   </style>
 </head>
 <body>
-  <div class="bubble">
-    <header class="top">
-      <div class="brand">FORBIDDENS EMULATOR</div>
-      <div class="title" id="topTitle">EmulatorJS PSP</div>
-      <div class="status" id="topStatus">BOOT</div>
-      <div class="topControls">
-        <button class="iconTool" id="pauseBtn" type="button" title="Pausar/Reanudar">II</button>
-        <button class="iconTool" id="menuBtn" type="button" title="Menu EmulatorJS">M</button>
-        <button class="iconTool" id="fullBtn" type="button" title="Pantalla completa">[]</button>
-        <button class="iconTool danger" id="closeBtn" type="button" title="Cerrar">X</button>
-      </div>
-    </header>
-    <main class="shell">
-      <section id="game">
-        <div id="loading">
-          <div class="loadCard" id="loadCard">
-            <div class="spinner"></div>
-            <h1>PSP | EmulatorJS</h1>
-            <p id="message">Preparando emulador...</p>
-            <div class="file" id="fileName"></div>
-            <div class="bar"><span id="progress"></span></div>
-          </div>
-        </div>
-      </section>
-      <aside class="tools" aria-label="Opciones PSP">
-        <div class="toolGroup">
-          <p class="toolTitle">Emulador</p>
-          <div class="miniRow">
-            <button class="toolBtn" id="sidePauseBtn" type="button">Pausar</button>
-            <button class="toolBtn" id="sideMenuBtn" type="button">Menu</button>
-          </div>
-          <button class="toolBtn" id="sideFullBtn" type="button">Pantalla completa</button>
-        </div>
-        <div class="toolGroup">
-          <p class="toolTitle">Volumen</p>
-          <input class="range" id="volumeRange" type="range" min="0" max="100" step="5" value="80" />
-          <div class="toolText" id="volumeLabel">80%</div>
-        </div>
-        <div class="toolGroup">
-          <p class="toolTitle">Guardado</p>
-          <input class="saveName" id="slotName" placeholder="Nombre del slot" />
-          <button class="toolBtn" id="saveSlotBtn" type="button">Guardar slot</button>
-          <button class="toolBtn" id="quickLoadBtn" type="button">Cargar ultimo</button>
-          <div class="toolText" id="saveStatus">Sin estado cargado.</div>
-          <div class="slotList" id="slotList"></div>
-        </div>
-        <div class="toolGroup">
-          <p class="toolTitle">FORBIDDENS Player</p>
-          <div class="songTitle" id="musicTitle">Cargando musica...</div>
-          <div class="miniRow">
-            <button class="toolBtn" id="musicPrevBtn" type="button">Prev</button>
-            <button class="toolBtn" id="musicPlayBtn" type="button">Play</button>
-            <button class="toolBtn" id="musicNextBtn" type="button">Next</button>
-          </div>
-        </div>
-        <div class="toolGroup"><button class="toolBtn danger" id="sideCloseBtn" type="button">Cerrar ventana</button></div>
-      </aside>
-    </main>
+  <div id="game"></div>
+  <div id="loading">
+    <div class="loadCard" id="loadCard">
+      <div class="spinner"></div>
+      <h1>PSP</h1>
+      <p id="message">Preparando emulador...</p>
+      <div class="bar"><span id="progress"></span></div>
+    </div>
   </div>
   <script>
     (function(){
@@ -129,70 +40,29 @@
       var token = localStorage.getItem("drive_access_token") || "";
       var expiry = Number(localStorage.getItem("drive_token_expiry") || 0);
       var objectUrl = "";
-      var initialVolume = Number(localStorage.getItem("forbiddens_psp_volume") || 80) / 100;
       var loading = document.getElementById("loading");
       var loadCard = document.getElementById("loadCard");
       var message = document.getElementById("message");
-      var fileName = document.getElementById("fileName");
       var progress = document.getElementById("progress");
-      var topTitle = document.getElementById("topTitle");
-      var topStatus = document.getElementById("topStatus");
-      var pauseBtn = document.getElementById("pauseBtn");
-      var menuBtn = document.getElementById("menuBtn");
-      var fullBtn = document.getElementById("fullBtn");
-      var closeBtn = document.getElementById("closeBtn");
-      var sidePauseBtn = document.getElementById("sidePauseBtn");
-      var sideMenuBtn = document.getElementById("sideMenuBtn");
-      var sideFullBtn = document.getElementById("sideFullBtn");
-      var sideCloseBtn = document.getElementById("sideCloseBtn");
-      var volumeRange = document.getElementById("volumeRange");
-      var volumeLabel = document.getElementById("volumeLabel");
-      var saveSlotBtn = document.getElementById("saveSlotBtn");
-      var quickLoadBtn = document.getElementById("quickLoadBtn");
-      var slotName = document.getElementById("slotName");
-      var slotList = document.getElementById("slotList");
-      var saveStatus = document.getElementById("saveStatus");
-      var musicTitle = document.getElementById("musicTitle");
-      var musicPrevBtn = document.getElementById("musicPrevBtn");
-      var musicPlayBtn = document.getElementById("musicPlayBtn");
-      var musicNextBtn = document.getElementById("musicNextBtn");
-      var musicChannel = "BroadcastChannel" in window ? new BroadcastChannel("forbiddens_music_player") : null;
-      var saveKey = "psp:" + gameName;
-      var paused = false;
 
-      topTitle.textContent = gameName;
-      fileName.textContent = gameName;
-      volumeRange.value = String(Math.round(initialVolume * 100));
-      volumeLabel.textContent = volumeRange.value + "%";
+      document.title = gameName;
 
       function setProgress(pct){
         progress.style.width = Math.max(8, Math.min(100, pct || 8)) + "%";
       }
       function setMessage(text, pct){
         message.textContent = text;
-        topStatus.textContent = pct >= 100 ? "RUN" : "LOAD";
         if (typeof pct === "number") setProgress(pct);
       }
       function fail(text){
         loadCard.classList.add("error");
         message.textContent = text;
-        topStatus.textContent = "ERROR";
         setProgress(100);
       }
       function formatBytes(bytes){
         if (!Number.isFinite(bytes) || bytes <= 0) return "";
         var mb = bytes / (1024 * 1024);
         return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : mb.toFixed(0) + " MB";
-      }
-      function prefetchAssets(){
-        [
-          "/emulatorjs-data/loader.js",
-          "/emulatorjs-data/emulator.min.js",
-          "/emulatorjs-data/compression/extract7z.js",
-          "/emulatorjs-data/cores/reports/ppsspp.json",
-          "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
-          "/emulatorjs-data/cores/ppsspp-assets.zip"
-        ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
       }
       function deleteDb(name){
         return new Promise(function(resolve){
@@ -206,9 +76,9 @@
         });
       }
       async function clearOldEmulatorCache(){
-        var cacheVersion = "psp-emulatorjs-20250614";
+        var cacheVersion = "psp-emulatorjs-minimal-20250614";
         if (localStorage.getItem("forbiddens_psp_core_cache_version") === cacheVersion) return;
-        setMessage("Limpiando cache antiguo de PSP...", 6);
+        setMessage("Limpiando cache anterior...", 6);
         await Promise.all([
           deleteDb("EmulatorJS-core"),
           deleteDb("EmulatorJS-roms"),
@@ -217,205 +87,16 @@
         ]);
         localStorage.setItem("forbiddens_psp_core_cache_version", cacheVersion);
       }
-      function getEjs(){
-        return window.EJS_emulator || null;
-      }
-      function setToolStatus(text){
-        saveStatus.textContent = text;
-      }
-      function escapeHtml(value){
-        return String(value || "").replace(/[&<>"']/g, function(char){
-          return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[char];
-        });
-      }
-      function updatePauseButtons(){
-        pauseBtn.textContent = paused ? "P" : "II";
-        sidePauseBtn.textContent = paused ? "Reanudar" : "Pausar";
-      }
-      function togglePause(){
-        var ejs = getEjs();
-        paused = !paused;
-        try {
-          if (paused) {
-            if (ejs && ejs.pause) ejs.pause();
-            else if (ejs && ejs.gameManager && ejs.gameManager.pause) ejs.gameManager.pause();
-          } else {
-            if (ejs && ejs.play) ejs.play();
-            else if (ejs && ejs.gameManager && ejs.gameManager.resume) ejs.gameManager.resume();
-          }
-        } catch (_) {}
-        updatePauseButtons();
-      }
-      function setEmulatorVolume(value){
-        var clamped = Math.max(0, Math.min(1, value));
-        localStorage.setItem("forbiddens_psp_volume", String(Math.round(clamped * 100)));
-        volumeLabel.textContent = Math.round(clamped * 100) + "%";
-        var ejs = getEjs();
-        try { ejs && ejs.setVolume && ejs.setVolume(clamped); } catch (_) {}
-      }
-      function openSaveDb(){
-        return new Promise(function(resolve, reject){
-          var request = indexedDB.open("forbiddens-psp-standalone-saves", 1);
-          request.onupgradeneeded = function(){ request.result.createObjectStore("states"); };
-          request.onsuccess = function(){ resolve(request.result); };
-          request.onerror = function(){ reject(request.error || new Error("IndexedDB no disponible")); };
-        });
-      }
-      async function putState(blob){
-        var db = await openSaveDb();
-        return new Promise(function(resolve, reject){
-          var tx = db.transaction("states", "readwrite");
-          tx.objectStore("states").put(blob, saveKey);
-          tx.oncomplete = function(){ db.close(); resolve(); };
-          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo guardar")); };
-        });
-      }
-      async function getState(){
-        var db = await openSaveDb();
-        return new Promise(function(resolve, reject){
-          var tx = db.transaction("states", "readonly");
-          var request = tx.objectStore("states").get(saveKey);
-          request.onsuccess = function(){ resolve(request.result || null); };
-          request.onerror = function(){ reject(request.error || new Error("No se pudo cargar")); };
-          tx.oncomplete = function(){ db.close(); };
-        });
-      }
-      async function listStateSlots(){
-        var db = await openSaveDb();
-        return new Promise(function(resolve, reject){
-          var tx = db.transaction("states", "readonly");
-          var store = tx.objectStore("states");
-          var keysReq = store.getAllKeys();
-          var valuesReq = store.getAll();
-          tx.oncomplete = function(){
-            db.close();
-            var keys = keysReq.result || [];
-            var values = valuesReq.result || [];
-            var slots = keys.map(function(key, index){ return { key: key, value: values[index] }; })
-              .filter(function(slot){ return String(slot.key).indexOf(saveKey + ":") === 0 && slot.value && slot.value.blob; })
-              .sort(function(a, b){ return Number(b.value && b.value.createdAt || 0) - Number(a.value && a.value.createdAt || 0); });
-            resolve(slots);
-          };
-          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudieron listar slots")); };
-        });
-      }
-      async function putStateSlot(name, blob){
-        var db = await openSaveDb();
-        return new Promise(function(resolve, reject){
-          var tx = db.transaction("states", "readwrite");
-          var key = saveKey + ":" + Date.now();
-          tx.objectStore("states").put({ name: name, blob: blob, createdAt: Date.now() }, key);
-          tx.oncomplete = function(){ db.close(); resolve(); };
-          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo guardar slot")); };
-        });
-      }
-      async function deleteStateSlot(key){
-        var db = await openSaveDb();
-        return new Promise(function(resolve, reject){
-          var tx = db.transaction("states", "readwrite");
-          tx.objectStore("states").delete(key);
-          tx.oncomplete = function(){ db.close(); resolve(); };
-          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo borrar slot")); };
-        });
-      }
-      async function renderSlots(){
-        try {
-          var slots = await listStateSlots();
-          slotList.innerHTML = slots.length ? slots.slice(0, 6).map(function(slot){
-            var created = new Date(Number(slot.value.createdAt || Date.now())).toLocaleString("es-CL");
-            return '<div class="slotItem" data-key="' + escapeHtml(slot.key) + '"><span class="slotMeta"><b>' + escapeHtml(slot.value.name || "Slot") + '</b><span>' + escapeHtml(created) + '</span></span><span class="slotActions"><button data-load="' + escapeHtml(slot.key) + '" title="Cargar">▶</button><button data-delete="' + escapeHtml(slot.key) + '" title="Borrar">×</button></span></div>';
-          }).join("") : '<div class="toolText">No hay slots guardados.</div>';
-          slotList.querySelectorAll("[data-load]").forEach(function(btn){
-            btn.onclick = async function(){
-              var key = btn.getAttribute("data-load");
-              var db = await openSaveDb();
-              var tx = db.transaction("states", "readonly");
-              var req = tx.objectStore("states").get(key);
-              req.onsuccess = async function(){
-                db.close();
-                var item = req.result;
-                if (!item || !item.blob) return setToolStatus("Slot vacio.");
-                await restoreState(item.blob);
-                setToolStatus("Slot cargado.");
-              };
-            };
-          });
-          slotList.querySelectorAll("[data-delete]").forEach(function(btn){
-            btn.onclick = async function(){
-              await deleteStateSlot(btn.getAttribute("data-delete"));
-              setToolStatus("Slot borrado.");
-              renderSlots();
-            };
-          });
-        } catch (error) {
-          slotList.innerHTML = '<div class="toolText">No se pudieron cargar slots.</div>';
-        }
-      }
-      async function captureState(){
-        var ejs = getEjs();
-        if (!ejs) throw new Error("Emulador no listo");
-        var gm = ejs.gameManager;
-        if (typeof ejs.getState === "function") {
-          var st = ejs.getState();
-          if (st && typeof st.then === "function") st = await st;
-          if (st && (st.byteLength > 0 || st.size > 0 || st.length > 0)) return st instanceof Blob ? st : new Blob([st]);
-        }
-        if (gm && typeof gm.getState === "function") {
-          var state = gm.getState();
-          if (state && typeof state.then === "function") state = await state;
-          if (state && (state.byteLength > 0 || state.length > 0 || state.size > 0)) return state instanceof Blob ? state : new Blob([state]);
-        }
-        if (gm && typeof gm.quickSave === "function") {
-          try { gm.quickSave("/save.state"); } catch (_) {}
-          await new Promise(function(r){ setTimeout(r, 300); });
-          try {
-            var FS = gm.FS || window.FS;
-            var data = FS && FS.readFile("/save.state");
-            if (data && data.length > 0) return new Blob([data]);
-          } catch (_) {}
-        }
-        throw new Error("Guardado no disponible para este core");
-      }
-      async function restoreState(blob){
-        var ejs = getEjs();
-        if (!ejs) throw new Error("Emulador no listo");
-        var gm = ejs.gameManager;
-        var bytes = new Uint8Array(await blob.arrayBuffer());
-        var loaded = false;
-        if (gm && typeof gm.loadState === "function") {
-          try { gm.loadState(bytes); loaded = true; } catch (_) {}
-          if (!loaded) {
-            try { gm.loadState("/save.state", bytes); loaded = true; } catch (_) {}
-          }
-        }
-        if (!loaded && gm && typeof gm.quickLoad === "function") {
-          try {
-            var FS = gm.FS || window.FS;
-            if (FS) FS.writeFile("/save.state", bytes);
-            gm.quickLoad("/save.state");
-            loaded = true;
-          } catch (_) {}
-        }
-        if (!loaded && typeof ejs.loadState === "function") {
-          try {
-            var result = ejs.loadState(bytes);
-            if (result && typeof result.then === "function") await Promise.race([result, new Promise(function(r){ setTimeout(r, 1500); })]);
-            loaded = true;
-          } catch (_) {}
-        }
-        if (!loaded) throw new Error("Carga no disponible");
-        try { ejs.play && ejs.play(); } catch (_) {}
-      }
-      function sendMusicCommand(command){
-        var payload = { type:"forbiddens-music-command", command:command, at:Date.now() };
-        try { musicChannel && musicChannel.postMessage(payload); } catch (_) {}
-        try { localStorage.setItem("forbiddens_music_command", JSON.stringify(payload)); } catch (_) {}
-      }
-      function refreshMusicInfo(){
-        var title = localStorage.getItem("forbiddens_music_current_title") || "FORBIDDENS Player";
-        var playing = localStorage.getItem("forbiddens_music_playing") === "true";
-        musicTitle.textContent = title;
-        musicPlayBtn.textContent = playing ? "Pause" : "Play";
+      function prefetchAssets(){
+        [
+          "/emulatorjs-data/loader.js",
+          "/emulatorjs-data/emulator.min.js",
+          "/emulatorjs-data/compression/extract7z.js",
+          "/emulatorjs-data/compression/extractzip.js",
+          "/emulatorjs-data/cores/reports/ppsspp.json",
+          "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
+          "/emulatorjs-data/cores/ppsspp-assets.zip"
+        ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
       }
       async function readResponseBlob(response){
         var total = Number(response.headers.get("content-length") || 0);
@@ -430,26 +111,28 @@
           chunks.push(next.value);
           received += next.value.byteLength;
           var pct = Math.max(8, Math.min(96, Math.round((received / total) * 96)));
-          setMessage("Descargando ROM desde Drive... " + pct + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", pct);
+          setMessage("Descargando ROM... " + pct + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", pct);
         }
         return new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
       }
       async function boot(){
         if (!fileId && !romUrl) return fail("No se recibio el archivo PSP.");
         if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
-          return fail("Esta ventana no tiene aislamiento activo para EmulatorJS PSP. Revisa headers COOP/COEP del dominio.");
+          return fail("Esta ventana no tiene aislamiento activo para PSP.");
         }
         if (fileId && (!token || Date.now() >= expiry)) {
-          return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive y abre el juego otra vez.");
+          return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive.");
         }
+
         try {
           await clearOldEmulatorCache();
           prefetchAssets();
+
           if (romUrl) {
             objectUrl = romUrl;
-            setMessage("Preparando ROM local...", 92);
+            setMessage("Preparando ROM...", 92);
           } else {
-            setMessage("Descargando ROM desde Drive...", 12);
+            setMessage("Descargando ROM...", 12);
             var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
               headers: { Authorization: "Bearer " + token }
             });
@@ -457,7 +140,8 @@
             var blob = await readResponseBlob(response);
             objectUrl = URL.createObjectURL(blob);
           }
-          setMessage("Cargando EmulatorJS PSP...", 98);
+
+          setMessage("Iniciando PSP...", 98);
 
           window.EJS_player = "#game";
           window.EJS_core = "ppsspp";
@@ -471,23 +155,24 @@
           window.EJS_cacheConfig = { enabled:false };
           window.EJS_disableLocalStorage = true;
           window.EJS_fixedSaveInterval = 0;
+          window.EJS_dontExtractRom = true;
+          window.EJS_color = "#00f2fe";
+          window.EJS_backgroundColor = "#000000";
           window.EJS_defaultOptions = {
+            "save-state-location": "download",
             "save-save-interval": "0",
             "rewindEnabled": "disabled",
             "fps": "hide",
-            "vsync": "enabled"
+            "vsync": "enabled",
+            "ppsspp_auto_frameskip": "enabled",
+            "ppsspp_frameskip": "1",
+            "ppsspp_internal_resolution": "480x272",
+            "ppsspp_texture_scaling_level": "1",
+            "ppsspp_texture_anisotropic_filtering": "disabled"
           };
-          window.EJS_dontExtractRom = true;
-          window.EJS_disableAutoUnload = false;
-          window.EJS_volume = initialVolume;
-          window.EJS_color = "#00f2fe";
-          window.EJS_backgroundColor = "#000000";
           window.EJS_onGameStart = function(){
             setMessage("PSP en ejecucion", 100);
-            setEmulatorVolume(Number(volumeRange.value) / 100);
-            paused = false;
-            updatePauseButtons();
-            setTimeout(function(){ loading.style.display = "none"; }, 450);
+            setTimeout(function(){ loading.style.display = "none"; }, 350);
           };
 
           var script = document.createElement("script");
@@ -498,71 +183,11 @@
           fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
         }
       }
-      function openEmulatorMenu(){
-        var ejs = getEjs();
-        try { ejs && ejs.menu && ejs.menu.open && ejs.menu.open(); } catch (_) {}
-      }
-      function toggleFullscreen(){
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(function(){});
-        } else {
-          document.documentElement.requestFullscreen().catch(function(){});
-        }
-      }
-      pauseBtn.addEventListener("click", togglePause);
-      sidePauseBtn.addEventListener("click", togglePause);
-      menuBtn.addEventListener("click", openEmulatorMenu);
-      sideMenuBtn.addEventListener("click", openEmulatorMenu);
-      fullBtn.addEventListener("click", toggleFullscreen);
-      sideFullBtn.addEventListener("click", toggleFullscreen);
-      closeBtn.addEventListener("click", function(){ window.close(); });
-      sideCloseBtn.addEventListener("click", function(){ window.close(); });
-      volumeRange.addEventListener("input", function(){
-        setEmulatorVolume(Number(volumeRange.value) / 100);
-      });
-      saveSlotBtn.addEventListener("click", async function(){
-        try {
-          setToolStatus("Guardando...");
-          saveSlotBtn.disabled = true;
-          var name = slotName.value.trim() || ("Slot " + new Date().toLocaleTimeString("es-CL", { hour:"2-digit", minute:"2-digit" }));
-          var state = await captureState();
-          await putState(state);
-          await putStateSlot(name, state);
-          slotName.value = "";
-          setToolStatus("Slot guardado.");
-          await renderSlots();
-        } catch (error) {
-          setToolStatus(error && error.message ? error.message : "No se pudo guardar.");
-        } finally {
-          saveSlotBtn.disabled = false;
-        }
-      });
-      quickLoadBtn.addEventListener("click", async function(){
-        try {
-          setToolStatus("Cargando...");
-          quickLoadBtn.disabled = true;
-          var slots = await listStateSlots();
-          var state = slots[0] && slots[0].value && slots[0].value.blob ? slots[0].value.blob : await getState();
-          if (!state) throw new Error("No hay estado guardado.");
-          await restoreState(state);
-          setToolStatus("Estado cargado.");
-        } catch (error) {
-          setToolStatus(error && error.message ? error.message : "No se pudo cargar.");
-        } finally {
-          quickLoadBtn.disabled = false;
-        }
-      });
-      musicPrevBtn.addEventListener("click", function(){ sendMusicCommand("prev"); });
-      musicPlayBtn.addEventListener("click", function(){ sendMusicCommand("playPause"); });
-      musicNextBtn.addEventListener("click", function(){ sendMusicCommand("next"); });
-      refreshMusicInfo();
-      updatePauseButtons();
-      renderSlots();
-      setInterval(refreshMusicInfo, 1000);
+
       window.addEventListener("beforeunload", function(){
         if (objectUrl && objectUrl.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
-        try { musicChannel && musicChannel.close(); } catch (_) {}
       });
+
       boot();
     })();
   </script>
