@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 import { INVENTORY_SEEN_EVENT, hasUnseenInventoryItems } from "@/lib/inventorySeen";
+import { isEventHighlighted } from "@/lib/eventHighlight";
 
 interface NavChild {
   label?: string;
@@ -103,11 +104,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
       try {
         const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const now = new Date().toISOString();
-        const { count, error } = await (supabase as any)
+        const recentSince = new Date(since).getTime();
+        const { data, error } = await (supabase as any)
           .from("events")
-          .select("id", { count: "exact", head: true })
+          .select("id, created_at, event_date, event_time, highlight_until")
           .or(`created_at.gt.${since},highlight_until.gt.${now}`);
-        if (!error) setHasNewEvent((count || 0) > 0);
+        if (!error) setHasNewEvent((data || []).some((event: any) => isEventHighlighted(event, Date.now(), recentSince)));
       } catch {
         setHasNewEvent(false);
       }

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isEventHighlighted } from "@/lib/eventHighlight";
 
 type EventType = "all" | "torneo" | "estreno" | "rodada" | "stream" | "sorteo" | "comunidad" | "podcast" | "otro";
 
@@ -91,8 +92,7 @@ export default function EventosPage() {
   const allEvents = [...dbEvents, ...placeholderEvents.filter(pe => !dbEvents.some(de => de.title === pe.title))];
   const filtered = filter === "all" ? allEvents : allEvents.filter(e => e.event_type === filter);
   const isFeaturedEvent = (event: any) => {
-    const highlightUntil = event.highlight_until ? new Date(event.highlight_until).getTime() : 0;
-    return highlightUntil > Date.now();
+    return isEventHighlighted(event);
   };
   const daysUntil = (value?: string | null) => {
     if (!value) return "0";
