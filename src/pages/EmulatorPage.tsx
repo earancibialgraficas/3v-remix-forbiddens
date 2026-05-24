@@ -177,11 +177,16 @@ const TIMEZONES = [
   { value: "UTC", label: "UTC" },
 ];
 
+const getCarouselScale = (width: number) => Math.max(0.52, Math.min(1, width / 1180));
+const getSlotDistance = (width: number) => Math.max(150, 260 * getCarouselScale(width));
+const getConsoleBoxSize = (width: number) => Math.round(Math.max(112, Math.min(288, width * 0.22)));
+
 export default function EmulatorPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pspPendingWindowRef = useRef<Window | null>(null);
 
   // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
   const requiresLite = (consoleId: string) => (EXTRA_CONSOLES as readonly string[]).includes(consoleId);
@@ -352,16 +357,45 @@ export default function EmulatorPage() {
     fileInputRef.current?.click();
   }
 
-  const launchPspFile = (file: File) => {
+  const writePspPendingWindow = (pspWindow: Window, message = "Selecciona una ROM PSP...") => {
+    try {
+      pspWindow.document.open();
+      pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>${message}</div></body></html>`);
+      pspWindow.document.close();
+    } catch {
+      // La ventana puede quedar fuera de alcance si el navegador la aisla; navegarla sigue funcionando.
+    }
+  };
+
+  const openPspPendingWindow = () => {
+    const pspWindow = window.open("", "_blank", "popup=yes,width=1440,height=860");
+    if (pspWindow && !pspWindow.closed) {
+      writePspPendingWindow(pspWindow);
+      pspWindow.focus();
+      return pspWindow;
+    }
+    toast({
+      title: "Ventana bloqueada",
+      description: "No pude abrir la ventana PSP. Revisa que el permiso sea para este dominio exacto y vuelve a intentar.",
+      variant: "destructive",
+    });
+    return null;
+  };
+
+  const launchPspFile = (file: File, pendingWindow?: Window | null) => {
     const romUrl = URL.createObjectURL(file);
     (window as any).__forbiddensPspObjectUrls = [...((window as any).__forbiddensPspObjectUrls || []), romUrl];
-    openPspStandalone(romUrl, file.name);
+    openPspStandalone(romUrl, file.name, pendingWindow);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const openPspFilePicker = async () => {
+    const pendingWindow = openPspPendingWindow();
+    if (!pendingWindow) return;
+
     const showOpenFilePicker = (window as any).showOpenFilePicker;
     if (typeof showOpenFilePicker !== "function") {
+      pspPendingWindowRef.current = pendingWindow;
       fileInputRef.current?.click();
       return;
     }
@@ -377,18 +411,28 @@ export default function EmulatorPage() {
         }],
       });
       const file = await handle.getFile();
-      launchPspFile(file);
+      launchPspFile(file, pendingWindow);
     } catch (error: any) {
-      if (error?.name !== "AbortError") {
+      if (error?.name === "AbortError") {
+        pendingWindow.close();
+      } else {
+        pspPendingWindowRef.current = pendingWindow;
         fileInputRef.current?.click();
       }
     }
   };
 
-  const openPspStandalone = (romUrl: string, gameName: string) => {
+  const openPspStandalone = (romUrl: string, gameName: string, pendingWindow?: Window | null) => {
     const pspUrl = `/psp-standalone.html?rom=${encodeURIComponent(romUrl)}&name=${encodeURIComponent(gameName)}`;
-    const pspWindow = window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
+    const pspWindow = pendingWindow && !pendingWindow.closed
+      ? pendingWindow
+      : window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
     if (pspWindow && !pspWindow.closed) {
+      if (pspWindow.location.href === "about:blank") {
+        pspWindow.location.replace(pspUrl);
+      } else if (pspWindow === pendingWindow) {
+        pspWindow.location.href = pspUrl;
+      }
       pspWindow.focus();
     } else {
       toast({
@@ -412,7 +456,9 @@ export default function EmulatorPage() {
       return;
     }
     if (currentSystem.id === "psp") {
-      launchPspFile(file);
+      const pendingWindow = pspPendingWindowRef.current;
+      pspPendingWindowRef.current = null;
+      launchPspFile(file, pendingWindow);
       return;
     }
 
@@ -434,7 +480,7 @@ export default function EmulatorPage() {
 
   // 🖱️👆 Drag/Swipe handlers (mouse + touch) — fluido con rAF
   const SWIPE_THRESHOLD_RATIO = 0.18; // 18% del ancho del carrusel
-  const SLOT_DISTANCE = 260; // debe coincidir con el render
+  const SLOT_DISTANCE = getSlotDistance(carouselWidth); // debe coincidir con el render
   const [isSettling, setIsSettling] = useState(false);
 
   const onPointerDown = (clientX: number) => {
@@ -664,11 +710,13 @@ export default function EmulatorPage() {
             >
               {(() => {
                 // Posiciones base por "slot" relativo al activo
-                const SLOT_DISTANCE_PX = 260; // px entre slots (coincide con SLOT_DISTANCE arriba)
+                const responsiveScale = getCarouselScale(carouselWidth);
+                const SLOT_DISTANCE_PX = SLOT_DISTANCE; // px entre slots (coincide con SLOT_DISTANCE arriba)
+                const consoleBoxSize = getConsoleBoxSize(carouselWidth);
                 const angleStep = (Math.PI * 2) / systems.length;
-                const ringRadiusX = Math.min(Math.max(carouselWidth * 0.43, 190), Math.max(210, carouselWidth / 2 - 64));
-                const ringRadiusZ = Math.min(Math.max(carouselWidth * 0.26, 150), 420);
-                const ringTiltY = Math.min(Math.max(carouselWidth * 0.065, 34), 82);
+                const ringRadiusX = Math.min(Math.max(carouselWidth * 0.34, 130), Math.max(150, carouselWidth / 2 - consoleBoxSize * 0.32));
+                const ringRadiusZ = Math.min(Math.max(carouselWidth * 0.22, 105), 420 * responsiveScale);
+                const ringTiltY = Math.min(Math.max(carouselWidth * 0.045, 22), 82 * responsiveScale);
 
                 // Offset visual unificado: durante drag o settle se aplica como desplazamiento del "tren"
                 // dragOffset > 0 (drag derecha) => el tren se mueve a la derecha => prev (slot -1) viene al centro
@@ -723,7 +771,10 @@ export default function EmulatorPage() {
                       }}
                       onClick={() => { if (Math.abs(dragDelta.current) < 5) setCurrentIndex(index); }}
                     >
-                      <div className="w-36 h-36 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-72 lg:h-72 flex items-center justify-center pointer-events-none">
+                      <div
+                        className="flex items-center justify-center pointer-events-none"
+                        style={{ width: consoleBoxSize, height: consoleBoxSize }}
+                      >
                          <img src={sys.consoleImg} alt={sys.name} className="w-full h-full object-contain" draggable={false} />
                       </div>
                     </div>
