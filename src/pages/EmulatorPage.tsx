@@ -358,7 +358,7 @@ export default function EmulatorPage() {
   }
 
   const openPspStandalonePicker = () => {
-    const pspUrl = "/psp-standalone.html?pick=1";
+    const pspUrl = "/psp-standalone.html?pick=1&speed=max";
     const pspWindow = window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
     if (pspWindow && !pspWindow.closed) {
       pspWindow.focus();

@@ -395,7 +395,7 @@ const handlePlayCloudGame = async (game: any) => {
       if (isPspCloudGame) {
         const pspFileName = game.fileName || game.originalName || game.name;
         sessionStorage.setItem(`psp_launch_${game.id}`, JSON.stringify({ name: pspFileName }));
-        const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(pspFileName)}`;
+        const pspUrl = `/psp-standalone.html?file=${encodeURIComponent(game.id)}&name=${encodeURIComponent(pspFileName)}&direct=1&speed=max`;
         if (pspWindow && !pspWindow.closed) {
           pspWindow.location.replace(pspUrl);
           pspWindow.focus();

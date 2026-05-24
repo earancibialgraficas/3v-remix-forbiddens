@@ -46,6 +46,11 @@
       var fileId = params.get("file") || "";
       var romUrl = params.get("rom") || "";
       var pickLocal = params.get("pick") === "1";
+      var directDrive = params.get("direct") !== "0";
+      var speedMode = params.get("speed") || "fast";
+      var cpuCore = params.get("cpu") || "IR JIT";
+      var frameSkip = params.get("frameskip") || "";
+      var lockedCpuSpeed = params.get("pspCpu") || "";
       var gameName = params.get("name") || "Juego PSP";
       var token = localStorage.getItem("drive_access_token") || "";
       var expiry = Number(localStorage.getItem("drive_token_expiry") || 0);
@@ -127,22 +132,103 @@
           "/emulatorjs-data/cores/ppsspp-assets.zip"
         ].forEach(function(url){ fetch(url, { cache:"force-cache" }).catch(function(){}); });
       }
-      async function readResponseBlob(response){
-        var total = Number(response.headers.get("content-length") || 0);
-        if (!response.body || !total) return response.blob();
+      async function fetchDriveMetadata(id){
+        try {
+          var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(id) + "?fields=name,size", {
+            headers: { Authorization: "Bearer " + token }
+          });
+          if (!response.ok) return null;
+          return response.json();
+        } catch (_) {
+          return null;
+        }
+      }
+      async function readResponseBlob(response, expectedTotal){
+        var total = Number(expectedTotal || response.headers.get("content-length") || 0);
+        if (!response.body) return response.blob();
         var reader = response.body.getReader();
         var chunks = [];
         var received = 0;
+        var lastPaint = 0;
         while (true) {
           var next = await reader.read();
           if (next.done) break;
           if (!next.value) continue;
           chunks.push(next.value);
           received += next.value.byteLength;
-          var pct = Math.max(8, Math.min(96, Math.round((received / total) * 96)));
-          setMessage("Descargando ROM... " + pct + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", pct);
+          var now = performance.now();
+          if (now - lastPaint > 180 || received === total) {
+            lastPaint = now;
+            if (total) {
+              var pct = Math.max(8, Math.min(96, Math.round((received / total) * 96)));
+              setMessage("Descargando ROM... " + pct + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", pct);
+            } else {
+              setMessage("Descargando ROM... " + formatBytes(received), 18);
+            }
+          }
         }
         return new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
+      }
+      function getPspOptions(){
+        var base = {
+          "save-state-location": "download",
+          "save-save-interval": "0",
+          "rewindEnabled": "disabled",
+          "fps": "hide",
+          "vsync": "disabled",
+          "webgl2Enabled": "enabled",
+          "ppsspp_cpu_core": cpuCore,
+          "ppsspp_fast_memory": "enabled",
+          "ppsspp_ignore_bad_memory_access": "enabled",
+          "ppsspp_io_timing_method": "Fast",
+          "ppsspp_internal_resolution": "480x272",
+          "ppsspp_mulitsample_level": "Disabled",
+          "ppsspp_texture_scaling_level": "disabled",
+          "ppsspp_texture_anisotropic_filtering": "disabled",
+          "ppsspp_texture_filtering": "Auto",
+          "ppsspp_gpu_hardware_transform": "enabled",
+          "ppsspp_vertex_cache": "enabled",
+          "ppsspp_lazy_texture_caching": "enabled",
+          "ppsspp_software_skinning": "enabled",
+          "ppsspp_skip_buffer_effects": "enabled",
+          "ppsspp_skip_gpu_readbacks": "enabled",
+          "ppsspp_lower_resolution_for_effects": "Aggressive",
+          "ppsspp_spline_quality": "Low",
+          "ppsspp_sound_speedhack": "enabled",
+          "ppsspp_auto_frameskip": "enabled",
+          "ppsspp_frameskiptype": "Number of frames",
+          "ppsspp_frame_duplication": "enabled",
+          "ppsspp_inflight_frames": "Up to 2"
+        };
+        if (lockedCpuSpeed) base.ppsspp_locked_cpu_speed = lockedCpuSpeed;
+        if (speedMode === "max") {
+          base.ppsspp_frameskip = frameSkip || "4";
+          base.ppsspp_rendering_mode = "nonbuffered";
+        } else {
+          base.ppsspp_frameskip = frameSkip || "2";
+          base.ppsspp_rendering_mode = "buffered";
+        }
+        return base;
+      }
+      function startPerfSampler(){
+        window.__pspPerfSamples = [];
+        var lastFrame = null;
+        var lastTime = performance.now();
+        setInterval(function(){
+          try {
+            var manager = window.EJS_emulator && window.EJS_emulator.gameManager;
+            if (!manager || !manager.getFrameNum) return;
+            var frame = manager.getFrameNum();
+            var now = performance.now();
+            if (lastFrame !== null) {
+              var fps = ((frame - lastFrame) * 1000) / Math.max(1, now - lastTime);
+              window.__pspPerfSamples.push({ t: Math.round(now), fps: Math.max(0, Math.round(fps * 10) / 10) });
+              if (window.__pspPerfSamples.length > 90) window.__pspPerfSamples.shift();
+            }
+            lastFrame = frame;
+            lastTime = now;
+          } catch (_) {}
+        }, 1000);
       }
       async function boot(){
         if (pickLocal && !objectUrl) return showLocalPicker();
@@ -164,13 +250,23 @@
             objectUrl = romUrl;
             setMessage("Preparando ROM...", 92);
           } else {
-            setMessage("Descargando ROM...", 12);
-            var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
-              headers: { Authorization: "Bearer " + token }
-            });
-            if (!response.ok) throw new Error("Drive respondio " + response.status);
-            var blob = await readResponseBlob(response);
-            objectUrl = URL.createObjectURL(blob);
+            var meta = await fetchDriveMetadata(fileId);
+            if (meta && meta.name && (!gameName || gameName === "Juego PSP")) {
+              gameName = meta.name;
+              document.title = gameName;
+            }
+            if (directDrive) {
+              objectUrl = "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media&access_token=" + encodeURIComponent(token);
+              setMessage("Entregando ROM de Drive a EmulatorJS" + (meta && meta.size ? " (" + formatBytes(Number(meta.size)) + ")" : "") + "...", 28);
+            } else {
+              setMessage("Descargando ROM...", 12);
+              var response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId) + "?alt=media", {
+                headers: { Authorization: "Bearer " + token }
+              });
+              if (!response.ok) throw new Error("Drive respondio " + response.status);
+              var blob = await readResponseBlob(response, meta && meta.size ? Number(meta.size) : 0);
+              objectUrl = URL.createObjectURL(blob);
+            }
           }
 
           setMessage("Iniciando PSP...", 98);
@@ -190,19 +286,9 @@
           window.EJS_dontExtractRom = true;
           window.EJS_color = "#00f2fe";
           window.EJS_backgroundColor = "#000000";
-          window.EJS_defaultOptions = {
-            "save-state-location": "download",
-            "save-save-interval": "0",
-            "rewindEnabled": "disabled",
-            "fps": "hide",
-            "vsync": "enabled",
-            "ppsspp_auto_frameskip": "enabled",
-            "ppsspp_frameskip": "1",
-            "ppsspp_internal_resolution": "480x272",
-            "ppsspp_texture_scaling_level": "1",
-            "ppsspp_texture_anisotropic_filtering": "disabled"
-          };
+          window.EJS_defaultOptions = getPspOptions();
           window.EJS_onGameStart = function(){
+            startPerfSampler();
             setMessage("PSP en ejecucion", 100);
             setTimeout(function(){ loading.style.display = "none"; }, 350);
           };
@@ -211,6 +297,9 @@
           script.src = "/emulatorjs-data/loader.js";
           script.onerror = function(){ fail("No se pudo cargar EmulatorJS."); };
           document.body.appendChild(script);
+          if (fileId && directDrive) {
+            setTimeout(function(){ loading.style.display = "none"; }, 900);
+          }
         } catch (error) {
           fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
         }
