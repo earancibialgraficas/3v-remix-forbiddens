@@ -16,6 +16,11 @@
     p{margin:0;color:#94a3b8;font-size:12px;line-height:1.45}
     .bar{height:5px;margin-top:14px;border-radius:999px;background:#111827;overflow:hidden}
     .bar span{display:block;height:100%;width:8%;background:#00f2fe;transition:width .18s ease}
+    .picker{margin-top:16px}
+    .picker[hidden]{display:none}
+    .picker input{display:none}
+    .picker button{border:1px solid rgba(0,242,254,.45);background:rgba(0,242,254,.12);color:#e5faff;border-radius:999px;padding:10px 16px;font:900 11px "Courier New",monospace;text-transform:uppercase;cursor:pointer;box-shadow:0 0 24px rgba(0,242,254,.15)}
+    .picker button:hover{background:rgba(0,242,254,.22)}
     .error h1{color:#fb7185}
     .error .spinner{display:none}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -29,6 +34,10 @@
       <h1>PSP</h1>
       <p id="message">Preparando emulador...</p>
       <div class="bar"><span id="progress"></span></div>
+      <div class="picker" id="picker" hidden>
+        <input id="romInput" type="file" accept=".iso,.cso,.pbp,.chd,application/octet-stream" />
+        <button id="pickButton" type="button">Cargar ROM PSP</button>
+      </div>
     </div>
   </div>
   <script>
@@ -36,6 +45,7 @@
       var params = new URLSearchParams(location.search);
       var fileId = params.get("file") || "";
       var romUrl = params.get("rom") || "";
+      var pickLocal = params.get("pick") === "1";
       var gameName = params.get("name") || "Juego PSP";
       var token = localStorage.getItem("drive_access_token") || "";
       var expiry = Number(localStorage.getItem("drive_token_expiry") || 0);
@@ -44,6 +54,9 @@
       var loadCard = document.getElementById("loadCard");
       var message = document.getElementById("message");
       var progress = document.getElementById("progress");
+      var picker = document.getElementById("picker");
+      var romInput = document.getElementById("romInput");
+      var pickButton = document.getElementById("pickButton");
 
       document.title = gameName;
 
@@ -63,6 +76,22 @@
         if (!Number.isFinite(bytes) || bytes <= 0) return "";
         var mb = bytes / (1024 * 1024);
         return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : mb.toFixed(0) + " MB";
+      }
+      function showLocalPicker(){
+        document.title = "Cargar ROM PSP";
+        setMessage("Selecciona una ROM PSP para iniciar.", 8);
+        picker.hidden = false;
+        pickButton.onclick = function(){ romInput.click(); };
+        romInput.onchange = function(){
+          var file = romInput.files && romInput.files[0];
+          if (!file) return;
+          if (objectUrl && objectUrl.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+          objectUrl = URL.createObjectURL(file);
+          gameName = file.name || "Juego PSP";
+          document.title = gameName;
+          picker.hidden = true;
+          boot();
+        };
       }
       function deleteDb(name){
         return new Promise(function(resolve){
@@ -116,7 +145,8 @@
         return new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
       }
       async function boot(){
-        if (!fileId && !romUrl) return fail("No se recibio el archivo PSP.");
+        if (pickLocal && !objectUrl) return showLocalPicker();
+        if (!fileId && !romUrl && !objectUrl) return fail("No se recibio el archivo PSP.");
         if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
           return fail("Esta ventana no tiene aislamiento activo para PSP.");
         }
@@ -128,7 +158,9 @@
           await clearOldEmulatorCache();
           prefetchAssets();
 
-          if (romUrl) {
+          if (objectUrl) {
+            setMessage("Preparando ROM...", 92);
+          } else if (romUrl) {
             objectUrl = romUrl;
             setMessage("Preparando ROM...", 92);
           } else {

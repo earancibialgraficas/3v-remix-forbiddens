@@ -349,25 +349,23 @@ export default function EmulatorPage() {
 
     if (blockIfLocked(currentSystem.id)) return;
 
+    if (currentSystem.id === "psp") {
+      openPspStandalonePicker();
+      return;
+    }
+
     fileInputRef.current?.click();
   }
 
-  const launchPspFile = (file: File) => {
-    const romUrl = URL.createObjectURL(file);
-    (window as any).__forbiddensPspObjectUrls = [...((window as any).__forbiddensPspObjectUrls || []), romUrl];
-    openPspStandalone(romUrl, file.name);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const openPspStandalone = (romUrl: string, gameName: string) => {
-    const pspUrl = `/psp-standalone.html?rom=${encodeURIComponent(romUrl)}&name=${encodeURIComponent(gameName)}`;
+  const openPspStandalonePicker = () => {
+    const pspUrl = "/psp-standalone.html?pick=1";
     const pspWindow = window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
     if (pspWindow && !pspWindow.closed) {
       pspWindow.focus();
     } else {
       toast({
         title: "Ventana bloqueada",
-        description: "El selector de ROM si funciono, pero el navegador bloqueo la ventana PSP. Permite ventanas emergentes para este dominio exacto.",
+        description: "No pude abrir la ventana PSP. Revisa que el permiso sea para este dominio exacto.",
         variant: "destructive",
       });
     }
@@ -386,7 +384,7 @@ export default function EmulatorPage() {
       return;
     }
     if (currentSystem.id === "psp") {
-      launchPspFile(file);
+      openPspStandalonePicker();
       return;
     }
 
