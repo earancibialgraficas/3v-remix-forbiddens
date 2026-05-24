@@ -12,7 +12,11 @@
     .brand{font:900 12px/1 "Courier New",monospace;color:#00f2fe;text-shadow:0 0 12px rgba(34,211,238,.85);letter-spacing:.08em}
     .title{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:12px}
     .status{font:900 10px/1 "Courier New",monospace;color:#39ff14;text-shadow:0 0 10px rgba(57,255,20,.5)}
-    .shell{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 220px;background:#000}
+    .topControls{display:flex;align-items:center;gap:6px}
+    .iconTool{width:30px;height:28px;border:1px solid rgba(34,211,238,.35);border-radius:7px;background:rgba(15,23,42,.88);color:#e5faff;font:900 13px/1 "Courier New",monospace;cursor:pointer}
+    .iconTool:hover{border-color:#00f2fe;background:rgba(34,211,238,.16);box-shadow:0 0 14px rgba(34,211,238,.25)}
+    .iconTool.danger{border-color:rgba(251,113,133,.45);color:#fb7185}
+    .shell{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 260px;background:#000}
     #game{position:relative;width:100%;height:100%;min-height:0;background:#000}
     .tools{min-width:0;border-left:1px solid rgba(34,211,238,.24);background:linear-gradient(180deg,rgba(2,6,23,.98),rgba(0,0,0,.96));padding:10px;overflow-y:auto}
     .toolGroup{border:1px solid rgba(34,211,238,.24);border-radius:8px;background:rgba(15,23,42,.62);padding:9px;margin-bottom:10px;box-shadow:inset 0 0 14px rgba(34,211,238,.05)}
@@ -25,6 +29,15 @@
     .toolText{min-height:16px;margin-top:7px;color:#94a3b8;font-size:11px;line-height:1.35}
     .range{width:100%;accent-color:#00f2fe}
     .songTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e5faff;font-size:11px}
+    .saveName{width:100%;height:28px;border:1px solid rgba(34,211,238,.26);border-radius:6px;background:#020617;color:#e5faff;padding:5px 7px;font-size:11px;outline:none}
+    .slotList{display:grid;gap:6px;max-height:145px;overflow:auto;margin-top:8px;padding-right:2px}
+    .slotItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:rgba(0,0,0,.28);padding:6px}
+    .slotMeta{min-width:0}
+    .slotMeta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5faff;font-size:10px}
+    .slotMeta span{display:block;color:#94a3b8;font-size:9px;margin-top:2px}
+    .slotActions{display:flex;gap:4px}
+    .slotActions button{width:26px;height:24px;border-radius:5px;border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.08);color:#e5faff;cursor:pointer}
+    .slotActions button:last-child{border-color:rgba(251,113,133,.35);color:#fb7185}
     #loading{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(8,47,73,.45),rgba(0,0,0,.96) 62%)}
     .loadCard{width:min(520px,calc(100vw - 32px));border:1px solid rgba(34,211,238,.42);border-radius:14px;background:rgba(2,6,23,.86);padding:24px;text-align:center;box-shadow:0 0 36px rgba(34,211,238,.18),inset 0 0 22px rgba(0,0,0,.55)}
     .spinner{width:42px;height:42px;margin:0 auto 16px;border-radius:999px;border:3px solid rgba(34,211,238,.22);border-top-color:#00f2fe;animation:spin .9s linear infinite;box-shadow:0 0 22px rgba(34,211,238,.45)}
@@ -44,16 +57,22 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand">FORBIDDENS PSP</div>
-    <div class="title" id="topTitle">PPSSPP</div>
+    <div class="brand">FORBIDDENS EMULATOR</div>
+    <div class="title" id="topTitle">EmulatorJS PSP</div>
     <div class="status" id="topStatus">BOOT</div>
+    <div class="topControls">
+      <button class="iconTool" id="pauseBtn" type="button" title="Pausar/Reanudar">II</button>
+      <button class="iconTool" id="menuBtn" type="button" title="Menu EmulatorJS">M</button>
+      <button class="iconTool" id="fullBtn" type="button" title="Pantalla completa">[]</button>
+      <button class="iconTool danger" id="closeBtn" type="button" title="Cerrar">X</button>
+    </div>
   </header>
   <main class="shell">
     <section id="game">
       <div id="loading">
         <div class="loadCard" id="loadCard">
           <div class="spinner"></div>
-          <h1>PSP | PPSSPP</h1>
+          <h1>PSP | EmulatorJS</h1>
           <p id="message">Preparando emulador...</p>
           <div class="file" id="fileName"></div>
           <div class="bar"><span id="progress"></span></div>
@@ -63,8 +82,11 @@
     <aside class="tools" aria-label="Opciones PSP">
       <div class="toolGroup">
         <p class="toolTitle">Emulador</p>
-        <button class="toolBtn" id="menuBtn" type="button">Menu PPSSPP</button>
-        <button class="toolBtn" id="fullBtn" type="button">Pantalla completa</button>
+        <div class="miniRow">
+          <button class="toolBtn" id="sidePauseBtn" type="button">Pausar</button>
+          <button class="toolBtn" id="sideMenuBtn" type="button">Menu</button>
+        </div>
+        <button class="toolBtn" id="sideFullBtn" type="button">Pantalla completa</button>
       </div>
       <div class="toolGroup">
         <p class="toolTitle">Volumen</p>
@@ -73,9 +95,11 @@
       </div>
       <div class="toolGroup">
         <p class="toolTitle">Guardado</p>
-        <button class="toolBtn" id="quickSaveBtn" type="button">Guardar estado</button>
-        <button class="toolBtn" id="quickLoadBtn" type="button">Cargar estado</button>
+        <input class="saveName" id="slotName" placeholder="Nombre del slot" />
+        <button class="toolBtn" id="saveSlotBtn" type="button">Guardar slot</button>
+        <button class="toolBtn" id="quickLoadBtn" type="button">Cargar ultimo</button>
         <div class="toolText" id="saveStatus">Sin estado cargado.</div>
+        <div class="slotList" id="slotList"></div>
       </div>
       <div class="toolGroup">
         <p class="toolTitle">FORBIDDENS Player</p>
@@ -86,9 +110,7 @@
           <button class="toolBtn" id="musicNextBtn" type="button">Next</button>
         </div>
       </div>
-      <div class="toolGroup">
-        <button class="toolBtn danger" id="closeBtn" type="button">Cerrar ventana</button>
-      </div>
+      <div class="toolGroup"><button class="toolBtn danger" id="sideCloseBtn" type="button">Cerrar ventana</button></div>
     </aside>
   </main>
   <script>
@@ -108,13 +130,20 @@
       var progress = document.getElementById("progress");
       var topTitle = document.getElementById("topTitle");
       var topStatus = document.getElementById("topStatus");
+      var pauseBtn = document.getElementById("pauseBtn");
       var menuBtn = document.getElementById("menuBtn");
       var fullBtn = document.getElementById("fullBtn");
       var closeBtn = document.getElementById("closeBtn");
+      var sidePauseBtn = document.getElementById("sidePauseBtn");
+      var sideMenuBtn = document.getElementById("sideMenuBtn");
+      var sideFullBtn = document.getElementById("sideFullBtn");
+      var sideCloseBtn = document.getElementById("sideCloseBtn");
       var volumeRange = document.getElementById("volumeRange");
       var volumeLabel = document.getElementById("volumeLabel");
-      var quickSaveBtn = document.getElementById("quickSaveBtn");
+      var saveSlotBtn = document.getElementById("saveSlotBtn");
       var quickLoadBtn = document.getElementById("quickLoadBtn");
+      var slotName = document.getElementById("slotName");
+      var slotList = document.getElementById("slotList");
       var saveStatus = document.getElementById("saveStatus");
       var musicTitle = document.getElementById("musicTitle");
       var musicPrevBtn = document.getElementById("musicPrevBtn");
@@ -122,6 +151,7 @@
       var musicNextBtn = document.getElementById("musicNextBtn");
       var musicChannel = "BroadcastChannel" in window ? new BroadcastChannel("forbiddens_music_player") : null;
       var saveKey = "psp:" + gameName;
+      var paused = false;
 
       topTitle.textContent = gameName;
       fileName.textContent = gameName;
@@ -151,6 +181,7 @@
         [
           "/emulatorjs-data/loader.js",
           "/emulatorjs-data/emulator.min.js",
+          "/emulatorjs-data/compression/extract7z.js",
           "/emulatorjs-data/cores/reports/ppsspp.json",
           "/emulatorjs-data/cores/ppsspp-thread-wasm.data",
           "/emulatorjs-data/cores/ppsspp-assets.zip"
@@ -161,6 +192,29 @@
       }
       function setToolStatus(text){
         saveStatus.textContent = text;
+      }
+      function escapeHtml(value){
+        return String(value || "").replace(/[&<>"']/g, function(char){
+          return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[char];
+        });
+      }
+      function updatePauseButtons(){
+        pauseBtn.textContent = paused ? "P" : "II";
+        sidePauseBtn.textContent = paused ? "Reanudar" : "Pausar";
+      }
+      function togglePause(){
+        var ejs = getEjs();
+        paused = !paused;
+        try {
+          if (paused) {
+            if (ejs && ejs.pause) ejs.pause();
+            else if (ejs && ejs.gameManager && ejs.gameManager.pause) ejs.gameManager.pause();
+          } else {
+            if (ejs && ejs.play) ejs.play();
+            else if (ejs && ejs.gameManager && ejs.gameManager.resume) ejs.gameManager.resume();
+          }
+        } catch (_) {}
+        updatePauseButtons();
       }
       function setEmulatorVolume(value){
         var clamped = Math.max(0, Math.min(1, value));
@@ -195,6 +249,77 @@
           request.onerror = function(){ reject(request.error || new Error("No se pudo cargar")); };
           tx.oncomplete = function(){ db.close(); };
         });
+      }
+      async function listStateSlots(){
+        var db = await openSaveDb();
+        return new Promise(function(resolve, reject){
+          var tx = db.transaction("states", "readonly");
+          var store = tx.objectStore("states");
+          var keysReq = store.getAllKeys();
+          var valuesReq = store.getAll();
+          tx.oncomplete = function(){
+            db.close();
+            var keys = keysReq.result || [];
+            var values = valuesReq.result || [];
+            var slots = keys.map(function(key, index){ return { key: key, value: values[index] }; })
+              .filter(function(slot){ return String(slot.key).indexOf(saveKey + ":") === 0 && slot.value && slot.value.blob; })
+              .sort(function(a, b){ return Number(b.value && b.value.createdAt || 0) - Number(a.value && a.value.createdAt || 0); });
+            resolve(slots);
+          };
+          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudieron listar slots")); };
+        });
+      }
+      async function putStateSlot(name, blob){
+        var db = await openSaveDb();
+        return new Promise(function(resolve, reject){
+          var tx = db.transaction("states", "readwrite");
+          var key = saveKey + ":" + Date.now();
+          tx.objectStore("states").put({ name: name, blob: blob, createdAt: Date.now() }, key);
+          tx.oncomplete = function(){ db.close(); resolve(); };
+          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo guardar slot")); };
+        });
+      }
+      async function deleteStateSlot(key){
+        var db = await openSaveDb();
+        return new Promise(function(resolve, reject){
+          var tx = db.transaction("states", "readwrite");
+          tx.objectStore("states").delete(key);
+          tx.oncomplete = function(){ db.close(); resolve(); };
+          tx.onerror = function(){ db.close(); reject(tx.error || new Error("No se pudo borrar slot")); };
+        });
+      }
+      async function renderSlots(){
+        try {
+          var slots = await listStateSlots();
+          slotList.innerHTML = slots.length ? slots.slice(0, 6).map(function(slot){
+            var created = new Date(Number(slot.value.createdAt || Date.now())).toLocaleString("es-CL");
+            return '<div class="slotItem" data-key="' + escapeHtml(slot.key) + '"><span class="slotMeta"><b>' + escapeHtml(slot.value.name || "Slot") + '</b><span>' + escapeHtml(created) + '</span></span><span class="slotActions"><button data-load="' + escapeHtml(slot.key) + '" title="Cargar">▶</button><button data-delete="' + escapeHtml(slot.key) + '" title="Borrar">×</button></span></div>';
+          }).join("") : '<div class="toolText">No hay slots guardados.</div>';
+          slotList.querySelectorAll("[data-load]").forEach(function(btn){
+            btn.onclick = async function(){
+              var key = btn.getAttribute("data-load");
+              var db = await openSaveDb();
+              var tx = db.transaction("states", "readonly");
+              var req = tx.objectStore("states").get(key);
+              req.onsuccess = async function(){
+                db.close();
+                var item = req.result;
+                if (!item || !item.blob) return setToolStatus("Slot vacio.");
+                await restoreState(item.blob);
+                setToolStatus("Slot cargado.");
+              };
+            };
+          });
+          slotList.querySelectorAll("[data-delete]").forEach(function(btn){
+            btn.onclick = async function(){
+              await deleteStateSlot(btn.getAttribute("data-delete"));
+              setToolStatus("Slot borrado.");
+              renderSlots();
+            };
+          });
+        } catch (error) {
+          slotList.innerHTML = '<div class="toolText">No se pudieron cargar slots.</div>';
+        }
       }
       async function captureState(){
         var ejs = getEjs();
@@ -282,7 +407,7 @@
       async function boot(){
         if (!fileId && !romUrl) return fail("No se recibio el archivo PSP.");
         if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
-          return fail("Esta ventana no tiene aislamiento activo para PPSSPP. Revisa headers COOP/COEP del dominio.");
+          return fail("Esta ventana no tiene aislamiento activo para EmulatorJS PSP. Revisa headers COOP/COEP del dominio.");
         }
         if (fileId && (!token || Date.now() >= expiry)) {
           return fail("La sesion de Google Drive expiro. Vuelve a sincronizar Drive y abre el juego otra vez.");
@@ -301,10 +426,10 @@
             var blob = await readResponseBlob(response);
             objectUrl = URL.createObjectURL(blob);
           }
-          setMessage("Cargando PPSSPP...", 98);
+          setMessage("Cargando EmulatorJS PSP...", 98);
 
           window.EJS_player = "#game";
-          window.EJS_core = "psp";
+          window.EJS_core = "ppsspp";
           window.EJS_gameUrl = objectUrl;
           window.EJS_gameName = gameName;
           window.EJS_pathtodata = location.origin + "/emulatorjs-data/";
@@ -314,9 +439,13 @@
           window.EJS_CacheLimit = 1073741824;
           window.EJS_disableDatabases = false;
           window.EJS_volume = initialVolume;
+          window.EJS_color = "#00f2fe";
+          window.EJS_backgroundColor = "#000000";
           window.EJS_onGameStart = function(){
             setMessage("PSP en ejecucion", 100);
             setEmulatorVolume(Number(volumeRange.value) / 100);
+            paused = false;
+            updatePauseButtons();
             setTimeout(function(){ loading.style.display = "none"; }, 450);
           };
 
@@ -328,38 +457,51 @@
           fail(error && error.message ? error.message : "No se pudo iniciar PSP.");
         }
       }
-      menuBtn.addEventListener("click", function(){
+      function openEmulatorMenu(){
         var ejs = getEjs();
         try { ejs && ejs.menu && ejs.menu.open && ejs.menu.open(); } catch (_) {}
-      });
-      fullBtn.addEventListener("click", function(){
+      }
+      function toggleFullscreen(){
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(function(){});
         } else {
           document.documentElement.requestFullscreen().catch(function(){});
         }
-      });
+      }
+      pauseBtn.addEventListener("click", togglePause);
+      sidePauseBtn.addEventListener("click", togglePause);
+      menuBtn.addEventListener("click", openEmulatorMenu);
+      sideMenuBtn.addEventListener("click", openEmulatorMenu);
+      fullBtn.addEventListener("click", toggleFullscreen);
+      sideFullBtn.addEventListener("click", toggleFullscreen);
       closeBtn.addEventListener("click", function(){ window.close(); });
+      sideCloseBtn.addEventListener("click", function(){ window.close(); });
       volumeRange.addEventListener("input", function(){
         setEmulatorVolume(Number(volumeRange.value) / 100);
       });
-      quickSaveBtn.addEventListener("click", async function(){
+      saveSlotBtn.addEventListener("click", async function(){
         try {
           setToolStatus("Guardando...");
-          quickSaveBtn.disabled = true;
-          await putState(await captureState());
-          setToolStatus("Estado guardado.");
+          saveSlotBtn.disabled = true;
+          var name = slotName.value.trim() || ("Slot " + new Date().toLocaleTimeString("es-CL", { hour:"2-digit", minute:"2-digit" }));
+          var state = await captureState();
+          await putState(state);
+          await putStateSlot(name, state);
+          slotName.value = "";
+          setToolStatus("Slot guardado.");
+          await renderSlots();
         } catch (error) {
           setToolStatus(error && error.message ? error.message : "No se pudo guardar.");
         } finally {
-          quickSaveBtn.disabled = false;
+          saveSlotBtn.disabled = false;
         }
       });
       quickLoadBtn.addEventListener("click", async function(){
         try {
           setToolStatus("Cargando...");
           quickLoadBtn.disabled = true;
-          var state = await getState();
+          var slots = await listStateSlots();
+          var state = slots[0] && slots[0].value && slots[0].value.blob ? slots[0].value.blob : await getState();
           if (!state) throw new Error("No hay estado guardado.");
           await restoreState(state);
           setToolStatus("Estado cargado.");
@@ -373,6 +515,8 @@
       musicPlayBtn.addEventListener("click", function(){ sendMusicCommand("playPause"); });
       musicNextBtn.addEventListener("click", function(){ sendMusicCommand("next"); });
       refreshMusicInfo();
+      updatePauseButtons();
+      renderSlots();
       setInterval(refreshMusicInfo, 1000);
       window.addEventListener("beforeunload", function(){
         if (objectUrl && objectUrl.startsWith("blob:")) URL.revokeObjectURL(objectUrl);

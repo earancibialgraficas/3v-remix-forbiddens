@@ -378,14 +378,14 @@ const handlePlayCloudGame = async (game: any) => {
     let pspWindow: Window | null = null;
     toast({
       title: "Iniciando...",
-      description: isPspCloudGame ? "Abriendo PPSSPP en una ventana dedicada." : "Conectando al servidor en la nube.",
+      description: isPspCloudGame ? "Abriendo EmulatorJS PSP en una ventana dedicada." : "Conectando al servidor en la nube.",
     });
 
     try {
       if (isPspCloudGame) {
         pspWindow = window.open("", "_blank", "popup=yes,width=1280,height=820");
         if (pspWindow) {
-          pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>Preparando PPSSPP...</div></body></html>`);
+          pspWindow.document.write(`<!doctype html><html><head><title>FORBIDDENS PSP</title><style>html,body{height:100%;margin:0;background:#020617;color:#00f2fe;display:grid;place-items:center;font:900 13px 'Courier New',monospace}div{text-align:center}span{display:block;width:38px;height:38px;margin:0 auto 14px;border-radius:50%;border:3px solid #123;border-top-color:#00f2fe;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div><span></span>Preparando EmulatorJS PSP...</div></body></html>`);
           pspWindow.document.close();
         }
       }
@@ -399,7 +399,9 @@ const handlePlayCloudGame = async (game: any) => {
           pspWindow.location.replace(pspUrl);
           pspWindow.focus();
         } else {
-          window.open(pspUrl, "_blank") || window.location.assign(pspUrl);
+          const opened = window.open(pspUrl, "_blank");
+          if (opened) opened.focus();
+          else toast({ title: "Ventana bloqueada", description: "Permite ventanas emergentes para abrir PSP sin reemplazar el sitio.", variant: "destructive" });
         }
         return;
       }
@@ -859,7 +861,7 @@ const handlePlayCloudGame = async (game: any) => {
                       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/72 backdrop-blur-[2px]">
                         <Loader2 className="h-6 w-6 animate-spin text-neon-cyan drop-shadow-[0_0_10px_rgba(34,211,238,0.75)]" />
                         <span className="font-pixel text-[8px] uppercase tracking-wider text-neon-cyan">
-                          {game.console === "psp" ? "Abriendo PPSSPP" : "Cargando"}
+                          {game.console === "psp" ? "Abriendo EmulatorJS" : "Cargando"}
                         </span>
                       </div>
                     )}
