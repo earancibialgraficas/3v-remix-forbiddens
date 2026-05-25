@@ -1,7 +1,8 @@
 use std::{
     env, fs,
+    io,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use serde::Serialize;
@@ -536,12 +537,39 @@ fn run_hidden(mut command: Command) -> Result<(), String> {
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let status = command.status().map_err(|error| error.to_string())?;
-    if status.success() {
+    let output = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| error.to_string())?;
+    if output.status.success() {
         Ok(())
     } else {
-        Err(format!("El proceso termino con codigo {status}."))
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let details = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("El proceso termino con codigo {}.", output.status)
+        };
+        Err(details)
     }
+}
+
+fn download_file(url: &str, destination: &Path) -> Result<(), String> {
+    let mut command = Command::new("curl.exe");
+    command.args([
+        "-L",
+        "--fail",
+        "--silent",
+        "--show-error",
+        "--output",
+        &destination.to_string_lossy(),
+        url,
+    ]);
+    run_hidden(command)
 }
 
 fn powershell_command(script: &str) -> Command {
@@ -555,6 +583,30 @@ fn powershell_command(script: &str) -> Command {
         script,
     ]);
     command
+}
+
+fn extract_archive(archive: &Path, destination: &Path) -> Result<(), String> {
+    let mut command = Command::new("tar.exe");
+    command.args([
+        "-xf",
+        &archive.to_string_lossy(),
+        "-C",
+        &destination.to_string_lossy(),
+    ]);
+    command
+        .env("FORBIDDENS_ENGINE_ROOT", &destination)
+        .env("FORBIDDENS_ENGINE_ARCHIVE", &archive)
+        .env("FORBIDDENS_ENGINE_EXTRACTOR", "tar");
+    run_hidden(command)
+}
+
+fn join_package_parts(parts: &[PathBuf], destination: &Path) -> Result<(), String> {
+    let mut output = fs::File::create(destination).map_err(|error| error.to_string())?;
+    for part in parts {
+        let mut input = fs::File::open(part).map_err(|error| error.to_string())?;
+        io::copy(&mut input, &mut output).map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -609,39 +661,26 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
 
     let root = engine_install_dir(&config);
     fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+    let archive = root.join(config.package_file_name);
+    let mut downloaded_parts = Vec::new();
 
-    let script = "$ErrorActionPreference='Stop'; \
-      $ProgressPreference='SilentlyContinue'; \
-      New-Item -ItemType Directory -Force -Path $env:FORBIDDENS_ENGINE_ROOT | Out-Null; \
-      $urls = $env:FORBIDDENS_ENGINE_URLS -split \"`n\" | Where-Object { $_.Trim().Length -gt 0 }; \
-      $archive = Join-Path $env:FORBIDDENS_ENGINE_ROOT $env:FORBIDDENS_ENGINE_ARCHIVE; \
-      if ($urls.Count -eq 1) { \
-        Invoke-WebRequest -Uri $urls[0] -OutFile $archive -UseBasicParsing; \
-      } else { \
-        $output = [System.IO.File]::Open($archive, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write); \
-        try { \
-          for ($i = 0; $i -lt $urls.Count; $i++) { \
-            $part = Join-Path $env:FORBIDDENS_ENGINE_ROOT ('part_' + $i.ToString('000')); \
-            Invoke-WebRequest -Uri $urls[$i] -OutFile $part -UseBasicParsing; \
-            $input = [System.IO.File]::OpenRead($part); \
-            try { $input.CopyTo($output) } finally { $input.Close() }; \
-            Remove-Item -LiteralPath $part -Force; \
-          } \
-        } finally { $output.Close() } \
-      }; \
-      $ext = [System.IO.Path]::GetExtension($archive); \
-      if ($ext.ToLowerInvariant() -eq '.zip') { \
-        Expand-Archive -LiteralPath $archive -DestinationPath $env:FORBIDDENS_ENGINE_ROOT -Force; \
-      } else { \
-        tar -xf $archive -C $env:FORBIDDENS_ENGINE_ROOT; \
-      }; \
-      Remove-Item -LiteralPath $archive -Force";
+    if config.package_urls.len() == 1 {
+        download_file(config.package_urls[0], &archive)?;
+    } else {
+        for (index, url) in config.package_urls.iter().enumerate() {
+            let part_path = root.join(format!("{}.part{:03}", config.package_file_name, index + 1));
+            download_file(url, &part_path)?;
+            downloaded_parts.push(part_path);
+        }
+        join_package_parts(&downloaded_parts, &archive)?;
+    }
 
-    let mut command = powershell_command(script);
-    command.env("FORBIDDENS_ENGINE_ROOT", &root);
-    command.env("FORBIDDENS_ENGINE_URLS", config.package_urls.join("\n"));
-    command.env("FORBIDDENS_ENGINE_ARCHIVE", config.package_file_name);
-    run_hidden(command)?;
+    extract_archive(&archive, &root)?;
+
+    let _ = fs::remove_file(&archive);
+    for part in downloaded_parts {
+        let _ = fs::remove_file(part);
+    }
 
     let status = native_engine_status(normalized);
     if status.installed {

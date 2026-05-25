@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from '@/lib/driveCoverBackup';
+import { getLauncherBridge } from '@/lib/launcherBridge';
 
 const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
 const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
@@ -159,6 +160,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }, 90_000);
 
     try {
+      const launcher = getLauncherBridge();
       const client = google.accounts.oauth2.initTokenClient({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
@@ -185,7 +187,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           console.error('[DriveSync] error_callback', err);
           setIsSyncing(false);
           const type = err?.type || 'unknown';
-          const msg = type === 'popup_closed'
+          if (launcher && (type === 'popup_failed_to_open' || type === 'popup_closed')) {
+            launcher.openExternal?.(window.location.href);
+          }
+          const msg = launcher && (type === 'popup_failed_to_open' || type === 'popup_closed')
+            ? 'Google bloqueó la autorización dentro del launcher. Abrí esta misma sección en tu navegador para vincular Drive mientras preparamos el flujo nativo.'
+            : type === 'popup_closed'
             ? 'Google cerró la ventana antes de entregar permisos. Si estás en el preview, abre la app en pestaña propia o publicada e inténtalo otra vez.'
             : type === 'popup_failed_to_open'
               ? 'El navegador bloqueó el popup de Google. Permite popups para este sitio e intenta de nuevo.'
