@@ -19,6 +19,7 @@ import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
 import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { useNativeSession } from "@/contexts/NativeSessionContext";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -120,6 +121,7 @@ export default function BibliotecaPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  const { launchNativeSession } = useNativeSession();
   const location = useLocation();
   const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
   
@@ -526,11 +528,17 @@ const handlePlayCloudGame = async (game: any) => {
 
       const accessToken = await requestGoogleToken();
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
-      await bridge.openDriveRomNative({
+      const romPath = await bridge.openDriveRomNative({
         consoleId: game.console,
         fileId: game.id,
         fileName: game.fileName || game.originalName || game.name,
         accessToken,
+      });
+      launchNativeSession({
+        consoleName: game.console,
+        gameName: game.name,
+        engineName: status.engine_name || "Emulador nativo",
+        romPath,
       });
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando con ${game.name}.` });
     } catch (error: any) {

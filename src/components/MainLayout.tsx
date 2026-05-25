@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
+import NativeGameBubble from "@/components/NativeGameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import FloatingChat from "@/components/FloatingChat";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
@@ -272,6 +273,7 @@ export default function MainLayout() {
 
       <NavigationButtons />
       <GameBubble />
+      <NativeGameBubble />
       <FloatingChat />
       {/* 🎵 ChillMusicPlayer: instancia ÚNICA siempre montada. Se portalea al slot activo
           (desktop / mobile / emulador) sin remontar — evita audio duplicado. */}

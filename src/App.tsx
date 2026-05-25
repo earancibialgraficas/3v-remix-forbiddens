@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { GameBubbleProvider } from "@/contexts/GameBubbleContext";
+import { NativeSessionProvider } from "@/contexts/NativeSessionContext";
 import MainLayout from "@/components/MainLayout";
 import Index from "./pages/Index";
 import ForumPage from "./pages/ForumPage";
@@ -65,6 +66,7 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <GameBubbleProvider>
+          <NativeSessionProvider>
             
             {/* 🔥 EL VIGILANTE SILENCIOSO DE LOS ANUNCIOS 🔥 
                 Al estar aquí adentro, ya puede usar el useAuth() para saber si el usuario es Premium */}
@@ -125,6 +127,7 @@ const App = () => {
               </Routes>
               </UpgradeProvider>
             </BrowserRouter>
+          </NativeSessionProvider>
           </GameBubbleProvider>
         </AuthProvider>
       </TooltipProvider>

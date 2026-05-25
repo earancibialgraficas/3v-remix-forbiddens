@@ -8,6 +8,7 @@ import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
 import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { useNativeSession } from "@/contexts/NativeSessionContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -237,6 +238,7 @@ export default function EmulatorPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
+  const { launchNativeSession } = useNativeSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
@@ -453,6 +455,12 @@ export default function EmulatorPage() {
       const romPath = await bridge.pickNativeRom(currentSystem.id);
       if (!romPath) return;
       await bridge.openNativeEmulator(currentSystem.id, romPath);
+      launchNativeSession({
+        consoleName: currentSystem.id,
+        gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name,
+        engineName: status?.engine_name || currentSystem.core || "Emulador nativo",
+        romPath,
+      });
       toast({ title: "Abriendo emulador nativo", description: `${status?.engine_name || currentSystem.short} iniciando desde FORBIDDENS Launcher.` });
     } catch (error: any) {
       toast({ title: "Error nativo", description: error?.message || String(error || "No se pudo abrir el emulador nativo."), variant: "destructive" });
