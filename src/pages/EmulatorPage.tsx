@@ -713,6 +713,19 @@ export default function EmulatorPage() {
                     Solo launcher
                   </span>
                 )}
+                {currentSystem.nativeOnly && (
+                  <span
+                    className={cn(
+                      "font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border",
+                      launcherDetected
+                        ? "border-neon-green/60 bg-neon-green/15 text-neon-green shadow-[0_0_15px_rgba(57,255,20,0.35)]"
+                        : "border-red-500/60 bg-red-600/20 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.35)]",
+                    )}
+                    title={launcherDetected ? "FORBIDDENS Launcher detectado" : "Esta pagina no detecta el bridge del launcher"}
+                  >
+                    {launcherDetected ? "Launcher detectado" : "Launcher no detectado"}
+                  </span>
+                )}
                 {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
                   <span
                     className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
