@@ -127,6 +127,7 @@ export default function BibliotecaPage() {
   const [driveGames, setDriveGames] = useState<any[]>([]);
   const [launchingGameId, setLaunchingGameId] = useState<string | null>(null);
   const [nativeBusyGameId, setNativeBusyGameId] = useState<string | null>(null);
+  const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingGame, setEditingGame] = useState<any | null>(null);
   const [editName, setEditName] = useState("");
@@ -169,6 +170,21 @@ export default function BibliotecaPage() {
   }, [selectedConsole, dropdownValue, searchParams, setSearchParams]);
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (launcherDetected) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (getLauncherBridge()) {
+        setLauncherDetected(true);
+        window.clearInterval(timer);
+      } else if (attempts >= 40) {
+        window.clearInterval(timer);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [launcherDetected]);
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
@@ -440,8 +456,8 @@ const handlePlayCloudGame = async (game: any) => {
     }
   };
 
-  const handlePlayCloudGameNative = async (game: any, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handlePlayCloudGameNative = async (game: any, event?: React.MouseEvent) => {
+    event?.stopPropagation();
     const bridge = getLauncherBridge();
     if (!bridge?.nativeEngineStatus || !bridge?.openDriveRomNative) return;
     if (nativeBusyGameId || launchingGameId) return;
@@ -873,7 +889,17 @@ const handlePlayCloudGame = async (game: any) => {
               {currentGames.map((game: any) => (
                 <div
                   key={game.id}
-                  onClick={() => game.isCloud ? handlePlayCloudGame(game) : launchGame({ romUrl: game.romUrl, consoleName: selectedConsole, gameName: game.name, consoleCore: getCoreForConsole(selectedConsole), score: 0, playTime: 0 })}
+                  onClick={(event) => {
+                    if (game.isCloud) {
+                      if (launcherDetected && launcherSupportsNative(game.console)) {
+                        void handlePlayCloudGameNative(game, event);
+                      } else {
+                        void handlePlayCloudGame(game);
+                      }
+                      return;
+                    }
+                    launchGame({ romUrl: game.romUrl, consoleName: selectedConsole, gameName: game.name, consoleCore: getCoreForConsole(selectedConsole), score: 0, playTime: 0 });
+                  }}
                   className="group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer relative"
                 >
                   {game.isCloud && (
@@ -918,7 +944,7 @@ const handlePlayCloudGame = async (game: any) => {
                   <div className="p-1.5 flex items-center gap-1">
                     <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     <p className="text-[10px] font-body text-foreground truncate">{game.name}</p>
-                    {game.isCloud && launcherSupportsNative(game.console) && (
+                    {game.isCloud && launcherDetected && launcherSupportsNative(game.console) && (
                       <button
                         type="button"
                         onClick={(event) => handlePlayCloudGameNative(game, event)}

@@ -10,8 +10,22 @@ export default function LauncherUpdateButton() {
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    const bridge = getLauncherBridge();
-    setVisible(Boolean(bridge?.checkUpdate));
+    const syncVisibility = () => {
+      const bridge = getLauncherBridge();
+      if (bridge?.checkUpdate) {
+        setVisible(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (syncVisibility()) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (syncVisibility() || attempts >= 40) window.clearInterval(timer);
+    }, 250);
+    return () => window.clearInterval(timer);
   }, []);
 
   const checkUpdate = async () => {

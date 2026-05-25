@@ -283,6 +283,7 @@ export default function EmulatorPage() {
   const [ps2Copied, setPs2Copied] = useState(false);
   const [nativeStatus, setNativeStatus] = useState<NativeEngineStatus | null>(null);
   const [nativeBusy, setNativeBusy] = useState(false);
+  const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -331,11 +332,26 @@ export default function EmulatorPage() {
   }, [effectiveTz]);
 
   const currentSystem = systems[currentIndex];
-  const canUseNativeCurrent = launcherSupportsNative(currentSystem.id);
+  const canUseNativeCurrent = launcherDetected && launcherSupportsNative(currentSystem.id);
+
+  useEffect(() => {
+    if (launcherDetected) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (getLauncherBridge()) {
+        setLauncherDetected(true);
+        window.clearInterval(timer);
+      } else if (attempts >= 40) {
+        window.clearInterval(timer);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [launcherDetected]);
 
   const refreshNativeStatus = async () => {
     const bridge = getLauncherBridge();
-    if (!bridge?.nativeEngineStatus || !launcherSupportsNative(currentSystem.id)) {
+    if (!bridge?.nativeEngineStatus || !canUseNativeCurrent) {
       setNativeStatus(null);
       return null;
     }
@@ -346,7 +362,7 @@ export default function EmulatorPage() {
 
   useEffect(() => {
     void refreshNativeStatus().catch(() => setNativeStatus(null));
-  }, [currentSystem.id]);
+  }, [currentSystem.id, launcherDetected]);
 
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
@@ -458,7 +474,7 @@ export default function EmulatorPage() {
   };
 
   function openRomPicker() {
-    if (canUseNativeCurrent && nativeStatus?.installed) {
+    if (canUseNativeCurrent) {
       void openNativeRomPicker();
       return;
     }

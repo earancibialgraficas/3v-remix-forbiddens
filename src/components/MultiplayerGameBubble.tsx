@@ -198,7 +198,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
   const externalGameBaseUrl = (game?.externalUrl || "").trim().replace(/\/+$/, "");
   const isExternalGame = Boolean(game?.externalUrl);
   const activeGameId = game?.id || "";
-  const isWagerGame = Boolean(game?.wagerGame || activeGameId.startsWith("casino-"));
+  const isWagerGame = Boolean(game?.wagerGame || activeGameId.startsWith("casino-") || activeGameId.includes("-bet"));
   const rewardGameSlug = game?.rewardSlug || (game?.id === "agar-server" ? "agar" : activeGameId);
   const activeSessionRoomCode = isAgar ? normalizeAgarRoomCode(roomCode) : roomCode;
   const localDisplayName = profile?.display_name || user?.user_metadata?.username || "Jugador";

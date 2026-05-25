@@ -132,7 +132,15 @@
       });
     };
 
+    const isBetStatsGame = (gameSlug) => {
+      const slug = String(gameSlug || options.game || "").toLowerCase();
+      return slug.startsWith("casino-") || slug.includes("-bet");
+    };
+
     const awardWin = async (gameSlug, points = 25) => {
+      if (isBetStatsGame(gameSlug)) {
+        return { awarded: 0, reason: "bet_stats_blocked" };
+      }
       const userId = profile.userId;
       if (!userId) return { awarded: 0, reason: "anonymous" };
       const safePoints = Math.max(0, Math.floor(Number(points) || 0));

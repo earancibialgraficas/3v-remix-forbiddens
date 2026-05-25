@@ -4,6 +4,7 @@ import { Globe, Sparkles, Hammer, Crown, Ticket, Volume2, X, Loader2 } from "luc
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PriceByCountry {
@@ -165,6 +166,7 @@ export default function MembershipsPage() {
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [pendingPurchaseTier, setPendingPurchaseTier] = useState<any | null>(null);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
+  const { toast } = useToast();
   
   const isUnderMaintenance = false;
 
@@ -245,11 +247,27 @@ export default function MembershipsPage() {
   const openPurchaseInfo = (tier: any) => {
     if (processingTier) return;
     if (!user) {
+      toast({
+        title: "Inicia sesion",
+        description: "Debes iniciar sesion para adquirir una membresia.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!user) {
       alert("Debes iniciar sesiÃ³n para adquirir una membresÃ­a.");
       return;
     }
 
     const validation = checkRequirements(tier.name);
+    if (!validation.canBuy) {
+      toast({
+        title: "Requisitos pendientes",
+        description: validation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
     if (!validation.canBuy) {
       alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
       return;
@@ -267,11 +285,27 @@ export default function MembershipsPage() {
   const handleCheckout = async (tierName: string, basePrice: number) => {
     if (processingTier) return;
     if (!user) {
+      toast({
+        title: "Inicia sesion",
+        description: "Debes iniciar sesion para adquirir una membresia.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!user) {
       alert("Debes iniciar sesión para adquirir una membresía.");
       return;
     }
 
     const validation = checkRequirements(tierName);
+    if (!validation.canBuy) {
+      toast({
+        title: "Requisitos pendientes",
+        description: validation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
     if (!validation.canBuy) {
       alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
       return;
@@ -280,6 +314,8 @@ export default function MembershipsPage() {
     try {
       setProcessingTier(tierName);
       setPendingPurchaseTier(null);
+      const selectedTier = tiers.find((tier) => tier.name.toLowerCase() === tierName.toLowerCase());
+      const fallbackCheckoutUrl = selectedTier?.checkoutUrl || null;
       const calculatedPrice = Math.round(basePrice * pricing.multiplier);
       const rangoFormateado = tierName.toLowerCase();
       const { data: checkoutSession, error: checkoutError } = await (supabase as any).rpc("create_membership_checkout_session", {
@@ -322,22 +358,42 @@ export default function MembershipsPage() {
 
       let data: any = {};
       try {
-        data = rawResponse ? JSON.parse(rawResponse) : {};
+        data = rawResponse.trim() ? JSON.parse(rawResponse) : {};
       } catch {
-        throw new Error(`Make no devolvio JSON valido: ${rawResponse.slice(0, 220)}`);
+        if (fallbackCheckoutUrl) {
+          console.warn("Make no devolvio JSON valido, usando checkout directo:", rawResponse);
+          toast({
+            title: "Abriendo checkout",
+            description: "La pasarela confirmo la solicitud. Te llevamos al pago seguro.",
+          });
+          window.location.href = fallbackCheckoutUrl;
+          return;
+        }
+        throw new Error("La pasarela recibio la solicitud, pero no entrego el link de pago. Intenta otra vez en unos segundos.");
       }
       
       // Si Make nos devuelve el link, enviamos al usuario
       const paymentUrl = data?.init_point || data?.sandbox_init_point || data?.payment_url || data?.url;
       if (paymentUrl) {
         window.location.href = paymentUrl;
+      } else if (fallbackCheckoutUrl) {
+        console.warn("Make no devolvio init_point, usando checkout directo:", rawResponse);
+        toast({
+          title: "Abriendo checkout",
+          description: "Te llevamos al pago seguro de esta membresia.",
+        });
+        window.location.href = fallbackCheckoutUrl;
       } else {
-        throw new Error(`Make no devolvio init_point. Respuesta: ${rawResponse.slice(0, 220)}`);
+        throw new Error("La pasarela no entrego el link de pago. Intenta otra vez en unos segundos.");
       }
     } catch (error) {
       console.error("Error en checkout:", error);
       const message = error instanceof Error ? error.message : "Error desconocido";
-      alert(`No se pudo generar el pago: ${message}`);
+      toast({
+        title: "No se pudo generar el pago",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setProcessingTier(null);
     }
