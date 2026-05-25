@@ -18,7 +18,7 @@ import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
-import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -127,6 +127,8 @@ export default function BibliotecaPage() {
   const [driveGames, setDriveGames] = useState<any[]>([]);
   const [launchingGameId, setLaunchingGameId] = useState<string | null>(null);
   const [nativeBusyGameId, setNativeBusyGameId] = useState<string | null>(null);
+  const [selectedNativeStatus, setSelectedNativeStatus] = useState<NativeEngineStatus | null>(null);
+  const [selectedNativeBusy, setSelectedNativeBusy] = useState(false);
   const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingGame, setEditingGame] = useState<any | null>(null);
@@ -185,6 +187,47 @@ export default function BibliotecaPage() {
     }, 250);
     return () => window.clearInterval(timer);
   }, [launcherDetected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const bridge = getLauncherBridge();
+      if (!launcherDetected || !launcherSupportsNative(selectedConsole) || !bridge?.nativeEngineStatus) {
+        setSelectedNativeStatus(null);
+        return;
+      }
+      try {
+        const status = await bridge.nativeEngineStatus(selectedConsole);
+        if (!cancelled) setSelectedNativeStatus(status);
+      } catch {
+        if (!cancelled) setSelectedNativeStatus(null);
+      }
+    };
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [launcherDetected, selectedConsole]);
+
+  const installSelectedNativeEngine = async (event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const bridge = getLauncherBridge();
+    if (!bridge?.installNativeEngine) return;
+    setSelectedNativeBusy(true);
+    try {
+      const status = await bridge.installNativeEngine(selectedConsole);
+      setSelectedNativeStatus(status);
+      toast({ title: "Emulador instalado", description: `${status.engine_name} quedo listo para ${selectedConsole.toUpperCase()}.` });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo instalar",
+        description: formatLauncherBridgeError(error, "No se pudo preparar el emulador nativo."),
+        variant: "destructive",
+      });
+    } finally {
+      setSelectedNativeBusy(false);
+    }
+  };
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
@@ -894,10 +937,22 @@ const handlePlayCloudGame = async (game: any) => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              {currentGames.map((game: any) => (
+              {currentGames.map((game: any) => {
+                const needsNativeInstall = Boolean(
+                  game.isCloud &&
+                  launcherDetected &&
+                  launcherSupportsNative(game.console) &&
+                  selectedNativeStatus &&
+                  !selectedNativeStatus.installed
+                );
+                return (
                 <div
                   key={game.id}
                   onClick={(event) => {
+                    if (needsNativeInstall) {
+                      void installSelectedNativeEngine(event);
+                      return;
+                    }
                     if (game.isCloud) {
                       if (launcherDetected && launcherSupportsNative(game.console)) {
                         void handlePlayCloudGameNative(game, event);
@@ -948,6 +1003,19 @@ const handlePlayCloudGame = async (game: any) => {
                         </span>
                       </div>
                     )}
+                    {needsNativeInstall && (
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/72 px-3 text-center backdrop-blur-[2px]">
+                        <Cpu className="h-6 w-6 text-neon-cyan drop-shadow-[0_0_10px_rgba(34,211,238,0.75)]" />
+                        <button
+                          type="button"
+                          onClick={installSelectedNativeEngine}
+                          disabled={selectedNativeBusy}
+                          className="rounded border border-neon-cyan/40 bg-neon-cyan/15 px-3 py-2 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan transition-colors hover:bg-neon-cyan/25 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus?.engine_name || "emulador"}`}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="p-1.5 flex items-center gap-1">
                     <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
@@ -966,7 +1034,8 @@ const handlePlayCloudGame = async (game: any) => {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { stripHtmlToText } from "@/lib/htmlContent";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import PublicProfileMusicPlayer from "@/components/PublicProfileMusicPlayer";
 
 interface PublicProfile {
   user_id: string;
@@ -386,6 +387,8 @@ export default function PublicProfilePage() {
           </div>
         </div>
       </div>
+
+      <PublicProfileMusicPlayer userId={profile.user_id} displayName={profile.display_name} />
 
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>

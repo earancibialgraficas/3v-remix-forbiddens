@@ -705,25 +705,12 @@ export default function EmulatorPage() {
                     Experimental
                   </span>
                 )}
-                {currentSystem.nativeOnly && (
+                {currentSystem.nativeOnly && !launcherDetected && (
                   <span
                     className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
                     title="Esta consola usa emulador nativo desde FORBIDDENS Launcher"
                   >
                     Solo launcher
-                  </span>
-                )}
-                {currentSystem.nativeOnly && (
-                  <span
-                    className={cn(
-                      "font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border",
-                      launcherDetected
-                        ? "border-neon-green/60 bg-neon-green/15 text-neon-green shadow-[0_0_15px_rgba(57,255,20,0.35)]"
-                        : "border-red-500/60 bg-red-600/20 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.35)]",
-                    )}
-                    title={launcherDetected ? "FORBIDDENS Launcher detectado" : "Esta pagina no detecta el bridge del launcher"}
-                  >
-                    {launcherDetected ? "Launcher detectado" : "Launcher no detectado"}
                   </span>
                 )}
                 {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
@@ -737,7 +724,7 @@ export default function EmulatorPage() {
               </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
-                {currentSystem.nativeOnly && (
+                {currentSystem.nativeOnly && !launcherDetected && (
                   <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-neon-cyan/90">
                     · Emulador nativo
                   </span>
@@ -883,33 +870,42 @@ export default function EmulatorPage() {
 
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
-               {canUseNativeCurrent && (
+               {canUseNativeCurrent && !nativeStatus?.installed && (
                  <button
-                   onClick={nativeStatus?.installed ? openNativeRomPicker : installCurrentNativeEngine}
+                   onClick={installCurrentNativeEngine}
                    disabled={nativeBusy}
                    className={cn(
                      "mb-2 group relative w-full sm:w-auto px-4 sm:px-6 py-2 bg-neon-cyan/15 hover:bg-neon-cyan/25 border border-neon-cyan/40 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 overflow-hidden shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_30px_rgba(34,211,238,0.28)] active:scale-95",
                      nativeBusy && "cursor-wait opacity-70",
                    )}
                  >
-                   {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" /> : nativeStatus?.installed ? <Cpu className="h-4 w-4 text-neon-cyan" /> : <Download className="h-4 w-4 text-neon-cyan" />}
+                   {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" /> : <Download className="h-4 w-4 text-neon-cyan" />}
                    <span className="font-pixel text-[clamp(0.5rem,1.7vw,0.65rem)] uppercase tracking-widest text-neon-cyan whitespace-nowrap">
-                     {nativeStatus?.installed ? "Abrir ROM nativa" : `Instalar ${nativeStatus?.engine_name || "motor nativo"}`}
+                     {`Instalar ${nativeStatus?.engine_name || "emulador"}`}
                    </span>
                  </button>
                )}
-               <button
-                 onClick={openRomPicker}
-                 className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
-               >
-                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                 <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
-                 <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
-                    {currentSystem.nativeOnly ? "Abrir en launcher" : "Cargar ROM Local"}
-                 </span>
-               </button>
+               {canUseNativeCurrent && nativeStatus?.installed && (
+                 <p className="mb-2 text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">
+                   {nativeStatus.engine_name} instalado
+                 </p>
+               )}
+               {(!canUseNativeCurrent || nativeStatus?.installed) && (
+                 <button
+                   onClick={canUseNativeCurrent ? openNativeRomPicker : openRomPicker}
+                   className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
+                 >
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                   {canUseNativeCurrent ? <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" /> : <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />}
+                   <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
+                      Cargar ROM
+                   </span>
+                 </button>
+               )}
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
-                  {currentSystem.nativeOnly
+                  {canUseNativeCurrent
+                    ? `Formatos: ${currentSystem.extensions}`
+                    : currentSystem.nativeOnly
                     ? (currentSystem.nativeOnlyDescription || "Solo disponible en FORBIDDENS Launcher")
                     : `Formatos: ${currentSystem.extensions}`}
                </p>
@@ -936,8 +932,11 @@ export default function EmulatorPage() {
                <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
-               <button onClick={openRomPicker} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-                  {currentSystem.nativeOnly ? "ABRIR EN LAUNCHER" : "SUBIR JUEGO"}
+               <button
+                 onClick={canUseNativeCurrent && !nativeStatus?.installed ? installCurrentNativeEngine : (canUseNativeCurrent ? openNativeRomPicker : openRomPicker)}
+                 className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+               >
+                  {canUseNativeCurrent && !nativeStatus?.installed ? "INSTALAR EMULADOR" : "CARGAR ROM"}
                </button>
                <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

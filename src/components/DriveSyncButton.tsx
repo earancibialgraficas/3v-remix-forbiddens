@@ -10,6 +10,7 @@ import { getLauncherBridge } from '@/lib/launcherBridge';
 
 const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
 const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
+const DRIVE_SYNC_OAUTH_STATE_KEY = 'drive_sync_oauth_external_state';
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -125,6 +126,33 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }
 
     sessionStorage.removeItem(DRIVE_SYNC_RELOAD_KEY);
+
+    const launcher = getLauncherBridge();
+    if (launcher?.openExternal) {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        toast({ title: 'Google no configurado', description: 'Falta VITE_GOOGLE_CLIENT_ID.', variant: 'destructive' });
+        return;
+      }
+      const state = crypto.randomUUID();
+      localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
+      const redirectUri = `${window.location.origin}${window.location.pathname}`;
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: 'token',
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        include_granted_scopes: 'true',
+        prompt: 'consent select_account',
+        state,
+      });
+      void launcher.openExternal(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+      toast({
+        title: 'Autoriza Google en tu navegador',
+        description: 'Se abrió Google fuera del launcher. Al volver a FORBIDDENS se sincronizará tu Drive.',
+      });
+      return;
+    }
 
     const google = (window as any).google;
     if (!isGoogleLoaded || !google) {
@@ -327,6 +355,29 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       setIsSyncing(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || isSyncing) return;
+    const hash = window.location.hash?.startsWith("#") ? window.location.hash.slice(1) : "";
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token = params.get("access_token");
+    const state = params.get("state");
+    const expectedState = localStorage.getItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+    if (!token || !state || state !== expectedState) return;
+
+    localStorage.removeItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    const expiresIn = Number(params.get("expires_in") || 3300);
+    const ttlMs = Math.max(60_000, expiresIn * 1000 - 60_000);
+    localStorage.setItem("drive_access_token", token);
+    localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
+    sessionStorage.setItem("drive_access_token", token);
+    sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    setIsSyncing(true);
+    void fetchAndSaveRoms(token);
+  }, [user, isSyncing]);
 
   useEffect(() => {
     if (!user || isLoadingState || isSyncing || !isGoogleLoaded) return;
