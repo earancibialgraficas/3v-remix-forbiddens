@@ -211,13 +211,65 @@ fn check_update_on_start(app: AppHandle) {
 }
 
 fn native_engine_configs() -> Vec<NativeEngineConfig> {
+    const PCSX2_PACKAGE_URLS: &[&str] = &[
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "pcsx2-v2.6.3-windows-x64-Qt.zip.part001.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "pcsx2-v2.6.3-windows-x64-Qt.zip.part002.zip"
+        ),
+    ];
+    const DUCKSTATION_PACKAGE_URLS: &[&str] = &[
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "duckstation-windows-x64-release.zip.part001.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "duckstation-windows-x64-release.zip.part002.zip"
+        ),
+    ];
+    const RETROARCH_PACKAGE_URLS: &[&str] = &[
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part001.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part002.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part003.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part004.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part005.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part006.zip"
+        ),
+        concat!(
+            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+            "RetroArch.zip.part007.zip"
+        ),
+    ];
+
     vec![
         NativeEngineConfig {
             console_id: "psp",
             engine_name: "PPSSPP",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/ppsspp_win.zip",
-            ],
+            package_urls: &[concat!(
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+                "ppsspp_win.zip"
+            )],
             package_file_name: "ppsspp_win.zip",
             executable_rel: "PPSSPPWindows64.exe",
             download_page: "https://www.ppsspp.org/download/",
@@ -225,20 +277,15 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
         NativeEngineConfig {
             console_id: "ps2",
             engine_name: "PCSX2",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/pcsx2-v2.6.3-windows-x64-Qt.7z",
-            ],
-            package_file_name: "pcsx2-v2.6.3-windows-x64-Qt.7z",
+            package_urls: PCSX2_PACKAGE_URLS,
+            package_file_name: "pcsx2-v2.6.3-windows-x64-Qt.zip",
             executable_rel: "pcsx2-qt.exe",
             download_page: "https://pcsx2.net/downloads/",
         },
         NativeEngineConfig {
             console_id: "ps1",
             engine_name: "DuckStation",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/duckstation-windows-x64-release.zip.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/duckstation-windows-x64-release.zip.002",
-            ],
+            package_urls: DUCKSTATION_PACKAGE_URLS,
             package_file_name: "duckstation-windows-x64-release.zip",
             executable_rel: "duckstation-qt-x64-ReleaseLTCG.exe",
             download_page: "https://www.duckstation.org/",
@@ -246,9 +293,10 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
         NativeEngineConfig {
             console_id: "ds",
             engine_name: "melonDS",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/melonDS_0.9.5_win_x64.zip",
-            ],
+            package_urls: &[concat!(
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+                "melonDS_0.9.5_win_x64.zip"
+            )],
             package_file_name: "melonDS_0.9.5_win_x64.zip",
             executable_rel: "melonDS.exe",
             download_page: "https://melonds.kuribo64.net/downloads.php",
@@ -256,98 +304,56 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
         NativeEngineConfig {
             console_id: "nes",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "snes",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "gba",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "gbc",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "sega",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "n64",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "arcade",
             engine_name: "RetroArch",
-            package_urls: &[
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
-            ],
-            package_file_name: "RetroArch.7z",
+            package_urls: RETROARCH_PACKAGE_URLS,
+            package_file_name: "RetroArch.zip",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
