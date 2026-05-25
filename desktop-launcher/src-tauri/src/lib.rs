@@ -72,6 +72,17 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     });
   };
 
+  var isGoogleAuthUrl = function (url) {
+    if (!url) return false;
+    try {
+      var parsed = new URL(String(url), window.location.href);
+      return /(^|\.)accounts\.google\.com$/.test(parsed.hostname) ||
+        /(^|\.)googleusercontent\.com$/.test(parsed.hostname);
+    } catch (_) {
+      return String(url || "").indexOf("accounts.google.com") !== -1;
+    }
+  };
+
   window.forbiddensLauncher = Object.assign({}, window.forbiddensLauncher || {}, {
     openExternal: openExternal,
     launcherInfo: function () { return invoke("launcher_info"); },
@@ -93,6 +104,9 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
   window.open = function (url, target, features) {
     var targetName = String(target || "_blank").toLowerCase();
     if (targetName === "_blank" || targetName === "blank" || !target) {
+      if (nativeOpen && (!url || isGoogleAuthUrl(url))) {
+        return nativeOpen(url || "about:blank", target || "_blank", features);
+      }
       var proxy = {
         closed: false,
         focus: function () {},
@@ -104,18 +118,30 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
         location: {
           replace: function (nextUrl) {
             proxy.closed = true;
-            openExternal(nextUrl);
+            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
+              nativeOpen(nextUrl, target || "_blank", features);
+            } else {
+              openExternal(nextUrl);
+            }
           },
           assign: function (nextUrl) {
             proxy.closed = true;
-            openExternal(nextUrl);
+            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
+              nativeOpen(nextUrl, target || "_blank", features);
+            } else {
+              openExternal(nextUrl);
+            }
           }
         }
       };
       Object.defineProperty(proxy.location, "href", {
         set: function (nextUrl) {
           proxy.closed = true;
-          openExternal(nextUrl);
+          if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
+            nativeOpen(nextUrl, target || "_blank", features);
+          } else {
+            openExternal(nextUrl);
+          }
         }
       });
       if (url) {

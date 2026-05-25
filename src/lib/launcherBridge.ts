@@ -11,6 +11,7 @@ export interface NativeEngineStatus {
 }
 
 type LauncherBridge = {
+  openExternal?: (url: string) => Promise<boolean>;
   checkUpdate?: () => Promise<string>;
   restartLauncher?: () => Promise<void>;
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;

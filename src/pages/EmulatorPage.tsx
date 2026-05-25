@@ -477,15 +477,25 @@ export default function EmulatorPage() {
     if (blockIfLocked(currentSystem.id)) return;
 
     if (currentSystem.id === "psp") {
-      openPspStandalonePicker();
+      void openPspStandalonePicker();
       return;
     }
 
     fileInputRef.current?.click();
   }
 
-  const openPspStandalonePicker = () => {
+  const openPspStandalonePicker = async () => {
     const pspUrl = "/psp-standalone.html?pick=1&speed=max";
+    const bridge = getLauncherBridge();
+    if (bridge?.openExternal) {
+      try {
+        const opened = await bridge.openExternal(pspUrl);
+        if (opened) return;
+      } catch (error) {
+        console.warn("[PSP] No se pudo abrir desde el launcher", error);
+      }
+    }
+
     const pspWindow = window.open(pspUrl, "_blank", "popup=yes,width=1440,height=860");
     if (pspWindow && !pspWindow.closed) {
       pspWindow.focus();
@@ -511,7 +521,7 @@ export default function EmulatorPage() {
       return;
     }
     if (currentSystem.id === "psp") {
-      openPspStandalonePicker();
+      void openPspStandalonePicker();
       return;
     }
 
