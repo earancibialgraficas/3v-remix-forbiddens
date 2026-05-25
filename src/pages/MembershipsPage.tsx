@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
 import { Globe, Sparkles, Hammer, Crown, Ticket, Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -168,6 +169,7 @@ export default function MembershipsPage() {
   const [membershipNotice, setMembershipNotice] = useState<{ title: string; description: string; tone?: "default" | "destructive" } | null>(null);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   const { toast } = useToast();
+  const modalRoot = typeof document !== "undefined" ? document.body : null;
   
   const isUnderMaintenance = false;
 
@@ -370,10 +372,10 @@ export default function MembershipsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
-      {membershipNotice && (
-        <div className="fixed inset-0 z-[720] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+      {modalRoot && membershipNotice && createPortal((
+        <div className="fixed inset-0 z-[720] bg-black/80 p-4 backdrop-blur-sm">
           <div className={cn(
-            "relative w-full max-w-md overflow-hidden rounded-xl border-2 bg-[#101018] p-5 text-center shadow-2xl",
+            "absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border-2 bg-[#101018] p-5 text-center shadow-2xl",
             membershipNotice.tone === "destructive"
               ? "border-destructive/60 shadow-destructive/20"
               : "border-neon-cyan/50 shadow-neon-cyan/20",
@@ -411,10 +413,10 @@ export default function MembershipsPage() {
             </Button>
           </div>
         </div>
-      )}
-      {pendingPurchaseTier && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[#101018] p-5 shadow-2xl shadow-neon-cyan/20">
+      ), modalRoot)}
+      {modalRoot && pendingPurchaseTier && createPortal((
+        <div className="fixed inset-0 z-[700] bg-black/80 p-4 backdrop-blur-sm">
+          <div className="absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[#101018] p-5 shadow-2xl shadow-neon-cyan/20">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-yellow" />
             <button onClick={closePurchaseInfo} className="absolute right-3 top-3 rounded border border-border bg-black/30 p-1.5 text-muted-foreground hover:text-white">
               <X className="h-4 w-4" />
@@ -446,7 +448,7 @@ export default function MembershipsPage() {
             </div>
           </div>
         </div>
-      )}
+      ), modalRoot)}
       
       {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">
