@@ -184,30 +184,32 @@ const systems = [
     glow: "rgba(34,211,238,0.7)", year: "2004"
   },
   {
-    // 🆕 PSP — EmulatorJS ppsspp core
+    // PSP queda reservado para el launcher nativo.
     id: "psp", name: "PlayStation Portable", short: "PSP", core: "ppsspp", extensions: ".iso,.cso,.pbp,.chd",
     bg: "https://image.pollinations.ai/prompt/psp%20playstation%20portable%20handheld%20console%20neon%20cyberpunk?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/PSP.png",
     glow: "rgba(96,165,250,0.7)", year: "2004",
-    compatGames: PSP_WEB_COMPATIBILITY,
-    compatSource: "FORBIDDENS web",
-    compatDescription: "Guia inicial para PPSSPP dentro del navegador. El tracker oficial de PPSSPP no garantiza buen rendimiento en WebAssembly.",
+    nativeOnly: true,
+    nativeOnlyDescription: "Disponible solo en FORBIDDENS Launcher con PPSSPP nativo.",
   },
   {
-    // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
-    id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
+    // PS2 queda reservado para el launcher nativo.
+    id: "ps2", name: "PlayStation 2", short: "PS2", core: "PCSX2 nativo", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
     bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/PlayStation 2.png",
     glow: "rgba(96,165,250,0.7)", year: "2000",
-    experimental: true,
+    nativeOnly: true,
+    nativeOnlyDescription: "Disponible solo en FORBIDDENS Launcher con PCSX2 nativo.",
     compatGames: PS2_COMPATIBLE_GAMES,
     compatSource: "tracker oficial",
-    compatDescription: "Estos titulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar segun tu navegador y hardware.",
+    compatDescription: "Estos titulos se han reportado con buena compatibilidad general. El rendimiento depende del PC.",
   }
 ] as Array<{
   id: string; name: string; short: string; core: string; extensions: string;
   bg: string; consoleImg: string; glow: string; year: string;
   experimental?: boolean;
+  nativeOnly?: boolean;
+  nativeOnlyDescription?: string;
   compatGames?: CompatGame[];
   compatSource?: string;
   compatDescription?: string;
@@ -479,8 +481,12 @@ export default function EmulatorPage() {
       return;
     }
 
-    if (currentSystem.id === "ps2") {
-      launchPs2();
+    if (currentSystem.nativeOnly) {
+      toast({
+        title: "Solo disponible en launcher",
+        description: `${currentSystem.short} usa emulador nativo. Abre FORBIDDENS Launcher para instalarlo y cargar tus ROMs.`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -491,11 +497,6 @@ export default function EmulatorPage() {
     }
 
     if (blockIfLocked(currentSystem.id)) return;
-
-    if (currentSystem.id === "psp") {
-      void openPspStandalonePicker();
-      return;
-    }
 
     fileInputRef.current?.click();
   }
@@ -536,8 +537,13 @@ export default function EmulatorPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    if (currentSystem.id === "psp") {
-      void openPspStandalonePicker();
+    if (currentSystem.nativeOnly) {
+      toast({
+        title: "Solo disponible en launcher",
+        description: `${currentSystem.short} usa emulador nativo. Abre FORBIDDENS Launcher para cargar esta ROM.`,
+        variant: "destructive",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -702,6 +708,14 @@ export default function EmulatorPage() {
                     Experimental
                   </span>
                 )}
+                {currentSystem.nativeOnly && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    title="Esta consola usa emulador nativo desde FORBIDDENS Launcher"
+                  >
+                    Solo launcher
+                  </span>
+                )}
                 {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
                   <span
                     className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
@@ -713,9 +727,9 @@ export default function EmulatorPage() {
               </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
-                {currentSystem.id === "ps2" && (
-                  <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-red-400/90">
-                    · Solo computadores
+                {currentSystem.nativeOnly && (
+                  <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-neon-cyan/90">
+                    · Emulador nativo
                   </span>
                 )}
               </p>
@@ -730,7 +744,7 @@ export default function EmulatorPage() {
                          title="Ver juegos compatibles"
                        >
                          <ListChecks className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          <span>{currentSystem.id === "psp" ? "Guia PSP web" : "Juegos compatibles"} ({currentSystem.compatGames.length})</span>
+                          <span>Juegos compatibles ({currentSystem.compatGames.length})</span>
                        </button>
                      </DropdownMenuTrigger>
                      <DropdownMenuContent
@@ -739,17 +753,12 @@ export default function EmulatorPage() {
                        className="w-72 sm:w-80 max-h-80 overflow-y-auto bg-black/95 border-neon-cyan/30 text-white backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.25)]"
                      >
                        <DropdownMenuLabel className="font-pixel text-[10px] tracking-widest text-neon-cyan flex items-center justify-between">
-                          <span>{currentSystem.id === "psp" ? "PSP en navegador" : "Compatibles"}</span>
+                          <span>Compatibles</span>
                           <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: {currentSystem.compatSource || "tracker"}</span>
                        </DropdownMenuLabel>
-                        <div className={cn("px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug", currentSystem.id === "psp" && "hidden")}>
-                         Estos títulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar según tu navegador y hardware.
-                       </div>
-                        {currentSystem.id === "psp" && (
-                          <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
-                            {currentSystem.compatDescription}
-                          </div>
-                        )}
+                         <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                          {currentSystem.compatDescription || "La compatibilidad puede variar segun tu hardware."}
+                        </div>
                         <DropdownMenuSeparator className="bg-white/10" />
                        {currentSystem.compatGames.map((g) => (
                          <DropdownMenuItem
@@ -886,13 +895,13 @@ export default function EmulatorPage() {
                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
                  <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
                  <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
-                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : "Cargar ROM Local"}
+                    {currentSystem.nativeOnly ? "Abrir en launcher" : "Cargar ROM Local"}
                  </span>
                </button>
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
-                 {currentSystem.id === "ps2"
-                   ? "Solo PC · Sube tu ISO desde la UI del emulador (no se requiere BIOS)"
-                   : `Formatos: ${currentSystem.extensions}`}
+                  {currentSystem.nativeOnly
+                    ? (currentSystem.nativeOnlyDescription || "Solo disponible en FORBIDDENS Launcher")
+                    : `Formatos: ${currentSystem.extensions}`}
                </p>
             </div>
           </div>
@@ -918,7 +927,7 @@ export default function EmulatorPage() {
                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
                <button onClick={openRomPicker} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-                 {currentSystem.id === "ps2" ? "INICIAR PS2" : "SUBIR JUEGO"}
+                  {currentSystem.nativeOnly ? "ABRIR EN LAUNCHER" : "SUBIR JUEGO"}
                </button>
                <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

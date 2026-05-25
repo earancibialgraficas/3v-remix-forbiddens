@@ -388,7 +388,15 @@ export default function BibliotecaPage() {
 
 const handlePlayCloudGame = async (game: any) => {
     // Si ya hay un juego abriéndose, no hacemos nada
-    if (launchingGameId) return; 
+    if (launchingGameId) return;
+    if (game.console === "psp") {
+      toast({
+        title: "Solo disponible en launcher",
+        description: "Los juegos PSP de Drive ahora se abren con PPSSPP nativo desde FORBIDDENS Launcher.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Guardamos la ID del juego específico que clickeó el usuario
     setLaunchingGameId(game.id);
