@@ -56,6 +56,14 @@ export const getLauncherBridge = (): LauncherBridge | null => {
   return ((window as any).forbiddensLauncher || buildBridgeFromTauri()) as LauncherBridge | null;
 };
 
+export const formatLauncherBridgeError = (error: any, fallback: string) => {
+  const message = error?.message || String(error || "");
+  if (/not allowed by ACL/i.test(message)) {
+    return "Tu FORBIDDENS Launcher instalado esta desactualizado o no tiene permisos para esta accion. Instala la version nueva del launcher y vuelve a abrirlo.";
+  }
+  return message || fallback;
+};
+
 export const isForbiddensLauncher = () => Boolean(getLauncherBridge());
 
 export const launcherSupportsNative = (consoleId: string) => {

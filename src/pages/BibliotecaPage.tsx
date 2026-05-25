@@ -18,7 +18,7 @@ import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
-import { getLauncherBridge, launcherSupportsNative } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative } from "@/lib/launcherBridge";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -494,7 +494,7 @@ const handlePlayCloudGame = async (game: any) => {
       console.error(error);
       toast({
         title: "No se pudo abrir en nativo",
-        description: error?.message || String(error || "Hubo un error descargando desde Drive o abriendo el emulador."),
+        description: formatLauncherBridgeError(error, "Hubo un error descargando desde Drive o abriendo el emulador."),
         variant: "destructive",
       });
     } finally {

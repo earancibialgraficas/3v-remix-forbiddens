@@ -7,7 +7,7 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
-import { getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -422,7 +422,7 @@ export default function EmulatorPage() {
     } catch (error: any) {
       toast({
         title: "No se pudo instalar",
-        description: error?.message || String(error || "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
+        description: formatLauncherBridgeError(error, "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
         variant: "destructive",
       });
     } finally {
