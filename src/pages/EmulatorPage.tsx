@@ -25,7 +25,10 @@ import {
 
 // 🎮 PS2 (Play!.js) — juegos con buena compatibilidad reportada en el tracker oficial
 // Fuente: https://github.com/jpd002/Play-Compatibility/issues
-const PS2_COMPATIBLE_GAMES: { name: string; status: "Playable" | "In-Game" | "Menus" }[] = [
+type CompatStatus = "Recommended" | "Playable" | "In-Game" | "Menus" | "Heavy" | "Avoid";
+type CompatGame = { name: string; status: CompatStatus; note?: string };
+
+const PS2_COMPATIBLE_GAMES: CompatGame[] = [
   { name: "Ape Escape 2", status: "Playable" },
   { name: "Ape Escape 3", status: "Playable" },
   { name: "ATV Offroad Fury", status: "Playable" },
@@ -75,6 +78,48 @@ const PS2_COMPATIBLE_GAMES: { name: string; status: "Playable" | "In-Game" | "Me
   { name: "Wallace & Gromit: Project Zoo", status: "Playable" },
   { name: "WWE SmackDown! Here Comes the Pain", status: "Playable" },
 ];
+
+const PSP_WEB_COMPATIBILITY: CompatGame[] = [
+  { name: "Lumines", status: "Recommended", note: "Puzzle ligero, buena primera prueba." },
+  { name: "LocoRoco", status: "Recommended", note: "2D ligero, suele ser mas amable con web." },
+  { name: "Patapon", status: "Recommended", note: "Ritmo/2D, carga grafica baja." },
+  { name: "echochrome", status: "Recommended", note: "Minimalista, ideal para validar rendimiento." },
+  { name: "EXIT", status: "Recommended", note: "2D con exigencia moderada." },
+  { name: "Everyday Shooter", status: "Recommended", note: "Arcade simple." },
+  { name: "Capcom Classics Collection Remixed", status: "Playable", note: "Puede variar por juego incluido." },
+  { name: "Final Fantasy Tactics: The War of the Lions", status: "Playable", note: "RPG tactico, menos exigente que accion 3D." },
+  { name: "Persona 3 Portable", status: "Playable", note: "RPG/visual novel, probar con frameskip." },
+  { name: "Disgaea: Afternoon of Darkness", status: "Playable", note: "Tactico 2D/3D liviano." },
+  { name: "Tactics Ogre: Let Us Cling Together", status: "Playable", note: "Tactico, puede tener bajones." },
+  { name: "Castlevania: The Dracula X Chronicles", status: "Heavy", note: "Puede ir bien solo en PCs/navegadores fuertes." },
+  { name: "Crisis Core: Final Fantasy VII", status: "Heavy", note: "3D exigente, no recomendado para equipos justos." },
+  { name: "Tekken 6", status: "Heavy", note: "Pelea 3D pesada para PPSSPP web." },
+  { name: "Gran Turismo", status: "Heavy", note: "Carreras 3D, suele exigir demasiado." },
+  { name: "Monster Hunter Freedom Unite", status: "Avoid", note: "Muy pesado para navegador." },
+  { name: "Grand Theft Auto: Liberty City Stories", status: "Avoid", note: "Mundo abierto, rendimiento malo esperado." },
+  { name: "Grand Theft Auto: Vice City Stories", status: "Avoid", note: "Mundo abierto, rendimiento malo esperado." },
+  { name: "God of War: Chains of Olympus", status: "Avoid", note: "Uno de los PSP mas pesados." },
+  { name: "God of War: Ghost of Sparta", status: "Avoid", note: "Probado con FPS muy bajos en este setup." },
+  { name: "Dragon Ball Z: Tenkaichi Tag Team", status: "Avoid", note: "Probado: textos rotos, lag e injugable." },
+];
+
+const compatStatusLabel: Record<CompatStatus, string> = {
+  Recommended: "Recomendado",
+  Playable: "Jugable",
+  "In-Game": "In-Game",
+  Menus: "Menus",
+  Heavy: "Pesado",
+  Avoid: "Evitar",
+};
+
+const compatStatusClass = (status: CompatStatus) => cn(
+  "font-pixel text-[8px] uppercase px-1.5 py-0.5 rounded border flex-shrink-0",
+  (status === "Recommended" || status === "Playable") && "bg-neon-green/15 text-neon-green border-neon-green/40",
+  status === "In-Game" && "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/40",
+  status === "Heavy" && "bg-orange-400/15 text-orange-300 border-orange-400/40",
+  status === "Avoid" && "bg-red-500/15 text-red-400 border-red-500/45",
+  status === "Menus" && "bg-white/10 text-white/60 border-white/20",
+);
 
 // 🔥 NOMBRES EXACTOS PARA TU CARPETA /consolasimg/ 🔥
 // Cores REALES de Libretro usados por Nostalgist.js
@@ -142,7 +187,10 @@ const systems = [
     id: "psp", name: "PlayStation Portable", short: "PSP", core: "ppsspp", extensions: ".iso,.cso,.pbp,.chd",
     bg: "https://image.pollinations.ai/prompt/psp%20playstation%20portable%20handheld%20console%20neon%20cyberpunk?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/PSP.png",
-    glow: "rgba(96,165,250,0.7)", year: "2004"
+    glow: "rgba(96,165,250,0.7)", year: "2004",
+    compatGames: PSP_WEB_COMPATIBILITY,
+    compatSource: "FORBIDDENS web",
+    compatDescription: "Guia inicial para PPSSPP dentro del navegador. El tracker oficial de PPSSPP no garantiza buen rendimiento en WebAssembly.",
   },
   {
     // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
@@ -152,12 +200,16 @@ const systems = [
     glow: "rgba(96,165,250,0.7)", year: "2000",
     experimental: true,
     compatGames: PS2_COMPATIBLE_GAMES,
+    compatSource: "tracker oficial",
+    compatDescription: "Estos titulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar segun tu navegador y hardware.",
   }
 ] as Array<{
   id: string; name: string; short: string; core: string; extensions: string;
   bg: string; consoleImg: string; glow: string; year: string;
   experimental?: boolean;
-  compatGames?: { name: string; status: "Playable" | "In-Game" | "Menus" }[];
+  compatGames?: CompatGame[];
+  compatSource?: string;
+  compatDescription?: string;
 }>;
 
 // 🌎 Lista corta de zonas horarias comunes (con Chile primero)
@@ -505,7 +557,6 @@ export default function EmulatorPage() {
                   <div className="px-2 pb-2 text-[10px] text-white/50 font-body">
                     Detectada: <span className="text-neon-cyan">{detectedTz}</span>
                   </div>
-                  <DropdownMenuSeparator className="bg-white/10" />
                   {TIMEZONES.map((tz) => (
                     <DropdownMenuItem
                       key={tz.value}
@@ -578,7 +629,7 @@ export default function EmulatorPage() {
                          title="Ver juegos compatibles"
                        >
                          <ListChecks className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                         <span>Juegos compatibles ({currentSystem.compatGames.length})</span>
+                          <span>{currentSystem.id === "psp" ? "Guia PSP web" : "Juegos compatibles"} ({currentSystem.compatGames.length})</span>
                        </button>
                      </DropdownMenuTrigger>
                      <DropdownMenuContent
@@ -587,29 +638,30 @@ export default function EmulatorPage() {
                        className="w-72 sm:w-80 max-h-80 overflow-y-auto bg-black/95 border-neon-cyan/30 text-white backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.25)]"
                      >
                        <DropdownMenuLabel className="font-pixel text-[10px] tracking-widest text-neon-cyan flex items-center justify-between">
-                         <span>Compatibles</span>
-                         <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: tracker oficial</span>
+                          <span>{currentSystem.id === "psp" ? "PSP en navegador" : "Compatibles"}</span>
+                          <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: {currentSystem.compatSource || "tracker"}</span>
                        </DropdownMenuLabel>
-                       <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                        <div className={cn("px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug", currentSystem.id === "psp" && "hidden")}>
                          Estos títulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar según tu navegador y hardware.
                        </div>
-                       <DropdownMenuSeparator className="bg-white/10" />
+                        {currentSystem.id === "psp" && (
+                          <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                            {currentSystem.compatDescription}
+                          </div>
+                        )}
+                        <DropdownMenuSeparator className="bg-white/10" />
                        {currentSystem.compatGames.map((g) => (
                          <DropdownMenuItem
                            key={g.name}
                            className="font-body text-xs cursor-default focus:bg-white/10 focus:text-white flex items-center justify-between gap-2 normal-case tracking-normal"
                          >
-                           <span className="truncate">{g.name}</span>
-                           <span
-                             className={cn(
-                               "font-pixel text-[8px] uppercase px-1.5 py-0.5 rounded border flex-shrink-0",
-                               g.status === "Playable" && "bg-neon-green/15 text-neon-green border-neon-green/40",
-                               g.status === "In-Game" && "bg-neon-yellow/15 text-neon-yellow border-neon-yellow/40",
-                               g.status === "Menus" && "bg-white/10 text-white/60 border-white/20",
-                             )}
-                           >
-                             {g.status}
-                           </span>
+                            <span className="min-w-0">
+                              <span className="block truncate">{g.name}</span>
+                              {g.note && <span className="mt-0.5 block text-[10px] leading-snug text-white/45">{g.note}</span>}
+                            </span>
+                            <span className={compatStatusClass(g.status)}>
+                              {compatStatusLabel[g.status]}
+                            </span>
                          </DropdownMenuItem>
                        ))}
                      </DropdownMenuContent>

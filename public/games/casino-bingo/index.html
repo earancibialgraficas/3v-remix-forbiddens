@@ -537,13 +537,15 @@
       if (!claimed.line && rows >= 1) return "line";
       return "";
     }
-    function claimLabel(kind){
-      return kind === "full" ? "Casa llena" : kind === "two" ? "Cantar 2 lineas" : "Cantar linea";
+    function claimLabel(kind, count = 1){
+      const suffix = count > 1 ? ` x${count}` : "";
+      return (kind === "full" ? "Casa llena" : kind === "two" ? "Cantar 2 lineas" : "Cantar linea") + suffix;
     }
     function renderCards(){
       cardsData.forEach((cardRows) => knownCardSignatures.add(cardSignature(cardRows)));
       $("cards").innerHTML = cardsData.map((cardRows, cardIndex) => {
         const claimKind = roundActive ? claimKindForCard(cardRows, cardIndex) : "";
+        const claimCount = claimKind ? eligibleClaimCards(claimKind, cardIndex).length : 0;
         const missingText = roundActive ? missingLabelForCard(cardRows, cardIndex) : "100 F";
         return `
         <article class="card">
@@ -551,7 +553,7 @@
             <span>CARTON N.${String(cardNumbers[cardIndex] || cardIndex + 1).padStart(4, "0")}</span>
             <div class="cardHeadRight">
               <span class="missingPrize">${missingText}</span>
-              ${claimKind ? `<button class="claimBtn" data-claim="${claimKind}" data-card="${cardIndex}">${claimLabel(claimKind)}</button>` : ""}
+              ${claimKind ? `<button class="claimBtn" data-claim="${claimKind}" data-card="${cardIndex}">${claimLabel(claimKind, claimCount)}</button>` : ""}
             </div>
           </div>
           <div class="grid">
@@ -726,6 +728,25 @@
     function hasFull(){
       return cardsData.some((cardRows, cardIndex) => cardHasFull(cardRows, cardIndex));
     }
+    function cardMeetsPrize(kind, cardRows, cardIndex, rows = rowCounts()){
+      if (!cardRows) return false;
+      if (kind === "line") return rows[cardIndex] >= 1;
+      if (kind === "two") return rows[cardIndex] >= 2;
+      return cardHasFull(cardRows, cardIndex);
+    }
+    function eligibleClaimCards(kind, preferredCardIndex = -1){
+      const rows = rowCounts();
+      const eligible = cardsData
+        .map((cardRows, cardIndex) => ({ cardRows, cardIndex }))
+        .filter(({ cardRows, cardIndex }) => cardMeetsPrize(kind, cardRows, cardIndex, rows))
+        .map(({ cardIndex }) => cardIndex)
+        .filter((cardIndex) => !myClaimKeys.has(`${kind}:${cardIndex}`));
+      if (preferredCardIndex >= 0) {
+        if (!cardMeetsPrize(kind, cardsData[preferredCardIndex], preferredCardIndex, rows)) return [];
+        if (myClaimKeys.has(`${kind}:${preferredCardIndex}`)) return [];
+      }
+      return eligible;
+    }
     function shoutBingo(){
       try {
         const u = new SpeechSynthesisUtterance("BINGOOO");
@@ -797,30 +818,31 @@
       if (!roundActive) return;
       if (stageVisible()) { log("Espera a que termine el aviso antes de cantar."); return; }
       if (claimWindowKind && !claimOpen()) { log("Espera al temporizador para cantar este premio."); return; }
-      const rows = rowCounts();
-      const ok = cardIndex >= 0
-        ? (kind === "line" ? rows[cardIndex] >= 1 : kind === "two" ? rows[cardIndex] >= 2 : cardHasFull(cardsData[cardIndex], cardIndex))
-        : (kind === "line" ? rows.some((n) => n >= 1) : kind === "two" ? rows.some((n) => n >= 2) : hasFull());
-      if (!ok) { log("Todavia no cumple la jugada."); return; }
-      const claimKey = `${kind}:${cardIndex}`;
       const insideClaimWindow = claimWindowKind === kind && claimOpen();
       const opensPause = !claimed[kind];
-      if (myClaimKeys.has(claimKey)) { log("Ese carton ya canto este premio."); return; }
       if (claimed[kind] && !insideClaimWindow) { log("Ese premio ya fue cantado."); return; }
+      const claimCardIndexes = eligibleClaimCards(kind, cardIndex);
+      if (!claimCardIndexes.length) {
+        log(cardIndex >= 0 ? "Ese carton ya canto este premio o todavia no cumple la jugada." : "Todavia no cumple la jugada.");
+        return;
+      }
       claimed[kind] = true;
-      myClaimKeys.add(claimKey);
+      claimCardIndexes.forEach((idx) => myClaimKeys.add(`${kind}:${idx}`));
       announcePrize(kind);
-      const payout = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
+      const payoutPerCard = kind === "line" ? Math.floor(prizePool * .25) : kind === "two" ? Math.floor(prizePool * .35) : Math.max(0, prizePool - paidPrizes);
+      const payout = payoutPerCard * claimCardIndexes.length;
       paidPrizes += payout;
-      const result = await api.casinoWager(gameSlug(), 0, payout, { mode: roomMode(), kind, cards: cardsData.length, called });
+      const claimCardNumbers = claimCardIndexes.map((idx) => cardNumbers[idx] || idx + 1);
+      const result = await api.casinoWager(gameSlug(), 0, payout, { mode: roomMode(), kind, cards: cardsData.length, called, claimedCards: claimCardNumbers, claimedCardIndexes: claimCardIndexes });
       if (typeof result.wallet_balance === "number") renderWallet(result.wallet_balance);
       publishAward(kind, payout);
       if (opensPause) {
         if (isLeader) schedulePrizePause(kind);
         else log("Premio cantado. Esperando temporizador del dueno de la sala.");
       }
-      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, paidPrizes, nextDrawAt, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt, opensPause });
-      log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} por ${fmt(payout)} F-coin.`);
+      api.send("claim", { name: profile.displayName, userId: profile.userId, playerId: api?.playerId, kind, claimed, phase, payout, payoutPerCard, cardCount: claimCardIndexes.length, claimedCards: claimCardNumbers, paidPrizes, nextDrawAt, claimWindowKind, claimWindowOpensAt, claimWindowEndsAt, opensPause });
+      const cardText = claimCardIndexes.length > 1 ? `${claimCardIndexes.length} cartones` : `carton ${String(claimCardNumbers[0]).padStart(3, "0")}`;
+      log(`${profile.displayName} canto ${kind === "full" ? "casa llena" : kind === "two" ? "2 lineas" : "linea"} con ${cardText} por ${fmt(payout)} F-coin.`);
       renderCards();
     }
     function endRound(local){
@@ -953,7 +975,7 @@
                 if (isLeader) schedulePrizePause(m.payload.kind, true);
                 else renderCards();
               } else renderCards();
-              log(`${m.payload.name} canto premio por ${fmt(m.payload.payout)} F-coin.`);
+              log(`${m.payload.name} canto premio${Number(m.payload.cardCount || 1) > 1 ? ` con ${m.payload.cardCount} cartones` : ""} por ${fmt(m.payload.payout)} F-coin.`);
             }
             if (m.type === "end") endRound(true);
             if (m.type === "card_purchase") {
