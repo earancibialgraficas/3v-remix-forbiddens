@@ -19,7 +19,8 @@ struct LauncherInfo {
 struct NativeEngineConfig {
     console_id: &'static str,
     engine_name: &'static str,
-    package_url: &'static str,
+    package_urls: &'static [&'static str],
+    package_file_name: &'static str,
     executable_rel: &'static str,
     download_page: &'static str,
 }
@@ -75,6 +76,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     openExternal: openExternal,
     launcherInfo: function () { return invoke("launcher_info"); },
     checkUpdate: function () { return invoke("check_launcher_update"); },
+    restartLauncher: function () { return invoke("restart_launcher"); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
@@ -181,6 +183,11 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn restart_launcher(app: AppHandle) {
+    app.restart();
+}
+
 fn check_update_on_start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let Ok(updater) = app.updater() else {
@@ -208,77 +215,139 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
         NativeEngineConfig {
             console_id: "psp",
             engine_name: "PPSSPP",
-            package_url: "https://forbiddens.net/desktop/engines/ppsspp-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/ppsspp_win.zip",
+            ],
+            package_file_name: "ppsspp_win.zip",
             executable_rel: "PPSSPPWindows64.exe",
             download_page: "https://www.ppsspp.org/download/",
         },
         NativeEngineConfig {
             console_id: "ps2",
             engine_name: "PCSX2",
-            package_url: "https://forbiddens.net/desktop/engines/pcsx2-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/pcsx2-v2.6.3-windows-x64-Qt.7z",
+            ],
+            package_file_name: "pcsx2-v2.6.3-windows-x64-Qt.7z",
             executable_rel: "pcsx2-qt.exe",
             download_page: "https://pcsx2.net/downloads/",
         },
         NativeEngineConfig {
             console_id: "ps1",
             engine_name: "DuckStation",
-            package_url: "https://forbiddens.net/desktop/engines/duckstation-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/duckstation-windows-x64-release.zip.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/duckstation-windows-x64-release.zip.002",
+            ],
+            package_file_name: "duckstation-windows-x64-release.zip",
             executable_rel: "duckstation-qt-x64-ReleaseLTCG.exe",
             download_page: "https://www.duckstation.org/",
         },
         NativeEngineConfig {
             console_id: "ds",
             engine_name: "melonDS",
-            package_url: "https://forbiddens.net/desktop/engines/melonds-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/melonDS_0.9.5_win_x64.zip",
+            ],
+            package_file_name: "melonDS_0.9.5_win_x64.zip",
             executable_rel: "melonDS.exe",
             download_page: "https://melonds.kuribo64.net/downloads.php",
         },
         NativeEngineConfig {
             console_id: "nes",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "snes",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "gba",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "gbc",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "sega",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "n64",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
         NativeEngineConfig {
             console_id: "arcade",
             engine_name: "RetroArch",
-            package_url: "https://forbiddens.net/desktop/engines/retroarch-windows-x64.zip",
+            package_urls: &[
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.001",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.002",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.003",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.004",
+                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/RetroArch.7z.005",
+            ],
+            package_file_name: "RetroArch.7z",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -481,11 +550,16 @@ fn native_engine_status(console_id: String) -> NativeEngineStatus {
         console_id: config.console_id.to_string(),
         engine_name: config.engine_name.to_string(),
         native_supported: true,
-        install_supported: !config.package_url.is_empty(),
+        install_supported: !config.package_urls.is_empty(),
         installed: executable_path.is_some(),
         executable_path: executable_path.map(|path| path.to_string_lossy().to_string()),
         install_dir: engine_install_dir(&config).to_string_lossy().to_string(),
-        package_url: config.package_url.to_string(),
+        package_url: config
+            .package_urls
+            .first()
+            .copied()
+            .unwrap_or_default()
+            .to_string(),
         download_page: config.download_page.to_string(),
     }
 }
@@ -507,14 +581,34 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
     let script = "$ErrorActionPreference='Stop'; \
       $ProgressPreference='SilentlyContinue'; \
       New-Item -ItemType Directory -Force -Path $env:FORBIDDENS_ENGINE_ROOT | Out-Null; \
-      $zip = Join-Path $env:FORBIDDENS_ENGINE_ROOT 'engine.zip'; \
-      Invoke-WebRequest -Uri $env:FORBIDDENS_ENGINE_URL -OutFile $zip -UseBasicParsing; \
-      Expand-Archive -LiteralPath $zip -DestinationPath $env:FORBIDDENS_ENGINE_ROOT -Force; \
-      Remove-Item -LiteralPath $zip -Force";
+      $urls = $env:FORBIDDENS_ENGINE_URLS -split \"`n\" | Where-Object { $_.Trim().Length -gt 0 }; \
+      $archive = Join-Path $env:FORBIDDENS_ENGINE_ROOT $env:FORBIDDENS_ENGINE_ARCHIVE; \
+      if ($urls.Count -eq 1) { \
+        Invoke-WebRequest -Uri $urls[0] -OutFile $archive -UseBasicParsing; \
+      } else { \
+        $output = [System.IO.File]::Open($archive, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write); \
+        try { \
+          for ($i = 0; $i -lt $urls.Count; $i++) { \
+            $part = Join-Path $env:FORBIDDENS_ENGINE_ROOT ('part_' + $i.ToString('000')); \
+            Invoke-WebRequest -Uri $urls[$i] -OutFile $part -UseBasicParsing; \
+            $input = [System.IO.File]::OpenRead($part); \
+            try { $input.CopyTo($output) } finally { $input.Close() }; \
+            Remove-Item -LiteralPath $part -Force; \
+          } \
+        } finally { $output.Close() } \
+      }; \
+      $ext = [System.IO.Path]::GetExtension($archive); \
+      if ($ext.ToLowerInvariant() -eq '.zip') { \
+        Expand-Archive -LiteralPath $archive -DestinationPath $env:FORBIDDENS_ENGINE_ROOT -Force; \
+      } else { \
+        tar -xf $archive -C $env:FORBIDDENS_ENGINE_ROOT; \
+      }; \
+      Remove-Item -LiteralPath $archive -Force";
 
     let mut command = powershell_command(script);
     command.env("FORBIDDENS_ENGINE_ROOT", &root);
-    command.env("FORBIDDENS_ENGINE_URL", config.package_url);
+    command.env("FORBIDDENS_ENGINE_URLS", config.package_urls.join("\n"));
+    command.env("FORBIDDENS_ENGINE_ARCHIVE", config.package_file_name);
     run_hidden(command)?;
 
     let status = native_engine_status(normalized);
@@ -680,6 +774,7 @@ pub fn run() {
             launcher_info,
             open_external_url,
             check_launcher_update,
+            restart_launcher,
             native_engine_status,
             install_native_engine,
             pick_native_rom,

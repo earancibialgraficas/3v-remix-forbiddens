@@ -1,6 +1,10 @@
 # FORBIDDENS Launcher updates
 
-El launcher ya tiene el puente de updater instalado, pero queda apagado hasta que generes una llave real.
+El launcher ya tiene el puente de updater instalado.
+
+- Al abrir la app, busca actualizaciones automaticamente y reinicia si instala una.
+- Dentro del website, cuando se abre desde el `.exe`, aparece un boton pequeno en la esquina para buscar updates manualmente.
+- Todo queda apagado hasta que generes una llave real y actives el updater.
 
 ## Primera vez
 
@@ -28,4 +32,3 @@ npm.cmd run desktop:build:installer
 5. Publica `latest.json` en `https://forbiddens.net/desktop/latest.json`.
 
 Puedes usar `updater.latest.example.json` como base.
-

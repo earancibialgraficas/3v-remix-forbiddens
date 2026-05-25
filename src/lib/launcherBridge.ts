@@ -11,6 +11,8 @@ export interface NativeEngineStatus {
 }
 
 type LauncherBridge = {
+  checkUpdate?: () => Promise<string>;
+  restartLauncher?: () => Promise<void>;
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
@@ -34,4 +36,3 @@ export const launcherSupportsNative = (consoleId: string) => {
   const supported = new Set(["psp", "ps2", "ps1", "ds", "nes", "snes", "gba", "gbc", "sega", "n64", "arcade"]);
   return isForbiddensLauncher() && supported.has(consoleId);
 };
-

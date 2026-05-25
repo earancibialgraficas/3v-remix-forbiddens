@@ -1,21 +1,34 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Download } from "lucide-react";
 import heroBanner from "@/assets/hero-banner.jpg";
 import logo from "@/assets/forbiddens_logo.svg";
 import { useAuth } from "@/hooks/useAuth";
 import InstallAppButton from "@/components/InstallAppButton";
 import VaultHint from "@/components/VaultHint";
 
+const launcherDownloadUrl = import.meta.env.VITE_LAUNCHER_DOWNLOAD_URL
+  || "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.0_x64-setup.exe";
+
 export default function HeroSection() {
   const { user } = useAuth();
   const [phase, setPhase] = useState<"logo" | "transition" | "text">("logo");
+  const [showLauncherDownload, setShowLauncherDownload] = useState(false);
 
   useEffect(() => {
     // 3s logo, then a soft 1.4s crossfade to the text
     const t1 = setTimeout(() => setPhase("transition"), 3000);
     const t2 = setTimeout(() => setPhase("text"), 4400);
     return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  useEffect(() => {
+    const bridge = (window as any).forbiddensLauncher || (window as any).__TAURI__;
+    const ua = navigator.userAgent || "";
+    const isMobileLike = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
+    const isDesktopSized = window.matchMedia("(min-width: 900px)").matches;
+    setShowLauncherDownload(!bridge && !isMobileLike && isDesktopSized);
   }, []);
 
   return (
@@ -60,7 +73,15 @@ export default function HeroSection() {
           &gt; EL <VaultHint letter="F" position={1} color="text-neon-green" />ORO QUE NO DEBERÍA EXISTIR_<span className="animate-blink">|</span>
            
         </p>
-        <div className="flex gap-3 mt-2">
+        <div className="flex flex-wrap justify-center gap-3 mt-2">
+          {showLauncherDownload && (
+            <Button asChild size="sm" className="bg-neon-cyan text-black hover:bg-neon-cyan/85 font-pixel text-[10px] px-5 py-2.5 shadow-[0_0_18px_rgba(34,211,238,0.35)] transition-all duration-200">
+              <a href={launcherDownloadUrl} download>
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                DESCARGAR LAUNCHER
+              </a>
+            </Button>
+          )}
           {!user && (
             <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/80 font-pixel text-[10px] px-5 py-2.5 box-glow-green transition-all duration-200">
               <Link to="/registro">UNIRSE</Link>

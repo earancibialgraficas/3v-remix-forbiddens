@@ -151,6 +151,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const localWatchPlayerId = playerId || clientIdRef.current;
   const localWatchUserId = userId || localWatchPlayerId;
   const effectiveDuration = duration || (current?.youtubeId ? durationByVideoRef.current[current.youtubeId] || 0 : 0);
+  const controlsInSidePanel = Boolean(controlsElement);
 
   useEffect(() => {
     if (!playlistOpen) return;
@@ -584,49 +585,16 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     </div>
   );
 
-  const fullscreenSidePanel = fullscreen ? (
-    <div
-      data-watch-controls-root="true"
-      className="absolute bottom-24 right-3 top-14 z-30 hidden w-[min(320px,32vw)] min-w-[240px] flex-col overflow-hidden rounded border border-neon-cyan/25 bg-black/75 shadow-2xl shadow-black/60 backdrop-blur-md lg:flex"
-      onClick={(event) => event.stopPropagation()}
-      onMouseMove={revealVideoHud}
-    >
-      <div className="border-b border-white/10 px-3 py-2">
-        <p className="font-pixel text-[8px] uppercase text-neon-cyan">Lista de reproduccion</p>
-        <p className="mt-1 truncate text-[10px] text-muted-foreground">{current?.title || "Sin video activo"}</p>
-      </div>
-      <div className="min-h-0 flex-1 p-2">
-        {playlistList}
-      </div>
-      <div className="border-t border-white/10 p-2">
-        {addVideoForm}
-      </div>
-    </div>
-  ) : null;
-
   const controls = (
-    <div data-watch-controls-root="true" className="bg-black/35 p-2">
-      <div className="flex min-w-0 items-center gap-1.5">
-        <div
-          className="relative flex h-9 min-w-0 flex-1 flex-col justify-center overflow-hidden rounded border border-neon-cyan/25 bg-black/60 px-2"
-          style={{ boxShadow: "inset 0 0 6px rgba(34,211,238,0.18)" }}
-        >
-          <div className="flex w-max animate-marquee-x whitespace-nowrap">
-            {[0, 1].map((copy) => (
-              <span
-                key={copy}
-                className="font-pixel leading-none px-2"
-                style={{ color: "#00f2fe", fontSize: "9px", letterSpacing: "1px", textShadow: "0 0 3px rgba(34,211,238,.9), 0 0 6px rgba(34,211,238,.55)" }}
-              >
-                {current?.title ? `> ${current.title}` : "> Sin video"} &nbsp;-&nbsp;
-              </span>
-            ))}
-          </div>
-          <p className="mt-0.5 truncate font-pixel text-[7px] text-neon-cyan/90">
-            YouTube - {formatTime(currentTime)} / {effectiveDuration ? formatTime(effectiveDuration) : "cargando"}
+    <div data-watch-controls-root="true" className={cn("p-2", controlsInSidePanel ? "bg-black/35" : "border-t border-neon-cyan/20 bg-black/85")}>
+      {controlsInSidePanel && (
+        <div className="mb-2 min-w-0 rounded border border-neon-cyan/20 bg-black/45 px-2 py-1.5">
+          <p className="font-pixel text-[8px] uppercase text-neon-cyan">Watch Together</p>
+          <p className="mt-1 truncate text-[10px] text-muted-foreground" title={current?.title || "Sin video activo"}>
+            {current?.title || "Sin video activo"}
           </p>
         </div>
-      </div>
+      )}
 
       {current && (
         <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-black/35 px-2 py-1.5">
@@ -653,14 +621,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         </div>
       )}
 
-      {fullscreen && (
-        <div className="mt-1.5 flex items-center justify-center gap-1.5">
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setPlaylistOpen((v) => !v); setAddOpen(false); }} disabled={!playlist.length} title="Lista" aria-label="Lista">{playlistOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ListVideo className="h-3.5 w-3.5" />}</Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddOpen((v) => !v); setPlaylistOpen(false); }} title="Agregar video" aria-label="Agregar video">{addOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</Button>
-        </div>
-      )}
-
-      {!fullscreen && (
+      {(!fullscreen || controlsInSidePanel) && (
       <div className="mt-1.5 flex items-center justify-center gap-1.5">
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</Button>
@@ -713,7 +674,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       )}
 
       {playlistOpen && playlist.length > 0 && (
-        <div className="mt-2 max-h-32 min-h-0">
+        <div className={cn("mt-2 min-h-0", controlsInSidePanel ? "max-h-56" : "max-h-32")}>
           {playlistList}
         </div>
       )}
@@ -722,46 +683,6 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         <div className="mt-2">
           {addVideoForm}
         </div>
-      )}
-    </div>
-  );
-
-  const settingsMenu = (
-    <div className="space-y-1 rounded border border-white/10 bg-black/80 p-2 shadow-2xl backdrop-blur-md">
-      <button type="button" onClick={toggleCaptions} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
-        Subtitulos: {captionsEnabled ? "ON" : "OFF"}
-      </button>
-      <label className="block text-[9px] uppercase text-muted-foreground">
-        Calidad
-        <select
-          value={videoQuality}
-          onChange={(event) => changeVideoQuality(event.target.value)}
-          className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
-        >
-          {VIDEO_QUALITIES.map((quality) => (
-            <option key={quality.value} value={quality.value}>{quality.label}</option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-[9px] uppercase text-muted-foreground">
-        Idioma subtitulos
-        <select
-          value={captionLanguage}
-          onChange={(event) => changeCaptionLanguage(event.target.value)}
-          className="mt-1 h-7 w-full rounded border border-white/10 bg-black/70 px-2 text-[10px] text-white outline-none"
-        >
-          {CAPTION_LANGUAGES.map((language) => (
-            <option key={language.value} value={language.value}>{language.label}</option>
-          ))}
-        </select>
-      </label>
-      <button type="button" onClick={() => applyState(stateRef.current)} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
-        Re-sincronizar video
-      </button>
-      {current && (
-        <button type="button" onClick={() => window.open(current.url, "_blank", "noopener,noreferrer")} className="w-full rounded border border-white/10 px-2 py-1 text-left text-[10px] text-muted-foreground hover:bg-white/10 hover:text-white">
-          Abrir en YouTube
-        </button>
       )}
     </div>
   );
@@ -802,51 +723,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             }}
           />
         )}
-        {fullscreen && current && (
-          <div
-            data-watch-controls-root="true"
-            className={cn(
-              "absolute inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 transition-opacity duration-300",
-              "opacity-100",
-            )}
-            onMouseMove={revealVideoHud}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {settingsOpen && <div className="w-full max-w-[260px]">{settingsMenu}</div>}
-            {volumeOpen && (
-              <div className="flex w-full max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-black/75 px-3 py-2 backdrop-blur-md">
-                <Volume2 className="h-3.5 w-3.5 text-neon-cyan" />
-                <Slider value={[volume]} min={0} max={100} step={1} onValueChange={([next]) => { const safeNext = Number(next || 0); setVolume(safeNext); if (safeNext > 0) setMuted(false); }} className="min-w-0 flex-1" aria-label="Volumen local" />
-                <span className="w-7 text-right font-pixel text-[6px] text-neon-cyan">{effectiveVolume}</span>
-              </div>
-            )}
-            <div className="inline-flex max-w-[calc(100vw-32px)] items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
-              <div className="flex w-[230px] max-w-[38vw] shrink-0 items-center gap-2 px-1">
-                <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
-                <Slider
-                  value={[Math.min(currentTime, effectiveDuration || Math.max(currentTime, 1))]}
-                  min={0}
-                  max={Math.max(effectiveDuration, currentTime, 1)}
-                  step={1}
-                  onValueChange={([next]) => setCurrentTime(Number(next || 0))}
-                  onValueCommit={([next]) => seekVideo(Number(next || 0))}
-                  className="min-w-0 flex-1"
-                  aria-label="Tiempo del video sincronizado"
-                />
-                <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{effectiveDuration ? formatTime(effectiveDuration) : "--:--"}</span>
-              </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
-            </div>
-          </div>
-        )}
-        {fullscreenSidePanel}
       </div>
 
-      {!fullscreen && (controlsElement ? createPortal(controls, controlsElement) : <div className="border-t border-neon-cyan/20 bg-black/85">{controls}</div>)}
+      {controlsElement ? createPortal(controls, controlsElement) : !fullscreen ? controls : null}
     </div>
   );
 }
