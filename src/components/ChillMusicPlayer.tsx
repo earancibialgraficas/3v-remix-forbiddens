@@ -30,6 +30,7 @@ const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getI
 
 const getSongOrderKey = (song: Song) => `${song.type}:${song.id}:${song.url}`;
 const getPlaylistOrderStorageKey = (category: string) => `forbiddens_music_order_${category || "Personal"}`;
+const MUSIC_SESSION_KEY = "forbiddens_music_session_v2";
 
 const applyStoredPlaylistOrder = (songs: Song[], category: string) => {
   if (typeof window === "undefined" || songs.length < 2) return songs;
@@ -59,6 +60,22 @@ const applyStoredPlaylistOrder = (songs: Song[], category: string) => {
 const storePlaylistOrder = (songs: Song[], category: string) => {
   if (typeof window === "undefined") return;
   localStorage.setItem(getPlaylistOrderStorageKey(category), JSON.stringify(songs.map(getSongOrderKey)));
+};
+
+const readMusicSession = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MUSIC_SESSION_KEY) || "null");
+    return parsed && typeof parsed === "object" ? parsed as any : null;
+  } catch {
+    return null;
+  }
+};
+
+const findSongIndex = (songs: Song[], songKey?: string, fallbackIndex = 0) => {
+  const matchedIndex = songKey ? songs.findIndex((song) => getSongOrderKey(song) === songKey) : -1;
+  if (matchedIndex >= 0) return matchedIndex;
+  return songs.length ? Math.max(0, Math.min(fallbackIndex, songs.length - 1)) : 0;
 };
 
 const getYoutubeId = (url: string) => {
@@ -173,6 +190,23 @@ export default function ChillMusicPlayer() {
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
 
+  const persistMusicSession = useCallback((overrides: Record<string, unknown> = {}) => {
+    if (typeof window === "undefined") return;
+    const activeSong = playlist[currentIndex] || current;
+    const session = {
+      category: currentCategory,
+      index: currentIndex,
+      songKey: activeSong ? getSongOrderKey(activeSong) : "",
+      time: Math.max(0, Number(actualTimeRef.current || currentTime || 0)),
+      playing: isPlaying,
+      personalPlaylistId: activePersonalPlaylistId,
+      playlistName,
+      updatedAt: Date.now(),
+      ...overrides,
+    };
+    localStorage.setItem(MUSIC_SESSION_KEY, JSON.stringify(session));
+  }, [activePersonalPlaylistId, current, currentCategory, currentIndex, currentTime, isPlaying, playlist, playlistName]);
+
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -202,23 +236,26 @@ export default function ChillMusicPlayer() {
     if (playlist.length > 0 && timeToRestoreRef.current === null) {
       localStorage.setItem('forbiddens_music_category', currentCategory);
       localStorage.setItem('forbiddens_music_index', currentIndex.toString());
+      persistMusicSession();
     }
-  }, [currentCategory, currentIndex, playlist.length]);
+  }, [currentCategory, currentIndex, playlist.length, persistMusicSession]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       if (timeToRestoreRef.current === null && actualTimeRef.current > 0) {
         localStorage.setItem('forbiddens_music_time', actualTimeRef.current.toString());
+        persistMusicSession({ time: actualTimeRef.current });
       }
     }, 1000); 
     return () => clearInterval(timer);
-  }, []);
+  }, [persistMusicSession]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('forbiddens_music_playing', isPlaying ? 'true' : 'false');
+      persistMusicSession({ playing: isPlaying });
     }
-  }, [isPlaying]);
+  }, [isPlaying, persistMusicSession]);
 
   useEffect(() => {
     if (!portalTarget) return;
@@ -280,24 +317,24 @@ export default function ChillMusicPlayer() {
       const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
       const savedIndex = localStorage.getItem('forbiddens_music_index');
       const savedTime = localStorage.getItem('forbiddens_music_time');
+      const savedSession = readMusicSession();
+      const targetCategory = typeof savedSession?.category === "string" ? savedSession.category : savedCat;
 
-      setCurrentCategory(savedCat);
+      setCurrentCategory(targetCategory);
 
       let initialPlaylist = fetchedSongs;
-      if (savedCat !== "Todos") {
-        initialPlaylist = fetchedSongs.filter(s => s.category === savedCat);
+      if (targetCategory !== "Todos") {
+        initialPlaylist = fetchedSongs.filter(s => s.category === targetCategory);
       }
-      initialPlaylist = applyStoredPlaylistOrder(initialPlaylist, savedCat);
+      initialPlaylist = applyStoredPlaylistOrder(initialPlaylist, targetCategory);
       setPlaylist(initialPlaylist);
 
-      if (savedIndex !== null && parseInt(savedIndex) < initialPlaylist.length) {
-        setCurrentIndex(parseInt(savedIndex));
-      } else {
-        setCurrentIndex(0);
-      }
+      const fallbackIndex = savedIndex !== null ? parseInt(savedIndex) : Number(savedSession?.index || 0);
+      setCurrentIndex(findSongIndex(initialPlaylist, savedSession?.songKey, fallbackIndex));
 
-      if (savedTime !== null) {
-        const parsedTime = parseFloat(savedTime);
+      const restoreTime = savedSession?.time ?? savedTime;
+      if (restoreTime !== null && restoreTime !== undefined) {
+        const parsedTime = parseFloat(String(restoreTime));
         setCurrentTime(parsedTime);
         setSeekDisplayValue(parsedTime);
         timeToRestoreRef.current = parsedTime; 
@@ -324,6 +361,24 @@ export default function ChillMusicPlayer() {
         name: row.name,
         songs: Array.isArray(row.songs) ? row.songs : [],
       })));
+      const savedSession = readMusicSession();
+      const shouldRestorePersonal = savedSession?.personalPlaylistId && savedSession?.personalPlaylistId !== activePersonalPlaylistId;
+      if (shouldRestorePersonal) {
+        const saved = (data || []).find((row: any) => row.id === savedSession.personalPlaylistId);
+        const songs = Array.isArray(saved?.songs) ? saved.songs : [];
+        if (saved && songs.length) {
+          setPlaylist(songs);
+          setCurrentCategory(saved.name);
+          setActivePersonalPlaylistId(saved.id);
+          setPlaylistName(saved.name);
+          setCurrentIndex(findSongIndex(songs, savedSession.songKey, Number(savedSession.index || 0)));
+          const parsedTime = Math.max(0, Number(savedSession.time || 0));
+          setCurrentTime(parsedTime);
+          setSeekDisplayValue(parsedTime);
+          timeToRestoreRef.current = parsedTime;
+          setIsPlaying(Boolean(savedSession.playing));
+        }
+      }
     } catch (error) {
       console.warn("No se pudieron cargar playlists personales", error);
       setSavedPlaylists([]);
@@ -606,20 +661,34 @@ export default function ChillMusicPlayer() {
     setPlaylist(prev => [...prev, newSong]);
     setCurrentCategory("Personal");
     setActivePersonalPlaylistId(null);
+    persistMusicSession({ category: "Personal", personalPlaylistId: null, playlistName: "Personal" });
     setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
   };
 
   const loadPersonalPlaylist = (saved: SavedPlaylist) => {
+    const savedSession = readMusicSession();
+    const shouldResume = savedSession?.personalPlaylistId === saved.id;
+    const restoreIndex = shouldResume ? findSongIndex(saved.songs, savedSession.songKey, Number(savedSession.index || 0)) : 0;
+    const restoreTime = shouldResume ? Math.max(0, Number(savedSession.time || 0)) : 0;
     setPlaylist(saved.songs);
     setCurrentCategory(saved.name);
     setActivePersonalPlaylistId(saved.id);
-    setCurrentIndex(0);
-    setCurrentTime(0);
+    setCurrentIndex(restoreIndex);
+    setCurrentTime(restoreTime);
     setDuration(0);
-    setSeekDisplayValue(0);
-    timeToRestoreRef.current = null;
-    setIsPlaying(saved.songs.length > 0);
+    setSeekDisplayValue(restoreTime);
+    timeToRestoreRef.current = restoreTime > 0 ? restoreTime : null;
+    setIsPlaying(shouldResume ? Boolean(savedSession.playing) : saved.songs.length > 0);
     setPlaylistName(saved.name);
+    persistMusicSession({
+      category: saved.name,
+      personalPlaylistId: saved.id,
+      playlistName: saved.name,
+      index: restoreIndex,
+      songKey: saved.songs[restoreIndex] ? getSongOrderKey(saved.songs[restoreIndex]) : "",
+      time: restoreTime,
+      playing: shouldResume ? Boolean(savedSession.playing) : saved.songs.length > 0,
+    });
   };
 
   const savePersonalPlaylist = async () => {
@@ -648,6 +717,7 @@ export default function ChillMusicPlayer() {
       setCurrentCategory(name);
       setActivePersonalPlaylistId(nextActiveId);
       storePlaylistOrder(youtubeSongs, name);
+      persistMusicSession({ category: name, personalPlaylistId: nextActiveId, playlistName: name });
     } catch (error) {
       console.error("No se pudo guardar la playlist", error);
     } finally {
@@ -659,7 +729,10 @@ export default function ChillMusicPlayer() {
     if (!user) return;
     try {
       await (supabase as any).from("user_music_playlists").delete().eq("id", id).eq("user_id", user.id);
-      if (activePersonalPlaylistId === id) setActivePersonalPlaylistId(null);
+      if (activePersonalPlaylistId === id) {
+        setActivePersonalPlaylistId(null);
+        persistMusicSession({ personalPlaylistId: null, playlistName: "" });
+      }
       await loadSavedPlaylists();
     } catch (error) {
       console.error("No se pudo borrar la playlist", error);
@@ -677,6 +750,7 @@ export default function ChillMusicPlayer() {
     setCurrentTime(t);
     setSeekDisplayValue(t);
     timeToRestoreRef.current = null; 
+    persistMusicSession({ time: t });
     
     if (current?.type === 'local' && audioRef.current) {
       audioRef.current.currentTime = t;

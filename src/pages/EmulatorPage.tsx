@@ -200,9 +200,6 @@ const systems = [
     glow: "rgba(96,165,250,0.7)", year: "2000",
     nativeOnly: true,
     nativeOnlyDescription: "Disponible solo en FORBIDDENS Launcher con PCSX2 nativo.",
-    compatGames: PS2_COMPATIBLE_GAMES,
-    compatSource: "tracker oficial",
-    compatDescription: "Estos titulos se han reportado con buena compatibilidad general. El rendimiento depende del PC.",
   }
 ] as Array<{
   id: string; name: string; short: string; core: string; extensions: string;
