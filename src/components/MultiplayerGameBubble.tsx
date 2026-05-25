@@ -1903,7 +1903,7 @@ export default function MultiplayerGameBubble({ game, onClose }: MultiplayerGame
                 userId={localSessionUserId}
                 playerId={lobbyPlayerIdRef.current}
                 avatarUrl={localAvatarUrl}
-                controlsTargetId={watchControlsTargetId}
+                controlsTargetId={!fullscreen && !windowInfoCollapsed ? watchControlsTargetId : undefined}
                 fullscreen={fullscreen}
                 onPresencePlayers={syncWatchTogetherPresencePlayers}
               />

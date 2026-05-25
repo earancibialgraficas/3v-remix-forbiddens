@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Main launcher permissions",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["https://forbiddens.net/*"]
+  },
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "opener:default",
+    "updater:default",
+    "allow-launcher-bridge"
+  ]
+}

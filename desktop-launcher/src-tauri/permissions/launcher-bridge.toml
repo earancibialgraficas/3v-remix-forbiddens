@@ -1,0 +1,16 @@
+[[permission]]
+identifier = "allow-launcher-bridge"
+description = "Allows forbiddens.net to use the FORBIDDENS desktop launcher bridge."
+commands.allow = [
+  "launcher_info",
+  "open_external_url",
+  "check_launcher_update",
+  "native_engine_status",
+  "install_native_engine",
+  "pick_native_rom",
+  "open_native_emulator",
+  "download_drive_rom_for_native",
+  "open_drive_rom_native",
+  "detect_ppsspp_native",
+  "open_ppsspp_native",
+]

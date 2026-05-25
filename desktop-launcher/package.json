@@ -1,0 +1,16 @@
+{
+  "name": "forbiddens-desktop-launcher",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:installer": "tauri build --config src-tauri/tauri.installer.conf.json",
+    "updater:keygen": "tauri signer generate",
+    "info": "tauri info"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}

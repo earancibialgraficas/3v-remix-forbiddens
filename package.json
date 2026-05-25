@@ -6,6 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "desktop:dev": "npm --prefix desktop-launcher run dev",
+    "desktop:build": "npm --prefix desktop-launcher run build",
+    "desktop:build:installer": "npm --prefix desktop-launcher run build:installer",
+    "desktop:updater:keygen": "npm --prefix desktop-launcher run updater:keygen",
+    "desktop:info": "npm --prefix desktop-launcher run info",
     "start:games-server": "node server/index.js",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

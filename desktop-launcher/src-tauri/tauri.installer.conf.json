@@ -1,0 +1,16 @@
+{
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "../icons/icon.ico",
+      "../icons/icon.png"
+    ],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": true,
+        "installerIcon": "../icons/icon.ico"
+      }
+    }
+  }
+}

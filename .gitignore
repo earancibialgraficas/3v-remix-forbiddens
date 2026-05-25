@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+desktop-launcher/node_modules
+desktop-launcher/src-tauri/target
+desktop-launcher/src-tauri/gen
 *.local
 
 # Editor directories and files

@@ -558,6 +558,52 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     });
   };
 
+  const playlistList = (
+    <div ref={playlistListRef} className="max-h-full space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
+      {playlist.length > 0 ? playlist.map((song, index) => (
+        <button key={song.id} ref={index === currentIndex ? activeVideoRef : undefined} type="button" onClick={() => jumpTo(index)} className={cn("flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors", index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white")} title={song.title}>
+          <span className="w-4 shrink-0 font-pixel text-[6px]">{index + 1}</span>
+          <span className="min-w-0 flex-1 truncate text-[8px]">{song.title}</span>
+          <span className="shrink-0 font-pixel text-[5px] text-red-300">YT</span>
+        </button>
+      )) : (
+        <div className="flex min-h-24 flex-col items-center justify-center gap-2 px-3 py-5 text-center">
+          <ListVideo className="h-5 w-5 text-neon-cyan/70" />
+          <p className="text-[10px] text-muted-foreground">Agrega un video para iniciar la sala.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const addVideoForm = (
+    <div className="space-y-1.5">
+      <div className="flex gap-1">
+        <Input value={newUrl} onChange={(event) => handleUrlChange(event.target.value)} placeholder="URL YouTube" className="h-7 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]" onKeyDown={(event) => { if (event.key === "Enter") void addVideo(); }} />
+        <Button size="icon" variant="secondary" className="h-7 w-7 shrink-0" onClick={() => void addVideo()} title="Agregar" aria-label="Agregar"><Plus className="h-3.5 w-3.5" /></Button>
+      </div>
+    </div>
+  );
+
+  const fullscreenSidePanel = fullscreen ? (
+    <div
+      data-watch-controls-root="true"
+      className="absolute bottom-24 right-3 top-14 z-30 hidden w-[min(320px,32vw)] min-w-[240px] flex-col overflow-hidden rounded border border-neon-cyan/25 bg-black/75 shadow-2xl shadow-black/60 backdrop-blur-md lg:flex"
+      onClick={(event) => event.stopPropagation()}
+      onMouseMove={revealVideoHud}
+    >
+      <div className="border-b border-white/10 px-3 py-2">
+        <p className="font-pixel text-[8px] uppercase text-neon-cyan">Lista de reproduccion</p>
+        <p className="mt-1 truncate text-[10px] text-muted-foreground">{current?.title || "Sin video activo"}</p>
+      </div>
+      <div className="min-h-0 flex-1 p-2">
+        {playlistList}
+      </div>
+      <div className="border-t border-white/10 p-2">
+        {addVideoForm}
+      </div>
+    </div>
+  ) : null;
+
   const controls = (
     <div data-watch-controls-root="true" className="bg-black/35 p-2">
       <div className="flex min-w-0 items-center gap-1.5">
@@ -667,23 +713,14 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
       )}
 
       {playlistOpen && playlist.length > 0 && (
-        <div ref={playlistListRef} className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/35 p-1 retro-scrollbar">
-          {playlist.map((song, index) => (
-            <button key={song.id} ref={index === currentIndex ? activeVideoRef : undefined} type="button" onClick={() => jumpTo(index)} className={cn("flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors", index === currentIndex ? "bg-neon-cyan/15 text-neon-cyan" : "text-muted-foreground hover:bg-white/10 hover:text-white")} title={song.title}>
-              <span className="w-4 shrink-0 font-pixel text-[6px]">{index + 1}</span>
-              <span className="min-w-0 flex-1 truncate text-[8px]">{song.title}</span>
-              <span className="shrink-0 font-pixel text-[5px] text-red-300">YT</span>
-            </button>
-          ))}
+        <div className="mt-2 max-h-32 min-h-0">
+          {playlistList}
         </div>
       )}
 
       {addOpen && (
-        <div className="mt-2 space-y-1.5">
-          <div className="flex gap-1">
-            <Input value={newUrl} onChange={(event) => handleUrlChange(event.target.value)} placeholder="URL YouTube" className="h-7 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]" onKeyDown={(event) => { if (event.key === "Enter") void addVideo(); }} />
-            <Button size="icon" variant="secondary" className="h-7 w-7 shrink-0" onClick={() => void addVideo()} title="Agregar" aria-label="Agregar"><Plus className="h-3.5 w-3.5" /></Button>
-          </div>
+        <div className="mt-2">
+          {addVideoForm}
         </div>
       )}
     </div>
@@ -770,7 +807,7 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             data-watch-controls-root="true"
             className={cn(
               "absolute inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-3 transition-opacity duration-300",
-              videoHudVisible || settingsOpen || volumeOpen ? "opacity-100" : "pointer-events-none opacity-0",
+              "opacity-100",
             )}
             onMouseMove={revealVideoHud}
             onClick={(event) => event.stopPropagation()}
@@ -806,9 +843,10 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             </div>
           </div>
         )}
+        {fullscreenSidePanel}
       </div>
 
-      {controlsElement ? createPortal(controls, controlsElement) : <div className="border-t border-neon-cyan/20 bg-black/85">{controls}</div>}
+      {!fullscreen && (controlsElement ? createPortal(controls, controlsElement) : <div className="border-t border-neon-cyan/20 bg-black/85">{controls}</div>)}
     </div>
   );
 }

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Settings, Battery, Clock, Monitor, Check, ListChecks, Cpu, Download, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
+import { getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -280,6 +281,8 @@ export default function EmulatorPage() {
   const [carouselWidth, setCarouselWidth] = useState(900);
   const [ps2DialogOpen, setPs2DialogOpen] = useState(false);
   const [ps2Copied, setPs2Copied] = useState(false);
+  const [nativeStatus, setNativeStatus] = useState<NativeEngineStatus | null>(null);
+  const [nativeBusy, setNativeBusy] = useState(false);
 
   // Lógica de carga automática si vienes desde la página de Biblioteca
   useEffect(() => {
@@ -328,6 +331,22 @@ export default function EmulatorPage() {
   }, [effectiveTz]);
 
   const currentSystem = systems[currentIndex];
+  const canUseNativeCurrent = launcherSupportsNative(currentSystem.id);
+
+  const refreshNativeStatus = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.nativeEngineStatus || !launcherSupportsNative(currentSystem.id)) {
+      setNativeStatus(null);
+      return null;
+    }
+    const status = await bridge.nativeEngineStatus(currentSystem.id);
+    setNativeStatus(status);
+    return status;
+  };
+
+  useEffect(() => {
+    void refreshNativeStatus().catch(() => setNativeStatus(null));
+  }, [currentSystem.id]);
 
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
   useEffect(() => {
@@ -376,6 +395,57 @@ export default function EmulatorPage() {
     setPs2DialogOpen(true);
   };
 
+  const installCurrentNativeEngine = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.installNativeEngine) return;
+    setNativeBusy(true);
+    try {
+      toast({ title: "Instalando motor nativo", description: `Preparando ${currentSystem.short} dentro del launcher.` });
+      const status = await bridge.installNativeEngine(currentSystem.id);
+      setNativeStatus(status);
+      toast({ title: "Motor nativo listo", description: `${status.engine_name} quedo instalado para ${currentSystem.short}.` });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo instalar",
+        description: error?.message || String(error || "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
+        variant: "destructive",
+      });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
+  const openNativeRomPicker = async () => {
+    const bridge = getLauncherBridge();
+    if (!bridge?.pickNativeRom || !bridge?.openNativeEmulator) return;
+    if (!user) {
+      toast({ title: "Acceso denegado", description: "Debes iniciar sesión para emular tus juegos.", variant: "destructive" });
+      return;
+    }
+    if (blockIfLocked(currentSystem.id)) return;
+
+    setNativeBusy(true);
+    try {
+      let status = nativeStatus || await refreshNativeStatus();
+      if (!status?.installed) {
+        const wantsInstall = window.confirm(`Para usar ${currentSystem.short} nativo hay que instalar ${status?.engine_name || "el motor nativo"} en este PC. ¿Instalar ahora?`);
+        if (!wantsInstall) return;
+        if (!bridge.installNativeEngine) throw new Error("El launcher no tiene instalador nativo disponible.");
+        status = await bridge.installNativeEngine(currentSystem.id);
+        setNativeStatus(status);
+      }
+
+      const romPath = await bridge.pickNativeRom(currentSystem.id);
+      if (!romPath) return;
+      await bridge.openNativeEmulator(currentSystem.id, romPath);
+      toast({ title: "Abriendo emulador nativo", description: `${status?.engine_name || currentSystem.short} iniciando desde FORBIDDENS Launcher.` });
+    } catch (error: any) {
+      toast({ title: "Error nativo", description: error?.message || String(error || "No se pudo abrir el emulador nativo."), variant: "destructive" });
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
   const copyPs2Url = async () => {
     try {
       await navigator.clipboard.writeText("https://playjs.purei.org/");
@@ -388,6 +458,11 @@ export default function EmulatorPage() {
   };
 
   function openRomPicker() {
+    if (canUseNativeCurrent && nativeStatus?.installed) {
+      void openNativeRomPicker();
+      return;
+    }
+
     if (currentSystem.id === "ps2") {
       launchPs2();
       return;
@@ -763,6 +838,21 @@ export default function EmulatorPage() {
 
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
+               {canUseNativeCurrent && (
+                 <button
+                   onClick={nativeStatus?.installed ? openNativeRomPicker : installCurrentNativeEngine}
+                   disabled={nativeBusy}
+                   className={cn(
+                     "mb-2 group relative w-full sm:w-auto px-4 sm:px-6 py-2 bg-neon-cyan/15 hover:bg-neon-cyan/25 border border-neon-cyan/40 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 overflow-hidden shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_30px_rgba(34,211,238,0.28)] active:scale-95",
+                     nativeBusy && "cursor-wait opacity-70",
+                   )}
+                 >
+                   {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" /> : nativeStatus?.installed ? <Cpu className="h-4 w-4 text-neon-cyan" /> : <Download className="h-4 w-4 text-neon-cyan" />}
+                   <span className="font-pixel text-[clamp(0.5rem,1.7vw,0.65rem)] uppercase tracking-widest text-neon-cyan whitespace-nowrap">
+                     {nativeStatus?.installed ? "Abrir ROM nativa" : `Instalar ${nativeStatus?.engine_name || "motor nativo"}`}
+                   </span>
+                 </button>
+               )}
                <button
                  onClick={openRomPicker}
                  className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
