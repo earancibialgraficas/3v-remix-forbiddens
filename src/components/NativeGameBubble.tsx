@@ -217,6 +217,50 @@ export default function NativeGameBubble() {
     };
   }, [closeNativeSession, saveScore, toastSessionResult]);
 
+  useEffect(() => {
+    const listen = (window as any).__TAURI__?.event?.listen;
+    if (typeof listen !== "function") return;
+
+    let unlisten: (() => void) | null = null;
+    listen("forbiddens-native-emulator-window-state", (event: any) => {
+      const current = latestSessionRef.current;
+      const payload = event?.payload || {};
+      if (!current?.processId || Number(payload.process_id) !== Number(current.processId)) return;
+
+      if (payload.state === "minimized") {
+        minimizeNativeSession();
+        return;
+      }
+
+      if (payload.state === "restored") {
+        maximizeNativeSession();
+      }
+    })
+      .then((cleanup: () => void) => {
+        unlisten = cleanup;
+      })
+      .catch(() => {});
+
+    return () => {
+      unlisten?.();
+    };
+  }, [maximizeNativeSession, minimizeNativeSession]);
+
+  useEffect(() => {
+    if (!session?.processId || typeof document === "undefined") return;
+    const processId = session.processId;
+    const syncFromLauncherVisibility = () => {
+      const bridge = getLauncherBridge();
+      if (!bridge?.setNativeEmulatorState) return;
+      bridge
+        .setNativeEmulatorState(processId, document.hidden ? "minimize" : "restore")
+        .catch(() => {});
+    };
+
+    document.addEventListener("visibilitychange", syncFromLauncherVisibility);
+    return () => document.removeEventListener("visibilitychange", syncFromLauncherVisibility);
+  }, [session?.processId]);
+
   const finishSession = async () => {
     const current = latestSessionRef.current;
     if (!current) return;

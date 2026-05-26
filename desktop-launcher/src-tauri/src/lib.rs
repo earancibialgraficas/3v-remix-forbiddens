@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
+    time::Duration,
 };
 
 use serde::Serialize;
@@ -54,6 +55,14 @@ struct NativeEmulatorLaunchResult {
     rom_path: Option<String>,
     engine_path: String,
     process_id: u32,
+}
+
+#[derive(Serialize, Clone)]
+struct NativeEmulatorWindowStateEvent {
+    console_id: String,
+    rom_path: Option<String>,
+    process_id: u32,
+    state: String,
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
@@ -671,6 +680,134 @@ fn restore_launcher_layout(app: &AppHandle) {
     let _ = window.set_size(PhysicalSize::new(width, height));
 }
 
+#[cfg(windows)]
+struct WindowSearch {
+    process_id: u32,
+    hwnd: isize,
+}
+
+#[cfg(windows)]
+#[link(name = "user32")]
+extern "system" {
+    fn EnumWindows(
+        lp_enum_func: Option<unsafe extern "system" fn(isize, isize) -> i32>,
+        l_param: isize,
+    ) -> i32;
+    fn GetWindowThreadProcessId(hwnd: isize, lpdw_process_id: *mut u32) -> u32;
+    fn IsIconic(hwnd: isize) -> i32;
+    fn IsWindowVisible(hwnd: isize) -> i32;
+}
+
+#[cfg(windows)]
+unsafe extern "system" fn enum_windows_for_process(hwnd: isize, l_param: isize) -> i32 {
+    if IsWindowVisible(hwnd) == 0 {
+        return 1;
+    }
+
+    let search = &mut *(l_param as *mut WindowSearch);
+    let mut window_process_id = 0u32;
+    GetWindowThreadProcessId(hwnd, &mut window_process_id as *mut u32);
+    if window_process_id == search.process_id {
+        search.hwnd = hwnd;
+        return 0;
+    }
+    1
+}
+
+#[cfg(windows)]
+fn native_process_window_minimized(process_id: u32) -> Option<bool> {
+    let mut search = WindowSearch {
+        process_id,
+        hwnd: 0,
+    };
+    unsafe {
+        EnumWindows(
+            Some(enum_windows_for_process),
+            &mut search as *mut WindowSearch as isize,
+        );
+        if search.hwnd == 0 {
+            None
+        } else {
+            Some(IsIconic(search.hwnd) != 0)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn native_process_window_minimized(_process_id: u32) -> Option<bool> {
+    None
+}
+
+fn emit_native_window_state(
+    app: &AppHandle,
+    console_id: &str,
+    rom_path: &Option<String>,
+    process_id: u32,
+    state: &str,
+) {
+    let payload = NativeEmulatorWindowStateEvent {
+        console_id: console_id.to_string(),
+        rom_path: rom_path.clone(),
+        process_id,
+        state: state.to_string(),
+    };
+    let _ = app.emit("forbiddens-native-emulator-window-state", payload);
+}
+
+fn monitor_native_emulator_window(
+    app: AppHandle,
+    console_id: String,
+    rom_path: Option<String>,
+    process_id: u32,
+) {
+    thread::spawn(move || {
+        let mut last_minimized: Option<bool> = None;
+        let mut missing_window_checks = 0;
+
+        loop {
+            thread::sleep(Duration::from_millis(700));
+            match native_process_window_minimized(process_id) {
+                Some(is_minimized) => {
+                    missing_window_checks = 0;
+                    if last_minimized == Some(is_minimized) {
+                        continue;
+                    }
+                    last_minimized = Some(is_minimized);
+
+                    if is_minimized {
+                        emit_native_window_state(
+                            &app,
+                            &console_id,
+                            &rom_path,
+                            process_id,
+                            "minimized",
+                        );
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.minimize();
+                        }
+                    } else {
+                        let _ = enter_native_companion_layout(&app);
+                        arrange_emulator_window(app.clone(), process_id);
+                        emit_native_window_state(
+                            &app,
+                            &console_id,
+                            &rom_path,
+                            process_id,
+                            "restored",
+                        );
+                    }
+                }
+                None => {
+                    missing_window_checks += 1;
+                    if missing_window_checks > 12 {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+}
+
 fn arrange_emulator_window(app: AppHandle, process_id: u32) {
     let Some((x, y, _screen_width, screen_height, emulator_width, _companion_width)) =
         screen_layout(&app)
@@ -876,6 +1013,12 @@ fn open_native_emulator(
 
     let _ = enter_native_companion_layout(&app);
     arrange_emulator_window(app.clone(), process_id);
+    monitor_native_emulator_window(
+        app.clone(),
+        normalized.clone(),
+        rom_path_for_event.clone(),
+        process_id,
+    );
 
     let event_app = app.clone();
     let restore_app = app.clone();
