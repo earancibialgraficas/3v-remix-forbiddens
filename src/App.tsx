@@ -60,6 +60,49 @@ function PasswordRecoveryRedirect() {
   return null;
 }
 
+function DriveOAuthRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const hash = location.hash?.startsWith("#") ? location.hash.slice(1) : "";
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash);
+    const token = params.get("access_token");
+    const state = params.get("state");
+    if (!token || !state) return;
+
+    let returnPath = localStorage.getItem("drive_sync_oauth_return_path") || "/perfil?tab=storage";
+    try {
+      const normalizedState = state.replace(/-/g, "+").replace(/_/g, "/");
+      const paddedState = normalizedState.padEnd(normalizedState.length + ((4 - normalizedState.length % 4) % 4), "=");
+      const parsed = JSON.parse(atob(paddedState));
+      if (typeof parsed?.returnPath === "string" && parsed.returnPath.startsWith("/")) {
+        returnPath = parsed.returnPath;
+      }
+    } catch {
+      const expectedState = localStorage.getItem("drive_sync_oauth_external_state");
+      if (expectedState && state !== expectedState) return;
+    }
+
+    const expiresIn = Number(params.get("expires_in") || 3300);
+    const ttlMs = Math.max(60_000, expiresIn * 1000 - 60_000);
+    localStorage.setItem("drive_access_token", token);
+    localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
+    sessionStorage.setItem("drive_access_token", token);
+    sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    sessionStorage.setItem("drive_sync_resume_after_reload", "1");
+    localStorage.removeItem("drive_sync_oauth_external_state");
+    localStorage.removeItem("drive_sync_oauth_return_path");
+
+    navigate(returnPath || "/perfil?tab=storage", { replace: true });
+  }, [location.hash, navigate]);
+
+  return null;
+}
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -76,6 +119,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <PasswordRecoveryRedirect />
+              <DriveOAuthRedirect />
               <UpgradeProvider>
               <Routes>
                 <Route element={<MainLayout />}>

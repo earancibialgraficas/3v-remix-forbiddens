@@ -10,6 +10,12 @@ import { useNativeSession } from "@/contexts/NativeSessionContext";
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
 
+type SaveScoreResult =
+  | { status: "none"; score: number; previousBest: number }
+  | { status: "saved"; score: number; previousBest: number }
+  | { status: "not_best"; score: number; previousBest: number }
+  | { status: "error"; score: number; previousBest: number; message: string };
+
 const initialPosition = () => {
   if (typeof window === "undefined") return { x: 20, y: 420 };
   return { x: 20, y: Math.max(16, window.innerHeight - 248) };
@@ -101,9 +107,10 @@ export default function NativeGameBubble() {
     return () => window.removeEventListener("resize", onResize);
   }, [clampPosition]);
 
-  const saveScore = useCallback(async (silent = false) => {
+  const saveScore = useCallback(async (): Promise<SaveScoreResult> => {
     const current = latestSessionRef.current;
-    if (!user || !current || current.score <= 0) return;
+    if (!current) return { status: "none", score: 0, previousBest: 0 };
+    if (!user || current.score <= 0) return { status: "none", score: current.score, previousBest: 0 };
     try {
       const { data: existing, error: fetchError } = await supabase
         .from("leaderboard_scores")
@@ -117,14 +124,9 @@ export default function NativeGameBubble() {
 
       if (fetchError) throw fetchError;
 
+      const previousBest = Number((existing as any)?.score || 0);
       if (existing && Number((existing as any).score || 0) >= current.score) {
-        if (!silent) {
-          toast({
-            title: "Puntaje no superado",
-            description: `Tu record actual es ${(existing as any).score}.`,
-          });
-        }
-        return;
+        return { status: "not_best", score: current.score, previousBest };
       }
 
       const payload = {
@@ -144,11 +146,47 @@ export default function NativeGameBubble() {
         } as any);
       }
 
-      if (!silent) toast({ title: "STATS guardados", description: `${current.score} puntos en ${current.gameName}` });
+      return { status: "saved", score: current.score, previousBest };
     } catch (error: any) {
-      if (!silent) toast({ title: "Error al guardar STATS", description: error?.message || "No se pudo guardar.", variant: "destructive" });
+      return { status: "error", score: current?.score || 0, previousBest: 0, message: error?.message || "No se pudo guardar." };
     }
-  }, [profile?.display_name, toast, user]);
+  }, [profile?.display_name, user]);
+
+  const toastSessionResult = useCallback((gameName: string, result: SaveScoreResult) => {
+    if (result.status === "saved") {
+      toast({
+        title: "Sesion finalizada",
+        description: result.previousBest > 0
+          ? `Ganaste ${result.score} STATS en ${gameName}. Nuevo record superado.`
+          : `Ganaste ${result.score} STATS en ${gameName}.`,
+      });
+      return;
+    }
+
+    if (result.status === "not_best") {
+      toast({
+        title: "Sesion finalizada",
+        description: `Ganaste ${result.score} STATS en ${gameName}. Tu record sigue en ${result.previousBest}.`,
+      });
+      return;
+    }
+
+    if (result.status === "error") {
+      toast({
+        title: "Sesion finalizada",
+        description: `Ganaste ${result.score} STATS, pero no se pudieron guardar: ${result.message}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Sesion finalizada",
+      description: result.score > 0
+        ? `Ganaste ${result.score} STATS en ${gameName}.`
+        : `No se generaron STATS en ${gameName}.`,
+    });
+  }, [toast]);
 
   useEffect(() => {
     const listen = (window as any).__TAURI__?.event?.listen;
@@ -163,9 +201,9 @@ export default function NativeGameBubble() {
       const sameConsole = payload.console_id && String(payload.console_id).toLowerCase() === current.consoleName.toLowerCase();
       if (!sameRom && !sameConsole) return;
 
-      await saveScore(true);
+      const result = await saveScore();
       closeNativeSession(current.id);
-      toast({ title: "Sesion nativa cerrada", description: "Se guardaron los STATS de la partida." });
+      toastSessionResult(current.gameName, result);
     })
       .then((cleanup: () => void) => {
         unlisten = cleanup;
@@ -175,13 +213,14 @@ export default function NativeGameBubble() {
     return () => {
       unlisten?.();
     };
-  }, [closeNativeSession, saveScore, toast]);
+  }, [closeNativeSession, saveScore, toastSessionResult]);
 
   const finishSession = async () => {
     const current = latestSessionRef.current;
     if (!current) return;
-    await saveScore(false);
+    const result = await saveScore();
     closeNativeSession(current.id);
+    toastSessionResult(current.gameName, result);
   };
 
   if (!session) return null;

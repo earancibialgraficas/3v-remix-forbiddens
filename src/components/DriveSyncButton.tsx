@@ -11,6 +11,16 @@ import { getLauncherBridge } from '@/lib/launcherBridge';
 const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
 const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
 const DRIVE_SYNC_OAUTH_STATE_KEY = 'drive_sync_oauth_external_state';
+const DRIVE_SYNC_OAUTH_RETURN_KEY = 'drive_sync_oauth_return_path';
+
+const encodeDriveOAuthState = (returnPath: string) => {
+  const payload = JSON.stringify({
+    v: 1,
+    nonce: crypto.randomUUID(),
+    returnPath,
+  });
+  return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+};
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -134,9 +144,11 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         toast({ title: 'Google no configurado', description: 'Falta VITE_GOOGLE_CLIENT_ID.', variant: 'destructive' });
         return;
       }
-      const state = crypto.randomUUID();
+      const returnPath = `${window.location.pathname}${window.location.search}` || '/perfil?tab=storage';
+      const state = encodeDriveOAuthState(returnPath);
       localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
-      const redirectUri = `${window.location.origin}${window.location.pathname}`;
+      localStorage.setItem(DRIVE_SYNC_OAUTH_RETURN_KEY, returnPath);
+      const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || `${window.location.origin}/`;
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri,
@@ -384,6 +396,14 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     if (sessionStorage.getItem(DRIVE_SYNC_RESUME_KEY) !== '1') return;
 
     sessionStorage.removeItem(DRIVE_SYNC_RESUME_KEY);
+    const cachedToken = localStorage.getItem('drive_access_token') || sessionStorage.getItem('drive_access_token');
+    const tokenExpiry = Number(localStorage.getItem('drive_token_expiry') || sessionStorage.getItem('drive_token_expiry') || 0);
+    if (cachedToken && (!tokenExpiry || Date.now() < tokenExpiry)) {
+      setIsSyncing(true);
+      window.setTimeout(() => void fetchAndSaveRoms(cachedToken), 150);
+      return;
+    }
+
     window.setTimeout(() => handleSync(), 150);
   }, [user, isLoadingState, isSyncing, isGoogleLoaded]);
 
