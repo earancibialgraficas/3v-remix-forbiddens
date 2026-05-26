@@ -287,6 +287,56 @@ function renderAlignedContent(content: string, permissions: ContentPermissions, 
   ));
 }
 
+function extractCommentImages(content: string) {
+  const images: { src: string; alt: string }[] = [];
+  let text = content.replace(/\!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, (_match, alt, src) => {
+    images.push({ src, alt: alt || "Imagen adjunta" });
+    return "";
+  });
+
+  text = text.replace(/(^|\s)(https?:\/\/[^\s<>"']+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<>"']*)?)/ig, (_match, prefix, src) => {
+    images.push({ src, alt: "Imagen adjunta" });
+    return prefix;
+  });
+
+  return { text: text.trim(), images };
+}
+
+function renderCommentStickerContent(content: string, permissions: ContentPermissions, onOpenMedia: (src: string, type: "image"|"video") => void) {
+  if (!permissions.allowImages) return renderAlignedContent(content, permissions, onOpenMedia);
+
+  const { text, images } = extractCommentImages(content);
+  if (images.length === 0) return renderAlignedContent(content, permissions, onOpenMedia);
+
+  return (
+    <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+      <div className="order-1 min-w-0 flex-1 lg:order-2">
+        {text ? renderAlignedContent(text, permissions, onOpenMedia) : null}
+      </div>
+      <div className="order-2 flex flex-wrap gap-2 lg:order-1 lg:w-[88px] lg:shrink-0 lg:flex-col">
+        {images.map((image, index) => (
+          <button
+            key={`${image.src}-${index}`}
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpenMedia(image.src, "image");
+            }}
+            className="group relative h-20 w-20 shrink-0 overflow-hidden rounded border border-neon-cyan/25 bg-black/45 shadow-[0_0_14px_rgba(34,211,238,0.12)] transition-colors hover:border-neon-cyan/60"
+            title="Ver imagen"
+          >
+            <img src={image.src} alt={image.alt} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+            <span className="pointer-events-none absolute inset-0 grid place-items-center bg-black/0 opacity-0 transition-all group-hover:bg-black/35 group-hover:opacity-100">
+              <Maximize2 className="h-4 w-4 text-white" />
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface Comment { id: string; post_id: string; user_id: string; content: string; membership_tier: string; created_at: string; parent_id: string | null; profile?: any; roles?: string[]; original_content?: string | null; edited?: boolean; }
 interface PostProfile { display_name: string; avatar_url: string | null; role_icon: string | null; show_role_icon: boolean; membership_tier: string; color_avatar_border: string | null; color_name: string | null; color_role: string | null; color_staff_role: string | null; signature: string | null; signature_image_url: string | null; }
 
@@ -1041,7 +1091,7 @@ export default function ForumPage() {
                         edited={comment.edited}
                         isOwner={!!user && comment.user_id === user.id}
                         table="comments"
-                        renderContent={(c) => renderAlignedContent(c, commentPermissions, (src, type) => setForumModal({ src, type }))}
+                        renderContent={(c) => renderCommentStickerContent(c, commentPermissions, (src, type) => setForumModal({ src, type }))}
                         onUpdated={(newContent) => setComments(prev => ({ ...prev, [post.id]: (prev[post.id] || []).map(c => c.id === comment.id ? { ...c, content: newContent, edited: true, original_content: c.original_content || c.content } : c) }))}
                         onDelete={() => handleDeleteComment(post.id, comment.id)}
                       />

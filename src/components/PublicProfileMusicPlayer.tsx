@@ -349,13 +349,13 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   if (!playlist || !current) return null;
 
   return (
-    <section className="relative overflow-hidden rounded border border-neon-cyan/30 bg-[#05070d]/80 p-3 shadow-[0_0_32px_rgba(34,211,238,0.12)] backdrop-blur-md">
+    <section className="relative overflow-hidden rounded border border-neon-cyan/30 bg-[#05070d]/80 p-2.5 shadow-[0_0_32px_rgba(34,211,238,0.12)] backdrop-blur-md">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/70 to-transparent" />
-      <div className="grid gap-3 lg:grid-cols-[220px_minmax(220px,1fr)_240px] lg:items-stretch">
-        <div className="flex min-h-[210px] min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-3">
+      <div className="grid gap-2.5 lg:grid-cols-[220px_minmax(220px,1fr)_240px] lg:items-stretch">
+        <div className="flex min-h-[162px] min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-2.5">
           <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
                 <Music className="h-4 w-4" />
               </span>
               <div className="min-w-0 leading-none">
@@ -364,18 +364,18 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
               </div>
             </div>
           </div>
-          <div className="flex flex-1 items-center justify-center gap-3">
-            <button type="button" onClick={() => jump(-1)} className="grid h-10 w-10 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Anterior">
+          <div className="flex items-center justify-center gap-3 py-2">
+            <button type="button" onClick={() => jump(-1)} className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Anterior">
               <SkipBack className="h-4 w-4" />
             </button>
-            <button type="button" onClick={toggle} className="grid h-12 w-12 place-items-center rounded-full border border-neon-cyan/45 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_22px_rgba(34,211,238,0.28)] transition-colors hover:bg-neon-cyan/25" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
+            <button type="button" onClick={toggle} className="grid h-11 w-11 place-items-center rounded-full border border-neon-cyan/45 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_22px_rgba(34,211,238,0.28)] transition-colors hover:bg-neon-cyan/25" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
               {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
-            <button type="button" onClick={() => jump(1)} className="grid h-10 w-10 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Siguiente">
+            <button type="button" onClick={() => jump(1)} className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Siguiente">
               <SkipForward className="h-4 w-4" />
             </button>
           </div>
-          <div className="relative mt-3 flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             <button
               type="button"
               onClick={() => setVolumeOpen((value) => !value)}
@@ -412,15 +412,15 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
         </div>
 
-        <div className="min-h-[210px] overflow-hidden rounded border border-white/10 bg-black/35">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
+        <div className="min-h-[162px] overflow-hidden rounded border border-white/10 bg-black/35">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-1.5">
             <div className="min-w-0">
               <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
               <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
             </div>
             <span className="shrink-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-muted-foreground">{songs.length}</span>
           </div>
-          <div className="max-h-[166px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
+          <div className="max-h-[122px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
             {songs.map((song, songIndex) => (
               <div
                 key={`${song.id}-${songIndex}`}
@@ -488,9 +488,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
         </div>
 
-        <div className="relative min-h-[210px] overflow-hidden rounded border border-white/10 bg-black/45">
+        <div className="relative min-h-[162px] overflow-hidden rounded border border-white/10 bg-black/45">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.14),transparent_58%)]" />
-          <canvas ref={visualizerRef} width={420} height={210} className="relative h-full min-h-[210px] w-full" />
+          <canvas ref={visualizerRef} width={420} height={162} className="relative h-full min-h-[162px] w-full" />
           <div id={hostId} className={cn("pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0", !currentYoutubeId && "hidden")} />
         </div>
       </div>
