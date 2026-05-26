@@ -64,6 +64,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(0);
   const playerRef = useRef<any>(null);
+  const visualizerRef = useRef<HTMLCanvasElement>(null);
   const hostId = useMemo(() => `public-profile-player-${userId}`, [userId]);
 
   const songs = playlist?.songs.filter((song) => song.type === "youtube" && getYoutubeId(song.url)) || [];
@@ -146,6 +147,50 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     };
   }, [currentYoutubeId, hostId, songs.length]);
 
+  useEffect(() => {
+    let animationId = 0;
+    const heights = new Array(38).fill(0);
+
+    const draw = () => {
+      const canvas = visualizerRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) {
+        animationId = requestAnimationFrame(draw);
+        return;
+      }
+
+      const bars = heights.length;
+      const barWidth = canvas.width / bars;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < bars; i++) {
+        if (isPlaying && volume > 0) {
+          const wave = Math.sin(Date.now() / 190 + i * 0.62) * 0.28 + 0.72;
+          const pulse = Math.random() * canvas.height * 0.48 + canvas.height * 0.12;
+          const target = Math.min(canvas.height * 0.9, pulse * wave);
+          heights[i] += (target - heights[i]) * 0.16;
+        } else {
+          heights[i] *= 0.9;
+        }
+
+        const h = Math.max(3, heights[i]);
+        const x = i * barWidth + 1;
+        const y = canvas.height - h;
+        const gradient = ctx.createLinearGradient(0, y, 0, canvas.height);
+        gradient.addColorStop(0, "rgba(34, 211, 238, 0.95)");
+        gradient.addColorStop(0.55, "rgba(57, 255, 20, 0.55)");
+        gradient.addColorStop(1, "rgba(34, 211, 238, 0.12)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, Math.max(2, barWidth - 3), h);
+      }
+
+      animationId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animationId);
+  }, [isPlaying, volume]);
+
   const toggle = () => {
     const player = playerRef.current;
     if (!player) return;
@@ -163,24 +208,32 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     setIndex((value) => (value + delta + songs.length) % songs.length);
   };
 
+  const changeVolume = (nextVolume: number) => {
+    const safeVolume = Math.max(0, Math.min(100, nextVolume));
+    setVolume(safeVolume);
+    playerRef.current?.setVolume?.(safeVolume);
+    if (safeVolume > 0) playerRef.current?.unMute?.();
+  };
+
   if (!playlist || !current) return null;
 
   return (
-    <section className="relative overflow-hidden rounded border border-neon-cyan/25 bg-black/45 p-3 shadow-[0_0_28px_rgba(34,211,238,0.08)] backdrop-blur-md">
+    <section className="relative overflow-hidden rounded border border-neon-cyan/30 bg-[#05070d]/80 p-3 shadow-[0_0_32px_rgba(34,211,238,0.12)] backdrop-blur-md">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/70 to-transparent" />
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
-              <Music className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Chill player de {displayName}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{playlist.name}</p>
+      <div className="grid gap-3 lg:grid-cols-[220px_minmax(220px,1fr)_240px] lg:items-stretch">
+        <div className="flex min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-3">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
+                <Music className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 leading-none">
+                <p className="font-pixel text-[11px] uppercase tracking-widest text-neon-cyan">FORBIDDENS</p>
+                <p className="mt-1 font-pixel text-[8px] uppercase tracking-[0.34em] text-white/55">PLAYER</p>
+              </div>
             </div>
           </div>
-          <p className="truncate text-sm font-semibold text-foreground">{current.title || "Canción de YouTube"}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => jump(-1)} className="grid h-8 w-8 place-items-center rounded border border-white/10 bg-white/5 text-white hover:bg-white/10" aria-label="Anterior">
               <SkipBack className="h-3.5 w-3.5" />
             </button>
@@ -190,32 +243,57 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             <button type="button" onClick={() => jump(1)} className="grid h-8 w-8 place-items-center rounded border border-white/10 bg-white/5 text-white hover:bg-white/10" aria-label="Siguiente">
               <SkipForward className="h-3.5 w-3.5" />
             </button>
-            <span className="ml-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Volume2 className="h-3.5 w-3.5 text-neon-green" />
-              {volume}%
             </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={volume}
+              onChange={(event) => changeVolume(Number(event.target.value))}
+              className="h-1.5 min-w-0 flex-1 accent-neon-green"
+              aria-label="Volumen"
+            />
+            <span className="w-8 text-right text-[10px] text-muted-foreground">{volume}%</span>
           </div>
         </div>
-        <div className="min-h-[124px] overflow-hidden rounded border border-white/10 bg-black/60">
-          <div id={hostId} className={cn("h-[124px] w-full", !currentYoutubeId && "hidden")} />
+
+        <div className="min-h-[142px] overflow-hidden rounded border border-white/10 bg-black/35">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
+            <div className="min-w-0">
+              <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
+              <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
+            </div>
+            <span className="shrink-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-muted-foreground">{songs.length}</span>
+          </div>
+          <div className="max-h-[168px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
+            {songs.map((song, songIndex) => (
+              <button
+                key={`${song.id}-${songIndex}`}
+                type="button"
+                onClick={() => setIndex(songIndex)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded border px-2 py-2 text-left transition-colors",
+                  songIndex === index
+                    ? "border-neon-cyan/55 bg-neon-cyan/15 text-neon-cyan"
+                    : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground",
+                )}
+              >
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-black/35 font-pixel text-[8px]">{songIndex + 1}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px]">{song.title || `Canción ${songIndex + 1}`}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="mt-3 flex gap-1 overflow-x-auto pb-1 retro-scrollbar">
-        {songs.map((song, songIndex) => (
-          <button
-            key={`${song.id}-${songIndex}`}
-            type="button"
-            onClick={() => setIndex(songIndex)}
-            className={cn(
-              "max-w-[180px] shrink-0 truncate rounded border px-2 py-1 text-[10px] transition-colors",
-              songIndex === index
-                ? "border-neon-cyan/55 bg-neon-cyan/15 text-neon-cyan"
-                : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground",
-            )}
-          >
-            {song.title || `Canción ${songIndex + 1}`}
-          </button>
-        ))}
+
+        <div className="relative min-h-[142px] overflow-hidden rounded border border-white/10 bg-black/45">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.14),transparent_58%)]" />
+          <canvas ref={visualizerRef} width={420} height={180} className="relative h-full min-h-[142px] w-full" />
+          <div id={hostId} className={cn("pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0", !currentYoutubeId && "hidden")} />
+        </div>
       </div>
     </section>
   );
