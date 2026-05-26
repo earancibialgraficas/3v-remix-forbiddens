@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Music, Pause, Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { Check, Music, Pause, Play, Plus, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 type Song = {
   id: string;
@@ -59,10 +61,17 @@ const getYoutubeId = (url: string) => {
 };
 
 export default function PublicProfileMusicPlayer({ userId, displayName }: { userId: string; displayName: string }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [playlist, setPlaylist] = useState<SavedPlaylist | null>(null);
+  const [myPlaylists, setMyPlaylists] = useState<SavedPlaylist[]>([]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(0);
+  const [songToAdd, setSongToAdd] = useState<Song | null>(null);
+  const [targetPlaylistId, setTargetPlaylistId] = useState("");
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [addingSong, setAddingSong] = useState(false);
   const playerRef = useRef<any>(null);
   const visualizerRef = useRef<HTMLCanvasElement>(null);
   const hostId = useMemo(() => `public-profile-player-${userId}`, [userId]);
@@ -91,6 +100,32 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!user) {
+      setMyPlaylists([]);
+      return;
+    }
+    let cancelled = false;
+    const loadMine = async () => {
+      const { data } = await (supabase as any)
+        .from("user_music_playlists")
+        .select("id, name, songs, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+      if (cancelled) return;
+      setMyPlaylists((data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        songs: Array.isArray(item.songs) ? item.songs : [],
+      })));
+      setTargetPlaylistId((current) => current || data?.[0]?.id || "");
+    };
+    loadMine();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!currentYoutubeId) return;
@@ -215,6 +250,70 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     if (safeVolume > 0) playerRef.current?.unMute?.();
   };
 
+  const openAddBubble = (song: Song) => {
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Necesitas una cuenta para guardar canciones.", variant: "destructive" });
+      return;
+    }
+    setSongToAdd((current) => current?.url === song.url ? null : song);
+    setNewPlaylistName("");
+  };
+
+  const addSongToOwnPlaylist = async () => {
+    if (!user || !songToAdd) return;
+    const cleanedName = newPlaylistName.trim();
+    const target = myPlaylists.find((item) => item.id === targetPlaylistId);
+    if (!target && !cleanedName) {
+      toast({ title: "Ponle nombre", description: "Elige una playlist o escribe una nueva.", variant: "destructive" });
+      return;
+    }
+
+    setAddingSong(true);
+    try {
+      const song: Song = {
+        ...songToAdd,
+        id: songToAdd.id || `yt_${getYoutubeId(songToAdd.url) || Date.now()}`,
+        category: "Personal",
+      };
+
+      if (target) {
+        const exists = target.songs.some((item) => item.url === song.url);
+        if (exists) {
+          toast({ title: "Ya estaba guardada", description: "Esa canción ya existe en tu playlist." });
+          setSongToAdd(null);
+          return;
+        }
+        const nextSongs = [...target.songs, song];
+        const { error } = await (supabase as any)
+          .from("user_music_playlists")
+          .update({ songs: nextSongs })
+          .eq("id", target.id)
+          .eq("user_id", user.id);
+        if (error) throw error;
+        setMyPlaylists((items) => items.map((item) => item.id === target.id ? { ...item, songs: nextSongs } : item));
+        toast({ title: "Canción agregada", description: `Guardada en ${target.name}.` });
+      } else {
+        const { data, error } = await (supabase as any)
+          .from("user_music_playlists")
+          .insert({ user_id: user.id, name: cleanedName, songs: [song] })
+          .select("id, name, songs")
+          .single();
+        if (error) throw error;
+        const created = { id: data.id, name: data.name, songs: data.songs || [song] };
+        setMyPlaylists((items) => [created, ...items]);
+        setTargetPlaylistId(created.id);
+        toast({ title: "Playlist creada", description: `Guardamos la canción en ${created.name}.` });
+      }
+
+      setSongToAdd(null);
+      setNewPlaylistName("");
+    } catch (error: any) {
+      toast({ title: "No se pudo guardar", description: error?.message || "Intenta de nuevo.", variant: "destructive" });
+    } finally {
+      setAddingSong(false);
+    }
+  };
+
   if (!playlist || !current) return null;
 
   return (
@@ -271,12 +370,11 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
           <div className="max-h-[168px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
             {songs.map((song, songIndex) => (
-              <button
+              <div
                 key={`${song.id}-${songIndex}`}
-                type="button"
                 onClick={() => setIndex(songIndex)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded border px-2 py-2 text-left transition-colors",
+                  "relative flex w-full cursor-pointer items-center gap-2 rounded border px-2 py-2 text-left transition-colors",
                   songIndex === index
                     ? "border-neon-cyan/55 bg-neon-cyan/15 text-neon-cyan"
                     : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground",
@@ -284,7 +382,56 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
               >
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-black/35 font-pixel text-[8px]">{songIndex + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[11px]">{song.title || `Canción ${songIndex + 1}`}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openAddBubble(song);
+                  }}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded border border-neon-green/30 bg-neon-green/10 text-neon-green transition-colors hover:bg-neon-green/20"
+                  title="Agregar a mi playlist"
+                  aria-label="Agregar a mi playlist"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+                {songToAdd?.url === song.url && (
+                  <div
+                    className="absolute right-2 top-10 z-20 w-[min(76vw,260px)] rounded border border-neon-green/35 bg-black/95 p-3 shadow-[0_0_28px_rgba(57,255,20,0.16)] backdrop-blur-xl"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <p className="mb-2 line-clamp-2 text-[11px] font-semibold text-foreground">{song.title || "Canción de YouTube"}</p>
+                    {myPlaylists.length > 0 && (
+                      <select
+                        value={targetPlaylistId}
+                        onChange={(event) => setTargetPlaylistId(event.target.value)}
+                        className="mb-2 h-8 w-full rounded border border-white/10 bg-black/80 px-2 text-[11px] text-foreground outline-none focus:border-neon-green/50"
+                      >
+                        {myPlaylists.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                        <option value="">Crear nueva playlist</option>
+                      </select>
+                    )}
+                    {(!targetPlaylistId || myPlaylists.length === 0) && (
+                      <input
+                        value={newPlaylistName}
+                        onChange={(event) => setNewPlaylistName(event.target.value)}
+                        placeholder="Nombre de tu playlist"
+                        className="mb-2 h-8 w-full rounded border border-white/10 bg-black/80 px-2 text-[11px] text-foreground outline-none placeholder:text-muted-foreground focus:border-neon-green/50"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={addSongToOwnPlaylist}
+                      disabled={addingSong}
+                      className="inline-flex h-8 w-full items-center justify-center gap-2 rounded border border-neon-green/40 bg-neon-green/15 font-pixel text-[8px] uppercase tracking-widest text-neon-green transition-colors hover:bg-neon-green/25 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      {addingSong ? "Guardando..." : "Agregar"}
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
