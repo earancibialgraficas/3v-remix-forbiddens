@@ -71,8 +71,21 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     }
   };
 
-  var openExternal = function (url) {
+  var normalizeGoogleAuthUrl = function (url) {
     var href = toAbsoluteUrl(url);
+    if (!href) return "";
+    try {
+      var parsed = new URL(href);
+      if (/(^|\.)accounts\.google\.com$/.test(parsed.hostname) && /\/o\/oauth2\//.test(parsed.pathname)) {
+        parsed.searchParams.set("redirect_uri", "https://forbiddens.net/");
+        return parsed.href;
+      }
+    } catch (_) {}
+    return href;
+  };
+
+  var openExternal = function (url) {
+    var href = normalizeGoogleAuthUrl(url);
     if (!href) return Promise.resolve(false);
     return invoke("open_external_url", { url: href }).then(function () {
       return true;
@@ -114,7 +127,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
   window.open = function (url, target, features) {
     var targetName = String(target || "_blank").toLowerCase();
     if (targetName === "_blank" || targetName === "blank" || !target) {
-      if (nativeOpen && (!url || isGoogleAuthUrl(url))) {
+      if (!url && nativeOpen) {
         return nativeOpen(url || "about:blank", target || "_blank", features);
       }
       var proxy = {
@@ -128,30 +141,18 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
         location: {
           replace: function (nextUrl) {
             proxy.closed = true;
-            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-              nativeOpen(nextUrl, target || "_blank", features);
-            } else {
-              openExternal(nextUrl);
-            }
+            openExternal(nextUrl);
           },
           assign: function (nextUrl) {
             proxy.closed = true;
-            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-              nativeOpen(nextUrl, target || "_blank", features);
-            } else {
-              openExternal(nextUrl);
-            }
+            openExternal(nextUrl);
           }
         }
       };
       Object.defineProperty(proxy.location, "href", {
         set: function (nextUrl) {
           proxy.closed = true;
-          if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-            nativeOpen(nextUrl, target || "_blank", features);
-          } else {
-            openExternal(nextUrl);
-          }
+          openExternal(nextUrl);
         }
       });
       if (url) {
