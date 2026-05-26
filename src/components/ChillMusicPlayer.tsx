@@ -25,7 +25,11 @@ interface SavedPlaylist {
 
 const getStoredCategory = () => typeof window !== 'undefined' ? (localStorage.getItem('forbiddens_music_category') || "Todos") : "Todos";
 const getStoredIndex = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_index') || "0") : 0;
-const getStoredVolume = () => typeof window !== 'undefined' ? parseInt(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
+const clampVolume = (value: unknown, fallback = 80) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : fallback;
+};
+const getStoredVolume = () => typeof window !== 'undefined' ? clampVolume(localStorage.getItem('forbiddens_music_volume') || "80") : 80;
 const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getItem('forbiddens_music_playing') === 'true' : false;
 
 const getSongOrderKey = (song: Song) => `${song.type}:${song.id}:${song.url}`;
@@ -200,13 +204,14 @@ export default function ChillMusicPlayer() {
       songKey: activeSong ? getSongOrderKey(activeSong) : "",
       time: Math.max(0, Number(actualTimeRef.current || currentTime || 0)),
       playing: isPlaying,
+      volume,
       personalPlaylistId: activePersonalPlaylistId,
       playlistName,
       updatedAt: Date.now(),
       ...overrides,
     };
     localStorage.setItem(MUSIC_SESSION_KEY, JSON.stringify(session));
-  }, [activePersonalPlaylistId, current, currentCategory, currentIndex, currentTime, isPlaying, playlist, playlistName]);
+  }, [activePersonalPlaylistId, current, currentCategory, currentIndex, currentTime, isPlaying, playlist, playlistName, volume]);
 
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);
@@ -324,6 +329,7 @@ export default function ChillMusicPlayer() {
       const savedTime = localStorage.getItem('forbiddens_music_time');
       const savedSession = readMusicSession();
       const targetCategory = typeof savedSession?.category === "string" ? savedSession.category : savedCat;
+      setVolume(clampVolume(savedSession?.volume, getStoredVolume()));
 
       setCurrentCategory(targetCategory);
 
@@ -381,6 +387,7 @@ export default function ChillMusicPlayer() {
           setCurrentTime(parsedTime);
           setSeekDisplayValue(parsedTime);
           timeToRestoreRef.current = parsedTime;
+          setVolume(clampVolume(savedSession.volume, getStoredVolume()));
           setIsPlaying(Boolean(savedSession.playing));
         }
       }
@@ -469,8 +476,9 @@ export default function ChillMusicPlayer() {
     if (audioRef.current) audioRef.current.volume = volume / 100;
     if (typeof window !== 'undefined') {
       localStorage.setItem('forbiddens_music_volume', volume.toString());
+      persistMusicSession({ volume });
     }
-  }, [volume]);
+  }, [persistMusicSession, volume]);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -714,6 +722,7 @@ export default function ChillMusicPlayer() {
     const shouldResume = savedSession?.personalPlaylistId === saved.id;
     const restoreIndex = shouldResume ? findSongIndex(saved.songs, savedSession.songKey, Number(savedSession.index || 0)) : 0;
     const restoreTime = shouldResume ? Math.max(0, Number(savedSession.time || 0)) : 0;
+    const restoreVolume = shouldResume ? clampVolume(savedSession.volume, volume) : volume;
     setPlaylist(saved.songs);
     setCurrentCategory(saved.name);
     setActivePersonalPlaylistId(saved.id);
@@ -722,6 +731,7 @@ export default function ChillMusicPlayer() {
     setDuration(0);
     setSeekDisplayValue(restoreTime);
     timeToRestoreRef.current = restoreTime > 0 ? restoreTime : null;
+    setVolume(restoreVolume);
     setIsPlaying(shouldResume ? Boolean(savedSession.playing) : saved.songs.length > 0);
     setPlaylistName(saved.name);
     persistMusicSession({
@@ -731,6 +741,7 @@ export default function ChillMusicPlayer() {
       index: restoreIndex,
       songKey: saved.songs[restoreIndex] ? getSongOrderKey(saved.songs[restoreIndex]) : "",
       time: restoreTime,
+      volume: restoreVolume,
       playing: shouldResume ? Boolean(savedSession.playing) : saved.songs.length > 0,
     });
   };

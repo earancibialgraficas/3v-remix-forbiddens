@@ -70,7 +70,6 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const [volume, setVolume] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volumeOpen, setVolumeOpen] = useState(false);
   const [songToAdd, setSongToAdd] = useState<Song | null>(null);
   const [targetPlaylistId, setTargetPlaylistId] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
@@ -365,27 +364,26 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             </div>
           </div>
           <div className="flex items-center justify-center gap-3 py-2">
-            <button type="button" onClick={() => jump(-1)} className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Anterior">
-              <SkipBack className="h-4 w-4" />
+            <button type="button" onClick={() => jump(-1)} className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/5 hover:text-neon-cyan focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/60" aria-label="Anterior">
+              <SkipBack className="h-5 w-5" />
             </button>
             <button type="button" onClick={toggle} className="grid h-11 w-11 place-items-center rounded-full border border-neon-cyan/45 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_22px_rgba(34,211,238,0.28)] transition-colors hover:bg-neon-cyan/25" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
               {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
-            <button type="button" onClick={() => jump(1)} className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Siguiente">
-              <SkipForward className="h-4 w-4" />
+            <button type="button" onClick={() => jump(1)} className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/5 hover:text-neon-cyan focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/60" aria-label="Siguiente">
+              <SkipForward className="h-5 w-5" />
             </button>
           </div>
           <div className="relative flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setVolumeOpen((value) => !value)}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded border border-white/10 bg-white/5 text-neon-green transition-colors hover:bg-white/10"
-              aria-label="Volumen"
-            >
-              <Volume2 className="h-3.5 w-3.5 text-neon-green" />
-            </button>
-            {volumeOpen && (
-              <div className="absolute bottom-10 left-0 z-30 flex h-32 w-10 items-center justify-center rounded border border-neon-green/35 bg-black/95 p-2 shadow-[0_0_24px_rgba(57,255,20,0.16)]">
+            <div className="group/volume relative flex shrink-0 items-center">
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded border border-white/10 bg-white/5 text-neon-green transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-green/60"
+                aria-label="Volumen"
+              >
+                <Volume2 className="h-3.5 w-3.5 text-neon-green" />
+              </button>
+              <div className="pointer-events-none absolute bottom-9 left-1/2 z-30 flex h-32 w-10 -translate-x-1/2 translate-y-1 items-center justify-center rounded border border-neon-green/35 bg-black/95 p-2 opacity-0 shadow-[0_0_24px_rgba(57,255,20,0.16)] transition duration-150 group-hover/volume:pointer-events-auto group-hover/volume:translate-y-0 group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:translate-y-0 group-focus-within/volume:opacity-100">
                 <input
                   type="range"
                   min={0}
@@ -396,7 +394,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                   aria-label="Volumen"
                 />
               </div>
-            )}
+            </div>
             <input
               type="range"
               min={0}
