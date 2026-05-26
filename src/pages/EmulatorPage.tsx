@@ -490,8 +490,9 @@ export default function EmulatorPage() {
 
       const romPath = await bridge.pickNativeRom(currentSystem.id);
       if (!romPath) return;
+      let launchResult: any = null;
       try {
-        await bridge.openNativeEmulator(currentSystem.id, romPath);
+        launchResult = await bridge.openNativeEmulator(currentSystem.id, romPath);
       } catch (error: any) {
         clearCachedNativeStatus(currentSystem.id);
         const freshStatus = await refreshNativeStatus().catch(() => null);
@@ -511,6 +512,7 @@ export default function EmulatorPage() {
         gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name,
         engineName: status?.engine_name || currentSystem.core || "Emulador nativo",
         romPath,
+        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
       });
       toast({ title: "Abriendo emulador nativo", description: `${status?.engine_name || currentSystem.short} iniciando desde FORBIDDENS Launcher.` });
     } catch (error: any) {

@@ -10,6 +10,13 @@ export interface NativeEngineStatus {
   download_page: string;
 }
 
+export interface NativeEmulatorLaunchResult {
+  console_id: string;
+  rom_path?: string | null;
+  engine_path: string;
+  process_id: number;
+}
+
 type LauncherBridge = {
   launcherInfo?: () => Promise<{ version: string; website_url: string }>;
   openExternal?: (url: string) => Promise<boolean>;
@@ -18,13 +25,15 @@ type LauncherBridge = {
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
-  openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<string>;
+  openNativeEmulator?: (consoleId: string, romPath?: string | null) => Promise<NativeEmulatorLaunchResult | string>;
+  closeNativeEmulator?: (processId: number) => Promise<void>;
+  setNativeEmulatorState?: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => Promise<void>;
   openDriveRomNative?: (args: {
     consoleId: string;
     fileId: string;
     fileName: string;
     accessToken: string;
-  }) => Promise<string>;
+  }) => Promise<NativeEmulatorLaunchResult | string>;
 };
 
 const buildBridgeFromTauri = (): LauncherBridge | null => {
@@ -44,6 +53,8 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     installNativeEngine: (consoleId: string) => invoke("install_native_engine", { consoleId }),
     pickNativeRom: (consoleId: string) => invoke("pick_native_rom", { consoleId }),
     openNativeEmulator: (consoleId: string, romPath?: string | null) => invoke("open_native_emulator", { consoleId, romPath: romPath || null }),
+    closeNativeEmulator: (processId: number) => invoke("close_native_emulator", { processId }),
+    setNativeEmulatorState: (processId: number, action: "minimize" | "restore" | "show" | "maximize") => invoke("set_native_emulator_state", { processId, action }),
     openDriveRomNative: (args) => invoke("open_drive_rom_native", args || {}),
   };
 

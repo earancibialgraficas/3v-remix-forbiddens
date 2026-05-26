@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
+import { getLauncherBridge } from "@/lib/launcherBridge";
 
 const POINTS_INTERVAL_MS = 10_000;
 const POINTS_PER_INTERVAL = 10;
@@ -197,9 +198,10 @@ export default function NativeGameBubble() {
       const current = latestSessionRef.current;
       const payload = event?.payload || {};
       if (!current) return;
+      const sameProcess = payload.process_id && current.processId && Number(payload.process_id) === Number(current.processId);
       const sameRom = payload.rom_path && current.romPath && String(payload.rom_path) === String(current.romPath);
       const sameConsole = payload.console_id && String(payload.console_id).toLowerCase() === current.consoleName.toLowerCase();
-      if (!sameRom && !sameConsole) return;
+      if (!sameProcess && !sameRom && !sameConsole) return;
 
       const result = await saveScore();
       closeNativeSession(current.id);
@@ -219,8 +221,27 @@ export default function NativeGameBubble() {
     const current = latestSessionRef.current;
     if (!current) return;
     const result = await saveScore();
+    if (current.processId) {
+      await getLauncherBridge()?.closeNativeEmulator?.(current.processId).catch(() => {});
+    }
     closeNativeSession(current.id);
     toastSessionResult(current.gameName, result);
+  };
+
+  const minimizeSession = async () => {
+    const current = latestSessionRef.current;
+    if (current?.processId) {
+      await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "minimize").catch(() => {});
+    }
+    minimizeNativeSession();
+  };
+
+  const restoreSession = async (index?: number) => {
+    const current = latestSessionRef.current;
+    if (current?.processId) {
+      await getLauncherBridge()?.setNativeEmulatorState?.(current.processId, "restore").catch(() => {});
+    }
+    maximizeNativeSession(index);
   };
 
   if (!session) return null;
@@ -229,7 +250,7 @@ export default function NativeGameBubble() {
     return (
       <button
         type="button"
-        onClick={() => maximizeNativeSession()}
+        onClick={() => restoreSession()}
         className="fixed z-[80] flex max-w-[240px] items-center gap-2 rounded-full border border-neon-cyan/40 bg-black/85 px-3 py-2 text-left shadow-[0_0_28px_rgba(34,211,238,0.28)] backdrop-blur-xl"
         style={{ left: position.x, top: position.y }}
       >
@@ -266,7 +287,7 @@ export default function NativeGameBubble() {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Move className="h-3.5 w-3.5 text-white/35" />
-          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={minimizeNativeSession} aria-label="Minimizar sesion">
+          <Button data-native-action size="icon" variant="ghost" className="h-6 w-6" onClick={minimizeSession} aria-label="Minimizar sesion">
             <Minus className="h-3.5 w-3.5" />
           </Button>
           <Button data-native-action size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={finishSession} aria-label="Cerrar sesion">

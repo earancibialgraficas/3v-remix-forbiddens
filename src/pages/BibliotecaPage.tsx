@@ -528,17 +528,19 @@ const handlePlayCloudGame = async (game: any) => {
 
       const accessToken = await requestGoogleToken();
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
-      const romPath = await bridge.openDriveRomNative({
+      const launchResult: any = await bridge.openDriveRomNative({
         consoleId: game.console,
         fileId: game.id,
         fileName: game.fileName || game.originalName || game.name,
         accessToken,
       });
+      const romPath = typeof launchResult === "string" ? launchResult : (launchResult?.rom_path || null);
       launchNativeSession({
         consoleName: game.console,
         gameName: game.name,
         engineName: status.engine_name || "Emulador nativo",
         romPath,
+        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
       });
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando con ${game.name}.` });
     } catch (error: any) {

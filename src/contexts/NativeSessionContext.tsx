@@ -6,6 +6,7 @@ export interface NativeSession {
   gameName: string;
   engineName: string;
   romPath?: string | null;
+  processId?: number | null;
   score: number;
   playTime: number;
   startedAt: number;
