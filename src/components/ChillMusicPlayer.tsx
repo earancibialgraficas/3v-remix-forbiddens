@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Music, ChevronDown, ChevronUp, Trash2, Plus, ListFilter, Save, FolderOpen, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -169,6 +169,7 @@ export default function ChillMusicPlayer() {
   const [activePersonalPlaylistId, setActivePersonalPlaylistId] = useState<string | null>(null);
   const [draggedSongIndex, setDraggedSongIndex] = useState<number | null>(null);
   const [dragOverSongIndex, setDragOverSongIndex] = useState<number | null>(null);
+  const dragOverSongIndexRef = useRef<number | null>(null);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
@@ -231,6 +232,10 @@ export default function ChillMusicPlayer() {
   useEffect(() => {
     actualTimeRef.current = currentTime;
   }, [currentTime]);
+
+  useEffect(() => {
+    dragOverSongIndexRef.current = dragOverSongIndex;
+  }, [dragOverSongIndex]);
 
   useEffect(() => {
     if (playlist.length > 0 && timeToRestoreRef.current === null) {
@@ -638,10 +643,49 @@ export default function ChillMusicPlayer() {
     void persistPersonalPlaylistOrder(activePersonalPlaylistId, playlistName.trim() || currentCategory, nextList);
   };
 
+  const updateDragTargetFromPoint = (clientX: number, clientY: number) => {
+    const target = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    const row = target?.closest<HTMLElement>("[data-song-index]");
+    const index = row ? Number(row.dataset.songIndex) : NaN;
+    if (Number.isInteger(index) && index >= 0 && index < playlist.length) {
+      dragOverSongIndexRef.current = index;
+      setDragOverSongIndex(index);
+    }
+  };
+
+  const startSongDrag = (event: ReactPointerEvent, index: number) => {
+    if (playlist.length < 2) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragOverSongIndexRef.current = index;
+    setDraggedSongIndex(index);
+    setDragOverSongIndex(index);
+  };
+
+  const moveSongDrag = (event: ReactPointerEvent) => {
+    if (draggedSongIndex === null) return;
+    event.preventDefault();
+    updateDragTargetFromPoint(event.clientX, event.clientY);
+  };
+
+  const finishSongDrag = (event: ReactPointerEvent) => {
+    if (draggedSongIndex === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const fromIndex = draggedSongIndex;
+    const toIndex = dragOverSongIndexRef.current;
+    if (toIndex !== null) reorderPlaylist(fromIndex, toIndex);
+    setDraggedSongIndex(null);
+    setDragOverSongIndex(null);
+    dragOverSongIndexRef.current = null;
+  };
+
   const removeSong = (idx: number) => {
     const newList = playlist.filter((_, i) => i !== idx);
     setPlaylist(newList);
     storePlaylistOrder(newList, currentCategory);
+    void persistPersonalPlaylistOrder(activePersonalPlaylistId, playlistName.trim() || currentCategory, newList);
     if (idx === currentIndex) setCurrentIndex(0);
     else if (idx < currentIndex) setCurrentIndex(p => p - 1);
   };
@@ -1109,6 +1153,7 @@ export default function ChillMusicPlayer() {
             {playlist.map((song, i) => (
               <div
                 key={`${song.id}-${i}`}
+                data-song-index={i}
                 onDragEnter={() => draggedSongIndex !== null && setDragOverSongIndex(i)}
                 onDragOver={(e) => {
                   if (draggedSongIndex !== null) e.preventDefault();
@@ -1133,15 +1178,12 @@ export default function ChillMusicPlayer() {
                 {playlist.length > 1 && (
                   <button
                     type="button"
-                    draggable
+                    onPointerDown={(e) => startSongDrag(e, i)}
+                    onPointerMove={moveSongDrag}
+                    onPointerUp={finishSongDrag}
+                    onPointerCancel={finishSongDrag}
                     onClick={(e) => e.preventDefault()}
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = "move";
-                      e.dataTransfer.setData("text/plain", String(i));
-                      setDraggedSongIndex(i);
-                      setDragOverSongIndex(i);
-                    }}
-                    className="shrink-0 cursor-grab text-muted-foreground/70 hover:text-neon-cyan active:cursor-grabbing"
+                    className="shrink-0 cursor-grab touch-none rounded px-0.5 text-muted-foreground/70 hover:text-neon-cyan active:cursor-grabbing"
                     title="Arrastrar para ordenar"
                     aria-label="Arrastrar para ordenar"
                   >

@@ -3,10 +3,11 @@ use std::{
     io,
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    thread,
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::UpdaterExt;
 
@@ -37,6 +38,14 @@ struct NativeEngineStatus {
     install_dir: String,
     package_url: String,
     download_page: String,
+}
+
+#[derive(Serialize, Clone)]
+struct NativeEmulatorExitEvent {
+    console_id: String,
+    rom_path: Option<String>,
+    engine_path: String,
+    success: bool,
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
@@ -709,7 +718,7 @@ fn pick_native_rom(app: AppHandle, console_id: String) -> Result<Option<String>,
 }
 
 #[tauri::command]
-fn open_native_emulator(console_id: String, rom_path: Option<String>) -> Result<String, String> {
+fn open_native_emulator(app: AppHandle, console_id: String, rom_path: Option<String>) -> Result<String, String> {
     let normalized = console_id.trim().to_lowercase();
     let Some(config) = get_engine_config(&normalized) else {
         return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
@@ -734,7 +743,26 @@ fn open_native_emulator(console_id: String, rom_path: Option<String>) -> Result<
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    command.spawn().map_err(|error| error.to_string())?;
+    let mut child = command.spawn().map_err(|error| error.to_string())?;
+    let event_app = app.clone();
+    let event_payload = NativeEmulatorExitEvent {
+        console_id: normalized,
+        rom_path: rom_path
+            .as_deref()
+            .map(str::trim)
+            .filter(|path| !path.is_empty())
+            .map(|path| path.to_string()),
+        engine_path: engine_path.to_string_lossy().to_string(),
+        success: true,
+    };
+
+    thread::spawn(move || {
+        let success = child.wait().map(|status| status.success()).unwrap_or(false);
+        let mut payload = event_payload.clone();
+        payload.success = success;
+        let _ = event_app.emit("forbiddens-native-emulator-exit", payload);
+    });
+
     Ok(engine_path.to_string_lossy().to_string())
 }
 
@@ -782,13 +810,14 @@ fn download_drive_rom_for_native(
 
 #[tauri::command]
 fn open_drive_rom_native(
+    app: AppHandle,
     console_id: String,
     file_id: String,
     file_name: String,
     access_token: String,
 ) -> Result<String, String> {
     let path = download_drive_rom_for_native(console_id.clone(), file_id, file_name, access_token)?;
-    open_native_emulator(console_id, Some(path.clone()))?;
+    open_native_emulator(app, console_id, Some(path.clone()))?;
     Ok(path)
 }
 
@@ -831,8 +860,8 @@ fn detect_ppsspp_native() -> Option<String> {
 }
 
 #[tauri::command]
-fn open_ppsspp_native(rom_path: Option<String>) -> Result<String, String> {
-    open_native_emulator("psp".to_string(), rom_path)
+fn open_ppsspp_native(app: AppHandle, rom_path: Option<String>) -> Result<String, String> {
+    open_native_emulator(app, "psp".to_string(), rom_path)
 }
 
 pub fn run() {
