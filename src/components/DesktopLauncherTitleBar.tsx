@@ -121,14 +121,14 @@ export default function DesktopLauncherTitleBar() {
       <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center gap-3 px-3">
         <div data-tauri-drag-region className="flex min-w-0 items-center gap-2">
           <span
-            className="grid h-7 w-7 place-items-center overflow-hidden rounded border border-neon-red/35 bg-black/45 bg-contain bg-center bg-no-repeat text-transparent shadow-[0_0_14px_rgba(222,24,57,0.22)]"
+            className="grid h-8 w-8 place-items-center bg-contain bg-center bg-no-repeat text-transparent drop-shadow-[0_0_10px_rgba(222,24,57,0.34)]"
             style={{ backgroundImage: "url('/forbiddens-logo.png')" }}
           >
             ✽
           </span>
           <div data-tauri-drag-region className="min-w-0 leading-none">
             <p className="font-pixel text-[9px] uppercase tracking-[0.24em] text-neon-cyan">FORBIDDENS</p>
-            <p className="mt-0.5 max-w-[38vw] truncate font-pixel text-[8px] uppercase tracking-[0.28em] text-white/55">LAUNCHER</p>
+            <p className="mt-0.5 w-full font-pixel text-[8px] uppercase text-white/55 [letter-spacing:0.44em]">LAUNCHER</p>
           </div>
         </div>
 
