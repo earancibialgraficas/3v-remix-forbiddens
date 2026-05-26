@@ -944,7 +944,31 @@ const handlePlayCloudGame = async (game: any) => {
               <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            <>
+              {launcherDetected && launcherSupportsNative(selectedConsole) && selectedNativeStatus && !selectedNativeStatus.installed && currentGames.some((game: any) => game.isCloud) && (
+                <div className="mb-3 rounded-lg border border-neon-cyan/30 bg-black/45 p-3 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
+                        {selectedNativeStatus.engine_name} requerido
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Instala el emulador una sola vez para desbloquear tus juegos de {consoleInfo?.label}.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={installSelectedNativeEngine}
+                      disabled={selectedNativeBusy}
+                      className="shrink-0 border border-neon-cyan/40 bg-neon-cyan/15 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan hover:bg-neon-cyan/25"
+                    >
+                      {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-2 h-3.5 w-3.5" />}
+                      {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus.engine_name}`}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {currentGames.map((game: any) => {
                 const needsNativeInstall = Boolean(
                   game.isCloud &&
@@ -1012,16 +1036,11 @@ const handlePlayCloudGame = async (game: any) => {
                       </div>
                     )}
                     {needsNativeInstall && (
-                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/72 px-3 text-center backdrop-blur-[2px]">
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/62 px-3 text-center backdrop-blur-[2px]">
                         <Cpu className="h-6 w-6 text-neon-cyan drop-shadow-[0_0_10px_rgba(34,211,238,0.75)]" />
-                        <button
-                          type="button"
-                          onClick={installSelectedNativeEngine}
-                          disabled={selectedNativeBusy}
-                          className="rounded border border-neon-cyan/40 bg-neon-cyan/15 px-3 py-2 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan transition-colors hover:bg-neon-cyan/25 disabled:cursor-wait disabled:opacity-60"
-                        >
-                          {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus?.engine_name || "emulador"}`}
-                        </button>
+                        <span className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">
+                          Instala {selectedNativeStatus?.engine_name || "emulador"} arriba
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1044,7 +1063,8 @@ const handlePlayCloudGame = async (game: any) => {
                 </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
         </div>
       ) : (

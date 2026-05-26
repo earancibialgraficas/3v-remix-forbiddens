@@ -233,6 +233,31 @@ const TIMEZONES = [
 const getCarouselScale = (width: number) => Math.max(0.52, Math.min(1, width / 1180));
 const getSlotDistance = (width: number) => Math.max(150, 260 * getCarouselScale(width));
 const getConsoleBoxSize = (width: number) => Math.round(Math.max(112, Math.min(288, width * 0.22)));
+const NATIVE_STATUS_CACHE_PREFIX = "forbiddens_native_status:";
+const NATIVE_STATUS_CACHE_TTL = 12 * 60 * 60 * 1000;
+
+const getNativeStatusCacheKey = (consoleId: string) => `${NATIVE_STATUS_CACHE_PREFIX}${consoleId}`;
+
+const readCachedNativeStatus = (consoleId: string): NativeEngineStatus | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(getNativeStatusCacheKey(consoleId)) || "null");
+    if (!cached?.status || Date.now() - Number(cached.cachedAt || 0) > NATIVE_STATUS_CACHE_TTL) return null;
+    return cached.status as NativeEngineStatus;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedNativeStatus = (consoleId: string, status: NativeEngineStatus) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(getNativeStatusCacheKey(consoleId), JSON.stringify({ cachedAt: Date.now(), status }));
+};
+
+const clearCachedNativeStatus = (consoleId: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(getNativeStatusCacheKey(consoleId));
+};
 
 export default function EmulatorPage() {
   const { user, profile, isStaff } = useAuth();
@@ -358,11 +383,20 @@ export default function EmulatorPage() {
     }
     const status = await bridge.nativeEngineStatus(currentSystem.id);
     setNativeStatus(status);
+    writeCachedNativeStatus(currentSystem.id, status);
     return status;
   };
 
   useEffect(() => {
-    void refreshNativeStatus().catch(() => setNativeStatus(null));
+    if (!canUseNativeCurrent) {
+      setNativeStatus(null);
+      return;
+    }
+    const cached = readCachedNativeStatus(currentSystem.id);
+    setNativeStatus(cached);
+    if (!cached) {
+      void refreshNativeStatus().catch(() => setNativeStatus(null));
+    }
   }, [currentSystem.id, launcherDetected]);
 
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
@@ -420,6 +454,7 @@ export default function EmulatorPage() {
       toast({ title: "Instalando motor nativo", description: `Preparando ${currentSystem.short} dentro del launcher.` });
       const status = await bridge.installNativeEngine(currentSystem.id);
       setNativeStatus(status);
+      writeCachedNativeStatus(currentSystem.id, status);
       toast({ title: "Motor nativo listo", description: `${status.engine_name} quedo instalado para ${currentSystem.short}.` });
     } catch (error: any) {
       toast({
@@ -450,11 +485,27 @@ export default function EmulatorPage() {
         if (!bridge.installNativeEngine) throw new Error("El launcher no tiene instalador nativo disponible.");
         status = await bridge.installNativeEngine(currentSystem.id);
         setNativeStatus(status);
+        writeCachedNativeStatus(currentSystem.id, status);
       }
 
       const romPath = await bridge.pickNativeRom(currentSystem.id);
       if (!romPath) return;
-      await bridge.openNativeEmulator(currentSystem.id, romPath);
+      try {
+        await bridge.openNativeEmulator(currentSystem.id, romPath);
+      } catch (error: any) {
+        clearCachedNativeStatus(currentSystem.id);
+        const freshStatus = await refreshNativeStatus().catch(() => null);
+        if (!freshStatus?.installed) {
+          setNativeStatus(freshStatus);
+          toast({
+            title: "Falta instalar el emulador",
+            description: `${status?.engine_name || currentSystem.short} ya no se encontro en este PC. Usa el boton de instalar para repararlo.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
       launchNativeSession({
         consoleName: currentSystem.id,
         gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name,

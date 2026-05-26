@@ -68,6 +68,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const [songToAdd, setSongToAdd] = useState<Song | null>(null);
   const [targetPlaylistId, setTargetPlaylistId] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
@@ -152,6 +155,10 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             event.target.mute();
             event.target.playVideo();
             window.setTimeout(() => {
+              const nextDuration = Number(event.target.getDuration?.() || 0);
+              if (Number.isFinite(nextDuration)) setDuration(nextDuration);
+            }, 500);
+            window.setTimeout(() => {
               event.target.unMute();
               fadeTimer = window.setInterval(() => {
                 setVolume((value) => {
@@ -181,6 +188,18 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
       playerRef.current = null;
     };
   }, [currentYoutubeId, hostId, songs.length]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const player = playerRef.current;
+      if (!player?.getCurrentTime) return;
+      const nextTime = Number(player.getCurrentTime() || 0);
+      const nextDuration = Number(player.getDuration?.() || duration || 0);
+      if (Number.isFinite(nextTime)) setCurrentTime(nextTime);
+      if (Number.isFinite(nextDuration) && nextDuration > 0) setDuration(nextDuration);
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [duration]);
 
   useEffect(() => {
     let animationId = 0;
@@ -248,6 +267,19 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     setVolume(safeVolume);
     playerRef.current?.setVolume?.(safeVolume);
     if (safeVolume > 0) playerRef.current?.unMute?.();
+  };
+
+  const seekTo = (nextTime: number) => {
+    const safeTime = Math.max(0, Math.min(duration || 0, nextTime));
+    setCurrentTime(safeTime);
+    playerRef.current?.seekTo?.(safeTime, true);
+  };
+
+  const formatTime = (seconds: number) => {
+    const safe = Math.max(0, Math.floor(seconds || 0));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const openAddBubble = (song: Song) => {
@@ -320,7 +352,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     <section className="relative overflow-hidden rounded border border-neon-cyan/30 bg-[#05070d]/80 p-3 shadow-[0_0_32px_rgba(34,211,238,0.12)] backdrop-blur-md">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/70 to-transparent" />
       <div className="grid gap-3 lg:grid-cols-[220px_minmax(220px,1fr)_240px] lg:items-stretch">
-        <div className="flex min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-3">
+        <div className="flex min-h-[210px] min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-3">
           <div>
             <div className="mb-3 flex items-center gap-2">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
@@ -332,35 +364,55 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
               </div>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => jump(-1)} className="grid h-8 w-8 place-items-center rounded border border-white/10 bg-white/5 text-white hover:bg-white/10" aria-label="Anterior">
-              <SkipBack className="h-3.5 w-3.5" />
+          <div className="flex flex-1 items-center justify-center gap-3">
+            <button type="button" onClick={() => jump(-1)} className="grid h-10 w-10 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Anterior">
+              <SkipBack className="h-4 w-4" />
             </button>
-            <button type="button" onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full border border-neon-cyan/45 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_18px_rgba(34,211,238,0.22)] hover:bg-neon-cyan/25" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            <button type="button" onClick={toggle} className="grid h-12 w-12 place-items-center rounded-full border border-neon-cyan/45 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_22px_rgba(34,211,238,0.28)] transition-colors hover:bg-neon-cyan/25" aria-label={isPlaying ? "Pausar" : "Reproducir"}>
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
-            <button type="button" onClick={() => jump(1)} className="grid h-8 w-8 place-items-center rounded border border-white/10 bg-white/5 text-white hover:bg-white/10" aria-label="Siguiente">
-              <SkipForward className="h-3.5 w-3.5" />
+            <button type="button" onClick={() => jump(1)} className="grid h-10 w-10 place-items-center rounded border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10" aria-label="Siguiente">
+              <SkipForward className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="relative mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setVolumeOpen((value) => !value)}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded border border-white/10 bg-white/5 text-neon-green transition-colors hover:bg-white/10"
+              aria-label="Volumen"
+            >
               <Volume2 className="h-3.5 w-3.5 text-neon-green" />
-            </span>
+            </button>
+            {volumeOpen && (
+              <div className="absolute bottom-10 left-0 z-30 flex h-32 w-10 items-center justify-center rounded border border-neon-green/35 bg-black/95 p-2 shadow-[0_0_24px_rgba(57,255,20,0.16)]">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  onChange={(event) => changeVolume(Number(event.target.value))}
+                  className="h-24 w-24 -rotate-90 accent-neon-green"
+                  aria-label="Volumen"
+                />
+              </div>
+            )}
             <input
               type="range"
               min={0}
-              max={100}
-              value={volume}
-              onChange={(event) => changeVolume(Number(event.target.value))}
+              max={Math.max(1, duration)}
+              value={Math.min(currentTime, Math.max(1, duration))}
+              onChange={(event) => seekTo(Number(event.target.value))}
               className="h-1.5 min-w-0 flex-1 accent-neon-green"
-              aria-label="Volumen"
+              aria-label="Tiempo de la canción"
             />
-            <span className="w-8 text-right text-[10px] text-muted-foreground">{volume}%</span>
+            <span className="w-16 text-right text-[10px] text-muted-foreground">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
           </div>
         </div>
 
-        <div className="min-h-[142px] overflow-hidden rounded border border-white/10 bg-black/35">
+        <div className="min-h-[210px] overflow-hidden rounded border border-white/10 bg-black/35">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
             <div className="min-w-0">
               <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
@@ -368,7 +420,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             </div>
             <span className="shrink-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-muted-foreground">{songs.length}</span>
           </div>
-          <div className="max-h-[168px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
+          <div className="max-h-[166px] space-y-1 overflow-y-auto p-2 retro-scrollbar">
             {songs.map((song, songIndex) => (
               <div
                 key={`${song.id}-${songIndex}`}
@@ -436,9 +488,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
         </div>
 
-        <div className="relative min-h-[142px] overflow-hidden rounded border border-white/10 bg-black/45">
+        <div className="relative min-h-[210px] overflow-hidden rounded border border-white/10 bg-black/45">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.14),transparent_58%)]" />
-          <canvas ref={visualizerRef} width={420} height={180} className="relative h-full min-h-[142px] w-full" />
+          <canvas ref={visualizerRef} width={420} height={210} className="relative h-full min-h-[210px] w-full" />
           <div id={hostId} className={cn("pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0", !currentYoutubeId && "hidden")} />
         </div>
       </div>
