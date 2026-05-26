@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const formatNumber = (value: number) => Math.trunc(Number(value || 0)).toLocaleString("es-CL");
 
 export default function DesktopLauncherTitleBar() {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin, isMasterWeb, isMod, isStaff } = useAuth();
   const { sessions, currentSessionIndex } = useNativeSession();
   const { toast } = useToast();
   const [visible, setVisible] = useState(() => Boolean(getLauncherBridge()));
@@ -60,10 +60,18 @@ export default function DesktopLauncherTitleBar() {
     };
   }, [profile?.total_score, user]);
 
-  const title = useMemo(() => {
-    if (activeSession?.gameName) return activeSession.gameName;
-    return profile?.display_name ? `FORBIDDENS / ${profile.display_name}` : "FORBIDDENS Launcher";
-  }, [activeSession?.gameName, profile?.display_name]);
+  const profileTitle = useMemo(() => {
+    if (!profile?.display_name) return "";
+    const parts = [profile.display_name];
+    const tier = isStaff ? "STAFF" : (profile.membership_tier || "novato").trim();
+    if (tier && tier.toLowerCase() !== "novato") parts.push(tier.toUpperCase());
+
+    if (isMasterWeb) parts.push("WebMaster");
+    else if (isAdmin) parts.push("Admin");
+    else if (isMod) parts.push("Moderador");
+
+    return parts.join(" ");
+  }, [isAdmin, isMasterWeb, isMod, isStaff, profile?.display_name, profile?.membership_tier]);
 
   const windowAction = (action: "minimize" | "toggle_maximize" | "close") => {
     void getLauncherBridge()?.launcherWindowAction?.(action);
@@ -112,12 +120,15 @@ export default function DesktopLauncherTitleBar() {
     >
       <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center gap-3 px-3">
         <div data-tauri-drag-region className="flex min-w-0 items-center gap-2">
-          <span className="grid h-6 w-6 place-items-center rounded border border-neon-red/35 bg-neon-red/10 text-[12px] shadow-[0_0_14px_rgba(222,24,57,0.22)]">
+          <span
+            className="grid h-7 w-7 place-items-center overflow-hidden rounded border border-neon-red/35 bg-black/45 bg-contain bg-center bg-no-repeat text-transparent shadow-[0_0_14px_rgba(222,24,57,0.22)]"
+            style={{ backgroundImage: "url('/forbiddens-logo.png')" }}
+          >
             ✽
           </span>
           <div data-tauri-drag-region className="min-w-0 leading-none">
             <p className="font-pixel text-[9px] uppercase tracking-[0.24em] text-neon-cyan">FORBIDDENS</p>
-            <p className="mt-0.5 max-w-[38vw] truncate text-[10px] text-white/62">{title}</p>
+            <p className="mt-0.5 max-w-[38vw] truncate font-pixel text-[8px] uppercase tracking-[0.28em] text-white/55">LAUNCHER</p>
           </div>
         </div>
 
@@ -130,10 +141,7 @@ export default function DesktopLauncherTitleBar() {
             ) : (
               <span className="h-6 w-6 rounded border border-neon-cyan/30 bg-neon-cyan/10" />
             )}
-            <span className="max-w-[140px] truncate text-[11px] font-semibold text-white/80">{profile.display_name}</span>
-            <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1 font-pixel text-[8px] uppercase text-white/45">
-              {profile.membership_tier || "novato"}
-            </span>
+            <span className="max-w-[220px] truncate text-[11px] font-semibold text-white/80">{profileTitle}</span>
           </div>
         )}
 
