@@ -6,6 +6,7 @@ commands.allow = [
   "open_external_url",
   "check_launcher_update",
   "restart_launcher",
+  "launcher_window_action",
   "native_engine_status",
   "install_native_engine",
   "pick_native_rom",

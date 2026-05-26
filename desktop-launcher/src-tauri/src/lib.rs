@@ -128,6 +128,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     launcherInfo: function () { return invoke("launcher_info"); },
     checkUpdate: function () { return invoke("check_launcher_update"); },
     restartLauncher: function () { return invoke("restart_launcher"); },
+    launcherWindowAction: function (action) { return invoke("launcher_window_action", { action: action }); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
@@ -242,6 +243,26 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn restart_launcher(app: AppHandle) {
     app.restart();
+}
+
+#[tauri::command]
+fn launcher_window_action(app: AppHandle, action: String) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Err("No se encontro la ventana principal.".to_string());
+    };
+
+    match action.trim().to_lowercase().as_str() {
+        "minimize" => window.minimize().map_err(|error| error.to_string()),
+        "toggle_maximize" | "maximize" => {
+            if window.is_maximized().map_err(|error| error.to_string())? {
+                window.unmaximize().map_err(|error| error.to_string())
+            } else {
+                window.maximize().map_err(|error| error.to_string())
+            }
+        }
+        "close" => window.close().map_err(|error| error.to_string()),
+        _ => Err("Accion de ventana no soportada.".to_string()),
+    }
 }
 
 fn check_update_on_start(app: AppHandle) {
@@ -1191,6 +1212,7 @@ pub fn run() {
             open_external_url,
             check_launcher_update,
             restart_launcher,
+            launcher_window_action,
             native_engine_status,
             install_native_engine,
             pick_native_rom,

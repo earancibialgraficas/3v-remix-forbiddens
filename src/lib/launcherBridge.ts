@@ -22,6 +22,7 @@ type LauncherBridge = {
   openExternal?: (url: string) => Promise<boolean>;
   checkUpdate?: () => Promise<string>;
   restartLauncher?: () => Promise<void>;
+  launcherWindowAction?: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => Promise<void>;
   nativeEngineStatus?: (consoleId: string) => Promise<NativeEngineStatus>;
   installNativeEngine?: (consoleId: string) => Promise<NativeEngineStatus>;
   pickNativeRom?: (consoleId: string) => Promise<string | null>;
@@ -49,6 +50,7 @@ const buildBridgeFromTauri = (): LauncherBridge | null => {
     },
     checkUpdate: () => invoke("check_launcher_update"),
     restartLauncher: () => invoke("restart_launcher"),
+    launcherWindowAction: (action: "minimize" | "toggle_maximize" | "maximize" | "close") => invoke("launcher_window_action", { action }),
     nativeEngineStatus: (consoleId: string) => invoke("native_engine_status", { consoleId }),
     installNativeEngine: (consoleId: string) => invoke("install_native_engine", { consoleId }),
     pickNativeRom: (consoleId: string) => invoke("pick_native_rom", { consoleId }),
