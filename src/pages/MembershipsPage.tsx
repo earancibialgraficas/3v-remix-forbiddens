@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
 import { Globe, Sparkles, Hammer, Crown, Ticket, Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -165,8 +166,10 @@ export default function MembershipsPage() {
   const [loading, setLoading] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [pendingPurchaseTier, setPendingPurchaseTier] = useState<any | null>(null);
+  const [membershipNotice, setMembershipNotice] = useState<{ title: string; description: string; tone?: "default" | "destructive" } | null>(null);
   const { user, profile, isAdmin, isMasterWeb, roles: currentRoles } = useAuth();
   const { toast } = useToast();
+  const modalRoot = typeof document !== "undefined" ? document.body : null;
   
   const isUnderMaintenance = false;
 
@@ -233,6 +236,10 @@ export default function MembershipsPage() {
   };
 
   // 🚀 NUEVA FUNCION DINAMICA DE COBRO:
+  const showMembershipNotice = (title: string, description: string, tone: "default" | "destructive" = "destructive") => {
+    setMembershipNotice({ title, description, tone });
+  };
+
   const speakPurchaseInfo = (tierName: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const text = `Antes de comprar ${tierName}, recuerda: la suscripcion es mensual. Recibiras un ticket en tu inventario, ese ticket no expira y puedes activarlo cuando quieras. Al usarlo, tu membresia quedara activa por treinta dias.`;
@@ -247,29 +254,13 @@ export default function MembershipsPage() {
   const openPurchaseInfo = (tier: any) => {
     if (processingTier) return;
     if (!user) {
-      toast({
-        title: "Inicia sesion",
-        description: "Debes iniciar sesion para adquirir una membresia.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!user) {
-      alert("Debes iniciar sesiÃ³n para adquirir una membresÃ­a.");
+      showMembershipNotice("Inicia sesion", "Debes iniciar sesion para adquirir una membresia.");
       return;
     }
 
     const validation = checkRequirements(tier.name);
     if (!validation.canBuy) {
-      toast({
-        title: "Requisitos pendientes",
-        description: validation.reason,
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!validation.canBuy) {
-      alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
+      showMembershipNotice("Requisitos pendientes", validation.reason);
       return;
     }
 
@@ -285,29 +276,13 @@ export default function MembershipsPage() {
   const handleCheckout = async (tierName: string, basePrice: number) => {
     if (processingTier) return;
     if (!user) {
-      toast({
-        title: "Inicia sesion",
-        description: "Debes iniciar sesion para adquirir una membresia.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!user) {
-      alert("Debes iniciar sesión para adquirir una membresía.");
+      showMembershipNotice("Inicia sesion", "Debes iniciar sesion para adquirir una membresia.");
       return;
     }
 
     const validation = checkRequirements(tierName);
     if (!validation.canBuy) {
-      toast({
-        title: "Requisitos pendientes",
-        description: validation.reason,
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!validation.canBuy) {
-      alert(`Lo sentimos, no cumples los requisitos: ${validation.reason}`);
+      showMembershipNotice("Requisitos pendientes", validation.reason);
       return;
     }
 
@@ -389,11 +364,7 @@ export default function MembershipsPage() {
     } catch (error) {
       console.error("Error en checkout:", error);
       const message = error instanceof Error ? error.message : "Error desconocido";
-      toast({
-        title: "No se pudo generar el pago",
-        description: message,
-        variant: "destructive",
-      });
+      showMembershipNotice("No se pudo generar el pago", message);
     } finally {
       setProcessingTier(null);
     }
@@ -401,9 +372,51 @@ export default function MembershipsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 px-2 sm:px-6 w-full max-w-none">
-      {pendingPurchaseTier && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[#101018] p-5 shadow-2xl shadow-neon-cyan/20">
+      {modalRoot && membershipNotice && createPortal((
+        <div className="fixed inset-0 z-[720] bg-black/80 p-4 backdrop-blur-sm">
+          <div className={cn(
+            "absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border-2 bg-[#101018] p-5 text-center shadow-2xl",
+            membershipNotice.tone === "destructive"
+              ? "border-destructive/60 shadow-destructive/20"
+              : "border-neon-cyan/50 shadow-neon-cyan/20",
+          )}>
+            <div className={cn(
+              "absolute inset-x-0 top-0 h-1",
+              membershipNotice.tone === "destructive"
+                ? "bg-gradient-to-r from-destructive via-neon-magenta to-neon-yellow"
+                : "bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-yellow",
+            )} />
+            <button
+              type="button"
+              onClick={() => setMembershipNotice(null)}
+              className="absolute right-3 top-3 rounded border border-border bg-black/30 p-1.5 text-muted-foreground hover:text-white"
+              aria-label="Cerrar aviso"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className={cn(
+              "mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border",
+              membershipNotice.tone === "destructive"
+                ? "border-destructive/45 bg-destructive/15 text-destructive"
+                : "border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan",
+            )}>
+              <Ticket className="h-6 w-6" />
+            </div>
+            <h2 className="pr-6 font-pixel text-sm uppercase text-foreground">{membershipNotice.title}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{membershipNotice.description}</p>
+            <Button
+              type="button"
+              onClick={() => setMembershipNotice(null)}
+              className="mt-5 h-10 w-full bg-neon-cyan text-black hover:bg-neon-green"
+            >
+              Entendido
+            </Button>
+          </div>
+        </div>
+      ), modalRoot)}
+      {modalRoot && pendingPurchaseTier && createPortal((
+        <div className="fixed inset-0 z-[700] bg-black/80 p-4 backdrop-blur-sm">
+          <div className="absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border-2 border-neon-cyan/50 bg-[#101018] p-5 shadow-2xl shadow-neon-cyan/20">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-yellow" />
             <button onClick={closePurchaseInfo} className="absolute right-3 top-3 rounded border border-border bg-black/30 p-1.5 text-muted-foreground hover:text-white">
               <X className="h-4 w-4" />
@@ -435,7 +448,7 @@ export default function MembershipsPage() {
             </div>
           </div>
         </div>
-      )}
+      ), modalRoot)}
       
       {/* Header adaptable */}
       <div className="text-center space-y-3 pt-4">

@@ -3,8 +3,14 @@
   "identifier": "main",
   "description": "Main launcher permissions",
   "windows": ["main"],
+  "webviews": ["main"],
   "remote": {
-    "urls": ["https://forbiddens.net/*"]
+    "urls": [
+      "https://forbiddens.net",
+      "https://forbiddens.net/*",
+      "https://www.forbiddens.net",
+      "https://www.forbiddens.net/*"
+    ]
   },
   "permissions": [
     "core:default",

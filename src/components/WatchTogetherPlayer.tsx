@@ -571,6 +571,8 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
     setIsPlaying(nextPlaying);
     setNewUrl("");
     setNewTitle("");
+    setAddOpen(false);
+    setPlaylistOpen(true);
     publishState({ playlist: nextPlaylist, currentIndex: nextIndex, isPlaying: nextPlaying, position: playlist.length ? currentTime : 0, startedAt: Date.now() });
   };
 
@@ -606,8 +608,8 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
   const addVideoForm = (
     <div className="space-y-1.5">
       <div className="flex gap-1">
-        <Input value={newUrl} onChange={(event) => handleUrlChange(event.target.value)} placeholder="URL YouTube" className="h-7 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]" onKeyDown={(event) => { if (event.key === "Enter") void addVideo(); }} />
-        <Button size="icon" variant="secondary" className="h-7 w-7 shrink-0" onClick={() => void addVideo()} title="Agregar" aria-label="Agregar"><Plus className="h-3.5 w-3.5" /></Button>
+        <Input value={newUrl} onChange={(event) => handleUrlChange(event.target.value)} placeholder="URL YouTube" className="h-8 min-w-0 border-white/10 bg-black/60 px-2 text-[10px]" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Enter") void addVideo(); }} />
+        <Button size="icon" variant="secondary" className="h-8 w-8 shrink-0" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); void addVideo(); }} title="Agregar" aria-label="Agregar"><Plus className="h-3.5 w-3.5" /></Button>
       </div>
     </div>
   );
@@ -714,8 +716,15 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <span className="w-9 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
+      <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3 w-3" /></Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3 w-3" /></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}</Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3 w-3" /></Button>
+        </div>
+        <span className="w-8 shrink-0 font-pixel text-[6px] text-neon-cyan">{formatTime(currentTime)}</span>
         <Slider
           value={[Math.min(currentTime, effectiveDuration || Math.max(currentTime, 1))]}
           min={0}
@@ -728,23 +737,13 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         />
         <span className="w-9 shrink-0 text-right font-pixel text-[6px] text-muted-foreground">{effectiveDuration ? formatTime(effectiveDuration) : "--:--"}</span>
       </div>
-
-      <div className="mt-1 flex items-center justify-center gap-1.5">
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex - 1)} disabled={!playlist.length} title="Anterior" aria-label="Anterior"><SkipBack className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => seekRelative(-10)} disabled={!current} title="Retroceder 10 segundos" aria-label="Retroceder 10 segundos"><span className="font-pixel text-[8px]">-10</span></Button>
-        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={playPause} disabled={!current} title={isPlaying ? "Pausar" : "Reproducir"} aria-label={isPlaying ? "Pausar" : "Reproducir"}>{isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => seekRelative(10)} disabled={!current} title="Adelantar 10 segundos" aria-label="Adelantar 10 segundos"><span className="font-pixel text-[8px]">+10</span></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => jumpTo(currentIndex + 1)} disabled={!playlist.length} title="Siguiente" aria-label="Siguiente"><SkipForward className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setVolumeOpen((value) => !value); setSettingsOpen(false); }} title="Volumen" aria-label="Volumen">{muted || volume <= 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}</Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => { setSettingsOpen((value) => !value); setVolumeOpen(false); }} title="Configuracion YouTube" aria-label="Configuracion YouTube"><Settings className="h-3.5 w-3.5" /></Button>
-      </div>
     </div>
   ) : null;
 
   const controls = sideControls;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black">
+    <div className="relative flex h-full min-h-0 flex-col bg-black">
       <div className="relative min-h-0 flex-1 bg-black" onMouseMove={revealVideoHud} onPointerMove={revealVideoHud} onPointerDown={revealVideoHud}>
         {current ? (
           <iframe
@@ -765,6 +764,9 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
             <ListVideo className="h-10 w-10 text-neon-cyan" />
             <p className="font-pixel text-[12px] uppercase text-neon-cyan">Watch Together</p>
             <p className="max-w-md text-xs text-muted-foreground">Agrega un link de YouTube para iniciar una lista sincronizada con la sala.</p>
+            <div data-watch-controls-root="true" className="mt-2 w-full max-w-md rounded border border-neon-cyan/20 bg-black/55 p-3 backdrop-blur-md">
+              {addVideoForm}
+            </div>
           </div>
         )}
         {current && (
@@ -782,7 +784,11 @@ export default function WatchTogetherPlayer({ roomCode, userName, userId, player
         {bottomHud}
       </div>
 
-      {controlsElement ? createPortal(controls, controlsElement) : null}
+      {controlsElement ? createPortal(controls, controlsElement) : (
+        <div className="absolute right-3 top-3 z-30 w-[min(300px,calc(100%-24px))] overflow-hidden rounded border border-white/10 bg-black/70 backdrop-blur-md">
+          {controls}
+        </div>
+      )}
     </div>
   );
 }

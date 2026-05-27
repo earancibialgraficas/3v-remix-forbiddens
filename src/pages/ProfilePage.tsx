@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
 import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Clock, Gem } from "lucide-react";
@@ -194,7 +194,7 @@ export default function ProfilePage() {
     };
   }, [activeTab, user?.id]);
 
-  // 🔄 Auto-expirar membresías vencidas al entrar al perfil
+  // ðŸ”„ Auto-expirar membresÃ­as vencidas al entrar al perfil
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
@@ -253,8 +253,8 @@ export default function ProfilePage() {
       try {
         const items: {type: string; name: string; size: number; id?: string; created_at?: string}[] = [];
         
-        // 🔥 SOLO CARGAMOS PARTIDAS REALES DESDE EL NAVEGADOR 🔥
-        // Ya no consultamos la tabla leaderboard_scores porque ahí solo están los puntos.
+        // ðŸ”¥ SOLO CARGAMOS PARTIDAS REALES DESDE EL NAVEGADOR ðŸ”¥
+        // Ya no consultamos la tabla leaderboard_scores porque ahÃ­ solo estÃ¡n los puntos.
         try {
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('save_slots_')) {
@@ -304,8 +304,8 @@ export default function ProfilePage() {
 
   const handleClearNotifications = async () => {
     if (!user) return;
-    if (!confirm("¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
-    // Pedimos los IDs borrados para confirmar que la base de datos realmente eliminó algo
+    if (!confirm("Â¿Deseas limpiar todo tu historial de notificaciones de forma permanente?")) return;
+    // Pedimos los IDs borrados para confirmar que la base de datos realmente eliminÃ³ algo
     const { data: deleted, error } = await supabase
       .from("notifications")
       .delete()
@@ -317,8 +317,8 @@ export default function ProfilePage() {
     }
     if (!deleted || deleted.length === 0) {
       toast({
-        title: "No se eliminó nada",
-        description: "La base de datos no permitió borrar (posible RLS faltante de DELETE). Avisa al admin.",
+        title: "No se eliminÃ³ nada",
+        description: "La base de datos no permitiÃ³ borrar (posible RLS faltante de DELETE). Avisa al admin.",
         variant: "destructive",
       });
       fetchNotifs();
@@ -334,10 +334,10 @@ export default function ProfilePage() {
     try {
       const { data, error } = await supabase.from("friend_requests").update({ status: "accepted" } as any).eq("id", reqId).select();
       if (error || !data || data.length === 0) { toast({ title: "Error", description: "No se pudo modificar.", variant: "destructive" }); return; }
-      toast({ title: "¡Solicitud aceptada!" });
+      toast({ title: "Â¡Solicitud aceptada!" });
       setPendingRequests(prev => (prev || []).filter(r => r.id !== reqId));
       await supabase.from("friend_requests").delete().eq("sender_id", senderId).eq("receiver_id", user.id).neq("id", reqId);
-      if (senderId) { await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || 'Un usuario'} aceptó tu solicitud de amistad.`, related_id: user.id } as any); }
+      if (senderId) { await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: senderId, type: "friend_accepted", title: "Solicitud aceptada", body: `${profile?.display_name || 'Un usuario'} aceptÃ³ tu solicitud de amistad.`, related_id: user.id } as any); }
       await supabase.from("notifications").insert({ id: crypto.randomUUID(), user_id: user.id, type: "general", title: "Amistad Aceptada", body: `Aceptaste la solicitud de amistad de ${senderName}.`, is_read: true } as any);
       fetchNotifs(); if (activeTab === "friends") window.location.reload();
     } catch(e: any) { toast({ title: "Error fatal", description: e.message, variant: "destructive" }); }
@@ -412,15 +412,15 @@ export default function ProfilePage() {
     { id: "storage" as const, label: "Storage", icon: Gamepad2 },
     { id: "guardados" as const, label: "Guardados", icon: Bookmark },
     { id: "inventario" as const, label: "Inventario", icon: InventoryIcon },
-    ...(isStaff ? [{ id: "moderation" as const, label: "Moderación", icon: Shield }] : []),
+    ...(isStaff ? [{ id: "moderation" as const, label: "ModeraciÃ³n", icon: Shield }] : []),
   ];
 
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 animate-fade-in">
         <User className="w-12 h-12 text-muted-foreground" />
-        <p className="text-sm font-body text-muted-foreground">Inicia sesión para ver tu perfil</p>
-        <Button asChild><Link to="/login">Iniciar Sesión</Link></Button>
+        <p className="text-sm font-body text-muted-foreground">Inicia sesiÃ³n para ver tu perfil</p>
+        <Button asChild><Link to="/login">Iniciar SesiÃ³n</Link></Button>
       </div>
     );
   }
@@ -442,7 +442,7 @@ export default function ProfilePage() {
         document.body
       )}
       
-      {showRoleIconSelector && <RoleIconSelector currentIcon={profile?.role_icon || "⭐"} onSelect={handleRoleIconSelect} onClose={() => setShowRoleIconSelector(false)} />}
+      {showRoleIconSelector && <RoleIconSelector currentIcon={profile?.role_icon || "â­"} onSelect={handleRoleIconSelect} onClose={() => setShowRoleIconSelector(false)} />}
 
       {showColorPicker && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
@@ -451,9 +451,9 @@ export default function ProfilePage() {
             <div className="flex justify-between items-center mb-4"><h3 className="font-pixel text-[11px] text-primary">PALETA DE COLORES</h3><button onClick={() => setShowColorPicker(false)} className="text-muted-foreground hover:text-white"><X className="w-4 h-4" /></button></div>
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">¿Qué deseas pintar?</label>
+                <label className="text-[10px] font-body text-muted-foreground uppercase mb-2 block">Â¿QuÃ© deseas pintar?</label>
                 <select value={colorTarget} onChange={(e) => setColorTarget(e.target.value as any)} className="w-full bg-muted border border-border rounded p-2 text-xs font-body">
-                  <option value="border">Borde de Avatar</option><option value="name">Nombre de Usuario</option>{isStaff ? <option value="staff">Rango de Staff</option> : <option value="role">Rango de Membresía</option>}<option disabled value="separator">──────────</option><option value="stat_points">Stat: Puntos</option><option value="stat_followers">Stat: Seguidores</option><option value="stat_following">Stat: Siguiendo</option><option value="stat_posts_forum">Stat: Posts Foro</option><option value="stat_posts_social">Stat: Posts Social</option><option value="stat_games">Stat: Juegos</option>
+                  <option value="border">Borde de Avatar</option><option value="name">Nombre de Usuario</option>{isStaff ? <option value="staff">Rango de Staff</option> : <option value="role">Rango de MembresÃ­a</option>}<option disabled value="separator">â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€</option><option value="stat_points">Stat: Puntos</option><option value="stat_followers">Stat: Seguidores</option><option value="stat_following">Stat: Siguiendo</option><option value="stat_posts_forum">Stat: Posts Foro</option><option value="stat_posts_social">Stat: Posts Social</option><option value="stat_games">Stat: Juegos</option>
                 </select>
               </div>
               <div>
@@ -484,6 +484,30 @@ export default function ProfilePage() {
               </button>
             </div>
             <div className="p-3 sm:p-4">
+              <div className="mb-4 rounded-lg border border-neon-cyan/20 bg-black/25 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Perfil publico</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground font-body">Revisa como ven tu perfil otros usuarios.</p>
+                  </div>
+                  <Button size="sm" variant="outline" asChild className="h-8 text-[10px] font-pixel uppercase">
+                    <Link to={`/usuario/${user.id}`} onClick={() => setShowConfigModal(false)}>
+                      Ver perfil publico
+                    </Link>
+                  </Button>
+                </div>
+                {isStaff && (
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                    <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="h-8 text-[10px] gap-1">
+                      <span>{profile?.role_icon || "â­"}</span> Icono Rol
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="h-8 text-[10px] gap-1">
+                      {profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}
+                    </Button>
+                  </div>
+                )}
+              </div>
               <ConfiguracionTab user={user} profile={profile} refreshProfile={refreshProfile} displayTier={displayTier} userTier={userTier} canUseSignature={canUseSignature} canAdvancedSignature={canAdvancedSignature} onClose={() => setShowConfigModal(false)} />
             </div>
           </div>
@@ -506,15 +530,15 @@ export default function ProfilePage() {
               <RoleBadge roles={safeRoles} roleIcon={profile?.role_icon} showIcon={profile?.show_role_icon !== false} colorStaffRole={profile?.color_staff_role} />
             </div>
             
-            <p className={cn("text-xs text-muted-foreground font-body mt-1", isMobile ? "text-center" : "")}>{profile?.bio || "Sin descripción"}</p>
+            <p className={cn("text-xs text-muted-foreground font-body mt-1", isMobile ? "text-center" : "")}>{profile?.bio || "Sin descripciÃ³n"}</p>
             
             <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
-              {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
+              {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÃTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
               {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3 h-3" /> {membershipRemaining}</span>}
               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} STAT</span>
               <span className="text-[10px] font-body text-[#f7d28b] flex items-center gap-1"><Gem className="w-3 h-3" /> {fcoinBalance.toLocaleString()} F-coin</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
-              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores · {followingCount} siguiendo</span>
+              <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores Â· {followingCount} siguiendo</span>
             </div>
             
             {(profile?.instagram_url || profile?.youtube_url || profile?.tiktok_url) && (
@@ -530,18 +554,16 @@ export default function ProfilePage() {
               {!isStaff && <Button size="sm" variant="outline" asChild className="text-xs"><Link to="/membresias">Actualizar Plan</Link></Button>}
               {!isStaff && userTierStr !== "novato" && (
                 <Button size="sm" variant="outline" onClick={async () => {
-                  if (!confirm("¿Seguro que quieres cancelar tu membresía? Volverás a Novato y perderás los beneficios.")) return;
+                  if (!confirm("Â¿Seguro que quieres cancelar tu membresÃ­a? VolverÃ¡s a Novato y perderÃ¡s los beneficios.")) return;
                   const { error } = await supabase.from("profiles").update({ membership_tier: "novato", membership_expires_at: null } as any).eq("user_id", user.id);
                   if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-                  toast({ title: "Membresía cancelada", description: "Tu plan ahora es Novato." });
+                  toast({ title: "MembresÃ­a cancelada", description: "Tu plan ahora es Novato." });
                   refreshProfile();
                 }} className="text-xs gap-1 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive">
-                  <X className="w-3 h-3" /> Cancelar Membresía
+                  <X className="w-3 h-3" /> Cancelar MembresÃ­a
                 </Button>
               )}
               {canUseColors && <Button size="sm" variant="outline" onClick={() => setShowColorPicker(true)} className="text-xs gap-1"><Palette className="w-3 h-3" /> Colores</Button>}
-              {isStaff && <Button size="sm" variant="outline" onClick={() => setShowRoleIconSelector(true)} className="text-xs gap-1"><span>{profile?.role_icon || "⭐"}</span> Icono Rol</Button>}
-              {isStaff && <Button size="sm" variant="outline" onClick={toggleShowRoleIcon} className="text-xs gap-1">{profile?.show_role_icon !== false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}{profile?.show_role_icon !== false ? "Ocultar Icono" : "Mostrar Icono"}</Button>}
             </div>
           </div>
         </div>
@@ -567,7 +589,7 @@ export default function ProfilePage() {
         }}
       />
 
-      {/* 🔥 MENÚ DE PESTAÑAS RESPONSIVO CON LÓGICA ROJA 🔥 */}
+      {/* ðŸ”¥ MENÃš DE PESTAÃ‘AS RESPONSIVO CON LÃ“GICA ROJA ðŸ”¥ */}
       <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
@@ -588,7 +610,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS */}
+      {/* CONTENIDO DE LAS PESTAÃ‘AS */}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
       {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} fcoinBalance={fcoinBalance} bingoFcoinNet={bingoFcoinNet} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
@@ -602,3 +624,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

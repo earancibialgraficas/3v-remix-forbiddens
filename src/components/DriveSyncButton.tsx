@@ -6,9 +6,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from '@/lib/driveRomUtils';
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from '@/lib/driveCoverBackup';
+import { getLauncherBridge } from '@/lib/launcherBridge';
 
 const DRIVE_SYNC_RESUME_KEY = 'drive_sync_resume_after_reload';
 const DRIVE_SYNC_RELOAD_KEY = 'drive_sync_oauth_reload_attempted';
+const DRIVE_SYNC_OAUTH_STATE_KEY = 'drive_sync_oauth_external_state';
+const DRIVE_SYNC_OAUTH_RETURN_KEY = 'drive_sync_oauth_return_path';
+
+const encodeDriveOAuthState = (returnPath: string) => {
+  const payload = JSON.stringify({
+    v: 1,
+    nonce: crypto.randomUUID(),
+    returnPath,
+  });
+  return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+};
 
 export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) {
   const { toast } = useToast();
@@ -125,6 +137,35 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
 
     sessionStorage.removeItem(DRIVE_SYNC_RELOAD_KEY);
 
+    const launcher = getLauncherBridge();
+    if (launcher?.openExternal) {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        toast({ title: 'Google no configurado', description: 'Falta VITE_GOOGLE_CLIENT_ID.', variant: 'destructive' });
+        return;
+      }
+      const returnPath = `${window.location.pathname}${window.location.search}` || '/perfil?tab=storage';
+      const state = encodeDriveOAuthState(returnPath);
+      localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
+      localStorage.setItem(DRIVE_SYNC_OAUTH_RETURN_KEY, returnPath);
+      const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || `${window.location.origin}/`;
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: 'token',
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+        include_granted_scopes: 'true',
+        prompt: 'consent select_account',
+        state,
+      });
+      void launcher.openExternal(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+      toast({
+        title: 'Autoriza Google en tu navegador',
+        description: 'Se abrió Google fuera del launcher. Al volver a FORBIDDENS se sincronizará tu Drive.',
+      });
+      return;
+    }
+
     const google = (window as any).google;
     if (!isGoogleLoaded || !google) {
       toast({ title: 'Google aún no cargó', description: 'Espera un momento e inténtalo de nuevo.', variant: 'destructive' });
@@ -159,6 +200,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
     }, 90_000);
 
     try {
+      const launcher = getLauncherBridge();
       const client = google.accounts.oauth2.initTokenClient({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
@@ -185,7 +227,12 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
           console.error('[DriveSync] error_callback', err);
           setIsSyncing(false);
           const type = err?.type || 'unknown';
-          const msg = type === 'popup_closed'
+          if (launcher && (type === 'popup_failed_to_open' || type === 'popup_closed')) {
+            launcher.openExternal?.(window.location.href);
+          }
+          const msg = launcher && (type === 'popup_failed_to_open' || type === 'popup_closed')
+            ? 'Google bloqueó la autorización dentro del launcher. Abrí esta misma sección en tu navegador para vincular Drive mientras preparamos el flujo nativo.'
+            : type === 'popup_closed'
             ? 'Google cerró la ventana antes de entregar permisos. Si estás en el preview, abre la app en pestaña propia o publicada e inténtalo otra vez.'
             : type === 'popup_failed_to_open'
               ? 'El navegador bloqueó el popup de Google. Permite popups para este sitio e intenta de nuevo.'
@@ -322,10 +369,41 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
   };
 
   useEffect(() => {
+    if (!user || isSyncing) return;
+    const hash = window.location.hash?.startsWith("#") ? window.location.hash.slice(1) : "";
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token = params.get("access_token");
+    const state = params.get("state");
+    const expectedState = localStorage.getItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+    if (!token || !state || state !== expectedState) return;
+
+    localStorage.removeItem(DRIVE_SYNC_OAUTH_STATE_KEY);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    const expiresIn = Number(params.get("expires_in") || 3300);
+    const ttlMs = Math.max(60_000, expiresIn * 1000 - 60_000);
+    localStorage.setItem("drive_access_token", token);
+    localStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    localStorage.setItem("drive_linked_until", (Date.now() + 24 * 60 * 60 * 1000).toString());
+    sessionStorage.setItem("drive_access_token", token);
+    sessionStorage.setItem("drive_token_expiry", (Date.now() + ttlMs).toString());
+    setIsSyncing(true);
+    void fetchAndSaveRoms(token);
+  }, [user, isSyncing]);
+
+  useEffect(() => {
     if (!user || isLoadingState || isSyncing || !isGoogleLoaded) return;
     if (sessionStorage.getItem(DRIVE_SYNC_RESUME_KEY) !== '1') return;
 
     sessionStorage.removeItem(DRIVE_SYNC_RESUME_KEY);
+    const cachedToken = localStorage.getItem('drive_access_token') || sessionStorage.getItem('drive_access_token');
+    const tokenExpiry = Number(localStorage.getItem('drive_token_expiry') || sessionStorage.getItem('drive_token_expiry') || 0);
+    if (cachedToken && (!tokenExpiry || Date.now() < tokenExpiry)) {
+      setIsSyncing(true);
+      window.setTimeout(() => void fetchAndSaveRoms(cachedToken), 150);
+      return;
+    }
+
     window.setTimeout(() => handleSync(), 150);
   }, [user, isLoadingState, isSyncing, isGoogleLoaded]);
 
