@@ -66,7 +66,7 @@ struct NativeEmulatorWindowStateEvent {
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.5_x64-setup.exe";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.6_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
