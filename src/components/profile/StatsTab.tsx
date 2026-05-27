@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Gamepad2, Gem, Medal, X } from "lucide-react";
+import { Gem, Medal, X } from "lucide-react";
 import AchievementsTab from "@/components/profile/AchievementsTab";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const safeStr = (val: any) => (val ? String(val) : "");
+import GameScoreList from "@/components/profile/GameScoreList";
 
 export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, fcoinBalance = 0, bingoFcoinNet = 0, displayTier, isStaff, statColors }: any) {
   const [showAchievements, setShowAchievements] = useState(false);
@@ -65,16 +64,7 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
       </div>
       {bestScores.length > 0 && (
         <div className="mt-4">
-          <h4 className="font-pixel text-[10px] text-neon-green mb-2 flex items-center justify-center md:justify-start gap-1 uppercase"><Gamepad2 className="w-3 h-3" /> Puntajes por Juego</h4>
-          <div className="space-y-1">
-            {bestScores.map((gs: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 bg-muted/30 rounded px-3 py-1.5 text-xs font-body">
-                <span className={cn("font-pixel text-[9px]", safeStr(gs?.console_type) === "nes" ? "text-neon-green" : safeStr(gs?.console_type) === "snes" ? "text-neon-cyan" : "text-neon-magenta")}>{safeStr(gs?.console_type).toUpperCase()}</span>
-                <span className="flex-1 text-foreground truncate">{gs.game_name}</span>
-                <span className="text-neon-green font-bold">{gs.score.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
+          <GameScoreList scores={bestScores} title="Puntajes por Juego" emptyText="No tienes records registrados" maxHeightClass="max-h-72" />
         </div>
       )}
     </div>

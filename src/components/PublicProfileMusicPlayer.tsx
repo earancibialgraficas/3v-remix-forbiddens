@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, ChevronUp, ListMusic, Music, Pause, Play, Plus, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Check, ChevronUp, ListMusic, Music, Pause, Play, Plus, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -385,10 +385,38 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
         <div className="absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-card to-transparent sm:block" />
       </div>
 
-      <div className="relative z-10 grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(250px,330px)] sm:max-w-[70%] lg:max-w-[72%]">
+      <button
+        type="button"
+        onClick={() => setCompactPlaylistOpen((value) => !value)}
+        className="absolute left-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full border border-neon-cyan/35 bg-black/60 text-neon-cyan shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur-md transition-colors hover:bg-neon-cyan/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/70"
+        title={compactPlaylistOpen ? "Ocultar playlist" : "Abrir playlist"}
+        aria-label={compactPlaylistOpen ? "Ocultar playlist" : "Abrir playlist"}
+      >
+        {compactPlaylistOpen ? <ChevronUp className="h-4 w-4" /> : <ListMusic className="h-4 w-4" />}
+      </button>
+
+      <div
+        className={cn(
+          "absolute left-2 top-12 z-30 w-[min(340px,calc(100%-1rem))] origin-top-left rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl transition-all duration-300 ease-out",
+          compactPlaylistOpen
+            ? "translate-x-0 translate-y-0 skew-y-0 opacity-100"
+            : "pointer-events-none -translate-x-16 -translate-y-8 -skew-y-3 opacity-0",
+        )}
+      >
+        <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/10 pb-2 pl-9">
+          <div className="min-w-0">
+            <p className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
+          </div>
+          <span className="shrink-0 font-pixel text-[8px] text-neon-green">{songs.length}</span>
+        </div>
+        {playlistRows(true)}
+      </div>
+
+      <div className="relative z-10 p-3 sm:max-w-[70%] lg:max-w-[58%]">
         <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
+          <div className="flex items-center gap-2 pl-11 sm:pl-10">
+            <span className="shrink-0 text-neon-cyan drop-shadow-[0_0_8px_rgba(34,211,238,0.75)]">
               <Music className="h-4 w-4" />
             </span>
             <div className="min-w-0 leading-none">
@@ -399,7 +427,18 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
           <div className="py-3">
             <p className="mb-1 truncate text-[10px] text-muted-foreground">Playlist de {displayName}</p>
-            <p className="line-clamp-2 text-sm font-semibold text-foreground">{current.title || "Cancion de YouTube"}</p>
+            <div className="relative h-8 overflow-hidden">
+              <div className="flex w-max animate-marquee-x whitespace-nowrap">
+                {[0, 1, 2].map((copy) => (
+                  <span
+                    key={copy}
+                    className="pr-8 font-pixel text-[10px] uppercase leading-8 text-neon-cyan drop-shadow-[0_0_7px_rgba(34,211,238,0.75)]"
+                  >
+                    {current.title || "Cancion de YouTube"} / 
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center justify-center gap-3 py-1">
@@ -416,6 +455,36 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
           <div className="space-y-2">
             <div className="flex items-center gap-2 rounded border border-white/5 bg-muted/20 px-2 py-1.5">
+              <div className="group relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => changeVolume(volume <= 0 ? 58 : 0)}
+                  className="grid h-8 w-8 place-items-center rounded-full text-neon-green transition-colors hover:bg-neon-green/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-green/60"
+                  aria-label={volume <= 0 ? "Activar volumen" : "Silenciar"}
+                  title={volume <= 0 ? "Activar volumen" : "Silenciar"}
+                >
+                  {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+                <div className="pointer-events-none absolute bottom-[calc(100%-2px)] left-0 z-40 flex translate-y-1 items-center gap-1 rounded-full border border-neon-green/30 bg-black/90 px-2 py-1 opacity-0 shadow-[0_0_18px_rgba(57,255,20,0.16)] backdrop-blur-md transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => changeVolume(volume - 10)}
+                    className="grid h-6 w-6 place-items-center rounded-full border border-white/10 text-[13px] leading-none text-white/75 transition-colors hover:border-neon-magenta/50 hover:text-neon-magenta"
+                    aria-label="Bajar volumen"
+                  >
+                    -
+                  </button>
+                  <span className="w-9 text-center font-pixel text-[8px] text-neon-green tabular-nums">{volume}%</span>
+                  <button
+                    type="button"
+                    onClick={() => changeVolume(volume + 10)}
+                    className="grid h-6 w-6 place-items-center rounded-full border border-white/10 text-[13px] leading-none text-white/75 transition-colors hover:border-neon-green/50 hover:text-neon-green"
+                    aria-label="Subir volumen"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
               <input
                 type="range"
                 min={0}
@@ -425,62 +494,10 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                 className="h-1.5 min-w-0 flex-1 accent-neon-green"
                 aria-label="Tiempo de la cancion"
               />
-              <button
-                type="button"
-                onClick={() => changeVolume(volume <= 0 ? 58 : 0)}
-                className="grid h-7 w-7 shrink-0 place-items-center rounded text-neon-green transition-colors hover:bg-neon-green/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-green/60"
-                aria-label={volume <= 0 ? "Activar volumen" : "Silenciar"}
-                title={volume <= 0 ? "Activar volumen" : "Silenciar"}
-              >
-                {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={volume}
-                onChange={(event) => changeVolume(Number(event.target.value))}
-                className="h-1.5 w-20 shrink-0 accent-neon-green sm:w-24"
-                aria-label="Volumen"
-                title={`Volumen ${volume}%`}
-              />
-              <span className="w-16 text-right text-[10px] text-muted-foreground">
+              <span className="w-16 shrink-0 text-right text-[10px] text-muted-foreground">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setCompactPlaylistOpen((value) => !value)}
-              className="flex h-8 w-full items-center justify-between rounded border border-white/10 bg-white/5 px-2 text-left text-[10px] text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground lg:hidden"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <ListMusic className="h-3.5 w-3.5 shrink-0 text-neon-cyan" />
-                <span className="truncate">{playlist.name}</span>
-              </span>
-              {compactPlaylistOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
-
-            {compactPlaylistOpen && (
-              <div className="rounded border border-white/10 bg-black/30 p-1.5 lg:hidden">
-                {playlistRows(true)}
-              </div>
-            )}
-
-            <div className="text-right font-pixel text-[8px] text-neon-green tabular-nums">{volume}%</div>
-          </div>
-        </div>
-
-        <div className="hidden min-h-[188px] min-w-0 rounded border border-white/10 bg-black/35 lg:block">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
-            <div className="min-w-0">
-              <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
-              <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
-            </div>
-            <span className="shrink-0 rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-muted-foreground">{songs.length}</span>
-          </div>
-          <div className="p-2">
-            {playlistRows()}
           </div>
         </div>
       </div>

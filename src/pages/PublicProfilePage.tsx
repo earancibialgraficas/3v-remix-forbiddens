@@ -2,7 +2,7 @@ import { handleMembershipError } from "@/components/UpgradeModal";
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Gamepad2, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X, Check } from "lucide-react";
+import { User, Trophy, Star, Instagram, Youtube, Globe, Calendar, UserPlus, UserMinus, MessageSquare, Users, Ban, Flag, Bookmark, Shield, Trash2, Copy, User as UserIcon, Clock, PlayCircle, X, Check, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ import { stripHtmlToText } from "@/lib/htmlContent";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import PublicProfileMusicPlayer from "@/components/PublicProfileMusicPlayer";
+import GameScoreList from "@/components/profile/GameScoreList";
 
 interface PublicProfile {
   user_id: string;
@@ -142,6 +143,8 @@ export default function PublicProfilePage() {
   const [socialContentCount, setSocialContentCount] = useState(0);
   const [totalForumPosts, setTotalForumPosts] = useState(0);
   const [userSocialMedia, setUserSocialMedia] = useState<any[]>([]);
+  const [fcoinBalance, setFcoinBalance] = useState(0);
+  const [socialCarouselIndex, setSocialCarouselIndex] = useState(0);
 
   const [friendToRemove, setFriendToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -202,7 +205,7 @@ export default function PublicProfilePage() {
       }
 
       const [
-        { data: scores }, { data: posts }, { count: socialCount }, { count: photosCount }, { count: forumPostsCount }, { data: rawSocialContent }, { data: rawPhotos }
+        { data: scores }, { data: posts }, { count: socialCount }, { count: photosCount }, { count: forumPostsCount }, { data: rawSocialContent }, { data: rawPhotos }, { data: walletRow }
       ] = await Promise.all([
         supabase.from("leaderboard_scores").select("game_name, console_type, score").eq("user_id", userId).order("score", { ascending: false }),
         supabase.from("posts").select("id, title, content, category, upvotes, created_at").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(20),
@@ -210,13 +213,15 @@ export default function PublicProfilePage() {
         supabase.from("photos").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("is_banned", true),
         supabase.from("social_content").select("*").eq("user_id", userId).eq("is_public", true).neq("is_banned", true).order("created_at", { ascending: false }).limit(15),
-        supabase.from("photos").select("*").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(15)
+        supabase.from("photos").select("*").eq("user_id", userId).neq("is_banned", true).order("created_at", { ascending: false }).limit(15),
+        (supabase as any).from("point_wallets").select("balance").eq("user_id", userId).maybeSingle()
       ]);
       
       if (scores) setGameScores(scores as any);
       if (posts) setUserPosts(posts);
       setSocialContentCount((socialCount || 0) + (photosCount || 0));
       setTotalForumPosts(forumPostsCount || 0);
+      setFcoinBalance(Number((walletRow as any)?.balance || 0));
       
       let combinedSocial = [];
       if (rawSocialContent) combinedSocial.push(...rawSocialContent.map(s => ({...s, target_type: 'social_content'})));
@@ -241,6 +246,18 @@ export default function PublicProfilePage() {
     };
     fetchProfile();
   }, [userId, user]);
+
+  useEffect(() => {
+    setSocialCarouselIndex(0);
+  }, [userId, userSocialMedia.length]);
+
+  useEffect(() => {
+    if (userSocialMedia.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setSocialCarouselIndex((value) => (value + 1) % userSocialMedia.length);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, [userSocialMedia.length]);
 
   const handleFollow = async () => {
     if (!user || !userId) { toast({ title: "Inicia sesión para seguir", variant: "destructive" }); return; }
@@ -328,6 +345,7 @@ export default function PublicProfilePage() {
   const statPoints = Math.max(0, Number(profile.total_score || 0));
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
   const membershipRemaining = !isStaffVisual && profile.membership_tier?.toLowerCase() !== "novato" ? formatMembershipRemaining(profile.membership_expires_at) : null;
+  const activeSocialItem = userSocialMedia.length ? userSocialMedia[socialCarouselIndex % userSocialMedia.length] : null;
 
   const getSafePostDate = (dateStr: string) => {
     if (!dateStr) return "Recientemente";
@@ -395,6 +413,7 @@ export default function PublicProfilePage() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {[
             { val: statPoints.toLocaleString(), label: "Puntos", color: "text-neon-green" },
+            { val: fcoinBalance.toLocaleString("es-CL"), label: "F-coins", color: "text-[#f7d28b]", icon: Gem },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
             { val: followingCount, label: "Siguiendo", color: "text-foreground" },
             { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },
@@ -407,7 +426,10 @@ export default function PublicProfilePage() {
             },
           ].map((s, i) => (
             <div key={i} className="bg-muted/20 border border-white/5 rounded p-3 text-center flex flex-col justify-center min-h-[75px] hover:bg-muted/40 transition-colors w-full min-w-0 overflow-hidden">
-              <p className={cn("text-lg font-bold font-body truncate", s.color)}>{s.val}</p>
+              <p className={cn("flex items-center justify-center gap-1 text-lg font-bold font-body truncate", s.color)}>
+                {s.icon && <s.icon className="h-4 w-4 shrink-0" />}
+                {s.val}
+              </p>
               <p className="text-[9px] text-muted-foreground font-pixel uppercase mt-1.5 truncate leading-tight">{s.label}</p>
             </div>
           ))}
@@ -416,19 +438,8 @@ export default function PublicProfilePage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         
-        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
-          <h3 className="font-pixel text-[10px] text-neon-green mb-3 flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> PUNTAJES POR JUEGO</h3>
-          <div className="space-y-1 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
-            {bestScores.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No tiene récords registrados</p> : 
-              bestScores.map((gs, i) => (
-                <div key={i} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
-                  <span className={cn("font-pixel text-[8px] px-1.5 py-0.5 rounded shrink-0", gs.console_type === "nes" ? "bg-neon-green/10 text-neon-green" : gs.console_type === "snes" ? "bg-neon-cyan/10 text-neon-cyan" : "bg-neon-magenta/10 text-neon-magenta")}>{gs.console_type.toUpperCase()}</span>
-                  <span className="flex-1 text-foreground truncate font-medium">{gs.game_name}</span>
-                  <span className="text-neon-green font-bold drop-shadow-sm shrink-0">{gs.score.toLocaleString()}</span>
-                </div>
-              ))
-            }
-          </div>
+        <div className="bg-card border border-border rounded p-4 h-fit">
+          <GameScoreList scores={bestScores as any} title="Puntajes por Juego" emptyText="No tiene records registrados" />
         </div>
 
         <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
@@ -470,19 +481,32 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {userSocialMedia.length > 0 && (
+      {activeSocialItem && (
         <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
+           <button
+             type="button"
+             onClick={() => navigate(activeSocialItem.target_type === "photo" ? `/social/fotos?post=${activeSocialItem.id}` : `/social/reels?post=${activeSocialItem.id}`)}
+             className="group relative mb-3 block aspect-[16/7] min-h-[210px] w-full overflow-hidden rounded border border-neon-magenta/25 bg-black text-left shadow-[0_0_24px_rgba(236,72,153,0.12)]"
+           >
+             <img src={getSocialThumbnail(activeSocialItem)} alt="" className="h-full w-full object-cover opacity-85 transition-transform duration-700 group-hover:scale-[1.03] group-hover:opacity-100" />
+             {isVideoItem(activeSocialItem) && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><PlayCircle className="w-12 h-12 text-white/85 drop-shadow-md" /></div>}
+             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-transparent" />
+             <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+               <p className="mb-1 font-pixel text-[8px] uppercase tracking-widest text-neon-magenta">{activeSocialItem.target_type === "photo" ? "Foto" : "Social"}</p>
+               <p className="line-clamp-2 text-sm font-bold text-white drop-shadow-md">{stripHtmlToText(activeSocialItem.title || activeSocialItem.caption) || "Ver post"}</p>
+             </div>
+           </button>
            <div className="flex justify-between items-end mb-4">
               <h3 className="font-pixel text-[10px] text-neon-magenta flex items-center gap-2 uppercase"><Globe className="w-4 h-4" /> Actividad Social Hub</h3>
               <span className="text-[10px] font-body text-muted-foreground">Últimos {userSocialMedia.length} posts</span>
            </div>
            <div className="flex overflow-x-auto gap-3 pb-4 pt-1 px-1 custom-scrollbar snap-x snap-mandatory">
-              {userSocialMedia.map((item) => {
+              {userSocialMedia.map((item, itemIndex) => {
                  const isVideo = isVideoItem(item);
                  const borderStyle = isVideo ? "border-[#ff6b00]" : "border-[#00f0ff]";
                  const destRoute = item.target_type === 'photo' ? `/social/fotos?post=${item.id}` : `/social/reels?post=${item.id}`;
                  return (
-                   <div key={item.id} onClick={() => navigate(destRoute)} className={cn("relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02] w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] border", borderStyle)}>
+                   <div key={item.id} onClick={() => setSocialCarouselIndex(itemIndex)} className={cn("relative shrink-0 cursor-pointer snap-center group rounded-lg bg-black overflow-hidden shadow-sm hover:shadow-md transition-all hover:scale-[1.02] w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] border", itemIndex === socialCarouselIndex % userSocialMedia.length ? "border-neon-magenta shadow-[0_0_14px_rgba(236,72,153,0.28)]" : borderStyle)}>
                      <img src={getSocialThumbnail(item)} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />
                      {isVideo && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"><PlayCircle className="w-8 h-8 text-white/80 drop-shadow-md group-hover:scale-110 transition-transform" /></div>}
                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20"><p className="text-[9px] font-body text-white font-bold line-clamp-2 leading-tight drop-shadow-md">{stripHtmlToText(item.title || item.caption) || "Ver post"}</p></div>

@@ -4,6 +4,21 @@ import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+const RECOMMENDED_LAUNCHER_VERSION = "0.1.6";
+const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.6_x64-setup.exe";
+
+const isOlderVersion = (current: string, target: string) => {
+  const currentParts = current.split(".").map((part) => Number(part) || 0);
+  const targetParts = target.split(".").map((part) => Number(part) || 0);
+  for (let index = 0; index < Math.max(currentParts.length, targetParts.length); index += 1) {
+    const left = currentParts[index] || 0;
+    const right = targetParts[index] || 0;
+    if (left < right) return true;
+    if (left > right) return false;
+  }
+  return false;
+};
+
 export default function LauncherUpdateButton() {
   const { toast } = useToast();
   const [visible, setVisible] = useState(false);
@@ -31,9 +46,17 @@ export default function LauncherUpdateButton() {
   const checkUpdate = async () => {
     const bridge = getLauncherBridge();
     if (!bridge?.checkUpdate) return;
+    const openManualInstaller = async () => {
+      if (bridge.openExternal) {
+        await bridge.openExternal(MANUAL_LAUNCHER_DOWNLOAD_URL);
+        return;
+      }
+      window.open(MANUAL_LAUNCHER_DOWNLOAD_URL, "_blank", "noopener,noreferrer");
+    };
 
     setChecking(true);
     try {
+      const info = await bridge.launcherInfo?.().catch(() => null);
       const result = await bridge.checkUpdate();
       if (result.startsWith("installed:")) {
         const version = result.replace("installed:", "");
@@ -44,6 +67,24 @@ export default function LauncherUpdateButton() {
         window.setTimeout(() => {
           void bridge.restartLauncher?.();
         }, 1400);
+        return;
+      }
+
+      if (result.startsWith("manual-download:")) {
+        await openManualInstaller();
+        toast({
+          title: "Descarga del launcher abierta",
+          description: "No se pudo aplicar el updater automatico, pero abrimos el instalador nuevo.",
+        });
+        return;
+      }
+
+      if (info?.version && isOlderVersion(info.version, RECOMMENDED_LAUNCHER_VERSION)) {
+        await openManualInstaller();
+        toast({
+          title: "Hay una version nueva",
+          description: `Tu launcher es ${info.version}. Abrimos el instalador ${RECOMMENDED_LAUNCHER_VERSION}.`,
+        });
         return;
       }
 
