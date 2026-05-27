@@ -66,7 +66,7 @@ struct NativeEmulatorWindowStateEvent {
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
-const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.6_x64-setup.exe";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -229,10 +229,13 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
         Ok(updater) => match updater.check().await {
             Ok(Some(update)) => {
                 let version = update.version.clone();
-                update
+                if let Err(error) = update
                     .download_and_install(|_, _| {}, || {})
                     .await
-                    .map_err(|error| error.to_string())?;
+                {
+                    let _ = tauri_plugin_opener::open_url(LAUNCHER_DOWNLOAD_URL, None::<&str>);
+                    return Ok(format!("manual-download:{}", error));
+                }
                 Ok(format!("installed:{version}"))
             }
             Ok(None) => Ok("up-to-date".to_string()),

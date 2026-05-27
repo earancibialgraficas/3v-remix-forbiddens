@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronUp, ListMusic, Music, Pause, Play, Plus, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Check, ChevronUp, ListMusic, Pause, Play, Plus, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,11 +48,13 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const compactPlaylistRef = useRef<HTMLDivElement>(null);
+  const volumeHideTimerRef = useRef<number | null>(null);
   const [playlist, setPlaylist] = useState<SavedPlaylist | null>(null);
   const [myPlaylists, setMyPlaylists] = useState<SavedPlaylist[]>([]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(58);
+  const [volumePopoverOpen, setVolumePopoverOpen] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [compactPlaylistOpen, setCompactPlaylistOpen] = useState(false);
@@ -191,7 +193,24 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     setVolume(safeVolume);
     postYoutubeCommand("setVolume", [safeVolume]);
     postYoutubeCommand(safeVolume <= 0 ? "mute" : "unMute");
+    setVolumePopoverOpen(true);
+    if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
+    volumeHideTimerRef.current = window.setTimeout(() => setVolumePopoverOpen(false), 1700);
   };
+
+  const showVolumePopover = () => {
+    if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
+    setVolumePopoverOpen(true);
+  };
+
+  const hideVolumePopoverSoon = () => {
+    if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
+    volumeHideTimerRef.current = window.setTimeout(() => setVolumePopoverOpen(false), 350);
+  };
+
+  useEffect(() => () => {
+    if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
+  }, []);
 
   const seekTo = (nextTime: number) => {
     const safeTime = Math.max(0, Math.min(duration || 0, nextTime));
@@ -290,7 +309,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   };
 
   const playlistRows = (compact = false) => (
-    <div ref={compact ? compactPlaylistRef : undefined} className={cn("space-y-1 overflow-y-auto retro-scrollbar", compact ? "max-h-44" : "max-h-[198px]")}>
+    <div ref={compact ? compactPlaylistRef : undefined} className={cn("space-y-1 overflow-y-auto retro-scrollbar", compact ? "max-h-[118px]" : "max-h-[198px]")}>
       {songs.map((song, songIndex) => (
         <div
           key={`${song.id}-${songIndex}`}
@@ -300,7 +319,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
             setCompactPlaylistOpen(false);
           }}
           className={cn(
-            "relative flex w-full cursor-pointer items-center gap-2 rounded border px-2 py-2 text-left transition-colors",
+            "relative flex w-full cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-left transition-colors",
             songIndex === index
               ? "border-neon-cyan/55 bg-neon-cyan/15 text-neon-cyan"
               : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground",
@@ -397,13 +416,13 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
       <div
         className={cn(
-          "absolute left-2 top-12 z-30 w-[min(340px,calc(100%-1rem))] origin-top-left rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl transition-all duration-300 ease-out",
+          "absolute left-12 top-2 z-30 w-[min(310px,calc(100%-3.5rem))] origin-left rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl transition-all duration-300 ease-out",
           compactPlaylistOpen
-            ? "translate-x-0 translate-y-0 skew-y-0 opacity-100"
-            : "pointer-events-none -translate-x-16 -translate-y-8 -skew-y-3 opacity-0",
+            ? "translate-x-0 opacity-100"
+            : "pointer-events-none -translate-x-12 opacity-0",
         )}
       >
-        <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/10 pb-2 pl-9">
+        <div className="mb-1.5 flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
           <div className="min-w-0">
             <p className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
             <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
@@ -413,12 +432,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
         {playlistRows(true)}
       </div>
 
-      <div className="relative z-10 p-3 sm:max-w-[70%] lg:max-w-[58%]">
+      <div className="relative z-10 p-3 sm:w-[30%] sm:max-w-[30%]">
         <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
           <div className="flex items-center gap-2 pl-11 sm:pl-10">
-            <span className="shrink-0 text-neon-cyan drop-shadow-[0_0_8px_rgba(34,211,238,0.75)]">
-              <Music className="h-4 w-4" />
-            </span>
             <div className="min-w-0 leading-none">
               <p className="font-pixel text-[11px] uppercase tracking-widest text-neon-cyan">FORBIDDENS</p>
               <p className="mt-1 font-pixel text-[8px] uppercase tracking-[0.34em] text-white/55">PLAYER</p>
@@ -438,6 +454,8 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                   </span>
                 ))}
               </div>
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-card to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-card to-transparent" />
             </div>
           </div>
 
@@ -455,7 +473,13 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
           <div className="space-y-2">
             <div className="flex items-center gap-2 rounded border border-white/5 bg-muted/20 px-2 py-1.5">
-              <div className="group relative shrink-0">
+              <div
+                className="relative shrink-0"
+                onMouseEnter={showVolumePopover}
+                onMouseLeave={hideVolumePopoverSoon}
+                onFocus={showVolumePopover}
+                onBlur={hideVolumePopoverSoon}
+              >
                 <button
                   type="button"
                   onClick={() => changeVolume(volume <= 0 ? 58 : 0)}
@@ -465,24 +489,24 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                 >
                   {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </button>
-                <div className="pointer-events-none absolute bottom-[calc(100%-2px)] left-0 z-40 flex translate-y-1 items-center gap-1 rounded-full border border-neon-green/30 bg-black/90 px-2 py-1 opacity-0 shadow-[0_0_18px_rgba(57,255,20,0.16)] backdrop-blur-md transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => changeVolume(volume - 10)}
-                    className="grid h-6 w-6 place-items-center rounded-full border border-white/10 text-[13px] leading-none text-white/75 transition-colors hover:border-neon-magenta/50 hover:text-neon-magenta"
-                    aria-label="Bajar volumen"
-                  >
-                    -
-                  </button>
-                  <span className="w-9 text-center font-pixel text-[8px] text-neon-green tabular-nums">{volume}%</span>
-                  <button
-                    type="button"
-                    onClick={() => changeVolume(volume + 10)}
-                    className="grid h-6 w-6 place-items-center rounded-full border border-white/10 text-[13px] leading-none text-white/75 transition-colors hover:border-neon-green/50 hover:text-neon-green"
-                    aria-label="Subir volumen"
-                  >
-                    +
-                  </button>
+                <div
+                  className={cn(
+                    "pointer-events-none absolute bottom-[calc(100%-2px)] left-1/2 z-40 flex h-28 w-9 -translate-x-1/2 translate-y-1 flex-col items-center justify-center rounded-full border border-neon-green/30 bg-black/90 px-1.5 py-2 opacity-0 shadow-[0_0_18px_rgba(57,255,20,0.16)] backdrop-blur-md transition-all duration-150",
+                    volumePopoverOpen && "pointer-events-auto translate-y-0 opacity-100",
+                  )}
+                >
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={volume}
+                    onChange={(event) => changeVolume(Number(event.target.value))}
+                    className="h-20 w-4 accent-neon-green"
+                    style={{ writingMode: "vertical-lr", direction: "rtl" }}
+                    aria-label="Volumen"
+                    title={`Volumen ${volume}%`}
+                  />
+                  <span className="mt-1 font-pixel text-[7px] text-neon-green tabular-nums">{volume}%</span>
                 </div>
               </div>
               <input

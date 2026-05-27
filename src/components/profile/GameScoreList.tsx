@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Gamepad2, ListFilter, Search } from "lucide-react";
+import { Gamepad2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type GameScore = {
@@ -33,7 +33,7 @@ export default function GameScoreList({
   className?: string;
   maxHeightClass?: string;
 }) {
-  const [category, setCategory] = useState("TODOS");
+  const [activeFilter, setActiveFilter] = useState<{ group: "all" | "console" | "multi" | "bet"; value: string }>({ group: "all", value: "TODOS" });
   const [query, setQuery] = useState("");
 
   const categories = useMemo(() => {
@@ -48,15 +48,32 @@ export default function GameScoreList({
     });
   }, [scores]);
 
+  const consoleCategories = useMemo(
+    () => categories.filter((item) => item !== "MULTI" && item !== "BET"),
+    [categories],
+  );
+  const multiCategories = useMemo(
+    () => categories.filter((item) => item === "MULTI" || item.startsWith("MULTI")),
+    [categories],
+  );
+  const betCategories = useMemo(
+    () => categories.filter((item) => item === "BET" || item.startsWith("BET")),
+    [categories],
+  );
+
+  const setDropdownFilter = (group: "console" | "multi" | "bet", value: string) => {
+    setActiveFilter(value ? { group, value } : { group: "all", value: "TODOS" });
+  };
+
   const filteredScores = useMemo(() => {
     const cleanedQuery = query.trim().toLowerCase();
     return scores.filter((score) => {
       const scoreCategory = safeStr(score.console_type).toUpperCase();
-      const matchesCategory = category === "TODOS" || scoreCategory === category;
+      const matchesCategory = activeFilter.group === "all" || scoreCategory === activeFilter.value;
       const matchesQuery = !cleanedQuery || safeStr(score.game_name).toLowerCase().includes(cleanedQuery);
       return matchesCategory && matchesQuery;
     });
-  }, [category, query, scores]);
+  }, [activeFilter, query, scores]);
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -68,8 +85,8 @@ export default function GameScoreList({
           <span className="font-pixel text-[8px] text-muted-foreground">{filteredScores.length}/{scores.length}</span>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="relative min-w-0 flex-1">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <label className="relative min-w-0 flex-1 lg:min-w-[180px]">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neon-cyan/75" />
             <input
               value={query}
@@ -78,23 +95,34 @@ export default function GameScoreList({
               className="h-8 w-full rounded border border-neon-cyan/20 bg-black/30 pl-7 pr-2 text-[11px] text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-neon-cyan/55"
             />
           </label>
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded border border-white/10 bg-black/25 p-1 retro-scrollbar">
-            <ListFilter className="h-3.5 w-3.5 shrink-0 text-neon-magenta" />
-            {["TODOS", ...categories].map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCategory(item)}
-                className={cn(
-                  "h-6 shrink-0 rounded border px-2 font-pixel text-[7px] uppercase tracking-wider transition-colors",
-                  category === item
-                    ? "border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan"
-                    : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground",
-                )}
-              >
-                {item}
-              </button>
-            ))}
+          <div className="grid min-w-0 grid-cols-3 gap-1 sm:flex sm:shrink-0">
+            <select
+              value={activeFilter.group === "console" ? activeFilter.value : ""}
+              onChange={(event) => setDropdownFilter("console", event.target.value)}
+              className="h-8 min-w-0 rounded border border-neon-cyan/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-cyan outline-none transition-colors focus:border-neon-cyan/60"
+              aria-label="Filtrar por consola"
+            >
+              <option value="">Consolas</option>
+              {consoleCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select
+              value={activeFilter.group === "multi" ? activeFilter.value : ""}
+              onChange={(event) => setDropdownFilter("multi", event.target.value)}
+              className="h-8 min-w-0 rounded border border-neon-orange/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-orange outline-none transition-colors focus:border-neon-orange/60"
+              aria-label="Filtrar por multi"
+            >
+              <option value="">Multi</option>
+              {(multiCategories.length ? multiCategories : ["MULTI"]).map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select
+              value={activeFilter.group === "bet" ? activeFilter.value : ""}
+              onChange={(event) => setDropdownFilter("bet", event.target.value)}
+              className="h-8 min-w-0 rounded border border-neon-yellow/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-yellow outline-none transition-colors focus:border-neon-yellow/60"
+              aria-label="Filtrar por bet"
+            >
+              <option value="">Bet</option>
+              {(betCategories.length ? betCategories : ["BET"]).map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </div>
         </div>
       </div>

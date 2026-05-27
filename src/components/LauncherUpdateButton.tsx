@@ -4,8 +4,8 @@ import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const RECOMMENDED_LAUNCHER_VERSION = "0.1.6";
-const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.6_x64-setup.exe";
+const RECOMMENDED_LAUNCHER_VERSION = "0.1.7";
+const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe";
 
 const isOlderVersion = (current: string, target: string) => {
   const currentParts = current.split(".").map((part) => Number(part) || 0);
@@ -93,9 +93,16 @@ export default function LauncherUpdateButton() {
         description: "Ya tienes la ultima version disponible.",
       });
     } catch (error: any) {
+      try {
+        await openManualInstaller();
+      } catch {
+        // Keep the original updater error visible if the fallback also fails.
+      }
       toast({
-        title: "No se pudo actualizar",
-        description: error?.message || String(error || "El updater aun no esta configurado."),
+        title: "Descarga del launcher abierta",
+        description: error?.message
+          ? `El updater automatico fallo, pero abrimos el instalador nuevo. Detalle: ${error.message}`
+          : "El updater automatico fallo, pero abrimos el instalador nuevo.",
         variant: "destructive",
       });
     } finally {
