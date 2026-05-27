@@ -51,7 +51,7 @@
       "endpoints": [
         "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlCQURENDBBMEU3NTU5QTYKUldTbVdYVU9DdFN0bTNFcHp3SUhjaG01V1BQWWVyQzRqclRwNytTaGVqQ0dKbUFMaWVLaGZHeWMK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUyNzFCRUE5MkVGMEJDMDQKUldRRXZQQXVxYjV4VW5Lb016aVlSTVQ0LzJndG1KMitZSFRINm1qSzcwR0hWdXIzSUhhYmRuUTgK"
     }
   }
 }

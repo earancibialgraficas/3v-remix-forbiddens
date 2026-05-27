@@ -1,15 +1,15 @@
-{
-  "version": "0.1.7",
-  "notes": "Updater reforzado para detectar versiones antiguas y abrir el instalador actual cuando el updater automatico no aplica.",
-  "pub_date": "2026-05-27T00:00:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "PEGAR_AQUI_LA_FIRMA_DEL_INSTALADOR",
-      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe"
-    },
-    "windows-x86_64-pc-windows-msvc": {
-      "signature": "PEGAR_AQUI_LA_FIRMA_DEL_INSTALADOR",
-      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe"
-    }
-  }
+﻿{
+    "version":  "0.1.7",
+    "notes":  "Updater reforzado para detectar versiones antiguas y abrir el instalador actual cuando el updater automatico no aplica.",
+    "pub_date":  "2026-05-27T00:00:00Z",
+    "platforms":  {
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWlpTnhuc0lzcjdiQk5FV3hqWUxpeitFWkc2cjdBM3hETThJZ1JXYVBwVE1FeXExN0krV1R1bWxYeVlaQzBNMjNEcmk3Y01KYk1oWW9ZZEwwa2xnZVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5OTE2Nzc5CWZpbGU6Rk9SQklEREVOU18wLjEuN194NjQtc2V0dXAuZXhlClkyUnZyUitKWmxHSlZkUmZMKzlaTVhSeGhwcEdYNjV0VkRHNEZFQVNJUElDeFNINlJ1QW9aSUVOQVl5SUh0MTRWVG0vQld0N1AySWZobUpoaVEzOURBPT0K",
+                                             "url":  "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe"
+                                         },
+                      "windows-x86_64-pc-windows-msvc":  {
+                                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWlpTnhuc0lzcjdiQk5FV3hqWUxpeitFWkc2cjdBM3hETThJZ1JXYVBwVE1FeXExN0krV1R1bWxYeVlaQzBNMjNEcmk3Y01KYk1oWW9ZZEwwa2xnZVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc5OTE2Nzc5CWZpbGU6Rk9SQklEREVOU18wLjEuN194NjQtc2V0dXAuZXhlClkyUnZyUitKWmxHSlZkUmZMKzlaTVhSeGhwcEdYNjV0VkRHNEZFQVNJUElDeFNINlJ1QW9aSUVOQVl5SUh0MTRWVG0vQld0N1AySWZobUpoaVEzOURBPT0K",
+                                                             "url":  "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe"
+                                                         }
+                  }
 }
