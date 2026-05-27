@@ -189,7 +189,8 @@
     const p = new URLSearchParams(location.search);
     const preset = (p.get("room") || "").toUpperCase();
     const initialMode = p.get("mode") === "american" || location.pathname.includes("casino-bingo-american") ? "american" : "british";
-    const NEED_MODE_CHOICE = !p.get("mode") && !location.pathname.includes("casino-bingo-american") && !preset;
+    const isHostLaunch = p.get("host") === "1";
+    const NEED_MODE_CHOICE = !p.get("mode") && !location.pathname.includes("casino-bingo-american") && (isHostLaunch || !preset);
     let BINGO_MODE = initialMode === "american";
     let modeReady = !NEED_MODE_CHOICE;
     let hostClockOffset = 0;
@@ -235,6 +236,20 @@
 
     function fmt(n){ return Number(n || 0).toLocaleString("es-CL"); }
     function log(text){ $("log").textContent = text; }
+    function bingoLetter(n){
+      if (!BINGO_MODE) return "";
+      if (n <= 15) return "B";
+      if (n <= 30) return "I";
+      if (n <= 45) return "N";
+      if (n <= 60) return "G";
+      return "O";
+    }
+    function formatBall(n){
+      return BINGO_MODE ? `${bingoLetter(Number(n))}${n}` : String(n);
+    }
+    function formatBallVoice(n){
+      return BINGO_MODE ? `${bingoLetter(Number(n))} ${n}` : `Numero ${n}`;
+    }
     function speak(text){
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -586,8 +601,8 @@
       updatePrizePool();
     }
     function renderCalled(){
-      $("calledLine").innerHTML = `<span class="calledLabel">Bolas</span>` + called.slice(-32).map((n) => `<span class="ballMini">${n}</span>`).join("");
-      $("bigBall").textContent = called.length ? called[called.length - 1] : "--";
+      $("calledLine").innerHTML = `<span class="calledLabel">Bolas</span>` + called.slice(-32).map((n) => `<span class="ballMini">${formatBall(n)}</span>`).join("");
+      $("bigBall").textContent = called.length ? formatBall(called[called.length - 1]) : "--";
       $("tombola").classList.toggle("playing", roundActive);
       renderCards();
     }
@@ -718,8 +733,8 @@
       void $("bigBall").offsetWidth;
       $("bigBall").classList.add("pop");
       renderCalled();
-      speak(`Numero ${next}`);
-      log(`Salio el numero ${next}.`);
+      speak(formatBallVoice(next));
+      log(`Salio ${formatBall(next)}.`);
       if (!local) api.send("ball", { n: next, deck, called, nextDrawAt });
     }
     function rowCounts(){

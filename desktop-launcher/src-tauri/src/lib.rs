@@ -124,11 +124,12 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     }
   };
 
-  window.forbiddensLauncher = Object.assign({}, window.forbiddensLauncher || {}, {
+    window.forbiddensLauncher = Object.assign({}, window.forbiddensLauncher || {}, {
     openExternal: openExternal,
     launcherInfo: function () { return invoke("launcher_info"); },
     checkUpdate: function () { return invoke("check_launcher_update"); },
     restartLauncher: function () { return invoke("restart_launcher"); },
+    startLauncherDrag: function () { return invoke("start_launcher_drag"); },
     launcherWindowAction: function (action) { return invoke("launcher_window_action", { action: action }); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
@@ -250,6 +251,15 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn restart_launcher(app: AppHandle) {
     app.restart();
+}
+
+#[tauri::command]
+fn start_launcher_drag(app: AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Err("No se encontro la ventana principal.".to_string());
+    };
+
+    window.start_dragging().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -1219,6 +1229,7 @@ pub fn run() {
             open_external_url,
             check_launcher_update,
             restart_launcher,
+            start_launcher_drag,
             launcher_window_action,
             native_engine_status,
             install_native_engine,

@@ -120,15 +120,15 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
         sessionStorage.setItem(DRIVE_SYNC_RESUME_KEY, '1');
         toast({
           title: 'Preparando Google Drive',
-          description: 'Recargando la vista fuera del modo PSP para completar la autorizaciÃ³n de Google.',
+          description: 'Recargando la vista fuera del modo PSP para completar la autorización de Google.',
         });
         window.setTimeout(() => window.location.reload(), 350);
         return;
       }
 
       toast({
-        title: 'Abre almacenamiento en una pestaÃ±a normal',
-        description: 'Google Drive no puede vincularse desde una vista aislada de PSP. Vuelve a Perfil > Almacenamiento y recarga la pÃ¡gina.',
+        title: 'Abre almacenamiento en una pestaña normal',
+        description: 'Google Drive no puede vincularse desde una vista aislada de PSP. Vuelve a Perfil > Almacenamiento y recarga la página.',
         variant: 'destructive',
         duration: 9000,
       });

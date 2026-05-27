@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import { Cpu, Gem, Minus, RefreshCw, Square, Trophy, X } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
@@ -8,6 +10,44 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const formatNumber = (value: number) => Math.trunc(Number(value || 0)).toLocaleString("es-CL");
+
+type PointWalletTable = {
+  Row: {
+    user_id: string;
+    balance: number;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    user_id: string;
+    balance?: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    user_id?: string;
+    balance?: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [];
+};
+
+type LauncherDatabase = Omit<Database, "public"> & {
+  public: Omit<Database["public"], "Tables"> & {
+    Tables: Database["public"]["Tables"] & {
+      point_wallets: PointWalletTable;
+    };
+  };
+};
+
+const launcherSupabase = supabase as SupabaseClient<LauncherDatabase>;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return fallback;
+};
 
 export default function DesktopLauncherTitleBar() {
   const { user, profile, isAdmin, isMasterWeb, isMod, isStaff } = useAuth();
@@ -40,7 +80,7 @@ export default function DesktopLauncherTitleBar() {
 
     let cancelled = false;
     const loadWallet = async () => {
-      const { data } = await (supabase as any)
+      const { data } = await launcherSupabase
         .from("point_wallets")
         .select("balance")
         .eq("user_id", user.id)
@@ -77,6 +117,13 @@ export default function DesktopLauncherTitleBar() {
     void getLauncherBridge()?.launcherWindowAction?.(action);
   };
 
+  const startDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("button,a,input,select,textarea,[data-no-tauri-drag]")) return;
+    void getLauncherBridge()?.startLauncherDrag?.();
+  };
+
   const checkUpdate = async () => {
     const bridge = getLauncherBridge();
     if (!bridge?.checkUpdate) return;
@@ -108,10 +155,10 @@ export default function DesktopLauncherTitleBar() {
         title: "Launcher actualizado",
         description: "Ya tienes la ultima version disponible.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "No se pudo actualizar",
-        description: error?.message || String(error || "El updater aun no esta configurado."),
+        description: getErrorMessage(error, "El updater aun no esta configurado."),
         variant: "destructive",
       });
     } finally {
@@ -124,6 +171,7 @@ export default function DesktopLauncherTitleBar() {
   return (
     <div
       data-tauri-drag-region
+      onPointerDown={startDrag}
       className="fixed inset-x-0 top-0 z-[300] flex h-10 select-none items-center border-b border-neon-cyan/20 bg-[#05070d]/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
     >
       <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center gap-3 px-3">
@@ -131,9 +179,8 @@ export default function DesktopLauncherTitleBar() {
           <span
             className="grid h-8 w-8 place-items-center bg-contain bg-center bg-no-repeat text-transparent drop-shadow-[0_0_10px_rgba(222,24,57,0.34)]"
             style={{ backgroundImage: "url('/forbiddens-logo.png')" }}
-          >
-            ✽
-          </span>
+            aria-hidden="true"
+          />
           <div data-tauri-drag-region className="min-w-0 leading-none">
             <p className="font-pixel text-[9px] uppercase tracking-[0.24em] text-neon-cyan">FORBIDDENS</p>
             <p className="mt-0.5 w-full font-pixel text-[8px] uppercase text-white/55 [letter-spacing:0.44em]">LAUNCHER</p>

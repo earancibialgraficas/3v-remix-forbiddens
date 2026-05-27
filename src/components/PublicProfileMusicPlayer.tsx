@@ -370,28 +370,23 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     : null;
 
   return (
-    <section className="relative overflow-hidden rounded border border-neon-cyan/30 bg-[#05070d]/85 p-2.5 shadow-[0_0_32px_rgba(34,211,238,0.12)] backdrop-blur-md">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/70 to-transparent" />
-      <div className="grid gap-2.5 md:grid-cols-[minmax(230px,0.9fr)_minmax(260px,1.1fr)] lg:grid-cols-[250px_minmax(210px,0.82fr)_minmax(320px,1.18fr)] lg:items-stretch">
-        <div className="relative order-1 min-h-[210px] overflow-hidden rounded border border-white/10 bg-black lg:order-3 lg:min-h-[224px]">
-          <iframe
-            key={currentYoutubeId}
-            ref={iframeRef}
-            src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&playsinline=1&rel=0&origin=${encodeURIComponent(origin)}`}
-            title={current.title || "Video de la cancion"}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            className="absolute inset-0 h-full w-full"
-          />
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-[#05070d] via-[#05070d]/70 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3">
-            <div className="max-w-[82%]">
-              <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan drop-shadow-[0_0_8px_rgba(34,211,238,0.75)]">Video activo</p>
-              <p className="mt-1 line-clamp-2 text-xs font-semibold text-white drop-shadow">{current.title || "Cancion de YouTube"}</p>
-            </div>
-          </div>
-        </div>
+    <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto">
+        <iframe
+          key={currentYoutubeId}
+          ref={iframeRef}
+          src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&origin=${encodeURIComponent(origin)}`}
+          title={current.title || "Video de la cancion"}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          className="absolute left-1/2 top-1/2 h-[calc(100%+88px)] w-[calc(100%+156px)] -translate-x-1/2 -translate-y-1/2 sm:h-[calc(100%+118px)] sm:w-[calc(100%+210px)]"
+          tabIndex={-1}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent sm:inset-0 sm:h-auto sm:bg-gradient-to-r sm:from-card sm:via-card/75 sm:to-transparent" />
+        <div className="absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-card to-transparent sm:block" />
+      </div>
 
-        <div className="order-2 flex min-h-[210px] min-w-0 flex-col justify-between rounded border border-white/10 bg-black/35 p-2.5">
+      <div className="relative z-10 grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(250px,330px)] sm:max-w-[70%] lg:max-w-[72%]">
+        <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded border border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan">
               <Music className="h-4 w-4" />
@@ -420,7 +415,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded border border-white/5 bg-muted/20 px-2 py-1.5">
               <input
                 type="range"
                 min={0}
@@ -429,6 +424,25 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                 onChange={(event) => seekTo(Number(event.target.value))}
                 className="h-1.5 min-w-0 flex-1 accent-neon-green"
                 aria-label="Tiempo de la cancion"
+              />
+              <button
+                type="button"
+                onClick={() => changeVolume(volume <= 0 ? 58 : 0)}
+                className="grid h-7 w-7 shrink-0 place-items-center rounded text-neon-green transition-colors hover:bg-neon-green/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-green/60"
+                aria-label={volume <= 0 ? "Activar volumen" : "Silenciar"}
+                title={volume <= 0 ? "Activar volumen" : "Silenciar"}
+              >
+                {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={volume}
+                onChange={(event) => changeVolume(Number(event.target.value))}
+                className="h-1.5 w-20 shrink-0 accent-neon-green sm:w-24"
+                aria-label="Volumen"
+                title={`Volumen ${volume}%`}
               />
               <span className="w-16 text-right text-[10px] text-muted-foreground">
                 {formatTime(currentTime)} / {formatTime(duration)}
@@ -453,41 +467,11 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
               </div>
             )}
 
-            <div className="flex items-center justify-end">
-              <div className="group/volume relative">
-                <button
-                  type="button"
-                  onClick={() => changeVolume(volume <= 0 ? 58 : 0)}
-                  className="inline-flex h-8 items-center gap-2 rounded border border-white/10 bg-white/[0.03] px-2 text-neon-green transition-colors hover:border-neon-green/35 hover:bg-neon-green/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-green/60"
-                  aria-label={volume <= 0 ? "Activar volumen" : "Silenciar"}
-                >
-                  {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  <span className="font-pixel text-[8px] tabular-nums">{volume}%</span>
-                </button>
-                <div className="pointer-events-none absolute bottom-full right-0 z-40 mb-2 w-48 opacity-0 transition duration-150 group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100">
-                  <div className="absolute -bottom-3 right-0 h-3 w-full" />
-                  <div className="rounded border border-neon-green/30 bg-black/95 p-3 shadow-[0_0_24px_rgba(57,255,20,0.18)] backdrop-blur-xl">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-pixel text-[8px] uppercase tracking-widest text-neon-green">Volumen</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">{volume}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={volume}
-                      onChange={(event) => changeVolume(Number(event.target.value))}
-                      className="h-1.5 w-full accent-neon-green"
-                      aria-label="Volumen"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div className="text-right font-pixel text-[8px] text-neon-green tabular-nums">{volume}%</div>
           </div>
         </div>
 
-        <div className="order-3 hidden min-h-[210px] min-w-0 rounded border border-white/10 bg-black/35 lg:order-2 lg:block">
+        <div className="hidden min-h-[188px] min-w-0 rounded border border-white/10 bg-black/35 lg:block">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
             <div className="min-w-0">
               <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
