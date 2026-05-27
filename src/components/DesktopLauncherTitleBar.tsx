@@ -96,6 +96,14 @@ export default function DesktopLauncherTitleBar() {
         return;
       }
 
+      if (result.startsWith("manual-download:")) {
+        toast({
+          title: "Descarga abierta",
+          description: "El updater firmado aun no esta activo, asi que abrimos el instalador mas reciente del launcher.",
+        });
+        return;
+      }
+
       toast({
         title: "Launcher actualizado",
         description: "Ya tienes la ultima version disponible.",

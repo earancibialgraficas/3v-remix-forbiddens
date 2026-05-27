@@ -66,6 +66,7 @@ struct NativeEmulatorWindowStateEvent {
 }
 
 const WEBSITE_URL: &str = "https://forbiddens.net/";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.5_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -234,9 +235,15 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
                 Ok(format!("installed:{version}"))
             }
             Ok(None) => Ok("up-to-date".to_string()),
-            Err(error) => Err(error.to_string()),
+            Err(error) => {
+                let _ = tauri_plugin_opener::open_url(LAUNCHER_DOWNLOAD_URL, None::<&str>);
+                Ok(format!("manual-download:{}", error))
+            }
         },
-        Err(error) => Err(error.to_string()),
+        Err(error) => {
+            let _ = tauri_plugin_opener::open_url(LAUNCHER_DOWNLOAD_URL, None::<&str>);
+            Ok(format!("manual-download:{}", error))
+        }
     }
 }
 
