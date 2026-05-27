@@ -13,9 +13,11 @@ import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen,
 interface InventoryTabProps {
   userId: string;
   profile: any;
+  onWalletChange?: (balance: number) => void;
+  onStatChange?: () => void;
 }
 
-export default function InventoryTab({ userId, profile }: InventoryTabProps) {
+export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
   const slotItemsRef = useRef<any[]>(Array(27).fill(null));
@@ -88,14 +90,17 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
         const message = walletRes.error?.message || inventoryRes.error?.message || offersRes.error?.message || "";
         if (message.toLowerCase().includes("does not exist") || message.toLowerCase().includes("schema cache")) {
           setSchemaReady(false);
-          setWallet(Number(profile?.total_score || 0));
+          setWallet(0);
+          onWalletChange?.(0);
           setBoosters([]);
           setOffers([]);
           return;
         }
       }
 
-      setWallet(Number((walletRes.data as any)?.balance ?? profile?.total_score ?? 0));
+      const nextWallet = Number((walletRes.data as any)?.balance ?? 0);
+      setWallet(nextWallet);
+      onWalletChange?.(nextWallet);
       setBoosters(inventoryRes.data || []);
       setOffers(offersRes.data || []);
     } catch {
@@ -930,7 +935,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
       return;
     }
     toast({ title: "F-coin cargada", description: `+${amount.toLocaleString()} F-coin` });
-    if (typeof result?.wallet_balance === "number") setWallet(Number(result.wallet_balance));
+    if (typeof result?.wallet_balance === "number") {
+      const nextWallet = Number(result.wallet_balance);
+      setWallet(nextWallet);
+      onWalletChange?.(nextWallet);
+    }
+    onStatChange?.();
   };
 
   const convertFcoinToStat = async () => {
@@ -957,7 +967,12 @@ export default function InventoryTab({ userId, profile }: InventoryTabProps) {
     }
     const statAwarded = Number(result?.stat_awarded ?? Math.floor(amount / 5));
     toast({ title: "STAT recuperado", description: `+${statAwarded.toLocaleString()} puntos STAT por ${amount.toLocaleString()} F-coin` });
-    if (typeof result?.wallet_balance === "number") setWallet(Number(result.wallet_balance));
+    if (typeof result?.wallet_balance === "number") {
+      const nextWallet = Number(result.wallet_balance);
+      setWallet(nextWallet);
+      onWalletChange?.(nextWallet);
+    }
+    onStatChange?.();
   };
 
   const sendStackToTrade = (slotIndex: number) => {

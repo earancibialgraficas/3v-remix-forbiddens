@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import VaultHint from "@/components/VaultHint";
-import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Clock } from "lucide-react";
+import { User, Edit2, Trophy, Star, Instagram, Youtube, Calendar, Shield, MessageSquare, UserPlus, Globe, Gamepad2, Eye, EyeOff, Palette, Bookmark, X, Bell, Clock, Gem } from "lucide-react";
 import MembershipBadge from "@/components/MembershipBadge";
 import UsageIndicators from "@/components/UsageIndicators";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export default function ProfilePage() {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [gameScores, setGameScores] = useState<{game_name: string; console_type: string; score: number}[]>([]);
   const [bingoFcoinNet, setBingoFcoinNet] = useState(0);
+  const [fcoinBalance, setFcoinBalance] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [storageUsed, setStorageUsed] = useState(0);
@@ -232,6 +233,13 @@ export default function ProfilePage() {
           .eq("user_id", user.id)
           .in("game_slug", ["casino-bingo", "casino-bingo-card", "casino-bingo-american", "casino-bingo-american-card"]);
         setBingoFcoinNet((bingoWagers || []).reduce((sum: number, wager: any) => sum + Number(wager?.net || 0), 0));
+
+        const { data: walletRow } = await (supabase as any)
+          .from("point_wallets")
+          .select("balance")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        setFcoinBalance(Number(walletRow?.balance || 0));
         
         const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);
         setFollowerCount(followers || 0);
@@ -503,7 +511,8 @@ export default function ProfilePage() {
             <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
               {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
               {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3 h-3" /> {membershipRemaining}</span>}
-              <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} pts</span>
+              <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} STAT</span>
+              <span className="text-[10px] font-body text-[#f7d28b] flex items-center gap-1"><Gem className="w-3 h-3" /> {fcoinBalance.toLocaleString()} F-coin</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
               <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores · {followingCount} siguiendo</span>
             </div>
@@ -582,12 +591,12 @@ export default function ProfilePage() {
       {/* CONTENIDO DE LAS PESTAÑAS */}
       {activeTab === "avisos" && <AvisosTab notifications={notifications} pendingRequests={pendingRequests} handleMarkAsRead={handleMarkAsRead} handleClearNotifications={handleClearNotifications} handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest} />}
       {activeTab === "posts" && <PostsTab userPosts={userPosts} />}
-      {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} bingoFcoinNet={bingoFcoinNet} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
+      {activeTab === "stats" && <StatsTab profile={profile} followerCount={followerCount} followingCount={followingCount} userPosts={userPosts} socialContentCount={socialContentCount} bestScores={bestScores} fcoinBalance={fcoinBalance} bingoFcoinNet={bingoFcoinNet} displayTier={displayTier} isStaff={isStaff} statColors={{ points: statPointsColor, followers: statFollowersColor, following: statFollowingColor, forum: statPostsForumColor, social: statPostsSocialColor, games: statGamesColor }} />}
       {activeTab === "friends" && <FriendsTab userId={user.id} limits={limits} isStaff={isStaff} />}
       {activeTab === "social" && <SocialContentTab profile={profile} user={user} onEditNetworks={() => setShowConfigModal(true)} limits={limits} isStaff={isStaff} />}
       {activeTab === "storage" && <AlmacenamientoTab userId={user.id} maxStorage={maxStorage} storageUsed={storageUsed} storageItems={storageItems} setStorageItems={setStorageItems} setStorageUsed={setStorageUsed} />}
       {activeTab === "guardados" && <GuardadosTab />}
-      {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} />}
+      {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} onWalletChange={setFcoinBalance} onStatChange={refreshProfile} />}
       {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
       
     </div>

@@ -7,7 +7,8 @@ import { useGameBubble } from "@/contexts/GameBubbleContext";
 import { allGames } from "@/lib/gameLibrary";
 import { canPlayExtraConsole, EXTRA_CONSOLES } from "@/lib/membershipLimits";
 import { cn } from "@/lib/utils";
-import { getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { useNativeSession } from "@/contexts/NativeSessionContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -184,30 +185,29 @@ const systems = [
     glow: "rgba(34,211,238,0.7)", year: "2004"
   },
   {
-    // 🆕 PSP — EmulatorJS ppsspp core
+    // PSP queda reservado para el launcher nativo.
     id: "psp", name: "PlayStation Portable", short: "PSP", core: "ppsspp", extensions: ".iso,.cso,.pbp,.chd",
     bg: "https://image.pollinations.ai/prompt/psp%20playstation%20portable%20handheld%20console%20neon%20cyberpunk?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/PSP.png",
     glow: "rgba(96,165,250,0.7)", year: "2004",
-    compatGames: PSP_WEB_COMPATIBILITY,
-    compatSource: "FORBIDDENS web",
-    compatDescription: "Guia inicial para PPSSPP dentro del navegador. El tracker oficial de PPSSPP no garantiza buen rendimiento en WebAssembly.",
+    nativeOnly: true,
+    nativeOnlyDescription: "Disponible solo en FORBIDDENS Launcher con PPSSPP nativo.",
   },
   {
-    // 🔥 PS2 (Play!.js) - EXPERIMENTAL, sin BIOS, solo PC
-    id: "ps2", name: "PlayStation 2", short: "PS2", core: "play!.js (wasm)", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
+    // PS2 queda reservado para el launcher nativo.
+    id: "ps2", name: "PlayStation 2", short: "PS2", core: "PCSX2 nativo", extensions: ".iso,.cso,.chd,.isz,.bin,.elf",
     bg: "https://image.pollinations.ai/prompt/playstation%202%20console%20black%20neon%20blue%20cyberpunk?width=1280&height=720&nologo=true",
     consoleImg: "/consolasimg/PlayStation 2.png",
     glow: "rgba(96,165,250,0.7)", year: "2000",
-    experimental: true,
-    compatGames: PS2_COMPATIBLE_GAMES,
-    compatSource: "tracker oficial",
-    compatDescription: "Estos titulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar segun tu navegador y hardware.",
+    nativeOnly: true,
+    nativeOnlyDescription: "Disponible solo en FORBIDDENS Launcher con PCSX2 nativo.",
   }
 ] as Array<{
   id: string; name: string; short: string; core: string; extensions: string;
   bg: string; consoleImg: string; glow: string; year: string;
   experimental?: boolean;
+  nativeOnly?: boolean;
+  nativeOnlyDescription?: string;
   compatGames?: CompatGame[];
   compatSource?: string;
   compatDescription?: string;
@@ -233,11 +233,37 @@ const TIMEZONES = [
 const getCarouselScale = (width: number) => Math.max(0.52, Math.min(1, width / 1180));
 const getSlotDistance = (width: number) => Math.max(150, 260 * getCarouselScale(width));
 const getConsoleBoxSize = (width: number) => Math.round(Math.max(112, Math.min(288, width * 0.22)));
+const NATIVE_STATUS_CACHE_PREFIX = "forbiddens_native_status:";
+const NATIVE_STATUS_CACHE_TTL = 12 * 60 * 60 * 1000;
+
+const getNativeStatusCacheKey = (consoleId: string) => `${NATIVE_STATUS_CACHE_PREFIX}${consoleId}`;
+
+const readCachedNativeStatus = (consoleId: string): NativeEngineStatus | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(getNativeStatusCacheKey(consoleId)) || "null");
+    if (!cached?.status || Date.now() - Number(cached.cachedAt || 0) > NATIVE_STATUS_CACHE_TTL) return null;
+    return cached.status as NativeEngineStatus;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedNativeStatus = (consoleId: string, status: NativeEngineStatus) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(getNativeStatusCacheKey(consoleId), JSON.stringify({ cachedAt: Date.now(), status }));
+};
+
+const clearCachedNativeStatus = (consoleId: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(getNativeStatusCacheKey(consoleId));
+};
 
 export default function EmulatorPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame, activeGames } = useGameBubble();
+  const { launchNativeSession } = useNativeSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 🔒 Bloqueo por membresía: N64/PS1/PS2 requieren mínimo LITE
@@ -357,11 +383,20 @@ export default function EmulatorPage() {
     }
     const status = await bridge.nativeEngineStatus(currentSystem.id);
     setNativeStatus(status);
+    writeCachedNativeStatus(currentSystem.id, status);
     return status;
   };
 
   useEffect(() => {
-    void refreshNativeStatus().catch(() => setNativeStatus(null));
+    if (!canUseNativeCurrent) {
+      setNativeStatus(null);
+      return;
+    }
+    const cached = readCachedNativeStatus(currentSystem.id);
+    setNativeStatus(cached);
+    if (!cached) {
+      void refreshNativeStatus().catch(() => setNativeStatus(null));
+    }
   }, [currentSystem.id, launcherDetected]);
 
   // Bloquear navegación del teclado (Enter/Flechas) si hay un juego activo
@@ -419,11 +454,12 @@ export default function EmulatorPage() {
       toast({ title: "Instalando motor nativo", description: `Preparando ${currentSystem.short} dentro del launcher.` });
       const status = await bridge.installNativeEngine(currentSystem.id);
       setNativeStatus(status);
+      writeCachedNativeStatus(currentSystem.id, status);
       toast({ title: "Motor nativo listo", description: `${status.engine_name} quedo instalado para ${currentSystem.short}.` });
     } catch (error: any) {
       toast({
         title: "No se pudo instalar",
-        description: error?.message || String(error || "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
+        description: formatLauncherBridgeError(error, "Revisa que el paquete exista en forbiddens.net/desktop/engines."),
         variant: "destructive",
       });
     } finally {
@@ -449,11 +485,35 @@ export default function EmulatorPage() {
         if (!bridge.installNativeEngine) throw new Error("El launcher no tiene instalador nativo disponible.");
         status = await bridge.installNativeEngine(currentSystem.id);
         setNativeStatus(status);
+        writeCachedNativeStatus(currentSystem.id, status);
       }
 
       const romPath = await bridge.pickNativeRom(currentSystem.id);
       if (!romPath) return;
-      await bridge.openNativeEmulator(currentSystem.id, romPath);
+      let launchResult: any = null;
+      try {
+        launchResult = await bridge.openNativeEmulator(currentSystem.id, romPath);
+      } catch (error: any) {
+        clearCachedNativeStatus(currentSystem.id);
+        const freshStatus = await refreshNativeStatus().catch(() => null);
+        if (!freshStatus?.installed) {
+          setNativeStatus(freshStatus);
+          toast({
+            title: "Falta instalar el emulador",
+            description: `${status?.engine_name || currentSystem.short} ya no se encontro en este PC. Usa el boton de instalar para repararlo.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+      launchNativeSession({
+        consoleName: currentSystem.id,
+        gameName: romPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") || currentSystem.name,
+        engineName: status?.engine_name || currentSystem.core || "Emulador nativo",
+        romPath,
+        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
+      });
       toast({ title: "Abriendo emulador nativo", description: `${status?.engine_name || currentSystem.short} iniciando desde FORBIDDENS Launcher.` });
     } catch (error: any) {
       toast({ title: "Error nativo", description: error?.message || String(error || "No se pudo abrir el emulador nativo."), variant: "destructive" });
@@ -479,8 +539,12 @@ export default function EmulatorPage() {
       return;
     }
 
-    if (currentSystem.id === "ps2") {
-      launchPs2();
+    if (currentSystem.nativeOnly) {
+      toast({
+        title: "Solo disponible en launcher",
+        description: `${currentSystem.short} usa emulador nativo. Abre FORBIDDENS Launcher para instalarlo y cargar tus ROMs.`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -491,11 +555,6 @@ export default function EmulatorPage() {
     }
 
     if (blockIfLocked(currentSystem.id)) return;
-
-    if (currentSystem.id === "psp") {
-      void openPspStandalonePicker();
-      return;
-    }
 
     fileInputRef.current?.click();
   }
@@ -536,8 +595,13 @@ export default function EmulatorPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    if (currentSystem.id === "psp") {
-      void openPspStandalonePicker();
+    if (currentSystem.nativeOnly) {
+      toast({
+        title: "Solo disponible en launcher",
+        description: `${currentSystem.short} usa emulador nativo. Abre FORBIDDENS Launcher para cargar esta ROM.`,
+        variant: "destructive",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -702,6 +766,14 @@ export default function EmulatorPage() {
                     Experimental
                   </span>
                 )}
+                {currentSystem.nativeOnly && !launcherDetected && (
+                  <span
+                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    title="Esta consola usa emulador nativo desde FORBIDDENS Launcher"
+                  >
+                    Solo launcher
+                  </span>
+                )}
                 {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
                   <span
                     className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
@@ -713,9 +785,9 @@ export default function EmulatorPage() {
               </div>
               <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
-                {currentSystem.id === "ps2" && (
-                  <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-red-400/90">
-                    · Solo computadores
+                {currentSystem.nativeOnly && !launcherDetected && (
+                  <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-neon-cyan/90">
+                    · Emulador nativo
                   </span>
                 )}
               </p>
@@ -730,7 +802,7 @@ export default function EmulatorPage() {
                          title="Ver juegos compatibles"
                        >
                          <ListChecks className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          <span>{currentSystem.id === "psp" ? "Guia PSP web" : "Juegos compatibles"} ({currentSystem.compatGames.length})</span>
+                          <span>Juegos compatibles ({currentSystem.compatGames.length})</span>
                        </button>
                      </DropdownMenuTrigger>
                      <DropdownMenuContent
@@ -739,17 +811,12 @@ export default function EmulatorPage() {
                        className="w-72 sm:w-80 max-h-80 overflow-y-auto bg-black/95 border-neon-cyan/30 text-white backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.25)]"
                      >
                        <DropdownMenuLabel className="font-pixel text-[10px] tracking-widest text-neon-cyan flex items-center justify-between">
-                          <span>{currentSystem.id === "psp" ? "PSP en navegador" : "Compatibles"}</span>
+                          <span>Compatibles</span>
                           <span className="text-[8px] text-white/40 normal-case tracking-normal">Fuente: {currentSystem.compatSource || "tracker"}</span>
                        </DropdownMenuLabel>
-                        <div className={cn("px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug", currentSystem.id === "psp" && "hidden")}>
-                         Estos títulos se han reportado funcionando bien en Play!.js. La compatibilidad puede variar según tu navegador y hardware.
-                       </div>
-                        {currentSystem.id === "psp" && (
-                          <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
-                            {currentSystem.compatDescription}
-                          </div>
-                        )}
+                         <div className="px-2 pb-2 text-[10px] text-white/50 font-body normal-case tracking-normal leading-snug">
+                          {currentSystem.compatDescription || "La compatibilidad puede variar segun tu hardware."}
+                        </div>
                         <DropdownMenuSeparator className="bg-white/10" />
                        {currentSystem.compatGames.map((g) => (
                          <DropdownMenuItem
@@ -864,35 +931,44 @@ export default function EmulatorPage() {
 
             <div className="mt-6 sm:mt-12 md:mt-16 px-3 w-full max-w-md flex flex-col items-center">
                <input type="file" ref={fileInputRef} accept={currentSystem.extensions} onChange={handleRomUpload} className="hidden" />
-               {canUseNativeCurrent && (
+               {canUseNativeCurrent && !nativeStatus?.installed && (
                  <button
-                   onClick={nativeStatus?.installed ? openNativeRomPicker : installCurrentNativeEngine}
+                   onClick={installCurrentNativeEngine}
                    disabled={nativeBusy}
                    className={cn(
                      "mb-2 group relative w-full sm:w-auto px-4 sm:px-6 py-2 bg-neon-cyan/15 hover:bg-neon-cyan/25 border border-neon-cyan/40 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 overflow-hidden shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_30px_rgba(34,211,238,0.28)] active:scale-95",
                      nativeBusy && "cursor-wait opacity-70",
                    )}
                  >
-                   {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" /> : nativeStatus?.installed ? <Cpu className="h-4 w-4 text-neon-cyan" /> : <Download className="h-4 w-4 text-neon-cyan" />}
+                   {nativeBusy ? <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" /> : <Download className="h-4 w-4 text-neon-cyan" />}
                    <span className="font-pixel text-[clamp(0.5rem,1.7vw,0.65rem)] uppercase tracking-widest text-neon-cyan whitespace-nowrap">
-                     {nativeStatus?.installed ? "Abrir ROM nativa" : `Instalar ${nativeStatus?.engine_name || "motor nativo"}`}
+                     {`Instalar ${nativeStatus?.engine_name || "emulador"}`}
                    </span>
                  </button>
                )}
-               <button
-                 onClick={openRomPicker}
-                 className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
-               >
-                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                 <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />
-                 <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
-                   {currentSystem.id === "ps2" ? "Iniciar PS2 (Subir ISO adentro)" : "Cargar ROM Local"}
-                 </span>
-               </button>
+               {canUseNativeCurrent && nativeStatus?.installed && (
+                 <p className="mb-2 text-center font-pixel text-[8px] uppercase tracking-widest text-neon-green">
+                   {nativeStatus.engine_name} instalado
+                 </p>
+               )}
+               {(!canUseNativeCurrent || nativeStatus?.installed) && (
+                 <button
+                   onClick={canUseNativeCurrent ? openNativeRomPicker : openRomPicker}
+                   className="group relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full backdrop-blur-md transition-all flex items-center justify-center gap-2 sm:gap-3 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
+                 >
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                   {canUseNativeCurrent ? <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" /> : <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white flex-shrink-0" />}
+                   <span className="font-pixel text-[clamp(0.5rem,1.8vw,0.7rem)] text-white uppercase tracking-widest whitespace-nowrap">
+                      Cargar ROM
+                   </span>
+                 </button>
+               )}
                <p className="text-center text-[clamp(0.5rem,1.4vw,0.6rem)] font-body text-white/50 mt-2 sm:mt-3 break-all px-2">
-                 {currentSystem.id === "ps2"
-                   ? "Solo PC · Sube tu ISO desde la UI del emulador (no se requiere BIOS)"
-                   : `Formatos: ${currentSystem.extensions}`}
+                  {canUseNativeCurrent
+                    ? `Formatos: ${currentSystem.extensions}`
+                    : currentSystem.nativeOnly
+                    ? (currentSystem.nativeOnlyDescription || "Solo disponible en FORBIDDENS Launcher")
+                    : `Formatos: ${currentSystem.extensions}`}
                </p>
             </div>
           </div>
@@ -917,8 +993,11 @@ export default function EmulatorPage() {
                <button onClick={() => setCurrentIndex((prev) => (prev - 1 + systems.length) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                </button>
-               <button onClick={openRomPicker} className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-                 {currentSystem.id === "ps2" ? "INICIAR PS2" : "SUBIR JUEGO"}
+               <button
+                 onClick={canUseNativeCurrent && !nativeStatus?.installed ? installCurrentNativeEngine : (canUseNativeCurrent ? openNativeRomPicker : openRomPicker)}
+                 className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white/20 rounded-full border border-white/20 font-pixel text-[clamp(0.5rem,1.8vw,0.65rem)] uppercase text-white active:bg-white/40 transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+               >
+                  {canUseNativeCurrent && !nativeStatus?.installed ? "INSTALAR EMULADOR" : "CARGAR ROM"}
                </button>
                <button onClick={() => setCurrentIndex((prev) => (prev + 1) % systems.length)} className="p-2 sm:p-3 bg-white/10 rounded-full border border-white/10 active:bg-white/30 transition-colors flex-shrink-0">
                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />

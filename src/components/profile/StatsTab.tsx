@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Gamepad2, Medal, X } from "lucide-react";
+import { Gamepad2, Gem, Medal, X } from "lucide-react";
 import AchievementsTab from "@/components/profile/AchievementsTab";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
-export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, bingoFcoinNet = 0, displayTier, isStaff, statColors }: any) {
+export default function StatsTab({ profile, followerCount, followingCount, userPosts, socialContentCount, bestScores, fcoinBalance = 0, bingoFcoinNet = 0, displayTier, isStaff, statColors }: any) {
   const [showAchievements, setShowAchievements] = useState(false);
   const bingoNet = Math.trunc(Number(bingoFcoinNet || 0));
+  const walletBalance = Math.max(0, Math.trunc(Number(fcoinBalance || 0)));
 
   return (
     <div className="bg-card border border-border rounded p-4 space-y-3 animate-in fade-in">
@@ -43,7 +44,8 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
       )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[
-          { val: profile?.total_score?.toLocaleString() || 0, label: "Puntos", color: statColors.points || "#39ff14" },
+          { val: profile?.total_score?.toLocaleString() || 0, label: "STAT", color: statColors.points || "#39ff14" },
+          { val: walletBalance.toLocaleString("es-CL"), label: "F-coin", color: "#f7d28b", icon: Gem },
           { val: followerCount, label: "Seguidores", color: statColors.followers || "#ffffff" },
           { val: followingCount, label: "Siguiendo", color: statColors.following || "#ffffff" },
           { val: userPosts.length, label: "Posts Foro", color: statColors.forum || "#00ffff" },
@@ -53,7 +55,10 @@ export default function StatsTab({ profile, followerCount, followingCount, userP
           { val: displayTier, label: "Membresía", color: isStaff ? "#39ff14" : "#a1a1aa", isStaffTier: isStaff },
         ].map((s, i) => (
           <div key={i} className="bg-muted/30 rounded p-3 text-center flex flex-col justify-center min-h-[70px]">
-            <p className={cn("text-lg font-bold font-body", s.isStaffTier && "animate-pulse")} style={{ color: s.color, filter: s.isStaffTier ? `drop-shadow(0 0 8px ${s.color}cc)` : undefined }}>{s.val}</p>
+            <p className={cn("flex items-center justify-center gap-1 text-lg font-bold font-body", s.isStaffTier && "animate-pulse")} style={{ color: s.color, filter: s.isStaffTier ? `drop-shadow(0 0 8px ${s.color}cc)` : undefined }}>
+              {s.icon && <s.icon className="h-4 w-4" />}
+              {s.val}
+            </p>
             <p className="text-[10px] uppercase opacity-60 font-body mt-1">{s.label}</p>
           </div>
         ))}

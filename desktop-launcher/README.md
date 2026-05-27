@@ -7,7 +7,7 @@ En modo desarrollo y en el `.exe` publicado carga `https://forbiddens.net/`.
 ## Que actualiza automaticamente
 
 - Cambios del website: si la app carga `https://forbiddens.net/`, los usuarios ven los cambios apenas abras o recargues la app.
-- Cambios del launcher: necesitan el updater de Tauri. Este MVP deja el esqueleto preparado, pero debes configurar firma y endpoint antes de publicar builds reales.
+- Cambios del launcher: usan el updater de Tauri contra el bucket publico `launcher-downloads` de Supabase.
 
 ## Requisitos para compilar
 
@@ -29,14 +29,14 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-Este MVP deja el empaquetado de instalador desactivado para evitar errores de NSIS durante las primeras pruebas.
+El build normal deja el empaquetado de instalador desactivado para pruebas rapidas.
 El ejecutable portable queda en:
 
 ```text
 desktop-launcher/src-tauri/target/release/forbiddens_desktop_launcher.exe
 ```
 
-Cuando quieras generar instalador, cambia `bundle.active` a `true` en `src-tauri/tauri.conf.json`.
+Para generar instalador usa el script dedicado, que activa NSIS via `src-tauri/tauri.installer.conf.json`.
 
 ## Crear instalador normal
 
@@ -60,11 +60,11 @@ npm --prefix desktop-launcher exec tauri signer generate
 
 2. Guarda la clave privada solo en CI/secretos.
 3. Pega la clave publica en `src-tauri/tauri.conf.json`, dentro de `plugins.updater.pubkey`.
-4. Cambia `plugins.updater.active` a `true`.
-5. Publica un `latest.json` en tu servidor, por ejemplo:
+4. Verifica que `plugins.updater.active` siga en `true`.
+5. Publica `desktop-launcher/latest.json` en el bucket publico:
 
 ```text
-https://forbiddens.net/desktop/latest.json
+https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/latest.json
 ```
 
 6. Cuando publiques una version nueva, sube el instalador y actualiza ese JSON.

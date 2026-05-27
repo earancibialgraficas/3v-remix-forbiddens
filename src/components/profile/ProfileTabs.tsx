@@ -107,7 +107,7 @@ export function StatsTab({ profile, followerCount, followingCount, userPosts, so
       <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 text-center md:text-left uppercase">Estadísticas</h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {[
-          { val: profile?.total_score?.toLocaleString() || 0, label: "Puntos", color: statColors.points || "#39ff14" },
+          { val: profile?.total_score?.toLocaleString() || 0, label: "STAT", color: statColors.points || "#39ff14" },
           { val: followerCount, label: "Seguidores", color: statColors.followers || "#ffffff" },
           { val: followingCount, label: "Siguiendo", color: statColors.following || "#ffffff" },
           { val: userPosts.length, label: "Posts Foro", color: statColors.forum || "#00ffff" },

@@ -3,15 +3,17 @@ import { Outlet, useLocation } from "react-router-dom";
 import ForumSidebar from "@/components/ForumSidebar";
 import RightPanel from "@/components/RightPanel";
 import GameBubble from "@/components/GameBubble";
+import NativeGameBubble from "@/components/NativeGameBubble";
 import NavigationButtons from "@/components/NavigationButtons";
 import FloatingChat from "@/components/FloatingChat";
 import ChillMusicPlayer from "@/components/ChillMusicPlayer";
-import LauncherUpdateButton from "@/components/LauncherUpdateButton";
+import DesktopLauncherTitleBar from "@/components/DesktopLauncherTitleBar";
 import SiteLanguageSelect from "@/components/SiteLanguageSelect";
 import { Menu, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getLauncherBridge } from "@/lib/launcherBridge";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -22,12 +24,26 @@ export default function MainLayout() {
   // para no tapar los controles del emulador. En navegación normal SIEMPRE visibles.
   const [lBarVisible, setLBarVisible] = useState(true);
   const [gameMaximized, setGameMaximized] = useState(false);
+  const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const location = useLocation();
   const mobileTopBarHeight = 46;
+
+  useEffect(() => {
+    if (launcherDetected) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (getLauncherBridge() || attempts >= 40) {
+        setLauncherDetected(Boolean(getLauncherBridge()));
+        window.clearInterval(timer);
+      }
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [launcherDetected]);
 
   // 📱 Detectar orientación landscape en móvil/tablet → footer pasa a ser rightbar
   const [isLandscape, setIsLandscape] = useState(false);
@@ -138,7 +154,8 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className="flex bg-background text-foreground w-full h-[100dvh] lg:h-auto lg:min-h-screen overflow-hidden lg:overflow-visible relative">
+    <div className={cn("box-border flex bg-background text-foreground w-full h-[100dvh] lg:h-auto lg:min-h-screen overflow-hidden lg:overflow-visible relative", launcherDetected && "pt-10")}>
+      <DesktopLauncherTitleBar />
       {/* Sidebar de PC (Oculto en Tablet y Celular) */}
       <div className="hidden lg:block sticky top-0 h-screen">
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -272,11 +289,11 @@ export default function MainLayout() {
 
       <NavigationButtons />
       <GameBubble />
+      <NativeGameBubble />
       <FloatingChat />
       {/* 🎵 ChillMusicPlayer: instancia ÚNICA siempre montada. Se portalea al slot activo
           (desktop / mobile / emulador) sin remontar — evita audio duplicado. */}
       <ChillMusicPlayer />
-      <LauncherUpdateButton />
     </div>
   );
 }

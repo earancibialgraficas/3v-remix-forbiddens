@@ -1,11 +1,13 @@
 use std::{
-    env, fs,
+    env, fs, io,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
+    thread,
+    time::Duration,
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::UpdaterExt;
 
@@ -38,7 +40,33 @@ struct NativeEngineStatus {
     download_page: String,
 }
 
+#[derive(Serialize, Clone)]
+struct NativeEmulatorExitEvent {
+    console_id: String,
+    rom_path: Option<String>,
+    engine_path: String,
+    process_id: u32,
+    success: bool,
+}
+
+#[derive(Serialize, Clone)]
+struct NativeEmulatorLaunchResult {
+    console_id: String,
+    rom_path: Option<String>,
+    engine_path: String,
+    process_id: u32,
+}
+
+#[derive(Serialize, Clone)]
+struct NativeEmulatorWindowStateEvent {
+    console_id: String,
+    rom_path: Option<String>,
+    process_id: u32,
+    state: String,
+}
+
 const WEBSITE_URL: &str = "https://forbiddens.net/";
+const LAUNCHER_DOWNLOAD_URL: &str = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.5_x64-setup.exe";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
 (function () {
@@ -61,8 +89,21 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     }
   };
 
-  var openExternal = function (url) {
+  var normalizeGoogleAuthUrl = function (url) {
     var href = toAbsoluteUrl(url);
+    if (!href) return "";
+    try {
+      var parsed = new URL(href);
+      if (/(^|\.)accounts\.google\.com$/.test(parsed.hostname) && /\/o\/oauth2\//.test(parsed.pathname)) {
+        parsed.searchParams.set("redirect_uri", "https://forbiddens.net/");
+        return parsed.href;
+      }
+    } catch (_) {}
+    return href;
+  };
+
+  var openExternal = function (url) {
+    var href = normalizeGoogleAuthUrl(url);
     if (!href) return Promise.resolve(false);
     return invoke("open_external_url", { url: href }).then(function () {
       return true;
@@ -88,10 +129,13 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     launcherInfo: function () { return invoke("launcher_info"); },
     checkUpdate: function () { return invoke("check_launcher_update"); },
     restartLauncher: function () { return invoke("restart_launcher"); },
+    launcherWindowAction: function (action) { return invoke("launcher_window_action", { action: action }); },
     nativeEngineStatus: function (consoleId) { return invoke("native_engine_status", { consoleId: consoleId }); },
     installNativeEngine: function (consoleId) { return invoke("install_native_engine", { consoleId: consoleId }); },
     pickNativeRom: function (consoleId) { return invoke("pick_native_rom", { consoleId: consoleId }); },
     openNativeEmulator: function (consoleId, romPath) { return invoke("open_native_emulator", { consoleId: consoleId, romPath: romPath || null }); },
+    closeNativeEmulator: function (processId) { return invoke("close_native_emulator", { processId: processId }); },
+    setNativeEmulatorState: function (processId, action) { return invoke("set_native_emulator_state", { processId: processId, action: action }); },
     downloadDriveRomForNative: function (args) { return invoke("download_drive_rom_for_native", args || {}); },
     openDriveRomNative: function (args) { return invoke("open_drive_rom_native", args || {}); },
     detectPpsspp: function () { return invoke("detect_ppsspp_native"); },
@@ -104,7 +148,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
   window.open = function (url, target, features) {
     var targetName = String(target || "_blank").toLowerCase();
     if (targetName === "_blank" || targetName === "blank" || !target) {
-      if (nativeOpen && (!url || isGoogleAuthUrl(url))) {
+      if (!url && nativeOpen) {
         return nativeOpen(url || "about:blank", target || "_blank", features);
       }
       var proxy = {
@@ -118,30 +162,18 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
         location: {
           replace: function (nextUrl) {
             proxy.closed = true;
-            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-              nativeOpen(nextUrl, target || "_blank", features);
-            } else {
-              openExternal(nextUrl);
-            }
+            openExternal(nextUrl);
           },
           assign: function (nextUrl) {
             proxy.closed = true;
-            if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-              nativeOpen(nextUrl, target || "_blank", features);
-            } else {
-              openExternal(nextUrl);
-            }
+            openExternal(nextUrl);
           }
         }
       };
       Object.defineProperty(proxy.location, "href", {
         set: function (nextUrl) {
           proxy.closed = true;
-          if (nativeOpen && isGoogleAuthUrl(nextUrl)) {
-            nativeOpen(nextUrl, target || "_blank", features);
-          } else {
-            openExternal(nextUrl);
-          }
+          openExternal(nextUrl);
         }
       });
       if (url) {
@@ -203,15 +235,41 @@ async fn check_launcher_update(app: AppHandle) -> Result<String, String> {
                 Ok(format!("installed:{version}"))
             }
             Ok(None) => Ok("up-to-date".to_string()),
-            Err(error) => Err(error.to_string()),
+            Err(error) => {
+                let _ = tauri_plugin_opener::open_url(LAUNCHER_DOWNLOAD_URL, None::<&str>);
+                Ok(format!("manual-download:{}", error))
+            }
         },
-        Err(error) => Err(error.to_string()),
+        Err(error) => {
+            let _ = tauri_plugin_opener::open_url(LAUNCHER_DOWNLOAD_URL, None::<&str>);
+            Ok(format!("manual-download:{}", error))
+        }
     }
 }
 
 #[tauri::command]
 fn restart_launcher(app: AppHandle) {
     app.restart();
+}
+
+#[tauri::command]
+fn launcher_window_action(app: AppHandle, action: String) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Err("No se encontro la ventana principal.".to_string());
+    };
+
+    match action.trim().to_lowercase().as_str() {
+        "minimize" => window.minimize().map_err(|error| error.to_string()),
+        "toggle_maximize" | "maximize" => {
+            if window.is_maximized().map_err(|error| error.to_string())? {
+                window.unmaximize().map_err(|error| error.to_string())
+            } else {
+                window.maximize().map_err(|error| error.to_string())
+            }
+        }
+        "close" => window.close().map_err(|error| error.to_string()),
+        _ => Err("Accion de ventana no soportada.".to_string()),
+    }
 }
 
 fn check_update_on_start(app: AppHandle) {
@@ -536,12 +594,39 @@ fn run_hidden(mut command: Command) -> Result<(), String> {
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let status = command.status().map_err(|error| error.to_string())?;
-    if status.success() {
+    let output = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| error.to_string())?;
+    if output.status.success() {
         Ok(())
     } else {
-        Err(format!("El proceso termino con codigo {status}."))
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let details = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("El proceso termino con codigo {}.", output.status)
+        };
+        Err(details)
     }
+}
+
+fn download_file(url: &str, destination: &Path) -> Result<(), String> {
+    let mut command = Command::new("curl.exe");
+    command.args([
+        "-L",
+        "--fail",
+        "--silent",
+        "--show-error",
+        "--output",
+        &destination.to_string_lossy(),
+        url,
+    ]);
+    run_hidden(command)
 }
 
 fn powershell_command(script: &str) -> Command {
@@ -555,6 +640,265 @@ fn powershell_command(script: &str) -> Command {
         script,
     ]);
     command
+}
+
+fn screen_layout(app: &AppHandle) -> Option<(i32, i32, u32, u32, u32, u32)> {
+    let window = app.get_webview_window("main")?;
+    let monitor = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| window.primary_monitor().ok().flatten())?;
+    let size = monitor.size();
+    let position = monitor.position();
+    let minimum_companion_width = 340.min(size.width);
+    let companion_width = (size.width / 5).max(minimum_companion_width);
+    let emulator_width = size.width.saturating_sub(companion_width);
+    Some((
+        position.x,
+        position.y,
+        size.width,
+        size.height,
+        emulator_width,
+        companion_width,
+    ))
+}
+
+fn enter_native_companion_layout(app: &AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let Some((x, y, _screen_width, screen_height, emulator_width, companion_width)) =
+        screen_layout(app)
+    else {
+        return Ok(());
+    };
+
+    window
+        .set_min_size(Some(PhysicalSize::new(320, 420)))
+        .map_err(|error| error.to_string())?;
+    window
+        .set_position(PhysicalPosition::new(x + emulator_width as i32, y))
+        .map_err(|error| error.to_string())?;
+    window
+        .set_size(PhysicalSize::new(companion_width, screen_height))
+        .map_err(|error| error.to_string())?;
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+    Ok(())
+}
+
+fn restore_launcher_layout(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let Some((x, y, screen_width, screen_height, _emulator_width, _companion_width)) =
+        screen_layout(app)
+    else {
+        return;
+    };
+
+    let width = screen_width.min(1280).max(1024);
+    let height = screen_height.min(820).max(650);
+    let target_x = x + ((screen_width.saturating_sub(width)) / 2) as i32;
+    let target_y = y + ((screen_height.saturating_sub(height)) / 2) as i32;
+
+    let _ = window.set_min_size(Some(PhysicalSize::new(1024, 650)));
+    let _ = window.set_position(PhysicalPosition::new(target_x, target_y));
+    let _ = window.set_size(PhysicalSize::new(width, height));
+}
+
+#[cfg(windows)]
+struct WindowSearch {
+    process_id: u32,
+    hwnd: isize,
+}
+
+#[cfg(windows)]
+#[link(name = "user32")]
+extern "system" {
+    fn EnumWindows(
+        lp_enum_func: Option<unsafe extern "system" fn(isize, isize) -> i32>,
+        l_param: isize,
+    ) -> i32;
+    fn GetWindowThreadProcessId(hwnd: isize, lpdw_process_id: *mut u32) -> u32;
+    fn IsIconic(hwnd: isize) -> i32;
+    fn IsWindowVisible(hwnd: isize) -> i32;
+}
+
+#[cfg(windows)]
+unsafe extern "system" fn enum_windows_for_process(hwnd: isize, l_param: isize) -> i32 {
+    if IsWindowVisible(hwnd) == 0 {
+        return 1;
+    }
+
+    let search = &mut *(l_param as *mut WindowSearch);
+    let mut window_process_id = 0u32;
+    GetWindowThreadProcessId(hwnd, &mut window_process_id as *mut u32);
+    if window_process_id == search.process_id {
+        search.hwnd = hwnd;
+        return 0;
+    }
+    1
+}
+
+#[cfg(windows)]
+fn native_process_window_minimized(process_id: u32) -> Option<bool> {
+    let mut search = WindowSearch {
+        process_id,
+        hwnd: 0,
+    };
+    unsafe {
+        EnumWindows(
+            Some(enum_windows_for_process),
+            &mut search as *mut WindowSearch as isize,
+        );
+        if search.hwnd == 0 {
+            None
+        } else {
+            Some(IsIconic(search.hwnd) != 0)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn native_process_window_minimized(_process_id: u32) -> Option<bool> {
+    None
+}
+
+fn emit_native_window_state(
+    app: &AppHandle,
+    console_id: &str,
+    rom_path: &Option<String>,
+    process_id: u32,
+    state: &str,
+) {
+    let payload = NativeEmulatorWindowStateEvent {
+        console_id: console_id.to_string(),
+        rom_path: rom_path.clone(),
+        process_id,
+        state: state.to_string(),
+    };
+    let _ = app.emit("forbiddens-native-emulator-window-state", payload);
+}
+
+fn monitor_native_emulator_window(
+    app: AppHandle,
+    console_id: String,
+    rom_path: Option<String>,
+    process_id: u32,
+) {
+    thread::spawn(move || {
+        let mut last_minimized: Option<bool> = None;
+        let mut missing_window_checks = 0;
+
+        loop {
+            thread::sleep(Duration::from_millis(700));
+            match native_process_window_minimized(process_id) {
+                Some(is_minimized) => {
+                    missing_window_checks = 0;
+                    if last_minimized == Some(is_minimized) {
+                        continue;
+                    }
+                    last_minimized = Some(is_minimized);
+
+                    if is_minimized {
+                        emit_native_window_state(
+                            &app,
+                            &console_id,
+                            &rom_path,
+                            process_id,
+                            "minimized",
+                        );
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.minimize();
+                        }
+                    } else {
+                        let _ = enter_native_companion_layout(&app);
+                        arrange_emulator_window(app.clone(), process_id);
+                        emit_native_window_state(
+                            &app,
+                            &console_id,
+                            &rom_path,
+                            process_id,
+                            "restored",
+                        );
+                    }
+                }
+                None => {
+                    missing_window_checks += 1;
+                    if missing_window_checks > 12 {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+}
+
+fn arrange_emulator_window(app: AppHandle, process_id: u32) {
+    let Some((x, y, _screen_width, screen_height, emulator_width, _companion_width)) =
+        screen_layout(&app)
+    else {
+        return;
+    };
+
+    thread::spawn(move || {
+        let script = r#"
+$ErrorActionPreference = 'SilentlyContinue'
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class ForbiddensWinApi {
+  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+}
+"@
+$processId = [int]$env:FORBIDDENS_EMU_PID
+$p = Get-Process -Id $processId -ErrorAction SilentlyContinue
+for ($i = 0; $i -lt 60; $i++) {
+  if (-not $p) { Start-Sleep -Milliseconds 150; $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; continue }
+  $p.Refresh()
+  if ($p.MainWindowHandle -ne 0) { break }
+  Start-Sleep -Milliseconds 150
+}
+if ($p -and $p.MainWindowHandle -ne 0) {
+  [ForbiddensWinApi]::ShowWindowAsync($p.MainWindowHandle, 9) | Out-Null
+  [ForbiddensWinApi]::MoveWindow($p.MainWindowHandle, [int]$env:FORBIDDENS_EMU_X, [int]$env:FORBIDDENS_EMU_Y, [int]$env:FORBIDDENS_EMU_W, [int]$env:FORBIDDENS_EMU_H, $true) | Out-Null
+}
+"#;
+        let mut command = powershell_command(script);
+        command.env("FORBIDDENS_EMU_PID", process_id.to_string());
+        command.env("FORBIDDENS_EMU_X", x.to_string());
+        command.env("FORBIDDENS_EMU_Y", y.to_string());
+        command.env("FORBIDDENS_EMU_W", emulator_width.to_string());
+        command.env("FORBIDDENS_EMU_H", screen_height.to_string());
+        let _ = run_hidden(command);
+    });
+}
+
+fn extract_archive(archive: &Path, destination: &Path) -> Result<(), String> {
+    let mut command = Command::new("tar.exe");
+    command.args([
+        "-xf",
+        &archive.to_string_lossy(),
+        "-C",
+        &destination.to_string_lossy(),
+    ]);
+    command
+        .env("FORBIDDENS_ENGINE_ROOT", &destination)
+        .env("FORBIDDENS_ENGINE_ARCHIVE", &archive)
+        .env("FORBIDDENS_ENGINE_EXTRACTOR", "tar");
+    run_hidden(command)
+}
+
+fn join_package_parts(parts: &[PathBuf], destination: &Path) -> Result<(), String> {
+    let mut output = fs::File::create(destination).map_err(|error| error.to_string())?;
+    for part in parts {
+        let mut input = fs::File::open(part).map_err(|error| error.to_string())?;
+        io::copy(&mut input, &mut output).map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -609,39 +953,26 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
 
     let root = engine_install_dir(&config);
     fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+    let archive = root.join(config.package_file_name);
+    let mut downloaded_parts = Vec::new();
 
-    let script = "$ErrorActionPreference='Stop'; \
-      $ProgressPreference='SilentlyContinue'; \
-      New-Item -ItemType Directory -Force -Path $env:FORBIDDENS_ENGINE_ROOT | Out-Null; \
-      $urls = $env:FORBIDDENS_ENGINE_URLS -split \"`n\" | Where-Object { $_.Trim().Length -gt 0 }; \
-      $archive = Join-Path $env:FORBIDDENS_ENGINE_ROOT $env:FORBIDDENS_ENGINE_ARCHIVE; \
-      if ($urls.Count -eq 1) { \
-        Invoke-WebRequest -Uri $urls[0] -OutFile $archive -UseBasicParsing; \
-      } else { \
-        $output = [System.IO.File]::Open($archive, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write); \
-        try { \
-          for ($i = 0; $i -lt $urls.Count; $i++) { \
-            $part = Join-Path $env:FORBIDDENS_ENGINE_ROOT ('part_' + $i.ToString('000')); \
-            Invoke-WebRequest -Uri $urls[$i] -OutFile $part -UseBasicParsing; \
-            $input = [System.IO.File]::OpenRead($part); \
-            try { $input.CopyTo($output) } finally { $input.Close() }; \
-            Remove-Item -LiteralPath $part -Force; \
-          } \
-        } finally { $output.Close() } \
-      }; \
-      $ext = [System.IO.Path]::GetExtension($archive); \
-      if ($ext.ToLowerInvariant() -eq '.zip') { \
-        Expand-Archive -LiteralPath $archive -DestinationPath $env:FORBIDDENS_ENGINE_ROOT -Force; \
-      } else { \
-        tar -xf $archive -C $env:FORBIDDENS_ENGINE_ROOT; \
-      }; \
-      Remove-Item -LiteralPath $archive -Force";
+    if config.package_urls.len() == 1 {
+        download_file(config.package_urls[0], &archive)?;
+    } else {
+        for (index, url) in config.package_urls.iter().enumerate() {
+            let part_path = root.join(format!("{}.part{:03}", config.package_file_name, index + 1));
+            download_file(url, &part_path)?;
+            downloaded_parts.push(part_path);
+        }
+        join_package_parts(&downloaded_parts, &archive)?;
+    }
 
-    let mut command = powershell_command(script);
-    command.env("FORBIDDENS_ENGINE_ROOT", &root);
-    command.env("FORBIDDENS_ENGINE_URLS", config.package_urls.join("\n"));
-    command.env("FORBIDDENS_ENGINE_ARCHIVE", config.package_file_name);
-    run_hidden(command)?;
+    extract_archive(&archive, &root)?;
+
+    let _ = fs::remove_file(&archive);
+    for part in downloaded_parts {
+        let _ = fs::remove_file(part);
+    }
 
     let status = native_engine_status(normalized);
     if status.installed {
@@ -670,7 +1001,11 @@ fn pick_native_rom(app: AppHandle, console_id: String) -> Result<Option<String>,
 }
 
 #[tauri::command]
-fn open_native_emulator(console_id: String, rom_path: Option<String>) -> Result<String, String> {
+fn open_native_emulator(
+    app: AppHandle,
+    console_id: String,
+    rom_path: Option<String>,
+) -> Result<NativeEmulatorLaunchResult, String> {
     let normalized = console_id.trim().to_lowercase();
     let Some(config) = get_engine_config(&normalized) else {
         return Err("Esta consola aun no tiene motor nativo configurado.".to_string());
@@ -695,8 +1030,82 @@ fn open_native_emulator(console_id: String, rom_path: Option<String>) -> Result<
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    command.spawn().map_err(|error| error.to_string())?;
-    Ok(engine_path.to_string_lossy().to_string())
+    let mut child = command.spawn().map_err(|error| error.to_string())?;
+    let process_id = child.id();
+    let rom_path_for_event = rom_path
+        .as_deref()
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+        .map(|path| path.to_string());
+    let engine_path_string = engine_path.to_string_lossy().to_string();
+
+    let _ = enter_native_companion_layout(&app);
+    arrange_emulator_window(app.clone(), process_id);
+    monitor_native_emulator_window(
+        app.clone(),
+        normalized.clone(),
+        rom_path_for_event.clone(),
+        process_id,
+    );
+
+    let event_app = app.clone();
+    let restore_app = app.clone();
+    let event_payload = NativeEmulatorExitEvent {
+        console_id: normalized.clone(),
+        rom_path: rom_path_for_event.clone(),
+        engine_path: engine_path_string.clone(),
+        process_id,
+        success: true,
+    };
+
+    thread::spawn(move || {
+        let success = child.wait().map(|status| status.success()).unwrap_or(false);
+        let mut payload = event_payload.clone();
+        payload.success = success;
+        let _ = event_app.emit("forbiddens-native-emulator-exit", payload);
+        restore_launcher_layout(&restore_app);
+    });
+
+    Ok(NativeEmulatorLaunchResult {
+        console_id: normalized,
+        rom_path: rom_path_for_event,
+        engine_path: engine_path_string,
+        process_id,
+    })
+}
+
+#[tauri::command]
+fn close_native_emulator(process_id: u32) -> Result<(), String> {
+    let script = "$ErrorActionPreference='SilentlyContinue'; \
+      $processId = [int]$env:FORBIDDENS_EMU_PID; \
+      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
+      if ($p) { \
+        if ($p.MainWindowHandle -ne 0) { $null = $p.CloseMainWindow(); Start-Sleep -Milliseconds 900; $p.Refresh() } \
+        if (-not $p.HasExited) { Stop-Process -Id $processId -Force } \
+      }";
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
+    run_hidden(command)
+}
+
+#[tauri::command]
+fn set_native_emulator_state(process_id: u32, action: String) -> Result<(), String> {
+    let normalized = action.trim().to_lowercase();
+    let show_command = match normalized.as_str() {
+        "minimize" => "6",
+        "restore" | "show" | "maximize" => "9",
+        _ => return Err("Accion de ventana no soportada.".to_string()),
+    };
+
+    let script = "$ErrorActionPreference='SilentlyContinue'; \
+      Add-Type 'using System; using System.Runtime.InteropServices; public class ForbiddensWinState { [DllImport(\"user32.dll\")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); }'; \
+      $processId = [int]$env:FORBIDDENS_EMU_PID; \
+      $p = Get-Process -Id $processId -ErrorAction SilentlyContinue; \
+      if ($p -and $p.MainWindowHandle -ne 0) { [ForbiddensWinState]::ShowWindowAsync($p.MainWindowHandle, [int]$env:FORBIDDENS_SHOW_CMD) | Out-Null }";
+    let mut command = powershell_command(script);
+    command.env("FORBIDDENS_EMU_PID", process_id.to_string());
+    command.env("FORBIDDENS_SHOW_CMD", show_command);
+    run_hidden(command)
 }
 
 #[tauri::command]
@@ -743,14 +1152,14 @@ fn download_drive_rom_for_native(
 
 #[tauri::command]
 fn open_drive_rom_native(
+    app: AppHandle,
     console_id: String,
     file_id: String,
     file_name: String,
     access_token: String,
-) -> Result<String, String> {
+) -> Result<NativeEmulatorLaunchResult, String> {
     let path = download_drive_rom_for_native(console_id.clone(), file_id, file_name, access_token)?;
-    open_native_emulator(console_id, Some(path.clone()))?;
-    Ok(path)
+    open_native_emulator(app, console_id, Some(path))
 }
 
 fn ppsspp_candidates() -> Vec<PathBuf> {
@@ -792,8 +1201,11 @@ fn detect_ppsspp_native() -> Option<String> {
 }
 
 #[tauri::command]
-fn open_ppsspp_native(rom_path: Option<String>) -> Result<String, String> {
-    open_native_emulator("psp".to_string(), rom_path)
+fn open_ppsspp_native(
+    app: AppHandle,
+    rom_path: Option<String>,
+) -> Result<NativeEmulatorLaunchResult, String> {
+    open_native_emulator(app, "psp".to_string(), rom_path)
 }
 
 pub fn run() {
@@ -807,10 +1219,13 @@ pub fn run() {
             open_external_url,
             check_launcher_update,
             restart_launcher,
+            launcher_window_action,
             native_engine_status,
             install_native_engine,
             pick_native_rom,
             open_native_emulator,
+            close_native_emulator,
+            set_native_emulator_state,
             download_drive_rom_for_native,
             open_drive_rom_native,
             detect_ppsspp_native,

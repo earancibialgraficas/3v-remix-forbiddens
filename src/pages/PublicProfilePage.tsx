@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { stripHtmlToText } from "@/lib/htmlContent";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
+import PublicProfileMusicPlayer from "@/components/PublicProfileMusicPlayer";
 
 interface PublicProfile {
   user_id: string;
@@ -324,7 +325,7 @@ export default function PublicProfilePage() {
     if (!acc[key] || gs.score > acc[key].score) acc[key] = gs;
     return acc;
   }, {}));
-  const totalScoreValue = bestScores.reduce((sum, gs) => sum + gs.score, 0);
+  const statPoints = Math.max(0, Number(profile.total_score || 0));
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
   const membershipRemaining = !isStaffVisual && profile.membership_tier?.toLowerCase() !== "novato" ? formatMembershipRemaining(profile.membership_expires_at) : null;
 
@@ -359,7 +360,7 @@ export default function PublicProfilePage() {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                {isStaffVisual ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile.color_staff_role)}><Star className="w-3.5 h-3.5" /> STAFF</span> : <MembershipBadge tier={profile.membership_tier} size="md" colorRole={profile.color_role} />}
                {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {membershipRemaining}</span>}
-               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> {Math.max(profile.total_score, totalScoreValue).toLocaleString()} pts</span>
+               <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> {statPoints.toLocaleString()} pts</span>
                <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Miembro desde {memberSince}</span>
             </div>
             {user && user.id !== userId && (
@@ -387,11 +388,13 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
+      <PublicProfileMusicPlayer userId={profile.user_id} displayName={profile.display_name} />
+
       <div className="bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {[
-            { val: Math.max(profile.total_score, totalScoreValue).toLocaleString(), label: "Puntos", color: "text-neon-green" },
+            { val: statPoints.toLocaleString(), label: "Puntos", color: "text-neon-green" },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
             { val: followingCount, label: "Siguiendo", color: "text-foreground" },
             { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },

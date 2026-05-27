@@ -18,7 +18,8 @@ import VaultPasswordModal from "@/components/VaultPasswordModal";
 import MultiplayerGameBubble from "@/components/MultiplayerGameBubble";
 import { consoleTypeToId, dedupeDriveRomCandidates, getConsoleType, listDriveRomFiles, ROM_FILE_REGEX } from "@/lib/driveRomUtils";
 import { buildCoverBackupMap, getCoverBackup, loadLocalCoverBackups, saveLocalCoverBackups } from "@/lib/driveCoverBackup";
-import { getLauncherBridge, launcherSupportsNative } from "@/lib/launcherBridge";
+import { formatLauncherBridgeError, getLauncherBridge, launcherSupportsNative, type NativeEngineStatus } from "@/lib/launcherBridge";
+import { useNativeSession } from "@/contexts/NativeSessionContext";
 
 // --- MINI COMPONENTE PARA PORTADAS INTELIGENTES ---
 const GameCover = ({ gameName, consoleId, isCloud, defaultCover, customCover }: { gameName: string, consoleId: string, isCloud: boolean, defaultCover?: string, customCover?: string | null }) => {
@@ -120,6 +121,7 @@ export default function BibliotecaPage() {
   const { user, profile, isStaff } = useAuth();
   const { toast } = useToast();
   const { launchGame } = useGameBubble();
+  const { launchNativeSession } = useNativeSession();
   const location = useLocation();
   const canExtra = canPlayExtraConsole(profile?.membership_tier, isStaff);
   
@@ -127,6 +129,8 @@ export default function BibliotecaPage() {
   const [driveGames, setDriveGames] = useState<any[]>([]);
   const [launchingGameId, setLaunchingGameId] = useState<string | null>(null);
   const [nativeBusyGameId, setNativeBusyGameId] = useState<string | null>(null);
+  const [selectedNativeStatus, setSelectedNativeStatus] = useState<NativeEngineStatus | null>(null);
+  const [selectedNativeBusy, setSelectedNativeBusy] = useState(false);
   const [launcherDetected, setLauncherDetected] = useState(() => Boolean(getLauncherBridge()));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingGame, setEditingGame] = useState<any | null>(null);
@@ -185,6 +189,47 @@ export default function BibliotecaPage() {
     }, 250);
     return () => window.clearInterval(timer);
   }, [launcherDetected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const bridge = getLauncherBridge();
+      if (!launcherDetected || !launcherSupportsNative(selectedConsole) || !bridge?.nativeEngineStatus) {
+        setSelectedNativeStatus(null);
+        return;
+      }
+      try {
+        const status = await bridge.nativeEngineStatus(selectedConsole);
+        if (!cancelled) setSelectedNativeStatus(status);
+      } catch {
+        if (!cancelled) setSelectedNativeStatus(null);
+      }
+    };
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [launcherDetected, selectedConsole]);
+
+  const installSelectedNativeEngine = async (event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const bridge = getLauncherBridge();
+    if (!bridge?.installNativeEngine) return;
+    setSelectedNativeBusy(true);
+    try {
+      const status = await bridge.installNativeEngine(selectedConsole);
+      setSelectedNativeStatus(status);
+      toast({ title: "Emulador instalado", description: `${status.engine_name} quedo listo para ${selectedConsole.toUpperCase()}.` });
+    } catch (error: any) {
+      toast({
+        title: "No se pudo instalar",
+        description: formatLauncherBridgeError(error, "No se pudo preparar el emulador nativo."),
+        variant: "destructive",
+      });
+    } finally {
+      setSelectedNativeBusy(false);
+    }
+  };
   
   const [leaderboard, setLeaderboard] = useState<LeaderboardScore[]>([]);
   const [leaderboardColors, setLeaderboardColors] = useState<Record<string, string | null>>({});
@@ -388,7 +433,15 @@ export default function BibliotecaPage() {
 
 const handlePlayCloudGame = async (game: any) => {
     // Si ya hay un juego abriéndose, no hacemos nada
-    if (launchingGameId) return; 
+    if (launchingGameId) return;
+    if (game.console === "psp") {
+      toast({
+        title: "Solo disponible en launcher",
+        description: "Los juegos PSP de Drive ahora se abren con PPSSPP nativo desde FORBIDDENS Launcher.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Guardamos la ID del juego específico que clickeó el usuario
     setLaunchingGameId(game.id);
@@ -475,18 +528,26 @@ const handlePlayCloudGame = async (game: any) => {
 
       const accessToken = await requestGoogleToken();
       toast({ title: "Descargando desde Drive", description: "Guardando una copia local para el emulador nativo." });
-      await bridge.openDriveRomNative({
+      const launchResult: any = await bridge.openDriveRomNative({
         consoleId: game.console,
         fileId: game.id,
         fileName: game.fileName || game.originalName || game.name,
         accessToken,
+      });
+      const romPath = typeof launchResult === "string" ? launchResult : (launchResult?.rom_path || null);
+      launchNativeSession({
+        consoleName: game.console,
+        gameName: game.name,
+        engineName: status.engine_name || "Emulador nativo",
+        romPath,
+        processId: typeof launchResult === "object" ? Number(launchResult?.process_id || 0) || null : null,
       });
       toast({ title: "Abriendo emulador nativo", description: `${status.engine_name} iniciando con ${game.name}.` });
     } catch (error: any) {
       console.error(error);
       toast({
         title: "No se pudo abrir en nativo",
-        description: error?.message || String(error || "Hubo un error descargando desde Drive o abriendo el emulador."),
+        description: formatLauncherBridgeError(error, "Hubo un error descargando desde Drive o abriendo el emulador."),
         variant: "destructive",
       });
     } finally {
@@ -885,11 +946,47 @@ const handlePlayCloudGame = async (game: any) => {
               <Link to="/membresias"><Button size="sm" className="text-xs">Ver membresías</Button></Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              {currentGames.map((game: any) => (
+            <>
+              {launcherDetected && launcherSupportsNative(selectedConsole) && selectedNativeStatus && !selectedNativeStatus.installed && currentGames.some((game: any) => game.isCloud) && (
+                <div className="mb-3 rounded-lg border border-neon-cyan/30 bg-black/45 p-3 shadow-[0_0_24px_rgba(34,211,238,0.08)] backdrop-blur-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-pixel text-[9px] uppercase tracking-widest text-neon-cyan">
+                        {selectedNativeStatus.engine_name} requerido
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Instala el emulador una sola vez para desbloquear tus juegos de {consoleInfo?.label}.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={installSelectedNativeEngine}
+                      disabled={selectedNativeBusy}
+                      className="shrink-0 border border-neon-cyan/40 bg-neon-cyan/15 font-pixel text-[8px] uppercase tracking-widest text-neon-cyan hover:bg-neon-cyan/25"
+                    >
+                      {selectedNativeBusy ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-2 h-3.5 w-3.5" />}
+                      {selectedNativeBusy ? "Instalando..." : `Instalar ${selectedNativeStatus.engine_name}`}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              {currentGames.map((game: any) => {
+                const needsNativeInstall = Boolean(
+                  game.isCloud &&
+                  launcherDetected &&
+                  launcherSupportsNative(game.console) &&
+                  selectedNativeStatus &&
+                  !selectedNativeStatus.installed
+                );
+                return (
                 <div
                   key={game.id}
                   onClick={(event) => {
+                    if (needsNativeInstall) {
+                      void installSelectedNativeEngine(event);
+                      return;
+                    }
                     if (game.isCloud) {
                       if (launcherDetected && launcherSupportsNative(game.console)) {
                         void handlePlayCloudGameNative(game, event);
@@ -940,6 +1037,14 @@ const handlePlayCloudGame = async (game: any) => {
                         </span>
                       </div>
                     )}
+                    {needsNativeInstall && (
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/62 px-3 text-center backdrop-blur-[2px]">
+                        <Cpu className="h-6 w-6 text-neon-cyan drop-shadow-[0_0_10px_rgba(34,211,238,0.75)]" />
+                        <span className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">
+                          Instala {selectedNativeStatus?.engine_name || "emulador"} arriba
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-1.5 flex items-center gap-1">
                     <Play className="w-2.5 h-2.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
@@ -958,8 +1063,10 @@ const handlePlayCloudGame = async (game: any) => {
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+                );
+              })}
+              </div>
+            </>
           )}
         </div>
       ) : (

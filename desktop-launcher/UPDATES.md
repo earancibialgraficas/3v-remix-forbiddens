@@ -4,9 +4,9 @@ El launcher ya tiene el puente de updater instalado.
 
 - Al abrir la app, busca actualizaciones automaticamente y reinicia si instala una.
 - Dentro del website, cuando se abre desde el `.exe`, aparece un boton pequeno en la esquina para buscar updates manualmente.
-- Todo queda apagado hasta que generes una llave real y actives el updater.
+- El updater ya esta activo y apunta al bucket publico `launcher-downloads` de Supabase.
 
-## Primera vez
+## Primera vez / rotacion de llaves
 
 1. Genera la llave:
 
@@ -16,7 +16,7 @@ npm.cmd run desktop:updater:keygen
 
 2. Guarda la clave privada en un lugar seguro. No se sube al website ni a Git.
 3. Copia la clave publica en `src-tauri/tauri.conf.json`, dentro de `plugins.updater.pubkey`.
-4. Cambia `plugins.updater.active` a `true`.
+4. Verifica que `plugins.updater.active` siga en `true`.
 
 ## Publicar una version nueva
 
@@ -28,7 +28,11 @@ npm.cmd run desktop:build:installer
 ```
 
 3. Firma el instalador generado con la clave privada del updater.
-4. Sube el instalador firmado al website.
-5. Publica `latest.json` en `https://forbiddens.net/desktop/latest.json`.
+4. Sube el instalador al bucket publico `launcher-downloads`.
+5. Publica `desktop-launcher/latest.json` en:
+
+```text
+https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/latest.json
+```
 
 Puedes usar `updater.latest.example.json` como base.
