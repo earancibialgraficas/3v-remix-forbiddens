@@ -18,6 +18,7 @@ import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import PublicProfileMusicPlayer from "@/components/PublicProfileMusicPlayer";
 import GameScoreList from "@/components/profile/GameScoreList";
+import { SkinProvider } from "@/components/SkinProvider";
 
 interface PublicProfile {
   user_id: string;
@@ -355,7 +356,9 @@ export default function PublicProfilePage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in w-full min-w-0 px-2 sm:px-4 pb-20 relative">
+    <>
+      <SkinProvider userId={profile?.user_id} skinType="launcher" />
+      <div className="space-y-4 animate-fade-in w-full min-w-0 px-2 sm:px-4 pb-20 relative">
       
       <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -602,5 +605,6 @@ export default function PublicProfilePage() {
       )}
 
     </div>
+    </>
   );
 }

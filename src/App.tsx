@@ -32,6 +32,7 @@ import PublicProfilePage from "./pages/PublicProfilePage";
 import RulesPage from "./pages/RulesPage";
 import FeedPage from "./pages/FeedPage"; // 🔥 AQUÍ IMPORTAMOS EL NUEVO SUPER MURO
 import VaultPage from "./pages/VaultPage";
+import StorePage from "./pages/StorePage";
 import { Navigate } from "react-router-dom";
 import { UpgradeProvider } from "@/components/UpgradeModal";
 import GlobalAds from "@/components/GlobalAds"; // 🔥 IMPORTAMOS EL COMPONENTE DE ANUNCIOS
@@ -148,6 +149,7 @@ const App = () => {
                   <Route path="/trending" element={<ForumPage />} />
                   <Route path="/eventos" element={<EventosPage />} />
                   <Route path="/membresias" element={<MembershipsPage />} />
+                  <Route path="/tienda" element={<StorePage />} />
                   <Route path="/ayuda" element={<AyudaPage />} />
                   <Route path="/reglas" element={<RulesPage />} />
                   <Route path="/contacto" element={<Navigate to="/ayuda?seccion=contacto" replace />} />
