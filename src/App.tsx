@@ -4,9 +4,10 @@ import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-ro
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { GameBubbleProvider } from "@/contexts/GameBubbleContext";
 import { NativeSessionProvider } from "@/contexts/NativeSessionContext";
+import { SkinContextProvider } from "@/contexts/SkinContext";
 import MainLayout from "@/components/MainLayout";
 import Index from "./pages/Index";
 import ForumPage from "./pages/ForumPage";
@@ -104,20 +105,33 @@ function DriveOAuthRedirect() {
   return null;
 }
 
+/**
+ * Componente wrapper que aplica la skin global del usuario actual
+ */
+function AppWithSkin({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
+  return (
+    <SkinContextProvider userId={user?.id} skinType="launcher">
+      {children}
+    </SkinContextProvider>
+  );
+}
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
           <GameBubbleProvider>
-          <NativeSessionProvider>
-            
-            {/* 🔥 EL VIGILANTE SILENCIOSO DE LOS ANUNCIOS 🔥 
-                Al estar aquí adentro, ya puede usar el useAuth() para saber si el usuario es Premium */}
-            <GlobalAds />
+            <NativeSessionProvider>
+              <AppWithSkin>
+                {/* 🔥 EL VIGILANTE SILENCIOSO DE LOS ANUNCIOS 🔥 
+                    Al estar aquí adentro, ya puede usar el useAuth() para saber si el usuario es Premium */}
+                <GlobalAds />
 
-            <Toaster />
-            <Sonner />
+                <Toaster />
+                <Sonner />
             <BrowserRouter>
               <PasswordRecoveryRedirect />
               <DriveOAuthRedirect />
@@ -173,7 +187,8 @@ const App = () => {
               </Routes>
               </UpgradeProvider>
             </BrowserRouter>
-          </NativeSessionProvider>
+              </AppWithSkin>
+            </NativeSessionProvider>
           </GameBubbleProvider>
         </AuthProvider>
       </TooltipProvider>
