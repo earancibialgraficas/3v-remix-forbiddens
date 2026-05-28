@@ -30,6 +30,7 @@ import EnergyBar from "@/components/profile/EnergyBar";
 import InventoryTab from "@/components/profile/InventoryTab";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 import { INVENTORY_SEEN_EVENT, hasUnseenInventoryItems } from "@/lib/inventorySeen";
+import SkinsTab from "@/components/profile/SkinsTab";
 
 const safeStr = (val: any) => (val ? String(val) : "");
 
@@ -620,7 +621,7 @@ export default function ProfilePage() {
       {activeTab === "guardados" && <GuardadosTab />}
       {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} onWalletChange={setFcoinBalance} onStatChange={refreshProfile} />}
       {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
-      
+      {activeTab === "skins" && <SkinsTab userId={user.id} />}
     </div>
   );
 }
