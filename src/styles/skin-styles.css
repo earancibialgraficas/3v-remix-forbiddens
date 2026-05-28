@@ -2,9 +2,26 @@
 /* Solo se aplican cuando el HTML tiene atributo style con --skin-* */
 
 /* 🎨 Fondos generales - Solo con skin activa */
+html[style*="--skin-primary"] {
+  background: var(--skin-pattern-bg) center/cover no-repeat fixed !important;
+  background-color: var(--skin-background) !important;
+}
+
+html[style*="--skin-primary"] body {
+  background: transparent;
+}
+
 html[style*="--skin-primary"] .bg-card {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
+}
+
+html[style*="--skin-primary"] .rounded.border,
+html[style*="--skin-primary"] .rounded-lg.border {
+  background: var(--skin-pattern-card) center/cover, linear-gradient(135deg, var(--skin-card) 0%, rgba(0,0,0,0.5) 100%) !important;
+  background-blend-mode: multiply !important;
+  border-color: var(--skin-border) !important;
+  box-shadow: var(--skin-shadow) !important;
 }
 
 /* 🎨 Textos principales - Solo con skin activa */

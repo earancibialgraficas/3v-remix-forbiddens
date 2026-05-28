@@ -102,14 +102,14 @@ export const DEMONIACO_SKIN: SkinTheme = {
     hover: 'linear-gradient(135deg, #ff3333 0%, #ff6600 50%, #ffaa00 100%)',
   },
   effects: {
-    glow: '0 0 40px rgba(255, 17, 17, 0.8), 0 0 20px rgba(255, 102, 0, 0.4)',
-    shadow: '0 16px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 17, 17, 0.3)',
-    buttonHover: 'box-shadow: 0 0 30px rgba(255, 17, 17, 1), 0 0 20px rgba(255, 102, 0, 0.7), 0 4px 15px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 50px rgba(255, 17, 17, 1), 0 0 25px rgba(255, 102, 0, 0.6)',
+    shadow: '0 16px 50px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 17, 17, 0.4)',
+    buttonHover: 'box-shadow: 0 0 40px rgba(255, 17, 17, 1), 0 0 25px rgba(255, 102, 0, 0.8), 0 6px 20px rgba(0, 0, 0, 0.9)',
     borderRadius: '6px',
   },
   patterns: {
-    background: 'repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(255, 17, 17, 0.08) 50px, rgba(255, 17, 17, 0.08) 100px), repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255, 102, 0, 0.05) 30px, rgba(255, 102, 0, 0.05) 60px)',
-    card: 'radial-gradient(ellipse at 20% 20%, rgba(255, 102, 0, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(255, 17, 17, 0.1) 0%, transparent 50%), repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 17, 17, 0.03) 2px, rgba(255, 17, 17, 0.03) 4px)',
+    background: "url('https://cdn.jsdelivr.net/gh/earancibialgraficas/forbiddensASSETS@main/TemaDemoniaco/backgrounds/main-bg.webp'), radial-gradient(circle at 20% 20%, rgba(255, 102, 0, 0.2), transparent 40%)",
+    card: "url('https://cdn.jsdelivr.net/gh/earancibialgraficas/forbiddensASSETS@main/TemaDemoniaco/textures/lava-overlay.webp'), linear-gradient(135deg, rgba(26, 0, 0, 0.98) 0%, rgba(51, 0, 0, 0.95) 50%)",
   },
 };
 
