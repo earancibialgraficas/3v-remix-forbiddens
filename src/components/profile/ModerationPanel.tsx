@@ -19,6 +19,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   // --- Estados de Datos ---
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [banReason, setBanReason] = useState("");
+  const [fcoinsToGrant, setFcoinsToGrant] = useState("10000");
   const [selectedTier, setSelectedTier] = useState("novato");
   const [bannedContent, setBannedContent] = useState<any[]>([]);
   const [bannedUsers, setBannedUsers] = useState<any[]>([]);
@@ -225,6 +226,29 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
 
                  <div className="space-y-2">
                     <p className="text-[8px] font-pixel text-neon-yellow uppercase">Membresía</p>
+                    
+                    {/* 🔥 HERRAMIENTA EXCLUSIVA PARA EL MASTER WEB 🔥 */}
+                    {isMasterWeb && (
+                      <div className="bg-black/30 p-2.5 rounded border border-neon-cyan/20 mb-3 space-y-2 shadow-[inset_0_0_10px_rgba(0,255,255,0.05)]">
+                         <p className="text-[7px] font-pixel text-neon-cyan uppercase tracking-tighter">Subvención de Emergencia (Master Only)</p>
+                         <div className="flex gap-1">
+                           <Input 
+                             type="number" 
+                             value={fcoinsToGrant} 
+                             onChange={e => setFcoinsToGrant(e.target.value)} 
+                             className="h-7 bg-[#1b140f] text-xs font-mono border-white/10" 
+                           />
+                           <Button onClick={async () => {
+                             const amount = parseInt(fcoinsToGrant);
+                             const { data: w } = await supabase.from('point_wallets' as any).select('balance').eq('user_id', foundUser.user_id).single();
+                             const { error } = await supabase.from('point_wallets' as any).update({ balance: ((w as any)?.balance || 0) + amount } as any).eq('user_id', foundUser.user_id);
+                             if (error) toast({title: "Error", description: error.message, variant: "destructive"});
+                             else { toast({title: "Transferencia Master Exitosa", description: `Has inyectado ${amount.toLocaleString()} F-coins a ${foundUser.display_name}`}); handleSearchUser(); }
+                           }} className="h-7 bg-neon-cyan text-black text-[8px] font-pixel hover:bg-neon-cyan/80">OTORGAR</Button>
+                         </div>
+                      </div>
+                    )}
+
                     {foundUser.isStaff ? <p className="text-[9px] text-muted-foreground italic py-2 text-center">Un miembro del STAFF no requiere membresía.</p> : (
                       <>
                         <select value={selectedTier} onChange={e => setSelectedTier(e.target.value)} className="w-full h-8 bg-muted border rounded text-[9px] uppercase font-body">{["novato", "lite", "entusiasta", "coleccionista", "leyenda arcade", "miembro del legado", "creador de contenido"].map(t => <option key={t} value={t}>{t}</option>)}</select>
