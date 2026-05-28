@@ -143,15 +143,6 @@ export default function StorePage() {
       return;
     }
 
-    const isOwned = userInventory.some(inv => inv.item_slug === item.slug);
-    if (isOwned) {
-      toast({ 
-        title: "Aviso", 
-        description: "Ya posees este item en tu inventario." 
-      });
-      return;
-    }
-
     if (!canBuyItem(item)) {
       toast({ 
         title: "No puedes comprar esto",
@@ -384,16 +375,11 @@ export default function StorePage() {
                   {/* Botón */}
                   <Button
                     onClick={() => handleBuyItem(item)}
-                    disabled={!canBuy || isOwned}
+                    disabled={!canBuy}
                     className="w-full h-7 text-xs font-pixel mt-2"
                     variant={canBuy ? "default" : "outline"}
                   >
-                    {isOwned ? (
-                      <>
-                        <Check className="w-3 h-3 mr-1" />
-                        POSEÍDO
-                      </>
-                    ) : !canBuy ? (
+                    {!canBuy ? (
                       <>
                         <Lock className="w-3 h-3 mr-1" />
                         BLOQUEADO

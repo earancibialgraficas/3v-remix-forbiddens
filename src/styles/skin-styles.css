@@ -23,67 +23,111 @@
   --border-radius: var(--skin-border-radius, 12px);
 }
 
-/* 🎨 Aplicar a elementos del perfil */
+/* ========================================
+   APLICAR SKINS A TODO EL DOCUMENTO
+   ======================================== */
 
-/* Cards del perfil */
-.bg-card[style*="border"] {
-  border-color: var(--skin-border, currentColor) !important;
-  background: linear-gradient(135deg, var(--skin-card, #1a1a1a), rgba(0,0,0,0.3)) !important;
-  box-shadow: var(--skin-shadow) !important;
+/* 🎨 Fondos generales */
+[style*="bg-card"],
+.bg-card {
+  background-color: var(--skin-card) !important;
+  border-color: var(--skin-border) !important;
 }
 
-/* Títulos principales */
-.font-pixel.text-neon-cyan,
-.font-pixel.text-3xl,
-.font-pixel.text-xl {
+[style*="bg-gradient"],
+.bg-gradient-to-br {
+  background: var(--skin-gradient-card) !important;
+}
+
+/* 🎨 Textos principales */
+h1, h2, h3, h4, h5, h6,
+.font-pixel,
+[style*="text-neon"] {
   color: var(--skin-primary) !important;
   text-shadow: 0 0 10px var(--skin-glow) !important;
 }
 
-/* Badges y etiquetas */
+/* Textos mutados */
+.text-muted-foreground,
+.text-muted {
+  color: var(--skin-text-muted) !important;
+}
+
+/* Textos principales */
+.text-foreground,
+.text-white {
+  color: var(--skin-text) !important;
+}
+
+/* 🎨 Bordes dinámicos */
+[style*="border"],
+.border {
+  border-color: var(--skin-border) !important;
+}
+
+/* 🎨 Colores específicos de neon */
+.text-neon-cyan,
 .text-neon-green,
 .text-neon-yellow,
-.text-neon-magenta,
-.text-neon-cyan {
-  color: var(--skin-accent) !important;
+.text-neon-magenta {
+  color: var(--skin-secondary) !important;
+  text-shadow: 0 0 8px var(--skin-glow) !important;
 }
 
-/* Botones */
-button:not(:disabled),
-.cursor-pointer {
-  transition: all 0.3s ease;
+/* 🎨 Avatares con brillo */
+.rounded-full {
+  box-shadow: 0 0 20px var(--skin-glow) !important;
+  border-color: var(--skin-primary) !important;
 }
 
-/* Bordes de skin */
-.rounded-full[style*="border"] {
+/* 🎨 Cards con gradientes */
+.rounded.border,
+.rounded-lg.border {
+  background: linear-gradient(135deg, var(--skin-card) 0%, rgba(var(--skin-background), 0.5) 100%) !important;
+  box-shadow: var(--skin-shadow) !important;
+  border-color: var(--skin-border) !important;
+}
+
+/* 🎨 Botones */
+button[style*="bg"],
+.bg-neon-cyan,
+.bg-neon-green,
+.bg-neon-yellow {
+  background: var(--skin-gradient-button) !important;
+  color: var(--skin-text) !important;
+}
+
+button:hover:not(:disabled) {
   box-shadow: 0 0 15px var(--skin-glow) !important;
 }
 
-/* Patrones de fondo */
-[style*="bg-gradient"] {
-  background: var(--skin-gradient-card) !important;
-}
-
-/* Efectos de hover */
-.hover\:border-neon-cyan\/50:hover {
+/* 🎨 Hover effects */
+.hover\:border-neon-cyan\/50:hover,
+.hover\:bg-white\/10:hover {
   border-color: var(--skin-primary) !important;
+  background-color: rgba(var(--skin-primary), 0.1) !important;
   box-shadow: 0 0 20px var(--skin-glow) !important;
 }
 
-/* Nombre del usuario */
-h2.text-neon-cyan {
+/* 🎨 Etiquetas y badges */
+.px-2.py-0\.5,
+[style*="px-"][style*="py-"] {
+  background-color: rgba(var(--skin-primary), 0.2) !important;
+  border-color: var(--skin-primary) !important;
   color: var(--skin-primary) !important;
-  text-shadow: 0 0 15px var(--skin-glow) !important;
-  letter-spacing: 0.05em;
 }
 
-/* Stats */
-.text-neon-green,
-.text-neon-cyan {
-  color: var(--skin-secondary) !important;
+/* 🎨 Elementos de perfil */
+.font-body {
+  color: var(--skin-text) !important;
 }
 
-/* Animación de entrada */
+/* 🎨 Patrones de fondo */
+body::before {
+  background: var(--skin-pattern-bg);
+}
+
+/* 🎨 Animaciones con glow */
 .animate-fade-in {
   animation: fadeInWithGlow 0.6s ease-out;
 }
@@ -95,6 +139,62 @@ h2.text-neon-cyan {
   }
   to {
     opacity: 1;
-    filter: drop-shadow(0 0 0px transparent);
+    filter: drop-shadow(0 0 5px var(--skin-glow));
   }
 }
+
+/* 🎨 Glows especiales */
+.shadow-neon-sm,
+[style*="shadow"] {
+  box-shadow: var(--skin-shadow) !important;
+}
+
+/* 🎨 Inputs y selects */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  background-color: var(--skin-card) !important;
+  border-color: var(--skin-border) !important;
+  color: var(--skin-text) !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--skin-primary) !important;
+  box-shadow: 0 0 10px var(--skin-glow) !important;
+}
+
+/* 🎨 Stats y números */
+.font-mono {
+  color: var(--skin-secondary) !important;
+}
+
+/* 🎨 Líneas divisoras */
+.border-t,
+.border-b,
+.border-l,
+.border-r {
+  border-color: var(--skin-border) !important;
+}
+
+/* 🎨 Scroll bar personalizado */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--skin-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--skin-primary);
+  border-radius: var(--skin-border-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: 0 0 10px var(--skin-glow);
+}
+
