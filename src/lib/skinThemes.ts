@@ -189,6 +189,9 @@ export const ALL_SKINS = {
   default: DEFAULT_SKIN,
 };
 
+// Lista de slugs disponibles
+export const SKIN_SLUGS = ['default', 'angelical', 'demoniaco', 'cyberpunk'] as const;
+
 // Obtener un tema por slug
 export const getSkinTheme = (slug?: string): SkinTheme => {
   if (!slug || slug === 'default') return DEFAULT_SKIN;
