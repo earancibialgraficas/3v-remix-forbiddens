@@ -54,9 +54,11 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
 
     fetchActiveSkin();
 
-    // Suscribirse a cambios en tiempo real
+    // Suscribirse a cambios en tiempo real con topic único para evitar reutilizar
+    // un canal ya suscrito cuando hay varios providers montados en /perfil.
+    const channelTopic = `user-skins:${userId}:${skinType}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel(`user-skins:${userId}`)
+      .channel(channelTopic)
       .on(
         'postgres_changes',
         {
@@ -65,7 +67,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
           table: 'user_active_skins',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        () => {
           console.log('🔄 Real-time skin update:', payload);
           fetchActiveSkin();
         }
