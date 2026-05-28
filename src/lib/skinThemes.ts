@@ -2,7 +2,7 @@
 // Cada skin cambia colores, gradientes, efectos en toda la interfaz
 
 export type SkinType = 'launcher' | 'agario' | 'game';
-export type SkinSlug = 'angelical' | 'satanic' | 'cyberpunk' | 'default';
+export type SkinSlug = 'angelical' | 'demoniaco' | 'cyberpunk' | 'default';
 
 export interface SkinTheme {
   name: string;
@@ -79,12 +79,12 @@ export const ANGELICAL_SKIN: SkinTheme = {
   },
 };
 
-// 😈 SKIN SATÁNICO - Rojo intenso, negro profundo, efectos de fuego
-export const SATANIC_SKIN: SkinTheme = {
-  name: 'Satánico',
-  slug: 'satanic',
+// 😈 SKIN DEMONIACO - Rojo intenso, negro profundo, efectos de fuego
+export const DEMONIACO_SKIN: SkinTheme = {
+  name: 'Demoniaco',
+  slug: 'demoniaco',
   type: 'launcher',
-  description: 'Estilo oscuro rojo con efectos de lava y fuego 🔥',
+  description: 'Estilo oscuro rojo demoníaco con efectos de fuego infernal 🔥',
   colors: {
     primary: '#ff1111',      // Rojo puro intenso
     secondary: '#ff4444',    // Rojo claro
@@ -184,7 +184,7 @@ export const DEFAULT_SKIN: SkinTheme = {
 // 📦 Todos los temas disponibles
 export const ALL_SKINS = {
   angelical: ANGELICAL_SKIN,
-  satanic: SATANIC_SKIN,
+  demoniaco: DEMONIACO_SKIN,
   cyberpunk: CYBERPUNK_SKIN,
   default: DEFAULT_SKIN,
 };

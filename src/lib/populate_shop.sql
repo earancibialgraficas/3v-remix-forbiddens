@@ -1,4 +1,4 @@
--- 🎨 Insertar los 3 Skins Principales en la Tienda
+-- 🎨 Insertar los 3 Skins Principales en la Tienda (con UPSERT para evitar duplicados)
 
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
 VALUES 
@@ -13,9 +13,9 @@ VALUES
     'https://images.unsplash.com/photo-1578987324336-f97497b91c42?w=400&h=300&fit=crop'
   ),
   (
-    'satanic',
-    'Skin Satánico',
-    'Estilo oscuro rojo con efectos de lava. Interfaz completa del website cambia a tema satánico 🔥',
+    'demoniaco',
+    'Skin Demoniaco',
+    'Estilo oscuro rojo demoníaco con efectos de fuego infernal. Interfaz completa del website cambia a tema demoniaco 🔥',
     15000,
     'stats',
     'launcher_skin',
@@ -31,7 +31,15 @@ VALUES
     'launcher_skin',
     'lite',
     'https://images.unsplash.com/photo-1571171438601-dfc41f1d2fd4?w=400&h=300&fit=crop'
-  );
+  )
+ON CONFLICT (slug) DO UPDATE SET 
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
 
 -- Ejemplo de otros items que puedes agregar:
 -- 📦 Cofres de Juegos
@@ -56,7 +64,15 @@ VALUES
     'game_chest',
     'legacy',
     'https://images.unsplash.com/photo-1609710228159-0fa9817ba3a0?w=400&h=300&fit=crop'
-  );
+  )
+ON CONFLICT (slug) DO UPDATE SET 
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
 
 -- 🎮 Skins para Agario
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
@@ -80,7 +96,15 @@ VALUES
     'agario_skin',
     'lite',
     'https://images.unsplash.com/photo-1609710228159-0fa9817ba3a0?w=400&h=300&fit=crop'
-  );
+  )
+ON CONFLICT (slug) DO UPDATE SET 
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
 
 -- ✨ Cosméticos (accesibles a Novatos con STATS)
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
@@ -104,4 +128,12 @@ VALUES
     'cosmetic',
     'novato',
     'https://images.unsplash.com/photo-1618519764d7651dcd048bae83a12daf82b763209?w=400&h=300&fit=crop'
-  );
+  )
+ON CONFLICT (slug) DO UPDATE SET 
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
