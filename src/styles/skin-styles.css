@@ -1,0 +1,100 @@
+/* 🎨 Estilos Dinámicos para Skins */
+/* Estas propiedades se sobrescribem con var(--skin-*) cuando se aplica una skin */
+
+:root[style*="--skin-primary"] {
+  /* Headers y títulos principales */
+  --header-bg: var(--skin-gradient-header, linear-gradient(135deg, #0066cc 0%, #00ccff 100%));
+  --primary-color: var(--skin-primary, #0066cc);
+  --secondary-color: var(--skin-secondary, #00ccff);
+  --accent-color: var(--skin-accent, #66ff00);
+  
+  /* Fondos */
+  --bg-base: var(--skin-background, #0a0a0a);
+  --bg-card: var(--skin-card, #1a1a1a);
+  
+  /* Textos */
+  --text-primary: var(--skin-text, #ffffff);
+  --text-muted: var(--skin-text-muted, #888888);
+  --text-border: var(--skin-border, #333333);
+  
+  /* Efectos */
+  --glow: var(--skin-glow, 0 0 20px rgba(0, 102, 204, 0.4));
+  --shadow: var(--skin-shadow, 0 8px 24px rgba(0, 102, 204, 0.15));
+  --border-radius: var(--skin-border-radius, 12px);
+}
+
+/* 🎨 Aplicar a elementos del perfil */
+
+/* Cards del perfil */
+.bg-card[style*="border"] {
+  border-color: var(--skin-border, currentColor) !important;
+  background: linear-gradient(135deg, var(--skin-card, #1a1a1a), rgba(0,0,0,0.3)) !important;
+  box-shadow: var(--skin-shadow) !important;
+}
+
+/* Títulos principales */
+.font-pixel.text-neon-cyan,
+.font-pixel.text-3xl,
+.font-pixel.text-xl {
+  color: var(--skin-primary) !important;
+  text-shadow: 0 0 10px var(--skin-glow) !important;
+}
+
+/* Badges y etiquetas */
+.text-neon-green,
+.text-neon-yellow,
+.text-neon-magenta,
+.text-neon-cyan {
+  color: var(--skin-accent) !important;
+}
+
+/* Botones */
+button:not(:disabled),
+.cursor-pointer {
+  transition: all 0.3s ease;
+}
+
+/* Bordes de skin */
+.rounded-full[style*="border"] {
+  box-shadow: 0 0 15px var(--skin-glow) !important;
+}
+
+/* Patrones de fondo */
+[style*="bg-gradient"] {
+  background: var(--skin-gradient-card) !important;
+}
+
+/* Efectos de hover */
+.hover\:border-neon-cyan\/50:hover {
+  border-color: var(--skin-primary) !important;
+  box-shadow: 0 0 20px var(--skin-glow) !important;
+}
+
+/* Nombre del usuario */
+h2.text-neon-cyan {
+  color: var(--skin-primary) !important;
+  text-shadow: 0 0 15px var(--skin-glow) !important;
+  letter-spacing: 0.05em;
+}
+
+/* Stats */
+.text-neon-green,
+.text-neon-cyan {
+  color: var(--skin-secondary) !important;
+}
+
+/* Animación de entrada */
+.animate-fade-in {
+  animation: fadeInWithGlow 0.6s ease-out;
+}
+
+@keyframes fadeInWithGlow {
+  from {
+    opacity: 0;
+    filter: drop-shadow(0 0 20px var(--skin-glow));
+  }
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 0 0px transparent);
+  }
+}

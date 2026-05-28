@@ -22,15 +22,25 @@ export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProp
     
     // Inyectar como atributo style en el root
     const root = document.documentElement;
-    root.setAttribute('style', cssVariables);
+    const currentStyle = root.getAttribute('style') || '';
     
-    // También inyectar en un elemento específico si existe
-    const skinElement = document.getElementById('theme-provider');
-    if (skinElement) {
-      skinElement.setAttribute('style', cssVariables);
-    }
+    // Remover estilos de skin anteriores y agregar los nuevos
+    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;/g, '').trim();
+    const newStyle = `${cssVariables}${cleanedStyle ? '; ' + cleanedStyle : ''}`;
+    
+    root.setAttribute('style', newStyle);
 
-    console.log('🎨 Skin aplicada:', activeSkin.name);
+    console.log('🎨 Skin aplicada:', activeSkin.name, activeSkin.colors);
+
+    return () => {
+      // Limpiar solo las variables de skin
+      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;/g, '').trim();
+      if (finalStyle) {
+        root.setAttribute('style', finalStyle);
+      } else {
+        root.removeAttribute('style');
+      }
+    };
   }, [activeSkin]);
 
   return null;

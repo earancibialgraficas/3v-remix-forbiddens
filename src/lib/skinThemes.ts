@@ -197,24 +197,5 @@ export const getSkinTheme = (slug?: string): SkinTheme => {
 
 // Generar CSS variables para un tema
 export const generateThemeCSS = (theme: SkinTheme): string => {
-  return `
-    --skin-primary: ${theme.colors.primary};
-    --skin-secondary: ${theme.colors.secondary};
-    --skin-accent: ${theme.colors.accent};
-    --skin-background: ${theme.colors.background};
-    --skin-card: ${theme.colors.card};
-    --skin-text: ${theme.colors.text};
-    --skin-text-muted: ${theme.colors.textMuted};
-    --skin-border: ${theme.colors.border};
-    --skin-gradient-header: ${theme.gradients.header};
-    --skin-gradient-card: ${theme.gradients.card};
-    --skin-gradient-button: ${theme.gradients.button};
-    --skin-gradient-hover: ${theme.gradients.hover};
-    --skin-glow: ${theme.effects.glow};
-    --skin-shadow: ${theme.effects.shadow};
-    --skin-button-hover: ${theme.effects.buttonHover};
-    --skin-border-radius: ${theme.effects.borderRadius};
-    --skin-pattern-bg: ${theme.patterns.background};
-    --skin-pattern-card: ${theme.patterns.card};
-  `;
+  return `--skin-primary: ${theme.colors.primary}; --skin-secondary: ${theme.colors.secondary}; --skin-accent: ${theme.colors.accent}; --skin-background: ${theme.colors.background}; --skin-card: ${theme.colors.card}; --skin-text: ${theme.colors.text}; --skin-text-muted: ${theme.colors.textMuted}; --skin-border: ${theme.colors.border}; --skin-gradient-header: ${theme.gradients.header}; --skin-gradient-card: ${theme.gradients.card}; --skin-gradient-button: ${theme.gradients.button}; --skin-gradient-hover: ${theme.gradients.hover}; --skin-glow: ${theme.effects.glow}; --skin-shadow: ${theme.effects.shadow}; --skin-button-hover: ${theme.effects.buttonHover}; --skin-border-radius: ${theme.effects.borderRadius}; --skin-pattern-bg: ${theme.patterns.background}; --skin-pattern-card: ${theme.patterns.card};`;
 };
