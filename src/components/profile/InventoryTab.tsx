@@ -4,6 +4,7 @@ import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Spa
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -1346,58 +1347,62 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
           <div className="grid grid-cols-9 gap-1.5 rounded border border-black/60 bg-[#1b140f] p-2">
             {slotItems.map((item, index) => (
-              <div
-                key={index}
-                onClick={(event) => handleSlotLeftClick(index, event)}
-                onDoubleClick={() => handleSlotDoubleClick(index)}
-                onMouseDown={(event) => {
-                  if (event.button === 0 && cursorItem) beginDistribution(index, "even", event);
-                  if (event.button === 2 && cursorItem) beginDistribution(index, "single", event);
-                }}
-                onMouseEnter={() => touchDistributionSlot(index)}
-                onContextMenu={(event) => {
-                  handleSlotRightClick(index, event);
-                }}
-                className={cn(
-                  "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
-                  item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
-                  dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
-                )}
-                title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
-              >
-                {item && (() => {
-                  const itemIsNew = isInventoryItemUnseen(userId, item);
-                  void seenVersion;
-                  return (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <div className={cn(
-                      "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
-                      isMembershipItem(item)
-                        ? "border-neon-magenta/70 bg-[#4a235e]"
-                        : isEventTicketItem(item)
-                          ? "border-neon-cyan/70 bg-[#14354a]"
-                          : isSkinItem(item)
-                            ? "border-neon-cyan/70 bg-[#0a2e2e]"
-                          : "border-[#f7d28b]/70 bg-[#6b4a1f]",
-                    )}>
-                      <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
-                      <ItemIcon
-                        item={item}
-                        className={cn(
-                          "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
-                          isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
-                        )}
-                      />
-                    </div>
-                    {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
-                    {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
-                    {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
-                    {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
-                    <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
+              <Tooltip key={index}>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={(event) => handleSlotLeftClick(index, event)}
+                    onDoubleClick={() => handleSlotDoubleClick(index)}
+                    onMouseDown={(event) => {
+                      if (event.button === 0 && cursorItem) beginDistribution(index, "even", event);
+                      if (event.button === 2 && cursorItem) beginDistribution(index, "single", event);
+                    }}
+                    onMouseEnter={() => touchDistributionSlot(index)}
+                    onContextMenu={(event) => {
+                      handleSlotRightClick(index, event);
+                    }}
+                    className={cn(
+                      "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
+                      item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
+                      dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
+                    )}
+                    title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
+                  >
+                    {item && (() => {
+                      const itemIsNew = isInventoryItemUnseen(userId, item);
+                      void seenVersion;
+                      return (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <div className={cn(
+                          "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
+                          isMembershipItem(item)
+                            ? "border-neon-magenta/70 bg-[#4a235e]"
+                            : isEventTicketItem(item)
+                              ? "border-neon-cyan/70 bg-[#14354a]"
+                              : isSkinItem(item)
+                                ? "border-neon-cyan/70 bg-[#0a2e2e]"
+                              : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                        )}>
+                          <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
+                          <ItemIcon
+                            item={item}
+                            className={cn(
+                              "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                            )}
+                          />
+                        </div>
+                        {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
+                        {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
+                        {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
+                        {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
+                        <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
+                      </div>
+                      );
+                    })()}
                   </div>
-                  );
-                })()}
-              </div>
+                </TooltipTrigger>
+                {item && <TooltipContent className="bg-black/90 border-neon-yellow/50 text-neon-yellow font-pixel text-xs">{itemLabel(item)}</TooltipContent>}
+              </Tooltip>
             ))}
           </div>
 
