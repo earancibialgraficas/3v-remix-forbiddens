@@ -67,7 +67,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
           table: 'user_active_skins',
           filter: `user_id=eq.${userId}`,
         },
-        () => {
+        (payload) => {
           console.log('🔄 Real-time skin update:', payload);
           fetchActiveSkin();
         }
