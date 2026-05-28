@@ -113,10 +113,51 @@ export default function RightPanel() {
       setMemberCount(members || 0);
       const { count: posts } = await supabase.from("posts").select("*", { count: "exact", head: true });
       setPostCount(posts || 0);
-      setOnlineCount(100 + Math.floor(Math.random() * 20)); 
+      setOnlineCount(10);
     };
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    const sessionKey = "forbiddens_presence_session_id";
+    let presenceId = "";
+    try {
+      presenceId = localStorage.getItem(sessionKey) || "";
+      if (!presenceId) {
+        presenceId = crypto.randomUUID();
+        localStorage.setItem(sessionKey, presenceId);
+      }
+    } catch {
+      presenceId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    const channel = supabase.channel("site-presence", {
+      config: { presence: { key: presenceId } },
+    });
+
+    const updatePresenceCount = () => {
+      const state = channel.presenceState();
+      setOnlineCount(Math.max(10, Object.keys(state).length));
+    };
+
+    channel
+      .on("presence", { event: "sync" }, updatePresenceCount)
+      .on("presence", { event: "join" }, updatePresenceCount)
+      .on("presence", { event: "leave" }, updatePresenceCount)
+      .subscribe(async (status) => {
+        if (status !== "SUBSCRIBED") return;
+        await channel.track({
+          online_at: new Date().toISOString(),
+          user_id: user?.id || null,
+        });
+        updatePresenceCount();
+      });
+
+    return () => {
+      void channel.untrack();
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     handleScroll();

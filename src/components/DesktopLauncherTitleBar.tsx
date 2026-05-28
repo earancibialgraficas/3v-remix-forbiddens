@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
-import { Cpu, Gem, Minus, RefreshCw, Square, Trophy, X } from "lucide-react";
+import { Copy, Cpu, Gem, Minus, RefreshCw, Square, Trophy, X } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -56,6 +56,7 @@ export default function DesktopLauncherTitleBar() {
   const [visible, setVisible] = useState(() => Boolean(getLauncherBridge()));
   const [checking, setChecking] = useState(false);
   const [wallet, setWallet] = useState<number | null>(null);
+  const [maximized, setMaximized] = useState(false);
 
   const activeSession = sessions[currentSessionIndex];
 
@@ -115,6 +116,7 @@ export default function DesktopLauncherTitleBar() {
 
   const windowAction = (action: "minimize" | "toggle_maximize" | "close") => {
     void getLauncherBridge()?.launcherWindowAction?.(action);
+    if (action === "toggle_maximize") setMaximized((current) => !current);
   };
 
   const startDrag = (event: PointerEvent<HTMLDivElement>) => {
@@ -226,7 +228,7 @@ export default function DesktopLauncherTitleBar() {
           type="button"
           onClick={checkUpdate}
           disabled={checking}
-          className="grid h-full w-11 place-items-center text-neon-cyan/75 transition-colors hover:bg-neon-cyan/10 hover:text-neon-cyan disabled:cursor-wait"
+          className="grid h-full w-11 place-items-center text-neon-cyan/75 transition-all duration-150 hover:bg-neon-cyan/15 hover:text-neon-cyan hover:shadow-[inset_0_-2px_0_rgba(34,211,238,0.75)] active:bg-neon-cyan/20 disabled:cursor-wait"
           title="Buscar actualizacion"
           aria-label="Buscar actualizacion"
         >
@@ -235,24 +237,27 @@ export default function DesktopLauncherTitleBar() {
         <button
           type="button"
           onClick={() => windowAction("minimize")}
-          className="grid h-full w-11 place-items-center text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          className="grid h-full w-11 place-items-center text-white/70 transition-all duration-150 hover:bg-neon-cyan/10 hover:text-neon-cyan hover:shadow-[inset_0_-2px_0_rgba(34,211,238,0.65)] active:bg-neon-cyan/15"
           aria-label="Minimizar"
+          title="Minimizar"
         >
           <Minus className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => windowAction("toggle_maximize")}
-          className="grid h-full w-11 place-items-center text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Maximizar"
+          className="grid h-full w-11 place-items-center text-white/70 transition-all duration-150 hover:bg-neon-green/10 hover:text-neon-green hover:shadow-[inset_0_-2px_0_rgba(57,255,20,0.65)] active:bg-neon-green/15"
+          aria-label={maximized ? "Restaurar" : "Maximizar"}
+          title={maximized ? "Restaurar" : "Maximizar"}
         >
-          <Square className="h-3.5 w-3.5" />
+          {maximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
         </button>
         <button
           type="button"
           onClick={() => windowAction("close")}
-          className="grid h-full w-11 place-items-center text-white/70 transition-colors hover:bg-neon-red/80 hover:text-white"
+          className="grid h-full w-11 place-items-center text-white/70 transition-all duration-150 hover:bg-neon-red/85 hover:text-white hover:shadow-[inset_0_-2px_0_rgba(255,255,255,0.38)] active:bg-neon-red"
           aria-label="Cerrar"
+          title="Cerrar"
         >
           <X className="h-4 w-4" />
         </button>

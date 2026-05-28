@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Gamepad2, Search } from "lucide-react";
+import { ChevronDown, Gamepad2, Gem, Search, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type GameScore = {
@@ -10,15 +10,143 @@ type GameScore = {
 
 const safeStr = (val: unknown) => (val ? String(val) : "");
 const categoryOrder = ["NES", "SNES", "N64", "GBA", "GBC", "PS1", "PS2", "PSP", "DS", "SEGA", "ARCADE", "MULTI", "BET"];
+const isMultiCategory = (category: string) => category === "MULTI" || category === "MULTIPLAYER" || category.startsWith("MULTI");
+const isBetCategory = (category: string) => category === "BET" || category.startsWith("BET");
+const getCategoryLabel = (category: string) => {
+  if (isMultiCategory(category)) return "MULTI";
+  if (isBetCategory(category)) return "BET";
+  return category;
+};
+const getScoreReward = (category: string) => {
+  if (isBetCategory(category)) {
+    return {
+      label: "F-coins",
+      className: "border-[#f7d28b]/35 bg-[#f7d28b]/10 text-[#f7d28b]",
+      Icon: Gem,
+    };
+  }
+  return {
+    label: "Stats",
+    className: "border-neon-green/30 bg-neon-green/10 text-neon-green",
+    Icon: Trophy,
+  };
+};
 
 const getCategoryTone = (category: string) => {
+  if (isBetCategory(category)) return "border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow";
+  if (isMultiCategory(category)) return "border-neon-orange/30 bg-neon-orange/10 text-neon-orange";
   const normalized = category.toLowerCase();
   if (normalized === "nes") return "border-neon-green/30 bg-neon-green/10 text-neon-green";
   if (normalized === "snes") return "border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan";
-  if (normalized === "bet") return "border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow";
-  if (normalized === "multi") return "border-neon-orange/30 bg-neon-orange/10 text-neon-orange";
   return "border-neon-magenta/30 bg-neon-magenta/10 text-neon-magenta";
 };
+
+function FilterDropdown({
+  tone,
+  label,
+  activeLabel,
+  options,
+  value,
+  onChange,
+}: {
+  tone: "cyan" | "orange" | "yellow";
+  label: string;
+  activeLabel?: string;
+  options: { value: string; label: string; meta?: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const toneClasses = {
+    cyan: {
+      button: "border-neon-cyan/25 text-neon-cyan hover:border-neon-cyan/60 hover:bg-neon-cyan/10",
+      menu: "border-neon-cyan/35 shadow-[0_18px_42px_rgba(34,211,238,0.16)]",
+      active: "bg-neon-cyan/15 text-neon-cyan",
+      hover: "hover:bg-neon-cyan/10 hover:text-neon-cyan",
+    },
+    orange: {
+      button: "border-neon-orange/25 text-neon-orange hover:border-neon-orange/60 hover:bg-neon-orange/10",
+      menu: "border-neon-orange/35 shadow-[0_18px_42px_rgba(251,146,60,0.16)]",
+      active: "bg-neon-orange/15 text-neon-orange",
+      hover: "hover:bg-neon-orange/10 hover:text-neon-orange",
+    },
+    yellow: {
+      button: "border-neon-yellow/25 text-neon-yellow hover:border-neon-yellow/60 hover:bg-neon-yellow/10",
+      menu: "border-neon-yellow/35 shadow-[0_18px_42px_rgba(250,204,21,0.16)]",
+      active: "bg-neon-yellow/15 text-neon-yellow",
+      hover: "hover:bg-neon-yellow/10 hover:text-neon-yellow",
+    },
+  }[tone];
+
+  const selectedText = activeLabel || label;
+
+  return (
+    <div className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 130)}
+        className={cn(
+          "flex h-8 w-full min-w-0 items-center justify-between gap-1 rounded border bg-black/35 px-2 font-pixel text-[7px] uppercase tracking-wider outline-none transition-all focus-visible:ring-1 sm:w-[106px]",
+          toneClasses.button,
+        )}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate">{selectedText}</span>
+        <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className={cn(
+            "absolute right-0 top-[calc(100%+6px)] z-40 max-h-56 w-[min(240px,80vw)] overflow-y-auto rounded border bg-[#05070d]/95 p-1 backdrop-blur-xl custom-scrollbar",
+            toneClasses.menu,
+          )}
+        >
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+            className={cn(
+              "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[10px] transition-colors",
+              !value ? toneClasses.active : `text-muted-foreground ${toneClasses.hover}`,
+            )}
+          >
+            <span className="font-pixel text-[8px] uppercase">{label}</span>
+            <span className="text-[9px] opacity-70">Todos</span>
+          </button>
+          {options.length === 0 ? (
+            <div className="px-2 py-2 text-[10px] text-muted-foreground">Sin registros</div>
+          ) : (
+            options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 rounded px-2 py-2 text-left text-[10px] transition-colors",
+                  value === option.value ? toneClasses.active : `text-foreground/85 ${toneClasses.hover}`,
+                )}
+              >
+                <span className="min-w-0 truncate font-medium">{option.label}</span>
+                {option.meta && <span className="shrink-0 text-[8px] text-muted-foreground">{option.meta}</span>}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function GameScoreList({
   scores,
@@ -49,16 +177,24 @@ export default function GameScoreList({
   }, [scores]);
 
   const consoleCategories = useMemo(
-    () => categories.filter((item) => item !== "MULTI" && item !== "BET"),
+    () => categories.filter((item) => !isMultiCategory(item) && !isBetCategory(item)),
     [categories],
   );
-  const multiCategories = useMemo(
-    () => categories.filter((item) => item === "MULTI" || item.startsWith("MULTI")),
-    [categories],
+  const multiGames = useMemo(
+    () => Array.from(new Set(scores
+      .filter((score) => isMultiCategory(safeStr(score.console_type).toUpperCase()))
+      .map((score) => safeStr(score.game_name))
+      .filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b)),
+    [scores],
   );
-  const betCategories = useMemo(
-    () => categories.filter((item) => item === "BET" || item.startsWith("BET")),
-    [categories],
+  const betGames = useMemo(
+    () => Array.from(new Set(scores
+      .filter((score) => isBetCategory(safeStr(score.console_type).toUpperCase()))
+      .map((score) => safeStr(score.game_name))
+      .filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b)),
+    [scores],
   );
 
   const setDropdownFilter = (group: "console" | "multi" | "bet", value: string) => {
@@ -69,11 +205,20 @@ export default function GameScoreList({
     const cleanedQuery = query.trim().toLowerCase();
     return scores.filter((score) => {
       const scoreCategory = safeStr(score.console_type).toUpperCase();
-      const matchesCategory = activeFilter.group === "all" || scoreCategory === activeFilter.value;
+      const gameName = safeStr(score.game_name);
+      const matchesCategory =
+        activeFilter.group === "all" ||
+        (activeFilter.group === "console" && scoreCategory === activeFilter.value) ||
+        (activeFilter.group === "multi" && isMultiCategory(scoreCategory) && gameName === activeFilter.value) ||
+        (activeFilter.group === "bet" && isBetCategory(scoreCategory) && gameName === activeFilter.value);
       const matchesQuery = !cleanedQuery || safeStr(score.game_name).toLowerCase().includes(cleanedQuery);
       return matchesCategory && matchesQuery;
     });
   }, [activeFilter, query, scores]);
+
+  const activeDropdownLabel = (group: "console" | "multi" | "bet") => (
+    activeFilter.group === group ? activeFilter.value : undefined
+  );
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -96,33 +241,30 @@ export default function GameScoreList({
             />
           </label>
           <div className="grid min-w-0 grid-cols-3 gap-1 sm:flex sm:shrink-0">
-            <select
+            <FilterDropdown
+              tone="cyan"
+              label="Consolas"
+              activeLabel={activeDropdownLabel("console")}
               value={activeFilter.group === "console" ? activeFilter.value : ""}
-              onChange={(event) => setDropdownFilter("console", event.target.value)}
-              className="h-8 min-w-0 rounded border border-neon-cyan/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-cyan outline-none transition-colors focus:border-neon-cyan/60"
-              aria-label="Filtrar por consola"
-            >
-              <option value="">Consolas</option>
-              {consoleCategories.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-            <select
+              options={consoleCategories.map((item) => ({ value: item, label: item }))}
+              onChange={(value) => setDropdownFilter("console", value)}
+            />
+            <FilterDropdown
+              tone="orange"
+              label="Multi"
+              activeLabel={activeDropdownLabel("multi")}
               value={activeFilter.group === "multi" ? activeFilter.value : ""}
-              onChange={(event) => setDropdownFilter("multi", event.target.value)}
-              className="h-8 min-w-0 rounded border border-neon-orange/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-orange outline-none transition-colors focus:border-neon-orange/60"
-              aria-label="Filtrar por multi"
-            >
-              <option value="">Multi</option>
-              {(multiCategories.length ? multiCategories : ["MULTI"]).map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-            <select
+              options={multiGames.map((item) => ({ value: item, label: item }))}
+              onChange={(value) => setDropdownFilter("multi", value)}
+            />
+            <FilterDropdown
+              tone="yellow"
+              label="Bet"
+              activeLabel={activeDropdownLabel("bet")}
               value={activeFilter.group === "bet" ? activeFilter.value : ""}
-              onChange={(event) => setDropdownFilter("bet", event.target.value)}
-              className="h-8 min-w-0 rounded border border-neon-yellow/20 bg-black/30 px-2 font-pixel text-[7px] uppercase tracking-wider text-neon-yellow outline-none transition-colors focus:border-neon-yellow/60"
-              aria-label="Filtrar por bet"
-            >
-              <option value="">Bet</option>
-              {(betCategories.length ? betCategories : ["BET"]).map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+              options={betGames.map((item) => ({ value: item, label: item }))}
+              onChange={(value) => setDropdownFilter("bet", value)}
+            />
           </div>
         </div>
       </div>
@@ -133,11 +275,16 @@ export default function GameScoreList({
         ) : (
           filteredScores.map((score, index) => {
             const scoreCategory = safeStr(score.console_type).toUpperCase() || "GAME";
+            const reward = getScoreReward(scoreCategory);
             return (
               <div key={`${score.game_name}-${score.console_type}-${index}`} className="flex items-center gap-2 bg-muted/20 border border-white/5 rounded px-3 py-2 text-xs font-body hover:bg-muted/40 transition-colors">
-                <span className={cn("font-pixel text-[8px] px-1.5 py-0.5 rounded shrink-0 border", getCategoryTone(scoreCategory))}>{scoreCategory}</span>
+                <span className={cn("font-pixel text-[8px] px-1.5 py-0.5 rounded shrink-0 border", getCategoryTone(scoreCategory))}>{getCategoryLabel(scoreCategory)}</span>
                 <span className="flex-1 text-foreground truncate font-medium">{score.game_name}</span>
-                <span className="text-neon-green font-bold drop-shadow-sm shrink-0">{Number(score.score || 0).toLocaleString()}</span>
+                <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px]", reward.className)}>
+                  <reward.Icon className="h-3 w-3" />
+                  {reward.label}
+                </span>
+                <span className={cn("font-bold drop-shadow-sm shrink-0", isBetCategory(scoreCategory) ? "text-[#f7d28b]" : "text-neon-green")}>{Number(score.score || 0).toLocaleString()}</span>
               </div>
             );
           })

@@ -31,6 +31,7 @@ export default function MainLayout() {
   const isMobile = useIsMobile();
   const location = useLocation();
   const mobileTopBarHeight = 46;
+  const launcherTopBarHeight = launcherDetected ? 40 : 0;
 
   useEffect(() => {
     if (launcherDetected) return;
@@ -169,6 +170,7 @@ export default function MainLayout() {
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 -translate-y-full pointer-events-none"
         )}
+        style={{ top: launcherTopBarHeight }}
       >
         <Button
           variant="ghost"
@@ -214,7 +216,7 @@ export default function MainLayout() {
         style={
           isMobile
             ? {
-                height: isLandscape ? `calc(100dvh - ${mobileTopBarHeight}px)` : `calc(100dvh - ${mobileTopBarHeight}px - 104px)`,
+                height: isLandscape ? `calc(100dvh - ${launcherTopBarHeight + mobileTopBarHeight}px)` : `calc(100dvh - ${launcherTopBarHeight + mobileTopBarHeight}px - 104px)`,
                 marginTop: `${mobileTopBarHeight}px`,
                 paddingRight: isLandscape ? (mobileRightOpen ? "min(60vw, 380px)" : "56px") : undefined,
               }
@@ -239,7 +241,7 @@ export default function MainLayout() {
             "lg:hidden fixed bg-card border-border z-[80] transition-all duration-300 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]",
             isLandscape
               ? cn(
-                  "top-[46px] bottom-0 right-0 border-l",
+                  "bottom-0 right-0 border-l",
                   mobileRightOpen ? "w-[60vw] max-w-[380px]" : "w-[56px]"
                 )
               : cn(
@@ -249,7 +251,9 @@ export default function MainLayout() {
             !lBarVisible && !mobileRightOpen
               ? (isLandscape ? "translate-x-full opacity-0 pointer-events-none" : "translate-y-full opacity-0 pointer-events-none")
               : "translate-x-0 translate-y-0 opacity-100 pointer-events-auto"
-          )}>
+          )}
+          style={isLandscape ? { top: launcherTopBarHeight + mobileTopBarHeight } : undefined}
+          >
             <button 
               onClick={toggleMobileRight}
               className={cn(

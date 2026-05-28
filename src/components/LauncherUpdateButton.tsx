@@ -4,8 +4,8 @@ import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const RECOMMENDED_LAUNCHER_VERSION = "0.1.7";
-const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.7_x64-setup.exe";
+const RECOMMENDED_LAUNCHER_VERSION = "0.1.8";
+const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.8_x64-setup.exe";
 
 const isOlderVersion = (current: string, target: string) => {
   const currentParts = current.split(".").map((part) => Number(part) || 0);

@@ -35,6 +35,8 @@ const getStoredPlaying = () => typeof window !== 'undefined' ? localStorage.getI
 const getSongOrderKey = (song: Song) => `${song.type}:${song.id}:${song.url}`;
 const getPlaylistOrderStorageKey = (category: string) => `forbiddens_music_order_${category || "Personal"}`;
 const MUSIC_SESSION_KEY = "forbiddens_music_session_v2";
+const MUSIC_OWNER_EVENT = "forbiddens-music-owner-play";
+const CHILL_MUSIC_OWNER = "chill";
 
 const applyStoredPlaylistOrder = (songs: Song[], category: string) => {
   if (typeof window === "undefined" || songs.length < 2) return songs;
@@ -194,6 +196,20 @@ export default function ChillMusicPlayer() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
+
+  useEffect(() => {
+    const handleOtherMusic = (event: Event) => {
+      const owner = (event as CustomEvent<{ owner?: string }>).detail?.owner;
+      if (owner && owner !== CHILL_MUSIC_OWNER) setIsPlaying(false);
+    };
+    window.addEventListener(MUSIC_OWNER_EVENT, handleOtherMusic);
+    return () => window.removeEventListener(MUSIC_OWNER_EVENT, handleOtherMusic);
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    window.dispatchEvent(new CustomEvent(MUSIC_OWNER_EVENT, { detail: { owner: CHILL_MUSIC_OWNER } }));
+  }, [isPlaying, currentIndex, current?.id]);
 
   const persistMusicSession = useCallback((overrides: Record<string, unknown> = {}) => {
     if (typeof window === "undefined") return;
@@ -769,6 +785,13 @@ export default function ChillMusicPlayer() {
         nextActiveId = data?.id || null;
       }
       await loadSavedPlaylists();
+      setSavedPlaylists((items) => {
+        const songs = payload.songs as Song[];
+        if (nextActiveId && !items.some((item) => item.id === nextActiveId)) {
+          return [{ id: nextActiveId, name, songs }, ...items];
+        }
+        return items.map((item) => item.id === nextActiveId ? { ...item, name, songs } : item);
+      });
       setCurrentCategory(name);
       setActivePersonalPlaylistId(nextActiveId);
       storePlaylistOrder(youtubeSongs, name);
@@ -995,6 +1018,25 @@ export default function ChillMusicPlayer() {
                     {cat === "Todos" ? "★ Todos" : cat}
                   </button>
                 ))}
+                {savedPlaylists.length > 0 && (
+                  <div className="border-t border-neon-cyan/25 bg-neon-cyan/5 px-2 py-1">
+                    <p className="text-[7px] font-pixel uppercase tracking-widest text-muted-foreground">Mis listas</p>
+                  </div>
+                )}
+                {savedPlaylists.map((saved) => (
+                  <button
+                    key={saved.id}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); loadPersonalPlaylist(saved); setShowCategoryMenu(false); }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-[9px] font-pixel uppercase tracking-wider transition-all border-b border-neon-cyan/15 last:border-0",
+                      activePersonalPlaylistId === saved.id ? "bg-neon-magenta/20 text-neon-magenta shadow-[inset_0_0_8px_rgba(236,72,153,0.24)]" : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta"
+                    )}
+                    title={saved.name}
+                  >
+                    <span className="block truncate">{saved.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>,
@@ -1100,6 +1142,30 @@ export default function ChillMusicPlayer() {
               <div className="absolute top-full left-2.5 right-2.5 mt-1 bg-background border border-neon-cyan/30 rounded shadow-2xl overflow-hidden z-50 animate-fade-in">
                 {categories.map(cat => (
                   <button key={cat} onClick={() => handleCategoryChange(cat)} className={cn("w-full text-left px-3 py-2 text-[9px] font-body transition-colors border-b border-border/30 last:border-0", currentCategory === cat ? "bg-neon-cyan/10 text-neon-cyan border-l-2 border-l-neon-cyan" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-l-transparent")}>{cat === "Todos" ? "Todos los géneros" : cat}</button>
+                ))}
+                {savedPlaylists.length > 0 && (
+                  <div className="border-y border-border/30 bg-muted/20 px-3 py-1.5">
+                    <p className="font-pixel text-[8px] uppercase tracking-widest text-muted-foreground">Mis listas</p>
+                  </div>
+                )}
+                {savedPlaylists.map((saved) => (
+                  <button
+                    key={saved.id}
+                    onClick={() => {
+                      loadPersonalPlaylist(saved);
+                      setShowCategoryMenu(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 border-b border-border/30 px-3 py-2 text-left text-[9px] font-body transition-colors last:border-0 border-l-2",
+                      activePersonalPlaylistId === saved.id
+                        ? "border-l-neon-magenta bg-neon-magenta/10 text-neon-magenta"
+                        : "border-l-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                    title={saved.name}
+                  >
+                    <span className="min-w-0 truncate">{saved.name}</span>
+                    <span className="shrink-0 text-[8px] opacity-70">{saved.songs.length}</span>
+                  </button>
                 ))}
               </div>
             )}

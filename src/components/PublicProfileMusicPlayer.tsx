@@ -20,6 +20,9 @@ type SavedPlaylist = {
   songs: Song[];
 };
 
+const MUSIC_OWNER_EVENT = "forbiddens-music-owner-play";
+const PUBLIC_PROFILE_MUSIC_OWNER = "public-profile";
+
 const getYoutubeId = (url: string) => {
   try {
     const parsed = new URL(url);
@@ -75,6 +78,20 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const postYoutubeCommand = (func: string, args: unknown[] = []) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
   };
+
+  useEffect(() => {
+    const handleOtherMusic = (event: Event) => {
+      const owner = (event as CustomEvent<{ owner?: string }>).detail?.owner;
+      if (owner && owner !== PUBLIC_PROFILE_MUSIC_OWNER) setIsPlaying(false);
+    };
+    window.addEventListener(MUSIC_OWNER_EVENT, handleOtherMusic);
+    return () => window.removeEventListener(MUSIC_OWNER_EVENT, handleOtherMusic);
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying || !currentYoutubeId) return;
+    window.dispatchEvent(new CustomEvent(MUSIC_OWNER_EVENT, { detail: { owner: PUBLIC_PROFILE_MUSIC_OWNER } }));
+  }, [currentYoutubeId, isPlaying]);
 
   useEffect(() => {
     let cancelled = false;
@@ -432,7 +449,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
         {playlistRows(true)}
       </div>
 
-      <div className="relative z-10 p-3 sm:w-[30%] sm:max-w-[30%]">
+      <div className="relative z-10 p-3 sm:w-[35%] sm:max-w-[35%]">
         <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
           <div className="flex items-center gap-2 pl-11 sm:pl-10">
             <div className="min-w-0 leading-none">
