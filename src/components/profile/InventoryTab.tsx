@@ -1014,8 +1014,36 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return;
       }
 
-      const { error: delError } = await ((supabase as any).from('user_inventory').delete().in('id', idsToDelete));
+      // Paso 1: Verificar que los items existen antes de eliminar
+      const { data: existingItems, error: checkError } = await ((supabase as any)
+        .from('user_inventory')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', idsToDelete));
+      
+      if (checkError) throw checkError;
+      if (!existingItems || existingItems.length !== idsToDelete.length) {
+        throw new Error('Algunos items no existen o no te pertenecen.');
+      }
+
+      // Paso 2: Eliminar los items
+      const { error: delError } = await ((supabase as any).from('user_inventory')
+        .delete()
+        .eq('user_id', userId)
+        .in('id', idsToDelete));
+      
       if (delError) throw delError;
+
+      // Paso 3: Verificar que se eliminaron
+      const { data: afterDelete } = await ((supabase as any)
+        .from('user_inventory')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', idsToDelete));
+      
+      if (afterDelete && afterDelete.length > 0) {
+        throw new Error('Fallo al eliminar los items. Intenta de nuevo.');
+      }
 
       if (totalStatsRefund > 0) {
         const { data: prof } = await supabase.from('profiles').select('total_score').eq('user_id', userId as any).single();

@@ -14,27 +14,38 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
 
   useEffect(() => {
     if (!userId) {
+      console.log('⚠️ No userId provided to useUserActiveSkin');
       setLoading(false);
       return;
     }
 
     const fetchActiveSkin = async () => {
       try {
+        console.log(`🔍 Fetching active skin for user ${userId}, type: ${skinType}`);
+        
         const { data, error } = await supabase
           .from('user_active_skins')
           .select('skin_slug')
           .eq('user_id', userId)
           .eq('skin_type', skinType)
-          .single();
+          .maybeSingle(); // Usar maybeSingle en lugar de single
 
-        if (error || !data) {
+        if (error) {
+          console.error('❌ Error fetching skin:', error);
           setActiveSkin(getSkinTheme('default'));
+          setLoading(false);
           return;
         }
 
-        setActiveSkin(getSkinTheme(data.skin_slug as SkinSlug));
+        if (!data) {
+          console.log(`ℹ️ No active skin found for user. Using default.`);
+          setActiveSkin(getSkinTheme('default'));
+        } else {
+          console.log(`✅ Active skin found: ${data.skin_slug}`);
+          setActiveSkin(getSkinTheme(data.skin_slug as SkinSlug));
+        }
       } catch (err) {
-        console.error('Error fetching active skin:', err);
+        console.error('❌ Exception in fetchActiveSkin:', err);
         setActiveSkin(getSkinTheme('default'));
       } finally {
         setLoading(false);
@@ -54,7 +65,10 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
           table: 'user_active_skins',
           filter: `user_id=eq.${userId}`,
         },
-        () => fetchActiveSkin()
+        (payload) => {
+          console.log('🔄 Real-time skin update:', payload);
+          fetchActiveSkin();
+        }
       )
       .subscribe();
 

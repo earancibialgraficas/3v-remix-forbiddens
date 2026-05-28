@@ -20,10 +20,16 @@ export function SkinContextProvider({
   const { activeSkin, loading } = useUserActiveSkin(userId, skinType);
 
   useEffect(() => {
-    if (!activeSkin) return;
+    console.log('🎨 SkinContextProvider effect triggered', { activeSkin: activeSkin?.name, loading });
+    
+    if (!activeSkin) {
+      console.log('⚠️ No activeSkin, skipping CSS injection');
+      return;
+    }
 
     // Generar CSS variables
     const cssVariables = generateThemeCSS(activeSkin);
+    console.log('🔧 Generated CSS variables:', cssVariables.substring(0, 100) + '...');
 
     // Inyectar como atributo style en el root
     const root = document.documentElement;
@@ -34,10 +40,11 @@ export function SkinContextProvider({
     const newStyle = `${cssVariables}${cleanedStyle ? '; ' + cleanedStyle : ''}`;
 
     root.setAttribute('style', newStyle);
-
-    console.log('🎨 Skin aplicada globalmente:', activeSkin.name);
+    console.log('✅ Skin CSS inyectado en HTML. Skin:', activeSkin.name);
+    console.log('   Colores primarios:', activeSkin.colors.primary, activeSkin.colors.secondary);
 
     return () => {
+      console.log('🧹 Limpiando skin CSS');
       // Limpiar solo las variables de skin
       const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;/g, '').trim();
       if (finalStyle) {

@@ -37,7 +37,6 @@ import StorePage from "./pages/StorePage";
 import { Navigate } from "react-router-dom";
 import { UpgradeProvider } from "@/components/UpgradeModal";
 import GlobalAds from "@/components/GlobalAds"; // 🔥 IMPORTAMOS EL COMPONENTE DE ANUNCIOS
-import { SkinDebugPanel } from "@/components/SkinDebugPanel";
 
 // Creamos la instancia fuera del componente para evitar errores de renderizado
 const queryClient = new QueryClient();
@@ -130,7 +129,6 @@ const App = () => {
                 {/* 🔥 EL VIGILANTE SILENCIOSO DE LOS ANUNCIOS 🔥 
                     Al estar aquí adentro, ya puede usar el useAuth() para saber si el usuario es Premium */}
                 <GlobalAds />
-                <SkinDebugPanel />
 
                 <Toaster />
                 <Sonner />
