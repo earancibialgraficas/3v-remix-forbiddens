@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const tradeChannelRef = useRef<any>(null);
   const slotItemsRef = useRef<any[]>(Array(27).fill(null));
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
+  const sellSlotsRef = useRef<any[]>(Array(4).fill(null));
   const cursorItemRef = useRef<any | null>(null);
   const slotOrderPersistTimerRef = useRef<number | null>(null);
   const tradeCompletedRef = useRef(false);
@@ -39,6 +40,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [localReady, setLocalReady] = useState(false);
   const [remoteReady, setRemoteReady] = useState(false);
   const [activeSkins, setActiveSkins] = useState<Record<string, string>>({});
+  const [sellSlots, setSellSlots] = useState<any[]>(Array(4).fill(null));
+  const [priceMap, setPriceMap] = useState<Record<string, { price: number, type: string }>>({});
   const [remoteTradeSlots, setRemoteTradeSlots] = useState<any[]>(Array(4).fill(null));
   const [remotePoints, setRemotePoints] = useState(0);
   const [dragMode, setDragMode] = useState<"even" | "single" | null>(null);
@@ -112,6 +115,21 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     }
   };
 
+  const fetchShopPrices = useCallback(async () => {
+    const { data } = await supabase.from('shop_items').select('slug, price, price_type');
+    if (data) {
+      const map: Record<string, { price: number, type: string }> = {};
+      data.forEach(item => {
+        map[item.slug] = { price: item.price, type: item.price_type };
+      });
+      setPriceMap(map);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchShopPrices();
+  }, [fetchShopPrices]);
+
   const fetchActiveSkins = useCallback(async () => {
     const { data } = await supabase
       .from('user_active_skins')
@@ -182,6 +200,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   useEffect(() => {
     tradeSlotsRef.current = tradeSlots;
   }, [tradeSlots]);
+
+  useEffect(() => {
+    sellSlotsRef.current = sellSlots;
+  }, [sellSlots]);
 
   useEffect(() => {
     cursorItemRef.current = cursorItem;
@@ -939,6 +961,90 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     commitTradeSlots(next);
   };
 
+  const handleSellSlotClick = (index: number, event?: React.MouseEvent) => {
+    if (event) moveCursorToEvent(event);
+    const next = [...sellSlotsRef.current];
+    const target = next[index];
+    const hand = cursorItemRef.current;
+    
+    if (hand && !target) {
+      next[index] = cloneStack(hand);
+      commitCursorItem(null);
+    } else if (hand && canStackTogether(target, hand)) {
+      next[index] = combineStacks(target, hand);
+      commitCursorItem(null);
+    } else if (hand && target) {
+      next[index] = cloneStack(hand);
+      commitCursorItem(cloneStack(target));
+    } else if (!hand && target) {
+      commitCursorItem(cloneStack(target));
+      next[index] = null;
+    }
+    setSellSlots(next);
+  };
+
+  const handleSellItems = async () => {
+    const itemsToSell = sellSlots.filter(Boolean);
+    if (itemsToSell.length === 0) return;
+    
+    if (!confirm("¿Vender estos items por la mitad de su precio original? Esta acción es irreversible.")) return;
+
+    setBusy(true);
+    try {
+      let totalStatsRefund = 0;
+      let totalFCoinsRefund = 0;
+      const idsToDelete: string[] = [];
+
+      for (const stack of itemsToSell) {
+        const info = priceMap[stack.item_slug];
+        if (info) {
+          const refundPerItem = Math.floor(info.price / 2);
+          const stackRefund = refundPerItem * stack.quantity;
+          
+          if (info.type === 'stats') totalStatsRefund += stackRefund;
+          else totalFCoinsRefund += stackRefund;
+          
+          stackSources(stack).forEach(s => idsToDelete.push(s.id));
+        }
+      }
+
+      if (idsToDelete.length === 0) {
+        toast({ title: "Error", description: "No se encontró precio de recompra para estos objetos.", variant: "destructive" });
+        return;
+      }
+
+      const { error: delError } = await supabase.from('user_inventory').delete().in('id', idsToDelete);
+      if (delError) throw delError;
+
+      if (totalStatsRefund > 0) {
+        const { data: prof } = await supabase.from('profiles').select('total_score').eq('user_id', userId).single();
+        const currentStats = prof?.total_score || 0;
+        await supabase.from('profiles').update({ total_score: currentStats + totalStatsRefund } as any).eq('user_id', userId);
+        onStatChange?.();
+      }
+
+      if (totalFCoinsRefund > 0) {
+        const { data: walletRow } = await supabase.from('point_wallets' as any).select('balance').eq('user_id', userId).single();
+        const currentFCoins = (walletRow as any)?.balance || 0;
+        const nextBalance = currentFCoins + totalFCoinsRefund;
+        await supabase.from('point_wallets' as any).update({ balance: nextBalance } as any).eq('user_id', userId);
+        setWallet(nextBalance);
+        onWalletChange?.(nextBalance);
+      }
+
+      setSellSlots(Array(4).fill(null));
+      toast({ 
+        title: "¡Venta completada!", 
+        description: `Recuperaste ${totalStatsRefund > 0 ? `${totalStatsRefund.toLocaleString()} STATS` : ''} ${totalStatsRefund > 0 && totalFCoinsRefund > 0 ? 'y' : ''} ${totalFCoinsRefund > 0 ? `${totalFCoinsRefund.toLocaleString()} F-coins` : ''}.` 
+      });
+      void loadInventory();
+    } catch (err: any) {
+      toast({ title: "Error al vender", description: err.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
 
   const handleActivateSkin = async (skinSlug: string) => {
@@ -1460,6 +1566,57 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
               Cancelar trueque y devolver items
             </Button>
           )}
+        </div>
+
+        <div className="rounded border border-red-500/30 bg-card p-4">
+          <h3 className="font-pixel text-[10px] uppercase text-red-400 flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" /> Vender (50% cashback)
+          </h3>
+          <p className="mt-1 text-[9px] text-muted-foreground font-body leading-tight">
+            Arrastra aquí los items de la tienda que ya no quieras para recuperar la mitad de su valor.
+          </p>
+          
+          <div className="mt-3 grid grid-cols-4 gap-1.5 rounded border border-red-500/20 bg-black/40 p-2">
+            {sellSlots.map((item, index) => (
+              <div
+                key={index}
+                onClick={(event) => handleSellSlotClick(index, event)}
+                className={cn(
+                  "relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)] transition-colors cursor-pointer",
+                  item ? "border-red-500/60 bg-red-500/5" : "border-white/10 hover:border-red-500/30",
+                )}
+              >
+                {item && (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <ItemIcon item={item} className="h-5 w-5 text-red-400 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                    <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white">x{item.quantity}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {(() => {
+            let totalRefund = 0;
+            sellSlots.forEach(s => {
+              if (s && priceMap[s.item_slug]) totalRefund += Math.floor(priceMap[s.item_slug].price / 2) * s.quantity;
+            });
+            return totalRefund > 0 ? (
+              <div className="mt-2 text-center">
+                <p className="font-pixel text-[8px] text-neon-green uppercase animate-pulse">Reembolso estimado: {totalRefund.toLocaleString()}</p>
+              </div>
+            ) : null;
+          })()}
+
+          <Button 
+            onClick={handleSellItems} 
+            disabled={busy || !sellSlots.some(Boolean)} 
+            variant="destructive"
+            className="mt-3 w-full h-8 text-[9px] font-pixel shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5 mr-1" />}
+            VENDER SELECCIÓN
+          </Button>
         </div>
       </div>
 
