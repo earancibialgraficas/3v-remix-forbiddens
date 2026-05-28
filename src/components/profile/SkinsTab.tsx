@@ -22,7 +22,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
         console.log('🔍 Cargando skins para usuario:', userId);
         
         // Obtener skins en inventario del usuario
-        const { data: inventory } = await supabase
+        const { data: inventory } = await (supabase as any)
           .from('user_inventory')
           .select('*')
           .eq('user_id', userId)
@@ -34,7 +34,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
         }
 
         // Obtener skins activas
-        const { data: active, error: activeError } = await supabase
+        const { data: active, error: activeError } = await (supabase as any)
           .from('user_active_skins')
           .select('skin_type, skin_slug')
           .eq('user_id', userId);
@@ -54,7 +54,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
         } else if (!activeError) {
           // Sin skins activas y sin error - intentar activar demoniaco para testing
           console.log('🔧 Sin skins activas. Activando demoniaco automáticamente...');
-          const { error: insertError } = await supabase
+          const { error: insertError } = await (supabase as any)
             .from('user_active_skins')
             .insert({
               user_id: userId,
@@ -84,7 +84,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
       console.log(`🎨 Activando skin: ${skinSlug} (tipo: ${skinType})`);
       
       // Verificar si ya existe una skin activa de este tipo
-      const { data: existing, error: checkError } = await supabase
+      const { data: existing, error: checkError } = await (supabase as any)
         .from('user_active_skins')
         .select('id')
         .eq('user_id', userId)
@@ -99,7 +99,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
       if (existing) {
         console.log(`📝 Actualizando skin existente: ${existing.id}`);
         // Actualizar
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from('user_active_skins')
           .update({ skin_slug: skinSlug })
           .eq('id', existing.id);
@@ -108,7 +108,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
       } else {
         console.log(`➕ Insertando nueva skin`);
         // Insertar
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
           .from('user_active_skins')
           .insert({
             user_id: userId,
@@ -142,7 +142,7 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
 
   const handleDeactivateSkin = async (skinType: string) => {
     try {
-      await supabase
+      await (supabase as any)
         .from('user_active_skins')
         .delete()
         .eq('user_id', userId)

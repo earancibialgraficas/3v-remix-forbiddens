@@ -23,7 +23,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
       try {
         console.log(`🔍 Fetching active skin for user ${userId}, type: ${skinType}`);
         
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('user_active_skins')
           .select('skin_slug')
           .eq('user_id', userId)
