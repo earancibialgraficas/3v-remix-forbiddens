@@ -23,7 +23,7 @@ interface ShopItem {
 const TIER_ORDER = ['novato', 'lite', 'legacy', 'creator', 'staff'];
 
 export default function StorePage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth(); // Limpiado duplicado
   const { toast } = useToast();
   
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
@@ -123,6 +123,15 @@ export default function StorePage() {
       return;
     }
 
+    const isOwned = userInventory.some(inv => inv.item_slug === item.slug);
+    if (isOwned) {
+      toast({ 
+        title: "Aviso", 
+        description: "Ya posees este item en tu inventario." 
+      });
+      return;
+    }
+
     if (!canBuyItem(item)) {
       toast({ 
         title: "No puedes comprar esto",
@@ -134,26 +143,34 @@ export default function StorePage() {
 
     try {
       // Restar monedas/puntos
+      const newBalance = (item.price_type === 'stats' ? userStats : userFCoins) - item.price;
       if (item.price_type === 'stats') {
         await supabase
           .from('profiles')
-          .update({ total_score: userStats - item.price })
+          .update({ total_score: newBalance })
           .eq('user_id', user.id);
+        await refreshProfile();
       } else {
         await supabase
           .from('point_wallets')
-          .update({ balance: userFCoins - item.price })
+          .update({ balance: newBalance })
           .eq('user_id', user.id);
+        setUserFCoins(newBalance);
       }
 
-      // Agregar a inventario
-      await supabase.from('user_inventory').insert({
+      // Agregar a inventario y obtener el objeto insertado para actualizar el estado local (corregido)
+      const { data: newItem, error: invError } = await supabase.from('user_inventory').insert({
         user_id: user.id,
         item_slug: item.slug,
         item_name: item.name,
         quantity: 1,
         metadata: { is_active: false, category: item.category },
       });
+      }).select().single();
+
+      if (!invError && newItem) {
+        setUserInventory(prev => [...prev, newItem]);
+      }
 
       toast({
         title: "¡Compra exitosa!",
@@ -259,14 +276,15 @@ export default function StorePage() {
                   canBuy ? "border-border" : "border-border/30 opacity-60"
                 )}
               >
-                {/* Imagen */}
+                {/* Miniatura con efecto */}
                 {item.image_url && (
-                  <div className="aspect-video bg-muted overflow-hidden">
+                  <div className="aspect-video bg-muted overflow-hidden relative group/img">
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
                     />
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
                   </div>
                 )}
 

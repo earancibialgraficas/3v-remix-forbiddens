@@ -239,7 +239,9 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                              className="h-7 bg-[#1b140f] text-xs font-mono border-white/10" 
                            />
                            <Button onClick={async () => {
+                             if (!foundUser) { toast({title: "Error", description: "Debe buscar un usuario primero.", variant: "destructive"}); return; }
                              const amount = parseInt(fcoinsToGrant);
+                             if (isNaN(amount) || amount <= 0) { toast({title: "Error", description: "Ingrese una cantidad válida (mayor a 0).", variant: "destructive"}); return; }
                              const { data: w } = await supabase.from('point_wallets' as any).select('balance').eq('user_id', foundUser.user_id).single();
                              const { error } = await supabase.from('point_wallets' as any).update({ balance: ((w as any)?.balance || 0) + amount } as any).eq('user_id', foundUser.user_id);
                              if (error) toast({title: "Error", description: error.message, variant: "destructive"});

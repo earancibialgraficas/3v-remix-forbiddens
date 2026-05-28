@@ -53,7 +53,16 @@ const getTimeAgo = (dateString: string) => {
   return "hace un momento";
 };
 
-export default function AvisosTab({ notifications, pendingRequests, handleMarkAsRead, handleClearNotifications, handleAcceptRequest, handleRejectRequest }: any) {
+interface AvisosTabProps {
+  notifications: any[];
+  pendingRequests: any[];
+  handleMarkAsRead: (id: string) => void;
+  handleClearNotifications: () => void;
+  handleAcceptRequest: (id: string, senderId: string, name: string) => void;
+  handleRejectRequest: (id: string, senderId: string, name: string) => void;
+}
+
+export default function AvisosTab({ notifications, pendingRequests, handleMarkAsRead, handleClearNotifications, handleAcceptRequest, handleRejectRequest }: AvisosTabProps) {
   const { user, profile: currentUserProfile, roles: currentUserRoles, isAdmin, isMasterWeb } = useAuth();
   const { friendIds } = useFriendIds(user?.id);
   const navigate = useNavigate(); 

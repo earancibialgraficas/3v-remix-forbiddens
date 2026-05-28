@@ -82,7 +82,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     try {
       const [walletRes, inventoryRes, offersRes] = await Promise.all([
         supabase.from("point_wallets" as any).select("balance").eq("user_id", userId).maybeSingle(),
-        supabase.from("user_inventory" as any).select("*").eq("user_id", userId).order("created_at", { ascending: true }),
+        (supabase.from("user_inventory" as any).select("*") as any).eq("user_id" as any, userId).order("created_at", { ascending: true }),
         supabase
           .from("inventory_trade_offers" as any)
           .select("*")
@@ -116,10 +116,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const fetchShopPrices = useCallback(async () => {
-    const { data } = await supabase.from('shop_items').select('slug, price, price_type');
+    const { data } = await supabase.from('shop_items' as any).select('slug, price, price_type');
     if (data) {
       const map: Record<string, { price: number, type: string }> = {};
-      data.forEach(item => {
+      data.forEach((item: any) => {
         map[item.slug] = { price: item.price, type: item.price_type };
       });
       setPriceMap(map);
@@ -131,14 +131,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   }, [fetchShopPrices]);
 
   const fetchActiveSkins = useCallback(async () => {
-    const { data } = await supabase
-      .from('user_active_skins')
-      .select('skin_type, skin_slug')
-      .eq('user_id', userId);
+    const { data } = await (supabase
+      .from('user_active_skins' as any)
+      .select('skin_type, skin_slug') as any)
+      .eq('user_id' as any, userId);
 
     if (data) {
       const activeMap: Record<string, string> = {};
-      data.forEach(s => {
+      data.forEach((s: any) => {
         activeMap[s.skin_type] = s.skin_slug;
       });
       setActiveSkins(activeMap);
@@ -392,7 +392,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       p_ready: ready,
     });
     if (error) {
-      if (!error.message?.toLowerCase().includes("function")) {
+      if (error.message && !error.message.toLowerCase().includes("function")) {
         toast({ title: "No se pudo sincronizar el trueque", description: error.message, variant: "destructive" });
       }
       return null;
@@ -996,10 +996,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       const idsToDelete: string[] = [];
 
       for (const stack of itemsToSell) {
-        const info = priceMap[stack.item_slug];
+        const info = priceMap[stack?.item_slug];
         if (info) {
           const refundPerItem = Math.floor(info.price / 2);
-          const stackRefund = refundPerItem * stack.quantity;
+          const stackRefund = refundPerItem * (stack?.quantity || 1);
           
           if (info.type === 'stats') totalStatsRefund += stackRefund;
           else totalFCoinsRefund += stackRefund;
@@ -1009,17 +1009,17 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       }
 
       if (idsToDelete.length === 0) {
-        toast({ title: "Error", description: "No se encontró precio de recompra para estos objetos.", variant: "destructive" });
+        toast({ title: "Error", description: "Estos objetos no tienen valor de re-venta.", variant: "destructive" });
         return;
       }
 
-      const { error: delError } = await supabase.from('user_inventory').delete().in('id', idsToDelete);
+      const { error: delError } = await ((supabase as any).from('user_inventory').delete().in('id', idsToDelete));
       if (delError) throw delError;
 
       if (totalStatsRefund > 0) {
-        const { data: prof } = await supabase.from('profiles').select('total_score').eq('user_id', userId).single();
+        const { data: prof } = await supabase.from('profiles').select('total_score').eq('user_id', userId as any).single();
         const currentStats = prof?.total_score || 0;
-        await supabase.from('profiles').update({ total_score: currentStats + totalStatsRefund } as any).eq('user_id', userId);
+        await supabase.from('profiles').update({ total_score: currentStats + totalStatsRefund }).eq('user_id', userId as any);
         onStatChange?.();
       }
 
@@ -1055,22 +1055,23 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      const { data: existing } = await supabase
+      const result = (supabase as any)
         .from('user_active_skins')
         .select('id')
         .eq('user_id', userId)
         .eq('skin_type', skinType)
-        .single();
+        .maybeSingle();
+      const { data: existing } = await result;
 
       if (existing) {
-        await supabase
+        await (supabase as any)
           .from('user_active_skins')
           .update({ skin_slug: skinSlug })
-          .eq('id', existing.id);
+          .eq('id', (existing as any).id);
       } else {
         await supabase
-          .from('user_active_skins')
-          .insert({ user_id: userId, skin_type: skinType, skin_slug: skinSlug });
+          .from('user_active_skins' as any)
+          .insert({ user_id: userId, skin_type: skinType, skin_slug: skinSlug } as any);
       }
 
       setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
@@ -1086,7 +1087,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      await supabase
+      await (supabase as any)
         .from('user_active_skins')
         .delete()
         .eq('user_id', userId)
@@ -1360,7 +1361,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 className={cn(
                   "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                   item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
-                  dragTouched.includes(index) && "ring-2 ring-neon-cyan",
+                  dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                 )}
                 title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
               >
@@ -1662,7 +1663,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           </button>
           {isSkinItem(contextMenu.item) && (
             <>
-              {activeSkins[(ALL_SKINS as any)[contextMenu.item.item_slug]?.type || 'launcher'] === contextMenu.item.item_slug ? (
+              {contextMenu.item?.item_slug && activeSkins[(ALL_SKINS as any)[contextMenu.item.item_slug]?.type || 'launcher'] === contextMenu.item.item_slug ? (
                 <button
                   className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
                   disabled={busy}
