@@ -118,7 +118,8 @@ export default function RightPanel() {
     fetchStats();
   }, []);
 
-  useEffect(() => {
+  // 🔄 Función para actualizar el contador de usuarios online
+  const updateOnlineCount = async () => {
     const sessionKey = "forbiddens_presence_session_id";
     let presenceId = "";
     try {
@@ -135,27 +136,39 @@ export default function RightPanel() {
       config: { presence: { key: presenceId } },
     });
 
-    const updatePresenceCount = () => {
-      const state = channel.presenceState();
-      setOnlineCount(Math.max(10, Object.keys(state).length));
+    try {
+      await channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            online_at: new Date().toISOString(),
+            user_id: user?.id || null,
+          });
+          const state = channel.presenceState();
+          setOnlineCount(Math.max(10, Object.keys(state).length));
+          void channel.unsubscribe();
+        }
+      });
+    } catch (error) {
+      console.error("Error updating online count:", error);
+      setOnlineCount(10);
+    }
+  };
+
+  // 📱 Cargar contador al montar el componente
+  useEffect(() => {
+    updateOnlineCount();
+  }, []);
+
+  // 🖱️ Actualizar contador con cada click en el sitio
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      updateOnlineCount();
     };
 
-    channel
-      .on("presence", { event: "sync" }, updatePresenceCount)
-      .on("presence", { event: "join" }, updatePresenceCount)
-      .on("presence", { event: "leave" }, updatePresenceCount)
-      .subscribe(async (status) => {
-        if (status !== "SUBSCRIBED") return;
-        await channel.track({
-          online_at: new Date().toISOString(),
-          user_id: user?.id || null,
-        });
-        updatePresenceCount();
-      });
-
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+    
     return () => {
-      void channel.untrack();
-      supabase.removeChannel(channel);
+      document.removeEventListener("click", handleGlobalClick, { capture: true });
     };
   }, [user?.id]);
 
