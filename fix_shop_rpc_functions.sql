@@ -13,7 +13,7 @@ BEGIN
   INSERT INTO point_wallets (user_id, balance)
   VALUES (p_user_id, p_amount)
   ON CONFLICT (user_id) DO UPDATE
-  SET balance = balance + p_amount
+  SET balance = point_wallets.balance + p_amount
   RETURNING balance INTO v_new_balance;
   
   RETURN json_build_object(

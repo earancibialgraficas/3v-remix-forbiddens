@@ -15,12 +15,14 @@ export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProp
   const { activeSkin } = useUserActiveSkin(userId, skinType);
 
   useEffect(() => {
-    // Inyectar CSS variables en el root
+    if (!activeSkin) return;
+
+    // Generar CSS variables
     const cssVariables = generateThemeCSS(activeSkin);
-    const style = document.documentElement.getAttribute('style') || '';
     
-    // Si ya tiene style, actualizar las variables
-    document.documentElement.setAttribute('style', cssVariables);
+    // Inyectar como atributo style en el root
+    const root = document.documentElement;
+    root.setAttribute('style', cssVariables);
     
     // También inyectar en un elemento específico si existe
     const skinElement = document.getElementById('theme-provider');
@@ -28,10 +30,7 @@ export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProp
       skinElement.setAttribute('style', cssVariables);
     }
 
-    return () => {
-      // Limpiar si es necesario
-      document.documentElement.removeAttribute('style');
-    };
+    console.log('🎨 Skin aplicada:', activeSkin.name);
   }, [activeSkin]);
 
   return null;

@@ -16,6 +16,7 @@ import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
+import { SkinProvider } from "@/components/SkinProvider";
 
 import ConfiguracionTab from "@/components/profile/ConfiguracionTab";
 import AvisosTab from "@/components/profile/AvisosTab";
@@ -429,7 +430,9 @@ export default function ProfilePage() {
   const unreadCount = notifications.filter(n => !n.is_read).length + pendingRequests.length;
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <>
+      <SkinProvider userId={user?.id} skinType="launcher" />
+      <div className="space-y-4 animate-fade-in">
       
       {showAvatarSelector && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 animate-fade-in">
@@ -622,5 +625,6 @@ export default function ProfilePage() {
       {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} onWalletChange={setFcoinBalance} onStatChange={refreshProfile} />}
       {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
     </div>
+    </>
   );
 }
