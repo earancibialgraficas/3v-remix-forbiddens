@@ -162,18 +162,17 @@ export default function StorePage() {
     }
 
     try {
-      // PRIMERO: Agregar a inventario
-      const { data: newItem, error: invError } = await (supabase as any).from('user_inventory').insert({
-        user_id: user.id,
-        item_slug: item.slug,
-        item_name: item.name,
-        quantity: 1,
-        metadata: { is_active: false, category: item.category },
-      }).select().single();
+      // PRIMERO: Agregar a inventario usando la función RPC
+      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('buy_shop_item', {
+        p_user_id: user.id,
+        p_item_slug: item.slug,
+        p_item_name: item.name,
+        p_category: item.category,
+      });
 
-      if (invError) {
-        console.error('Error al insertar en inventario:', invError);
-        throw new Error(`No se pudo agregar el item al inventario: ${invError.message || 'Error desconocido'}`);
+      if (rpcError || !rpcResult?.success) {
+        console.error('Error al insertar en inventario:', rpcError);
+        throw new Error(`No se pudo agregar el item al inventario: ${rpcError?.message || rpcResult?.error || 'Error desconocido'}`);
       }
 
       // SEGUNDO: Restar monedas/puntos SOLO si la inserción fue exitosa
@@ -186,8 +185,6 @@ export default function StorePage() {
           .eq('user_id', user.id);
         
         if (statsError) {
-          // Hacer rollback: eliminar el item del inventario
-          await (supabase as any).from('user_inventory').delete().eq('id', newItem.id);
           throw new Error(`No se pudo restar los puntos: ${statsError.message || 'Error desconocido'}`);
         }
         
@@ -199,15 +196,11 @@ export default function StorePage() {
           .eq('user_id', user.id);
         
         if (coinsError) {
-          // Hacer rollback: eliminar el item del inventario
-          await (supabase as any).from('user_inventory').delete().eq('id', newItem.id);
           throw new Error(`No se pudo restar los F-coins: ${coinsError.message || 'Error desconocido'}`);
         }
         
         setUserFCoins(newBalance);
       }
-
-      setUserInventory(prev => [...prev, newItem]);
 
       toast({
         title: "¡Compra exitosa!",

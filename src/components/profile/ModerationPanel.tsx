@@ -80,11 +80,16 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
       if (u) {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user_id);
         const targetRoles = roles?.map(r => r.role) || [];
+        
+        // Obtener balance de fcoins
+        const { data: wallet } = await (supabase as any).from("point_wallets").select("balance").eq("user_id", u.user_id).maybeSingle();
+        
         setFoundUser({ 
           ...u, 
           isStaff: targetRoles.some(r => ['master_web', 'admin', 'moderator'].includes(r)),
           isTargetAdmin: targetRoles.includes('admin'),
-          isTargetMod: targetRoles.includes('moderator')
+          isTargetMod: targetRoles.includes('moderator'),
+          fcoinsBalance: (wallet as any)?.balance || 0
         });
         setSelectedTier(u.membership_tier || "novato");
       } else {
@@ -213,6 +218,11 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                    <p className="text-[10px] font-pixel text-neon-yellow uppercase mt-1">
                       PLAN: <span className={foundUser.isStaff ? "text-neon-magenta" : ""}>{foundUser.isStaff ? "STAFF (INMUNE)" : foundUser.membership_tier}</span>
                    </p>
+                   {foundUser.fcoinsBalance !== undefined && (
+                     <p className="text-[10px] font-pixel text-neon-cyan uppercase mt-1">
+                       F-COINS: <span className="text-neon-cyan">{foundUser.fcoinsBalance.toLocaleString()}</span>
+                     </p>
+                   )}
                  </div>
                  {foundUser.isStaff && <Shield className="w-5 h-5 text-neon-magenta" />}
               </div>
@@ -244,17 +254,20 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                              if (isNaN(amount) || amount <= 0) { toast({title: "Error", description: "Ingrese una cantidad válida (mayor a 0).", variant: "destructive"}); return; }
                              
                              try {
-                               const { data: w, error: selectError } = await ((supabase as any).from('point_wallets').select('balance').eq('user_id', foundUser.user_id).single());
-                               if (selectError) { toast({title: "Error", description: "No se pudo obtener la billetera: " + selectError.message, variant: "destructive"}); return; }
+                               const { data: result, error: rpcError } = await (supabase as any).rpc('grant_fcoins', {
+                                 p_user_id: foundUser.user_id,
+                                 p_amount: amount
+                               });
                                
-                               const currentBalance = (w as any)?.balance || 0;
-                               const newBalance = currentBalance + amount;
+                               if (rpcError || !result?.success) {
+                                 toast({title: "Error", description: `No se pudo asignar F-coins: ${rpcError?.message || result?.error || 'Error desconocido'}`, variant: "destructive"}); 
+                                 return; 
+                               }
                                
-                               const { error: updateError } = await ((supabase as any).from('point_wallets').update({ balance: newBalance }).eq('user_id', foundUser.user_id));
-                               if (updateError) { toast({title: "Error", description: "No se pudo actualizar la billetera: " + updateError.message, variant: "destructive"}); return; }
+                               const newBalance = result.new_balance;
+                               setFoundUser((prev: any) => ({ ...prev, fcoinsBalance: newBalance }));
                                
-                               toast({title: "Transferencia Master Exitosa", description: `Has inyectado ${amount.toLocaleString()} F-coins a ${foundUser.display_name}. Balance anterior: ${currentBalance.toLocaleString()}, nuevo: ${newBalance.toLocaleString()}`}); 
-                               handleSearchUser();
+                               toast({title: "✅ F-coins Asignados", description: `Has inyectado ${amount.toLocaleString()} F-coins a ${foundUser.display_name}. Nuevo balance: ${newBalance.toLocaleString()}`}); 
                              } catch (e: any) {
                                toast({title: "Error", description: e.message || "Error desconocido al transferir fcoins", variant: "destructive"});
                              }
