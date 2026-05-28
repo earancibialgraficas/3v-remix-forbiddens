@@ -1,200 +1,77 @@
-/* 🎨 Estilos Dinámicos para Skins */
-/* Estas propiedades se sobrescribem con var(--skin-*) cuando se aplica una skin */
+/* 🎨 Estilos Dinámicos para Skins - SOLO CUANDO ESTÁ ACTIVA */
+/* Solo se aplican cuando el HTML tiene atributo style con --skin-* */
 
-:root[style*="--skin-primary"] {
-  /* Headers y títulos principales */
-  --header-bg: var(--skin-gradient-header, linear-gradient(135deg, #0066cc 0%, #00ccff 100%));
-  --primary-color: var(--skin-primary, #0066cc);
-  --secondary-color: var(--skin-secondary, #00ccff);
-  --accent-color: var(--skin-accent, #66ff00);
-  
-  /* Fondos */
-  --bg-base: var(--skin-background, #0a0a0a);
-  --bg-card: var(--skin-card, #1a1a1a);
-  
-  /* Textos */
-  --text-primary: var(--skin-text, #ffffff);
-  --text-muted: var(--skin-text-muted, #888888);
-  --text-border: var(--skin-border, #333333);
-  
-  /* Efectos */
-  --glow: var(--skin-glow, 0 0 20px rgba(0, 102, 204, 0.4));
-  --shadow: var(--skin-shadow, 0 8px 24px rgba(0, 102, 204, 0.15));
-  --border-radius: var(--skin-border-radius, 12px);
-}
-
-/* ========================================
-   APLICAR SKINS A TODO EL DOCUMENTO
-   ======================================== */
-
-/* 🎨 Fondos generales */
-[style*="bg-card"],
-.bg-card {
+/* 🎨 Fondos generales - Solo con skin activa */
+html[style*="--skin-primary"] .bg-card {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
 }
 
-[style*="bg-gradient"],
-.bg-gradient-to-br {
-  background: var(--skin-gradient-card) !important;
-}
-
-/* 🎨 Textos principales */
-h1, h2, h3, h4, h5, h6,
-.font-pixel,
-[style*="text-neon"] {
+/* 🎨 Textos principales - Solo con skin activa */
+html[style*="--skin-primary"] h1,
+html[style*="--skin-primary"] h2,
+html[style*="--skin-primary"] h3,
+html[style*="--skin-primary"] h4,
+html[style*="--skin-primary"] .font-pixel {
   color: var(--skin-primary) !important;
   text-shadow: 0 0 10px var(--skin-glow) !important;
 }
 
-/* Textos mutados */
-.text-muted-foreground,
-.text-muted {
+/* 🎨 Textos mutados - Solo con skin activa */
+html[style*="--skin-primary"] .text-muted-foreground {
   color: var(--skin-text-muted) !important;
 }
 
-/* Textos principales */
-.text-foreground,
-.text-white {
-  color: var(--skin-text) !important;
-}
-
-/* 🎨 Bordes dinámicos */
-[style*="border"],
-.border {
+/* 🎨 Bordes dinámicos - Solo con skin activa */
+html[style*="--skin-primary"] .border {
   border-color: var(--skin-border) !important;
 }
 
-/* 🎨 Colores específicos de neon */
-.text-neon-cyan,
-.text-neon-green,
-.text-neon-yellow,
-.text-neon-magenta {
+/* 🎨 Colores específicos de neon - Solo con skin activa */
+html[style*="--skin-primary"] .text-neon-cyan,
+html[style*="--skin-primary"] .text-neon-green,
+html[style*="--skin-primary"] .text-neon-yellow,
+html[style*="--skin-primary"] .text-neon-magenta {
   color: var(--skin-secondary) !important;
   text-shadow: 0 0 8px var(--skin-glow) !important;
 }
 
-/* 🎨 Avatares con brillo */
-.rounded-full {
+/* 🎨 Avatares con brillo - Solo con skin activa */
+html[style*="--skin-primary"] .rounded-full {
   box-shadow: 0 0 20px var(--skin-glow) !important;
   border-color: var(--skin-primary) !important;
 }
 
-/* 🎨 Cards con gradientes */
-.rounded.border,
-.rounded-lg.border {
-  background: linear-gradient(135deg, var(--skin-card) 0%, rgba(var(--skin-background), 0.5) 100%) !important;
+/* 🎨 Cards con gradientes - Solo con skin activa */
+html[style*="--skin-primary"] .rounded.border,
+html[style*="--skin-primary"] .rounded-lg.border {
+  background: linear-gradient(135deg, var(--skin-card) 0%, rgba(0,0,0,0.5) 100%) !important;
   box-shadow: var(--skin-shadow) !important;
   border-color: var(--skin-border) !important;
 }
 
-/* 🎨 Botones */
-button[style*="bg"],
-.bg-neon-cyan,
-.bg-neon-green,
-.bg-neon-yellow {
-  background: var(--skin-gradient-button) !important;
-  color: var(--skin-text) !important;
-}
-
-button:hover:not(:disabled) {
-  box-shadow: 0 0 15px var(--skin-glow) !important;
-}
-
-/* 🎨 Hover effects */
-.hover\:border-neon-cyan\/50:hover,
-.hover\:bg-white\/10:hover {
+/* 🎨 Hover effects - Solo con skin activa */
+html[style*="--skin-primary"] .hover\:border-neon-cyan\/50:hover {
   border-color: var(--skin-primary) !important;
-  background-color: rgba(var(--skin-primary), 0.1) !important;
   box-shadow: 0 0 20px var(--skin-glow) !important;
 }
 
-/* 🎨 Etiquetas y badges */
-.px-2.py-0\.5,
-[style*="px-"][style*="py-"] {
-  background-color: rgba(var(--skin-primary), 0.2) !important;
-  border-color: var(--skin-primary) !important;
-  color: var(--skin-primary) !important;
-}
-
-/* 🎨 Elementos de perfil */
-.font-body {
-  color: var(--skin-text) !important;
-}
-
-/* 🎨 Patrones de fondo */
-body::before {
-  background: var(--skin-pattern-bg);
-}
-
-/* 🎨 Animaciones con glow */
-.animate-fade-in {
-  animation: fadeInWithGlow 0.6s ease-out;
-}
-
-@keyframes fadeInWithGlow {
-  from {
-    opacity: 0;
-    filter: drop-shadow(0 0 20px var(--skin-glow));
-  }
-  to {
-    opacity: 1;
-    filter: drop-shadow(0 0 5px var(--skin-glow));
-  }
-}
-
-/* 🎨 Glows especiales */
-.shadow-neon-sm,
-[style*="shadow"] {
-  box-shadow: var(--skin-shadow) !important;
-}
-
-/* 🎨 Inputs y selects */
-input[type="text"],
-input[type="number"],
-textarea,
-select {
+/* 🎨 Inputs y selects - Solo con skin activa */
+html[style*="--skin-primary"] input[type="text"],
+html[style*="--skin-primary"] input[type="number"],
+html[style*="--skin-primary"] textarea,
+html[style*="--skin-primary"] select {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
   color: var(--skin-text) !important;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
-textarea:focus,
-select:focus {
+html[style*="--skin-primary"] input[type="text"]:focus,
+html[style*="--skin-primary"] input[type="number"]:focus,
+html[style*="--skin-primary"] textarea:focus,
+html[style*="--skin-primary"] select:focus {
   border-color: var(--skin-primary) !important;
   box-shadow: 0 0 10px var(--skin-glow) !important;
 }
 
-/* 🎨 Stats y números */
-.font-mono {
-  color: var(--skin-secondary) !important;
-}
-
-/* 🎨 Líneas divisoras */
-.border-t,
-.border-b,
-.border-l,
-.border-r {
-  border-color: var(--skin-border) !important;
-}
-
-/* 🎨 Scroll bar personalizado */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--skin-background);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--skin-primary);
-  border-radius: var(--skin-border-radius);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  box-shadow: 0 0 10px var(--skin-glow);
-}
 
