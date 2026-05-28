@@ -162,23 +162,7 @@ export default function StorePage() {
     }
 
     try {
-      // Restar monedas/puntos
-      const newBalance = (item.price_type === 'stats' ? userStats : userFCoins) - item.price;
-      if (item.price_type === 'stats') {
-        await supabase
-          .from('profiles')
-          .update({ total_score: newBalance } as any)
-          .eq('user_id', user.id);
-        await refreshProfile();
-      } else {
-        await (supabase as any)
-          .from('point_wallets')
-          .update({ balance: newBalance })
-          .eq('user_id', user.id);
-        setUserFCoins(newBalance);
-      }
-
-      // Agregar a inventario y obtener el objeto insertado para actualizar el estado local (corregido)
+      // PRIMERO: Agregar a inventario
       const { data: newItem, error: invError } = await (supabase as any).from('user_inventory').insert({
         user_id: user.id,
         item_slug: item.slug,
@@ -187,9 +171,43 @@ export default function StorePage() {
         metadata: { is_active: false, category: item.category },
       }).select().single();
 
-      if (!invError && newItem) {
-        setUserInventory(prev => [...prev, newItem]);
+      if (invError) {
+        console.error('Error al insertar en inventario:', invError);
+        throw new Error(`No se pudo agregar el item al inventario: ${invError.message || 'Error desconocido'}`);
       }
+
+      // SEGUNDO: Restar monedas/puntos SOLO si la inserción fue exitosa
+      const newBalance = (item.price_type === 'stats' ? userStats : userFCoins) - item.price;
+      
+      if (item.price_type === 'stats') {
+        const { error: statsError } = await supabase
+          .from('profiles')
+          .update({ total_score: newBalance } as any)
+          .eq('user_id', user.id);
+        
+        if (statsError) {
+          // Hacer rollback: eliminar el item del inventario
+          await (supabase as any).from('user_inventory').delete().eq('id', newItem.id);
+          throw new Error(`No se pudo restar los puntos: ${statsError.message || 'Error desconocido'}`);
+        }
+        
+        await refreshProfile();
+      } else {
+        const { error: coinsError } = await (supabase as any)
+          .from('point_wallets')
+          .update({ balance: newBalance })
+          .eq('user_id', user.id);
+        
+        if (coinsError) {
+          // Hacer rollback: eliminar el item del inventario
+          await (supabase as any).from('user_inventory').delete().eq('id', newItem.id);
+          throw new Error(`No se pudo restar los F-coins: ${coinsError.message || 'Error desconocido'}`);
+        }
+        
+        setUserFCoins(newBalance);
+      }
+
+      setUserInventory(prev => [...prev, newItem]);
 
       toast({
         title: "¡Compra exitosa!",
@@ -199,11 +217,11 @@ export default function StorePage() {
 
       // Recargar datos
       window.location.reload();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error buying item:', err);
       toast({ 
-        title: "Error",
-        description: "No se pudo completar la compra",
+        title: "Error en la compra",
+        description: err.message || "No se pudo completar la compra",
         variant: "destructive"
       });
     }

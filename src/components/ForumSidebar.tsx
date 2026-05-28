@@ -80,6 +80,7 @@ const navItems: NavItem[] = [
     ],
   },
   { label: "Eventos", icon: Calendar, to: "/eventos", color: "text-muted-foreground" },
+  { label: "Tienda", icon: ShoppingBag, to: "/tienda", color: "text-neon-cyan" },
   { label: "Membresías", icon: Star, to: "/membresias", color: "text-neon-yellow" },
   { label: "Reglas", icon: AlertTriangle, to: "/reglas", color: "text-neon-orange" },
   { label: "Ayuda", icon: HelpCircle, to: "/ayuda", color: "text-muted-foreground" },

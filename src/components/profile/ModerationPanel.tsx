@@ -242,10 +242,22 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
                              if (!foundUser) { toast({title: "Error", description: "Debe buscar un usuario primero.", variant: "destructive"}); return; }
                              const amount = parseInt(fcoinsToGrant);
                              if (isNaN(amount) || amount <= 0) { toast({title: "Error", description: "Ingrese una cantidad válida (mayor a 0).", variant: "destructive"}); return; }
-                             const { data: w } = await supabase.from('point_wallets' as any).select('balance').eq('user_id', foundUser.user_id).single();
-                             const { error } = await supabase.from('point_wallets' as any).update({ balance: ((w as any)?.balance || 0) + amount } as any).eq('user_id', foundUser.user_id);
-                             if (error) toast({title: "Error", description: error.message, variant: "destructive"});
-                             else { toast({title: "Transferencia Master Exitosa", description: `Has inyectado ${amount.toLocaleString()} F-coins a ${foundUser.display_name}`}); handleSearchUser(); }
+                             
+                             try {
+                               const { data: w, error: selectError } = await ((supabase as any).from('point_wallets').select('balance').eq('user_id', foundUser.user_id).single());
+                               if (selectError) { toast({title: "Error", description: "No se pudo obtener la billetera: " + selectError.message, variant: "destructive"}); return; }
+                               
+                               const currentBalance = (w as any)?.balance || 0;
+                               const newBalance = currentBalance + amount;
+                               
+                               const { error: updateError } = await ((supabase as any).from('point_wallets').update({ balance: newBalance }).eq('user_id', foundUser.user_id));
+                               if (updateError) { toast({title: "Error", description: "No se pudo actualizar la billetera: " + updateError.message, variant: "destructive"}); return; }
+                               
+                               toast({title: "Transferencia Master Exitosa", description: `Has inyectado ${amount.toLocaleString()} F-coins a ${foundUser.display_name}. Balance anterior: ${currentBalance.toLocaleString()}, nuevo: ${newBalance.toLocaleString()}`}); 
+                               handleSearchUser();
+                             } catch (e: any) {
+                               toast({title: "Error", description: e.message || "Error desconocido al transferir fcoins", variant: "destructive"});
+                             }
                            }} className="h-7 bg-neon-cyan text-black text-[8px] font-pixel hover:bg-neon-cyan/80">OTORGAR</Button>
                          </div>
                       </div>
