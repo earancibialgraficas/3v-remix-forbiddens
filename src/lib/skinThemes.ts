@@ -79,37 +79,37 @@ export const ANGELICAL_SKIN: SkinTheme = {
   },
 };
 
-// 😈 SKIN SATÁNICO - Rojo, negro, lava, pentagramas
+// 😈 SKIN SATÁNICO - Rojo intenso, negro profundo, efectos de fuego
 export const SATANIC_SKIN: SkinTheme = {
   name: 'Satánico',
   slug: 'satanic',
   type: 'launcher',
-  description: 'Estilo oscuro rojo con efectos de lava y pentagramas 🔥',
+  description: 'Estilo oscuro rojo con efectos de lava y fuego 🔥',
   colors: {
-    primary: '#dc143c',      // Rojo crimson
-    secondary: '#8b0000',    // Rojo oscuro
-    accent: '#ff4500',       // Rojo-naranja
-    background: '#1a0a0a',   // Fondo casi negro
-    card: '#2a1a1a',         // Card marrón oscuro
-    text: '#ff6b6b',         // Texto rojo claro
-    textMuted: '#8b5a5a',    // Texto marrón
-    border: '#dc143c',       // Borde rojo
+    primary: '#ff1111',      // Rojo puro intenso
+    secondary: '#ff4444',    // Rojo claro
+    accent: '#ff6600',       // Naranja fuego
+    background: '#0a0000',   // Negro puro
+    card: '#1a0000',         // Rojo muy oscuro casi negro
+    text: '#ff3333',         // Rojo brillante
+    textMuted: '#aa3333',    // Rojo apagado
+    border: '#ff1111',       // Borde rojo intenso
   },
   gradients: {
-    header: 'linear-gradient(135deg, #dc143c 0%, #8b0000 100%)',
-    card: 'linear-gradient(135deg, #2a1a1a 0%, #1f1515 100%)',
-    button: 'linear-gradient(135deg, #dc143c 0%, #ff4500 100%)',
-    hover: 'linear-gradient(135deg, #ff4500 0%, #ff6347 100%)',
+    header: 'linear-gradient(135deg, #ff1111 0%, #cc0000 50%, #660000 100%)',
+    card: 'linear-gradient(135deg, #1a0000 0%, #330000 50%, #0a0000 100%)',
+    button: 'linear-gradient(135deg, #ff1111 0%, #ff6600 50%, #ff3333 100%)',
+    hover: 'linear-gradient(135deg, #ff3333 0%, #ff6600 50%, #ffaa00 100%)',
   },
   effects: {
-    glow: '0 0 30px rgba(220, 20, 60, 0.6)',
-    shadow: '0 12px 32px rgba(0, 0, 0, 0.8)',
-    buttonHover: 'box-shadow: 0 0 25px rgba(220, 20, 60, 0.8), 0 0 15px rgba(255, 69, 0, 0.6)',
-    borderRadius: '8px',
+    glow: '0 0 40px rgba(255, 17, 17, 0.8), 0 0 20px rgba(255, 102, 0, 0.4)',
+    shadow: '0 16px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 17, 17, 0.3)',
+    buttonHover: 'box-shadow: 0 0 30px rgba(255, 17, 17, 1), 0 0 20px rgba(255, 102, 0, 0.7), 0 4px 15px rgba(0, 0, 0, 0.8)',
+    borderRadius: '6px',
   },
   patterns: {
-    background: 'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(220, 20, 60, 0.05) 40px, rgba(220, 20, 60, 0.05) 80px), repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(139, 0, 0, 0.05) 40px, rgba(139, 0, 0, 0.05) 80px)',
-    card: 'radial-gradient(circle at 30% 30%, rgba(255, 69, 0, 0.1) 0%, transparent 60%), radial-gradient(circle at 70% 70%, rgba(220, 20, 60, 0.05) 0%, transparent 60%)',
+    background: 'repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(255, 17, 17, 0.08) 50px, rgba(255, 17, 17, 0.08) 100px), repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255, 102, 0, 0.05) 30px, rgba(255, 102, 0, 0.05) 60px)',
+    card: 'radial-gradient(ellipse at 20% 20%, rgba(255, 102, 0, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(255, 17, 17, 0.1) 0%, transparent 50%), repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 17, 17, 0.03) 2px, rgba(255, 17, 17, 0.03) 4px)',
   },
 };
 
