@@ -621,8 +621,6 @@ export default function ProfilePage() {
       {activeTab === "guardados" && <GuardadosTab />}
       {activeTab === "inventario" && <InventoryTab userId={user.id} profile={profile} onWalletChange={setFcoinBalance} onStatChange={refreshProfile} />}
       {activeTab === "moderation" && isStaff && <ModerationPanel isStaff={isStaff} isMasterWeb={isMasterWeb} />}
-      {activeTab === "skins" && <SkinsTab userId={user.id} />}
     </div>
   );
 }
-

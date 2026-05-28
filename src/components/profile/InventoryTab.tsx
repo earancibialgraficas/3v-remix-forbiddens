@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2 } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen, markInventoryItemIdsSeen } from "@/lib/inventorySeen";
+import { ALL_SKINS } from "@/lib/skinThemes";
 
 interface InventoryTabProps {
   userId: string;
@@ -37,6 +38,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [tradeId, setTradeId] = useState<string | null>(null);
   const [localReady, setLocalReady] = useState(false);
   const [remoteReady, setRemoteReady] = useState(false);
+  const [activeSkins, setActiveSkins] = useState<Record<string, string>>({});
   const [remoteTradeSlots, setRemoteTradeSlots] = useState<any[]>(Array(4).fill(null));
   const [remotePoints, setRemotePoints] = useState(0);
   const [dragMode, setDragMode] = useState<"even" | "single" | null>(null);
@@ -109,6 +111,25 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       setLoading(false);
     }
   };
+
+  const fetchActiveSkins = useCallback(async () => {
+    const { data } = await supabase
+      .from('user_active_skins')
+      .select('skin_type, skin_slug')
+      .eq('user_id', userId);
+
+    if (data) {
+      const activeMap: Record<string, string> = {};
+      data.forEach(s => {
+        activeMap[s.skin_type] = s.skin_slug;
+      });
+      setActiveSkins(activeMap);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) void fetchActiveSkins();
+  }, [userId, fetchActiveSkins]);
 
   useEffect(() => {
     if (userId) void loadInventory();
@@ -726,6 +747,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       ? <Ticket className={className} />
       : isBoosterItem(item)
         ? <Sparkles className={className} />
+        : isSkinItem(item)
+          ? <Palette className={className} />
         : <Archive className={className} />
   );
 
@@ -914,6 +937,66 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       next[index] = null;
     }
     commitTradeSlots(next);
+  };
+
+  const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
+
+  const handleActivateSkin = async (skinSlug: string) => {
+    const skin = (ALL_SKINS as any)[skinSlug];
+    if (!skin) return;
+    const skinType = skin.type || 'launcher';
+    
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      const { data: existing } = await supabase
+        .from('user_active_skins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('skin_type', skinType)
+        .single();
+
+      if (existing) {
+        await supabase
+          .from('user_active_skins')
+          .update({ skin_slug: skinSlug })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('user_active_skins')
+          .insert({ user_id: userId, skin_type: skinType, skin_slug: skinSlug });
+      }
+
+      setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
+      toast({ title: "✅ Skin Equipada", description: `Has activado la skin "${skin.name}"` });
+    } catch (err) {
+      toast({ title: "Error", description: "No se pudo equipar la skin", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeactivateSkin = async (skinType: string) => {
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      await supabase
+        .from('user_active_skins')
+        .delete()
+        .eq('user_id', userId)
+        .eq('skin_type', skinType);
+
+      setActiveSkins(prev => {
+        const updated = { ...prev };
+        delete updated[skinType];
+        return updated;
+      });
+      toast({ title: "✅ Skin Desequipada", description: "Has vuelto al diseño original" });
+    } catch (err) {
+      toast({ title: "Error", description: "No se pudo desequipar", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const convertStatToFcoin = async () => {
@@ -1186,6 +1269,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         ? "border-neon-magenta/70 bg-[#4a235e]"
                         : isEventTicketItem(item)
                           ? "border-neon-cyan/70 bg-[#14354a]"
+                          : isSkinItem(item)
+                            ? "border-neon-cyan/70 bg-[#0a2e2e]"
                           : "border-[#f7d28b]/70 bg-[#6b4a1f]",
                     )}>
                       <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
@@ -1418,6 +1503,27 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           >
             Tradear stack
           </button>
+          {isSkinItem(contextMenu.item) && (
+            <>
+              {activeSkins[(ALL_SKINS as any)[contextMenu.item.item_slug]?.type || 'launcher'] === contextMenu.item.item_slug ? (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleDeactivateSkin((ALL_SKINS as any)[contextMenu.item.item_slug].type)}
+                >
+                  Desequipar
+                </button>
+              ) : (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleActivateSkin(contextMenu.item.item_slug)}
+                >
+                  Equipar
+                </button>
+              )}
+            </>
+          )}
           {isMembershipItem(contextMenu.item) && (
             <button
               className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
