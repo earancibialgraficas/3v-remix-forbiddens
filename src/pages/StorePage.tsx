@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, Sparkles, Lock, Check, Package, Zap } from "lucide-react";
+import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { ALL_SKINS } from "@/lib/skinThemes";
 
 interface ShopItem {
   id: string;
@@ -46,7 +47,7 @@ export default function StorePage() {
 
       try {
         // Obtener items de la tienda
-        const { data: items, error: itemsError } = await supabase
+        const { data: items, error: itemsError } = await (supabase as any)
           .from('shop_items')
           .select('*')
           .eq('is_active', true)
@@ -57,7 +58,7 @@ export default function StorePage() {
         }
 
         // Obtener inventario del usuario
-        const { data: inventory, error: invError } = await supabase
+        const { data: inventory, error: invError } = await (supabase as any)
           .from('user_inventory')
           .select('*')
           .eq('user_id', user.id);
@@ -67,7 +68,7 @@ export default function StorePage() {
         }
 
         // Obtener F-COINS del usuario
-        const { data: wallet, error: walletError } = await supabase
+        const { data: wallet, error: walletError } = await (supabase as any)
           .from('point_wallets')
           .select('balance')
           .eq('user_id', user.id)
@@ -117,6 +118,25 @@ export default function StorePage() {
     return true;
   };
 
+  // Funciones para categorizar items
+  const isBoosterItem = (item: ShopItem) => item?.slug === "points_x3_week";
+  const isEventTicketItem = (item: ShopItem) => String(item?.slug || "").startsWith("event_ticket:");
+  const isMembershipItem = (item: ShopItem) => String(item?.slug || "").startsWith("membership:");
+  const isSkinItem = (item: ShopItem) => item?.slug && (ALL_SKINS as any)[item.slug];
+
+  // Renderizador de icono de item
+  const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
+    isMembershipItem(item)
+      ? <Crown className={className} />
+      : isEventTicketItem(item)
+      ? <Ticket className={className} />
+      : isBoosterItem(item)
+        ? <Sparkles className={className} />
+        : isSkinItem(item)
+          ? <Palette className={className} />
+          : <Archive className={className} />
+  );
+
   const handleBuyItem = async (item: ShopItem) => {
     if (!user) {
       toast({ title: "Error", description: "Debes iniciar sesión", variant: "destructive" });
@@ -147,11 +167,11 @@ export default function StorePage() {
       if (item.price_type === 'stats') {
         await supabase
           .from('profiles')
-          .update({ total_score: newBalance })
+          .update({ total_score: newBalance } as any)
           .eq('user_id', user.id);
         await refreshProfile();
       } else {
-        await supabase
+        await (supabase as any)
           .from('point_wallets')
           .update({ balance: newBalance })
           .eq('user_id', user.id);
@@ -159,13 +179,12 @@ export default function StorePage() {
       }
 
       // Agregar a inventario y obtener el objeto insertado para actualizar el estado local (corregido)
-      const { data: newItem, error: invError } = await supabase.from('user_inventory').insert({
+      const { data: newItem, error: invError } = await (supabase as any).from('user_inventory').insert({
         user_id: user.id,
         item_slug: item.slug,
         item_name: item.name,
         quantity: 1,
         metadata: { is_active: false, category: item.category },
-      });
       }).select().single();
 
       if (!invError && newItem) {
@@ -276,17 +295,47 @@ export default function StorePage() {
                   canBuy ? "border-border" : "border-border/30 opacity-60"
                 )}
               >
-                {/* Miniatura con efecto */}
-                {item.image_url && (
-                  <div className="aspect-video bg-muted overflow-hidden relative group/img">
+                {/* Miniatura con icono */}
+                <div className={cn(
+                  "aspect-video bg-gradient-to-br from-[#3b2d21] to-[#1b140f] overflow-hidden relative group/img flex items-center justify-center border-b border-border",
+                  isMembershipItem(item) && "from-[#4a235e] to-[#2a1d3e]",
+                  isEventTicketItem(item) && "from-[#14354a] to-[#0a1f2e]",
+                  isSkinItem(item) && "from-[#0a2e2e] to-[#051818]",
+                )}>
+                  {/* Imagen de fondo si existe */}
+                  {item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110 opacity-40"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
-                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
+                  )}
+                  
+                  {/* Icono del item como miniatura principal */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className={cn(
+                      "relative grid h-14 w-14 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45)]",
+                      isMembershipItem(item)
+                        ? "border-neon-magenta/70 bg-[#4a235e]"
+                        : isEventTicketItem(item)
+                          ? "border-neon-cyan/70 bg-[#14354a]"
+                          : isSkinItem(item)
+                            ? "border-neon-cyan/70 bg-[#0a2e2e]"
+                          : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                    )}>
+                      <ItemIcon
+                        item={item}
+                        className={cn(
+                          "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                          isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                        )}
+                      />
+                    </div>
                   </div>
-                )}
+                  
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
+                </div>
 
                 {/* Info */}
                 <div className="p-3 space-y-2">
