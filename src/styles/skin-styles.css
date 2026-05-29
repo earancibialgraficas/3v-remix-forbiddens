@@ -59,10 +59,9 @@ html[style*="--skin-primary"] .rounded-full {
   border-color: var(--skin-primary) !important;
 }
 
-/* 🎨 Cards con gradientes - Solo con skin activa */
+/* 🎨 Cards: solo sombra/borde aquí; el background con textura lo define la regla anterior */
 html[style*="--skin-primary"] .rounded.border,
 html[style*="--skin-primary"] .rounded-lg.border {
-  background: linear-gradient(135deg, var(--skin-card) 0%, rgba(0,0,0,0.5) 100%) !important;
   box-shadow: var(--skin-shadow) !important;
   border-color: var(--skin-border) !important;
 }

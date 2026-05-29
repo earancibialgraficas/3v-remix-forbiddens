@@ -722,16 +722,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const getAnchoredMenuPosition = (event: React.MouseEvent) => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const width = 160;
-    const height = 136;
+    const height = 180;
     const margin = 8;
     const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
     const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 768;
-    const preferredX = rect.left + rect.width + 8;
-    const fallbackX = rect.left - width - 8;
-    const x = Math.min(Math.max(preferredX + width > viewportWidth - margin ? fallbackX : preferredX, margin), viewportWidth - width - margin);
-    const y = Math.min(Math.max(rect.top, margin), viewportHeight - height - margin);
+    // Anclar el menu justo donde esta el cursor del click derecho
+    const x = Math.min(Math.max(event.clientX, margin), viewportWidth - width - margin);
+    const y = Math.min(Math.max(event.clientY, margin), viewportHeight - height - margin);
     return { x, y };
   };
 
