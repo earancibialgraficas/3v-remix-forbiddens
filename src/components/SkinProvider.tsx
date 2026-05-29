@@ -15,26 +15,29 @@ export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProp
   const { activeSkin } = useUserActiveSkin(userId, skinType);
 
   useEffect(() => {
-    if (!activeSkin) return;
-
-    // Generar CSS variables
-    const cssVariables = generateThemeCSS(activeSkin);
-    
-    // Inyectar como atributo style en el root
     const root = document.documentElement;
+
+    if (!activeSkin) {
+      // Sin skin activa: limpiar cualquier variable de skin previa y mantener el tema por defecto del sitio
+      const currentStyle = root.getAttribute('style') || '';
+      const cleaned = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
+      if (cleaned) {
+        root.setAttribute('style', cleaned);
+      } else {
+        root.removeAttribute('style');
+      }
+      return;
+    }
+
+    // Generar CSS variables solo cuando hay skin activa
+    const cssVariables = generateThemeCSS(activeSkin);
     const currentStyle = root.getAttribute('style') || '';
-    
-    // Remover estilos de skin anteriores y agregar los nuevos
-    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;/g, '').trim();
-    const newStyle = `${cssVariables}${cleanedStyle ? '; ' + cleanedStyle : ''}`;
-    
+    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
+    const newStyle = `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
     root.setAttribute('style', newStyle);
 
-    console.log('🎨 Skin aplicada:', activeSkin.name, activeSkin.colors);
-
     return () => {
-      // Limpiar solo las variables de skin
-      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;/g, '').trim();
+      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
       if (finalStyle) {
         root.setAttribute('style', finalStyle);
       } else {
@@ -42,6 +45,7 @@ export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProp
       }
     };
   }, [activeSkin]);
+
 
   return null;
 }
