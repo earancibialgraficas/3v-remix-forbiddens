@@ -1404,7 +1404,6 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
 
-                  >
                     {item && (() => {
                       const itemIsNew = isInventoryItemUnseen(userId, item);
                       void seenVersion;
