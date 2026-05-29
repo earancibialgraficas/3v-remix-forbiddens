@@ -406,7 +406,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     : null;
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm" style={{ ['--player-card-color' as any]: 'var(--skin-card, hsl(var(--card)))' }}>
       <div className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto">
         <iframe
           key={currentYoutubeId}
@@ -417,9 +417,26 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           className="absolute left-1/2 top-1/2 h-[calc(100%+88px)] w-[calc(100%+156px)] -translate-x-1/2 -translate-y-1/2 sm:h-[calc(100%+118px)] sm:w-[calc(100%+210px)]"
           tabIndex={-1}
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent sm:inset-0 sm:h-auto sm:bg-gradient-to-r sm:from-card sm:via-card/75 sm:to-transparent" />
-        <div className="absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-card to-transparent sm:block" />
+        <div
+          className="absolute inset-x-0 bottom-0 h-20 sm:inset-0 sm:h-auto"
+          style={{
+            background: `linear-gradient(to top, var(--player-card-color), transparent)`,
+          }}
+        />
+        <div
+          className="absolute inset-0 hidden sm:block"
+          style={{
+            background: `linear-gradient(to right, var(--player-card-color) 0%, color-mix(in srgb, var(--player-card-color) 75%, transparent) 50%, transparent 100%)`,
+          }}
+        />
+        <div
+          className="absolute inset-y-0 left-0 hidden w-24 sm:block"
+          style={{
+            background: `linear-gradient(to right, var(--player-card-color), transparent)`,
+          }}
+        />
       </div>
+
 
       <button
         type="button"
