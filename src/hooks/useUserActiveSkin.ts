@@ -54,6 +54,15 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
 
     fetchActiveSkin();
 
+    const handleActiveSkinUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId?: string; skinType?: string }>).detail;
+      if (!detail || (detail.userId === userId && detail.skinType === skinType)) {
+        void fetchActiveSkin();
+      }
+    };
+
+    window.addEventListener('forbiddens:active-skin-updated', handleActiveSkinUpdated);
+
     // Suscribirse a cambios en tiempo real con topic único para evitar reutilizar
     // un canal ya suscrito cuando hay varios providers montados en /perfil.
     const channelTopic = `user-skins:${userId}:${skinType}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
@@ -75,6 +84,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
       .subscribe();
 
     return () => {
+      window.removeEventListener('forbiddens:active-skin-updated', handleActiveSkinUpdated);
       supabase.removeChannel(channel);
     };
   }, [userId, skinType]);
