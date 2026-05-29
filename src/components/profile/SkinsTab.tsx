@@ -124,6 +124,8 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
         [skinType]: skinSlug,
       }));
 
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug } }));
+
       console.log(`✅ Skin activada correctamente: ${skinSlug}`);
 
       toast({
@@ -153,6 +155,8 @@ export default function SkinsTab({ userId }: SkinsTabProps) {
         delete updated[skinType];
         return updated;
       });
+
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug: 'default' } }));
 
       toast({
         title: "✅ Skin Desactivada",
