@@ -110,8 +110,9 @@ export const DEMONIACO_SKIN: SkinTheme = {
   patterns: {
     // Imagen local garantizada + fallback gradiente para evitar pantallazo si falla
     background: "url('/skins/demoniaco/backgrounds/main-bg.jpg'), radial-gradient(circle at 50% 30%, rgba(255, 102, 0, 0.35), rgba(26, 6, 6, 1) 70%)",
-    card: "linear-gradient(135deg, rgba(42, 10, 10, 0.7) 0%, rgba(26, 6, 6, 0.75) 100%), url('/skins/demoniaco/textures/lava-overlay.jpg')",
+    card: "linear-gradient(135deg, rgba(42, 10, 10, 0.32) 0%, rgba(26, 6, 6, 0.38) 100%), url('/skins/demoniaco/textures/lava-overlay.jpg')",
   },
+
 };
 
 

@@ -11,15 +11,14 @@ html[style*="--skin-primary"] body {
   background: transparent;
 }
 
-html[style*="--skin-primary"] .bg-card {
-  background-color: var(--skin-card) !important;
-  border-color: var(--skin-border) !important;
-}
-
+/* 🎨 Cards/paneles con textura — incluye .bg-card directos, aside y todos los .rounded.border */
+html[style*="--skin-primary"] .bg-card,
+html[style*="--skin-primary"] aside.bg-card,
 html[style*="--skin-primary"] .rounded.border,
-html[style*="--skin-primary"] .rounded-lg.border {
-  background: var(--skin-pattern-card) center/cover, linear-gradient(135deg, var(--skin-card) 0%, rgba(0,0,0,0.5) 100%) !important;
-  background-blend-mode: multiply !important;
+html[style*="--skin-primary"] .rounded-lg.border,
+html[style*="--skin-primary"] .rounded-md.border {
+  background: var(--skin-pattern-card) center/cover !important;
+  background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
   box-shadow: var(--skin-shadow) !important;
 }
@@ -59,13 +58,6 @@ html[style*="--skin-primary"] .rounded-full {
   border-color: var(--skin-primary) !important;
 }
 
-/* 🎨 Cards: solo sombra/borde aquí; el background con textura lo define la regla anterior */
-html[style*="--skin-primary"] .rounded.border,
-html[style*="--skin-primary"] .rounded-lg.border {
-  box-shadow: var(--skin-shadow) !important;
-  border-color: var(--skin-border) !important;
-}
-
 /* 🎨 Hover effects - Solo con skin activa */
 html[style*="--skin-primary"] .hover\:border-neon-cyan\/50:hover {
   border-color: var(--skin-primary) !important;
@@ -89,5 +81,3 @@ html[style*="--skin-primary"] select:focus {
   border-color: var(--skin-primary) !important;
   box-shadow: 0 0 10px var(--skin-glow) !important;
 }
-
-
