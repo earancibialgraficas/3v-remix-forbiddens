@@ -169,6 +169,7 @@ export default function ChillMusicPlayer() {
   const [showAddSong, setShowAddSong] = useState(false);
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
+  const [isImportingPlaylist, setIsImportingPlaylist] = useState(false);
   const [playlistName, setPlaylistName] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [showNewPlaylistModal, setShowNewPlaylistModal] = useState(false);
@@ -716,6 +717,56 @@ export default function ChillMusicPlayer() {
     else if (idx < currentIndex) setCurrentIndex(p => p - 1);
   };
 
+  const getYoutubePlaylistId = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.searchParams.get("list") || "";
+    } catch {
+      const match = url.match(/[?&]list=([\w-]+)/);
+      return match?.[1] || "";
+    }
+  };
+
+  const fetchYoutubePlaylistSongs = async (url: string): Promise<Song[]> => {
+    const playlistId = getYoutubePlaylistId(url);
+    const explicitIds = Array.from(new Set(Array.from(url.matchAll(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{6,})/g)).map((match) => match[1])));
+    if (!playlistId) {
+      return Promise.all(explicitIds.map(async (youtubeId) => ({
+        id: youtubeId,
+        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+        url: `https://www.youtube.com/watch?v=${youtubeId}`,
+        type: 'youtube',
+        category: 'Custom',
+      })));
+    }
+
+    try {
+      const response = await fetch(`https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(playlistId)}`);
+      if (!response.ok) throw new Error("playlist feed unavailable");
+      const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
+      const entries = Array.from(xml.querySelectorAll("entry"));
+      return entries.map((entry, index) => {
+        const youtubeId = entry.querySelector("videoId")?.textContent || entry.querySelector("yt\\:videoId")?.textContent || "";
+        const title = entry.querySelector("title")?.textContent || `Video ${index + 1}`;
+        return {
+          id: `${playlistId}_${youtubeId || index}`,
+          title,
+          url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
+          type: 'youtube',
+          category: 'Custom',
+        };
+      }).filter((song) => song.url && song.id);
+    } catch {
+      return Promise.all(explicitIds.map(async (youtubeId) => ({
+        id: youtubeId,
+        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+        url: `https://www.youtube.com/watch?v=${youtubeId}`,
+        type: 'youtube',
+        category: 'Custom',
+      })));
+    }
+  };
+
   const addSong = async () => {
     if (!newSongUrl.trim()) return;
     const youtubeId = getYoutubeId(newSongUrl.trim());
@@ -729,10 +780,28 @@ export default function ChillMusicPlayer() {
       category: 'Custom'
     };
     setPlaylist(prev => [...prev, newSong]);
-    setCurrentCategory("Personal");
-    setActivePersonalPlaylistId(null);
-    persistMusicSession({ category: "Personal", personalPlaylistId: null, playlistName: "Personal" });
+    const nextCategory = playlistName.trim() || (currentCategory && currentCategory !== 'Todos' ? currentCategory : 'Personal');
+    setCurrentCategory(nextCategory);
+    setActivePersonalPlaylistId(activePersonalPlaylistId);
+    persistMusicSession({ category: nextCategory, personalPlaylistId: activePersonalPlaylistId, playlistName: playlistName || nextCategory });
     setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
+  };
+
+  const importPlaylist = async () => {
+    if (!newSongUrl.trim()) return;
+    setIsImportingPlaylist(true);
+    try {
+      const songs = await fetchYoutubePlaylistSongs(newSongUrl.trim());
+      if (!songs.length) return;
+      setPlaylist(prev => [...prev, ...songs]);
+      const nextCategory = playlistName.trim() || (currentCategory && currentCategory !== 'Todos' ? currentCategory : 'Personal');
+      setCurrentCategory(nextCategory);
+      setActivePersonalPlaylistId(activePersonalPlaylistId);
+      persistMusicSession({ category: nextCategory, personalPlaylistId: activePersonalPlaylistId, playlistName: playlistName || nextCategory });
+      setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
+    } finally {
+      setIsImportingPlaylist(false);
+    }
   };
 
   const loadPersonalPlaylist = (saved: SavedPlaylist) => {
@@ -1289,9 +1358,18 @@ export default function ChillMusicPlayer() {
           </button>
           {showAddSong && (
             <div className="px-2.5 pb-2 space-y-1.5 animate-fade-in">
-              <Input placeholder="URL de YouTube" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
-              <Input placeholder="Título (opcional)" value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
-              <button onClick={() => void addSong()} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body">Agregar al final</button>
+              <Input placeholder="URL de YouTube o lista" value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
+              <Input placeholder="Título (opcional para video único)" value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} className="h-6 bg-muted text-[10px] font-body" />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button onClick={() => void addSong()} className="w-full py-1 rounded bg-neon-cyan/20 text-neon-cyan text-[9px] font-body">Agregar al final</button>
+                <button
+                  onClick={() => void importPlaylist()}
+                  disabled={isImportingPlaylist || !newSongUrl.trim()}
+                  className="w-full py-1 rounded bg-neon-green/20 text-neon-green text-[9px] font-body disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isImportingPlaylist ? 'Importando...' : 'Importar lista'}
+                </button>
+              </div>
             </div>
           )}
         </div>
