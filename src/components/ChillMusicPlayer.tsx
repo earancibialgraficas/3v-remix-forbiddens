@@ -731,6 +731,7 @@ export default function ChillMusicPlayer() {
   const fetchYoutubePlaylistSongs = async (url: string): Promise<Song[]> => {
     const playlistId = getYoutubePlaylistId(url);
     const explicitIds = Array.from(new Set(Array.from(url.matchAll(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/g)).map((match) => match[1])));
+    
     if (!playlistId) {
       return Promise.all(explicitIds.map(async (youtubeId) => ({
         id: youtubeId,
@@ -742,13 +743,80 @@ export default function ChillMusicPlayer() {
     }
 
     try {
+      // Primero intentar con Invidious API (mejor para playlists)
+      try {
+        const invidResponse = await fetch(`https://invidious.io/api/v1/playlists/${playlistId}?fields=videos`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        
+        if (invidResponse.ok) {
+          const data = await invidResponse.json() as any;
+          if (data.videos && Array.isArray(data.videos) && data.videos.length > 0) {
+            return Promise.all(data.videos.map(async (video: any) => ({
+              id: `${playlistId}_${video.videoId}`,
+              title: video.title || `YouTube ${video.videoId}`,
+              url: `https://www.youtube.com/watch?v=${video.videoId}&list=${playlistId}`,
+              type: 'youtube' as const,
+              category: 'Custom',
+            })));
+          }
+        }
+      } catch {
+        // Continuar con el siguiente método si Invidious falla
+      }
+
+      // Fallback: scraping mejorado del HTML de YouTube
       const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`;
       const htmlResponse = await fetch(proxyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
       if (!htmlResponse.ok) throw new Error("playlist page unavailable");
       const html = await htmlResponse.text();
-      const ids = Array.from(new Set(Array.from(html.matchAll(/\"videoId\":\"([A-Za-z0-9_-]{11})\"/g)).map((match) => match[1])));
-      if (ids.length > 0) {
-        return Promise.all(ids.map(async (youtubeId) => ({
+      
+      // Múltiples estrategias de extracción para capturar todos los IDs
+      const patterns = [
+        /\"videoId\":\"([A-Za-z0-9_-]{11})\"/g,  // Patrón original
+        /videoId["\']?\s*:\s*["\']([A-Za-z0-9_-]{11})["\']?/g,  // Variantes
+        /\/watch\?v=([A-Za-z0-9_-]{11})/g,  // URLs de video
+        /youtu\.be\/([A-Za-z0-9_-]{11})/g,  // Formato youtu.be
+        /v=([A-Za-z0-9_-]{11})/g,  // Parámetro v=
+      ];
+      
+      const ids = new Set<string>();
+      
+      for (const pattern of patterns) {
+        try {
+          const matches = Array.from(html.matchAll(pattern));
+          matches.forEach(match => {
+            if (match[1] && match[1].length === 11) {
+              ids.add(match[1]);
+            }
+          });
+        } catch (e) {
+          // Continuar con el siguiente patrón si falla
+        }
+      }
+      
+      // También buscar en JSON embebido en la página
+      try {
+        const jsonMatch = html.match(/window\["ytInitialData"\]\s*=\s*({[\s\S]*?});/);
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1];
+          const videoMatches = Array.from(jsonStr.matchAll(/\"videoId\":\"([A-Za-z0-9_-]{11})\"/g));
+          videoMatches.forEach(match => ids.add(match[1]));
+        }
+      } catch {}
+      
+      // Buscar también en secciones playlistVideoList
+      try {
+        const playlistMatches = html.match(/playlistVideoList.*?"contents":\[([\s\S]*?)\]/);
+        if (playlistMatches && playlistMatches[1]) {
+          const videoMatches = Array.from(playlistMatches[1].matchAll(/\"videoId\":\"([A-Za-z0-9_-]{11})\"/g));
+          videoMatches.forEach(match => ids.add(match[1]));
+        }
+      } catch {}
+      
+      if (ids.size > 0) {
+        const uniqueIds = Array.from(ids);
+        return Promise.all(uniqueIds.map(async (youtubeId) => ({
           id: `${playlistId}_${youtubeId}`,
           title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
           url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
