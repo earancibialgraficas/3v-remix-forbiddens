@@ -870,6 +870,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_active_skins: {
+        Row: {
+          created_at: string
+          id: string
+          skin_slug: string
+          skin_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skin_slug: string
+          skin_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skin_slug?: string
+          skin_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_drive_games: {
         Row: {
           console_type: string
