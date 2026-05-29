@@ -407,7 +407,17 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
   return (
     <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto">
+      <div
+        className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto"
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, rgba(0,0,0,0.85) 55%, black 100%), linear-gradient(to top, transparent 0%, black 35%)',
+          WebkitMaskComposite: 'source-in',
+          maskImage:
+            'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, rgba(0,0,0,0.85) 55%, black 100%), linear-gradient(to top, transparent 0%, black 35%)',
+          maskComposite: 'intersect',
+        }}
+      >
         <iframe
           key={currentYoutubeId}
           ref={iframeRef}
@@ -417,9 +427,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           className="absolute left-1/2 top-1/2 h-[calc(100%+88px)] w-[calc(100%+156px)] -translate-x-1/2 -translate-y-1/2 sm:h-[calc(100%+118px)] sm:w-[calc(100%+210px)]"
           tabIndex={-1}
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent sm:inset-0 sm:h-auto sm:bg-gradient-to-r sm:from-card sm:via-card/75 sm:to-transparent" />
-        <div className="absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-card to-transparent sm:block" />
       </div>
+
+
 
       <button
         type="button"
@@ -460,7 +470,15 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
           <div className="py-3">
             <p className="mb-1 truncate text-[10px] text-muted-foreground">Playlist de {displayName}</p>
-            <div className="relative h-8 overflow-hidden">
+            <div
+              className="relative h-8 overflow-hidden"
+              style={{
+                WebkitMaskImage:
+                  'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+                maskImage:
+                  'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              }}
+            >
               <div className="flex w-max animate-marquee-x whitespace-nowrap">
                 {[0, 1, 2].map((copy) => (
                   <span
@@ -471,10 +489,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                   </span>
                 ))}
               </div>
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-card to-transparent" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-card to-transparent" />
             </div>
           </div>
+
 
           <div className="flex items-center justify-center gap-3 py-1">
             <button type="button" onClick={() => jump(-1)} className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/5 hover:text-neon-cyan focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/60" aria-label="Anterior">

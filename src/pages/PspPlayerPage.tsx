@@ -102,7 +102,7 @@ export default function PspPlayerPage() {
             setMessage(`Descargando ROM PSP desde Drive... ${pct}% (${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)})`);
           }
 
-          blob = new Blob(chunks, { type: response.headers.get("content-type") || "application/octet-stream" });
+          blob = new Blob(chunks as BlobPart[], { type: response.headers.get("content-type") || "application/octet-stream" });
         } else {
           blob = await response.blob();
         }

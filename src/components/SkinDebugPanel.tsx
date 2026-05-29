@@ -18,7 +18,7 @@ export function SkinDebugPanel() {
     if (!user?.id) return;
 
     const fetchCurrentSkin = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('user_active_skins')
         .select('skin_slug')
         .eq('user_id', user.id)
@@ -44,7 +44,7 @@ export function SkinDebugPanel() {
 
     try {
       // Verificar si existe registro
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('user_active_skins')
         .select('*')
         .eq('user_id', user.id)
@@ -53,7 +53,7 @@ export function SkinDebugPanel() {
 
       if (existing) {
         // Actualizar
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('user_active_skins')
           .update({ skin_slug: skinSlug })
           .eq('user_id', user.id)
@@ -62,7 +62,7 @@ export function SkinDebugPanel() {
         if (error) throw error;
       } else {
         // Insertar
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('user_active_skins')
           .insert([
             {

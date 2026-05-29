@@ -20,33 +20,28 @@ export function SkinContextProvider({
   const { activeSkin, loading } = useUserActiveSkin(userId, skinType);
 
   useEffect(() => {
-    console.log('🎨 SkinContextProvider effect triggered', { activeSkin: activeSkin?.name, loading });
-    
+    const root = document.documentElement;
+
     if (!activeSkin) {
-      console.log('⚠️ No activeSkin, skipping CSS injection');
+      // Sin skin activa: limpiar variables previas y usar el tema por defecto del sitio
+      const currentStyle = root.getAttribute('style') || '';
+      const cleaned = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
+      if (cleaned) {
+        root.setAttribute('style', cleaned);
+      } else {
+        root.removeAttribute('style');
+      }
       return;
     }
 
-    // Generar CSS variables
     const cssVariables = generateThemeCSS(activeSkin);
-    console.log('🔧 Generated CSS variables:', cssVariables.substring(0, 100) + '...');
-
-    // Inyectar como atributo style en el root
-    const root = document.documentElement;
     const currentStyle = root.getAttribute('style') || '';
-
-    // Remover estilos de skin anteriores y agregar los nuevos
-    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;/g, '').trim();
-    const newStyle = `${cssVariables}${cleanedStyle ? '; ' + cleanedStyle : ''}`;
-
+    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
+    const newStyle = `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
     root.setAttribute('style', newStyle);
-    console.log('✅ Skin CSS inyectado en HTML. Skin:', activeSkin.name);
-    console.log('   Colores primarios:', activeSkin.colors.primary, activeSkin.colors.secondary);
 
     return () => {
-      console.log('🧹 Limpiando skin CSS');
-      // Limpiar solo las variables de skin
-      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;/g, '').trim();
+      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
       if (finalStyle) {
         root.setAttribute('style', finalStyle);
       } else {
@@ -54,6 +49,7 @@ export function SkinContextProvider({
       }
     };
   }, [activeSkin]);
+
 
   return (
     <SkinContext.Provider value={{ isLoading: loading }}>

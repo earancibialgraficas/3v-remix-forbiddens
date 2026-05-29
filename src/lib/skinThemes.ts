@@ -89,15 +89,15 @@ export const DEMONIACO_SKIN: SkinTheme = {
     primary: '#ff1111',      // Rojo puro intenso
     secondary: '#ff4444',    // Rojo claro
     accent: '#ff6600',       // Naranja fuego
-    background: '#0a0000',   // Negro puro
-    card: '#1a0000',         // Rojo muy oscuro casi negro
+    background: '#1a0606',   // Rojo muy oscuro (NO negro puro, evita pantallazo si fallan assets)
+    card: '#2a0a0a',         // Rojo oscuro con algo de luz
     text: '#ff3333',         // Rojo brillante
     textMuted: '#aa3333',    // Rojo apagado
     border: '#ff1111',       // Borde rojo intenso
   },
   gradients: {
     header: 'linear-gradient(135deg, #ff1111 0%, #cc0000 50%, #660000 100%)',
-    card: 'linear-gradient(135deg, #1a0000 0%, #330000 50%, #0a0000 100%)',
+    card: 'linear-gradient(135deg, #1a0606 0%, #330808 50%, #0a0202 100%)',
     button: 'linear-gradient(135deg, #ff1111 0%, #ff6600 50%, #ff3333 100%)',
     hover: 'linear-gradient(135deg, #ff3333 0%, #ff6600 50%, #ffaa00 100%)',
   },
@@ -108,10 +108,15 @@ export const DEMONIACO_SKIN: SkinTheme = {
     borderRadius: '6px',
   },
   patterns: {
-    background: "url('https://cdn.jsdelivr.net/gh/earancibialgraficas/forbiddensASSETS@main/TemaDemoniaco/backgrounds/main-bg.webp'), radial-gradient(circle at 20% 20%, rgba(255, 102, 0, 0.2), transparent 40%)",
-    card: "url('https://cdn.jsdelivr.net/gh/earancibialgraficas/forbiddensASSETS@main/TemaDemoniaco/textures/lava-overlay.webp'), linear-gradient(135deg, rgba(26, 0, 0, 0.98) 0%, rgba(51, 0, 0, 0.95) 50%)",
+    // Imagen local garantizada + fallback gradiente para evitar pantallazo si falla
+    background: "url('/skins/demoniaco/backgrounds/main-bg.jpg'), radial-gradient(circle at 50% 30%, rgba(255, 102, 0, 0.35), rgba(26, 6, 6, 1) 70%)",
+    card: "linear-gradient(135deg, rgba(42, 10, 10, 0.32) 0%, rgba(26, 6, 6, 0.38) 100%), url('/skins/demoniaco/textures/lava-overlay.jpg')",
   },
+
 };
+
+
+
 
 // 🤖 SKIN CIBERPUNK - Neón, cyan, magenta, líneas de código
 export const CYBERPUNK_SKIN: SkinTheme = {

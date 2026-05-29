@@ -722,16 +722,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const getAnchoredMenuPosition = (event: React.MouseEvent) => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const width = 160;
-    const height = 136;
+    const height = 180;
     const margin = 8;
     const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
     const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 768;
-    const preferredX = rect.left + rect.width + 8;
-    const fallbackX = rect.left - width - 8;
-    const x = Math.min(Math.max(preferredX + width > viewportWidth - margin ? fallbackX : preferredX, margin), viewportWidth - width - margin);
-    const y = Math.min(Math.max(rect.top, margin), viewportHeight - height - margin);
+    // Anclar el menu justo donde esta el cursor del click derecho
+    const x = Math.min(Math.max(event.clientX, margin), viewportWidth - width - margin);
+    const y = Math.min(Math.max(event.clientY, margin), viewportHeight - height - margin);
     return { x, y };
   };
 
@@ -1093,20 +1091,24 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       const { data: existing } = await result;
 
       if (existing) {
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from('user_active_skins')
           .update({ skin_slug: skinSlug })
           .eq('id', (existing as any).id);
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('user_active_skins' as any)
           .insert({ user_id: userId, skin_type: skinType, skin_slug: skinSlug } as any);
+        if (insertError) throw insertError;
       }
 
       setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug } }));
       toast({ title: "✅ Skin Equipada", description: `Has activado la skin "${skin.name}"` });
-    } catch (err) {
-      toast({ title: "Error", description: "No se pudo equipar la skin", variant: "destructive" });
+    } catch (err: any) {
+      console.error('Error activating skin:', err);
+      toast({ title: "Error", description: err?.message || "No se pudo equipar la skin", variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -1116,20 +1118,23 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      await (supabase as any)
+      const { error: deleteError } = await (supabase as any)
         .from('user_active_skins')
         .delete()
         .eq('user_id', userId)
         .eq('skin_type', skinType);
+      if (deleteError) throw deleteError;
 
       setActiveSkins(prev => {
         const updated = { ...prev };
         delete updated[skinType];
         return updated;
       });
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug: 'default' } }));
       toast({ title: "✅ Skin Desequipada", description: "Has vuelto al diseño original" });
-    } catch (err) {
-      toast({ title: "Error", description: "No se pudo desequipar", variant: "destructive" });
+    } catch (err: any) {
+      console.error('Error deactivating skin:', err);
+      toast({ title: "Error", description: err?.message || "No se pudo desequipar", variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -1392,9 +1397,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                       item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
+                      item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
+
                     {item && (() => {
                       const itemIsNew = isInventoryItemUnseen(userId, item);
                       void seenVersion;
@@ -1422,6 +1429,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
                         {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
                         {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
+                        {isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
+
                         {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
                         <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
                       </div>
