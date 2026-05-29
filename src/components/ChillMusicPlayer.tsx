@@ -386,11 +386,12 @@ export default function ChillMusicPlayer() {
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      setSavedPlaylists((data || []).map((row: any) => ({
+      const playlists = (data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
         songs: Array.isArray(row.songs) ? row.songs : [],
-      })));
+      }));
+      setSavedPlaylists(playlists);
       const savedSession = readMusicSession();
       const shouldRestorePersonal = savedSession?.personalPlaylistId && savedSession?.personalPlaylistId !== activePersonalPlaylistId;
       if (shouldRestorePersonal) {
@@ -746,7 +747,12 @@ export default function ChillMusicPlayer() {
       const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
       const entries = Array.from(xml.querySelectorAll("entry"));
       return entries.map((entry, index) => {
-        const youtubeId = entry.querySelector("videoId")?.textContent || entry.querySelector("yt\\:videoId")?.textContent || "";
+        const youtubeId = entry.querySelector("videoId")?.textContent
+          || entry.querySelector("yt\\:videoId")?.textContent
+          || entry.getElementsByTagName("yt:videoId")[0]?.textContent
+          || entry.getElementsByTagName("videoId")[0]?.textContent
+          || entry.querySelector("id")?.textContent?.replace(/^yt:video:/, "")
+          || "";
         const title = entry.querySelector("title")?.textContent || `Video ${index + 1}`;
         return {
           id: `${playlistId}_${youtubeId || index}`,
@@ -757,13 +763,36 @@ export default function ChillMusicPlayer() {
         };
       }).filter((song) => song.url && song.id);
     } catch {
-      return Promise.all(explicitIds.map(async (youtubeId) => ({
-        id: youtubeId,
-        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
-        url: `https://www.youtube.com/watch?v=${youtubeId}`,
-        type: 'youtube',
-        category: 'Custom',
-      })));
+      if (explicitIds.length > 0) {
+        return Promise.all(explicitIds.map(async (youtubeId) => ({
+          id: youtubeId,
+          title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+          url: `https://www.youtube.com/watch?v=${youtubeId}`,
+          type: 'youtube',
+          category: 'Custom',
+        })));
+      }
+
+      try {
+        const htmlResponse = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`);
+        if (htmlResponse.ok) {
+          const html = await htmlResponse.text();
+          const ids = Array.from(new Set(Array.from(html.matchAll(/watch\?v=([A-Za-z0-9_-]{11})/g)).map((match) => match[1])));
+          if (ids.length) {
+            return Promise.all(ids.map(async (youtubeId) => ({
+              id: youtubeId,
+              title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+              url: `https://www.youtube.com/watch?v=${youtubeId}`,
+              type: 'youtube',
+              category: 'Custom',
+            })));
+          }
+        }
+      } catch {
+        // fallback to empty result if page read fails
+      }
+
+      return [];
     }
   };
 
@@ -780,9 +809,8 @@ export default function ChillMusicPlayer() {
       category: 'Custom'
     };
     setPlaylist(prev => [...prev, newSong]);
-    const nextCategory = playlistName.trim() || (currentCategory && currentCategory !== 'Todos' ? currentCategory : 'Personal');
+    const nextCategory = playlistName.trim() || (activePersonalPlaylistId || currentCategory !== 'Todos' ? currentCategory : 'Personal');
     setCurrentCategory(nextCategory);
-    setActivePersonalPlaylistId(activePersonalPlaylistId);
     persistMusicSession({ category: nextCategory, personalPlaylistId: activePersonalPlaylistId, playlistName: playlistName || nextCategory });
     setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
   };
@@ -794,9 +822,8 @@ export default function ChillMusicPlayer() {
       const songs = await fetchYoutubePlaylistSongs(newSongUrl.trim());
       if (!songs.length) return;
       setPlaylist(prev => [...prev, ...songs]);
-      const nextCategory = playlistName.trim() || (currentCategory && currentCategory !== 'Todos' ? currentCategory : 'Personal');
+      const nextCategory = playlistName.trim() || (activePersonalPlaylistId || currentCategory !== 'Todos' ? currentCategory : 'Personal');
       setCurrentCategory(nextCategory);
-      setActivePersonalPlaylistId(activePersonalPlaylistId);
       persistMusicSession({ category: nextCategory, personalPlaylistId: activePersonalPlaylistId, playlistName: playlistName || nextCategory });
       setNewSongUrl(""); setNewSongTitle(""); setShowAddSong(false);
     } finally {
@@ -838,6 +865,8 @@ export default function ChillMusicPlayer() {
     const youtubeSongs = playlist.filter((song) => song.type === "youtube");
     const name = nameOverride?.trim() || playlistName.trim() || (currentCategory && currentCategory !== "Todos" ? currentCategory : "Mi playlist");
     if (!name.trim()) return false;
+    setPlaylistName(name);
+    setCurrentCategory(name);
     setSavingPlaylist(true);
     try {
       const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
@@ -1454,6 +1483,11 @@ export default function ChillMusicPlayer() {
             <button
               type="button"
               onClick={async () => {
+                const trimmedName = newPlaylistName.trim();
+                if (trimmedName) {
+                  setPlaylistName(trimmedName);
+                  setCurrentCategory(trimmedName);
+                }
                 const success = await savePersonalPlaylist(newPlaylistName);
                 if (success) setShowNewPlaylistModal(false);
               }}
