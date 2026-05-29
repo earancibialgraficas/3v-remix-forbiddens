@@ -768,7 +768,7 @@ export default function ChillMusicPlayer() {
     if (!user || savingPlaylist) return false;
     const youtubeSongs = playlist.filter((song) => song.type === "youtube");
     const name = nameOverride?.trim() || playlistName.trim() || (currentCategory && currentCategory !== "Todos" ? currentCategory : "Mi playlist");
-    if (!youtubeSongs.length || !name.trim()) return false;
+    if (!name.trim()) return false;
     setSavingPlaylist(true);
     try {
       const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
@@ -1379,7 +1379,7 @@ export default function ChillMusicPlayer() {
                 const success = await savePersonalPlaylist(newPlaylistName);
                 if (success) setShowNewPlaylistModal(false);
               }}
-              disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube") || !newPlaylistName.trim()}
+              disabled={savingPlaylist || !newPlaylistName.trim()}
               className="flex-1 rounded bg-neon-green px-3 py-2 text-[9px] font-body text-black transition-all disabled:cursor-not-allowed disabled:opacity-50"
             >
               Guardar
