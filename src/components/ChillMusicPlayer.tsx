@@ -742,51 +742,23 @@ export default function ChillMusicPlayer() {
     }
 
     try {
-      const response = await fetch(`https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(playlistId)}`);
-      if (!response.ok) throw new Error("playlist feed unavailable");
-      const xmlText = await response.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlText, "application/xml");
+      const htmlResponse = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`);
+      if (!htmlResponse.ok) throw new Error("playlist page unavailable");
+      const html = await htmlResponse.text();
       
-      if (xml.getElementsByTagName("parsererror").length > 0) {
-        throw new Error("Invalid XML response");
-      }
+      const ids = Array.from(new Set(Array.from(html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)).map((match) => match[1])));
       
-      const entries = Array.from(xml.querySelectorAll("entry"));
-      if (entries.length === 0) {
-        throw new Error("No entries found in feed");
+      if (ids.length === 0) {
+        throw new Error("No video IDs extracted");
       }
 
-      const songs = entries.map((entry, index) => {
-        let youtubeId = "";
-        
-        // Intentar múltiples formas de extraer el ID
-        const videoIdElement = entry.querySelector("videoId");
-        if (videoIdElement?.textContent) {
-          youtubeId = videoIdElement.textContent;
-        } else {
-          const idElement = entry.querySelector("id");
-          if (idElement?.textContent) {
-            const match = idElement.textContent.match(/yt:video:([A-Za-z0-9_-]{11})/);
-            youtubeId = match?.[1] || "";
-          }
-        }
-
-        const title = entry.querySelector("title")?.textContent || `Video ${index + 1}`;
-        
-        return {
-          id: `${playlistId}_${youtubeId || index}`,
-          title,
-          url: youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}` : "",
-          type: 'youtube' as const,
-          category: 'Custom',
-        };
-      }).filter((song) => song.url && song.id && song.id.includes("_"));
-      
-      if (songs.length === 0) {
-        throw new Error("No valid videos extracted");
-      }
-      return songs;
+      return Promise.all(ids.map(async (youtubeId) => ({
+        id: `${playlistId}_${youtubeId}`,
+        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+        url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
+        type: 'youtube' as const,
+        category: 'Custom',
+      })));
     } catch (err) {
       if (explicitIds.length > 0) {
         return Promise.all(explicitIds.map(async (youtubeId) => ({
@@ -802,13 +774,13 @@ export default function ChillMusicPlayer() {
         const htmlResponse = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`);
         if (htmlResponse.ok) {
           const html = await htmlResponse.text();
-          const ids = Array.from(new Set(Array.from(html.matchAll(/watch\?v=([A-Za-z0-9_-]{11})/g)).map((match) => match[1])));
+          const ids = Array.from(new Set(Array.from(html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)).map((match) => match[1])));
           if (ids.length) {
             return Promise.all(ids.map(async (youtubeId) => ({
-              id: youtubeId,
+              id: `${playlistId}_${youtubeId}`,
               title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
-              url: `https://www.youtube.com/watch?v=${youtubeId}`,
-              type: 'youtube',
+              url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
+              type: 'youtube' as const,
               category: 'Custom',
             })));
           }
@@ -1430,17 +1402,27 @@ export default function ChillMusicPlayer() {
 
         {user && (
           <div className="border-t border-border/50 px-2.5 py-2 space-y-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setNewPlaylistName(playlistName || "");
-                setShowNewPlaylistModal(true);
-              }}
-              className="w-full flex items-center justify-center gap-2 rounded border border-neon-green/40 bg-neon-green/10 px-3 py-2 text-neon-green text-[9px] font-body hover:bg-neon-green/15 transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              Nueva lista
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setNewPlaylistName(playlistName || "");
+                  setShowNewPlaylistModal(true);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded border border-neon-cyan/40 bg-neon-cyan/10 px-3 py-2 text-neon-cyan text-[9px] font-body hover:bg-neon-cyan/15 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Nueva lista
+              </button>
+              <button
+                onClick={() => void savePersonalPlaylist()}
+                disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube")}
+                className="h-auto shrink-0 rounded border border-neon-green/40 bg-neon-green/15 px-3 py-2 text-neon-green hover:bg-neon-green/25 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                title="Guardar lista"
+              >
+                <Save className="w-3 h-3" />
+              </button>
+            </div>
             {savedPlaylists.length > 0 && (
               <div className="max-h-24 overflow-y-auto rounded border border-border/40 bg-black/20 retro-scrollbar">
                 {savedPlaylists.map((saved) => (
