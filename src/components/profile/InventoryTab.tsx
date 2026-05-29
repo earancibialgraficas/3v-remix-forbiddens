@@ -1399,8 +1399,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                       item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
+                      item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
+                  >
+
                   >
                     {item && (() => {
                       const itemIsNew = isInventoryItemUnseen(userId, item);
