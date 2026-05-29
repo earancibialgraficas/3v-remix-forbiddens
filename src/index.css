@@ -4,6 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './styles/skin-styles.css';
+
 @layer base {
   :root {
     --background: 240 15% 6%;
