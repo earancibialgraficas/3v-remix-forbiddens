@@ -744,25 +744,50 @@ export default function ChillMusicPlayer() {
     try {
       const response = await fetch(`https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(playlistId)}`);
       if (!response.ok) throw new Error("playlist feed unavailable");
-      const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, "application/xml");
+      
+      if (xml.getElementsByTagName("parsererror").length > 0) {
+        throw new Error("Invalid XML response");
+      }
+      
       const entries = Array.from(xml.querySelectorAll("entry"));
-      return entries.map((entry, index) => {
-        const youtubeId = entry.querySelector("videoId")?.textContent
-          || entry.querySelector("yt\\:videoId")?.textContent
-          || entry.getElementsByTagName("yt:videoId")[0]?.textContent
-          || entry.getElementsByTagName("videoId")[0]?.textContent
-          || entry.querySelector("id")?.textContent?.replace(/^yt:video:/, "")
-          || "";
+      if (entries.length === 0) {
+        throw new Error("No entries found in feed");
+      }
+
+      const songs = entries.map((entry, index) => {
+        let youtubeId = "";
+        
+        // Intentar múltiples formas de extraer el ID
+        const videoIdElement = entry.querySelector("videoId");
+        if (videoIdElement?.textContent) {
+          youtubeId = videoIdElement.textContent;
+        } else {
+          const idElement = entry.querySelector("id");
+          if (idElement?.textContent) {
+            const match = idElement.textContent.match(/yt:video:([A-Za-z0-9_-]{11})/);
+            youtubeId = match?.[1] || "";
+          }
+        }
+
         const title = entry.querySelector("title")?.textContent || `Video ${index + 1}`;
+        
         return {
           id: `${playlistId}_${youtubeId || index}`,
           title,
-          url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
-          type: 'youtube',
+          url: youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}` : "",
+          type: 'youtube' as const,
           category: 'Custom',
         };
-      }).filter((song) => song.url && song.id);
-    } catch {
+      }).filter((song) => song.url && song.id && song.id.includes("_"));
+      
+      if (songs.length === 0) {
+        throw new Error("No valid videos extracted");
+      }
+      return songs;
+    } catch (err) {
       if (explicitIds.length > 0) {
         return Promise.all(explicitIds.map(async (youtubeId) => ({
           id: youtubeId,
