@@ -1093,20 +1093,24 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       const { data: existing } = await result;
 
       if (existing) {
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from('user_active_skins')
           .update({ skin_slug: skinSlug })
           .eq('id', (existing as any).id);
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('user_active_skins' as any)
           .insert({ user_id: userId, skin_type: skinType, skin_slug: skinSlug } as any);
+        if (insertError) throw insertError;
       }
 
       setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug } }));
       toast({ title: "✅ Skin Equipada", description: `Has activado la skin "${skin.name}"` });
-    } catch (err) {
-      toast({ title: "Error", description: "No se pudo equipar la skin", variant: "destructive" });
+    } catch (err: any) {
+      console.error('Error activating skin:', err);
+      toast({ title: "Error", description: err?.message || "No se pudo equipar la skin", variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -1116,20 +1120,23 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setContextMenu(null);
     setBusy(true);
     try {
-      await (supabase as any)
+      const { error: deleteError } = await (supabase as any)
         .from('user_active_skins')
         .delete()
         .eq('user_id', userId)
         .eq('skin_type', skinType);
+      if (deleteError) throw deleteError;
 
       setActiveSkins(prev => {
         const updated = { ...prev };
         delete updated[skinType];
         return updated;
       });
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug: 'default' } }));
       toast({ title: "✅ Skin Desequipada", description: "Has vuelto al diseño original" });
-    } catch (err) {
-      toast({ title: "Error", description: "No se pudo desequipar", variant: "destructive" });
+    } catch (err: any) {
+      console.error('Error deactivating skin:', err);
+      toast({ title: "Error", description: err?.message || "No se pudo desequipar", variant: "destructive" });
     } finally {
       setBusy(false);
     }
