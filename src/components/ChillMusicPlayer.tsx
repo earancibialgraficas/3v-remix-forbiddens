@@ -730,7 +730,7 @@ export default function ChillMusicPlayer() {
 
   const fetchYoutubePlaylistSongs = async (url: string): Promise<Song[]> => {
     const playlistId = getYoutubePlaylistId(url);
-    const explicitIds = Array.from(new Set(Array.from(url.matchAll(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{6,})/g)).map((match) => match[1])));
+    const explicitIds = Array.from(new Set(Array.from(url.matchAll(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/g)).map((match) => match[1])));
     if (!playlistId) {
       return Promise.all(explicitIds.map(async (youtubeId) => ({
         id: youtubeId,
@@ -742,55 +742,35 @@ export default function ChillMusicPlayer() {
     }
 
     try {
-      const htmlResponse = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`);
+      const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`;
+      const htmlResponse = await fetch(proxyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
       if (!htmlResponse.ok) throw new Error("playlist page unavailable");
       const html = await htmlResponse.text();
-      
-      const ids = Array.from(new Set(Array.from(html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)).map((match) => match[1])));
-      
-      if (ids.length === 0) {
-        throw new Error("No video IDs extracted");
-      }
-
-      return Promise.all(ids.map(async (youtubeId) => ({
-        id: `${playlistId}_${youtubeId}`,
-        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
-        url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
-        type: 'youtube' as const,
-        category: 'Custom',
-      })));
-    } catch (err) {
-      if (explicitIds.length > 0) {
-        return Promise.all(explicitIds.map(async (youtubeId) => ({
-          id: youtubeId,
+      const ids = Array.from(new Set(Array.from(html.matchAll(/\"videoId\":\"([A-Za-z0-9_-]{11})\"/g)).map((match) => match[1])));
+      if (ids.length > 0) {
+        return Promise.all(ids.map(async (youtubeId) => ({
+          id: `${playlistId}_${youtubeId}`,
           title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
-          url: `https://www.youtube.com/watch?v=${youtubeId}`,
-          type: 'youtube',
+          url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
+          type: 'youtube' as const,
           category: 'Custom',
         })));
       }
-
-      try {
-        const htmlResponse = await fetch(`https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`);
-        if (htmlResponse.ok) {
-          const html = await htmlResponse.text();
-          const ids = Array.from(new Set(Array.from(html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)).map((match) => match[1])));
-          if (ids.length) {
-            return Promise.all(ids.map(async (youtubeId) => ({
-              id: `${playlistId}_${youtubeId}`,
-              title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
-              url: `https://www.youtube.com/watch?v=${youtubeId}&list=${playlistId}`,
-              type: 'youtube' as const,
-              category: 'Custom',
-            })));
-          }
-        }
-      } catch {
-        // fallback to empty result if page read fails
-      }
-
-      return [];
+    } catch {
+      // fallback to explicit IDs if possible
     }
+
+    if (explicitIds.length > 0) {
+      return Promise.all(explicitIds.map(async (youtubeId) => ({
+        id: youtubeId,
+        title: await fetchYoutubeTitle(`https://www.youtube.com/watch?v=${youtubeId}`) || `YouTube ${youtubeId}`,
+        url: `https://www.youtube.com/watch?v=${youtubeId}`,
+        type: 'youtube',
+        category: 'Custom',
+      })));
+    }
+
+    return [];
   };
 
   const addSong = async () => {
@@ -868,16 +848,14 @@ export default function ChillMusicPlayer() {
     try {
       const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
       let nextActiveId = selected?.id || null;
-      const payload = {
-        user_id: user.id,
-        name,
-        songs: serializeYoutubeSongs(youtubeSongs),
-      };
+      const youtubeSongsPayload = serializeYoutubeSongs(youtubeSongs);
       if (selected) {
-        const { error } = await (supabase as any).from("user_music_playlists").update(payload).eq("id", selected.id).eq("user_id", user.id);
-        if (error) throw error;
+        if (youtubeSongsPayload.length > 0) {
+          const { error } = await (supabase as any).from("user_music_playlists").update({ user_id: user.id, name, songs: youtubeSongsPayload }).eq("id", selected.id).eq("user_id", user.id);
+          if (error) throw error;
+        }
       } else {
-        const { data, error } = await (supabase as any).from("user_music_playlists").insert(payload).select("id").single();
+        const { data, error } = await (supabase as any).from("user_music_playlists").insert({ user_id: user.id, name, songs: youtubeSongsPayload }).select("id").single();
         if (error) throw error;
         nextActiveId = data?.id || null;
       }
@@ -1416,7 +1394,7 @@ export default function ChillMusicPlayer() {
               </button>
               <button
                 onClick={() => void savePersonalPlaylist()}
-                disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube")}
+                disabled={savingPlaylist || (!playlistName.trim() && !playlist.some((song) => song.type === "youtube"))}
                 className="h-auto shrink-0 rounded border border-neon-green/40 bg-neon-green/15 px-3 py-2 text-neon-green hover:bg-neon-green/25 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 title="Guardar lista"
               >
