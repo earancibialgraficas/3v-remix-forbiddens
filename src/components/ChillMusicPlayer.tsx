@@ -957,8 +957,8 @@ export default function ChillMusicPlayer() {
         nextActiveId = data?.id || null;
       }
       await loadSavedPlaylists();
+      const songs = youtubeSongsPayload as Song[];
       setSavedPlaylists((items) => {
-        const songs = payload.songs as Song[];
         if (nextActiveId && !items.some((item) => item.id === nextActiveId)) {
           return [{ id: nextActiveId, name, songs }, ...items];
         }
