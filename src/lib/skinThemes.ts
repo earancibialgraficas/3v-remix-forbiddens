@@ -108,10 +108,9 @@ export const DEMONIACO_SKIN: SkinTheme = {
     borderRadius: '6px',
   },
   patterns: {
-    // Local fallback (siempre disponible) + CDN externo opcional. Si el CDN no responde,
-    // el gradiente radial garantiza que NO se vea pantallazo negro.
+    // Imagen local garantizada + fallback gradiente para evitar pantallazo si falla
     background: "url('/skins/demoniaco/backgrounds/main-bg.jpg'), radial-gradient(circle at 50% 30%, rgba(255, 102, 0, 0.35), rgba(26, 6, 6, 1) 70%)",
-    card: "url('/skins/demoniaco/textures/lava-overlay.jpg'), linear-gradient(135deg, rgba(42, 10, 10, 0.95) 0%, rgba(26, 6, 6, 0.95) 100%)",
+    card: "linear-gradient(135deg, rgba(42, 10, 10, 0.7) 0%, rgba(26, 6, 6, 0.75) 100%), url('/skins/demoniaco/textures/lava-overlay.jpg')",
   },
 };
 
