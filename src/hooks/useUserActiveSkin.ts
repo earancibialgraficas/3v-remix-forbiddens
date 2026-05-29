@@ -9,48 +9,45 @@ import { getSkinTheme, SkinTheme, SkinSlug } from '@/lib/skinThemes';
  * @returns El tema/skin activo del usuario
  */
 export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agario' | 'game' = 'launcher') {
-  const [activeSkin, setActiveSkin] = useState<SkinTheme>(getSkinTheme('default'));
+  const [activeSkin, setActiveSkin] = useState<SkinTheme | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) {
-      console.log('⚠️ No userId provided to useUserActiveSkin');
+      setActiveSkin(null);
       setLoading(false);
       return;
     }
 
     const fetchActiveSkin = async () => {
       try {
-        console.log(`🔍 Fetching active skin for user ${userId}, type: ${skinType}`);
-        
         const { data, error } = await (supabase as any)
           .from('user_active_skins')
           .select('skin_slug')
           .eq('user_id', userId)
           .eq('skin_type', skinType)
-          .maybeSingle(); // Usar maybeSingle en lugar de single
+          .maybeSingle();
 
         if (error) {
           console.error('❌ Error fetching skin:', error);
-          setActiveSkin(getSkinTheme('default'));
+          setActiveSkin(null);
           setLoading(false);
           return;
         }
 
         if (!data) {
-          console.log(`ℹ️ No active skin found for user. Using default.`);
-          setActiveSkin(getSkinTheme('default'));
+          setActiveSkin(null);
         } else {
-          console.log(`✅ Active skin found: ${data.skin_slug}`);
           setActiveSkin(getSkinTheme(data.skin_slug as SkinSlug));
         }
       } catch (err) {
         console.error('❌ Exception in fetchActiveSkin:', err);
-        setActiveSkin(getSkinTheme('default'));
+        setActiveSkin(null);
       } finally {
         setLoading(false);
       }
     };
+
 
     fetchActiveSkin();
 
