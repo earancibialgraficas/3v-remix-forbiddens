@@ -823,18 +823,17 @@ export default function ChillMusicPlayer() {
     }
 
     try {
-      const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`;
+      const proxyUrl = `https://r.jina.ai/http://www.youtube.com/playlist?list=${playlistId}`;
       const htmlResponse = await fetch(proxyUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      if (!htmlResponse.ok) throw new Error("playlist page unavailable");
+      if (!htmlResponse.ok) throw new Error("playlist proxy unavailable");
       const html = await htmlResponse.text();
 
       const ids = new Set<string>();
       const patterns = [
-        /"videoId":"([A-Za-z0-9_-]{11})"/g,
-        /videoId["']?\s*:\s*["']([A-Za-z0-9_-]{11})["']?/g,
         /\/watch\?v=([A-Za-z0-9_-]{11})/g,
         /youtu\.be\/([A-Za-z0-9_-]{11})/g,
-        /\bvideoId\b\s*:\s*"([A-Za-z0-9_-]{11})"/g,
+        /v=([A-Za-z0-9_-]{11})/g,
+        /"videoId":"([A-Za-z0-9_-]{11})"/g,
       ];
 
       patterns.forEach((pattern) => {
@@ -843,25 +842,6 @@ export default function ChillMusicPlayer() {
           if (match[1] && match[1].length === 11) ids.add(match[1]);
         });
       });
-
-      const jsonMarkers = [
-        'window["ytInitialData"]',
-        'window.ytInitialData',
-        'var ytInitialData',
-        'ytInitialData =',
-      ];
-
-      for (const marker of jsonMarkers) {
-        const rawJson = extractJsonObject(html, marker);
-        if (!rawJson) continue;
-        try {
-          const data = JSON.parse(rawJson);
-          collectYoutubeIdsFromData(data, ids);
-          if (ids.size > 0) break;
-        } catch {
-          // Continue with the next marker if JSON parse fails
-        }
-      }
 
       if (ids.size > 0) {
         const uniqueIds = Array.from(ids);
