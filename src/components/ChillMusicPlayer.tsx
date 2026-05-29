@@ -170,6 +170,8 @@ export default function ChillMusicPlayer() {
   const [newSongUrl, setNewSongUrl] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
   const [playlistName, setPlaylistName] = useState("");
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [showNewPlaylistModal, setShowNewPlaylistModal] = useState(false);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [savingPlaylist, setSavingPlaylist] = useState(false);
   const [activePersonalPlaylistId, setActivePersonalPlaylistId] = useState<string | null>(null);
@@ -762,11 +764,11 @@ export default function ChillMusicPlayer() {
     });
   };
 
-  const savePersonalPlaylist = async () => {
-    if (!user || savingPlaylist) return;
+  const savePersonalPlaylist = async (nameOverride?: string): Promise<boolean> => {
+    if (!user || savingPlaylist) return false;
     const youtubeSongs = playlist.filter((song) => song.type === "youtube");
-    const name = playlistName.trim() || (currentCategory && currentCategory !== "Todos" ? currentCategory : "Mi playlist");
-    if (!youtubeSongs.length || !name.trim()) return;
+    const name = nameOverride?.trim() || playlistName.trim() || (currentCategory && currentCategory !== "Todos" ? currentCategory : "Mi playlist");
+    if (!youtubeSongs.length || !name.trim()) return false;
     setSavingPlaylist(true);
     try {
       const selected = savedPlaylists.find((item) => item.name.toLowerCase() === name.toLowerCase());
@@ -792,12 +794,15 @@ export default function ChillMusicPlayer() {
         }
         return items.map((item) => item.id === nextActiveId ? { ...item, name, songs } : item);
       });
+      setPlaylistName(name);
       setCurrentCategory(name);
       setActivePersonalPlaylistId(nextActiveId);
       storePlaylistOrder(youtubeSongs, name);
       persistMusicSession({ category: name, personalPlaylistId: nextActiveId, playlistName: name });
+      return true;
     } catch (error) {
       console.error("No se pudo guardar la playlist", error);
+      return false;
     } finally {
       setSavingPlaylist(false);
     }
@@ -1293,22 +1298,17 @@ export default function ChillMusicPlayer() {
 
         {user && (
           <div className="border-t border-border/50 px-2.5 py-2 space-y-1.5">
-            <div className="flex gap-1.5">
-              <Input
-                placeholder="Nombre de lista"
-                value={playlistName}
-                onChange={(e) => setPlaylistName(e.target.value)}
-                className="h-6 min-w-0 bg-muted text-[10px] font-body"
-              />
-              <button
-                onClick={() => void savePersonalPlaylist()}
-                disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube")}
-                className="h-6 shrink-0 rounded border border-neon-green/40 bg-neon-green/15 px-2 text-neon-green"
-                title="Guardar lista"
-              >
-                <Save className="w-3 h-3" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setNewPlaylistName(playlistName || "");
+                setShowNewPlaylistModal(true);
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded border border-neon-green/40 bg-neon-green/10 px-3 py-2 text-neon-green text-[9px] font-body hover:bg-neon-green/15 transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              Nueva lista
+            </button>
             {savedPlaylists.length > 0 && (
               <div className="max-h-24 overflow-y-auto rounded border border-border/40 bg-black/20 retro-scrollbar">
                 {savedPlaylists.map((saved) => (
@@ -1341,8 +1341,64 @@ export default function ChillMusicPlayer() {
     </div>
   );
 
+  const newPlaylistModal = showNewPlaylistModal ? (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-sm rounded-3xl border border-neon-cyan/60 bg-black/95 p-5 shadow-[0_0_30px_rgba(34,211,238,0.35)] backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-neon-cyan/20">
+          <div>
+            <p className="text-[11px] font-pixel uppercase tracking-[0.25em] text-neon-cyan">Nueva lista</p>
+            <p className="text-[9px] text-muted-foreground">Escribe un nombre para guardar esta playlist.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewPlaylistModal(false)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Cerrar modal"
+          >
+            ×
+          </button>
+        </div>
+        <div className="mt-4 space-y-3">
+          <Input
+            value={newPlaylistName}
+            onChange={(e) => setNewPlaylistName(e.target.value)}
+            placeholder="Nombre de la nueva lista"
+            className="h-10 bg-muted text-[10px] font-body"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setShowNewPlaylistModal(false)}
+              className="flex-1 rounded border border-border/50 bg-muted/30 px-3 py-2 text-[9px] text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const success = await savePersonalPlaylist(newPlaylistName);
+                if (success) setShowNewPlaylistModal(false);
+              }}
+              disabled={savingPlaylist || !playlist.some((song) => song.type === "youtube") || !newPlaylistName.trim()}
+              className="flex-1 rounded bg-neon-green px-3 py-2 text-[9px] font-body text-black transition-all disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Guardar
+            </button>
+          </div>
+          <p className="text-[8px] text-muted-foreground">Puedes agregar canciones con el enlace de YouTube y luego presionar "Agregar al final".</p>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const content = inEmulator ? compactContent : minimized ? minimizedContent : fullContent;
 
   if (!portalTarget) return null;
-  return createPortal(content, portalTarget);
+  return createPortal(
+    <>
+      {content}
+      {newPlaylistModal}
+    </>,
+    portalTarget
+  );
 }
