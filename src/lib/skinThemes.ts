@@ -42,6 +42,16 @@ export interface SkinTheme {
   patterns: {
     background: string;
     card: string;
+    topbar?: string;
+    sidebar?: string;
+    panel?: string;
+    profileHeader?: string;
+    profileSurface?: string;
+    slot?: string;
+    button?: string;
+    trim?: string;
+    emblem?: string;
+    lava?: string;
   };
 }
 
@@ -79,38 +89,47 @@ export const ANGELICAL_SKIN: SkinTheme = {
   },
 };
 
-// 😈 SKIN DEMONIACO - Rojo intenso, negro profundo, efectos de fuego
+// 😈 SKIN DEMONIACO - Rojo intenso, negro profundo, efectos de fuego infernal con TEXTURAS VARIADAS ESTRATÉGICAS
 export const DEMONIACO_SKIN: SkinTheme = {
   name: 'Demoniaco',
   slug: 'demoniaco',
   type: 'launcher',
   description: 'Estilo oscuro rojo demoníaco con efectos de fuego infernal 🔥',
   colors: {
-    primary: '#ff1111',      // Rojo puro intenso
-    secondary: '#ff4444',    // Rojo claro
-    accent: '#ff6600',       // Naranja fuego
-    background: '#1a0606',   // Rojo muy oscuro (NO negro puro, evita pantallazo si fallan assets)
-    card: '#2a0a0a',         // Rojo oscuro con algo de luz
-    text: '#ff3333',         // Rojo brillante
-    textMuted: '#aa3333',    // Rojo apagado
-    border: '#ff1111',       // Borde rojo intenso
+    primary: '#ff6600',      // Naranja fuego
+    secondary: '#ff9933',    // Naranja claro
+    accent: '#ffaa33',       // Naranja oro
+    background: '#0a0a0a',   // Negro oscuro
+    card: '#1a1a1a',         // Gris oscuro
+    text: '#ffddaa',         // Naranja claro
+    textMuted: '#cc9966',    // Naranja muted
+    border: '#6b3333',       // Rojo muy oscuro
   },
   gradients: {
-    header: 'linear-gradient(135deg, #ff1111 0%, #cc0000 50%, #660000 100%)',
-    card: 'linear-gradient(135deg, #1a0606 0%, #330808 50%, #0a0202 100%)',
-    button: 'linear-gradient(135deg, #ff1111 0%, #ff6600 50%, #ff3333 100%)',
-    hover: 'linear-gradient(135deg, #ff3333 0%, #ff6600 50%, #ffaa00 100%)',
+    header: 'linear-gradient(135deg, #ff6600 0%, #cc5500 50%, #884400 100%)',
+    card: 'linear-gradient(135deg, #1a1a1a 0%, #2a1515 50%, #0f0f0f 100%)',
+    button: 'linear-gradient(135deg, #ff6600 0%, #ff8833 50%, #ffaa33 100%)',
+    hover: 'linear-gradient(135deg, #ff8833 0%, #ffaa33 50%, #ffcc66 100%)',
   },
   effects: {
-    glow: '0 0 50px rgba(255, 17, 17, 1), 0 0 25px rgba(255, 102, 0, 0.6)',
-    shadow: '0 16px 50px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 17, 17, 0.4)',
-    buttonHover: 'box-shadow: 0 0 40px rgba(255, 17, 17, 1), 0 0 25px rgba(255, 102, 0, 0.8), 0 6px 20px rgba(0, 0, 0, 0.9)',
-    borderRadius: '6px',
+    glow: '0 0 20px rgba(255, 102, 0, 0.5), 0 0 10px rgba(255, 153, 51, 0.3)',
+    shadow: '0 8px 24px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 102, 0, 0.15)',
+    buttonHover: 'box-shadow: 0 0 20px rgba(255, 102, 0, 0.6), 0 0 10px rgba(255, 153, 51, 0.4), 0 4px 12px rgba(0, 0, 0, 0.8)',
+    borderRadius: '4px',
   },
   patterns: {
-    // Imagen local garantizada + fallback gradiente para evitar pantallazo si falla
-    background: "url('/skins/demoniaco/backgrounds/main-bg.jpg'), radial-gradient(circle at 50% 30%, rgba(255, 102, 0, 0.35), rgba(26, 6, 6, 1) 70%)",
-    card: "linear-gradient(135deg, rgba(42, 10, 10, 0.32) 0%, rgba(26, 6, 6, 0.38) 100%), url('/skins/demoniaco/textures/lava-overlay.jpg')",
+    background: "radial-gradient(circle at 56% -12%, rgba(255, 38, 0, 0.18), transparent 24rem), linear-gradient(rgba(4, 4, 4, 0.9), rgba(5, 4, 4, 0.94)), url('/skins/demoniaco/backgrounds/solid/hellscape-castle.png') center top / cover fixed, linear-gradient(135deg, #070707 0%, #120605 48%, #050505 100%)",
+    card: "linear-gradient(rgba(8, 8, 8, 0.88), rgba(6, 6, 6, 0.94)), url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, rgba(24, 10, 8, 0.72), rgba(5, 5, 5, 0.98))",
+    topbar: "linear-gradient(rgba(5, 5, 5, 0.9), rgba(8, 7, 7, 0.96)), url('/skins/demoniaco/textures/AZ5xjYg286URBkpJZIxzeQ-AZ5xjcojgoGln-NTZLbqsw.png') center / 100% 100%, linear-gradient(90deg, #050505, #150605 50%, #050505)",
+    sidebar: "linear-gradient(rgba(4, 4, 4, 0.84), rgba(7, 6, 6, 0.94)), url('/skins/demoniaco/textures/sidebar.png') center top / cover, linear-gradient(180deg, #080707, #120605 52%, #050505)",
+    panel: "linear-gradient(rgba(8, 8, 8, 0.9), rgba(6, 6, 6, 0.96)), url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, #13100e, #060606)",
+    profileHeader: "linear-gradient(90deg, rgba(5, 5, 5, 0.82), rgba(20, 5, 4, 0.64) 48%, rgba(5, 5, 5, 0.9)), url('/skins/demoniaco/backgrounds/solid/hellscape-dragon-wide.png') center / cover",
+    profileSurface: "linear-gradient(rgba(7, 7, 7, 0.88), rgba(5, 5, 5, 0.94)), url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover",
+    slot: "linear-gradient(rgba(7, 7, 7, 0.86), rgba(5, 5, 5, 0.94)), url('/skins/demoniaco/backgrounds/solid/basalt-tall.png') center / cover, radial-gradient(circle at 35% 25%, rgba(255, 58, 0, 0.12), transparent 55%)",
+    button: "linear-gradient(180deg, rgba(153, 22, 15, 0.96), rgba(69, 12, 9, 0.98)), url('/skins/demoniaco/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOV9VFJOGHu8DoACrg.png') center / 100% 100%",
+    trim: "url('/skins/demoniaco/textures/AZ5xfXwM5JCVm0yH6eZphA-AZ5xfb-SbaS3qDQBbY-Wcg.png') center / 100% 100%",
+    emblem: "url('/skins/demoniaco/decorations/demon-emblem.png')",
+    lava: "url('/skins/demoniaco/textures/lava-overlay.jpg')",
   },
 
 };
@@ -205,5 +224,21 @@ export const getSkinTheme = (slug?: string): SkinTheme => {
 
 // Generar CSS variables para un tema
 export const generateThemeCSS = (theme: SkinTheme): string => {
-  return `--skin-primary: ${theme.colors.primary}; --skin-secondary: ${theme.colors.secondary}; --skin-accent: ${theme.colors.accent}; --skin-background: ${theme.colors.background}; --skin-card: ${theme.colors.card}; --skin-text: ${theme.colors.text}; --skin-text-muted: ${theme.colors.textMuted}; --skin-border: ${theme.colors.border}; --skin-gradient-header: ${theme.gradients.header}; --skin-gradient-card: ${theme.gradients.card}; --skin-gradient-button: ${theme.gradients.button}; --skin-gradient-hover: ${theme.gradients.hover}; --skin-glow: ${theme.effects.glow}; --skin-shadow: ${theme.effects.shadow}; --skin-button-hover: ${theme.effects.buttonHover}; --skin-border-radius: ${theme.effects.borderRadius}; --skin-pattern-bg: ${theme.patterns.background}; --skin-pattern-card: ${theme.patterns.card};`;
+  const optionalPatterns = [
+    ['--skin-pattern-topbar', theme.patterns.topbar],
+    ['--skin-pattern-sidebar', theme.patterns.sidebar],
+    ['--skin-pattern-panel', theme.patterns.panel],
+    ['--skin-pattern-profile-header', theme.patterns.profileHeader],
+    ['--skin-pattern-profile-surface', theme.patterns.profileSurface],
+    ['--skin-pattern-slot', theme.patterns.slot],
+    ['--skin-pattern-button', theme.patterns.button],
+    ['--skin-pattern-trim', theme.patterns.trim],
+    ['--skin-pattern-emblem', theme.patterns.emblem],
+    ['--skin-pattern-lava', theme.patterns.lava],
+  ]
+    .filter(([, value]) => Boolean(value))
+    .map(([name, value]) => `${name}: ${value};`)
+    .join(' ');
+
+  return `--skin-slug: ${theme.slug}; --skin-primary: ${theme.colors.primary}; --skin-secondary: ${theme.colors.secondary}; --skin-accent: ${theme.colors.accent}; --skin-background: ${theme.colors.background}; --skin-card: ${theme.colors.card}; --skin-text: ${theme.colors.text}; --skin-text-muted: ${theme.colors.textMuted}; --skin-border: ${theme.colors.border}; --skin-gradient-header: ${theme.gradients.header}; --skin-gradient-card: ${theme.gradients.card}; --skin-gradient-button: ${theme.gradients.button}; --skin-gradient-hover: ${theme.gradients.hover}; --skin-glow: ${theme.effects.glow}; --skin-shadow: ${theme.effects.shadow}; --skin-button-hover: ${theme.effects.buttonHover}; --skin-border-radius: ${theme.effects.borderRadius}; --skin-pattern-bg: ${theme.patterns.background}; --skin-pattern-card: ${theme.patterns.card}; ${optionalPatterns}`;
 };

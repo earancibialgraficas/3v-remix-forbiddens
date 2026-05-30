@@ -21,6 +21,25 @@ html[style*="--skin-primary"] .rounded-md.border {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
   box-shadow: var(--skin-shadow) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 🎨 Efecto de variación en cards - Capas adicionales */
+html[style*="--skin-primary"] .bg-card::before,
+html[style*="--skin-primary"] aside.bg-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 300px 200px at 20% 30%, rgba(255, 102, 0, 0.05), transparent),
+    radial-gradient(ellipse 250px 150px at 80% 70%, rgba(139, 69, 19, 0.03), transparent),
+    repeating-linear-gradient(45deg, transparent 0px, transparent 2px, rgba(255, 102, 0, 0.02) 2px, rgba(255, 102, 0, 0.02) 4px);
+  pointer-events: none;
+  mix-blend-mode: overlay;
 }
 
 /* 🎨 Textos principales - Solo con skin activa */
@@ -72,6 +91,21 @@ html[style*="--skin-primary"] select {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
   color: var(--skin-text) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+html[style*="--skin-primary"] input[type="text"]::before,
+html[style*="--skin-primary"] input[type="number"]::before,
+html[style*="--skin-primary"] textarea::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(255, 102, 0, 0.05), transparent);
+  pointer-events: none;
 }
 
 html[style*="--skin-primary"] input[type="text"]:focus,
@@ -80,4 +114,334 @@ html[style*="--skin-primary"] textarea:focus,
 html[style*="--skin-primary"] select:focus {
   border-color: var(--skin-primary) !important;
   box-shadow: 0 0 10px var(--skin-glow) !important;
+}
+
+/* 🎨 Botones con efectos adicionales - Solo con skin activa */
+html[style*="--skin-primary"] button,
+html[style*="--skin-primary"] [role="button"] {
+  position: relative;
+  overflow: hidden;
+}
+
+html[style*="--skin-primary"] button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+html[style*="--skin-primary"] button:hover::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  to {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+/* Demoniaco: layered, per-surface remodeling */
+html[style*="--skin-slug: demoniaco"] {
+  color-scheme: dark;
+  --skin-panel-border: rgba(168, 37, 24, 0.78);
+  --skin-panel-border-soft: rgba(107, 34, 27, 0.72);
+  --skin-hot: rgba(255, 61, 0, 0.78);
+  --skin-ember: rgba(255, 128, 24, 0.28);
+}
+
+html[style*="--skin-slug: demoniaco"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 58% -8%, rgba(255, 51, 0, 0.24), transparent 24rem),
+    radial-gradient(circle at 14% 104%, rgba(255, 64, 0, 0.18), transparent 20rem),
+    linear-gradient(to top, rgba(255, 42, 0, 0.1), transparent 10rem);
+  mix-blend-mode: screen;
+  opacity: 0.48;
+}
+
+html[style*="--skin-slug: demoniaco"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 0%, rgba(255, 44, 0, 0.1), transparent 22rem);
+  opacity: 0.6;
+}
+
+html[style*="--skin-slug: demoniaco"] .bg-background,
+html[style*="--skin-slug: demoniaco"] main {
+  background: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] [data-tauri-drag-region].fixed.inset-x-0,
+html[style*="--skin-slug: demoniaco"] .lg\:hidden.fixed.inset-x-0.top-0 {
+  background: var(--skin-pattern-topbar) !important;
+  border-color: rgba(255, 45, 24, 0.38) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.74), inset 0 -1px 0 rgba(255, 85, 35, 0.22) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r,
+html[style*="--skin-slug: demoniaco"] .lg\:hidden.fixed.bg-card {
+  background: var(--skin-pattern-sidebar) !important;
+  border-color: rgba(129, 32, 25, 0.82) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 59, 24, 0.18), 16px 0 44px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r > div:first-child {
+  min-height: 8.5rem;
+  justify-content: center;
+  background:
+    linear-gradient(rgba(4, 4, 4, 0.72), rgba(7, 5, 5, 0.88)),
+    var(--skin-pattern-topbar) !important;
+  border-color: rgba(255, 55, 22, 0.28) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r > div:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  width: 5.8rem;
+  height: 4.2rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--skin-pattern-emblem) center / contain no-repeat;
+  filter: drop-shadow(0 0 12px rgba(255, 42, 15, 0.55));
+  opacity: 0.78;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r > div:first-child > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r nav a,
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r nav button {
+  border-radius: 2px !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r nav button:hover,
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r nav a:hover {
+  background: linear-gradient(90deg, rgba(183, 20, 15, 0.28), rgba(255, 65, 20, 0.05)) !important;
+  color: #ffd1bd !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 9rem;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(255, 42, 0, 0.24), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0.42;
+}
+
+html[style*="--skin-slug: demoniaco"] .bg-card,
+html[style*="--skin-slug: demoniaco"] .rounded.border,
+html[style*="--skin-slug: demoniaco"] .rounded-lg.border,
+html[style*="--skin-slug: demoniaco"] .rounded-md.border {
+  background: var(--skin-pattern-panel) !important;
+  border-color: var(--skin-panel-border-soft) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 111, 42, 0.08),
+    inset 0 0 34px rgba(0, 0, 0, 0.58),
+    0 14px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero {
+  background: var(
+    --skin-pattern-profile-header,
+    linear-gradient(90deg, rgba(5, 5, 5, 0.82), rgba(20, 5, 4, 0.64) 48%, rgba(5, 5, 5, 0.9)),
+    url('/skins/demoniaco/backgrounds/solid/hellscape-dragon-wide.png') center / cover
+  ) !important;
+  background-color: #080707 !important;
+  border-color: rgba(207, 48, 26, 0.82) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 112, 42, 0.12),
+    inset 0 -34px 70px rgba(0, 0, 0, 0.72),
+    0 18px 48px rgba(0, 0, 0, 0.48) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero::before {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08), transparent 42%, rgba(0, 0, 0, 0.62)),
+    radial-gradient(circle at 8% 28%, rgba(255, 67, 20, 0.16), transparent 10rem);
+  opacity: 1;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs {
+  background: var(
+    --skin-pattern-profile-surface,
+    linear-gradient(rgba(7, 7, 7, 0.88), rgba(5, 5, 5, 0.94)),
+    url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover
+  ) !important;
+  border-color: rgba(165, 38, 25, 0.78) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 112, 42, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.64) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs > button {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs > button[class*="bg-muted"],
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs > button:hover {
+  background: linear-gradient(180deg, rgba(105, 17, 12, 0.64), rgba(17, 8, 7, 0.72)) !important;
+  border-color: rgba(255, 66, 26, 0.52) !important;
+  color: #ffd4c2 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs::after {
+  display: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .bg-card:hover,
+html[style*="--skin-slug: demoniaco"] .rounded.border:hover,
+html[style*="--skin-slug: demoniaco"] .rounded-lg.border:hover {
+  border-color: rgba(211, 48, 27, 0.86) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .bg-card::before,
+html[style*="--skin-slug: demoniaco"] aside.bg-card::before {
+  background:
+    linear-gradient(90deg, rgba(255, 55, 0, 0.04), transparent 28%, transparent 72%, rgba(255, 55, 0, 0.035)),
+    radial-gradient(circle at 50% 0%, rgba(255, 72, 0, 0.16), transparent 16rem),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 5px);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border,
+html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border,
+html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border {
+  border-color: var(--skin-panel-border) !important;
+  position: relative;
+}
+
+html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border::after,
+html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 2%, rgba(255, 74, 20, 0.42) 8%, transparent 18%, transparent 82%, rgba(255, 74, 20, 0.32) 92%, transparent 98%),
+    var(--skin-pattern-trim);
+  background-size: 100% 100%, 100% 100%;
+  opacity: 0.38;
+  mix-blend-mode: screen;
+}
+
+html[style*="--skin-slug: demoniaco"] .grid.grid-cols-9,
+html[style*="--skin-slug: demoniaco"] .inventory-slot-grid,
+html[style*="--skin-slug: demoniaco"] .grid.grid-cols-4,
+html[style*="--skin-slug: demoniaco"] .grid.grid-cols-2.gap-1 {
+  background:
+    linear-gradient(rgba(5, 4, 4, 0.92), rgba(5, 4, 4, 0.96)),
+    url('/skins/demoniaco/textures/AZ5xkXgmo3sPSY9gwcW2Qw-AZ5xkb119LDfu6GqjHGtqw.png') center / cover !important;
+  border-color: rgba(111, 34, 24, 0.9) !important;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 63, 22, 0.12) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .aspect-square.select-none,
+html[style*="--skin-slug: demoniaco"] .inventory-sell-slot,
+html[style*="--skin-slug: demoniaco"] button[title="Barra de trueque"],
+html[style*="--skin-slug: demoniaco"] div[title="Slot remoto"],
+html[style*="--skin-slug: demoniaco"] .grid.grid-cols-4 > .aspect-square {
+  background: var(
+    --skin-pattern-slot,
+    linear-gradient(rgba(7, 7, 7, 0.86), rgba(5, 5, 5, 0.94)),
+    url('/skins/demoniaco/backgrounds/solid/basalt-tall.png') center / cover
+  ) !important;
+  border-color: rgba(127, 43, 31, 0.9) !important;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 145, 73, 0.11),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.66),
+    inset 0 0 14px rgba(0, 0, 0, 0.82) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .aspect-square.select-none:hover,
+html[style*="--skin-slug: demoniaco"] .inventory-sell-slot:hover,
+html[style*="--skin-slug: demoniaco"] button[title="Barra de trueque"]:hover,
+html[style*="--skin-slug: demoniaco"] .grid.grid-cols-4 > .aspect-square:hover {
+  border-color: rgba(255, 68, 28, 0.95) !important;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 145, 73, 0.16),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.7),
+    0 0 13px rgba(255, 54, 18, 0.28) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-active-skin-chip {
+  background:
+    linear-gradient(rgba(9, 7, 7, 0.86), rgba(6, 6, 6, 0.94)),
+    url('/skins/demoniaco/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOV9VFJOGHu8DoACrg.png') center / 100% 100% !important;
+  border-color: rgba(255, 63, 22, 0.78) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 136, 51, 0.12), 0 0 14px rgba(255, 43, 12, 0.22) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] button:not([class*="ghost"]),
+html[style*="--skin-slug: demoniaco"] [role="button"]:not([class*="ghost"]) {
+  border-color: rgba(177, 45, 29, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] button.bg-primary,
+html[style*="--skin-slug: demoniaco"] button[class*="bg-destructive"],
+html[style*="--skin-slug: demoniaco"] button[class*="bg-\\["],
+html[style*="--skin-slug: demoniaco"] .bg-primary {
+  background: var(--skin-pattern-button) !important;
+  color: #ffd8bd !important;
+  text-shadow: 0 0 8px rgba(255, 68, 23, 0.7) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] input,
+html[style*="--skin-slug: demoniaco"] textarea,
+html[style*="--skin-slug: demoniaco"] select {
+  background:
+    linear-gradient(rgba(7, 7, 7, 0.88), rgba(11, 8, 7, 0.92)),
+    url('/skins/demoniaco/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOVDVty6UhuKl-JxAA.png') center / cover !important;
+  border-color: rgba(151, 44, 31, 0.76) !important;
+  color: #f7d4bd !important;
+}
+
+html[style*="--skin-slug: demoniaco"] h1,
+html[style*="--skin-slug: demoniaco"] h2,
+html[style*="--skin-slug: demoniaco"] h3,
+html[style*="--skin-slug: demoniaco"] .font-pixel {
+  color: #ff3f1c !important;
+  text-shadow: 0 0 7px rgba(255, 53, 17, 0.86), 0 0 18px rgba(255, 104, 28, 0.35) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .text-neon-cyan,
+html[style*="--skin-slug: demoniaco"] .text-neon-green,
+html[style*="--skin-slug: demoniaco"] .text-neon-yellow,
+html[style*="--skin-slug: demoniaco"] .text-neon-magenta {
+  color: #ff7a1f !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .rounded-full {
+  border-color: rgba(255, 67, 24, 0.92) !important;
+  box-shadow: 0 0 0 2px rgba(24, 5, 5, 0.9), 0 0 22px rgba(255, 53, 18, 0.62) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 58, 18, 0.9), rgba(92, 18, 13, 0.9)) !important;
+  border-color: rgba(255, 121, 42, 0.28) !important;
 }

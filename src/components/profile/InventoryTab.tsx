@@ -1073,6 +1073,15 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
+  const activeSkinEntries = useMemo(
+    () => Object.entries(activeSkins)
+      .map(([skinType, skinSlug]) => {
+        const skin = (ALL_SKINS as any)[skinSlug];
+        return skin ? { skinType, skinSlug, skin } : null;
+      })
+      .filter(Boolean) as { skinType: string; skinSlug: string; skin: any }[],
+    [activeSkins],
+  );
 
   const handleActivateSkin = async (skinSlug: string) => {
     const skin = (ALL_SKINS as any)[skinSlug];
@@ -1348,7 +1357,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
   return (
     <div className="space-y-4 animate-in fade-in">
-      <div className="grid gap-3 md:grid-cols-[1fr_320px]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
@@ -1378,7 +1387,27 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </div>
           )}
 
-          <div className="grid grid-cols-9 gap-1.5 rounded border border-black/60 bg-[#1b140f] p-2">
+          {activeSkinEntries.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {activeSkinEntries.map(({ skinType, skinSlug, skin }) => (
+                <button
+                  key={`${skinType}:${skinSlug}`}
+                  type="button"
+                  onClick={() => handleDeactivateSkin(skinType)}
+                  disabled={busy}
+                  className="demoniaco-active-skin-chip flex h-8 min-w-0 items-center gap-1.5 rounded border border-neon-green/40 bg-neon-green/10 px-2 text-left text-[9px] text-neon-green transition-colors hover:border-red-400/70 hover:text-red-200 disabled:opacity-60"
+                  title={`Desequipar ${skin.name}`}
+                >
+                  <Palette className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-pixel uppercase">{skinType}</span>
+                  <span className="max-w-[120px] truncate font-body text-[10px] text-foreground/85">{skin.name}</span>
+                  <XIcon className="h-3 w-3 shrink-0 opacity-70" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="inventory-slot-grid grid grid-cols-[repeat(auto-fit,minmax(54px,1fr))] gap-1.5 rounded border border-black/60 bg-[#1b140f] p-2 sm:grid-cols-6 lg:grid-cols-9">
             {slotItems.map((item, index) => (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
@@ -1619,13 +1648,13 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             Arrastra aquí los items de la tienda que ya no quieras para recuperar la mitad de su valor.
           </p>
           
-          <div className="mt-3 grid grid-cols-4 gap-1.5 rounded border border-red-500/20 bg-black/40 p-2">
+          <div className="inventory-slot-grid mt-3 grid grid-cols-[repeat(auto-fit,minmax(54px,72px))] justify-start gap-1.5 rounded border border-red-500/20 bg-black/40 p-2 sm:grid-cols-[repeat(4,minmax(54px,72px))]">
             {sellSlots.map((item, index) => (
               <div
                 key={index}
                 onClick={(event) => handleSellSlotClick(index, event)}
                 className={cn(
-                  "relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)] transition-colors cursor-pointer",
+                  "inventory-sell-slot relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)] transition-colors cursor-pointer",
                   item ? "border-red-500/60 bg-red-500/5" : "border-white/10 hover:border-red-500/30",
                 )}
               >

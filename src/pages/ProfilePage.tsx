@@ -519,7 +519,7 @@ export default function ProfilePage() {
         document.body
       )}
 
-      <div className="bg-card border border-neon-cyan/30 rounded p-6">
+      <div className="demoniaco-profile-hero bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
@@ -594,7 +594,7 @@ export default function ProfilePage() {
       />
 
       {/* ðŸ”¥ MENÃš DE PESTAÃ‘AS RESPONSIVO CON LÃ“GICA ROJA ðŸ”¥ */}
-      <div className="flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
+      <div className="demoniaco-profile-tabs flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
         {tabs.map(tab => (
           <button 
             key={tab.id} 

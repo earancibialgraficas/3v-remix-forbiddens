@@ -23,6 +23,72 @@ interface ShopItem {
 
 const TIER_ORDER = ['novato', 'lite', 'legacy', 'creator', 'staff'];
 
+const shopVisuals = {
+  demoniaco: {
+    frame: "border-red-500/70 bg-[#160605]",
+    icon: "text-red-300",
+    badge: "DEMON",
+    background:
+      "linear-gradient(rgba(10,4,4,.42),rgba(2,2,2,.76)), url('/skins/demoniaco/textures/AZ5xiFZyH-Pp-A1YyuqL8A-AZ5xiJDqESwiBMddp6RbLw.png') center / cover",
+  },
+  angelical: {
+    frame: "border-pink-300/70 bg-[#3a1930]",
+    icon: "text-pink-200",
+    badge: "HALO",
+    background:
+      "radial-gradient(circle at 30% 25%, rgba(255,255,255,.45), transparent 28%), linear-gradient(135deg, #3a1930, #ffe0f0 52%, #27132a)",
+  },
+  cyberpunk: {
+    frame: "border-cyan-300/70 bg-[#061d2a]",
+    icon: "text-cyan-200",
+    badge: "NEON",
+    background:
+      "linear-gradient(135deg, rgba(0,255,255,.18), transparent 35%), repeating-linear-gradient(90deg, rgba(0,255,255,.18) 0 1px, transparent 1px 14px), linear-gradient(135deg, #061d2a, #210a35)",
+  },
+  points_x3_week: {
+    frame: "border-yellow-300/70 bg-[#3d2508]",
+    icon: "text-yellow-200",
+    badge: "x3",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(250,204,21,.42), transparent 28%), linear-gradient(135deg, #3d2508, #11100a)",
+  },
+  game_chest: {
+    frame: "border-amber-300/70 bg-[#2f1d0d]",
+    icon: "text-amber-200",
+    badge: "BOX",
+    background:
+      "linear-gradient(135deg, rgba(245,158,11,.28), transparent 38%), repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 1px, transparent 1px 10px), linear-gradient(135deg, #2f1d0d, #0d0906)",
+  },
+  cosmetic: {
+    frame: "border-fuchsia-300/70 bg-[#321437]",
+    icon: "text-fuchsia-200",
+    badge: "FX",
+    background:
+      "radial-gradient(circle at 70% 25%, rgba(217,70,239,.35), transparent 28%), linear-gradient(135deg, #321437, #111018)",
+  },
+  ticket: {
+    frame: "border-sky-300/70 bg-[#102b3a]",
+    icon: "text-sky-200",
+    badge: "PASS",
+    background:
+      "linear-gradient(135deg, rgba(56,189,248,.35), transparent 35%), repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 8px), linear-gradient(135deg, #102b3a, #080d12)",
+  },
+  membership: {
+    frame: "border-purple-300/70 bg-[#2f1742]",
+    icon: "text-purple-200",
+    badge: "VIP",
+    background:
+      "radial-gradient(circle at 50% 20%, rgba(216,180,254,.34), transparent 30%), linear-gradient(135deg, #2f1742, #120919)",
+  },
+  fallback: {
+    frame: "border-[#f7d28b]/70 bg-[#342412]",
+    icon: "text-[#f7d28b]",
+    badge: "ITEM",
+    background:
+      "linear-gradient(135deg, rgba(247,210,139,.2), transparent 36%), linear-gradient(135deg, #342412, #0d0906)",
+  },
+};
+
 export default function StorePage() {
   const { user, profile, refreshProfile } = useAuth(); // Limpiado duplicado
   const { toast } = useToast();
@@ -123,6 +189,14 @@ export default function StorePage() {
   const isEventTicketItem = (item: ShopItem) => String(item?.slug || "").startsWith("event_ticket:");
   const isMembershipItem = (item: ShopItem) => String(item?.slug || "").startsWith("membership:");
   const isSkinItem = (item: ShopItem) => item?.slug && (ALL_SKINS as any)[item.slug];
+  const getShopVisual = (item: ShopItem) => {
+    if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
+    if (isMembershipItem(item)) return shopVisuals.membership;
+    if (isEventTicketItem(item)) return shopVisuals.ticket;
+    if (item.category === "game_chest") return shopVisuals.game_chest;
+    if (item.category === "cosmetic") return shopVisuals.cosmetic;
+    return shopVisuals.fallback;
+  };
 
   // Renderizador de icono de item
   const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
@@ -288,6 +362,7 @@ export default function StorePage() {
           {filteredItems.map(item => {
             const canBuy = canBuyItem(item);
             const isOwned = userInventory.some(inv => inv.item_slug === item.slug);
+            const visual = getShopVisual(item);
 
             return (
               <div
@@ -299,17 +374,15 @@ export default function StorePage() {
               >
                 {/* Miniatura con icono */}
                 <div className={cn(
-                  "aspect-video bg-gradient-to-br from-[#3b2d21] to-[#1b140f] overflow-hidden relative group/img flex items-center justify-center border-b border-border",
-                  isMembershipItem(item) && "from-[#4a235e] to-[#2a1d3e]",
-                  isEventTicketItem(item) && "from-[#14354a] to-[#0a1f2e]",
-                  isSkinItem(item) && "from-[#0a2e2e] to-[#051818]",
-                )}>
+                  "aspect-video overflow-hidden relative group/img flex items-center justify-center border-b border-border",
+                )}
+                style={{ background: visual.background }}>
                   {/* Imagen de fondo si existe */}
                   {item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110 opacity-40"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110 opacity-30 mix-blend-screen"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   )}
@@ -317,23 +390,18 @@ export default function StorePage() {
                   {/* Icono del item como miniatura principal */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
-                      "relative grid h-14 w-14 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45)]",
-                      isMembershipItem(item)
-                        ? "border-neon-magenta/70 bg-[#4a235e]"
-                        : isEventTicketItem(item)
-                          ? "border-neon-cyan/70 bg-[#14354a]"
-                          : isSkinItem(item)
-                            ? "border-neon-cyan/70 bg-[#0a2e2e]"
-                          : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                      "relative grid h-16 w-16 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_18px_rgba(0,0,0,.45)]",
+                      visual.frame,
                     )}>
-                      <ItemIcon
-                        item={item}
-                        className={cn(
-                          "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
-                          isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
-                        )}
-                      />
+                      <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />
+                      <ItemIcon item={item} className={cn("relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]", visual.icon)} />
+                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
+                        {visual.badge}
+                      </span>
                     </div>
+                  </div>
+                  <div className="absolute left-2 top-2 max-w-[70%] truncate rounded border border-white/10 bg-black/55 px-2 py-1 font-pixel text-[8px] uppercase text-white/80">
+                    {item.category.replace("_", " ")}
                   </div>
                   
                   <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
