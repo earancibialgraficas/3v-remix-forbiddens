@@ -212,8 +212,8 @@ html[style*="--skin-slug: demoniaco"] body::before {
     radial-gradient(circle at 58% -8%, rgba(255, 51, 0, 0.24), transparent 24rem),
     radial-gradient(circle at 14% 104%, rgba(255, 64, 0, 0.18), transparent 20rem),
     linear-gradient(to top, rgba(255, 42, 0, 0.1), transparent 10rem);
-  mix-blend-mode: screen;
-  opacity: 0.48;
+  mix-blend-mode: normal;
+  opacity: 0.22;
 }
 
 html[style*="--skin-slug: demoniaco"] body::after {
@@ -224,7 +224,7 @@ html[style*="--skin-slug: demoniaco"] body::after {
   pointer-events: none;
   background:
     radial-gradient(circle at 50% 0%, rgba(120, 18, 14, 0.08), transparent 22rem);
-  opacity: 0.34;
+  opacity: 0.16;
 }
 
 html[style*="--skin-slug: demoniaco"] .bg-background,
@@ -359,11 +359,9 @@ html[style*="--skin-slug: demoniaco"] .rounded-lg.border:hover {
 
 html[style*="--skin-slug: demoniaco"] .bg-card::before,
 html[style*="--skin-slug: demoniaco"] aside.bg-card::before {
-  background:
-    linear-gradient(90deg, rgba(122, 21, 17, 0.05), transparent 28%, transparent 72%, rgba(122, 21, 17, 0.04)),
-    radial-gradient(circle at 50% 0%, rgba(163, 29, 20, 0.12), transparent 16rem);
+  background: none !important;
   mix-blend-mode: normal;
-  opacity: 0.42;
+  opacity: 0 !important;
 }
 
 html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border,
@@ -385,7 +383,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel.rounded.border-
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel.bg-card.border,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel.bg-card.border {
   background:
-    linear-gradient(180deg, rgba(8, 7, 7, 0.88), rgba(5, 4, 4, 0.96)),
+    linear-gradient(180deg, rgba(6, 4, 4, 0.42), rgba(4, 3, 3, 0.66)),
     var(
       --skin-pattern-profile-surface,
       url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover
@@ -402,7 +400,8 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-trade-box.rounded.border,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border,
 html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border {
   background:
-    linear-gradient(180deg, rgba(18, 8, 6, 0.84), rgba(5, 5, 5, 0.88)) !important;
+    linear-gradient(180deg, rgba(18, 8, 6, 0.42), rgba(5, 5, 5, 0.62)),
+    var(--skin-pattern-slot) !important;
   border-color: rgba(143, 37, 24, 0.72) !important;
   box-shadow:
     inset 0 0 0 1px rgba(255, 89, 34, 0.08),
@@ -424,7 +423,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border::
 html[style*="--skin-slug: demoniaco"] .grid.grid-cols-9,
 html[style*="--skin-slug: demoniaco"] .inventory-slot-grid.rounded.border {
   background:
-    linear-gradient(rgba(5, 4, 4, 0.92), rgba(5, 4, 4, 0.96)),
+    linear-gradient(rgba(5, 4, 4, 0.46), rgba(5, 4, 4, 0.66)),
     var(
       --skin-pattern-slot,
       url('/skins/demoniaco/backgrounds/solid/basalt-tall.png') center / cover
@@ -439,7 +438,7 @@ html[style*="--skin-slug: demoniaco"] button[title="Barra de trueque"],
 html[style*="--skin-slug: demoniaco"] div[title="Slot remoto"] {
   background: var(
     --skin-pattern-slot,
-    linear-gradient(rgba(7, 7, 7, 0.86), rgba(5, 5, 5, 0.94)),
+    linear-gradient(rgba(7, 7, 7, 0.46), rgba(5, 5, 5, 0.68)),
     url('/skins/demoniaco/backgrounds/solid/basalt-tall.png') center / cover
   ) !important;
   border-color: rgba(127, 43, 31, 0.9) !important;
@@ -583,9 +582,10 @@ html[style*="--skin-slug: demoniaco"] {
   --demoniaco-avatar-round: url('/skins/demoniaco/frames/avatar-ring.png');
   --demoniaco-avatar-square: url('/skins/demoniaco/frames/avatar-square-frame.png');
   --demoniaco-surface-rock: url('/skins/demoniaco/backgrounds/solid/window-rock.png');
-  --demoniaco-frame-corner-size: clamp(56px, 6.8vw, 98px);
-  --demoniaco-frame-edge-thickness: clamp(14px, 1.8vw, 24px);
-  --demoniaco-frame-outset: 12px;
+  --demoniaco-profile-banner: url('/skins/demoniaco/backgrounds/solid/profile-banner.png');
+  --demoniaco-frame-corner-size: clamp(68px, 7.8vw, 118px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
 }
 
 @media (min-width: 1280px) {
@@ -599,8 +599,8 @@ html[style*="--skin-slug: demoniaco"] {
   html[style*="--skin-slug: demoniaco"] {
     --demoniaco-frame-edge-horizontal: url('/skins/demoniaco/frames/frame-edge-v3.png');
     --demoniaco-frame-edge-vertical: url('/skins/demoniaco/frames/frame-edge-v3-vertical.png');
-    --demoniaco-frame-corner-size: clamp(44px, 14vw, 70px);
-    --demoniaco-frame-edge-thickness: clamp(11px, 3.4vw, 17px);
+    --demoniaco-frame-corner-size: clamp(52px, 15vw, 82px);
+    --demoniaco-frame-edge-thickness: clamp(13px, 4vw, 20px);
   }
 }
 
@@ -614,7 +614,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel {
   border-color: transparent !important;
   border-image-source: none !important;
   background:
-    linear-gradient(180deg, rgba(4, 3, 3, 0.9), rgba(8, 5, 5, 0.96)),
+    linear-gradient(180deg, rgba(4, 3, 3, 0.44), rgba(8, 5, 5, 0.66)),
     var(--demoniaco-surface-rock) center / cover !important;
   border-radius: 0 !important;
   overflow: visible !important;
@@ -624,16 +624,22 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel {
     0 0 18px rgba(255, 47, 18, 0.16) !important;
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border {
+  background:
+    linear-gradient(90deg, rgba(2, 2, 2, 0.34), rgba(14, 3, 3, 0.16) 48%, rgba(2, 2, 2, 0.58)),
+    var(--demoniaco-profile-banner) center / cover !important;
+}
+
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border {
-  --demoniaco-frame-corner-size: clamp(38px, 4.8vw, 62px);
-  --demoniaco-frame-edge-thickness: clamp(10px, 1.25vw, 15px);
-  --demoniaco-frame-outset: 8px;
+  --demoniaco-frame-corner-size: clamp(46px, 5.4vw, 72px);
+  --demoniaco-frame-edge-thickness: clamp(12px, 1.55vw, 18px);
+  --demoniaco-frame-outset: 9px;
   position: relative !important;
   isolation: isolate;
   border-color: transparent !important;
   border-image-source: none !important;
   background:
-    linear-gradient(180deg, rgba(7, 5, 5, 0.86), rgba(5, 4, 4, 0.94)),
+    linear-gradient(180deg, rgba(7, 5, 5, 0.44), rgba(5, 4, 4, 0.68)),
     var(--demoniaco-surface-rock) center / cover !important;
   border-radius: 0 !important;
   overflow: visible !important;
@@ -673,11 +679,11 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before {
     bottom center,
     left center;
   background-size:
-    calc(100% - (var(--demoniaco-frame-corner-size) * 0.38)) var(--demoniaco-frame-edge-thickness),
-    var(--demoniaco-frame-edge-thickness) calc(100% - (var(--demoniaco-frame-corner-size) * 0.38)),
-    calc(100% - (var(--demoniaco-frame-corner-size) * 0.38)) var(--demoniaco-frame-edge-thickness),
-    var(--demoniaco-frame-edge-thickness) calc(100% - (var(--demoniaco-frame-corner-size) * 0.38));
-  opacity: 0.96;
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%,
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%;
+  opacity: 0.98;
   mix-blend-mode: normal;
   filter: drop-shadow(0 0 6px rgba(255, 39, 14, 0.22));
 }
@@ -710,7 +716,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
     var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
     var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
     var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size);
-  opacity: 0.96 !important;
+  opacity: 0.99 !important;
   transform: none !important;
   animation: none !important;
   mix-blend-mode: normal;
@@ -724,7 +730,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border,
 html[style*="--skin-slug: demoniaco"] .inventory-slot-grid.rounded.border {
   border-color: transparent !important;
   background:
-    linear-gradient(180deg, rgba(12, 7, 6, 0.82), rgba(3, 3, 3, 0.9)),
+    linear-gradient(180deg, rgba(12, 7, 6, 0.42), rgba(3, 3, 3, 0.64)),
     var(--skin-pattern-slot) !important;
   box-shadow:
     inset 0 0 0 1px rgba(255, 80, 28, 0.06),
@@ -735,26 +741,33 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-item-frame {
   border-image-source: var(--demoniaco-frame-compact) !important;
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame,
 html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img) {
   position: relative !important;
   overflow: visible !important;
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
+  isolation: isolate;
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame > img,
 html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img) > img {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 9999px !important;
-  clip-path: circle(50% at 50% 50%);
+  clip-path: circle(49% at 50% 50%);
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame::after,
 html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img)::after {
   content: "";
   position: absolute;
-  inset: -42%;
-  z-index: 2;
+  inset: -54%;
+  z-index: 4;
   pointer-events: none;
   background: var(--demoniaco-avatar-round) center / contain no-repeat;
   filter: drop-shadow(0 0 10px rgba(255, 49, 18, 0.45));

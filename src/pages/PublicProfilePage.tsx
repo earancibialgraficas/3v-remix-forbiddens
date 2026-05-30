@@ -360,12 +360,12 @@ export default function PublicProfilePage() {
       <SkinProvider userId={profile?.user_id} skinType="launcher" />
       <div className="space-y-4 animate-fade-in w-full min-w-0 px-2 sm:px-4 pb-20 relative">
       
-      <div className="bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
+      <div className="demoniaco-profile-hero bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <button
             type="button"
             onClick={() => setIsAvatarPreviewOpen(true)}
-            className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="demoniaco-avatar-frame w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={getAvatarBorderStyle(profile.color_avatar_border)}
             aria-label={`Ver foto de perfil de ${profile.display_name}`}
             title="Ver foto de perfil"
@@ -411,7 +411,7 @@ export default function PublicProfilePage() {
 
       <PublicProfileMusicPlayer userId={profile.user_id} displayName={profile.display_name} />
 
-      <div className="bg-card border border-border rounded p-4">
+      <div className="demoniaco-profile-panel bg-card border border-border rounded p-4">
         <h3 className="font-pixel text-[10px] text-muted-foreground mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> ESTADÍSTICAS</h3>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {[
@@ -441,11 +441,11 @@ export default function PublicProfilePage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         
-        <div className="bg-card border border-border rounded p-4 h-fit">
+        <div className="demoniaco-profile-panel bg-card border border-border rounded p-4 h-fit">
           <GameScoreList scores={bestScores as any} title="Puntajes por Juego" emptyText="No tiene records registrados" />
         </div>
 
-        <div className="bg-card border border-border rounded p-4 flex flex-col h-fit">
+        <div className="demoniaco-profile-panel bg-card border border-border rounded p-4 flex flex-col h-fit">
           <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> ACTIVIDAD DEL FORO</h3>
           <div className="space-y-2 max-h-[250px] xl:max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
             {userPosts.length === 0 ? <p className="text-[10px] text-muted-foreground text-center py-4 italic font-body">No ha publicado en el foro aún</p> : 
@@ -485,7 +485,7 @@ export default function PublicProfilePage() {
       </div>
 
       {activeSocialItem && (
-        <div className="bg-card border border-border rounded p-4 mt-4 overflow-hidden">
+        <div className="demoniaco-profile-panel bg-card border border-border rounded p-4 mt-4 overflow-hidden">
            <button
              type="button"
              onClick={() => navigate(activeSocialItem.target_type === "photo" ? `/social/fotos?post=${activeSocialItem.id}` : `/social/reels?post=${activeSocialItem.id}`)}
