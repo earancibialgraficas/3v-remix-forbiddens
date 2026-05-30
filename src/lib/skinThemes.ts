@@ -96,25 +96,25 @@ export const DEMONIACO_SKIN: SkinTheme = {
   type: 'launcher',
   description: 'Estilo oscuro rojo demoníaco con efectos de fuego infernal 🔥',
   colors: {
-    primary: '#ff6600',      // Naranja fuego
-    secondary: '#ff9933',    // Naranja claro
-    accent: '#ffaa33',       // Naranja oro
+    primary: '#d94a38',      // Rojo infernal sobrio
+    secondary: '#b65a4b',    // Rojo cobre
+    accent: '#e09a75',       // Contraste calido suave
     background: '#0a0a0a',   // Negro oscuro
     card: '#1a1a1a',         // Gris oscuro
-    text: '#ffddaa',         // Naranja claro
-    textMuted: '#cc9966',    // Naranja muted
+    text: '#f0c1aa',         // Rojo claro legible
+    textMuted: '#b98778',    // Rojo muted
     border: '#6b3333',       // Rojo muy oscuro
   },
   gradients: {
-    header: 'linear-gradient(135deg, #ff6600 0%, #cc5500 50%, #884400 100%)',
+    header: 'linear-gradient(135deg, #d94a38 0%, #8f241d 50%, #43100e 100%)',
     card: 'linear-gradient(135deg, #1a1a1a 0%, #2a1515 50%, #0f0f0f 100%)',
-    button: 'linear-gradient(135deg, #ff6600 0%, #ff8833 50%, #ffaa33 100%)',
-    hover: 'linear-gradient(135deg, #ff8833 0%, #ffaa33 50%, #ffcc66 100%)',
+    button: 'linear-gradient(135deg, #9b241b 0%, #c33b2c 50%, #e06a4f 100%)',
+    hover: 'linear-gradient(135deg, #b83227 0%, #d95743 50%, #e89b78 100%)',
   },
   effects: {
-    glow: '0 0 20px rgba(255, 102, 0, 0.5), 0 0 10px rgba(255, 153, 51, 0.3)',
-    shadow: '0 8px 24px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 102, 0, 0.15)',
-    buttonHover: 'box-shadow: 0 0 20px rgba(255, 102, 0, 0.6), 0 0 10px rgba(255, 153, 51, 0.4), 0 4px 12px rgba(0, 0, 0, 0.8)',
+    glow: '0 0 18px rgba(185, 44, 34, 0.48), 0 0 10px rgba(219, 88, 66, 0.26)',
+    shadow: '0 8px 24px rgba(0, 0, 0, 0.7), 0 0 15px rgba(185, 44, 34, 0.14)',
+    buttonHover: 'box-shadow: 0 0 18px rgba(185, 44, 34, 0.55), 0 0 10px rgba(219, 88, 66, 0.34), 0 4px 12px rgba(0, 0, 0, 0.8)',
     borderRadius: '4px',
   },
   patterns: {
