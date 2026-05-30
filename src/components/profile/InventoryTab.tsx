@@ -1358,7 +1358,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   return (
     <div className="space-y-4 animate-in fade-in">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
+        <div className="demoniaco-inventory-panel rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
               <InventoryIcon className="h-4 w-4" /> Inventario
@@ -1423,7 +1423,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       handleSlotRightClick(index, event);
                     }}
                     className={cn(
-                      "relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
+                      "demoniaco-item-frame relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                       item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                       item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
@@ -1473,12 +1473,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           </div>
 
           <div className="mt-3 grid gap-2 text-[10px] text-muted-foreground md:grid-cols-3">
-            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</div>
-            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Duracion: 7 dias</div>
-            <div className="rounded border border-[#8b6d46]/60 bg-black/20 p-2">Potenciadores: {totalBoosters}</div>
+            <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</div>
+            <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Duracion: 7 dias</div>
+            <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Potenciadores: {totalBoosters}</div>
           </div>
 
-          <div className="mt-3 grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
+          <div className="demoniaco-inventory-meta mt-3 grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">STAT a F-coin</p>
@@ -1506,7 +1506,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           </div>
         </div>
 
-        <div className="rounded border border-neon-cyan/30 bg-card p-4">
+        <div className="demoniaco-trade-panel rounded border border-neon-cyan/30 bg-card p-4">
           <h3 className="font-pixel text-[10px] uppercase text-neon-cyan flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4" /> Trueque
           </h3>
@@ -1552,12 +1552,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </div>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="rounded border border-neon-cyan/25 bg-black/25 p-1.5">
+            <div className="demoniaco-trade-box rounded border border-neon-cyan/25 bg-black/25 p-1.5">
               <div className="mb-1 grid gap-0.5 text-[9px] font-pixel uppercase leading-tight text-neon-cyan">
                 <span>Tu lado</span>
                 <span className={cn("text-[8px]", localReady ? "text-neon-green" : "text-muted-foreground")}>{localReady ? "Listo" : "Editando"}</span>
               </div>
-              <div className="grid w-full grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
+              <div className="demoniaco-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-cyan/30 bg-black/50 p-1">
                 {tradeSlots.map((item, index) => (
                   <button
                     key={index}
@@ -1568,7 +1568,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       handleTradeSlotClick(index, event);
                     }}
                     className={cn(
-                      "relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
+                      "demoniaco-item-frame relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
                       item ? "border-[#d6b16f]" : "border-white/10",
                     )}
                     title="Barra de trueque"
@@ -1586,17 +1586,17 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 Tú: {Number(pointsToSend || 0).toLocaleString()} F-coin
               </div>
             </div>
-            <div className="rounded border border-neon-magenta/25 bg-black/25 p-1.5">
+            <div className="demoniaco-trade-box rounded border border-neon-magenta/25 bg-black/25 p-1.5">
               <div className="mb-1 grid gap-0.5 text-[9px] font-pixel uppercase leading-tight text-neon-magenta">
                 <span>{selectedRecipient?.display_name ? "Su lado" : "Esperando"}</span>
                 <span className={cn("text-[8px]", remoteReady ? "text-neon-green" : "text-muted-foreground")}>{remoteReady ? "Listo" : "Editando"}</span>
               </div>
-              <div className="grid w-full grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1">
+              <div className="demoniaco-trade-slots grid w-full grid-cols-2 gap-1 rounded border border-neon-magenta/30 bg-black/50 p-1">
                 {remoteTradeSlots.map((item, index) => (
                   <div
                     key={index}
                     className={cn(
-                      "relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
+                      "demoniaco-item-frame relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)]",
                       item ? "border-[#d6b16f]" : "border-white/10",
                     )}
                     title={item ? itemLabel(item) : "Slot remoto"}
@@ -1640,7 +1640,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           )}
         </div>
 
-        <div className="rounded border border-red-500/30 bg-card p-4">
+        <div className="demoniaco-sell-panel rounded border border-red-500/30 bg-card p-4">
           <h3 className="font-pixel text-[10px] uppercase text-red-400 flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" /> Vender (50% cashback)
           </h3>
@@ -1654,7 +1654,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 key={index}
                 onClick={(event) => handleSellSlotClick(index, event)}
                 className={cn(
-                  "inventory-sell-slot relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)] transition-colors cursor-pointer",
+                  "demoniaco-item-frame inventory-sell-slot relative aspect-square rounded-sm border bg-[#1b140f] shadow-[inset_1px_1px_0_rgba(255,255,255,0.1),inset_-1px_-1px_0_rgba(0,0,0,0.5)] transition-colors cursor-pointer",
                   item ? "border-red-500/60 bg-red-500/5" : "border-white/10 hover:border-red-500/30",
                 )}
               >

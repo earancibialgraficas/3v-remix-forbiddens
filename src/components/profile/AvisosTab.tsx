@@ -128,7 +128,7 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
   };
 
   return (
-    <div className="bg-card border border-border rounded p-4 animate-in fade-in">
+    <div className="demoniaco-profile-panel bg-card border border-border rounded p-4 animate-in fade-in">
       <div className="flex justify-between items-center mb-3">
          <h3 className="font-pixel text-[10px] text-muted-foreground uppercase">MIS AVISOS ({(notifications || []).length + (pendingRequests || []).length})</h3>
          <Button variant="outline" size="sm" onClick={handleClearNotifications} className="h-6 text-[9px] gap-1 px-2 border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors">
@@ -140,7 +140,7 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
         <div className="mb-4 space-y-2 border-b border-border/50 pb-4">
           <h4 className="font-pixel text-[9px] text-neon-cyan uppercase">Solicitudes de amistad pendientes</h4>
           {pendingRequests.map((req: any) => (
-            <div key={req.id} className="flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
+            <div key={req.id} className="demoniaco-profile-row flex gap-3 p-3 border rounded bg-primary/10 border-primary/30 items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-muted overflow-hidden border border-border/50 shrink-0" style={getAvatarBorderStyle(req.profile?.color_avatar_border)}>
                   {req.profile?.avatar_url ? <img src={req.profile.avatar_url} className="w-full h-full object-cover" /> : <User className="w-full h-full text-muted-foreground p-1.5" />}
@@ -191,7 +191,7 @@ export default function AvisosTab({ notifications, pendingRequests, handleMarkAs
               <div 
                 key={notif.id} 
                 onClick={() => handleNotificationClick(notif)}
-                className={cn("flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left cursor-pointer", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30 shadow-[0_0_10px_rgba(0,255,255,0.05)]")}
+                className={cn("demoniaco-profile-row flex gap-3 p-3 border rounded hover:bg-muted/30 transition-colors text-left cursor-pointer", notif.is_read ? "border-border/50" : "bg-primary/5 border-primary/30 shadow-[0_0_10px_rgba(0,255,255,0.05)]")}
               >
                 <div className={cn("shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs", c.color)}>{c.icon}</div>
                 <div className="flex-1 min-w-0">

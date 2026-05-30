@@ -51,6 +51,40 @@
   }
 }
 
+html[style*="--skin-slug: demoniaco"],
+html[style*="--skin-slug: demoniaco"] * {
+  scrollbar-color: rgba(255, 58, 18, 0.78) rgba(15, 4, 4, 0.96) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar,
+html[style*="--skin-slug: demoniaco"] .custom-scrollbar::-webkit-scrollbar,
+html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-track,
+html[style*="--skin-slug: demoniaco"] .custom-scrollbar::-webkit-scrollbar-track,
+html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 4, 4, 0.96) !important;
+  border-color: rgba(116, 28, 20, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-thumb,
+html[style*="--skin-slug: demoniaco"] .custom-scrollbar::-webkit-scrollbar-thumb,
+html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 58, 18, 0.92), rgba(102, 15, 10, 0.95)) !important;
+  border: 1px solid rgba(255, 112, 42, 0.42) !important;
+  border-radius: 0 !important;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.64), 0 0 10px rgba(255, 42, 13, 0.28) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-thumb:hover,
+html[style*="--skin-slug: demoniaco"] .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(255, 86, 24, 1), rgba(134, 22, 12, 0.98)) !important;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -83,7 +83,7 @@ export default function PostsTab({ userPosts }: { userPosts: any[] }) {
   }, []);
 
   return (
-    <div className="bg-card border border-border rounded p-4 animate-in fade-in">
+    <div className="demoniaco-profile-panel bg-card border border-border rounded p-4 animate-in fade-in">
       <h3 className="font-pixel text-[10px] text-neon-cyan mb-3 flex items-center justify-center md:justify-start gap-2 uppercase">
         <MessageSquare className="w-4 h-4" /> Mis Posts
       </h3>
@@ -95,7 +95,7 @@ export default function PostsTab({ userPosts }: { userPosts: any[] }) {
            {userPosts.map((post) => {
              const thumb = getPostThumbnail(post);
              return (
-               <div key={post.id} className="p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
+               <div key={post.id} className="demoniaco-profile-row p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
                  {/* 🔥 MINIATURA A LA IZQUIERDA 🔥 */}
                  <div className="w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
                     <img 
