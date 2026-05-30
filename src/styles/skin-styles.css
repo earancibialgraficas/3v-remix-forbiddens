@@ -588,6 +588,106 @@ html[style*="--skin-slug: demoniaco"] .rounded-full {
   box-shadow: 0 0 0 2px rgba(24, 5, 5, 0.9), 0 0 22px rgba(255, 53, 18, 0.62) !important;
 }
 
+/* Demoniaco textured frames. Replace these PNGs with the final uploaded assets. */
+html[style*="--skin-slug: demoniaco"] {
+  --demoniaco-frame-major: url('/skins/demoniaco/frames/panel-frame-rectangular.png');
+  --demoniaco-frame-compact: url('/skins/demoniaco/slots/slot-frame.png');
+  --demoniaco-avatar-round: url('/skins/demoniaco/frames/avatar-ring.png');
+  --demoniaco-avatar-square: url('/skins/demoniaco/frames/avatar-square-frame.png');
+  --demoniaco-surface-rock: url('/skins/demoniaco/backgrounds/solid/window-rock.png');
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel {
+  border: 18px solid transparent !important;
+  border-image-source: var(--demoniaco-frame-major) !important;
+  border-image-slice: 132 128 116 128 !important;
+  border-image-width: 18px !important;
+  border-image-repeat: stretch !important;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.9), rgba(8, 5, 5, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  background-clip: padding-box !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow:
+    inset 0 0 42px rgba(0, 0, 0, 0.7),
+    0 18px 44px rgba(0, 0, 0, 0.48),
+    0 0 18px rgba(255, 47, 18, 0.16) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border {
+  border: 10px solid transparent !important;
+  border-image-source: var(--demoniaco-frame-major) !important;
+  border-image-slice: 132 128 116 128 !important;
+  border-image-width: 10px !important;
+  border-image-repeat: stretch !important;
+  background:
+    linear-gradient(180deg, rgba(7, 5, 5, 0.86), rgba(5, 4, 4, 0.94)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-row.rounded.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-box.rounded.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border,
+html[style*="--skin-slug: demoniaco"] .inventory-slot-grid.rounded.border {
+  border-color: transparent !important;
+  background:
+    linear-gradient(180deg, rgba(12, 7, 6, 0.82), rgba(3, 3, 3, 0.9)),
+    var(--skin-pattern-slot) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 80, 28, 0.06),
+    inset 0 0 18px rgba(0, 0, 0, 0.74) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-item-frame {
+  border-image-source: var(--demoniaco-frame-compact) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img) {
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img) > img {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+html[style*="--skin-slug: demoniaco"] .rounded-full:has(> img)::after {
+  content: "";
+  position: absolute;
+  inset: -28%;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--demoniaco-avatar-round) center / contain no-repeat;
+  filter: drop-shadow(0 0 10px rgba(255, 49, 18, 0.45));
+}
+
+html[style*="--skin-slug: demoniaco"] :is(.w-5.h-5, .h-5.w-5, .w-6.h-6, .h-6.w-6, .w-8.h-8, .h-8.w-8, .w-10.h-10, .h-10.w-10, .w-12.h-12, .h-12.w-12, .w-16.h-16, .h-16.w-16, .w-20.h-20, .h-20.w-20, .w-24.h-24, .h-24.w-24):is(.rounded, .rounded-sm, .rounded-md, .rounded-lg):has(> img:not(.rounded-full)) {
+  position: relative !important;
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] :is(.w-5.h-5, .h-5.w-5, .w-6.h-6, .h-6.w-6, .w-8.h-8, .h-8.w-8, .w-10.h-10, .h-10.w-10, .w-12.h-12, .h-12.w-12, .w-16.h-16, .h-16.w-16, .w-20.h-20, .h-20.w-20, .w-24.h-24, .h-24.w-24):is(.rounded, .rounded-sm, .rounded-md, .rounded-lg):has(> img:not(.rounded-full))::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--demoniaco-avatar-square) center / 100% 100% no-repeat;
+  opacity: 0.95;
+}
+
 html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(255, 58, 18, 0.9), rgba(92, 18, 13, 0.9)) !important;
   border-color: rgba(255, 121, 42, 0.28) !important;

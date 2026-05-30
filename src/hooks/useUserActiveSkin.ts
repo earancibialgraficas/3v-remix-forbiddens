@@ -2,6 +2,35 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getSkinTheme, SkinTheme, SkinSlug } from '@/lib/skinThemes';
 
+const SKIN_CACHE_PREFIX = 'forbiddens:active-skin';
+
+const getSkinCacheKey = (userId: string, skinType: string) => `${SKIN_CACHE_PREFIX}:${userId}:${skinType}`;
+
+const readCachedSkinSlug = (userId: string, skinType: string): SkinSlug | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(getSkinCacheKey(userId, skinType));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { skinSlug?: string };
+    if (!parsed.skinSlug || parsed.skinSlug === 'default') return null;
+    return parsed.skinSlug as SkinSlug;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedSkinSlug = (userId: string, skinType: string, skinSlug?: string | null) => {
+  if (typeof window === 'undefined') return;
+  const key = getSkinCacheKey(userId, skinType);
+  try {
+    if (!skinSlug || skinSlug === 'default') {
+      window.localStorage.removeItem(key);
+      return;
+    }
+    window.localStorage.setItem(key, JSON.stringify({ skinSlug, updatedAt: Date.now() }));
+  } catch {}
+};
+
 /**
  * Hook para obtener la skin activa de un usuario
  * @param userId - ID del usuario
@@ -19,6 +48,14 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
       return;
     }
 
+    const cachedSkinSlug = readCachedSkinSlug(userId, skinType);
+    if (cachedSkinSlug) {
+      setActiveSkin(getSkinTheme(cachedSkinSlug));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const fetchActiveSkin = async () => {
       try {
         const { data, error } = await (supabase as any)
@@ -30,19 +67,24 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
 
         if (error) {
           console.error('❌ Error fetching skin:', error);
-          setActiveSkin(null);
+          const fallbackSkinSlug = readCachedSkinSlug(userId, skinType);
+          setActiveSkin(fallbackSkinSlug ? getSkinTheme(fallbackSkinSlug) : null);
           setLoading(false);
           return;
         }
 
         if (!data) {
           setActiveSkin(null);
+          writeCachedSkinSlug(userId, skinType, null);
         } else {
-          setActiveSkin(getSkinTheme(data.skin_slug as SkinSlug));
+          const nextSkinSlug = data.skin_slug as SkinSlug;
+          setActiveSkin(nextSkinSlug === 'default' ? null : getSkinTheme(nextSkinSlug));
+          writeCachedSkinSlug(userId, skinType, nextSkinSlug);
         }
       } catch (err) {
         console.error('❌ Exception in fetchActiveSkin:', err);
-        setActiveSkin(null);
+        const fallbackSkinSlug = readCachedSkinSlug(userId, skinType);
+        setActiveSkin(fallbackSkinSlug ? getSkinTheme(fallbackSkinSlug) : null);
       } finally {
         setLoading(false);
       }
@@ -52,8 +94,12 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
     fetchActiveSkin();
 
     const handleActiveSkinUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ userId?: string; skinType?: string }>).detail;
+      const detail = (event as CustomEvent<{ userId?: string; skinType?: string; skinSlug?: string }>).detail;
       if (!detail || (detail.userId === userId && detail.skinType === skinType)) {
+        if (detail?.skinSlug) {
+          writeCachedSkinSlug(userId, skinType, detail.skinSlug);
+          setActiveSkin(detail.skinSlug === 'default' ? null : getSkinTheme(detail.skinSlug as SkinSlug));
+        }
         void fetchActiveSkin();
       }
     };
