@@ -139,6 +139,52 @@ html[style*="--skin-primary"] button:hover::after {
   animation: ripple 0.6s ease-out;
 }
 
+/*
+ * Las skins decoran superficies muy amplias (.bg-card, .rounded.border, botones).
+ * Esas reglas tienen mas especificidad que Tailwind y pueden pisar utilidades
+ * estructurales usadas por popups/portales: fixed, absolute, sticky y scroll.
+ */
+html[style*="--skin-primary"] .relative {
+  position: relative !important;
+}
+
+html[style*="--skin-primary"] .absolute {
+  position: absolute !important;
+}
+
+html[style*="--skin-primary"] .fixed {
+  position: fixed !important;
+}
+
+html[style*="--skin-primary"] .sticky {
+  position: sticky !important;
+}
+
+html[style*="--skin-primary"] .overflow-visible {
+  overflow: visible !important;
+}
+
+html[style*="--skin-primary"] .overflow-auto {
+  overflow: auto !important;
+}
+
+html[style*="--skin-primary"] .overflow-y-auto {
+  overflow-y: auto !important;
+}
+
+html[style*="--skin-primary"] .overflow-x-auto {
+  overflow-x: auto !important;
+}
+
+html[style*="--skin-primary"] [data-radix-popper-content-wrapper] {
+  position: fixed !important;
+  z-index: 1000 !important;
+}
+
+html[style*="--skin-primary"] [data-radix-popper-content-wrapper] > * {
+  position: relative !important;
+}
+
 @keyframes ripple {
   to {
     width: 300px;
