@@ -1486,6 +1486,154 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equi
   }
 }
 
+/* Demoniaco inventory frame final alignment. Keep ornaments outside, tight to the panel boundary. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 4px;
+  --demoniaco-shell-corner-size: clamp(104px, 8.8vw, 150px);
+  --demoniaco-shell-edge-thickness: clamp(18px, 1.7vw, 26px);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 11 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after {
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 12 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  inset: 1px !important;
+  background: var(--demoniaco-equipment-star) center / auto calc(100% - 2px) no-repeat !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(240px, 28vw, 340px)) !important;
+  max-width: min(100%, clamp(240px, 28vw, 340px)) !important;
+}
+
+@media (min-width: 1536px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(280px, 25vw, 390px)) !important;
+    max-width: min(100%, clamp(280px, 25vw, 390px)) !important;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero {
+  background:
+    linear-gradient(180deg, rgba(8, 2, 2, 0.16), rgba(2, 1, 1, 0.82)),
+    url('/skins/demoniaco/home/banner-hero.png') center / cover no-repeat !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero-image {
+  opacity: 0 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .launcher-download-button {
+  background: linear-gradient(180deg, #b92a1f, #5f0d09) !important;
+  color: #fff3ea !important;
+  border: 1px solid rgba(255, 98, 54, 0.58) !important;
+  box-shadow: 0 0 22px rgba(208, 43, 25, 0.36), inset 0 0 18px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .launcher-download-button:hover {
+  background: linear-gradient(180deg, #d43b2a, #75110c) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  border-color: rgba(151, 44, 31, 0.72) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.78), rgba(4, 3, 3, 0.92)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player iframe {
+  opacity: 1 !important;
+  filter: brightness(0.9) contrast(1.08) saturate(0.9) sepia(0.12) hue-rotate(330deg);
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="text-white"] {
+  color: rgba(255, 190, 164, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="text-neon-cyan"],
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player .accent-neon-green {
+  color: #e2503d !important;
+  accent-color: #b83224 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player button:hover {
+  color: #ffd0bf !important;
+  background-color: rgba(145, 28, 18, 0.22) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="border-neon-cyan"],
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="border-neon-green"] {
+  border-color: rgba(205, 55, 35, 0.54) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="bg-neon-cyan"],
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player [class*="bg-neon-green"] {
+  background-color: rgba(158, 35, 24, 0.22) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button,
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel select,
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel input,
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel textarea {
+  border-color: rgba(151, 44, 31, 0.52) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button:hover {
+  background-color: rgba(145, 28, 18, 0.22) !important;
+  color: #ffd0bf !important;
+  border-color: rgba(225, 77, 48, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button[class*="bg-neon"],
+html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button[class*="bg-white"] {
+  background: linear-gradient(180deg, rgba(160, 37, 25, 0.92), rgba(72, 13, 10, 0.94)) !important;
+  color: #fff0e8 !important;
+}
+
+.avatar-frame-demoniaco {
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+.avatar-frame-demoniaco > img {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.avatar-frame-demoniaco::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  inset: -28%;
+  background: url('/skins/demoniaco/frames/avatar-ring-trim.png') center / contain no-repeat;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.9)
+    contrast(1.18)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.4));
+}
+
 @media (max-width: 1279px) {
   html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
     background-image: var(--demoniaco-frame-edge-horizontal) !important;

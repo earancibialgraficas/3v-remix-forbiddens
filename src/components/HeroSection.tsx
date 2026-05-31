@@ -32,11 +32,11 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300">
+    <section className="home-hero relative w-full h-[70vh] min-h-[400px] overflow-hidden rounded transition-all duration-300">
       <img
         src={heroBanner}
         alt="FORBIDDENS arcade"
-        className="absolute inset-0 w-full h-full object-cover"
+        className="home-hero-image absolute inset-0 w-full h-full object-cover"
         loading="lazy"
       />
       <div className="retro-scanlines absolute inset-0 z-10 pointer-events-none" />
@@ -75,7 +75,7 @@ export default function HeroSection() {
         </p>
         <div className="flex flex-wrap justify-center gap-3 mt-2">
           {showLauncherDownload && (
-            <Button asChild size="sm" className="bg-neon-cyan text-black hover:bg-neon-cyan/85 font-pixel text-[10px] px-5 py-2.5 shadow-[0_0_18px_rgba(34,211,238,0.35)] transition-all duration-200">
+            <Button asChild size="sm" className="launcher-download-button bg-neon-cyan text-black hover:bg-neon-cyan/85 font-pixel text-[10px] px-5 py-2.5 shadow-[0_0_18px_rgba(34,211,238,0.35)] transition-all duration-200">
               <a href={launcherDownloadUrl} download>
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 DESCARGAR LAUNCHER

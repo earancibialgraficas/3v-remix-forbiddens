@@ -406,7 +406,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     : null;
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <section className="public-profile-music-player relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div
         className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto"
         style={{

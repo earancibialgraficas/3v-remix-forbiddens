@@ -187,7 +187,7 @@ export default function ModerationPanel({ isStaff, isMasterWeb, isAdmin }: any) 
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in relative">
+    <div className="profile-moderation-panel space-y-4 animate-in fade-in relative">
       
       {/* --- MENÚ DE PESTAÑAS --- */}
       <div className="flex gap-1 bg-muted/20 p-1 rounded border border-white/5 overflow-x-auto custom-scrollbar">

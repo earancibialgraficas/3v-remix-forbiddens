@@ -7,44 +7,55 @@ interface SkinProviderProps {
   skinType?: 'launcher' | 'agario' | 'game';
 }
 
+const DEMONIACO_PRELOAD_ASSETS = [
+  '/skins/demoniaco/backgrounds/solid/window-rock.png',
+  '/skins/demoniaco/backgrounds/solid/profile-banner.png',
+  '/skins/demoniaco/frames/avatar-ring-trim.png',
+  '/skins/demoniaco/frames/frame-edge-v2-trim.png',
+  '/skins/demoniaco/equipment/equipment-star.png',
+];
+
+const preloadSkinAssets = (slug?: string) => {
+  if (typeof window === 'undefined' || slug !== 'demoniaco') return;
+  DEMONIACO_PRELOAD_ASSETS.forEach((src) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = src;
+  });
+};
+
 /**
  * Componente que aplica dinámicamente una skin a través de CSS variables
  * Envuelve el contenido que quieras que tenga la skin activa
  */
 export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProps) {
-  const { activeSkin } = useUserActiveSkin(userId, skinType);
+  const { activeSkin, loading } = useUserActiveSkin(userId, skinType);
 
   useEffect(() => {
     const root = document.documentElement;
 
+    if (loading) return;
+
     if (!activeSkin) {
-      // Sin skin activa: limpiar cualquier variable de skin previa y mantener el tema por defecto del sitio
-      const currentStyle = root.getAttribute('style') || '';
-      const cleaned = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
-      if (cleaned) {
-        root.setAttribute('style', cleaned);
-      } else {
-        root.removeAttribute('style');
-      }
       return;
     }
 
+    const previousStyle = root.getAttribute('style') || '';
     // Generar CSS variables solo cuando hay skin activa
     const cssVariables = generateThemeCSS(activeSkin);
-    const currentStyle = root.getAttribute('style') || '';
-    const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
+    preloadSkinAssets(activeSkin.slug);
+    const cleanedStyle = previousStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
     const newStyle = `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
     root.setAttribute('style', newStyle);
 
     return () => {
-      const finalStyle = (root.getAttribute('style') || '').replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
-      if (finalStyle) {
-        root.setAttribute('style', finalStyle);
+      if (previousStyle) {
+        root.setAttribute('style', previousStyle);
       } else {
         root.removeAttribute('style');
       }
     };
-  }, [activeSkin]);
+  }, [activeSkin, loading]);
 
 
   return null;

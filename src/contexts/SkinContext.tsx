@@ -8,6 +8,28 @@ interface SkinContextType {
 
 const SkinContext = createContext<SkinContextType>({ isLoading: true });
 
+const DEMONIACO_PRELOAD_ASSETS = [
+  '/skins/demoniaco/backgrounds/solid/hellscape-castle.png',
+  '/skins/demoniaco/backgrounds/solid/window-rock.png',
+  '/skins/demoniaco/backgrounds/solid/profile-banner.png',
+  '/skins/demoniaco/backgrounds/solid/basalt-wide.png',
+  '/skins/demoniaco/backgrounds/solid/basalt-tall.png',
+  '/skins/demoniaco/frames/avatar-ring-trim.png',
+  '/skins/demoniaco/frames/frame-edge-v2-trim.png',
+  '/skins/demoniaco/frames/frame-edge-v2-trim-vertical.png',
+  '/skins/demoniaco/equipment/equipment-star.png',
+  '/skins/demoniaco/home/banner-hero.png',
+];
+
+const preloadSkinAssets = (slug?: string) => {
+  if (typeof window === 'undefined' || slug !== 'demoniaco') return;
+  DEMONIACO_PRELOAD_ASSETS.forEach((src) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = src;
+  });
+};
+
 export function SkinContextProvider({
   children,
   userId,
@@ -35,6 +57,7 @@ export function SkinContextProvider({
     }
 
     const cssVariables = generateThemeCSS(activeSkin);
+    preloadSkinAssets(activeSkin.slug);
     const currentStyle = root.getAttribute('style') || '';
     const cleanedStyle = currentStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
     const newStyle = `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`;

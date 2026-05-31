@@ -56,6 +56,7 @@ export default function UserPopup({
   const [savingBan, setSavingBan] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
+  const [targetHasDemoniacoSkin, setTargetHasDemoniacoSkin] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -76,6 +77,24 @@ export default function UserPopup({
 
   // Lógica sólida de amistad para el Popup
   const isFriend = friendIds.includes(userId);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTargetSkin = async () => {
+      if (!userId) return;
+      const { data } = await (supabase as any)
+        .from("user_active_skins")
+        .select("skin_slug")
+        .eq("user_id", userId)
+        .eq("skin_type", "launcher")
+        .maybeSingle();
+      if (!cancelled) setTargetHasDemoniacoSkin(data?.skin_slug === "demoniaco");
+    };
+    void loadTargetSkin();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const updatePos = () => {
     if (!triggerRef.current) return;
@@ -163,7 +182,9 @@ export default function UserPopup({
         {children || (
           <>
             {avatarUrl && (
-              <img src={avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)} />
+              <span className={cn("relative inline-grid h-5 w-5 shrink-0 place-items-center rounded-full", targetHasDemoniacoSkin && "avatar-frame-demoniaco")}>
+                <img src={avatarUrl} alt="" className="h-full w-full rounded-full object-cover" style={getAvatarBorderStyle(colorAvatarBorder)} />
+              </span>
             )}
             <span className="text-xs font-body font-semibold hover:text-primary transition-colors" style={getNameStyle(colorName)}>
               {displayName}
@@ -184,7 +205,7 @@ export default function UserPopup({
           style={{ top: popupPos.top, left: popupPos.left }}
         >
           <div className="flex items-start gap-2 mb-2 pb-2 border-b border-border">
-            <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0" style={getAvatarBorderStyle(colorAvatarBorder)}>
+            <div className={cn("w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", targetHasDemoniacoSkin && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(colorAvatarBorder)}>
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">

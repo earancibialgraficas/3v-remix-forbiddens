@@ -97,6 +97,7 @@ export default function StorePage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all');
   const [userInventory, setUserInventory] = useState<any[]>([]);
+  const [purchaseNotice, setPurchaseNotice] = useState<{ name: string } | null>(null);
 
   const userTier = profile?.membership_tier?.toLowerCase() || 'novato';
   const userStats = profile?.total_score || 0;
@@ -189,6 +190,7 @@ export default function StorePage() {
   const isEventTicketItem = (item: ShopItem) => String(item?.slug || "").startsWith("event_ticket:");
   const isMembershipItem = (item: ShopItem) => String(item?.slug || "").startsWith("membership:");
   const isSkinItem = (item: ShopItem) => item?.slug && (ALL_SKINS as any)[item.slug];
+  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco";
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
     if (isMembershipItem(item)) return shopVisuals.membership;
@@ -214,6 +216,15 @@ export default function StorePage() {
   const handleBuyItem = async (item: ShopItem) => {
     if (!user) {
       toast({ title: "Error", description: "Debes iniciar sesión", variant: "destructive" });
+      return;
+    }
+
+    if (!isReadyItem(item)) {
+      toast({
+        title: "Item en desarrollo",
+        description: "Por ahora solo la Skin Demoniaco esta lista para comprar.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -273,8 +284,11 @@ export default function StorePage() {
         variant: "default"
       });
 
-      // Recargar datos
-      window.location.reload();
+      setUserInventory((items) => [
+        ...items,
+        { item_slug: item.slug, item_name: item.name, quantity: 1 },
+      ]);
+      setPurchaseNotice({ name: item.name });
     } catch (err: any) {
       console.error('Error buying item:', err);
       toast({ 
@@ -309,6 +323,20 @@ export default function StorePage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
+      {purchaseNotice && (
+        <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setPurchaseNotice(null)}>
+          <div className="w-full max-w-sm rounded-lg border border-red-500/45 bg-[#100504]/95 p-5 text-center shadow-[0_0_46px_rgba(208,43,25,0.32)]" onClick={(event) => event.stopPropagation()}>
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full border border-red-400/60 bg-red-500/15 text-red-200">
+              <Check className="h-5 w-5" />
+            </div>
+            <h2 className="font-pixel text-sm uppercase text-[#f7d28b]">Guardado en tu inventario</h2>
+            <p className="mt-2 text-xs text-muted-foreground">{purchaseNotice.name} ya esta disponible en tu inventario.</p>
+            <Button className="mt-4 h-8 bg-red-700 text-xs font-pixel text-white hover:bg-red-600" onClick={() => setPurchaseNotice(null)}>
+              Entendido
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -360,7 +388,8 @@ export default function StorePage() {
         {/* Items Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredItems.map(item => {
-            const canBuy = canBuyItem(item);
+            const ready = isReadyItem(item);
+            const canBuy = ready && canBuyItem(item);
             const isOwned = userInventory.some(inv => inv.item_slug === item.slug);
             const visual = getShopVisual(item);
 
@@ -403,6 +432,11 @@ export default function StorePage() {
                   <div className="absolute left-2 top-2 max-w-[70%] truncate rounded border border-white/10 bg-black/55 px-2 py-1 font-pixel text-[8px] uppercase text-white/80">
                     {item.category.replace("_", " ")}
                   </div>
+                  {!ready && (
+                    <div className="absolute right-2 top-2 rounded border border-yellow-300/30 bg-black/75 px-2 py-1 font-pixel text-[7px] uppercase text-yellow-200">
+                      En desarrollo
+                    </div>
+                  )}
                   
                   <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
                 </div>
@@ -420,6 +454,11 @@ export default function StorePage() {
 
                   {item.description && (
                     <p className="text-xs text-muted-foreground">{item.description}</p>
+                  )}
+                  {!ready && (
+                    <p className="rounded border border-yellow-300/25 bg-yellow-300/10 px-2 py-1 text-[10px] text-yellow-100">
+                      Este item todavia no esta listo. Solo la Skin Demoniaco esta disponible por ahora.
+                    </p>
                   )}
 
                   {/* Precio */}
@@ -447,7 +486,12 @@ export default function StorePage() {
                     className="w-full h-7 text-xs font-pixel mt-2"
                     variant={canBuy ? "default" : "outline"}
                   >
-                    {!canBuy ? (
+                    {!ready ? (
+                      <>
+                        <Lock className="w-3 h-3 mr-1" />
+                        EN DESARROLLO
+                      </>
+                    ) : !canBuy ? (
                       <>
                         <Lock className="w-3 h-3 mr-1" />
                         BLOQUEADO
