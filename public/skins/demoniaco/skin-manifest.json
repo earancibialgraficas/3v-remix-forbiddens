@@ -1,0 +1,99 @@
+{
+  "slug": "demoniaco",
+  "name": "Demoniaco",
+  "type": "launcher",
+  "description": "Paquete visual de referencia para skins con texturas, marcos, slots, avatar frame, launcher bar y ajustes de color.",
+  "codeReferences": {
+    "themeTokens": "src/lib/skinThemes.ts",
+    "skinCss": "src/styles/skin-styles.css",
+    "preload": "src/contexts/SkinContext.tsx",
+    "inventory": "src/components/profile/InventoryTab.tsx",
+    "profile": "src/pages/ProfilePage.tsx",
+    "publicProfile": "src/pages/PublicProfilePage.tsx",
+    "publicProfilePlayer": "src/components/PublicProfileMusicPlayer.tsx",
+    "rightPanel": "src/components/RightPanel.tsx",
+    "footer": "src/components/Footer.tsx",
+    "launcherTitlebar": "src/components/DesktopLauncherTitleBar.tsx",
+    "store": "src/pages/StorePage.tsx"
+  },
+  "colors": {
+    "primary": "#d94a38",
+    "secondary": "#b65a4b",
+    "accent": "#e09a75",
+    "background": "#0a0a0a",
+    "card": "#1a1a1a",
+    "text": "#f0c1aa",
+    "textMuted": "#b98778",
+    "border": "#6b3333",
+    "glow": "rgba(185, 44, 34, 0.48)"
+  },
+  "assetContract": {
+    "background": {
+      "main": "backgrounds/main-bg.jpg",
+      "site": "backgrounds/solid/hellscape-castle.png",
+      "profileBanner": "backgrounds/solid/profile-banner.png",
+      "surfaceWide": "backgrounds/solid/basalt-wide.png",
+      "surfaceTall": "backgrounds/solid/basalt-tall.png",
+      "panelSurface": "backgrounds/solid/window-rock.png"
+    },
+    "home": {
+      "hero": "home/banner-hero.png"
+    },
+    "frames": {
+      "avatarRound": "frames/avatar-ring-trim.png",
+      "avatarSquare": "frames/avatar-square-frame.png",
+      "edgeHorizontal": "frames/frame-edge-v2-trim.png",
+      "edgeVertical": "frames/frame-edge-v2-trim-vertical.png",
+      "cornerTopLeft": "frames/marco-arriba-izquierda.svg",
+      "cornerTopRight": "frames/marco-arriba-derecha.svg",
+      "cornerBottomRight": "frames/marco-abajo-derecha.svg",
+      "cornerBottomLeft": "frames/marco-abajo-izquierda.svg",
+      "separatorT": "frames/separador-en-forma-de-T.svg",
+      "separatorTInverted": "frames/separador-en-forma-de-T-invertido.svg",
+      "launcherBar": "frames/barra-launcher.svg"
+    },
+    "inventory": {
+      "slot": "slots/slot-frame.png",
+      "slotHover": "slots/slot-hover.png",
+      "equipmentStar": "equipment/equipment-star.png"
+    },
+    "tabs": {
+      "bar": "tabs/tab-bar.png",
+      "activeMarker": "tabs/dragon-head.png"
+    },
+    "sidebar": {
+      "texture": "textures/sidebar.png",
+      "toggleNormal": "forum-sidebar/toggle-normal.png",
+      "toggleHover": "forum-sidebar/toggle-hover.png",
+      "toggleSelected": "forum-sidebar/toggle-selected.png"
+    },
+    "store": {
+      "thumbnail": "store/thumbnail.png"
+    },
+    "effects": {
+      "lavaOverlay": "textures/lava-overlay.jpg",
+      "emblem": "decorations/demon-emblem.png"
+    }
+  },
+  "implementationRules": [
+    "Mantener los nombres de assets cuando se duplique esta carpeta para otra skin.",
+    "Definir colores base en src/lib/skinThemes.ts antes de agregar CSS especifico.",
+    "Usar primary para titulos/iconos activos, text para lectura normal y textMuted para metadata.",
+    "Evitar bordes solidos en paneles importantes; preferir marcos, esquinas, separadores y texturas.",
+    "Si un popup/dropdown se recorta dentro de un panel, renderizarlo con createPortal hacia document.body.",
+    "Las imagenes de avatar con skin deben usar frame absoluto encima de la foto, no como borde normal.",
+    "Los videos deben fundirse con el fondo usando mask-image y una veladura acorde a la paleta.",
+    "Probar siempre perfil, perfil publico, inventario, trueque, tienda, forum page, user popup, photowall y mobile.",
+    "Ejecutar npm.cmd run build despues de tocar CSS o componentes."
+  ],
+  "futureSkinWorkflow": [
+    "Copiar public/skins/demoniaco a public/skins/{nuevo_slug}.",
+    "Reemplazar imagenes respetando nombres y proporciones generales.",
+    "Crear {NUEVO_SLUG}_SKIN en src/lib/skinThemes.ts.",
+    "Registrar el nuevo tema en ALL_SKINS y SKIN_SLUGS.",
+    "Agregar preload de assets pesados en SkinContext.tsx.",
+    "Duplicar solo los overrides CSS necesarios cambiando --skin-slug.",
+    "Ajustar colores usando la guia del README.md.",
+    "Compilar y probar popups, overlays, z-index y responsive."
+  ]
+}
