@@ -36,7 +36,7 @@ export default function EnergyBar({ totalScore, isStaff, membershipTier, onClaim
   };
 
   return (
-    <div className="bg-card border border-neon-green/30 rounded p-3 space-y-2">
+    <div className="demoniaco-profile-panel bg-card border border-neon-green/30 rounded p-3 space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 text-[10px] font-pixel text-neon-green uppercase">
           <Zap className="w-3 h-3" /> Energía Arcade

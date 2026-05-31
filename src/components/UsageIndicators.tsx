@@ -74,7 +74,7 @@ export default function UsageIndicators({
 }: UsageIndicatorsProps) {
   if (isStaff) {
     return (
-      <div className={cn("bg-card/60 border border-neon-magenta/30 rounded p-3", className)}>
+      <div className={cn("demoniaco-profile-panel bg-card bg-card/60 border border-neon-magenta/30 rounded p-3", className)}>
         <p className="text-[10px] font-pixel text-neon-magenta text-center">
           ⚡ ACCESO STAFF · LÍMITES DESBLOQUEADOS ⚡
         </p>
@@ -92,7 +92,7 @@ export default function UsageIndicators({
   const anyFull = rows.some(r => r.max > 0 && r.current >= r.max);
 
   return (
-    <div className={cn("bg-card/60 border border-border rounded p-3 space-y-3", className)}>
+    <div className={cn("demoniaco-profile-panel bg-card bg-card/60 border border-border rounded p-3 space-y-3", className)}>
       <div className="flex items-center justify-between">
         <h4 className="font-pixel text-[10px] text-neon-cyan uppercase">Uso de Membresía</h4>
         {showUpgradeCta && (

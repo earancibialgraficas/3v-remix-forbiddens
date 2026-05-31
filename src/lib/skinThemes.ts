@@ -121,7 +121,7 @@ export const DEMONIACO_SKIN: SkinTheme = {
     background: "radial-gradient(circle at 56% -12%, rgba(255, 38, 0, 0.18), transparent 24rem), linear-gradient(rgba(4, 4, 4, 0.9), rgba(5, 4, 4, 0.94)), url('/skins/demoniaco/backgrounds/solid/hellscape-castle.png') center top / cover fixed, linear-gradient(135deg, #070707 0%, #120605 48%, #050505 100%)",
     card: "linear-gradient(rgba(8, 8, 8, 0.88), rgba(6, 6, 6, 0.94)), url('/skins/demoniaco/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, rgba(24, 10, 8, 0.72), rgba(5, 5, 5, 0.98))",
     topbar: "linear-gradient(rgba(5, 5, 5, 0.9), rgba(8, 7, 7, 0.96)), url('/skins/demoniaco/textures/AZ5xjYg286URBkpJZIxzeQ-AZ5xjcojgoGln-NTZLbqsw.png') center / 100% 100%, linear-gradient(90deg, #050505, #150605 50%, #050505)",
-    sidebar: "linear-gradient(rgba(4, 4, 4, 0.84), rgba(7, 6, 6, 0.94)), url('/skins/demoniaco/textures/sidebar.png') center top / cover, linear-gradient(180deg, #080707, #120605 52%, #050505)",
+    sidebar: "linear-gradient(rgba(4, 3, 3, 0.5), rgba(7, 5, 5, 0.74)), url('/skins/demoniaco/backgrounds/solid/window-rock.png') center top / cover, linear-gradient(180deg, #080707, #120605 52%, #050505)",
     panel: "linear-gradient(rgba(6, 4, 4, 0.48), rgba(5, 3, 3, 0.7)), url('/skins/demoniaco/backgrounds/solid/window-rock.png') center / cover, linear-gradient(135deg, #13100e, #060606)",
     profileHeader: "linear-gradient(90deg, rgba(3, 3, 3, 0.38), rgba(18, 4, 4, 0.22) 48%, rgba(3, 3, 3, 0.56)), url('/skins/demoniaco/backgrounds/solid/profile-banner.png') center / cover",
     profileSurface: "linear-gradient(rgba(5, 4, 4, 0.46), rgba(4, 3, 3, 0.68)), url('/skins/demoniaco/backgrounds/solid/window-rock.png') center / cover",

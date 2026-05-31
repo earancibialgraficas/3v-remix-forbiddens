@@ -220,7 +220,12 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
       <aside className={cn("bg-card border-r border-border flex flex-col h-full transition-all duration-300 relative z-40", collapsed ? "w-14" : "w-60 xl:w-64")}>
         <div className="flex flex-col items-center py-5 px-2 border-b border-border gap-3 shrink-0">
-          <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all">
+          <button
+            onClick={onToggle}
+            className={cn("forum-sidebar-toggle p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground transition-all", collapsed && "is-collapsed")}
+            aria-label={collapsed ? "Expandir sidebar" : "Contraer sidebar"}
+            title={collapsed ? "Expandir sidebar" : "Contraer sidebar"}
+          >
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
           <Link to="/" className="flex flex-col items-center w-full">
