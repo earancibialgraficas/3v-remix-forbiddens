@@ -13,6 +13,7 @@ const DEMONIACO_PRELOAD_ASSETS = [
   '/skins/demoniaco/frames/avatar-ring-trim.png',
   '/skins/demoniaco/frames/frame-edge-v2-trim.png',
   '/skins/demoniaco/equipment/equipment-star.png',
+  '/skins/demoniaco/slots/slot-hover.png',
 ];
 
 const preloadSkinAssets = (slug?: string) => {

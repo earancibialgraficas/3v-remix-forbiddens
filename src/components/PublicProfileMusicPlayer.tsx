@@ -408,15 +408,7 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   return (
     <section className="public-profile-music-player relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div
-        className="pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto"
-        style={{
-          WebkitMaskImage:
-            'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, rgba(0,0,0,0.85) 55%, black 100%), linear-gradient(to top, transparent 0%, black 35%)',
-          WebkitMaskComposite: 'source-in',
-          maskImage:
-            'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, rgba(0,0,0,0.85) 55%, black 100%), linear-gradient(to top, transparent 0%, black 35%)',
-          maskComposite: 'intersect',
-        }}
+        className="public-profile-video-layer pointer-events-none relative z-0 aspect-[16/7] overflow-hidden bg-black sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[48%] sm:aspect-auto"
       >
         <iframe
           key={currentYoutubeId}

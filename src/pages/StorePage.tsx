@@ -22,6 +22,7 @@ interface ShopItem {
 }
 
 const TIER_ORDER = ['novato', 'lite', 'legacy', 'creator', 'staff'];
+const DEMONIACO_STORE_THUMBNAIL = "/skins/demoniaco/store/thumbnail.png";
 
 const shopVisuals = {
   demoniaco: {
@@ -29,7 +30,7 @@ const shopVisuals = {
     icon: "text-red-300",
     badge: "DEMON",
     background:
-      "linear-gradient(rgba(10,4,4,.42),rgba(2,2,2,.76)), url('/skins/demoniaco/textures/AZ5xiFZyH-Pp-A1YyuqL8A-AZ5xiJDqESwiBMddp6RbLw.png') center / cover",
+      "linear-gradient(rgba(10,4,4,.18),rgba(2,2,2,.32)), url('/skins/demoniaco/home/banner-hero.png') center / cover",
   },
   angelical: {
     frame: "border-pink-300/70 bg-[#3a1930]",
@@ -202,7 +203,9 @@ export default function StorePage() {
 
   // Renderizador de icono de item
   const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
-    isMembershipItem(item)
+    item.slug === "demoniaco"
+      ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
       ? <Ticket className={className} />
@@ -322,7 +325,7 @@ export default function StorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="store-page min-h-screen bg-background p-4 md:p-6">
       {purchaseNotice && (
         <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setPurchaseNotice(null)}>
           <div className="w-full max-w-sm rounded-lg border border-red-500/45 bg-[#100504]/95 p-5 text-center shadow-[0_0_46px_rgba(208,43,25,0.32)]" onClick={(event) => event.stopPropagation()}>
@@ -374,9 +377,9 @@ export default function StorePage() {
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
-                "px-3 py-1.5 rounded text-sm whitespace-nowrap transition-all font-pixel",
+                "store-category-tab px-3 py-1.5 rounded text-sm whitespace-nowrap transition-all font-pixel",
                 selectedCategory === cat
-                  ? "bg-neon-cyan text-background"
+                  ? "is-active bg-neon-cyan text-background"
                   : "bg-card border border-border hover:border-neon-cyan/50"
               )}
             >
@@ -407,7 +410,7 @@ export default function StorePage() {
                 )}
                 style={{ background: visual.background }}>
                   {/* Imagen de fondo si existe */}
-                  {item.image_url && (
+                  {item.slug !== "demoniaco" && item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
@@ -420,10 +423,11 @@ export default function StorePage() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
                       "demoniaco-item-frame relative grid h-16 w-16 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_18px_rgba(0,0,0,.45)]",
+                      item.slug === "demoniaco" && "h-14 w-14 overflow-hidden",
                       visual.frame,
                     )}>
-                      <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />
-                      <ItemIcon item={item} className={cn("relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]", visual.icon)} />
+                      {item.slug !== "demoniaco" && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
+                      <ItemIcon item={item} className={cn("relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]", item.slug === "demoniaco" ? "h-full w-full" : visual.icon)} />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
                         {visual.badge}
                       </span>

@@ -18,6 +18,7 @@ const DEMONIACO_PRELOAD_ASSETS = [
   '/skins/demoniaco/frames/frame-edge-v2-trim.png',
   '/skins/demoniaco/frames/frame-edge-v2-trim-vertical.png',
   '/skins/demoniaco/equipment/equipment-star.png',
+  '/skins/demoniaco/slots/slot-hover.png',
   '/skins/demoniaco/home/banner-hero.png',
 ];
 

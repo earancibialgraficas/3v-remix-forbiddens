@@ -19,7 +19,9 @@ interface InventoryTabProps {
   onStatChange?: () => void;
 }
 
-const INVENTORY_PAGE_SIZE = 27;
+const INVENTORY_PAGE_SIZE = 18;
+const INVENTORY_MIN_PAGES = 6;
+const DEMONIACO_STORE_THUMBNAIL = "/skins/demoniaco/store/thumbnail.png";
 
 export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
@@ -67,7 +69,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [inventoryPage, setInventoryPage] = useState(0);
-  const [inventoryColumns, setInventoryColumns] = useState(9);
+  const inventorySlotsPerPage = INVENTORY_PAGE_SIZE;
 
   const totalBoosters = useMemo(
     () => boosters.filter((item) => item.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item.quantity || 0), 0),
@@ -81,7 +83,6 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     () => remoteTradeSlots.filter(Boolean).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
     [remoteTradeSlots],
   );
-  const inventorySlotsPerPage = Math.max(1, inventoryColumns * 2);
   const inventoryPageCount = Math.max(1, Math.ceil(slotItems.length / inventorySlotsPerPage));
   const currentInventoryPage = Math.min(inventoryPage, inventoryPageCount - 1);
   const visibleInventoryStart = currentInventoryPage * inventorySlotsPerPage;
@@ -89,34 +90,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     () => slotItems.slice(visibleInventoryStart, visibleInventoryStart + inventorySlotsPerPage),
     [slotItems, visibleInventoryStart, inventorySlotsPerPage],
   );
+  const activeSkinSlugs = useMemo(() => new Set(Object.values(activeSkins).filter(Boolean)), [activeSkins]);
 
   useEffect(() => {
     if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
   }, [inventoryPage, inventoryPageCount]);
-
-  useEffect(() => {
-    const grid = inventoryGridRef.current;
-    if (!grid || typeof window === "undefined") return;
-
-    const updateColumns = () => {
-      const templateColumns = window.getComputedStyle(grid).gridTemplateColumns;
-      const columnCount = templateColumns.split(" ").filter((track) => track.trim() && track !== "0px").length;
-      if (columnCount > 0) {
-        setInventoryColumns((current) => (current === columnCount ? current : columnCount));
-      }
-    };
-
-    updateColumns();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateColumns);
-      return () => window.removeEventListener("resize", updateColumns);
-    }
-
-    const observer = new ResizeObserver(updateColumns);
-    observer.observe(grid);
-    return () => observer.disconnect();
-  }, []);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -337,12 +315,13 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return [];
       }
     })();
+    const visibleBoosters = boosters.filter((item) => !(isSkinItem(item) && activeSkinSlugs.has(item.item_slug)));
     const slotCount = Math.max(
-      INVENTORY_PAGE_SIZE,
-      Math.ceil(Math.max(boosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / INVENTORY_PAGE_SIZE) * INVENTORY_PAGE_SIZE,
+      INVENTORY_PAGE_SIZE * INVENTORY_MIN_PAGES,
+      Math.ceil(Math.max(visibleBoosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / INVENTORY_PAGE_SIZE) * INVENTORY_PAGE_SIZE,
     );
     const nextSlots = Array(slotCount).fill(null);
-    const availableById = new Map((boosters || []).map((item) => [String(item.id), item]));
+    const availableById = new Map((visibleBoosters || []).map((item) => [String(item.id), item]));
     const consumed = new Set<string>();
 
     if (Array.isArray(savedSnapshot) && savedSnapshot.length > 0) {
@@ -375,7 +354,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return [];
       }
     })();
-    boosters.forEach((item, index) => {
+    visibleBoosters.forEach((item, index) => {
       if (consumed.has(String(item.id))) return;
       const preferred = Number(savedOrder[index]);
       const slot = Number.isInteger(preferred) && preferred >= 0 && preferred < slotCount && !nextSlots[preferred]
@@ -389,7 +368,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
     cursorItemRef.current = null;
-  }, [boosters, userId]);
+  }, [activeSkinSlugs, boosters, userId]);
 
   const searchUsers = async () => {
     if (!recipientSearch.trim()) return;
@@ -813,7 +792,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setSeenVersion((value) => value + 1);
   };
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
-    isMembershipItem(item)
+    item?.item_slug === "demoniaco"
+      ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
       ? <Ticket className={className} />
@@ -1416,6 +1397,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   return (
     <div className="space-y-4 animate-in fade-in">
       <div className="demoniaco-inventory-equipment-shell rounded border border-border bg-card p-4">
+        <div className="demoniaco-shell-ornaments" aria-hidden="true" />
         <div className="inventory-equipment-grid grid gap-3 xl:grid-cols-2">
         <div className="demoniaco-inventory-panel rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -1604,7 +1586,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       <span className="equipment-remove-marker absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-sm border border-red-400/60 bg-black/75 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
                         <XIcon className="h-2.5 w-2.5" />
                       </span>
-                      <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                      {entry.skinSlug === "demoniaco" ? (
+                        <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                      ) : (
+                        <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                      )}
                       <span className="absolute bottom-0.5 left-1 right-1 truncate text-center font-pixel text-[5px] uppercase text-neon-green">{entry.skinType}</span>
                     </>
                   ) : (

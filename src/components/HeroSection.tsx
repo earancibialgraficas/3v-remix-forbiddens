@@ -39,8 +39,8 @@ export default function HeroSection() {
         className="home-hero-image absolute inset-0 w-full h-full object-cover"
         loading="lazy"
       />
-      <div className="retro-scanlines absolute inset-0 z-10 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
+      <div className="home-hero-scanlines retro-scanlines absolute inset-0 z-10 pointer-events-none" />
+      <div className="home-hero-overlay absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
 
       <div className="relative z-20 flex flex-col items-center justify-center h-full text-center px-4 gap-3 animate-slide-up">
         {/* Smooth crossfade logo → text */}

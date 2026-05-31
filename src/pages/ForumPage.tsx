@@ -847,7 +847,7 @@ export default function ForumPage() {
                 {post.user_id && authorProfile ? (
                   <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
                     <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
-                      <div className={cn("w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", demoniacoUsers[post.user_id] && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                      <div className={cn("forum-author-avatar w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", demoniacoUsers[post.user_id] && "avatar-frame-demoniaco rounded-full")} style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
                         {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                       </div>
                       <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-2 lg:gap-1">
@@ -1068,7 +1068,7 @@ export default function ForumPage() {
                         colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
                         className="flex items-center gap-3 text-left hover:no-underline min-w-0"
                       >
-                        <div className={cn("w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(comment.profile?.color_avatar_border)}>
+                        <div className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(comment.profile?.color_avatar_border)}>
                           {comment.profile?.avatar_url ? <img src={comment.profile.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-muted-foreground" />}
                         </div>
                         <div className="min-w-0">
@@ -1266,17 +1266,17 @@ export default function ForumPage() {
                 {authorProfile?.avatar_url && (
                   <>
                     {/* MOBILE/TABLET: avatar arriba como banner */}
-                    <div className="sm:hidden w-full aspect-[3/1] relative">
+                    <div className="forum-post-avatar-banner sm:hidden w-full aspect-[3/1] relative">
                       <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                      <div className="forum-post-avatar-overlay absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                       <div className="absolute bottom-1.5 left-3 right-3 text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
                         {authorProfile.display_name}
                       </div>
                     </div>
                     {/* DESKTOP: imagen al borde derecho con degradado a la izquierda */}
-                    <div className="hidden sm:block absolute top-0 right-0 h-full w-1/3 pointer-events-none">
+                    <div className="forum-post-avatar-side hidden sm:block absolute top-0 right-0 h-full w-1/3 pointer-events-none">
                       <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
+                      <div className="forum-post-avatar-overlay absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
                       <div className="absolute bottom-2 left-0 right-3 text-right text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
                         {authorProfile.display_name}
                       </div>

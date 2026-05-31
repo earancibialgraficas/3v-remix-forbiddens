@@ -93,19 +93,21 @@ export default function SignatureDisplay({ text, profile, className = "", fontSi
     if (!sigImage) return null;
     return (
       <div
-        className="rounded overflow-hidden border border-border/30 transition-all duration-300"
+        className="signature-image rounded overflow-hidden border border-border/30 transition-all duration-300"
         style={{
           height: 110,
           width: `${imageWidth}%`,
           margin: imageAlign === "center" ? "0 auto" : imageAlign === "right" ? "0 0 0 auto" : "0 auto 0 0",
-          backgroundImage: `url("${sigImage}")`,
-          backgroundSize: "cover",
-          backgroundPosition: `${imageAlign} ${vOffset}%`,
-          backgroundRepeat: "no-repeat",
         }}
-        role="img"
-        aria-label="Firma del usuario"
-      />
+      >
+        <img
+          src={sigImage}
+          alt="Firma del usuario"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: `${imageAlign} ${vOffset}%` }}
+          loading="lazy"
+        />
+      </div>
     );
   };
 

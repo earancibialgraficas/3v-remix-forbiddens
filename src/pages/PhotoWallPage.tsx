@@ -179,6 +179,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
+  const [demoniacoCommentUsers, setDemoniacoCommentUsers] = useState<Record<string, boolean>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
   
@@ -200,11 +201,20 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
     if (rawComments && rawComments.length > 0) {
       const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      const { data: activeSkins } = await (supabase
+        .from("user_active_skins" as any)
+        .select("user_id, skin_slug") as any)
+        .in("user_id" as any, userIds)
+        .eq("skin_slug" as any, "demoniaco");
       const pMap: Record<string, any> = {};
       if (profs) profs.forEach((p: any) => { pMap[p.user_id] = p; });
+      const skinMap: Record<string, boolean> = {};
+      activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") skinMap[skin.user_id] = true; });
+      setDemoniacoCommentUsers(skinMap);
       setComments(rawComments.map((c: any) => ({ ...c, display_name: pMap[c.user_id]?.display_name || "Anónimo", avatar_url: pMap[c.user_id]?.avatar_url })));
     } else {
       setComments([]);
+      setDemoniacoCommentUsers({});
     }
   };
 
@@ -307,7 +317,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
               ) : (
                 comments.map(c => (
                   <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
-                    <Avatar className="w-5 h-5 shrink-0 mt-1"><AvatarImage src={c.avatar_url || ""} /></Avatar>
+                    <Avatar className={cn("photowall-comment-avatar w-5 h-5 shrink-0 mt-1", demoniacoCommentUsers[c.user_id] && "avatar-frame-demoniaco")}><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
                         <div className="flex items-baseline gap-1.5 mb-0.5 flex-wrap">

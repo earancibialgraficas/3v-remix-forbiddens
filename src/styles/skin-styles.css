@@ -1655,3 +1655,568 @@ html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button[class*="b
     --demoniaco-shell-edge-thickness: clamp(16px, 5vw, 24px);
   }
 }
+
+/* Final inventory/equipment layout pass. This layer only paints ornaments; it never affects layout. */
+.demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  align-items: start !important;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-panel {
+  align-self: start !important;
+  min-height: 0 !important;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(210px, 22vw, 270px)) !important;
+  max-width: min(100%, clamp(210px, 22vw, 270px)) !important;
+}
+
+@media (min-width: 1536px) {
+  .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(230px, 19vw, 300px)) !important;
+    max-width: min(100%, clamp(230px, 19vw, 300px)) !important;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] {
+  --demoniaco-slot-hover: url('/skins/demoniaco/slots/slot-hover.png');
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 3px;
+  --demoniaco-shell-corner-size: clamp(96px, 7.5vw, 132px);
+  --demoniaco-shell-edge-thickness: clamp(18px, 1.55vw, 24px);
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 20 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  position: absolute !important;
+  inset: calc((var(--demoniaco-frame-outset) + 2px) * -1) !important;
+  z-index: 42 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br),
+    var(--demoniaco-shell-corner-bl),
+    var(--demoniaco-separator-t),
+    var(--demoniaco-separator-t-inverted) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left,
+    top center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    clamp(102px, 7.5vw, 142px) clamp(62px, 4.8vw, 88px),
+    clamp(102px, 7.5vw, 142px) clamp(62px, 4.8vw, 88px) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.8)
+    contrast(1.22)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  overflow: hidden !important;
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: var(--demoniaco-equipment-star) center / auto 100% no-repeat !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  filter: brightness(0.92) contrast(1.12) saturate(1.08);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.84),
+    0 0 16px rgba(255, 49, 18, 0.18) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible::after {
+  inset: -7px !important;
+  z-index: 5 !important;
+  border: 0 !important;
+  background: var(--demoniaco-slot-hover) center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(190px, 48vw, 245px)) !important;
+    max-width: min(100%, clamp(190px, 48vw, 245px)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+    background-size:
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(84px, 24vw, 118px) clamp(52px, 15vw, 72px),
+      clamp(84px, 24vw, 118px) clamp(52px, 15vw, 72px) !important;
+  }
+}
+
+/* Final requested tuning: 6x3 inventory pages, matched panel height, larger ornaments, softer hero/video/store states. */
+.demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  align-items: stretch !important;
+}
+
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+.demoniaco-inventory-equipment-shell .equipment-panel {
+  height: 100% !important;
+}
+
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px;
+  grid-template-columns: repeat(6, var(--inventory-slot-size)) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 720px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: clamp(52px, 13vw, 72px);
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 1px;
+  --demoniaco-shell-corner-size: clamp(126px, 9.8vw, 172px);
+  --demoniaco-shell-edge-thickness: clamp(22px, 2vw, 31px);
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 24 !important;
+  background-size:
+    calc(100% + var(--demoniaco-shell-corner-size) * 0.72) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size) * 0.72),
+    calc(100% + var(--demoniaco-shell-corner-size) * 0.72) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size) * 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  inset: -15px !important;
+  z-index: 48 !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left,
+    top center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  min-height: 0 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(226px, 23vw, 302px)) !important;
+  max-width: min(100%, clamp(226px, 23vw, 302px)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  inset: 0 !important;
+  background: var(--demoniaco-equipment-star) center / auto 100% no-repeat !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 62%, rgba(0, 0, 0, 0.84) 80%, transparent 100%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 62%, rgba(0, 0, 0, 0.84) 80%, transparent 100%) !important;
+}
+
+.home-hero {
+  isolation: isolate;
+}
+
+.home-hero-image {
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero {
+  background: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/skins/demoniaco/home/banner-hero.png') center / cover no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 60%, rgba(0, 0, 0, 0.82) 78%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 60%, rgba(0, 0, 0, 0.82) 78%, transparent 100%);
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero-overlay {
+  display: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero-scanlines {
+  opacity: 0.2 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player::before,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  z-index: 2 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: transparent !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 10%, #000 36%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 10%, #000 36%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  z-index: 3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: brightness(0.98) contrast(1.05) saturate(0.96) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .relative.z-10 {
+  z-index: 4 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .store-category-tab.is-active {
+  background: linear-gradient(180deg, #b92a1f, #5f0d09) !important;
+  color: #fff1e8 !important;
+  border: 1px solid rgba(255, 94, 58, 0.7) !important;
+  box-shadow: 0 0 18px rgba(216, 46, 28, 0.32), inset 0 0 14px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .store-category-tab:not(.is-active):hover {
+  border-color: rgba(226, 80, 61, 0.72) !important;
+  color: #ffd0bf !important;
+}
+
+/* Inventory and forum polish pass. */
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px !important;
+  --demoniaco-inventory-slot-size: 78px !important;
+  grid-template-columns: repeat(6, var(--inventory-slot-size)) !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 78px !important;
+    --demoniaco-inventory-slot-size: 78px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: clamp(50px, 13vw, 72px) !important;
+    --demoniaco-inventory-slot-size: clamp(50px, 13vw, 72px) !important;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.64) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-shell-corner-size: clamp(152px, 11.8vw, 206px);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  inset: -24px !important;
+  background-position:
+    top -6px left -8px,
+    top -6px right -8px,
+    bottom -6px right -8px,
+    bottom left,
+    top -8px center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    calc(var(--demoniaco-shell-corner-size) * 0.84) calc(var(--demoniaco-shell-corner-size) * 0.84),
+    clamp(164px, 12vw, 220px) clamp(98px, 7.4vw, 136px),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible::after,
+html[style*="--skin-slug: demoniaco"] .equipment-panel .equipment-slot:hover::after,
+html[style*="--skin-slug: demoniaco"] .equipment-panel .equipment-slot:focus-visible::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel .demoniaco-item-frame:focus-visible::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -7px !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  background: var(--demoniaco-slot-hover) center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-panel .equipment-slot:hover,
+html[style*="--skin-slug: demoniaco"] .equipment-panel .equipment-slot:focus-visible,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel .demoniaco-item-frame:hover,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel .demoniaco-item-frame:focus-visible {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.84),
+    0 0 16px rgba(255, 49, 18, 0.18) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero::before {
+  inset: -1px !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.78) 54%, rgba(0, 0, 0, 0.34) 72%, transparent 96%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.78) 54%, rgba(0, 0, 0, 0.34) 72%, transparent 96%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .home-hero {
+  background:
+    radial-gradient(ellipse at center, transparent 36%, rgba(3, 1, 1, 0.28) 68%, rgba(3, 1, 1, 0.92) 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .forum-post-avatar-banner img,
+html[style*="--skin-slug: demoniaco"] .forum-post-avatar-side img {
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 42%, rgba(0, 0, 0, 0.75) 64%, transparent 100%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 42%, rgba(0, 0, 0, 0.75) 64%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .forum-post-avatar-overlay {
+  display: none !important;
+}
+
+.avatar-frame-demoniaco,
+.avatar-frame-demoniaco > img {
+  border-radius: 9999px !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .signature-image {
+  background: transparent !important;
+  border-color: rgba(156, 42, 27, 0.28) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .signature-image > img {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: brightness(0.98) contrast(1.04) saturate(0.96);
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  z-index: 8 !important;
+  width: 58% !important;
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 6%, #000 20%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 6%, #000 20%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  z-index: 9 !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Last demoniaco visual corrections. */
+html[style*="--skin-slug: demoniaco"] .home-hero::before {
+  inset: 0 !important;
+  opacity: 1 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 4%, rgba(0,0,0,0.55) 12%, #000 25%, #000 75%, rgba(0,0,0,0.55) 88%, rgba(0,0,0,0.08) 96%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 6%, #000 20%, #000 78%, rgba(0,0,0,0.25) 92%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 4%, rgba(0,0,0,0.55) 12%, #000 25%, #000 75%, rgba(0,0,0,0.55) 88%, rgba(0,0,0,0.08) 96%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 6%, #000 20%, #000 78%, rgba(0,0,0,0.25) 92%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .forum-post-avatar-banner img,
+html[style*="--skin-slug: demoniaco"] .forum-post-avatar-side img {
+  opacity: 0.82 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.72) 34%, #000 56%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 14%, #000 50%, rgba(0,0,0,0.55) 78%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.72) 34%, #000 56%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 14%, #000 50%, rgba(0,0,0,0.55) 78%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-equipment-grid,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-mini-stats > div {
+  border-color: transparent !important;
+  outline-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  background-image: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  background-position:
+    top -6px left -8px,
+    top -6px right -8px,
+    bottom 10px right -8px,
+    bottom left,
+    top 8px center,
+    bottom center !important;
+  filter:
+    brightness(0.58)
+    contrast(1.45)
+    saturate(1.14)
+    drop-shadow(0 0 6px rgba(255, 43, 15, 0.16)) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+    background-image:
+      var(--demoniaco-shell-corner-tl),
+      var(--demoniaco-shell-corner-tr),
+      var(--demoniaco-shell-corner-br),
+      var(--demoniaco-shell-corner-bl) !important;
+    background-position:
+      top -6px left -8px,
+      top -6px right -8px,
+      bottom 10px right -8px,
+      bottom left !important;
+    background-size:
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      calc(var(--demoniaco-shell-corner-size) * 0.84) calc(var(--demoniaco-shell-corner-size) * 0.84) !important;
+  }
+}
+
+.forum-author-avatar.avatar-frame-demoniaco,
+.forum-comment-avatar.avatar-frame-demoniaco,
+.photowall-comment-avatar.avatar-frame-demoniaco {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  flex: 0 0 auto;
+}
+
+.forum-author-avatar.avatar-frame-demoniaco::after,
+.forum-comment-avatar.avatar-frame-demoniaco::after,
+.photowall-comment-avatar.avatar-frame-demoniaco::after {
+  inset: -36% !important;
+  z-index: 10 !important;
+}
+
+.photowall-comment-avatar.avatar-frame-demoniaco::after {
+  inset: -48% !important;
+}
+
+.forum-author-avatar.avatar-frame-demoniaco > img,
+.forum-comment-avatar.avatar-frame-demoniaco > img,
+.photowall-comment-avatar.avatar-frame-demoniaco img {
+  border-radius: 9999px !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  display: block !important;
+  z-index: 30 !important;
+  opacity: 1 !important;
+  background: #000 !important;
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 8%, #000 22%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 8%, #000 22%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  position: absolute !important;
+  z-index: 31 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+}
