@@ -2220,3 +2220,702 @@ html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
   visibility: visible !important;
   filter: none !important;
 }
+
+/* Surgical final pass requested: raw ornaments, stronger video layer, no red container strokes. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  filter: none !important;
+  background-size:
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 0.85) calc(var(--demoniaco-shell-corner-size) * 0.85),
+    clamp(166px, 12.12vw, 222px) clamp(99px, 7.48vw, 137px),
+    clamp(137px, 10.1vw, 186px) clamp(83px, 6.26vw, 115px) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+    background-image:
+      var(--demoniaco-shell-corner-tl),
+      var(--demoniaco-shell-corner-tr),
+      var(--demoniaco-shell-corner-br),
+      var(--demoniaco-shell-corner-bl) !important;
+    background-size:
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 0.85) calc(var(--demoniaco-shell-corner-size) * 0.85) !important;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell > .inventory-equipment-grid,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-mini-stats > div {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  --tw-ring-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  position: absolute !important;
+  inset: 0 0 0 auto !important;
+  width: min(68%, 760px) !important;
+  height: 100% !important;
+  z-index: 2 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: transparent !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 7%, rgba(0,0,0,0.55) 19%, #000 38%, #000 78%, rgba(0,0,0,0.36) 92%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 10%, #000 24%, #000 72%, rgba(0,0,0,0.35) 90%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 7%, rgba(0,0,0,0.55) 19%, #000 38%, #000 78%, rgba(0,0,0,0.36) 92%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 10%, #000 24%, #000 72%, rgba(0,0,0,0.35) 90%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+  clip-path: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  inset: auto !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: calc(100% + 230px) !important;
+  height: calc(100% + 160px) !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 3 !important;
+  filter: brightness(0.72) contrast(1.14) saturate(0.82) sepia(0.18) hue-rotate(326deg) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .relative.z-10,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > button,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > div[class*="absolute"][class*="z-30"] {
+  z-index: 10 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .photowall-comment-avatar.avatar-frame-demoniaco::after {
+  inset: -42% !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player .animate-marquee-x span {
+  color: #e2503d !important;
+  text-shadow:
+    0 0 4px rgba(0, 0, 0, 0.95),
+    0 0 9px rgba(226, 80, 61, 0.82),
+    0 0 18px rgba(139, 25, 18, 0.58) !important;
+  filter: none !important;
+}
+
+/* Detail polish: SVG ornaments, stronger profile video fade, trade sizing, responsive filters. */
+html[style*="--skin-slug: demoniaco"] {
+  --demoniaco-shell-corner-tl: url('/skins/demoniaco/frames/marco-arriba-izquierda.svg');
+  --demoniaco-shell-corner-tr: url('/skins/demoniaco/frames/marco-arriba-derecha.svg');
+  --demoniaco-shell-corner-br: url('/skins/demoniaco/frames/marco-abajo-derecha.svg');
+  --demoniaco-shell-corner-bl: url('/skins/demoniaco/frames/marco-abajo-izquierda.svg');
+  --demoniaco-separator-t: url('/skins/demoniaco/frames/separador-en-forma-de-T.svg');
+  --demoniaco-separator-t-inverted: url('/skins/demoniaco/frames/separador-en-forma-de-T-invertido.svg');
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 9%, rgba(0,0,0,0.28) 22%, #000 45%, #000 64%, rgba(0,0,0,0.24) 84%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.34) 10%, #000 24%, #000 72%, rgba(0,0,0,0.3) 90%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 9%, rgba(0,0,0,0.28) 22%, #000 45%, #000 64%, rgba(0,0,0,0.24) 84%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.34) 10%, #000 24%, #000 72%, rgba(0,0,0,0.3) 90%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] button[aria-label="Traducir sitio"] {
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  color: #ffb2a4 !important;
+  box-shadow: 0 0 14px rgba(226, 80, 61, 0.18), inset 0 0 12px rgba(80, 8, 4, 0.38) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] button[aria-label="Traducir sitio"]:hover {
+  border-color: rgba(255, 105, 75, 0.78) !important;
+  background: rgba(132, 24, 14, 0.24) !important;
+  color: #fff1e8 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] button[aria-label="Traducir sitio"] svg {
+  color: #ff775f !important;
+  filter: drop-shadow(0 0 5px rgba(226, 80, 61, 0.82)) !important;
+}
+
+.inventory-demoniaco-thumbnail-card {
+  border-color: rgba(239, 68, 68, 0.82) !important;
+  background: #210706 !important;
+}
+
+.inventory-demoniaco-thumbnail-card img {
+  display: block;
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: cover !important;
+}
+
+.inventory-trade-offers-grid .demoniaco-trade-panel {
+  min-width: 0;
+}
+
+.inventory-trade-offers-grid .demoniaco-offers-panel {
+  min-width: 0;
+}
+
+.demoniaco-trade-slots {
+  --trade-slot-size: var(--inventory-slot-size, 78px);
+  grid-template-columns: repeat(2, minmax(0, var(--trade-slot-size))) !important;
+  justify-content: start !important;
+  width: auto !important;
+  max-width: calc(var(--trade-slot-size) * 2 + 0.25rem) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots {
+  --trade-slot-size: var(--demoniaco-inventory-slot-size, 78px);
+}
+
+@media (max-width: 720px) {
+  .demoniaco-trade-slots {
+    --trade-slot-size: clamp(50px, 13vw, 72px);
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .social-content-filter-row {
+  gap: 0.55rem !important;
+  padding: 0.2rem 0.15rem 0.65rem !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .social-content-filter-button {
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.92), rgba(5, 2, 2, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  border-color: rgba(226, 80, 61, 0.32) !important;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.76) !important;
+  color: #d9a38e !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .social-content-filter-button.is-active {
+  border-color: rgba(255, 105, 75, 0.82) !important;
+  box-shadow: 0 0 13px rgba(226, 80, 61, 0.3), inset 0 0 14px rgba(110, 16, 9, 0.62) !important;
+  color: #ffe0d4 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .social-content-filter-button.is-active > div {
+  border-color: rgba(255, 105, 75, 0.88) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .social-hub-publish-button {
+  background:
+    linear-gradient(180deg, rgba(185, 42, 31, 0.92), rgba(74, 8, 5, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  color: #fff1e8 !important;
+  border: 1px solid rgba(255, 105, 75, 0.58) !important;
+  box-shadow: 0 0 18px rgba(226, 80, 61, 0.22), inset 0 0 16px rgba(0, 0, 0, 0.52) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .social-hub-publish-button:hover {
+  background:
+    linear-gradient(180deg, rgba(218, 58, 40, 0.96), rgba(98, 12, 7, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::after {
+  left: var(--demoniaco-tab-dragon-left, 50%) !important;
+  transition: left 220ms ease, transform 220ms ease, filter 220ms ease !important;
+}
+
+.score-filter-bar,
+.leaderboard-filter-bar {
+  min-width: 0;
+}
+
+.score-filter-actions {
+  width: 100%;
+}
+
+.score-filter-actions > .relative {
+  min-width: 0;
+}
+
+.leaderboard-console-filter span,
+.score-filter-search input {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .score-filter-bar input,
+  .leaderboard-filter-bar input,
+  .leaderboard-console-filter {
+    height: 1.85rem !important;
+    font-size: 10px !important;
+  }
+
+  .score-filter-actions button {
+    height: 1.85rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    font-size: 7px !important;
+  }
+
+  .leaderboard-filter-bar {
+    padding: 0.55rem !important;
+  }
+}
+
+.score-filter-bar {
+  position: relative;
+}
+
+.score-filter-search {
+  z-index: 55;
+}
+
+.score-search-bubble {
+  max-width: calc(100vw - 2rem);
+}
+
+.score-filter-actions {
+  width: auto;
+  justify-content: flex-start !important;
+  align-items: center;
+  overflow: visible !important;
+}
+
+.score-filter-actions button {
+  max-width: 100%;
+}
+
+.score-filter-actions > .relative {
+  flex: 0 0 auto;
+  width: min(106px, 30vw);
+  overflow: visible !important;
+}
+
+@media (max-width: 420px) {
+  .score-filter-bar {
+    gap: 0.25rem !important;
+  }
+
+  .score-filter-actions {
+    gap: 0.2rem !important;
+  }
+
+  .score-filter-actions button {
+    font-size: 6.5px !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .score-search-bubble {
+  border-color: rgba(226, 80, 61, 0.48) !important;
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.96), rgba(4, 2, 2, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: 0 18px 42px rgba(139, 25, 18, 0.28), inset 0 0 16px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-volume-control,
+html[style*="--skin-slug: demoniaco"] .public-profile-volume-popover {
+  z-index: 80 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-volume-popover {
+  border-color: rgba(226, 80, 61, 0.62) !important;
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.96), rgba(4, 2, 2, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  color: #ffb2a4 !important;
+  box-shadow: 0 0 22px rgba(226, 80, 61, 0.28), inset 0 0 14px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-volume-popover input {
+  accent-color: #e2503d !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-volume-popover span {
+  color: #ffb2a4 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.62)
+    contrast(1.28)
+    saturate(1.08)
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 8px rgba(106, 12, 6, 0.22)) !important;
+  mix-blend-mode: multiply !important;
+  opacity: 0.96 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  overflow: hidden !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r {
+  contain: layout paint;
+  transition-property: width !important;
+  transition-duration: 220ms !important;
+  will-change: width;
+}
+
+html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r *,
+html[style*="--skin-slug: demoniaco"] .forum-sidebar-toggle {
+  transition-property: color, background-color, border-color, opacity, transform !important;
+}
+
+/* Final demoniaco polish: ornament fade, right rail cleanup and flame music waves. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.88)
+    contrast(1.08)
+    saturate(1.14)
+    drop-shadow(0 0 6px rgba(255, 43, 15, 0.18)) !important;
+  mix-blend-mode: normal !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
+  filter:
+    brightness(0.9)
+    contrast(1.08)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-offers-panel,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player,
+html[style*="--skin-slug: demoniaco"] .right-panel-card {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-card,
+html[style*="--skin-slug: demoniaco"] .demoniaco-offers-panel {
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.72), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.68), 0 12px 30px rgba(0, 0, 0, 0.38) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-card:hover {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-inner-divider,
+html[style*="--skin-slug: demoniaco"] .right-panel-footer-section {
+  border-top-color: transparent !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-discord-button {
+  background: linear-gradient(180deg, #b92a1f 0%, #75110c 48%, #3f0705 100%) !important;
+  color: #fff2ea !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 16px rgba(226, 80, 61, 0.28), inset 0 0 14px rgba(0, 0, 0, 0.48) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-discord-button:hover {
+  background: linear-gradient(180deg, #d43b2a 0%, #8f170f 56%, #4d0805 100%) !important;
+  box-shadow: 0 0 20px rgba(255, 74, 46, 0.38), inset 0 0 16px rgba(0, 0, 0, 0.52) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  right: -8% !important;
+  width: min(74%, 860px) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  left: 58% !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave,
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave-mini {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(226, 55, 32, 0.34), transparent 60%),
+    rgba(8, 2, 2, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave::before,
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave-mini::before {
+  content: "";
+  position: absolute;
+  inset: -65% -20% -45%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 72%, rgba(255, 68, 36, 0.7) 0 7%, transparent 20%),
+    radial-gradient(ellipse at 32% 64%, rgba(226, 35, 22, 0.62) 0 8%, transparent 22%),
+    radial-gradient(ellipse at 54% 72%, rgba(255, 93, 45, 0.72) 0 7%, transparent 21%),
+    radial-gradient(ellipse at 76% 62%, rgba(205, 34, 22, 0.64) 0 9%, transparent 24%),
+    linear-gradient(90deg, transparent, rgba(255, 51, 23, 0.36), transparent);
+  filter: blur(5px) saturate(1.28);
+  opacity: 0.72;
+  transform: translateX(-12%);
+  animation: demoniacoFlameWave 2.8s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave-mini::before {
+  filter: blur(3px) saturate(1.22);
+  opacity: 0.82;
+  animation-duration: 2.2s;
+}
+
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave canvas,
+html[style*="--skin-slug: demoniaco"] .chill-flame-wave-mini canvas {
+  background: transparent !important;
+  mix-blend-mode: screen;
+}
+
+@keyframes demoniacoFlameWave {
+  0% {
+    transform: translateX(-14%) translateY(5%) scaleY(0.82);
+  }
+  100% {
+    transform: translateX(10%) translateY(-2%) scaleY(1.04);
+  }
+}
+
+/* Demoniaco v2 asset swap and right rail/player cleanup. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.96)
+    contrast(1.12)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
+  filter:
+    brightness(0.97)
+    contrast(1.12)
+    saturate(1.1)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-card,
+html[style*="--skin-slug: demoniaco"] .right-panel-card.border,
+html[style*="--skin-slug: demoniaco"] .right-panel-card:hover,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-offers-panel,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-card,
+html[style*="--skin-slug: demoniaco"] .right-panel-card.border {
+  border-width: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.7), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.72), 0 12px 30px rgba(0, 0, 0, 0.38) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-footer-section {
+  margin-top: 1.25rem !important;
+  padding: 0.85rem !important;
+  border-top: 0 !important;
+  border-radius: 0.25rem;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.72), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  right: 0 !important;
+  width: min(68%, 780px) !important;
+  overflow: hidden !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.04) 3.5%, #000 12%, #000 88%, rgba(0, 0, 0, 0.04) 96.5%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.42) 10%, #000 22%, #000 78%, rgba(0, 0, 0, 0.36) 91%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.04) 3.5%, #000 12%, #000 88%, rgba(0, 0, 0, 0.04) 96.5%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.42) 10%, #000 22%, #000 78%, rgba(0, 0, 0, 0.36) 91%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  left: 52% !important;
+  width: calc(100% + 190px) !important;
+  height: calc(100% + 150px) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-playlist-toggle {
+  z-index: 95 !important;
+  pointer-events: auto !important;
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  color: #ffb2a4 !important;
+  background: rgba(8, 2, 2, 0.82) !important;
+  box-shadow: 0 0 18px rgba(226, 80, 61, 0.28), inset 0 0 12px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-playlist-popover {
+  z-index: 94 !important;
+  border-color: rgba(226, 80, 61, 0.42) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.9), rgba(4, 3, 3, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .desktop-launcher-titlebar {
+  overflow: hidden;
+  border-bottom-color: rgba(226, 80, 61, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(5, 2, 2, 0.74), rgba(3, 1, 1, 0.9)),
+    url('/skins/demoniaco/frames/barra-launcher.svg') center / 100% 100% no-repeat,
+    #050202 !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.58), inset 0 -1px 0 rgba(255, 70, 38, 0.18) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .desktop-launcher-titlebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Final public profile/rightbar touch-ups. */
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.28) 7%, rgba(0, 0, 0, 0.68) 14%, #000 20%, #000 80%, rgba(0, 0, 0, 0.68) 86%, rgba(0, 0, 0, 0.28) 93%, transparent 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.28) 7%, rgba(0, 0, 0, 0.68) 14%, #000 20%, #000 80%, rgba(0, 0, 0, 0.68) 86%, rgba(0, 0, 0, 0.28) 93%, transparent 100%) !important;
+  -webkit-mask-composite: initial !important;
+  mask-composite: initial !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  pointer-events: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-profile-playlist-toggle {
+  position: absolute !important;
+  z-index: 220 !important;
+  pointer-events: auto !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-profile-playlist-popover {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+  transform: translateZ(0);
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-footer-section .site-footer {
+  margin-top: 0 !important;
+  border-top: 0 !important;
+  border-color: transparent !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.7), rgba(4, 3, 3, 0.92)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.72), 0 12px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .right-panel-footer-section .site-footer .text-glow-green {
+  color: #e2503d !important;
+  text-shadow: 0 0 9px rgba(226, 80, 61, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 5%, rgba(0, 0, 0, 0.46) 12%, #000 22%, #000 78%, rgba(0, 0, 0, 0.46) 88%, rgba(0, 0, 0, 0.14) 95%, transparent 100%),
+    radial-gradient(ellipse 92% 145% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.82) 66%, rgba(0, 0, 0, 0.34) 84%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 5%, rgba(0, 0, 0, 0.46) 12%, #000 22%, #000 78%, rgba(0, 0, 0, 0.46) 88%, rgba(0, 0, 0, 0.14) 95%, transparent 100%),
+    radial-gradient(ellipse 92% 145% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.82) 66%, rgba(0, 0, 0, 0.34) 84%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(2, 0, 0, 1) 0%, rgba(5, 1, 1, 0.9) 7%, rgba(20, 4, 3, 0.48) 18%, transparent 34%, transparent 66%, rgba(20, 4, 3, 0.48) 82%, rgba(5, 1, 1, 0.9) 93%, rgba(2, 0, 0, 1) 100%),
+    radial-gradient(ellipse at 0% 50%, rgba(226, 80, 61, 0.26), rgba(64, 8, 5, 0.18) 18%, transparent 42%),
+    radial-gradient(ellipse at 100% 50%, rgba(226, 80, 61, 0.26), rgba(64, 8, 5, 0.18) 18%, transparent 42%);
+  mix-blend-mode: multiply;
+  opacity: 0.96;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-playlist-popover {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.9), rgba(4, 3, 3, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.72), 0 0 28px rgba(226, 80, 61, 0.2), inset 0 0 18px rgba(0, 0, 0, 0.7) !important;
+}

@@ -1254,7 +1254,9 @@ export default function ChillMusicPlayer() {
             <SkipForward className="w-3 h-3" />
           </button>
 
-          <canvas ref={miniCanvasRef} width={30} height={16} className="h-4 w-8 rounded bg-muted/30 ml-1 shrink-0" />
+          <div className="chill-flame-wave-mini ml-1 h-4 w-8 shrink-0 rounded bg-muted/30">
+            <canvas ref={miniCanvasRef} width={30} height={16} className="relative z-10 h-4 w-8 rounded" />
+          </div>
           
           <div 
             className="flex-1 overflow-hidden relative h-6 rounded bg-black/60 border border-neon-cyan/20 ml-1 flex items-center" 
@@ -1348,7 +1350,9 @@ export default function ChillMusicPlayer() {
         </div>
 
         <div className="px-2.5 pt-2">
-          <canvas ref={canvasRef} width={200} height={32} className="w-full h-8 rounded bg-muted/30" />
+          <div className="chill-flame-wave h-8 w-full rounded bg-muted/30">
+            <canvas ref={canvasRef} width={200} height={32} className="relative z-10 h-8 w-full rounded" />
+          </div>
         </div>
 
         <div className="px-2.5 py-1.5 text-center flex justify-center">

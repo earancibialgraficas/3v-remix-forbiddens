@@ -594,7 +594,12 @@ export default function ProfilePage() {
       />
 
       {/* ðŸ”¥ MENÃš DE PESTAÃ‘AS RESPONSIVO CON LÃ“GICA ROJA ðŸ”¥ */}
-      <div className="demoniaco-profile-tabs flex gap-1 bg-card border border-border rounded p-1 flex-wrap">
+      <div
+        className="demoniaco-profile-tabs flex gap-1 bg-card border border-border rounded p-1 flex-wrap"
+        style={{
+          "--demoniaco-tab-dragon-left": `${((Math.max(0, tabs.findIndex((tab) => tab.id === activeTab)) + 0.5) / tabs.length) * 100}%`,
+        } as any}
+      >
         {tabs.map(tab => (
           <button 
             key={tab.id} 

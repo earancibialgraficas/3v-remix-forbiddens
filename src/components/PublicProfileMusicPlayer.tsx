@@ -50,7 +50,9 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const { user } = useAuth();
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playlistButtonRef = useRef<HTMLButtonElement>(null);
   const compactPlaylistRef = useRef<HTMLDivElement>(null);
+  const volumeButtonRef = useRef<HTMLDivElement>(null);
   const volumeHideTimerRef = useRef<number | null>(null);
   const [playlist, setPlaylist] = useState<SavedPlaylist | null>(null);
   const [myPlaylists, setMyPlaylists] = useState<SavedPlaylist[]>([]);
@@ -58,9 +60,11 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(58);
   const [volumePopoverOpen, setVolumePopoverOpen] = useState(false);
+  const [volumePopoverPosition, setVolumePopoverPosition] = useState<{ top: number; left: number } | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [compactPlaylistOpen, setCompactPlaylistOpen] = useState(false);
+  const [compactPlaylistPosition, setCompactPlaylistPosition] = useState<{ top: number; left: number } | null>(null);
   const [songToAdd, setSongToAdd] = useState<Song | null>(null);
   const [addBubblePosition, setAddBubblePosition] = useState<{ top: number; left: number } | null>(null);
   const [targetPlaylistId, setTargetPlaylistId] = useState("");
@@ -74,6 +78,16 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   const current = songs[index];
   const currentYoutubeId = current ? getYoutubeId(current.url) : "";
   const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const updateCompactPlaylistPosition = () => {
+    if (typeof window === "undefined" || !playlistButtonRef.current) return;
+    const rect = playlistButtonRef.current.getBoundingClientRect();
+    const width = Math.min(310, window.innerWidth - 24);
+    setCompactPlaylistPosition({
+      top: Math.max(12, Math.min(rect.top, window.innerHeight - 180)),
+      left: Math.max(12, Math.min(rect.right + 8, window.innerWidth - width - 12)),
+    });
+  };
 
   const postYoutubeCommand = (func: string, args: unknown[] = []) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
@@ -92,6 +106,17 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     if (!isPlaying || !currentYoutubeId) return;
     window.dispatchEvent(new CustomEvent(MUSIC_OWNER_EVENT, { detail: { owner: PUBLIC_PROFILE_MUSIC_OWNER } }));
   }, [currentYoutubeId, isPlaying]);
+
+  useEffect(() => {
+    if (!compactPlaylistOpen) return;
+    updateCompactPlaylistPosition();
+    window.addEventListener("resize", updateCompactPlaylistPosition);
+    window.addEventListener("scroll", updateCompactPlaylistPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateCompactPlaylistPosition);
+      window.removeEventListener("scroll", updateCompactPlaylistPosition, true);
+    };
+  }, [compactPlaylistOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,13 +235,27 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     setVolume(safeVolume);
     postYoutubeCommand("setVolume", [safeVolume]);
     postYoutubeCommand(safeVolume <= 0 ? "mute" : "unMute");
+    updateVolumePopoverPosition();
     setVolumePopoverOpen(true);
     if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
     volumeHideTimerRef.current = window.setTimeout(() => setVolumePopoverOpen(false), 1700);
   };
 
+  const updateVolumePopoverPosition = () => {
+    if (typeof window === "undefined") return;
+    const rect = volumeButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 36;
+    const height = 112;
+    const left = Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8);
+    const preferredTop = rect.top - height + 2;
+    const top = preferredTop < 8 ? rect.bottom + 8 : preferredTop;
+    setVolumePopoverPosition({ top, left });
+  };
+
   const showVolumePopover = () => {
     if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
+    updateVolumePopoverPosition();
     setVolumePopoverOpen(true);
   };
 
@@ -228,6 +267,17 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
   useEffect(() => () => {
     if (volumeHideTimerRef.current) window.clearTimeout(volumeHideTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    if (!volumePopoverOpen) return;
+    const update = () => updateVolumePopoverPosition();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [volumePopoverOpen]);
 
   const seekTo = (nextTime: number) => {
     const safeTime = Math.max(0, Math.min(duration || 0, nextTime));
@@ -405,6 +455,51 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
     )
     : null;
 
+  const volumePopover = volumePopoverOpen && volumePopoverPosition && typeof document !== "undefined"
+    ? createPortal(
+      <div
+        className="public-profile-volume-popover fixed z-[10000] flex h-28 w-9 flex-col items-center justify-center rounded-full border border-neon-green/30 bg-black/90 px-1.5 py-2 opacity-100 shadow-[0_0_18px_rgba(57,255,20,0.16)] backdrop-blur-md"
+        style={{ top: volumePopoverPosition.top, left: volumePopoverPosition.left }}
+        onMouseEnter={showVolumePopover}
+        onMouseLeave={hideVolumePopoverSoon}
+      >
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={volume}
+          onChange={(event) => changeVolume(Number(event.target.value))}
+          className="h-20 w-4 accent-neon-green"
+          style={{ writingMode: "vertical-lr", direction: "rtl" }}
+          aria-label="Volumen"
+          title={`Volumen ${volume}%`}
+        />
+        <span className="mt-1 font-pixel text-[7px] text-neon-green tabular-nums">{volume}%</span>
+      </div>,
+      document.body,
+    )
+    : null;
+
+  const compactPlaylistPopover = compactPlaylistOpen && compactPlaylistPosition && typeof document !== "undefined"
+    ? createPortal(
+      <div
+        className="public-profile-playlist-popover fixed z-[10000] w-[min(310px,calc(100vw-24px))] rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl"
+        style={{ top: compactPlaylistPosition.top, left: compactPlaylistPosition.left }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1.5 flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
+          <div className="min-w-0">
+            <p className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
+          </div>
+          <span className="shrink-0 font-pixel text-[8px] text-neon-green">{songs.length}</span>
+        </div>
+        {playlistRows(true)}
+      </div>,
+      document.body,
+    )
+    : null;
+
   return (
     <section className="public-profile-music-player relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div
@@ -424,32 +519,18 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
 
 
       <button
+        ref={playlistButtonRef}
         type="button"
-        onClick={() => setCompactPlaylistOpen((value) => !value)}
-        className="absolute left-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full border border-neon-cyan/35 bg-black/60 text-neon-cyan shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur-md transition-colors hover:bg-neon-cyan/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/70"
+        onClick={() => {
+          updateCompactPlaylistPosition();
+          setCompactPlaylistOpen((value) => !value);
+        }}
+        className="public-profile-playlist-toggle absolute left-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full border border-neon-cyan/35 bg-black/60 text-neon-cyan shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur-md transition-colors hover:bg-neon-cyan/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neon-cyan/70"
         title={compactPlaylistOpen ? "Ocultar playlist" : "Abrir playlist"}
         aria-label={compactPlaylistOpen ? "Ocultar playlist" : "Abrir playlist"}
       >
         {compactPlaylistOpen ? <ChevronUp className="h-4 w-4" /> : <ListMusic className="h-4 w-4" />}
       </button>
-
-      <div
-        className={cn(
-          "absolute left-12 top-2 z-30 w-[min(310px,calc(100%-3.5rem))] origin-left rounded border border-neon-cyan/30 bg-black/80 p-2 shadow-[0_18px_42px_rgba(0,0,0,0.55),0_0_24px_rgba(34,211,238,0.16)] backdrop-blur-xl transition-all duration-300 ease-out",
-          compactPlaylistOpen
-            ? "translate-x-0 opacity-100"
-            : "pointer-events-none -translate-x-12 opacity-0",
-        )}
-      >
-        <div className="mb-1.5 flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
-          <div className="min-w-0">
-            <p className="font-pixel text-[8px] uppercase tracking-widest text-neon-cyan">Playlist de {displayName}</p>
-            <p className="truncate text-[10px] text-muted-foreground">{playlist.name}</p>
-          </div>
-          <span className="shrink-0 font-pixel text-[8px] text-neon-green">{songs.length}</span>
-        </div>
-        {playlistRows(true)}
-      </div>
 
       <div className="relative z-10 p-3 sm:w-[35%] sm:max-w-[35%]">
         <div className="flex min-h-[188px] min-w-0 flex-col justify-between">
@@ -500,7 +581,8 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
           <div className="space-y-2">
             <div className="flex items-center gap-2 rounded border border-white/5 bg-muted/20 px-2 py-1.5">
               <div
-                className="relative shrink-0"
+                className="public-profile-volume-control relative shrink-0"
+                ref={volumeButtonRef}
                 onMouseEnter={showVolumePopover}
                 onMouseLeave={hideVolumePopoverSoon}
                 onFocus={showVolumePopover}
@@ -515,25 +597,6 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
                 >
                   {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </button>
-                <div
-                  className={cn(
-                    "pointer-events-none absolute bottom-[calc(100%-2px)] left-1/2 z-40 flex h-28 w-9 -translate-x-1/2 translate-y-1 flex-col items-center justify-center rounded-full border border-neon-green/30 bg-black/90 px-1.5 py-2 opacity-0 shadow-[0_0_18px_rgba(57,255,20,0.16)] backdrop-blur-md transition-all duration-150",
-                    volumePopoverOpen && "pointer-events-auto translate-y-0 opacity-100",
-                  )}
-                >
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={volume}
-                    onChange={(event) => changeVolume(Number(event.target.value))}
-                    className="h-20 w-4 accent-neon-green"
-                    style={{ writingMode: "vertical-lr", direction: "rtl" }}
-                    aria-label="Volumen"
-                    title={`Volumen ${volume}%`}
-                  />
-                  <span className="mt-1 font-pixel text-[7px] text-neon-green tabular-nums">{volume}%</span>
-                </div>
               </div>
               <input
                 type="range"
@@ -552,6 +615,8 @@ export default function PublicProfileMusicPlayer({ userId, displayName }: { user
         </div>
       </div>
       {addBubble}
+      {volumePopover}
+      {compactPlaylistPopover}
     </section>
   );
 }

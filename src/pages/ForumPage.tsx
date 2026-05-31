@@ -1061,19 +1061,23 @@ export default function ForumPage() {
                 return (
                   <div key={comment.id} id={`comment-${comment.id}`} className={cn("p-4 rounded bg-muted/20 border border-white/5", comment.parent_id && "ml-4 sm:ml-10 border-l-2 border-l-neon-cyan/50")}>
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-                      <UserPopup
-                        userId={comment.user_id} displayName={comment.profile?.display_name || "Anónimo"} avatarUrl={comment.profile?.avatar_url}
-                        roles={commentRoles} roleIcon={comment.profile?.role_icon} showRoleIcon={comment.profile?.show_role_icon !== false}
-                        membershipTier={comment.profile?.membership_tier || comment.membership_tier} colorAvatarBorder={comment.profile?.color_avatar_border}
-                        colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
-                        className="flex items-center gap-3 text-left hover:no-underline min-w-0"
+                      <div
+                        className="flex items-center gap-3 text-left min-w-0"
                       >
                         <div className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(comment.profile?.color_avatar_border)}>
                           {comment.profile?.avatar_url ? <img src={comment.profile.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-muted-foreground" />}
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-body font-semibold truncate" style={getNameStyle(comment.profile?.color_name)}>{comment.profile?.display_name || "Anónimo"}</span>
+                            <UserPopup
+                              userId={comment.user_id} displayName={comment.profile?.display_name || "Anónimo"} avatarUrl={comment.profile?.avatar_url}
+                              roles={commentRoles} roleIcon={comment.profile?.role_icon} showRoleIcon={comment.profile?.show_role_icon !== false}
+                              membershipTier={comment.profile?.membership_tier || comment.membership_tier} colorAvatarBorder={comment.profile?.color_avatar_border}
+                              colorName={comment.profile?.color_name} colorRole={comment.profile?.color_role} colorStaffRole={comment.profile?.color_staff_role}
+                              className="inline-flex min-w-0 hover:no-underline"
+                            >
+                              <span className="text-sm font-body font-semibold truncate" style={getNameStyle(comment.profile?.color_name)}>{comment.profile?.display_name || "Anónimo"}</span>
+                            </UserPopup>
                             {commentIsStaff ? (
                               <RoleBadge roles={commentRoles} roleIcon={comment.profile?.role_icon} showIcon={comment.profile?.show_role_icon !== false} colorStaffRole={comment.profile?.color_staff_role} />
                             ) : (
@@ -1082,7 +1086,7 @@ export default function ForumPage() {
                           </div>
                           <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 mt-1"><Clock className="w-2.5 h-2.5"/> {new Date(comment.created_at).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
-                      </UserPopup>
+                      </div>
                       <div className="flex items-center gap-2 sm:pt-1 sm:ml-auto">
                         {user && <button onClick={() => setReplyTo(comment.id)} className="text-muted-foreground hover:text-primary transition-colors text-[10px] flex items-center gap-0.5"><Reply className="w-3 h-3" /> <span>Responder</span></button>}
                         

@@ -1484,6 +1484,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       <div className="flex h-full w-full items-center justify-center">
                         <div className={cn(
                           "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
+                          item.item_slug === "demoniaco" && "inventory-demoniaco-thumbnail-card overflow-hidden border-red-500/70 bg-[#2a0906]",
                           isMembershipItem(item)
                             ? "border-neon-magenta/70 bg-[#4a235e]"
                             : isEventTicketItem(item)
@@ -1492,11 +1493,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                                 ? "border-neon-cyan/70 bg-[#0a2e2e]"
                               : "border-[#f7d28b]/70 bg-[#6b4a1f]",
                         )}>
-                          <div className="absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]" />
+                          <div className={cn(
+                            "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
+                            item.item_slug === "demoniaco" && "hidden",
+                          )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              item.item_slug === "demoniaco" ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
                             )}
                           />
@@ -1631,7 +1635,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         </div>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="inventory-trade-offers-grid grid gap-3 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
         <div className="demoniaco-trade-panel rounded border border-neon-cyan/30 bg-card p-4">
           <h3 className="font-pixel text-[10px] uppercase text-neon-cyan flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4" /> Trueque
@@ -1709,7 +1713,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 ))}
               </div>
               <div className="mt-1 rounded border border-neon-cyan/20 bg-black/25 px-1.5 py-1 text-[9px] text-muted-foreground">
-                TÃº: {Number(pointsToSend || 0).toLocaleString()} F-coin
+                Tu: {Number(pointsToSend || 0).toLocaleString()} F-coin
               </div>
             </div>
             <div className="demoniaco-trade-box rounded border border-neon-magenta/25 bg-black/25 p-1.5">

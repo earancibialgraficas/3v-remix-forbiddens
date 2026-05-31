@@ -174,7 +174,7 @@ export default function DesktopLauncherTitleBar() {
     <div
       data-tauri-drag-region
       onPointerDown={startDrag}
-      className="fixed inset-x-0 top-0 z-[300] flex h-10 select-none items-center border-b border-neon-cyan/20 bg-[#05070d]/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+      className="desktop-launcher-titlebar fixed inset-x-0 top-0 z-[300] flex h-10 select-none items-center border-b border-neon-cyan/20 bg-[#05070d]/95 text-white shadow-[0_10px_28px_rgba(0,0,0,0.45)] backdrop-blur-xl"
     >
       <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center gap-3 px-3">
         <div data-tauri-drag-region className="flex min-w-0 items-center gap-2">

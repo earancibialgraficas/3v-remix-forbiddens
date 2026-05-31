@@ -74,7 +74,7 @@ export default function MiniCarousel() {
   if (items.length === 0) return null;
 
   return (
-    <div className="relative w-full h-36 rounded overflow-hidden border border-border group shadow-lg bg-card">
+    <div className="right-panel-card relative w-full h-36 rounded overflow-hidden border border-border group shadow-lg bg-card">
       
       {/* 🔥 Renderizamos TODAS las diapositivas apiladas, pero solo mostramos la actual */}
       {items.map((item, index) => {

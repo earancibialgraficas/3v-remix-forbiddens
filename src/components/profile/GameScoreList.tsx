@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, Gamepad2, Gem, Search, Trophy } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Gamepad2, Gem, Search, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type GameScore = {
@@ -101,7 +101,7 @@ function FilterDropdown({
         <div
           role="listbox"
           className={cn(
-            "absolute right-0 top-[calc(100%+6px)] z-40 max-h-56 w-[min(240px,80vw)] overflow-y-auto rounded border bg-[#05070d]/95 p-1 backdrop-blur-xl custom-scrollbar",
+            "absolute left-0 top-[calc(100%+6px)] z-[10000] max-h-56 w-[min(240px,80vw)] overflow-y-auto rounded border bg-[#05070d]/95 p-1 backdrop-blur-xl custom-scrollbar",
             toneClasses.menu,
           )}
         >
@@ -163,6 +163,8 @@ export default function GameScoreList({
 }) {
   const [activeFilter, setActiveFilter] = useState<{ group: "all" | "console" | "multi" | "bet"; value: string }>({ group: "all", value: "TODOS" });
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set(scores.map((score) => safeStr(score.console_type).toUpperCase()).filter(Boolean)));
@@ -220,6 +222,20 @@ export default function GameScoreList({
     activeFilter.group === group ? activeFilter.value : undefined
   );
 
+  useEffect(() => {
+    if (!searchOpen) return;
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!searchRef.current?.contains(event.target as Node)) setSearchOpen(false);
+    };
+    const closeOnScroll = () => setSearchOpen(false);
+    document.addEventListener("mousedown", closeOnOutside);
+    window.addEventListener("scroll", closeOnScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      window.removeEventListener("scroll", closeOnScroll, true);
+    };
+  }, [searchOpen]);
+
   return (
     <div className={cn("flex flex-col", className)}>
       <div className="mb-3 flex flex-col gap-2">
@@ -230,17 +246,55 @@ export default function GameScoreList({
           <span className="font-pixel text-[8px] text-muted-foreground">{filteredScores.length}/{scores.length}</span>
         </div>
 
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <label className="relative min-w-0 flex-1 lg:min-w-[180px]">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neon-cyan/75" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar juego..."
-              className="h-8 w-full rounded border border-neon-cyan/20 bg-black/30 pl-7 pr-2 text-[11px] text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-neon-cyan/55"
-            />
-          </label>
-          <div className="grid min-w-0 grid-cols-3 gap-1 sm:flex sm:shrink-0">
+        <div className="score-filter-bar flex items-center gap-1.5">
+          <div
+            className="score-filter-search relative shrink-0"
+            ref={searchRef}
+          >
+            <button
+              type="button"
+              onClick={() => setSearchOpen((value) => !value)}
+              className={cn(
+                "grid h-8 w-8 place-items-center rounded border border-neon-cyan/25 bg-black/35 text-neon-cyan transition-all hover:border-neon-cyan/60 hover:bg-neon-cyan/10",
+                query && "border-neon-green/55 text-neon-green",
+              )}
+              aria-label="Buscar juego"
+              aria-expanded={searchOpen}
+              title={query ? `Busqueda: ${query}` : "Buscar juego"}
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+            {searchOpen && (
+              <div className="score-search-bubble absolute left-0 top-[calc(100%+6px)] z-50 w-[min(270px,78vw)] rounded border border-neon-cyan/35 bg-[#05070d]/95 p-2 shadow-[0_18px_42px_rgba(34,211,238,0.16)] backdrop-blur-xl">
+                <label className="relative block">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neon-cyan/75" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") setSearchOpen(false);
+                      if (event.key === "Escape") setSearchOpen(false);
+                    }}
+                    placeholder="Buscar juego..."
+                    className="h-8 w-full rounded border border-neon-cyan/20 bg-black/45 pl-7 pr-8 text-[11px] text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-neon-cyan/55"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => setQuery("")}
+                      className="absolute right-1.5 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+                      aria-label="Limpiar busqueda"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </label>
+              </div>
+            )}
+          </div>
+          <div className="score-filter-actions flex min-w-0 flex-1 flex-wrap justify-start gap-1 overflow-visible">
             <FilterDropdown
               tone="cyan"
               label="Consolas"

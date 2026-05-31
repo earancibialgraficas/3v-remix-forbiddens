@@ -210,12 +210,12 @@ export default function LeaderboardPage() {
 
       {/* 🔍 Filtros: consola + búsqueda */}
       {!loading && scores.length > 0 && (
-        <div className="bg-card border border-border rounded p-3 flex flex-col sm:flex-row gap-2">
+        <div className="leaderboard-filter-bar bg-card border border-border rounded p-3 flex flex-col sm:flex-row gap-2">
           {/* Selector de consola (dropdown) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-pixel uppercase tracking-wider rounded border bg-muted/50 border-border text-foreground hover:border-neon-green/60 hover:text-neon-green transition-all min-w-[160px]"
+                className="leaderboard-console-filter flex w-full min-w-0 items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-pixel uppercase tracking-wider rounded border bg-muted/50 border-border text-foreground hover:border-neon-green/60 hover:text-neon-green transition-all sm:w-auto sm:min-w-[140px]"
               >
                 <span className="flex items-center gap-1.5">
                   <Gamepad2 className="w-3.5 h-3.5" />
@@ -269,7 +269,7 @@ export default function LeaderboardPage() {
           </DropdownMenu>
 
           {/* Buscador de juego */}
-          <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
+          <div className="leaderboard-search-filter relative min-w-0 flex-1 sm:max-w-xs sm:ml-auto">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"

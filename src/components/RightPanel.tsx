@@ -225,7 +225,7 @@ export default function RightPanel() {
           onScroll={handleScroll}
           className="w-full h-full space-y-3 pb-6 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10"
         >
-          <div className={cn("bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
+          <div className={cn("right-panel-card bg-card border border-border rounded p-3 shadow-md hover:border-primary/50 transition-colors", !isMobile && "mt-0")}>
             <h3 className={cn("font-pixel mb-1", sizes.title)} style={{ color: '#de1839', textShadow: '0 0 8px rgba(222, 24, 57, 0.6)' }}>FORBIDDENS</h3>
             <div className="grid grid-cols-3 gap-1 my-3">
               <div className="text-center"><p className={cn("font-bold text-foreground font-body", sizes.stat)}>{memberCount}</p><p className={cn("text-muted-foreground", sizes.title)}>Miembros</p></div>
@@ -234,7 +234,7 @@ export default function RightPanel() {
             </div>
             <div className="flex gap-2">
               {!user && <Button asChild className="flex-1 bg-primary text-[10px] h-7 hover:shadow-[0_0_10px_rgba(var(--primary),0.8)] transition-all"><Link to="/registro">Unirse</Link></Button>}
-              <Button asChild className="flex-1 bg-[#5865F2] text-white hover:bg-[#4752C4] text-[10px] h-7 hover:shadow-[0_0_10px_rgba(88,101,242,0.8)] transition-all">
+              <Button asChild className="right-panel-discord-button flex-1 bg-[#5865F2] text-white hover:bg-[#4752C4] text-[10px] h-7 hover:shadow-[0_0_10px_rgba(88,101,242,0.8)] transition-all">
                 <a href="https://discord.gg/ZHNRKVUfVF" target="_blank" rel="noopener noreferrer">Discord</a>
               </Button>
             </div>
@@ -242,7 +242,7 @@ export default function RightPanel() {
 
           <MiniCarousel />
 
-          <div className="bg-card border border-border rounded p-3 space-y-4 shadow-md">
+          <div className="right-panel-card bg-card border border-border rounded p-3 space-y-4 shadow-md">
             <div>
               <h3 className={cn("font-pixel text-neon-cyan mb-2", sizes.title)}>TOP USUARIOS</h3>
               <div className="space-y-1.5">
@@ -265,7 +265,7 @@ export default function RightPanel() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border">
+            <div className="right-panel-inner-divider pt-3 border-t border-border">
               <h3 className={cn("font-pixel text-neon-yellow mb-2", sizes.title)}>TOP PREMIUM</h3>
               <div className="space-y-1.5">
                 {premiumUsers.map((pu, i) => (
@@ -288,7 +288,7 @@ export default function RightPanel() {
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-border space-y-4">
+          <div className="right-panel-footer-section mt-6 pt-4 border-t border-border space-y-4">
             {!isMobile && <div id="music-slot-desktop" className="w-full" />}
             <Footer />
           </div>

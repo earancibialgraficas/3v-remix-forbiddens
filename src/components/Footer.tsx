@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
-    <div className="border-t border-border bg-card/50 py-4 mt-4 rounded">
+    <div className="site-footer border-t border-border bg-card/50 py-4 mt-4 rounded">
       <div className="px-3">
         <div className="flex flex-col items-center gap-3">
           <span className="font-pixel text-[8px] text-glow-green" style={{ color: '#2596be', textShadow: '0 0 8px rgba(37,150,190,0.5)' }}>FORBIDDENS</span>

@@ -361,7 +361,7 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
           size="sm" 
           onClick={handleAddLink} 
           disabled={adding || !newUrl.trim() || reachedLimit} 
-          className="w-full text-xs bg-neon-cyan text-black hover:bg-neon-cyan/80 font-pixel"
+          className="social-hub-publish-button w-full text-xs bg-neon-cyan text-black hover:bg-neon-cyan/80 font-pixel"
         >
           {reachedLimit ? "Límite Alcanzado" : adding ? "Publicando..." : "Publicar en el Hub"}
         </Button>
@@ -374,16 +374,16 @@ export default function SocialContentTab({ profile, user, onEditNetworks, limits
             <Filter className="w-3.5 h-3.5" /> Tu Contenido Publicado
           </h3>
           
-          <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2.5 w-full justify-center md:justify-start">
+          <div className="social-content-filter-row flex items-center gap-3 overflow-x-auto custom-scrollbar pb-2.5 w-full justify-center md:justify-start">
             {filterOptions.map((f) => (
               <button
                 key={f.id}
                 title={f.id}
                 onClick={() => setActiveFilter(f.id)}
                 className={cn(
-                  "p-3.5 rounded-full transition-all border flex items-center justify-center shrink-0 relative",
+                  "social-content-filter-button p-3.5 rounded-full transition-all border flex items-center justify-center shrink-0 relative",
                   activeFilter === f.id
-                    ? "bg-muted border-foreground/30 shadow-[0_0_8px_rgba(255,255,255,0.1)] opacity-100 scale-105"
+                    ? "is-active bg-muted border-foreground/30 shadow-[0_0_8px_rgba(255,255,255,0.1)] opacity-100 scale-105"
                     : "bg-card border-white/5 opacity-50 hover:opacity-100 hover:bg-muted/50"
                 )}
               >

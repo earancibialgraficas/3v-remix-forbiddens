@@ -285,7 +285,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
           </button>
 
           <div className="p-3 border-b border-border flex items-center gap-3 bg-muted/10 shrink-0 pr-10">
-            <Avatar className="w-8 h-8 border border-neon-orange/30">
+            <Avatar className="w-10 h-10 border border-neon-orange/30">
               <AvatarImage src={photo.profiles?.avatar_url} />
               <AvatarFallback className="font-pixel text-[10px]">?</AvatarFallback>
             </Avatar>
@@ -317,7 +317,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
               ) : (
                 comments.map(c => (
                   <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
-                    <Avatar className={cn("photowall-comment-avatar w-5 h-5 shrink-0 mt-1", demoniacoCommentUsers[c.user_id] && "avatar-frame-demoniaco")}><AvatarImage src={c.avatar_url || ""} /></Avatar>
+                    <Avatar className={cn("photowall-comment-avatar w-7 h-7 shrink-0 mt-1", demoniacoCommentUsers[c.user_id] && "avatar-frame-demoniaco")}><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="bg-white/5 rounded-lg px-2 py-1.5 inline-block max-w-full">
                         <div className="flex items-baseline gap-1.5 mb-0.5 flex-wrap">
