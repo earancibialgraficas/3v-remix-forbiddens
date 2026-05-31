@@ -409,7 +409,8 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel.bg-card.border {
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-row.rounded.border,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-box.rounded.border,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border {
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-conversion-panel.rounded.border {
   background:
     linear-gradient(180deg, rgba(18, 8, 6, 0.42), rgba(5, 5, 5, 0.62)),
     var(--skin-pattern-slot) !important;
@@ -426,7 +427,9 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-trade-box.rounded.border::after
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border::before,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-slots.rounded.border::after,
 html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border::before,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border::after {
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta.rounded.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-conversion-panel.rounded.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-conversion-panel.rounded.border::after {
   display: none !important;
   content: none !important;
 }
@@ -594,6 +597,11 @@ html[style*="--skin-slug: demoniaco"] {
   --demoniaco-avatar-square: url('/skins/demoniaco/frames/avatar-square-frame.png');
   --demoniaco-surface-rock: url('/skins/demoniaco/backgrounds/solid/window-rock.png');
   --demoniaco-profile-banner: url('/skins/demoniaco/backgrounds/solid/profile-banner.png');
+  --demoniaco-equipment-star: url('/skins/demoniaco/equipment/equipment-star.png');
+  --demoniaco-tab-bar: url('/skins/demoniaco/tabs/tab-bar.png');
+  --demoniaco-tab-dragon: url('/skins/demoniaco/tabs/dragon-head.png');
+  --demoniaco-separator-t: url('/skins/demoniaco/frames/separator-t.png');
+  --demoniaco-separator-t-inverted: url('/skins/demoniaco/frames/separator-t-inverted.png');
   --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
   --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
   --demoniaco-frame-outset: 14px;
@@ -616,8 +624,8 @@ html[style*="--skin-slug: demoniaco"] {
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel {
   position: relative !important;
@@ -636,26 +644,109 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel {
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border {
-  --demoniaco-frame-corner-size: clamp(82px, 8.7vw, 136px);
-  --demoniaco-frame-edge-thickness: clamp(18px, 2.25vw, 32px);
-  --demoniaco-frame-outset: 15px;
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
   background:
     linear-gradient(90deg, rgba(2, 2, 2, 0.34), rgba(14, 3, 3, 0.16) 48%, rgba(2, 2, 2, 0.58)),
     var(--demoniaco-profile-banner) center / cover !important;
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.42), rgba(8, 5, 5, 0.64)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  padding: clamp(1rem, 1.45vw, 1.35rem) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  position: relative !important;
+  isolation: auto;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.24), rgba(6, 4, 4, 0.36)) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+  position: relative;
+  z-index: 4 !important;
+  background-image: var(--demoniaco-frame-edge-vertical);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: var(--demoniaco-frame-edge-thickness) 100%;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-mini-stats > div,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-meta > div {
+  border-color: rgba(137, 35, 24, 0.62) !important;
+  background:
+    linear-gradient(180deg, rgba(13, 7, 6, 0.5), rgba(2, 2, 2, 0.62)),
+    var(--skin-pattern-slot) center / cover !important;
+  color: rgba(255, 193, 151, 0.86);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 77, 35, 0.06),
+    inset 0 0 15px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-remove-marker {
+  z-index: 6;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 28px);
+  left: 50%;
+  z-index: 6;
+  width: clamp(94px, 7.6vw, 138px);
+  height: clamp(60px, 5.4vw, 90px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--demoniaco-separator-t) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.82) contrast(1.16) drop-shadow(0 0 7px rgba(255, 43, 15, 0.2));
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - 28px);
+  left: 50%;
+  z-index: 6;
+  width: clamp(94px, 7.6vw, 138px);
+  height: clamp(60px, 5.4vw, 90px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--demoniaco-separator-t-inverted) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.82) contrast(1.16) drop-shadow(0 0 7px rgba(255, 43, 15, 0.2));
+}
+
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border {
-  --demoniaco-frame-corner-size: clamp(72px, 7.2vw, 112px);
-  --demoniaco-frame-edge-thickness: clamp(17px, 2vw, 27px);
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
   --demoniaco-frame-outset: 14px;
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border {
-  --demoniaco-frame-corner-size: clamp(46px, 5.4vw, 72px);
-  --demoniaco-frame-edge-thickness: clamp(12px, 1.55vw, 18px);
-  --demoniaco-frame-outset: 9px;
   position: relative !important;
   isolation: isolate;
   border-color: transparent !important;
@@ -665,12 +756,14 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border {
     var(--demoniaco-surface-rock) center / cover !important;
   border-radius: 0 !important;
   overflow: visible !important;
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border > *,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border > *,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell > *,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border > *,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel > *,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel > *,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel > * {
   position: relative;
@@ -682,9 +775,8 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border > *
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::before,
-html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::before,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel::before,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::before,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before {
   content: "" !important;
@@ -697,7 +789,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before {
     var(--demoniaco-frame-edge-horizontal),
     var(--demoniaco-frame-edge-vertical),
     var(--demoniaco-frame-edge-horizontal),
-    var(--demoniaco-frame-edge-vertical);
+    var(--demoniaco-frame-edge-vertical) !important;
   background-repeat: no-repeat;
   background-position:
     top center,
@@ -709,15 +801,14 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before {
     var(--demoniaco-frame-edge-thickness) 100%,
     100% var(--demoniaco-frame-edge-thickness),
     var(--demoniaco-frame-edge-thickness) 100%;
-  opacity: 0.98;
+  opacity: 0.98 !important;
   mix-blend-mode: normal;
   filter: brightness(0.78) contrast(1.2) saturate(1.12) drop-shadow(0 0 6px rgba(255, 39, 14, 0.18));
 }
 
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::after,
-html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after,
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::after,
-html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-panel::after,
 html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::after,
 html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
   content: "" !important;
@@ -730,7 +821,7 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
     var(--demoniaco-frame-corner-tl),
     var(--demoniaco-frame-corner-tr),
     var(--demoniaco-frame-corner-br),
-    var(--demoniaco-frame-corner-bl);
+    var(--demoniaco-frame-corner-bl) !important;
   background-repeat: no-repeat;
   background-position:
     top left,
@@ -767,6 +858,117 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-item-frame {
   border-image-source: var(--demoniaco-frame-compact) !important;
 }
 
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -10px 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: var(--demoniaco-tab-bar), var(--demoniaco-tab-bar) !important;
+  background-repeat: no-repeat;
+  background-position: top center, bottom center;
+  background-size: calc(100% - 4rem) clamp(14px, 1.35vw, 20px);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  filter: brightness(0.86) contrast(1.14) drop-shadow(0 0 6px rgba(255, 39, 14, 0.2));
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  z-index: 3;
+  width: clamp(76px, 8vw, 118px);
+  height: clamp(42px, 4.4vw, 66px);
+  transform: translateX(-50%) !important;
+  pointer-events: none;
+  background: var(--demoniaco-tab-dragon) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.88) contrast(1.15) drop-shadow(0 0 7px rgba(255, 43, 15, 0.24));
+}
+
+.equipment-panel {
+  position: relative;
+  overflow: visible;
+}
+
+.equipment-star::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  z-index: 0;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 56%, 79% 92%, 50% 70%, 21% 92%, 32% 56%, 2% 35%, 39% 35%);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 230, 118, 0.34), transparent 28%),
+    linear-gradient(135deg, rgba(255, 60, 120, 0.28), rgba(34, 211, 238, 0.24)),
+    #10091c;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.24));
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-star::before {
+  inset: -4%;
+  clip-path: none;
+  background: var(--demoniaco-equipment-star) center / contain no-repeat;
+  border: 0;
+  filter: brightness(0.9) contrast(1.12) drop-shadow(0 0 12px rgba(255, 49, 18, 0.28));
+}
+
+.equipment-slot {
+  z-index: 1;
+}
+
+.demoniaco-inventory-equipment-shell {
+  --equipment-slot-size: 78px;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-slot {
+  width: var(--equipment-slot-size) !important;
+  height: var(--equipment-slot-size) !important;
+  max-width: 29% !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 68px;
+  }
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal);
+    background-position: center;
+    background-size: 100% var(--demoniaco-frame-edge-thickness);
+  }
+
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
 html[style*="--skin-slug: demoniaco"] button:has(> .demoniaco-avatar-frame),
 html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border :has(> .demoniaco-avatar-frame) {
   overflow: visible !important;
@@ -799,10 +1001,10 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame > img {
 html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame::after {
   content: "";
   position: absolute;
-  top: 50%;
+  top: 48%;
   left: 50%;
-  width: 178%;
-  height: 178%;
+  width: 139%;
+  height: 139%;
   transform: translate(-50%, -50%);
   z-index: 5;
   pointer-events: none;
@@ -828,4 +1030,480 @@ html[style*="--skin-slug: demoniaco"] :is(.w-5.h-5, .h-5.w-5, .w-6.h-6, .h-6.w-6
 html[style*="--skin-slug: demoniaco"] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(255, 58, 18, 0.9), rgba(92, 18, 13, 0.9)) !important;
   border-color: rgba(255, 121, 42, 0.28) !important;
+}
+
+/* Final demoniaco frame scoping: the large ornamental frame belongs only to inventory + equipment. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border {
+  background:
+    linear-gradient(90deg, rgba(2, 2, 2, 0.34), rgba(14, 3, 3, 0.16) 48%, rgba(2, 2, 2, 0.58)),
+    var(--demoniaco-profile-banner) center / cover !important;
+  border-color: rgba(207, 48, 26, 0.82) !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-sell-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-edge-horizontal: url('/skins/demoniaco/frames/frame-edge-v2-trim.png');
+  --demoniaco-frame-edge-vertical: url('/skins/demoniaco/frames/frame-edge-v2-trim-vertical.png');
+  --demoniaco-frame-corner-size: clamp(82px, 7.6vw, 122px);
+  --demoniaco-frame-edge-thickness: clamp(18px, 1.9vw, 28px);
+  --demoniaco-frame-outset: 13px;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.34), rgba(8, 5, 5, 0.58)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 8 !important;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical),
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top center,
+    right center,
+    bottom center,
+    left center !important;
+  background-size:
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%,
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100% !important;
+  opacity: 0.98 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.74)
+    contrast(1.24)
+    saturate(1.12)
+    drop-shadow(0 0 6px rgba(255, 39, 14, 0.18)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 9 !important;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-corner-tl),
+    var(--demoniaco-frame-corner-tr),
+    var(--demoniaco-frame-corner-br),
+    var(--demoniaco-frame-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left !important;
+  background-size:
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size) !important;
+  opacity: 0.99 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.74)
+    contrast(1.24)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell > * {
+  position: relative;
+  z-index: 2;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+  background-image: var(--demoniaco-frame-edge-vertical) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--demoniaco-frame-edge-thickness) 100% !important;
+  filter: drop-shadow(0 0 0 #1c0503);
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+  z-index: 10 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.76)
+    contrast(1.18)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.12), rgba(6, 4, 4, 0.18)),
+    var(--demoniaco-equipment-star) center / cover no-repeat !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-star::before {
+  inset: -10% !important;
+  background: var(--demoniaco-equipment-star) center / cover no-repeat !important;
+  opacity: 0.92;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.86)
+    contrast(1.14)
+    drop-shadow(0 0 12px rgba(255, 49, 18, 0.28)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)),
+    var(--demoniaco-equipment-star) center / 100% 100% no-repeat !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-star::before {
+  inset: -18% !important;
+  background: var(--demoniaco-equipment-star) center / 100% 100% no-repeat !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-title {
+  color: #f7d28b !important;
+  text-shadow:
+    0 0 3px #000,
+    0 0 8px rgba(255, 72, 36, 0.9),
+    0 0 16px rgba(255, 72, 36, 0.38) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+  --demoniaco-inventory-slot-size: 78px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--demoniaco-inventory-slot-size), var(--demoniaco-inventory-slot-size))) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 68px;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  overflow: hidden !important;
+  contain: paint;
+  display: flex;
+  flex-direction: column;
+  min-height: 0 !important;
+  background-origin: border-box !important;
+  background-clip: border-box !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+  overflow: hidden;
+  width: min(100%, clamp(220px, 24vw, 300px)) !important;
+  max-width: min(100%, clamp(220px, 24vw, 300px)) !important;
+  min-height: 0 !important;
+  flex: 0 0 auto;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star::before {
+  inset: 0 !important;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100% !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+  position: absolute !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal) !important;
+    background-position: center !important;
+    background-size: 100% var(--demoniaco-frame-edge-thickness) !important;
+  }
+
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+  }
+
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
+/* Final inventory/equipment ornament pass: corner pieces sit above the frame without affecting layout. */
+html[style*="--skin-slug: demoniaco"] {
+  --demoniaco-shell-corner-tl: url('/skins/demoniaco/frames/marco-arriba-izquierda.png');
+  --demoniaco-shell-corner-tr: url('/skins/demoniaco/frames/marco-arriba-derecha.png');
+  --demoniaco-shell-corner-br: url('/skins/demoniaco/frames/marco-abajo-derecha.png');
+  --demoniaco-shell-corner-bl: url('/skins/demoniaco/frames/marco-abajo-izquierda.png');
+  --demoniaco-shell-corner-size: clamp(118px, 10vw, 176px);
+  --demoniaco-shell-edge-thickness: clamp(22px, 2.2vw, 34px);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc((var(--demoniaco-frame-outset) + 2px) * -1) !important;
+  z-index: 11 !important;
+  background-image:
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical),
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical) !important;
+  background-size:
+    calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)),
+    calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.72)
+    contrast(1.28)
+    saturate(1.16)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell::after {
+  inset: calc((var(--demoniaco-frame-outset) + 6px) * -1) !important;
+  z-index: 12 !important;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br),
+    var(--demoniaco-shell-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.76)
+    contrast(1.24)
+    saturate(1.16)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.22)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+  filter: none !important;
+  background-image: var(--demoniaco-frame-edge-vertical) !important;
+  background-size: var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before {
+  bottom: calc(100% - 36px) !important;
+  z-index: 13 !important;
+  width: clamp(116px, 8.6vw, 158px) !important;
+  height: clamp(72px, 5.8vw, 98px) !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::after {
+  top: calc(100% - 36px) !important;
+  z-index: 13 !important;
+  width: clamp(116px, 8.6vw, 158px) !important;
+  height: clamp(72px, 5.8vw, 98px) !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .equipment-title svg {
+  color: currentColor !important;
+  filter: drop-shadow(0 0 5px rgba(255, 72, 36, 0.62));
+}
+
+.demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--inventory-slot-size), var(--inventory-slot-size))) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 68px;
+  }
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)) !important;
+  isolation: isolate;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none;
+  background: var(--demoniaco-equipment-star) center / 112% auto no-repeat !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 52%, rgba(0, 0, 0, 0.82) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 52%, rgba(0, 0, 0, 0.82) 72%, transparent 100%);
+  filter: brightness(0.9) contrast(1.13) saturate(1.08);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel > * {
+  position: relative;
+  z-index: 2;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-inner-corner-size: clamp(88px, 7vw, 126px);
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  z-index: 14 !important;
+  width: var(--demoniaco-inner-corner-size);
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position: top left, bottom left !important;
+  background-size:
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size),
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.78)
+    contrast(1.22)
+    saturate(1.14)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 0 0 auto !important;
+  z-index: 14 !important;
+  width: var(--demoniaco-inner-corner-size);
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br) !important;
+  background-repeat: no-repeat !important;
+  background-position: top right, bottom right !important;
+  background-size:
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size),
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.78)
+    contrast(1.22)
+    saturate(1.14)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.2)) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(210px, 54vw, 290px)) !important;
+    max-width: min(100%, clamp(210px, 54vw, 290px)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(190px, 72vw, 260px)) !important;
+    max-width: min(100%, clamp(190px, 72vw, 260px)) !important;
+  }
+
+  html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell {
+    --demoniaco-inner-corner-size: clamp(70px, 20vw, 102px);
+  }
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal) !important;
+    background-size: calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness) !important;
+    background-position: center !important;
+  }
+
+  html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid::before {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: demoniaco"] {
+    --demoniaco-shell-corner-size: clamp(78px, 23vw, 116px);
+    --demoniaco-shell-edge-thickness: clamp(16px, 5vw, 24px);
+  }
 }

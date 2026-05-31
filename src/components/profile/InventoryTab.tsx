@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+﻿import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +19,15 @@ interface InventoryTabProps {
   onStatChange?: () => void;
 }
 
+const INVENTORY_PAGE_SIZE = 27;
+
 export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
-  const slotItemsRef = useRef<any[]>(Array(27).fill(null));
+  const slotItemsRef = useRef<any[]>(Array(INVENTORY_PAGE_SIZE).fill(null));
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
   const sellSlotsRef = useRef<any[]>(Array(4).fill(null));
+  const inventoryGridRef = useRef<HTMLDivElement | null>(null);
   const cursorItemRef = useRef<any | null>(null);
   const slotOrderPersistTimerRef = useRef<number | null>(null);
   const tradeCompletedRef = useRef(false);
@@ -33,7 +36,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [wallet, setWallet] = useState(0);
   const [boosters, setBoosters] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
-  const [slotItems, setSlotItems] = useState<any[]>(Array(27).fill(null));
+  const [slotItems, setSlotItems] = useState<any[]>(Array(INVENTORY_PAGE_SIZE).fill(null));
   const [cursorItem, setCursorItem] = useState<any | null>(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [tradeSlots, setTradeSlots] = useState<any[]>(Array(4).fill(null));
@@ -63,6 +66,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [seenVersion, setSeenVersion] = useState(0);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [inventoryPage, setInventoryPage] = useState(0);
+  const [inventoryColumns, setInventoryColumns] = useState(9);
 
   const totalBoosters = useMemo(
     () => boosters.filter((item) => item.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item.quantity || 0), 0),
@@ -76,6 +81,42 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     () => remoteTradeSlots.filter(Boolean).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
     [remoteTradeSlots],
   );
+  const inventorySlotsPerPage = Math.max(1, inventoryColumns * 2);
+  const inventoryPageCount = Math.max(1, Math.ceil(slotItems.length / inventorySlotsPerPage));
+  const currentInventoryPage = Math.min(inventoryPage, inventoryPageCount - 1);
+  const visibleInventoryStart = currentInventoryPage * inventorySlotsPerPage;
+  const visibleSlotItems = useMemo(
+    () => slotItems.slice(visibleInventoryStart, visibleInventoryStart + inventorySlotsPerPage),
+    [slotItems, visibleInventoryStart, inventorySlotsPerPage],
+  );
+
+  useEffect(() => {
+    if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
+  }, [inventoryPage, inventoryPageCount]);
+
+  useEffect(() => {
+    const grid = inventoryGridRef.current;
+    if (!grid || typeof window === "undefined") return;
+
+    const updateColumns = () => {
+      const templateColumns = window.getComputedStyle(grid).gridTemplateColumns;
+      const columnCount = templateColumns.split(" ").filter((track) => track.trim() && track !== "0px").length;
+      if (columnCount > 0) {
+        setInventoryColumns((current) => (current === columnCount ? current : columnCount));
+      }
+    };
+
+    updateColumns();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateColumns);
+      return () => window.removeEventListener("resize", updateColumns);
+    }
+
+    const observer = new ResizeObserver(updateColumns);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -289,7 +330,6 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   useEffect(() => {
-    const nextSlots = Array(27).fill(null);
     const savedSnapshot = (() => {
       try {
         return JSON.parse(localStorage.getItem(`inventory-slot-snapshot:${userId}`) || "[]");
@@ -297,11 +337,16 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return [];
       }
     })();
+    const slotCount = Math.max(
+      INVENTORY_PAGE_SIZE,
+      Math.ceil(Math.max(boosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / INVENTORY_PAGE_SIZE) * INVENTORY_PAGE_SIZE,
+    );
+    const nextSlots = Array(slotCount).fill(null);
     const availableById = new Map((boosters || []).map((item) => [String(item.id), item]));
     const consumed = new Set<string>();
 
     if (Array.isArray(savedSnapshot) && savedSnapshot.length > 0) {
-      savedSnapshot.slice(0, 27).forEach((entry: any, slotIndex: number) => {
+      savedSnapshot.slice(0, slotCount).forEach((entry: any, slotIndex: number) => {
         if (!entry || !Array.isArray(entry.sources)) return;
         const parts = entry.sources
           .map((source: any) => {
@@ -333,7 +378,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     boosters.forEach((item, index) => {
       if (consumed.has(String(item.id))) return;
       const preferred = Number(savedOrder[index]);
-      const slot = Number.isInteger(preferred) && preferred >= 0 && preferred < 27 && !nextSlots[preferred]
+      const slot = Number.isInteger(preferred) && preferred >= 0 && preferred < slotCount && !nextSlots[preferred]
         ? preferred
         : nextSlots.findIndex((slotItem) => !slotItem);
       if (slot >= 0) nextSlots[slot] = item;
@@ -718,18 +763,24 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
 
   const moveCursorToEvent = (event: React.MouseEvent) => {
-    setCursorPos({ x: event.clientX, y: event.clientY });
+    const nativeEvent = event.nativeEvent as MouseEvent;
+    setCursorPos({
+      x: Number.isFinite(nativeEvent.clientX) ? nativeEvent.clientX : event.clientX,
+      y: Number.isFinite(nativeEvent.clientY) ? nativeEvent.clientY : event.clientY,
+    });
   };
 
   const getAnchoredMenuPosition = (event: React.MouseEvent) => {
-    const width = 160;
-    const height = 180;
+    const nativeEvent = event.nativeEvent as MouseEvent;
+    const rawX = Number.isFinite(nativeEvent.clientX) ? nativeEvent.clientX : event.clientX;
+    const rawY = Number.isFinite(nativeEvent.clientY) ? nativeEvent.clientY : event.clientY;
+    const width = 176;
+    const height = 260;
     const margin = 8;
-    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
-    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 768;
-    // Anclar el menu justo donde esta el cursor del click derecho
-    const x = Math.min(Math.max(event.clientX, margin), viewportWidth - width - margin);
-    const y = Math.min(Math.max(event.clientY, margin), viewportHeight - height - margin);
+    const viewportWidth = typeof document !== "undefined" ? document.documentElement.clientWidth : 1024;
+    const viewportHeight = typeof document !== "undefined" ? document.documentElement.clientHeight : 768;
+    const x = Math.min(Math.max(rawX, margin), Math.max(margin, viewportWidth - width - margin));
+    const y = Math.min(Math.max(rawY, margin), Math.max(margin, viewportHeight - height - margin));
     return { x, y };
   };
 
@@ -982,11 +1033,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setSellSlots(next);
   };
 
-  const handleSellItems = async () => {
-    const itemsToSell = sellSlots.filter(Boolean);
+  const handleSellItems = async (items: any[] = sellSlots.filter(Boolean), sourceSlot?: number | null) => {
+    const itemsToSell = items.filter(Boolean);
     if (itemsToSell.length === 0) return;
     
-    if (!confirm("¿Vender estos items por la mitad de su precio original? Esta acción es irreversible.")) return;
+    if (!confirm("Â¿Vender estos items por la mitad de su precio original? Esta acciÃ³n es irreversible.")) return;
 
     setBusy(true);
     try {
@@ -1059,9 +1110,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         onWalletChange?.(nextBalance);
       }
 
+      if (typeof sourceSlot === "number") {
+        const next = [...slotItemsRef.current];
+        next[sourceSlot] = null;
+        commitSlotItems(next, false);
+      }
       setSellSlots(Array(4).fill(null));
       toast({ 
-        title: "¡Venta completada!", 
+        title: "Â¡Venta completada!", 
         description: `Recuperaste ${totalStatsRefund > 0 ? `${totalStatsRefund.toLocaleString()} STATS` : ''} ${totalStatsRefund > 0 && totalFCoinsRefund > 0 ? 'y' : ''} ${totalFCoinsRefund > 0 ? `${totalFCoinsRefund.toLocaleString()} F-coins` : ''}.` 
       });
       void loadInventory();
@@ -1071,6 +1127,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       setBusy(false);
     }
   };
+
+  const canSellItem = (item: any) => Boolean(item?.item_slug && priceMap[item.item_slug]);
 
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
   const activeSkinEntries = useMemo(
@@ -1114,7 +1172,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
       setActiveSkins(prev => ({ ...prev, [skinType]: skinSlug }));
       window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug } }));
-      toast({ title: "✅ Skin Equipada", description: `Has activado la skin "${skin.name}"` });
+      toast({ title: "âœ… Skin Equipada", description: `Has activado la skin "${skin.name}"` });
     } catch (err: any) {
       console.error('Error activating skin:', err);
       toast({ title: "Error", description: err?.message || "No se pudo equipar la skin", variant: "destructive" });
@@ -1140,7 +1198,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return updated;
       });
       window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug: 'default' } }));
-      toast({ title: "✅ Skin Desequipada", description: "Has vuelto al diseño original" });
+      toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
     } catch (err: any) {
       console.error('Error deactivating skin:', err);
       toast({ title: "Error", description: err?.message || "No se pudo desequipar", variant: "destructive" });
@@ -1326,7 +1384,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       toast({ title: "No se pudo separar", description: result.reason || "Cantidad invalida", variant: "destructive" });
       return;
     }
-    toast({ title: "Stack separado", description: `${qty} item(s) movidos a un nuevo slot.` });
+    toast({ title: "Item separado", description: `${qty} item(s) movidos a un nuevo slot.` });
     setSplitTarget(null);
     void loadInventory();
   };
@@ -1357,16 +1415,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
   return (
     <div className="space-y-4 animate-in fade-in">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="demoniaco-inventory-equipment-shell rounded border border-border bg-card p-4">
+        <div className="inventory-equipment-grid grid gap-3 xl:grid-cols-2">
         <div className="demoniaco-inventory-panel rounded border-2 border-[#5b4631] bg-[#2b2119] p-3 shadow-[inset_0_0_0_2px_rgba(255,255,255,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-pixel text-[10px] uppercase text-[#f7d28b] flex items-center gap-2">
               <InventoryIcon className="h-4 w-4" /> Inventario
             </h3>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded border border-[#8b6d46] bg-black/30 px-2 py-1 text-[10px] font-body text-[#f7d28b]">
-                <Gem className="h-3.5 w-3.5" /> {loading ? "..." : wallet.toLocaleString()} F-coin
-              </div>
               <Button
                 type="button"
                 size="icon"
@@ -1387,7 +1443,13 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </div>
           )}
 
-          {activeSkinEntries.length > 0 && (
+          <div className="demoniaco-inventory-mini-stats mb-3 grid gap-1.5 text-[9px] text-muted-foreground sm:grid-cols-3">
+            <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">F-coins: {loading ? "..." : wallet.toLocaleString()}</div>
+            <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">STAT: {Number(profile?.total_score || 0).toLocaleString()}</div>
+            <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString()}</div>
+          </div>
+
+          {false && activeSkinEntries.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-1.5">
               {activeSkinEntries.map(({ skinType, skinSlug, skin }) => (
                 <button
@@ -1407,8 +1469,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </div>
           )}
 
-          <div className="inventory-slot-grid grid grid-cols-[repeat(auto-fit,minmax(54px,1fr))] gap-1.5 rounded border border-black/60 bg-[#1b140f] p-2 sm:grid-cols-6 lg:grid-cols-9">
-            {slotItems.map((item, index) => (
+          <div ref={inventoryGridRef} className="inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2">
+            {visibleSlotItems.map((item, pageIndex) => {
+              const index = visibleInventoryStart + pageIndex;
+              return (
               <Tooltip key={index}>
                 <TooltipTrigger asChild>
                   <div
@@ -1469,43 +1533,119 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 </TooltipTrigger>
                 {item && <TooltipContent className="bg-black/90 border-neon-yellow/50 text-neon-yellow font-pixel text-xs">{itemLabel(item)}</TooltipContent>}
               </Tooltip>
-            ))}
+              );
+            })}
           </div>
 
-          <div className="mt-3 grid gap-2 text-[10px] text-muted-foreground md:grid-cols-3">
+          {inventoryPageCount > 1 && (
+            <div className="mt-2 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={currentInventoryPage === 0}
+                onClick={() => setInventoryPage((page) => Math.max(0, page - 1))}
+                className="h-7 px-2 text-[10px]"
+              >
+                Anterior
+              </Button>
+              <span className="font-pixel text-[8px] uppercase">
+                Pagina {currentInventoryPage + 1}/{inventoryPageCount}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={currentInventoryPage >= inventoryPageCount - 1}
+                onClick={() => setInventoryPage((page) => Math.min(inventoryPageCount - 1, page + 1))}
+                className="h-7 px-2 text-[10px]"
+              >
+                Siguiente
+              </Button>
+            </div>
+          )}
+
+          <div className="hidden">
             <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</div>
             <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Duracion: 7 dias</div>
             <div className="demoniaco-inventory-meta rounded border border-[#8b6d46]/60 bg-black/20 p-2">Potenciadores: {totalBoosters}</div>
           </div>
 
-          <div className="demoniaco-inventory-meta mt-3 grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">STAT a F-coin</p>
-                <p className="text-[10px] text-muted-foreground">Convierte puntos STAT para apostar en juegos de azar multiplayer.</p>
-              </div>
-              <div className="flex gap-1">
-                <Input type="number" min="1" value={statToConvert} onChange={(e) => setStatToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
-                <Button size="sm" onClick={convertStatToFcoin} disabled={busy || !schemaReady} className="h-8 text-[10px]">
-                  <Coins className="h-3.5 w-3.5" /> Cambiar
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">F-coin a STAT</p>
-                <p className="text-[10px] text-muted-foreground">Retira F-coin del inventario. Cada 5 F-coin valen 1 punto STAT.</p>
-              </div>
-              <div className="flex gap-1">
-                <Input type="number" min="5" step="5" value={fcoinToConvert} onChange={(e) => setFcoinToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
-                <Button size="sm" onClick={convertFcoinToStat} disabled={busy || !schemaReady} className="h-8 text-[10px]">
-                  <ArrowLeftRight className="h-3.5 w-3.5" /> Retirar
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
 
+        <div className="equipment-panel rounded border border-border bg-card/80 p-3">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="equipment-title flex items-center gap-2 font-pixel text-[10px] uppercase text-[#f7d28b]">
+              <Swords className="h-4 w-4" />
+              Equipamiento
+            </h3>
+            <span className="font-pixel text-[8px] text-muted-foreground">{activeSkinEntries.length}/5</span>
+          </div>
+          <div className="equipment-star relative mx-auto aspect-square w-full max-w-[320px] xl:max-w-[min(38vw,360px)]">
+            {Array.from({ length: 5 }).map((_, index) => {
+              const entry = activeSkinEntries[index];
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  className={cn(
+                    "demoniaco-item-frame equipment-slot absolute grid aspect-square w-[31%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-sm border bg-[#1b140f] text-left transition-colors",
+                    entry ? "border-neon-green/60 bg-neon-green/10" : "border-border/70 bg-black/35",
+                  )}
+                  style={{
+                    left: ["50%", "84%", "71%", "29%", "16%"][index],
+                    top: ["17%", "40%", "78%", "78%", "40%"][index],
+                  }}
+                  title={entry ? `${entry.skinType}: ${entry.skin.name}` : "Slot de equipamiento"}
+                  onClick={() => entry && handleDeactivateSkin(entry.skinType)}
+                >
+                  {entry ? (
+                    <>
+                      <span className="equipment-remove-marker absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-sm border border-red-400/60 bg-black/75 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
+                        <XIcon className="h-2.5 w-2.5" />
+                      </span>
+                      <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                      <span className="absolute bottom-0.5 left-1 right-1 truncate text-center font-pixel text-[5px] uppercase text-neon-green">{entry.skinType}</span>
+                    </>
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div className="demoniaco-inventory-conversion-panel demoniaco-inventory-meta grid gap-2 rounded border border-[#8b6d46]/60 bg-black/25 p-2 lg:grid-cols-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">STAT a F-coin</p>
+            <p className="text-[10px] text-muted-foreground">Convierte puntos STAT para apostar en juegos de azar multiplayer.</p>
+          </div>
+          <div className="flex gap-1">
+            <Input type="number" min="1" value={statToConvert} onChange={(e) => setStatToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
+            <Button size="sm" onClick={convertStatToFcoin} disabled={busy || !schemaReady} className="h-8 text-[10px]">
+              <Coins className="h-3.5 w-3.5" /> Cambiar
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="font-pixel text-[8px] uppercase text-[#f7d28b]">F-coin a STAT</p>
+            <p className="text-[10px] text-muted-foreground">Retira F-coin del inventario. Cada 5 F-coin valen 1 punto STAT.</p>
+          </div>
+          <div className="flex gap-1">
+            <Input type="number" min="5" step="5" value={fcoinToConvert} onChange={(e) => setFcoinToConvert(e.target.value)} className="h-8 w-24 bg-[#1b140f] text-xs" />
+            <Button size="sm" onClick={convertFcoinToStat} disabled={busy || !schemaReady} className="h-8 text-[10px]">
+              <ArrowLeftRight className="h-3.5 w-3.5" /> Retirar
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="demoniaco-trade-panel rounded border border-neon-cyan/30 bg-card p-4">
           <h3 className="font-pixel text-[10px] uppercase text-neon-cyan flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4" /> Trueque
@@ -1583,7 +1723,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                 ))}
               </div>
               <div className="mt-1 rounded border border-neon-cyan/20 bg-black/25 px-1.5 py-1 text-[9px] text-muted-foreground">
-                Tú: {Number(pointsToSend || 0).toLocaleString()} F-coin
+                TÃº: {Number(pointsToSend || 0).toLocaleString()} F-coin
               </div>
             </div>
             <div className="demoniaco-trade-box rounded border border-neon-magenta/25 bg-black/25 p-1.5">
@@ -1640,12 +1780,40 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           )}
         </div>
 
-        <div className="demoniaco-sell-panel rounded border border-red-500/30 bg-card p-4">
+        <div className="demoniaco-offers-panel rounded border border-border bg-card p-4">
+          <h3 className="font-pixel text-[10px] uppercase text-muted-foreground">Ofertas recientes</h3>
+          {offers.length === 0 ? (
+            <p className="mt-3 text-center text-xs text-muted-foreground">Sin trueques activos.</p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {offers.map((offer) => {
+                const incoming = offer.receiver_id === userId;
+                return (
+                  <div key={offer.id} className="flex flex-col gap-2 rounded border border-border/60 bg-muted/20 p-3 text-xs">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-pixel text-[8px] uppercase text-foreground">{incoming ? "Recibida" : "Enviada"} - {offer.status}</p>
+                      <p className="text-muted-foreground">{Number(offer.points || 0).toLocaleString()} F-coin + {offer.boosters || 0} potenciadores</p>
+                      {offer.note && <p className="truncate text-[10px] text-muted-foreground">{offer.note}</p>}
+                    </div>
+                    {incoming && offer.status === "pending" && (
+                      <Button size="sm" onClick={() => answerOffer(offer.id, "accept")} disabled={busy} className="h-7 text-[10px]">Aceptar</Button>
+                    )}
+                    {!incoming && offer.status === "pending" && (
+                      <Button size="sm" variant="outline" onClick={() => answerOffer(offer.id, "cancel")} disabled={busy} className="h-7 text-[10px]">Cancelar</Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden">
           <h3 className="font-pixel text-[10px] uppercase text-red-400 flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" /> Vender (50% cashback)
           </h3>
           <p className="mt-1 text-[9px] text-muted-foreground font-body leading-tight">
-            Arrastra aquí los items de la tienda que ya no quieras para recuperar la mitad de su valor.
+            Arrastra aquÃ­ los items de la tienda que ya no quieras para recuperar la mitad de su valor.
           </p>
           
           <div className="inventory-slot-grid mt-3 grid grid-cols-[repeat(auto-fit,minmax(54px,72px))] justify-start gap-1.5 rounded border border-red-500/20 bg-black/40 p-2 sm:grid-cols-[repeat(4,minmax(54px,72px))]">
@@ -1681,18 +1849,18 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           })()}
 
           <Button 
-            onClick={handleSellItems} 
+            onClick={() => handleSellItems(sellSlots)} 
             disabled={busy || !sellSlots.some(Boolean)} 
             variant="destructive"
             className="mt-3 w-full h-8 text-[9px] font-pixel shadow-[0_0_15px_rgba(239,68,68,0.2)]"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5 mr-1" />}
-            VENDER SELECCIÓN
+            VENDER SELECCIÃ“N
           </Button>
         </div>
       </div>
 
-      <div className="rounded border border-border bg-card p-4">
+      <div className="hidden">
         <h3 className="font-pixel text-[10px] uppercase text-muted-foreground">Ofertas recientes</h3>
         {offers.length === 0 ? (
           <p className="mt-3 text-center text-xs text-muted-foreground">Sin trueques activos.</p>
@@ -1720,17 +1888,24 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         )}
       </div>
 
-      {contextMenu && (
+      {contextMenu && typeof document !== "undefined" && createPortal((
         <div
-          className="fixed z-[600] w-40 overflow-hidden rounded border border-[#d6b16f]/70 bg-[#1b140f] p-1 text-xs shadow-2xl shadow-black/70"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          className="fixed z-[600] w-44 overflow-hidden rounded border border-[#d6b16f]/70 bg-[#1b140f] p-1 text-xs shadow-2xl shadow-black/70"
+          style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
           onClick={(event) => event.stopPropagation()}
         >
           <button
             className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={() => sendStackToTrade(contextMenu.slot)}
           >
-            Tradear stack
+            Tradear item
+          </button>
+          <button
+            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-red-200 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={busy || !canSellItem(contextMenu.item)}
+            onClick={() => handleSellItems([contextMenu.item], contextMenu.slot)}
+          >
+            <DollarSign className="h-3 w-3" /> Vender item
           </button>
           {isSkinItem(contextMenu.item) && (
             <>
@@ -1788,7 +1963,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             <Trash2 className="h-3 w-3" /> Desechar
           </button>
         </div>
-      )}
+      ), document.body)}
 
       {discardTarget && (
         <div className="fixed inset-0 z-[620] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
