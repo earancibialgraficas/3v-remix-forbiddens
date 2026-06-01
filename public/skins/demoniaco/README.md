@@ -16,6 +16,8 @@ La idea de este paquete es que una skin futura pueda copiar esta estructura, cam
 - Ese asset se aplica desde `src/styles/skin-styles.css` sobre `.desktop-launcher-titlebar`.
 - Al crear otra skin, reemplaza `frames/barra-launcher.svg` por la textura equivalente y conserva el nombre para evitar tocar el CSS base.
 - El `viewBox` debe recortar solo la franja visible de la barra. Si el SVG exporta mucho espacio transparente alrededor, la textura parecera no cargar.
+- En CSS, la barra usa `background-size: cover` para llenar todo el launcher sin deformar la imagen. Es normal que recorte un poco los extremos si la proporcion no coincide.
+- Cuando se reemplace este asset, subir el query string de cache, por ejemplo `barra-launcher.svg?v=YYYYMMDDx`, para que el WebView del launcher no conserve la version anterior.
 - Si la barra nueva tiene mucho detalle, conviene mantenerla como SVG o PNG ancho y probarla en el launcher maximizado y ventana normal.
 
 ## Estructura

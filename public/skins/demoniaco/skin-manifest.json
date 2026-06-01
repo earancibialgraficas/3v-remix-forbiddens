@@ -77,6 +77,8 @@
   "implementationRules": [
     "Mantener los nombres de assets cuando se duplique esta carpeta para otra skin.",
     "La barra superior del launcher debe conservar la ruta frames/barra-launcher.svg y se aplica sobre .desktop-launcher-titlebar.",
+    "Para la barra del launcher, recortar el viewBox al arte visible y usar background-size cover para llenar la barra sin deformar.",
+    "Cada reemplazo de la barra del launcher debe subir el query string de cache en CSS y preload para evitar cache viejo del WebView.",
     "Definir colores base en src/lib/skinThemes.ts antes de agregar CSS especifico.",
     "Usar primary para titulos/iconos activos, text para lectura normal y textMuted para metadata.",
     "Evitar bordes solidos en paneles importantes; preferir marcos, esquinas, separadores y texturas.",
