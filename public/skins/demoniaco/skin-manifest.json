@@ -29,8 +29,8 @@
   },
   "assetContract": {
     "background": {
-      "main": "backgrounds/main-bg.jpg",
       "site": "backgrounds/solid/hellscape-castle.png",
+      "heroDragon": "backgrounds/solid/hellscape-dragon-wide.png",
       "profileBanner": "backgrounds/solid/profile-banner.png",
       "surfaceWide": "backgrounds/solid/basalt-wide.png",
       "surfaceTall": "backgrounds/solid/basalt-tall.png",

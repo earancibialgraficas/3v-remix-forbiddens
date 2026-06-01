@@ -14,9 +14,9 @@ La idea de este paquete es que una skin futura pueda copiar esta estructura, cam
 
 ```txt
 backgrounds/
-  main-bg.jpg
   solid/
     hellscape-castle.png
+    hellscape-dragon-wide.png
     profile-banner.png
     basalt-wide.png
     basalt-tall.png
@@ -36,18 +36,32 @@ forum-sidebar/
 frames/
   avatar-ring-trim.png
   avatar-square-frame.png
+  corner-*-trim.png
+  frame-edge-v1-trim.png
+  frame-edge-v1-trim-vertical.png
   frame-edge-v2-trim.png
   frame-edge-v2-trim-vertical.png
+  frame-edge-v3-trim.png
+  frame-edge-v3-trim-vertical.png
+  marco-arriba-izquierda.png
+  marco-arriba-derecha.png
+  marco-abajo-derecha.png
+  marco-abajo-izquierda.png
   marco-arriba-izquierda.svg
   marco-arriba-derecha.svg
   marco-abajo-derecha.svg
   marco-abajo-izquierda.svg
+  separator-t.png
+  separator-t-inverted.png
   separador-en-forma-de-T.svg
   separador-en-forma-de-T-invertido.svg
   barra-launcher.svg
 
 home/
   banner-hero.png
+
+panels/
+  panel-frame.png
 
 slots/
   slot-frame.png
