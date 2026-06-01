@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign, Swords } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign, Swords, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -816,7 +816,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? <video src={getProfileTransition(item.item_slug)?.thumbnailUrl} muted playsInline preload="metadata" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <Flame className={className} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1633,7 +1633,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                             item={item}
                             className={cn(
                               item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
-                              isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                              isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
                             )}
                           />
                         </div>
@@ -1727,7 +1727,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       {entry.kind === "avatar_frame" ? (
                         <img src={getAvatarFrame(entry.slug)?.thumbnailUrl} alt="" className="h-[86%] w-[86%] object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
                       ) : entry.kind === "profile_transition" ? (
-                        <video src={getProfileTransition(entry.slug)?.thumbnailUrl} muted playsInline preload="metadata" className="h-[76%] w-[76%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
+                        <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
                       ) : entry.slug === "demoniaco" ? (
                         <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (

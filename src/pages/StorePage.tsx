@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive } from "lucide-react";
+import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
-import { PROFILE_TRANSITION_SHOP_ITEMS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
+import { PROFILE_TRANSITION_SHOP_ITEMS, isProfileTransitionSlug } from "@/lib/profileTransitions";
 
 interface ShopItem {
   id: string;
@@ -241,7 +241,7 @@ export default function StorePage() {
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? <video src={getProfileTransition(item.slug)?.thumbnailUrl} muted playsInline preload="metadata" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <Flame className={className} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -476,7 +476,7 @@ export default function StorePage() {
                           "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]",
                           item.slug === "demoniaco" ? "h-full w-full" : visual.icon,
                           isAvatarFrameItem(item) && "h-full w-full p-1",
-                          isProfileTransitionItem(item) && "h-full w-full",
+                          isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
                         )}
                       />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
