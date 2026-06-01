@@ -2888,7 +2888,7 @@ html[style*="--skin-slug: demoniaco"] .desktop-launcher-titlebar {
   overflow: hidden;
   border-bottom-color: rgba(226, 80, 61, 0.28) !important;
   background:
-    linear-gradient(180deg, rgba(5, 2, 2, 0.74), rgba(3, 1, 1, 0.9)),
+    linear-gradient(180deg, rgba(5, 2, 2, 0.28), rgba(3, 1, 1, 0.52)),
     url('/skins/demoniaco/frames/barra-launcher.svg?v=20260601') center / 100% 100% no-repeat,
     #050202 !important;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.58), inset 0 -1px 0 rgba(255, 70, 38, 0.18) !important;
