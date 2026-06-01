@@ -62,7 +62,6 @@
       "activeMarker": "tabs/dragon-head.png"
     },
     "sidebar": {
-      "texture": "textures/sidebar.png",
       "toggleNormal": "forum-sidebar/toggle-normal.png",
       "toggleHover": "forum-sidebar/toggle-hover.png",
       "toggleSelected": "forum-sidebar/toggle-selected.png"

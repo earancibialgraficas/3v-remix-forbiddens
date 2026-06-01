@@ -9,7 +9,7 @@ import InstallAppButton from "@/components/InstallAppButton";
 import VaultHint from "@/components/VaultHint";
 
 const launcherDownloadUrl = import.meta.env.VITE_LAUNCHER_DOWNLOAD_URL
-  || "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.8_x64-setup.exe";
+  || "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.9_x64-setup.exe";
 
 export default function HeroSection() {
   const { user } = useAuth();

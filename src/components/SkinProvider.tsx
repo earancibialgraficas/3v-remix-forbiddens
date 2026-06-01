@@ -1,29 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUserActiveSkin } from '@/hooks/useUserActiveSkin';
-import { generateThemeCSS } from '@/lib/skinThemes';
+import { clearSkinThemeSource, setSkinThemeSource } from '@/lib/skinDom';
 
 interface SkinProviderProps {
   userId?: string;
   skinType?: 'launcher' | 'agario' | 'game';
 }
-
-const DEMONIACO_PRELOAD_ASSETS = [
-  '/skins/demoniaco/backgrounds/solid/window-rock.png',
-  '/skins/demoniaco/backgrounds/solid/profile-banner.png',
-  '/skins/demoniaco/frames/avatar-ring-trim.png',
-  '/skins/demoniaco/frames/frame-edge-v2-trim.png',
-  '/skins/demoniaco/equipment/equipment-star.png',
-  '/skins/demoniaco/slots/slot-hover.png',
-];
-
-const preloadSkinAssets = (slug?: string) => {
-  if (typeof window === 'undefined' || slug !== 'demoniaco') return;
-  DEMONIACO_PRELOAD_ASSETS.forEach((src) => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.src = src;
-  });
-};
 
 /**
  * Componente que aplica dinámicamente una skin a través de CSS variables
@@ -31,30 +13,14 @@ const preloadSkinAssets = (slug?: string) => {
  */
 export function SkinProvider({ userId, skinType = 'launcher' }: SkinProviderProps) {
   const { activeSkin, loading } = useUserActiveSkin(userId, skinType);
+  const sourceIdRef = useRef(`page:${skinType}:${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
-    const root = document.documentElement;
-
-    if (loading) return;
-
-    if (!activeSkin) {
-      return;
+    if (!loading) {
+      setSkinThemeSource(sourceIdRef.current, activeSkin, 1);
     }
-
-    const previousStyle = root.getAttribute('style') || '';
-    // Generar CSS variables solo cuando hay skin activa
-    const cssVariables = generateThemeCSS(activeSkin);
-    preloadSkinAssets(activeSkin.slug);
-    const cleanedStyle = previousStyle.replace(/--skin-[^:]+:[^;]+;?/g, '').trim();
-    const newStyle = `${cssVariables}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
-    root.setAttribute('style', newStyle);
-
     return () => {
-      if (previousStyle) {
-        root.setAttribute('style', previousStyle);
-      } else {
-        root.removeAttribute('style');
-      }
+      clearSkinThemeSource(sourceIdRef.current);
     };
   }, [activeSkin, loading]);
 

@@ -62,7 +62,6 @@ tabs/
 
 textures/
   lava-overlay.jpg
-  sidebar.png
 ```
 
 ## Contrato de nombres
@@ -248,4 +247,3 @@ npm.cmd run build
 - Los marcos SVG deben venir sin borde blanco desde el asset.
 - Si una textura tarda, agregala a preload en `SkinContext.tsx`.
 - Las imagenes repetidas deben vivir en `public/skins/{slug}` y no cargarse desde rutas externas.
-
