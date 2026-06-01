@@ -10,6 +10,13 @@ public/skins/demoniaco
 
 La idea de este paquete es que una skin futura pueda copiar esta estructura, cambiar texturas/imagenes manteniendo nombres equivalentes, y luego ajustar los colores en `src/lib/skinThemes.ts` y los overrides especificos en `src/styles/skin-styles.css`.
 
+## Actualizaciones recientes
+
+- La barra superior del launcher usa `frames/barra-launcher.svg`.
+- Ese asset se aplica desde `src/styles/skin-styles.css` sobre `.desktop-launcher-titlebar`.
+- Al crear otra skin, reemplaza `frames/barra-launcher.svg` por la textura equivalente y conserva el nombre para evitar tocar el CSS base.
+- Si la barra nueva tiene mucho detalle, conviene mantenerla como SVG o PNG ancho y probarla en el launcher maximizado y ventana normal.
+
 ## Estructura
 
 ```txt
@@ -215,7 +222,7 @@ Partes importantes que tienen tratamiento especial:
 - Trueque y ofertas recientes: `demoniaco-trade-panel`, `demoniaco-offers-panel`.
 - Rightbar: `right-panel-card`, `right-panel-footer-section`, `right-panel-discord-button`.
 - Public profile player: `public-profile-music-player`, `public-profile-video-layer`, `public-profile-playlist-popover`.
-- Launcher titlebar: `desktop-launcher-titlebar`, `barra-launcher.svg`.
+- Launcher titlebar: `desktop-launcher-titlebar`, `frames/barra-launcher.svg`.
 - Forum sidebar: `forum-sidebar/toggle-*.png`.
 - Store e inventario: `store/thumbnail.png`.
 

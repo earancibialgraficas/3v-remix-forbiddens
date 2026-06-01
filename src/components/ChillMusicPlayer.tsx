@@ -100,6 +100,26 @@ const getYoutubeId = (url: string) => {
   return "";
 };
 
+const normalizeSavedYoutubeSong = (song: any): Song | null => {
+  const url = typeof song?.url === "string" ? song.url.trim() : "";
+  const youtubeId = getYoutubeId(url);
+  if (!url || !youtubeId) return null;
+
+  return {
+    id: youtubeId,
+    title: typeof song?.title === "string" && song.title.trim() ? song.title.trim() : `YouTube ${youtubeId}`,
+    url,
+    type: "youtube",
+    category: typeof song?.category === "string" && song.category.trim() ? song.category.trim() : "Custom",
+  };
+};
+
+const normalizeSavedYoutubeSongs = (songs: unknown): Song[] => (
+  Array.isArray(songs)
+    ? songs.map(normalizeSavedYoutubeSong).filter((song): song is Song => Boolean(song))
+    : []
+);
+
 const fetchYoutubeTitle = async (url: string) => {
   for (const endpoint of [
     `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
@@ -389,14 +409,14 @@ export default function ChillMusicPlayer() {
       const playlists = (data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
-        songs: Array.isArray(row.songs) ? row.songs : [],
-      }));
+        songs: normalizeSavedYoutubeSongs(row.songs),
+      })).filter((playlist: SavedPlaylist) => playlist.songs.length > 0);
       setSavedPlaylists(playlists);
       const savedSession = readMusicSession();
       const shouldRestorePersonal = savedSession?.personalPlaylistId && savedSession?.personalPlaylistId !== activePersonalPlaylistId;
       if (shouldRestorePersonal) {
-        const saved = (data || []).find((row: any) => row.id === savedSession.personalPlaylistId);
-        const songs = Array.isArray(saved?.songs) ? saved.songs : [];
+        const saved = playlists.find((row: SavedPlaylist) => row.id === savedSession.personalPlaylistId);
+        const songs = saved?.songs || [];
         if (saved && songs.length) {
           setPlaylist(songs);
           setCurrentCategory(saved.name);
@@ -629,6 +649,8 @@ export default function ChillMusicPlayer() {
 
   const serializeYoutubeSongs = (songs: Song[]) => songs
     .filter((song) => song.type === "youtube")
+    .map(normalizeSavedYoutubeSong)
+    .filter((song): song is Song => Boolean(song))
     .map((song) => ({
       id: song.id,
       title: song.title,
@@ -906,12 +928,14 @@ export default function ChillMusicPlayer() {
   };
 
   const loadPersonalPlaylist = (saved: SavedPlaylist) => {
+    const songs = normalizeSavedYoutubeSongs(saved.songs);
+    if (!songs.length) return;
     const savedSession = readMusicSession();
     const shouldResume = savedSession?.personalPlaylistId === saved.id;
-    const restoreIndex = shouldResume ? findSongIndex(saved.songs, savedSession.songKey, Number(savedSession.index || 0)) : 0;
+    const restoreIndex = shouldResume ? findSongIndex(songs, savedSession.songKey, Number(savedSession.index || 0)) : 0;
     const restoreTime = shouldResume ? Math.max(0, Number(savedSession.time || 0)) : 0;
     const restoreVolume = shouldResume ? clampVolume(savedSession.volume, volume) : volume;
-    setPlaylist(saved.songs);
+    setPlaylist(songs);
     setCurrentCategory(saved.name);
     setActivePersonalPlaylistId(saved.id);
     setCurrentIndex(restoreIndex);
@@ -927,10 +951,10 @@ export default function ChillMusicPlayer() {
       personalPlaylistId: saved.id,
       playlistName: saved.name,
       index: restoreIndex,
-      songKey: saved.songs[restoreIndex] ? getSongOrderKey(saved.songs[restoreIndex]) : "",
+      songKey: songs[restoreIndex] ? getSongOrderKey(songs[restoreIndex]) : "",
       time: restoreTime,
       volume: restoreVolume,
-      playing: shouldResume ? Boolean(savedSession.playing) : saved.songs.length > 0,
+      playing: shouldResume ? Boolean(savedSession.playing) : songs.length > 0,
     });
   };
 
@@ -1021,15 +1045,34 @@ export default function ChillMusicPlayer() {
 
   const displayTime = isSeeking ? seekDisplayValue : currentTime;
   const sliderMax = duration > 0 && isFinite(duration) ? duration : 1;
+  const currentYoutubeId = current?.type === 'youtube' ? getYoutubeId(current.url) : "";
 
-  const renderYT = current?.type === 'youtube' ? (
+  const syncYoutubePlayer = () => {
+    const playerWindow = iframeRef.current?.contentWindow;
+    if (!playerWindow) return;
+    playerWindow.postMessage(
+      JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }), '*'
+    );
+    playerWindow.postMessage(
+      JSON.stringify({ event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo' }), '*'
+    );
+    if (timeToRestoreRef.current !== null) {
+      playerWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'seekTo', args: [timeToRestoreRef.current, true] }), '*'
+      );
+      timeToRestoreRef.current = null;
+    }
+  };
+
+  const renderYT = currentYoutubeId ? (
     <iframe
       ref={iframeRef}
-      key={`yt-${current.id}`}
-      src={`https://www.youtube.com/embed/${current.id}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&origin=${encodeURIComponent(window.location.origin)}`}
+      key={`yt-${currentYoutubeId}`}
+      src={`https://www.youtube.com/embed/${currentYoutubeId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}&origin=${encodeURIComponent(window.location.origin)}`}
       className="w-0 h-0 absolute pointer-events-none"
       allow="autoplay"
       title="Chill Music"
+      onLoad={() => window.setTimeout(syncYoutubePlayer, 180)}
     />
   ) : null;
 

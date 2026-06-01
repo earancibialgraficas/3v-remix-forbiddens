@@ -76,6 +76,7 @@
   },
   "implementationRules": [
     "Mantener los nombres de assets cuando se duplique esta carpeta para otra skin.",
+    "La barra superior del launcher debe conservar la ruta frames/barra-launcher.svg y se aplica sobre .desktop-launcher-titlebar.",
     "Definir colores base en src/lib/skinThemes.ts antes de agregar CSS especifico.",
     "Usar primary para titulos/iconos activos, text para lectura normal y textMuted para metadata.",
     "Evitar bordes solidos en paneles importantes; preferir marcos, esquinas, separadores y texturas.",
