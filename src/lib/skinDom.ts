@@ -18,7 +18,7 @@ const DEMONIACO_PRELOAD_ASSETS = [
   '/skins/demoniaco/frames/avatar-ring-trim.png',
   '/skins/demoniaco/frames/frame-edge-v2-trim.png',
   '/skins/demoniaco/frames/frame-edge-v2-trim-vertical.png',
-  '/skins/demoniaco/frames/barra-launcher.svg?v=20260601',
+  '/skins/demoniaco/frames/barra-launcher.svg?v=20260601b',
   '/skins/demoniaco/frames/marco-arriba-izquierda.svg',
   '/skins/demoniaco/frames/marco-arriba-derecha.svg',
   '/skins/demoniaco/frames/marco-abajo-derecha.svg',
