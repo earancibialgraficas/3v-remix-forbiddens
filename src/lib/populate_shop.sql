@@ -41,6 +41,70 @@ ON CONFLICT (slug) DO UPDATE SET
   tier_requirement = EXCLUDED.tier_requirement,
   image_url = EXCLUDED.image_url;
 
+-- Marcos de avatar personalizables
+INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
+VALUES
+  (
+    'princess_rose_01',
+    'Marco Princesa Rosa I',
+    'Marco rosa ornamental para tu avatar.',
+    2000,
+    'stats',
+    'avatar_frame',
+    'lite',
+    '/avatar-frames/princess-rose-01/frame.svg'
+  ),
+  (
+    'princess_rose_02',
+    'Marco Princesa Rosa II',
+    'Variante rosa brillante para destacar tu perfil.',
+    2000,
+    'stats',
+    'avatar_frame',
+    'lite',
+    '/avatar-frames/princess-rose-02/frame.svg'
+  ),
+  (
+    'princess_rose_03',
+    'Marco Princesa Rosa III',
+    'Marco rosa elegante con presencia de tienda premium.',
+    2000,
+    'stats',
+    'avatar_frame',
+    'lite',
+    '/avatar-frames/princess-rose-03/frame.svg'
+  )
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
+
+-- Transiciones de perfil
+INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
+VALUES
+  (
+    'fuego_infernal',
+    'Transicion Fuego Infernal',
+    'Intro de fuego con sonido para presentar tu perfil.',
+    5000,
+    'fcoins',
+    'cosmetic',
+    'novato',
+    '/cosmetics/transitions/fuego/fuego-infernal.mp4'
+  )
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
+
 -- Ejemplo de otros items que puedes agregar:
 -- 📦 Cofres de Juegos
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)

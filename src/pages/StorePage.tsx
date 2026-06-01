@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ALL_SKINS } from "@/lib/skinThemes";
+import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { PROFILE_TRANSITION_SHOP_ITEMS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 
 interface ShopItem {
   id: string;
@@ -15,7 +17,7 @@ interface ShopItem {
   price: number;
   price_type: 'stats' | 'fcoins';
   image_url: string;
-  category: 'launcher_skin' | 'agario_skin' | 'game_chest' | 'cosmetic';
+  category: 'launcher_skin' | 'agario_skin' | 'game_chest' | 'cosmetic' | string;
   tier_requirement: string;
   is_active: boolean;
   tradeable: boolean;
@@ -66,6 +68,20 @@ const shopVisuals = {
     badge: "FX",
     background:
       "radial-gradient(circle at 70% 25%, rgba(217,70,239,.35), transparent 28%), linear-gradient(135deg, #321437, #111018)",
+  },
+  avatar_frame: {
+    frame: "border-pink-300/80 bg-[#3a1730]",
+    icon: "text-pink-100",
+    badge: "FRAME",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(255,182,217,.34), transparent 34%), linear-gradient(135deg, #3a1730, #170712)",
+  },
+  profile_transition: {
+    frame: "border-orange-400/70 bg-[#2b1006]",
+    icon: "text-orange-200",
+    badge: "INTRO",
+    background:
+      "radial-gradient(circle at center, rgba(255,84,18,.28), rgba(8,4,2,.92)), linear-gradient(135deg, #2b1006, #090403)",
   },
   ticket: {
     frame: "border-sky-300/70 bg-[#102b3a]",
@@ -122,7 +138,20 @@ export default function StorePage() {
           .order('price', { ascending: true });
 
         if (!itemsError && items) {
-          setShopItems(items);
+          const mergedItems = [...items];
+          AVATAR_FRAME_SHOP_ITEMS.forEach((frameItem) => {
+            if (!mergedItems.some((item: ShopItem) => item.slug === frameItem.slug)) {
+              mergedItems.push(frameItem as ShopItem);
+            }
+          });
+          PROFILE_TRANSITION_SHOP_ITEMS.forEach((transitionItem) => {
+            if (!mergedItems.some((item: ShopItem) => item.slug === transitionItem.slug)) {
+              mergedItems.push(transitionItem as ShopItem);
+            }
+          });
+          setShopItems(mergedItems);
+        } else {
+          setShopItems([...AVATAR_FRAME_SHOP_ITEMS, ...PROFILE_TRANSITION_SHOP_ITEMS] as ShopItem[]);
         }
 
         // Obtener inventario del usuario
@@ -175,7 +204,7 @@ export default function StorePage() {
     // Verificar permisos específicos por tier
     if (userTier === 'novato') {
       // Novatos solo pueden comprar recolors (stats)
-      return item.price_type === 'stats' && item.category === 'cosmetic';
+      return isProfileTransitionSlug(item.slug) || (item.price_type === 'stats' && item.category === 'cosmetic');
     }
 
     if (userTier === 'lite') {
@@ -191,9 +220,13 @@ export default function StorePage() {
   const isEventTicketItem = (item: ShopItem) => String(item?.slug || "").startsWith("event_ticket:");
   const isMembershipItem = (item: ShopItem) => String(item?.slug || "").startsWith("membership:");
   const isSkinItem = (item: ShopItem) => item?.slug && (ALL_SKINS as any)[item.slug];
-  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco";
+  const isAvatarFrameItem = (item: ShopItem) => isAvatarFrameSlug(item?.slug);
+  const isProfileTransitionItem = (item: ShopItem) => isProfileTransitionSlug(item?.slug);
+  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item);
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
+    if (isAvatarFrameItem(item)) return shopVisuals.avatar_frame;
+    if (isProfileTransitionItem(item)) return shopVisuals.profile_transition;
     if (isMembershipItem(item)) return shopVisuals.membership;
     if (isEventTicketItem(item)) return shopVisuals.ticket;
     if (item.category === "game_chest") return shopVisuals.game_chest;
@@ -205,6 +238,10 @@ export default function StorePage() {
   const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
     item.slug === "demoniaco"
       ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      : isAvatarFrameItem(item)
+      ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
+      : isProfileTransitionItem(item)
+      ? <video src={getProfileTransition(item.slug)?.thumbnailUrl} muted playsInline preload="metadata" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -225,7 +262,7 @@ export default function StorePage() {
     if (!isReadyItem(item)) {
       toast({
         title: "Item en desarrollo",
-        description: "Por ahora solo la Skin Demoniaco esta lista para comprar.",
+        description: "Por ahora solo la Skin Demoniaco, los marcos de avatar y la transicion de perfil estan listos para comprar.",
         variant: "destructive",
       });
       return;
@@ -310,11 +347,15 @@ export default function StorePage() {
     cosmetic: '✨ Cosméticos',
   };
 
-  const categories = ['all', 'launcher_skin', 'agario_skin', 'game_chest', 'cosmetic'];
+  categoryLabels.avatar_frame = 'Marcos Avatar';
+
+  const categories = ['all', 'launcher_skin', 'avatar_frame', 'agario_skin', 'game_chest', 'cosmetic'];
 
   const filteredItems = selectedCategory === 'all' 
     ? shopItems 
-    : shopItems.filter(item => item.category === selectedCategory);
+    : selectedCategory === 'avatar_frame'
+      ? shopItems.filter(item => isAvatarFrameSlug(item.slug))
+      : shopItems.filter(item => item.category === selectedCategory && !isAvatarFrameSlug(item.slug));
 
   if (loading) {
     return (
@@ -344,29 +385,29 @@ export default function StorePage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <ShoppingBag className="w-8 h-8 text-neon-cyan" />
-            <h1 className="font-pixel text-3xl text-neon-cyan">TIENDA</h1>
+            <ShoppingBag className="w-7 h-7 text-neon-cyan" />
+            <h1 className="font-pixel text-2xl text-neon-cyan">TIENDA</h1>
           </div>
-          <p className="text-muted-foreground">Compra skins, cofres y cosméticos con STATS o F-COINS</p>
+          <p className="text-sm text-muted-foreground">Compra skins, cofres y cosméticos con STATS o F-COINS</p>
         </div>
 
         {/* User Balance */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="bg-card border border-neon-green/50 rounded p-3">
-            <p className="text-xs text-muted-foreground">STATS</p>
-            <p className="font-pixel text-neon-green text-lg">{userStats.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">STATS</p>
+            <p className="font-pixel text-neon-green text-sm">{userStats.toLocaleString()}</p>
           </div>
           <div className="bg-card border border-neon-cyan/50 rounded p-3">
-            <p className="text-xs text-muted-foreground">F-COINS</p>
-            <p className="font-pixel text-neon-cyan text-lg">{userFCoins.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">F-COINS</p>
+            <p className="font-pixel text-neon-cyan text-sm">{userFCoins.toLocaleString()}</p>
           </div>
           <div className="bg-card border border-neon-yellow/50 rounded p-3">
-            <p className="text-xs text-muted-foreground">TIER</p>
-            <p className="font-pixel text-neon-yellow text-lg">{userTier.toUpperCase()}</p>
+            <p className="text-[10px] text-muted-foreground">TIER</p>
+            <p className="font-pixel text-neon-yellow text-sm">{userTier.toUpperCase()}</p>
           </div>
           <div className="bg-card border border-border rounded p-3">
-            <p className="text-xs text-muted-foreground">INVENTARIO</p>
-            <p className="font-pixel text-foreground text-lg">{userInventory.length}</p>
+            <p className="text-[10px] text-muted-foreground">INVENTARIO</p>
+            <p className="font-pixel text-foreground text-sm">{userInventory.length}</p>
           </div>
         </div>
 
@@ -377,7 +418,7 @@ export default function StorePage() {
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
-                "store-category-tab px-3 py-1.5 rounded text-sm whitespace-nowrap transition-all font-pixel",
+                "store-category-tab px-3 py-1.5 rounded text-[10px] whitespace-nowrap transition-all font-pixel",
                 selectedCategory === cat
                   ? "is-active bg-neon-cyan text-background"
                   : "bg-card border border-border hover:border-neon-cyan/50"
@@ -410,7 +451,7 @@ export default function StorePage() {
                 )}
                 style={{ background: visual.background }}>
                   {/* Imagen de fondo si existe */}
-                  {item.slug !== "demoniaco" && item.image_url && (
+                  {item.slug !== "demoniaco" && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
@@ -424,16 +465,26 @@ export default function StorePage() {
                     <div className={cn(
                       "demoniaco-item-frame relative grid h-16 w-16 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_18px_rgba(0,0,0,.45)]",
                       item.slug === "demoniaco" && "h-14 w-14 overflow-hidden",
+                      isAvatarFrameItem(item) && "h-20 w-20 border-pink-200/70 bg-black/15 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
+                      isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
                       visual.frame,
                     )}>
-                      {item.slug !== "demoniaco" && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
-                      <ItemIcon item={item} className={cn("relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]", item.slug === "demoniaco" ? "h-full w-full" : visual.icon)} />
+                      {item.slug !== "demoniaco" && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
+                      <ItemIcon
+                        item={item}
+                        className={cn(
+                          "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]",
+                          item.slug === "demoniaco" ? "h-full w-full" : visual.icon,
+                          isAvatarFrameItem(item) && "h-full w-full p-1",
+                          isProfileTransitionItem(item) && "h-full w-full",
+                        )}
+                      />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
                         {visual.badge}
                       </span>
                     </div>
                   </div>
-                  <div className="absolute left-2 top-2 max-w-[70%] truncate rounded border border-white/10 bg-black/55 px-2 py-1 font-pixel text-[8px] uppercase text-white/80">
+                  <div className="absolute left-2 top-2 max-w-[70%] truncate rounded border border-white/10 bg-black/55 px-2 py-1 font-pixel text-[7px] uppercase text-white/80">
                     {item.category.replace("_", " ")}
                   </div>
                   {!ready && (
@@ -448,20 +499,20 @@ export default function StorePage() {
                 {/* Info */}
                 <div className="p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-pixel text-sm text-foreground flex-1">{item.name}</h3>
+                    <h3 className="font-pixel text-[11px] leading-5 text-foreground flex-1">{item.name}</h3>
                     {item.tier_requirement !== 'novato' && (
-                      <span className="text-xs bg-neon-yellow/20 text-neon-yellow px-2 py-0.5 rounded">
+                      <span className="text-[9px] bg-neon-yellow/20 text-neon-yellow px-2 py-0.5 rounded">
                         {item.tier_requirement.toUpperCase()}
                       </span>
                     )}
                   </div>
 
                   {item.description && (
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                    <p className="text-[11px] leading-4 text-muted-foreground">{item.description}</p>
                   )}
                   {!ready && (
                     <p className="rounded border border-yellow-300/25 bg-yellow-300/10 px-2 py-1 text-[10px] text-yellow-100">
-                      Este item todavia no esta listo. Solo la Skin Demoniaco esta disponible por ahora.
+                      Este item todavia no esta listo. Solo la Skin Demoniaco, los marcos de avatar y la transicion de perfil estan disponibles por ahora.
                     </p>
                   )}
 
@@ -472,11 +523,11 @@ export default function StorePage() {
                       item.price_type === 'stats' ? "text-neon-green" : "text-neon-cyan"
                     )}>
                       {item.price_type === 'stats' ? <Zap className="w-3 h-3" /> : <Package className="w-3 h-3" />}
-                      <span className="font-pixel text-sm">{item.price.toLocaleString()}</span>
+                      <span className="font-pixel text-[11px]">{item.price.toLocaleString()}</span>
                     </div>
 
                     {isOwned && (
-                      <div className="ml-auto flex items-center gap-1 text-neon-green text-xs">
+                      <div className="ml-auto flex items-center gap-1 text-neon-green text-[10px]">
                         <Check className="w-3 h-3" />
                         Poseído
                       </div>
@@ -487,7 +538,7 @@ export default function StorePage() {
                   <Button
                     onClick={() => handleBuyItem(item)}
                     disabled={!canBuy}
-                    className="w-full h-7 text-xs font-pixel mt-2"
+                    className="w-full h-7 text-[10px] font-pixel mt-2"
                     variant={canBuy ? "default" : "outline"}
                   >
                     {!ready ? (

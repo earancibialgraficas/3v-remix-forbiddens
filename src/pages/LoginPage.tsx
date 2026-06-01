@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/forbiddens_logo.svg";
+import { requestLoginTransition } from "@/components/GlobalProfileTransitionPlayer";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,6 +25,7 @@ export default function LoginPage() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      requestLoginTransition();
       toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente" });
       // Navigate using router to avoid full reload issues on mobile
       navigate("/");

@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen, markInventoryItemIdsSeen } from "@/lib/inventorySeen";
 import { ALL_SKINS } from "@/lib/skinThemes";
+import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 
 interface InventoryTabProps {
   userId: string;
@@ -91,6 +93,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     [slotItems, visibleInventoryStart, inventorySlotsPerPage],
   );
   const activeSkinSlugs = useMemo(() => new Set(Object.values(activeSkins).filter(Boolean)), [activeSkins]);
+  const activeAvatarFrameSlug = activeSkins.avatar_frame;
+  const activeAvatarFrame = getAvatarFrame(activeAvatarFrameSlug);
+  const activeProfileTransitionSlug = activeSkins.profile_transition;
+  const activeProfileTransition = getProfileTransition(activeProfileTransitionSlug);
 
   useEffect(() => {
     if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
@@ -141,6 +147,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       const map: Record<string, { price: number, type: string }> = {};
       data.forEach((item: any) => {
         map[item.slug] = { price: item.price, type: item.price_type };
+      });
+      Object.values(AVATAR_FRAMES).forEach((frame) => {
+        if (!map[frame.slug]) map[frame.slug] = { price: frame.price, type: frame.priceType };
+      });
+      Object.values(PROFILE_TRANSITIONS).forEach((transition) => {
+        if (!map[transition.slug]) map[transition.slug] = { price: transition.price, type: transition.priceType };
       });
       setPriceMap(map);
     }
@@ -315,7 +327,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return [];
       }
     })();
-    const visibleBoosters = boosters.filter((item) => !(isSkinItem(item) && activeSkinSlugs.has(item.item_slug)));
+    const visibleBoosters = boosters.filter((item) => {
+      if (isSkinItem(item) && activeSkinSlugs.has(item.item_slug)) return false;
+      if (isAvatarFrameSlug(item.item_slug) && activeAvatarFrameSlug === item.item_slug) return false;
+      if (isProfileTransitionSlug(item.item_slug) && activeProfileTransitionSlug === item.item_slug) return false;
+      return true;
+    });
     const slotCount = Math.max(
       INVENTORY_PAGE_SIZE * INVENTORY_MIN_PAGES,
       Math.ceil(Math.max(visibleBoosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / INVENTORY_PAGE_SIZE) * INVENTORY_PAGE_SIZE,
@@ -368,7 +385,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
     cursorItemRef.current = null;
-  }, [activeSkinSlugs, boosters, userId]);
+  }, [activeAvatarFrameSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, userId]);
 
   const searchUsers = async () => {
     if (!recipientSearch.trim()) return;
@@ -780,6 +797,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isBoosterItem = (item: any) => item?.item_slug === "points_x3_week";
   const isEventTicketItem = (item: any) => String(item?.item_slug || "").startsWith("event_ticket:");
   const isMembershipItem = (item: any) => String(item?.item_slug || "").startsWith("membership:");
+  const isAvatarFrameItem = (item: any) => isAvatarFrameSlug(item?.item_slug);
+  const isProfileTransitionItem = (item: any) => isProfileTransitionSlug(item?.item_slug);
   const itemActiveUntil = (item: any) => item?.metadata?.active_until ? new Date(item.metadata.active_until).getTime() : 0;
   const itemIsActive = (item: any) => itemActiveUntil(item) > Date.now();
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
@@ -794,6 +813,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
     item?.item_slug === "demoniaco"
       ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      : isAvatarFrameItem(item)
+      ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
+      : isProfileTransitionItem(item)
+      ? <video src={getProfileTransition(item.item_slug)?.thumbnailUrl} muted playsInline preload="metadata" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1112,6 +1135,32 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const canSellItem = (item: any) => Boolean(item?.item_slug && priceMap[item.item_slug]);
 
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
+  const activeEquipmentEntries = useMemo(() => {
+    const skinEntries = Object.entries(activeSkins)
+      .filter(([skinType]) => skinType !== 'avatar_frame' && skinType !== 'profile_transition')
+      .map(([skinType, skinSlug]) => {
+        const skin = (ALL_SKINS as any)[skinSlug];
+        return skin ? { kind: 'skin' as const, skinType, slug: skinSlug, name: skin.name } : null;
+      })
+      .filter(Boolean) as { kind: 'skin'; skinType: string; slug: string; name: string }[];
+    if (activeAvatarFrame) {
+      skinEntries.push({
+        kind: 'avatar_frame',
+        skinType: 'avatar_frame',
+        slug: activeAvatarFrame.slug,
+        name: activeAvatarFrame.name,
+      });
+    }
+    if (activeProfileTransition) {
+      skinEntries.push({
+        kind: 'profile_transition',
+        skinType: 'profile_transition',
+        slug: activeProfileTransition.slug,
+        name: activeProfileTransition.name,
+      });
+    }
+    return skinEntries.slice(0, 5);
+  }, [activeAvatarFrame, activeProfileTransition, activeSkins]);
   const activeSkinEntries = useMemo(
     () => Object.entries(activeSkins)
       .map(([skinType, skinSlug]) => {
@@ -1179,10 +1228,91 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         return updated;
       });
       window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType, skinSlug: 'default' } }));
-      toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
+      if (skinType === 'avatar_frame') {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-avatar-frame-updated', { detail: { userId, frameSlug: null } }));
+        toast({ title: "Marco desequipado", description: "Tu avatar volvera al marco del tema activo." });
+      } else if (skinType === 'profile_transition') {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-profile-transition-updated', { detail: { userId, transitionSlug: null } }));
+        toast({ title: "Transicion desequipada", description: "Tu perfil ya no mostrara esta intro." });
+      } else {
+        toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
+      }
     } catch (err: any) {
       console.error('Error deactivating skin:', err);
       toast({ title: "Error", description: err?.message || "No se pudo desequipar", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleActivateAvatarFrame = async (frameSlug: string) => {
+    const frame = getAvatarFrame(frameSlug);
+    if (!frame) return;
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      const { data: existing } = await (supabase as any)
+        .from('user_active_skins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('skin_type', 'avatar_frame')
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .update({ skin_slug: frameSlug })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .insert({ user_id: userId, skin_type: 'avatar_frame', skin_slug: frameSlug });
+        if (error) throw error;
+      }
+
+      setActiveSkins((prev) => ({ ...prev, avatar_frame: frameSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-avatar-frame-updated', { detail: { userId, frameSlug } }));
+      toast({ title: "Marco equipado", description: `${frame.name} reemplazara el marco del tema en tu avatar.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo equipar el marco", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleActivateProfileTransition = async (transitionSlug: string) => {
+    const transition = getProfileTransition(transitionSlug);
+    if (!transition) return;
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      const { data: existing } = await (supabase as any)
+        .from('user_active_skins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('skin_type', 'profile_transition')
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .update({ skin_slug: transitionSlug })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .insert({ user_id: userId, skin_type: 'profile_transition', skin_slug: transitionSlug });
+        if (error) throw error;
+      }
+
+      setActiveSkins((prev) => ({ ...prev, profile_transition: transitionSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-profile-transition-updated', { detail: { userId, transitionSlug } }));
+      window.dispatchEvent(new CustomEvent('forbiddens:play-profile-transition', { detail: { slug: transitionSlug } }));
+      toast({ title: "Transicion equipada", description: `${transition.name} se reproducira en tu perfil publico.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo equipar la transicion", variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -1485,6 +1615,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         <div className={cn(
                           "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
                           item.item_slug === "demoniaco" && "inventory-demoniaco-thumbnail-card overflow-hidden border-red-500/70 bg-[#2a0906]",
+                          isAvatarFrameItem(item) && "overflow-hidden border-pink-300/70 bg-[#3a1730]",
+                          isProfileTransitionItem(item) && "overflow-hidden border-orange-300/70 bg-[#2b1006]",
                           isMembershipItem(item)
                             ? "border-neon-magenta/70 bg-[#4a235e]"
                             : isEventTicketItem(item)
@@ -1495,12 +1627,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
-                            item.item_slug === "demoniaco" && "hidden",
+                            (item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item)) && "hidden",
                           )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              item.item_slug === "demoniaco" ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
                             )}
                           />
@@ -1509,6 +1641,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
                         {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
                         {isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
+                        {isAvatarFrameItem(item) && activeAvatarFrameSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADO</span>}
+                        {isProfileTransitionItem(item) && activeProfileTransitionSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
 
                         {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
                         <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
@@ -1565,11 +1699,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
               <Swords className="h-4 w-4" />
               Equipamiento
             </h3>
-            <span className="font-pixel text-[8px] text-muted-foreground">{activeSkinEntries.length}/5</span>
+            <span className="font-pixel text-[8px] text-muted-foreground">{activeEquipmentEntries.length}/5</span>
           </div>
           <div className="equipment-star relative mx-auto aspect-square w-full max-w-[320px] xl:max-w-[min(38vw,360px)]">
             {Array.from({ length: 5 }).map((_, index) => {
-              const entry = activeSkinEntries[index];
+              const entry = activeEquipmentEntries[index];
               return (
                 <button
                   key={index}
@@ -1582,7 +1716,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                     left: ["50%", "84%", "71%", "29%", "16%"][index],
                     top: ["17%", "40%", "78%", "78%", "40%"][index],
                   }}
-                  title={entry ? `${entry.skinType}: ${entry.skin.name}` : "Slot de equipamiento"}
+                  title={entry ? `${entry.skinType}: ${entry.name}` : "Slot de equipamiento"}
                   onClick={() => entry && handleDeactivateSkin(entry.skinType)}
                 >
                   {entry ? (
@@ -1590,7 +1724,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       <span className="equipment-remove-marker absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-sm border border-red-400/60 bg-black/75 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
                         <XIcon className="h-2.5 w-2.5" />
                       </span>
-                      {entry.skinSlug === "demoniaco" ? (
+                      {entry.kind === "avatar_frame" ? (
+                        <img src={getAvatarFrame(entry.slug)?.thumbnailUrl} alt="" className="h-[86%] w-[86%] object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
+                      ) : entry.kind === "profile_transition" ? (
+                        <video src={getProfileTransition(entry.slug)?.thumbnailUrl} muted playsInline preload="metadata" className="h-[76%] w-[76%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
+                      ) : entry.slug === "demoniaco" ? (
                         <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (
                         <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
@@ -1914,6 +2052,48 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   onClick={() => handleActivateSkin(contextMenu.item.item_slug)}
                 >
                   Equipar
+                </button>
+              )}
+            </>
+          )}
+          {isAvatarFrameItem(contextMenu.item) && (
+            <>
+              {activeAvatarFrameSlug === contextMenu.item.item_slug ? (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleDeactivateSkin('avatar_frame')}
+                >
+                  Desequipar marco
+                </button>
+              ) : (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleActivateAvatarFrame(contextMenu.item.item_slug)}
+                >
+                  Equipar marco
+                </button>
+              )}
+            </>
+          )}
+          {isProfileTransitionItem(contextMenu.item) && (
+            <>
+              {activeProfileTransitionSlug === contextMenu.item.item_slug ? (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleDeactivateSkin('profile_transition')}
+                >
+                  Desequipar transicion
+                </button>
+              ) : (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleActivateProfileTransition(contextMenu.item.item_slug)}
+                >
+                  Equipar transicion
                 </button>
               )}
             </>

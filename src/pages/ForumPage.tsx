@@ -20,6 +20,7 @@ import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } from "@/lib/profileAppearance";
+import { getAvatarFrameStyle, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import CommentModMenu from "@/components/CommentModMenu";
 import { EditableCommentContent } from "@/components/EditableCommentContent";
 import RichTextEditor, { RichTextRender } from "@/components/RichTextEditor";
@@ -369,6 +370,7 @@ export default function ForumPage() {
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
   const [demoniacoUsers, setDemoniacoUsers] = useState<Record<string, boolean>>({});
+  const [avatarFrameUsers, setAvatarFrameUsers] = useState<Record<string, string>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
   const [authorStats, setAuthorStats] = useState<{ totalScore: number; followers: number; following: number; forum: number; social: number; games: number } | null>(null);
@@ -427,16 +429,19 @@ export default function ForumPage() {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role, signature, signature_font, signature_font_family, signature_color, signature_stroke_color, signature_stroke_width, signature_stroke_position, signature_text_align, signature_image_url, signature_image_align, signature_image_width, signature_text_over_image, signature_font_size").in("user_id", userIds);
         const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
-        const { data: activeSkins } = await (supabase as any).from("user_active_skins").select("user_id, skin_slug, skin_type").in("user_id", userIds).eq("skin_type", "launcher");
+        const { data: activeSkins } = await (supabase as any).from("user_active_skins").select("user_id, skin_slug, skin_type").in("user_id", userIds).in("skin_type", ["launcher", "avatar_frame"]);
         const pMap: Record<string, PostProfile> = {};
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
         const rMap: Record<string, string[]> = {};
         roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
         const sMap: Record<string, boolean> = {};
+        const frameMap: Record<string, string> = {};
         activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") sMap[skin.user_id] = true; });
+        activeSkins?.forEach((skin: any) => { if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) frameMap[skin.user_id] = skin.skin_slug; });
         setPostProfiles(pMap);
         setPostRoles(rMap);
         setDemoniacoUsers((prev) => ({ ...prev, ...sMap }));
+        setAvatarFrameUsers((prev) => ({ ...prev, ...frameMap }));
       }
       if (user && finalData.length > 0) {
         const postIds = finalData.map((p: any) => p.id);
@@ -454,14 +459,17 @@ export default function ForumPage() {
     const userIds = [...new Set((data as any[]).map(c => c.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, avatar_url, role_icon, show_role_icon, membership_tier, color_avatar_border, color_name, color_role, color_staff_role").in("user_id", userIds);
     const { data: userRoles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
-    const { data: activeSkins } = await (supabase as any).from("user_active_skins").select("user_id, skin_slug, skin_type").in("user_id", userIds).eq("skin_type", "launcher");
+    const { data: activeSkins } = await (supabase as any).from("user_active_skins").select("user_id, skin_slug, skin_type").in("user_id", userIds).in("skin_type", ["launcher", "avatar_frame"]);
     const profileMap: Record<string, any> = {};
     profiles?.forEach(p => profileMap[p.user_id] = p);
     const rolesMap: Record<string, string[]> = {};
     userRoles?.forEach((r: any) => { if (!rolesMap[r.user_id]) rolesMap[r.user_id] = []; rolesMap[r.user_id].push(r.role); });
     const skinMap: Record<string, boolean> = {};
+    const frameMap: Record<string, string> = {};
     activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") skinMap[skin.user_id] = true; });
+    activeSkins?.forEach((skin: any) => { if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) frameMap[skin.user_id] = skin.skin_slug; });
     setDemoniacoUsers((prev) => ({ ...prev, ...skinMap }));
+    setAvatarFrameUsers((prev) => ({ ...prev, ...frameMap }));
     const enriched = (data as any[]).map(c => ({ ...c, profile: profileMap[c.user_id] || null, roles: rolesMap[c.user_id] || [] }));
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
   };
@@ -847,7 +855,10 @@ export default function ForumPage() {
                 {post.user_id && authorProfile ? (
                   <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
                     <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
-                      <div className={cn("forum-author-avatar w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", demoniacoUsers[post.user_id] && "avatar-frame-demoniaco rounded-full")} style={getAvatarBorderStyle(authorProfile.color_avatar_border)}>
+                      <div
+                        className={cn("forum-author-avatar w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", demoniacoUsers[post.user_id] && "avatar-frame-demoniaco rounded-full", avatarFrameUsers[post.user_id] && "avatar-frame-custom rounded-full")}
+                        style={{ ...getAvatarBorderStyle(authorProfile.color_avatar_border), ...getAvatarFrameStyle(avatarFrameUsers[post.user_id]) }}
+                      >
                         {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
                       </div>
                       <div className="min-w-0 flex-1 lg:w-full flex flex-col justify-center lg:items-center gap-2 lg:gap-1">
@@ -1064,7 +1075,10 @@ export default function ForumPage() {
                       <div
                         className="flex items-center gap-3 text-left min-w-0"
                       >
-                        <div className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco")} style={getAvatarBorderStyle(comment.profile?.color_avatar_border)}>
+                        <div
+                          className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco", avatarFrameUsers[comment.user_id] && "avatar-frame-custom")}
+                          style={{ ...getAvatarBorderStyle(comment.profile?.color_avatar_border), ...getAvatarFrameStyle(avatarFrameUsers[comment.user_id]) }}
+                        >
                           {comment.profile?.avatar_url ? <img src={comment.profile.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-muted-foreground" />}
                         </div>
                         <div className="min-w-0">

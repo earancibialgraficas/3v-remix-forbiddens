@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useSearchParams } from "react-router-dom";
 import { cn, withImageVersion } from "@/lib/utils";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { getAvatarFrameStyle } from "@/lib/avatarFrames";
+import { useUserAvatarFrame } from "@/hooks/useUserAvatarFrame";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
@@ -49,6 +51,7 @@ const formatMembershipRemaining = (expiresAt?: string | null) => {
 
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
+  const { avatarFrame } = useUserAvatarFrame(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -522,7 +525,10 @@ export default function ProfilePage() {
       <div className="demoniaco-profile-hero bg-card border border-neon-cyan/30 rounded p-6">
         <div className={cn("flex gap-4", isMobile ? "flex-col items-center" : "flex-row items-start")}>
           <button onClick={() => setShowAvatarSelector(true)} className="relative group shrink-0">
-            <div className="demoniaco-avatar-frame w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden" style={getAvatarBorderStyle(profile?.color_avatar_border)}>
+            <div
+              className={cn("demoniaco-avatar-frame w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden", avatarFrame && "avatar-frame-custom")}
+              style={{ ...getAvatarBorderStyle(profile?.color_avatar_border), ...getAvatarFrameStyle(avatarFrame?.slug) }}
+            >
               {profile?.avatar_url ? <img key={profile.avatar_url} src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <User className="w-10 h-10 text-muted-foreground" />}
             </div>
             <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 className="w-4 h-4 text-foreground" /></div>

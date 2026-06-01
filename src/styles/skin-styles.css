@@ -1634,6 +1634,32 @@ html[style*="--skin-slug: demoniaco"] .profile-moderation-panel button[class*="b
     drop-shadow(0 0 8px rgba(255, 43, 15, 0.4));
 }
 
+.avatar-frame-custom {
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+.avatar-frame-custom > img {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.avatar-frame-custom::after,
+.avatar-frame-custom.avatar-frame-demoniaco::after,
+.demoniaco-avatar-frame.avatar-frame-custom::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  inset: -30%;
+  background: var(--avatar-frame-url) center / contain no-repeat;
+  filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38));
+}
+
 @media (max-width: 1279px) {
   html[style*="--skin-slug: demoniaco"] .inventory-equipment-grid {
     background-image: var(--demoniaco-frame-edge-horizontal) !important;
@@ -2068,7 +2094,9 @@ html[style*="--skin-slug: demoniaco"] .forum-post-avatar-overlay {
 }
 
 .avatar-frame-demoniaco,
-.avatar-frame-demoniaco > img {
+.avatar-frame-demoniaco > img,
+.avatar-frame-custom,
+.avatar-frame-custom > img {
   border-radius: 9999px !important;
 }
 
@@ -2179,7 +2207,10 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
 
 .forum-author-avatar.avatar-frame-demoniaco,
 .forum-comment-avatar.avatar-frame-demoniaco,
-.photowall-comment-avatar.avatar-frame-demoniaco {
+.photowall-comment-avatar.avatar-frame-demoniaco,
+.forum-author-avatar.avatar-frame-custom,
+.forum-comment-avatar.avatar-frame-custom,
+.photowall-comment-avatar.avatar-frame-custom {
   position: relative !important;
   overflow: visible !important;
   isolation: isolate !important;
@@ -2188,18 +2219,25 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-shell-ornaments {
 
 .forum-author-avatar.avatar-frame-demoniaco::after,
 .forum-comment-avatar.avatar-frame-demoniaco::after,
-.photowall-comment-avatar.avatar-frame-demoniaco::after {
+.photowall-comment-avatar.avatar-frame-demoniaco::after,
+.forum-author-avatar.avatar-frame-custom::after,
+.forum-comment-avatar.avatar-frame-custom::after,
+.photowall-comment-avatar.avatar-frame-custom::after {
   inset: -36% !important;
   z-index: 10 !important;
 }
 
-.photowall-comment-avatar.avatar-frame-demoniaco::after {
+.photowall-comment-avatar.avatar-frame-demoniaco::after,
+.photowall-comment-avatar.avatar-frame-custom::after {
   inset: -48% !important;
 }
 
 .forum-author-avatar.avatar-frame-demoniaco > img,
 .forum-comment-avatar.avatar-frame-demoniaco > img,
-.photowall-comment-avatar.avatar-frame-demoniaco img {
+.photowall-comment-avatar.avatar-frame-demoniaco img,
+.forum-author-avatar.avatar-frame-custom > img,
+.forum-comment-avatar.avatar-frame-custom > img,
+.photowall-comment-avatar.avatar-frame-custom img {
   border-radius: 9999px !important;
 }
 
@@ -2311,7 +2349,8 @@ html[style*="--skin-slug: demoniaco"] .public-profile-music-player > div[class*=
   z-index: 10 !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .photowall-comment-avatar.avatar-frame-demoniaco::after {
+html[style*="--skin-slug: demoniaco"] .photowall-comment-avatar.avatar-frame-demoniaco::after,
+html[style*="--skin-slug: demoniaco"] .photowall-comment-avatar.avatar-frame-custom::after {
   inset: -42% !important;
 }
 
@@ -2322,6 +2361,26 @@ html[style*="--skin-slug: demoniaco"] .public-profile-music-player .animate-marq
     0 0 9px rgba(226, 80, 61, 0.82),
     0 0 18px rgba(139, 25, 18, 0.58) !important;
   filter: none !important;
+}
+
+/* Equipped avatar-frame items must outrank the frame bundled with the active skin. */
+html[style*="--skin-slug: demoniaco"] .demoniaco-avatar-frame.avatar-frame-custom::after,
+.demoniaco-avatar-frame.avatar-frame-custom::after,
+.avatar-frame-demoniaco.avatar-frame-custom::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -30% !important;
+  top: -30% !important;
+  right: -30% !important;
+  bottom: -30% !important;
+  left: -30% !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  z-index: 12 !important;
+  pointer-events: none !important;
+  background: var(--avatar-frame-url) center / contain no-repeat !important;
+  filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38)) !important;
 }
 
 /* Detail polish: SVG ornaments, stronger profile video fade, trade sizing, responsive filters. */

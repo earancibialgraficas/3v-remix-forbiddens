@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils";
 import RoleBadge from "@/components/RoleBadge";
 import MembershipBadge from "@/components/MembershipBadge";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
+import { getAvatarFrameStyle } from "@/lib/avatarFrames";
+import { useUserAvatarFrame } from "@/hooks/useUserAvatarFrame";
+import { useUserProfileTransition } from "@/hooks/useUserProfileTransition";
+import ProfileTransitionOverlay from "@/components/ProfileTransitionOverlay";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { stripHtmlToText } from "@/lib/htmlContent";
@@ -133,6 +137,8 @@ export default function PublicProfilePage() {
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const { avatarFrame } = useUserAvatarFrame(profile?.user_id);
+  const { profileTransition } = useUserProfileTransition(profile?.user_id);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -358,6 +364,7 @@ export default function PublicProfilePage() {
   return (
     <>
       <SkinProvider userId={profile?.user_id} skinType="launcher" />
+      <ProfileTransitionOverlay slug={profileTransition?.slug} playKey={profile?.user_id} />
       <div className="space-y-4 animate-fade-in w-full min-w-0 px-2 sm:px-4 pb-20 relative">
       
       <div className="demoniaco-profile-hero bg-card border border-neon-cyan/30 rounded p-6 shadow-lg">
@@ -365,8 +372,8 @@ export default function PublicProfilePage() {
           <button
             type="button"
             onClick={() => setIsAvatarPreviewOpen(true)}
-            className="demoniaco-avatar-frame w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            style={getAvatarBorderStyle(profile.color_avatar_border)}
+            className={cn("demoniaco-avatar-frame w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl border-2 border-neon-cyan/30 overflow-hidden shrink-0 shadow-neon-sm cursor-zoom-in transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-background", avatarFrame && "avatar-frame-custom")}
+            style={{ ...getAvatarBorderStyle(profile.color_avatar_border), ...getAvatarFrameStyle(avatarFrame?.slug) }}
             aria-label={`Ver foto de perfil de ${profile.display_name}`}
             title="Ver foto de perfil"
           >
