@@ -37,6 +37,10 @@ const getPlaylistOrderStorageKey = (category: string) => `forbiddens_music_order
 const MUSIC_SESSION_KEY = "forbiddens_music_session_v2";
 const MUSIC_OWNER_EVENT = "forbiddens-music-owner-play";
 const CHILL_MUSIC_OWNER = "chill";
+const MEDIA_SESSION_ARTWORK = [
+  { src: "/forbiddens-logo.png", sizes: "512x512", type: "image/png" },
+  { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+];
 
 const applyStoredPlaylistOrder = (songs: Song[], category: string) => {
   if (typeof window === "undefined" || songs.length < 2) return songs;
@@ -599,13 +603,28 @@ export default function ChillMusicPlayer() {
     setIsPlaying(true);
   }, [playlist.length]);
 
-  const prev = () => {
+  const prev = useCallback(() => {
     if (playlist.length === 0) return;
     setCurrentIndex(i => (i - 1 + playlist.length) % playlist.length);
     setCurrentTime(0); setSeekDisplayValue(0); setDuration(0);
     timeToRestoreRef.current = null; 
     setIsPlaying(true);
-  };
+  }, [playlist.length]);
+
+  const seekToTime = useCallback((targetTime: number) => {
+    const max = duration > 0 && Number.isFinite(duration) ? duration : Math.max(targetTime, currentTime, 0);
+    const safeTime = Math.max(0, Math.min(Number.isFinite(max) ? max : targetTime, targetTime));
+    setCurrentTime(safeTime);
+    setSeekDisplayValue(safeTime);
+    timeToRestoreRef.current = null;
+    persistMusicSession({ time: safeTime });
+
+    if (current?.type === 'local' && audioRef.current) {
+      audioRef.current.currentTime = safeTime;
+    } else if (current?.type === 'youtube' && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [safeTime, true] }), '*');
+    }
+  }, [current?.type, currentTime, duration, persistMusicSession]);
 
   const runExternalMusicCommand = useCallback((command: string) => {
     if (command === "playPause") {
@@ -617,15 +636,77 @@ export default function ChillMusicPlayer() {
       return;
     }
     if (command === "prev") {
-      if (playlist.length === 0) return;
-      setCurrentIndex((i) => (i - 1 + playlist.length) % playlist.length);
-      setCurrentTime(0);
-      setSeekDisplayValue(0);
-      setDuration(0);
-      timeToRestoreRef.current = null;
-      setIsPlaying(true);
+      prev();
     }
-  }, [next, playlist.length]);
+  }, [next, prev]);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    const mediaSession = (navigator as any).mediaSession;
+    if (!mediaSession) return;
+
+    try {
+      mediaSession.metadata = current
+        ? new (window as any).MediaMetadata({
+            title: current.title || "FORBIDDENS Player",
+            artist: playlistName || currentCategory || "FORBIDDENS",
+            album: "Chill Music Player",
+            artwork: MEDIA_SESSION_ARTWORK,
+          })
+        : new (window as any).MediaMetadata({
+            title: "FORBIDDENS Player",
+            artist: "FORBIDDENS",
+            album: "Chill Music Player",
+            artwork: MEDIA_SESSION_ARTWORK,
+          });
+    } catch {
+      // MediaMetadata can be unavailable in some embedded browsers.
+    }
+
+    try {
+      mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    } catch {}
+
+    const setAction = (action: string, handler: (() => void) | ((details: any) => void) | null) => {
+      try {
+        mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Some browsers expose Media Session but do not support every action.
+      }
+    };
+
+    setAction("play", () => setIsPlaying(true));
+    setAction("pause", () => setIsPlaying(false));
+    setAction("stop", () => setIsPlaying(false));
+    setAction("nexttrack", () => next());
+    setAction("previoustrack", () => prev());
+    setAction("seekbackward", (details: any) => seekToTime(Math.max(0, currentTime - Number(details?.seekOffset || 10))));
+    setAction("seekforward", (details: any) => seekToTime(currentTime + Number(details?.seekOffset || 10)));
+    setAction("seekto", (details: any) => {
+      if (typeof details?.seekTime === "number") seekToTime(details.seekTime);
+    });
+
+    return () => {
+      ["play", "pause", "stop", "nexttrack", "previoustrack", "seekbackward", "seekforward", "seekto"].forEach((action) => {
+        setAction(action, null);
+      });
+    };
+  }, [current, currentCategory, currentTime, isPlaying, next, playlistName, prev, seekToTime]);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    const mediaSession = (navigator as any).mediaSession;
+    if (!mediaSession?.setPositionState || !current) return;
+    const safeDuration = duration > 0 && Number.isFinite(duration) ? duration : 0;
+    if (safeDuration <= 0) return;
+    try {
+      mediaSession.setPositionState({
+        duration: safeDuration,
+        playbackRate: 1,
+        position: Math.max(0, Math.min(currentTime, safeDuration)),
+      });
+    } catch {}
+  }, [current, currentTime, duration]);
 
   useEffect(() => {
     const handlePayload = (payload: any) => {
