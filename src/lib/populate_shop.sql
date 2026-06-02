@@ -115,6 +115,28 @@ ON CONFLICT (slug) DO UPDATE SET
   tier_requirement = EXCLUDED.tier_requirement,
   image_url = EXCLUDED.image_url;
 
+-- Skins visuales para emuladores web
+INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)
+VALUES
+  (
+    'rosita_nes',
+    'Consola Rosita NES',
+    'Interfaz web rosada para juegos NES. Esta base queda lista para ampliar compatibilidad a mas consolas web.',
+    10000,
+    'fcoins',
+    'emulator_shell',
+    'lite',
+    '/emulator-shells/rosita-nes/thumbnail.svg'
+  )
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  price = EXCLUDED.price,
+  price_type = EXCLUDED.price_type,
+  category = EXCLUDED.category,
+  tier_requirement = EXCLUDED.tier_requirement,
+  image_url = EXCLUDED.image_url;
+
 -- Ejemplo de otros items que puedes agregar:
 -- 📦 Cofres de Juegos
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)

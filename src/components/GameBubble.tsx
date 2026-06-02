@@ -38,6 +38,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import TouchGamepad from "@/components/TouchGamepad";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserActiveEmulatorShell } from "@/hooks/useUserActiveEmulatorShell";
+import { isEmulatorShellCompatible } from "@/lib/emulatorShells";
 
 // 🔥 HACK MAESTRO DE AUDIO: Intercepta la Web Audio API globalmente 🔥
 if (typeof window !== "undefined" && !(window as any).__audioDestPatched) {
@@ -110,6 +112,7 @@ export default function GameBubble() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { emulatorShell } = useUserActiveEmulatorShell(user?.id);
 
   const [nostalgistInstance, setNostalgistInstance] = useState<any>(null);
   const [romLoaded, setRomLoaded] = useState(false);
@@ -148,6 +151,7 @@ export default function GameBubble() {
   const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
   const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2", "psp"].includes(activeGame.consoleName);
+  const usesRositaNesShell = !minimized && emulatorShell?.slug === "rosita_nes" && isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName);
 
   // 🔐 Namespace por usuario para que las partidas no se filtren entre cuentas en el mismo navegador
   const getSaveKey = useCallback((gameName: string) => {
@@ -1641,6 +1645,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       onClick={minimized ? () => maximizeGame(currentGameIndex) : undefined}
       className={cn(
         "relative overflow-hidden select-none group",
+        usesRositaNesShell && "gamebubble-shell-rosita-nes",
         minimized
           ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer border border-border"
           : isTheaterActive || isFullscreen
@@ -1753,6 +1758,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           id="game-bubble-viewport"
           className={cn(
             "relative bg-black overflow-hidden",
+            usesRositaNesShell && "gamebubble-shell-viewport",
             minimized ? "h-full w-full" : "flex-1",
             isExpanded &&
               isMobile &&

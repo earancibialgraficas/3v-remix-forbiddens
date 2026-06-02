@@ -13,6 +13,7 @@ import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen,
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
+import { EMULATOR_SHELLS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
 import { STAT_BOOST_REFRESH_EVENT, STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired } from "@/hooks/useActiveStatBoost";
 import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
@@ -106,6 +107,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const activeAvatarFrame = getAvatarFrame(activeAvatarFrameSlug);
   const activeProfileTransitionSlug = activeSkins.profile_transition;
   const activeProfileTransition = getProfileTransition(activeProfileTransitionSlug);
+  const activeEmulatorShellSlug = activeSkins.emulator_shell;
+  const activeEmulatorShell = getEmulatorShell(activeEmulatorShellSlug);
 
   useEffect(() => {
     if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
@@ -162,6 +165,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       });
       Object.values(PROFILE_TRANSITIONS).forEach((transition) => {
         if (!map[transition.slug]) map[transition.slug] = { price: transition.price, type: transition.priceType };
+      });
+      Object.values(EMULATOR_SHELLS).forEach((shell) => {
+        if (!map[shell.slug]) map[shell.slug] = { price: shell.price, type: shell.priceType };
       });
       setPriceMap(map);
     }
@@ -340,6 +346,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       if (isSkinItem(item) && activeSkinSlugs.has(item.item_slug)) return false;
       if (isAvatarFrameSlug(item.item_slug) && activeAvatarFrameSlug === item.item_slug) return false;
       if (isProfileTransitionSlug(item.item_slug) && activeProfileTransitionSlug === item.item_slug) return false;
+      if (isEmulatorShellSlug(item.item_slug) && activeEmulatorShellSlug === item.item_slug) return false;
       return true;
     });
     const slotCount = Math.max(
@@ -396,7 +403,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
     cursorItemRef.current = null;
-  }, [activeAvatarFrameSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, userId]);
+  }, [activeAvatarFrameSlug, activeEmulatorShellSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, userId]);
 
   const searchUsers = async () => {
     if (!recipientSearch.trim()) return;
@@ -828,6 +835,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isMembershipItem = (item: any) => String(item?.item_slug || "").startsWith("membership:");
   const isAvatarFrameItem = (item: any) => isAvatarFrameSlug(item?.item_slug);
   const isProfileTransitionItem = (item: any) => isProfileTransitionSlug(item?.item_slug);
+  const isEmulatorShellItem = (item: any) => isEmulatorShellSlug(item?.item_slug);
   const itemActiveUntil = (item: any) => getStatBoostActiveUntil(item);
   const itemIsActive = (item: any) => isStatBoostActive(item);
   const boosterIsExpired = (item: any) => isStatBoostExpired(item);
@@ -847,6 +855,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
       ? item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : <Flame className={className} />
+      : isEmulatorShellItem(item)
+      ? <img src={getEmulatorShell(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1167,12 +1177,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const isSkinItem = (item: any) => item?.item_slug && (ALL_SKINS as any)[item.item_slug];
   const activeEquipmentEntries = useMemo(() => {
     const skinEntries = Object.entries(activeSkins)
-      .filter(([skinType]) => skinType !== 'avatar_frame' && skinType !== 'profile_transition')
+      .filter(([skinType]) => skinType !== 'avatar_frame' && skinType !== 'profile_transition' && skinType !== 'emulator_shell')
       .map(([skinType, skinSlug]) => {
         const skin = (ALL_SKINS as any)[skinSlug];
         return skin ? { kind: 'skin' as const, skinType, slug: skinSlug, name: skin.name } : null;
       })
-      .filter(Boolean) as { kind: 'skin'; skinType: string; slug: string; name: string }[];
+      .filter(Boolean) as { kind: 'skin' | 'avatar_frame' | 'profile_transition' | 'emulator_shell'; skinType: string; slug: string; name: string }[];
     if (activeAvatarFrame) {
       skinEntries.push({
         kind: 'avatar_frame',
@@ -1189,8 +1199,16 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
         name: activeProfileTransition.name,
       });
     }
+    if (activeEmulatorShell) {
+      skinEntries.push({
+        kind: 'emulator_shell',
+        skinType: 'emulator_shell',
+        slug: activeEmulatorShell.slug,
+        name: activeEmulatorShell.name,
+      });
+    }
     return skinEntries.slice(0, 5);
-  }, [activeAvatarFrame, activeProfileTransition, activeSkins]);
+  }, [activeAvatarFrame, activeEmulatorShell, activeProfileTransition, activeSkins]);
   const activeSkinEntries = useMemo(
     () => Object.entries(activeSkins)
       .map(([skinType, skinSlug]) => {
@@ -1264,6 +1282,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       } else if (skinType === 'profile_transition') {
         window.dispatchEvent(new CustomEvent('forbiddens:active-profile-transition-updated', { detail: { userId, transitionSlug: null } }));
         toast({ title: "Transicion desequipada", description: "Tu perfil ya no mostrara esta intro." });
+      } else if (skinType === 'emulator_shell') {
+        window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, shellSlug: null } }));
+        toast({ title: "Consola desequipada", description: "Los emuladores web volveran al marco original." });
       } else {
         toast({ title: "âœ… Skin Desequipada", description: "Has vuelto al diseÃ±o original" });
       }
@@ -1343,6 +1364,43 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       toast({ title: "Transicion equipada", description: `${transition.name} se reproducira en tu perfil publico.` });
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo equipar la transicion", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleActivateEmulatorShell = async (shellSlug: string) => {
+    const shell = getEmulatorShell(shellSlug);
+    if (!shell) return;
+    setContextMenu(null);
+    setBusy(true);
+    try {
+      const { data: existing } = await (supabase as any)
+        .from('user_active_skins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('skin_type', 'emulator_shell')
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .update({ skin_slug: shellSlug })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('user_active_skins')
+          .insert({ user_id: userId, skin_type: 'emulator_shell', skin_slug: shellSlug });
+        if (error) throw error;
+      }
+
+      setActiveSkins((prev) => ({ ...prev, emulator_shell: shellSlug }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-emulator-shell-updated', { detail: { userId, shellSlug } }));
+      window.dispatchEvent(new CustomEvent('forbiddens:active-skin-updated', { detail: { userId, skinType: 'emulator_shell', skinSlug: shellSlug } }));
+      toast({ title: "Consola equipada", description: `${shell.name} se aplicara a juegos NES web.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo equipar la consola", variant: "destructive" });
     } finally {
       setBusy(false);
     }
@@ -1639,6 +1697,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       item && isBoosterItem(item) && itemIsActive(item) && "border-neon-green/80 bg-[radial-gradient(circle_at_35%_25%,rgba(34,197,94,0.32),rgba(18,64,31,0.82)_58%,#0c160f_100%)] shadow-[inset_2px_2px_0_rgba(255,255,255,0.14),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_14px_rgba(34,197,94,0.45)]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                       item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
+                      item && isEmulatorShellItem(item) && activeEmulatorShellSlug === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
                     title={item ? `${itemLabel(item)} - click izquierdo recoge. Click derecho divide. Shift+click envia a trueque.` : "Slot vacio"}
                   >
@@ -1654,6 +1713,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                           item.item_slug === "demoniaco" && "inventory-demoniaco-thumbnail-card overflow-hidden border-red-500/70 bg-[#2a0906]",
                           isAvatarFrameItem(item) && "overflow-hidden border-pink-300/70 bg-[#3a1730]",
                           isProfileTransitionItem(item) && "overflow-hidden border-orange-300/70 bg-[#2b1006]",
+                          isEmulatorShellItem(item) && "overflow-hidden border-pink-300/80 bg-pink-100",
                           isMembershipItem(item)
                             ? "border-neon-magenta/70 bg-[#4a235e]"
                             : isEventTicketItem(item)
@@ -1665,12 +1725,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
-                            (item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item)) && "hidden",
+                            (item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)) && "hidden",
                           )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               itemBoosterExpired
                                 ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
                                 : isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
@@ -1687,6 +1747,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         {isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
                         {isAvatarFrameItem(item) && activeAvatarFrameSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADO</span>}
                         {isProfileTransitionItem(item) && activeProfileTransitionSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
+                        {isEmulatorShellItem(item) && activeEmulatorShellSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
 
                         {itemIsNew && <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-black bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.9)]" />}
                         <span className="absolute bottom-0.5 right-1 font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">x{item.quantity}</span>
@@ -1776,6 +1837,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         ) : (
                           <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
                         )
+                      ) : entry.kind === "emulator_shell" ? (
+                        <img src={getEmulatorShell(entry.slug)?.thumbnailUrl} alt="" className="h-[82%] w-[82%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
                       ) : entry.slug === "demoniaco" ? (
                         <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (
@@ -2142,6 +2205,27 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                   onClick={() => handleActivateProfileTransition(contextMenu.item.item_slug)}
                 >
                   Equipar transicion
+                </button>
+              )}
+            </>
+          )}
+          {isEmulatorShellItem(contextMenu.item) && (
+            <>
+              {activeEmulatorShellSlug === contextMenu.item.item_slug ? (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleDeactivateSkin('emulator_shell')}
+                >
+                  Desequipar consola
+                </button>
+              ) : (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left hover:bg-[#d6b16f]/15 disabled:opacity-45"
+                  disabled={busy}
+                  onClick={() => handleActivateEmulatorShell(contextMenu.item.item_slug)}
+                >
+                  Equipar consola
                 </button>
               )}
             </>

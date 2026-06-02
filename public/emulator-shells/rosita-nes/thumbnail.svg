@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320" role="img" aria-label="Consola Rosita NES">
+  <defs>
+    <linearGradient id="pink-bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffd6ef"/>
+      <stop offset="0.52" stop-color="#ff8ed2"/>
+      <stop offset="1" stop-color="#ffcae7"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#7a0d4a" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect width="512" height="320" rx="34" fill="url(#pink-bg)"/>
+  <path d="M58 236c30-64 74-93 132-88l132 12c60 5 102 26 132 76 11 19 4 43-15 54-17 10-38 6-50-10l-30-39c-8-10-20-16-33-16H185c-13 0-25 6-33 16l-30 39c-12 16-33 20-50 10-19-11-26-35-14-54Z" fill="#8f1458" filter="url(#soft-shadow)"/>
+  <circle cx="176" cy="195" r="14" fill="#ffc1e2"/>
+  <circle cx="176" cy="195" r="6" fill="#8f1458"/>
+  <path d="M128 180h26v-26h28v26h26v28h-26v26h-28v-26h-26z" fill="#ffc1e2"/>
+  <circle cx="346" cy="178" r="16" fill="#ffc1e2"/>
+  <circle cx="388" cy="202" r="16" fill="#ffc1e2"/>
+  <circle cx="346" cy="178" r="7" fill="#8f1458"/>
+  <circle cx="388" cy="202" r="7" fill="#8f1458"/>
+  <rect x="229" y="187" width="54" height="14" rx="7" fill="#ffc1e2"/>
+  <rect x="228" y="216" width="56" height="10" rx="5" fill="#ffc1e2" opacity=".85"/>
+  <path d="M83 63c53-29 115-44 173-44s120 15 173 44" fill="none" stroke="#fff2fa" stroke-width="9" stroke-linecap="round" opacity=".45"/>
+</svg>
