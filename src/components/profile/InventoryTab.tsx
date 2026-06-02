@@ -13,7 +13,7 @@ import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen,
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
-import { STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired, useActiveStatBoost } from "@/hooks/useActiveStatBoost";
+import { STAT_BOOST_REFRESH_EVENT, STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired } from "@/hooks/useActiveStatBoost";
 
 interface InventoryTabProps {
   userId: string;
@@ -73,10 +73,16 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [busy, setBusy] = useState(false);
   const [inventoryPage, setInventoryPage] = useState(0);
   const inventorySlotsPerPage = INVENTORY_PAGE_SIZE;
-  const activeStatBoost = useActiveStatBoost(userId);
 
   const totalBoosters = useMemo(
     () => boosters.filter((item) => item.item_slug === STAT_BOOST_SLUG).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [boosters],
+  );
+  const activeInventoryStatBoost = useMemo(
+    () => ({
+      active: boosters.some((item) => item.item_slug === STAT_BOOST_SLUG && isStatBoostActive(item)),
+      multiplier: 3,
+    }),
     [boosters],
   );
   const tradeItemCount = useMemo(
@@ -1406,6 +1412,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     const expiresAt = result?.active_until ? new Date(result.active_until).toLocaleString("es-CL") : null;
     toast({ title: "Potenciador activado", description: expiresAt ? `x3 puntos activo hasta ${expiresAt}.` : "x3 puntos por 7 dias." });
     void loadInventory();
+    window.dispatchEvent(new Event(STAT_BOOST_REFRESH_EVENT));
   };
 
   const useMembership = async (item: any) => {
@@ -1563,7 +1570,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">F-coins: {loading ? "..." : wallet.toLocaleString()}</div>
             <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">
               STAT: {Number(profile?.total_score || 0).toLocaleString()}
-              {activeStatBoost.active && <span className="ml-1 rounded bg-neon-green/15 px-1 font-pixel text-[7px] uppercase text-neon-green">x{activeStatBoost.multiplier}</span>}
+              {activeInventoryStatBoost.active && <span className="ml-1 rounded bg-neon-green/15 px-1 font-pixel text-[7px] uppercase text-neon-green">x{activeInventoryStatBoost.multiplier}</span>}
             </div>
             <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString()}</div>
           </div>

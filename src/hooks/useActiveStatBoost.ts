@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const STAT_BOOST_SLUG = "points_x3_week";
+export const STAT_BOOST_REFRESH_EVENT = "forbiddens:stat-boost-refresh";
 
 export interface ActiveStatBoostState {
   active: boolean;
@@ -67,28 +68,14 @@ export function useActiveStatBoost(userId?: string | null) {
   }, [loadBoost]);
 
   useEffect(() => {
-    if (!userId) return;
-    const channel = supabase
-      .channel(`active-stat-boost-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "active_account_boosters", filter: `user_id=eq.${userId}` },
-        () => void loadBoost(),
-      )
-      .subscribe();
-
+    const refresh = () => void loadBoost();
+    window.addEventListener(STAT_BOOST_REFRESH_EVENT, refresh);
+    window.addEventListener("focus", refresh);
     return () => {
-      void supabase.removeChannel(channel);
+      window.removeEventListener(STAT_BOOST_REFRESH_EVENT, refresh);
+      window.removeEventListener("focus", refresh);
     };
-  }, [loadBoost, userId]);
-
-  useEffect(() => {
-    if (!boost.active || !boost.expiresAt) return;
-    const expiresIn = new Date(boost.expiresAt).getTime() - Date.now();
-    if (!Number.isFinite(expiresIn)) return;
-    const timer = window.setTimeout(() => void loadBoost(), Math.min(Math.max(expiresIn + 1000, 1000), 2147483647));
-    return () => window.clearTimeout(timer);
-  }, [boost.active, boost.expiresAt, loadBoost]);
+  }, [loadBoost]);
 
   return boost;
 }
