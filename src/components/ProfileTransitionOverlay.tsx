@@ -121,7 +121,7 @@ export default function ProfileTransitionOverlay({ slug, playKey, onDone, classN
       }
     };
 
-    const timeout = window.setTimeout(finish, 2400);
+    const timeout = window.setTimeout(finish, Math.max(1200, transition.durationMs || 2400));
     video.addEventListener('ended', finish);
     video.addEventListener('error', finish);
     void play();

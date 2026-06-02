@@ -8,6 +8,7 @@ export type ProfileTransitionTheme = {
   thumbnailUrl: string;
   price: number;
   priceType: 'stats' | 'fcoins';
+  durationMs?: number;
 };
 
 export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitionTheme> = {
@@ -19,6 +20,7 @@ export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitio
     thumbnailUrl: '/cosmetics/transitions/fuego/fuego-infernal.mp4',
     price: 5000,
     priceType: 'fcoins',
+    durationMs: 2400,
   },
   varita_magica: {
     slug: 'varita_magica',
@@ -28,6 +30,7 @@ export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitio
     thumbnailUrl: '/cosmetics/transitions/varita-magica/varita-magica.mp4',
     price: 5000,
     priceType: 'fcoins',
+    durationMs: 7000,
   },
 };
 
