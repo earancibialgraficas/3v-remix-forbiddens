@@ -728,6 +728,38 @@ export default function ChillMusicPlayer() {
     };
   }, [runExternalMusicCommand]);
 
+  useEffect(() => {
+    const commandsByMediaKey: Record<string, string> = {
+      MediaPlayPause: "playPause",
+      PlayPause: "playPause",
+      MediaTrackNext: "next",
+      MediaNextTrack: "next",
+      MediaTrackPrevious: "prev",
+      MediaPreviousTrack: "prev",
+      MediaStop: "pause",
+    };
+
+    const handleMediaKey = (event: KeyboardEvent) => {
+      const command = commandsByMediaKey[event.code] || commandsByMediaKey[event.key];
+      if (!command) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat) return;
+      if (command === "pause") {
+        setIsPlaying(false);
+        return;
+      }
+      runExternalMusicCommand(command);
+    };
+
+    window.addEventListener("keydown", handleMediaKey, true);
+    document.addEventListener("keydown", handleMediaKey, true);
+    return () => {
+      window.removeEventListener("keydown", handleMediaKey, true);
+      document.removeEventListener("keydown", handleMediaKey, true);
+    };
+  }, [runExternalMusicCommand]);
+
   const serializeYoutubeSongs = (songs: Song[]) => songs
     .filter((song) => song.type === "youtube")
     .map(normalizeSavedYoutubeSong)
