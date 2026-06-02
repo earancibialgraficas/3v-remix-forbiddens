@@ -1765,6 +1765,36 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               "flex items-center justify-center w-full h-full min-h-0 max-w-[100vw] max-h-[100dvh]",
           )}
         >
+          {usesRositaNesShell && (
+            <div className="rosita-shell-hardware" aria-hidden="true">
+              <div className="rosita-shell-title">
+                <span>NES EMULATOR</span>
+              </div>
+              <div className="rosita-shell-speaker rosita-shell-speaker-left" />
+              <div className="rosita-shell-speaker rosita-shell-speaker-right" />
+              <span className="rosita-shell-bow rosita-shell-bow-top">bow</span>
+              <span className="rosita-shell-bow rosita-shell-bow-bottom">bow</span>
+              <span className="rosita-shell-deco rosita-shell-deco-left-top">berry</span>
+              <span className="rosita-shell-deco rosita-shell-deco-left-bottom">flower</span>
+              <span className="rosita-shell-deco rosita-shell-deco-right-top">flower</span>
+              <span className="rosita-shell-deco rosita-shell-deco-right-bottom">berry</span>
+              <img className="rosita-shell-dpad" src="/emulator-shells/rosita-nes/buttons/dpad.svg" alt="" />
+              <div className="rosita-shell-action-buttons">
+                <img className="rosita-shell-button rosita-shell-button-b" src="/emulator-shells/rosita-nes/buttons/b.svg" alt="" />
+                <img className="rosita-shell-button rosita-shell-button-a" src="/emulator-shells/rosita-nes/buttons/a.svg" alt="" />
+              </div>
+              <div className="rosita-shell-menu-buttons">
+                <span>
+                  <img src="/emulator-shells/rosita-nes/buttons/select.svg" alt="" />
+                  SELECT
+                </span>
+                <span>
+                  <img src="/emulator-shells/rosita-nes/buttons/start.svg" alt="" />
+                  START
+                </span>
+              </div>
+            </div>
+          )}
           {!romLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
