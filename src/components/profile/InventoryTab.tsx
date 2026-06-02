@@ -14,6 +14,7 @@ import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { STAT_BOOST_REFRESH_EVENT, STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired } from "@/hooks/useActiveStatBoost";
+import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
 interface InventoryTabProps {
   userId: string;
@@ -825,7 +826,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item?.item_slug === "varita_magica" ? <Sparkles className={className} /> : <Flame className={className} />
+      ? item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : <Flame className={className} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1748,7 +1749,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       {entry.kind === "avatar_frame" ? (
                         <img src={getAvatarFrame(entry.slug)?.thumbnailUrl} alt="" className="h-[86%] w-[86%] object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
                       ) : entry.kind === "profile_transition" ? (
-                        <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
+                        entry.slug === "varita_magica" ? (
+                          <VaritaMagicaIcon className="h-[62%] w-[62%]" />
+                        ) : (
+                          <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
+                        )
                       ) : entry.slug === "demoniaco" ? (
                         <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (

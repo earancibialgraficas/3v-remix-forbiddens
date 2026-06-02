@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITION_SHOP_ITEMS, isProfileTransitionSlug } from "@/lib/profileTransitions";
+import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
 interface ShopItem {
   id: string;
@@ -83,6 +84,13 @@ const shopVisuals = {
     badge: "INTRO",
     background:
       "radial-gradient(circle at center, rgba(255,84,18,.28), rgba(8,4,2,.92)), linear-gradient(135deg, #2b1006, #090403)",
+  },
+  varita_magica: {
+    frame: "border-pink-300/80 bg-pink-100",
+    icon: "text-pink-700",
+    badge: "MAGIC",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(255,182,217,.55), transparent 34%), linear-gradient(135deg, #ffe4f1, #7f1748)",
   },
   ticket: {
     frame: "border-sky-300/70 bg-[#102b3a]",
@@ -243,7 +251,7 @@ export default function StorePage() {
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item.slug === "varita_magica" ? <Sparkles className={className} /> : <Flame className={className} />
+      ? item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : <Flame className={className} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -472,6 +480,7 @@ export default function StorePage() {
                       item.slug === "demoniaco" && "h-14 w-14 overflow-hidden",
                       isAvatarFrameItem(item) && "h-20 w-20 border-pink-200/70 bg-black/15 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
+                      item.slug === "varita_magica" && "border-pink-300/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.3)]",
                       visual.frame,
                     )}>
                       {item.slug !== "demoniaco" && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
@@ -482,6 +491,7 @@ export default function StorePage() {
                           item.slug === "demoniaco" ? "h-full w-full" : visual.icon,
                           isAvatarFrameItem(item) && "h-full w-full p-1",
                           isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
+                          item.slug === "varita_magica" && "h-full w-full drop-shadow-none",
                         )}
                       />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
