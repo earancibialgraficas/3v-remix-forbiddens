@@ -353,18 +353,20 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     if (Array.isArray(savedSnapshot) && savedSnapshot.length > 0) {
       savedSnapshot.slice(0, slotCount).forEach((entry: any, slotIndex: number) => {
         if (!entry || !Array.isArray(entry.sources)) return;
-        const parts = entry.sources
+        const candidates = entry.sources
           .map((source: any) => {
             const sourceItem = availableById.get(String(source.id));
             if (!sourceItem || sourceItem.item_slug !== entry.item_slug || consumed.has(String(source.id))) return null;
             const qty = Math.min(Number(source.quantity || 0), Number(sourceItem.quantity || 0));
             if (qty <= 0) return null;
-            consumed.add(String(source.id));
             return { item: sourceItem, source: { id: sourceItem.id, quantity: qty } };
           })
           .filter(Boolean);
+        if (candidates.length === 0) return;
+        const base = candidates[0].item;
+        const parts = candidates.filter((part: any) => canStackTogether(part.item, base));
         if (parts.length === 0) return;
-        const base = parts[0].item;
+        parts.forEach((part: any) => consumed.add(String(part.source.id)));
         nextSlots[slotIndex] = {
           ...base,
           quantity: parts.reduce((sum: number, part: any) => sum + Number(part.source.quantity || 0), 0),
@@ -716,7 +718,25 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     };
   };
 
-  const canStackTogether = (a: any, b: any) => a && b && a.item_slug === b.item_slug;
+  const boosterStackState = (item: any) => {
+    if (!item || item.item_slug !== STAT_BOOST_SLUG) return "";
+    const activeUntil = getStatBoostActiveUntil(item);
+    const usedBy = Array.isArray(item?.metadata?.used_by_users)
+      ? item.metadata.used_by_users.map(String).sort().join("|")
+      : "";
+    if (activeUntil > Date.now()) return `active:${activeUntil}:${usedBy}`;
+    if (activeUntil > 0) return `expired:${activeUntil}:${usedBy}`;
+    if (usedBy) return `used:${usedBy}`;
+    return "fresh";
+  };
+
+  const stackKey = (item: any) => {
+    if (!item?.item_slug) return "";
+    if (item.item_slug === STAT_BOOST_SLUG) return `${item.item_slug}:${boosterStackState(item)}`;
+    return item.item_slug;
+  };
+
+  const canStackTogether = (a: any, b: any) => a && b && stackKey(a) === stackKey(b);
 
   const combineStacks = (base: any, addition: any) => {
     if (!canStackTogether(base, addition)) return cloneStack(addition);
@@ -921,7 +941,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     if (cursorItemRef.current && !canStackTogether(cursorItemRef.current, item)) return;
     if (cursorItemRef.current) collected = cloneStack(cursorItemRef.current);
     const next = slotItemsRef.current.map((slot) => {
-      if (slot?.item_slug === item.item_slug) {
+      if (canStackTogether(slot, item)) {
         collected = collected ? combineStacks(collected, slot) : cloneStack(slot);
         return null;
       }
@@ -1616,6 +1636,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                     className={cn(
                       "demoniaco-item-frame relative aspect-square select-none rounded-sm border bg-[#3b2d21] shadow-[inset_2px_2px_0_rgba(255,255,255,0.12),inset_-2px_-2px_0_rgba(0,0,0,0.5)] transition-colors",
                       item ? "cursor-pointer border-[#d6b16f] bg-[radial-gradient(circle_at_35%_25%,rgba(250,204,21,0.22),#3b2d21_55%)]" : "border-[#6b5236]",
+                      item && isBoosterItem(item) && itemIsActive(item) && "border-neon-green/80 bg-[radial-gradient(circle_at_35%_25%,rgba(34,197,94,0.32),rgba(18,64,31,0.82)_58%,#0c160f_100%)] shadow-[inset_2px_2px_0_rgba(255,255,255,0.14),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_14px_rgba(34,197,94,0.45)]",
                       dragTouched.includes(index ?? -1) && "ring-2 ring-neon-cyan",
                       item && isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && "ring-2 ring-neon-green shadow-[0_0_12px_rgba(34,197,94,0.7)]",
                     )}
@@ -1640,6 +1661,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                               : isSkinItem(item)
                                 ? "border-neon-cyan/70 bg-[#0a2e2e]"
                               : "border-[#f7d28b]/70 bg-[#6b4a1f]",
+                          isBoosterItem(item) && itemIsActive(item) && "border-neon-green/80 bg-[#18351f] shadow-[inset_2px_2px_0_rgba(255,255,255,0.16),inset_-2px_-2px_0_rgba(0,0,0,0.5),0_0_14px_rgba(34,197,94,0.5)]",
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
@@ -1655,7 +1677,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                             )}
                           />
                         </div>
-                        {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
+                        {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[5px] text-black">ACTIVO</span>}
                         {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && (
                           <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[5px] text-foreground">
                             {boosterIsExpired(item) ? "VENCIDO" : "USADO"}
