@@ -363,7 +363,7 @@ export default function PublicProfilePage() {
 
   return (
     <>
-      <SkinProvider userId={profile?.user_id} skinType="launcher" />
+      <SkinProvider userId={profile?.user_id} skinType="launcher" overrideWhileLoading />
       <ProfileTransitionOverlay slug={profileTransition?.slug} playKey={profile?.user_id} />
       <div className="space-y-4 animate-fade-in w-full min-w-0 px-2 sm:px-4 pb-20 relative">
       

@@ -71,7 +71,6 @@ const applyThemeToRoot = (theme: SkinTheme | null) => {
 const getWinningSource = () => {
   let winning: SkinSource | null = null;
   skinSources.forEach((source) => {
-    if (!source.theme || source.theme.slug === 'default') return;
     if (!winning) {
       winning = source;
       return;
