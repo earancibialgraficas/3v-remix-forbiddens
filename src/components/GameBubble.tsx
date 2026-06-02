@@ -1663,9 +1663,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               isExpanded
                 ? cn(
                     "absolute top-0 left-0 w-full z-[61] bg-black/85 border-b border-white/10 h-12",
+                    usesRositaNesShell && "rosita-window-topbar",
                     expandedControlsOpen ? "translate-y-0" : "-translate-y-full pointer-events-none",
                   )
-                : "bg-muted/50 border-b border-border cursor-move",
+                : cn("bg-muted/50 border-b border-border cursor-move", usesRositaNesShell && "rosita-window-topbar"),
             )}
             onMouseDown={!isExpanded ? onMouseDown : undefined}
           >
@@ -1774,10 +1775,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               <div className="rosita-shell-speaker rosita-shell-speaker-right" />
               <span className="rosita-shell-bow rosita-shell-bow-top">bow</span>
               <span className="rosita-shell-bow rosita-shell-bow-bottom">bow</span>
-              <span className="rosita-shell-deco rosita-shell-deco-left-top">berry</span>
-              <span className="rosita-shell-deco rosita-shell-deco-left-bottom">flower</span>
-              <span className="rosita-shell-deco rosita-shell-deco-right-top">flower</span>
-              <span className="rosita-shell-deco rosita-shell-deco-right-bottom">berry</span>
+              <img className="rosita-shell-deco rosita-shell-deco-left-top" src="/emulator-shells/rosita-nes/decorations/decoracion1.png" alt="" />
+              <img className="rosita-shell-deco rosita-shell-deco-left-bottom" src="/emulator-shells/rosita-nes/decorations/decoracion2.png" alt="" />
+              <img className="rosita-shell-deco rosita-shell-deco-right-top" src="/emulator-shells/rosita-nes/decorations/decoracion3.png" alt="" />
+              <img className="rosita-shell-deco rosita-shell-deco-right-bottom" src="/emulator-shells/rosita-nes/decorations/decoracion4.png" alt="" />
               <img className="rosita-shell-dpad" src="/emulator-shells/rosita-nes/buttons/dpad.svg" alt="" />
               <div className="rosita-shell-action-buttons">
                 <img className="rosita-shell-button rosita-shell-button-b" src="/emulator-shells/rosita-nes/buttons/b.svg" alt="" />
@@ -2000,6 +2001,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           <div
             className={cn(
               "bg-muted/30 border-l border-border flex flex-col items-center py-3 gap-2 shrink-0 transition-transform duration-300",
+              usesRositaNesShell && "rosita-window-side-controls",
               isExpanded
                 ? cn(
                     "absolute right-0 top-0 bottom-0 w-14 bg-black/85 border-l border-white/10 z-[60] pt-14",

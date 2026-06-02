@@ -531,8 +531,7 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
   .gamebubble-shell-rosita-nes .rosita-shell-deco {
     position: absolute;
-    color: transparent;
-    background: center / contain no-repeat;
+    object-fit: contain;
     filter: drop-shadow(0 4px 6px hsl(338 55% 28% / 0.24));
   }
 
@@ -540,22 +539,12 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes .rosita-shell-deco-right-bottom {
     width: clamp(34px, 4.4vw, 66px);
     height: clamp(34px, 4.4vw, 66px);
-    background-image:
-      radial-gradient(circle at 56% 35%, hsl(97 37% 77%) 0 18%, transparent 19%),
-      radial-gradient(circle at 44% 38%, hsl(97 37% 77%) 0 18%, transparent 19%),
-      radial-gradient(circle at 50% 62%, hsl(343 100% 74%) 0 47%, hsl(340 70% 52%) 48% 56%, transparent 57%);
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-deco-left-bottom,
   .gamebubble-shell-rosita-nes .rosita-shell-deco-right-top {
     width: clamp(46px, 5.8vw, 88px);
     height: clamp(46px, 5.8vw, 88px);
-    background-image:
-      radial-gradient(circle at 50% 50%, hsl(38 100% 72%) 0 13%, transparent 14%),
-      radial-gradient(circle at 50% 18%, hsl(0 0% 100%) 0 21%, transparent 22%),
-      radial-gradient(circle at 82% 50%, hsl(0 0% 100%) 0 21%, transparent 22%),
-      radial-gradient(circle at 50% 82%, hsl(0 0% 100%) 0 21%, transparent 22%),
-      radial-gradient(circle at 18% 50%, hsl(0 0% 100%) 0 21%, transparent 22%);
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-deco-left-top { left: clamp(42px, 5.4vw, 82px); top: clamp(78px, 13vh, 150px); }
@@ -633,6 +622,64 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes .bg-muted\/50 {
     background: hsl(329 55% 23% / 0.84) !important;
     border-color: hsl(340 100% 78% / 0.44) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar {
+    min-height: 44px;
+    background:
+      linear-gradient(180deg, hsl(0 0% 100% / 0.52), transparent 48%),
+      linear-gradient(90deg, hsl(338 100% 92%), hsl(334 100% 85%) 55%, hsl(338 100% 91%)) !important;
+    border-bottom: 2px solid hsl(340 75% 55% / 0.72) !important;
+    color: hsl(339 71% 35%) !important;
+    box-shadow:
+      inset 0 0 0 2px hsl(0 0% 100% / 0.42),
+      inset 0 -10px 18px hsl(338 100% 72% / 0.18);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar svg {
+    color: hsl(340 78% 55%) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar p,
+  .gamebubble-shell-rosita-nes .rosita-window-topbar span {
+    color: hsl(338 65% 36%) !important;
+    text-shadow: 0 1px 0 hsl(0 0% 100% / 0.65);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar button {
+    border: 1px solid hsl(340 100% 72% / 0.35);
+    background: hsl(340 100% 96% / 0.4);
+    color: hsl(339 72% 48%) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar button:hover {
+    background: hsl(340 100% 88% / 0.78);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls {
+    width: 58px;
+    background:
+      linear-gradient(90deg, hsl(0 0% 100% / 0.28), transparent 55%),
+      linear-gradient(180deg, hsl(338 100% 91%), hsl(334 100% 82%) 58%, hsl(338 100% 90%)) !important;
+    border-left: 2px solid hsl(340 75% 55% / 0.72) !important;
+    box-shadow:
+      inset 0 0 0 2px hsl(0 0% 100% / 0.38),
+      inset 12px 0 20px hsl(338 100% 72% / 0.14);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls button {
+    border: 1px solid hsl(340 100% 72% / 0.42);
+    background: hsl(340 100% 96% / 0.44);
+    color: hsl(339 72% 48%) !important;
+    box-shadow: 0 4px 10px hsl(338 65% 30% / 0.12);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls button:hover {
+    background: hsl(340 100% 88% / 0.82);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls svg {
+    color: hsl(339 72% 48%) !important;
   }
 
   .gamebubble-shell-rosita-nes > .relative.flex-1 > .bg-muted\/30.border-t {
