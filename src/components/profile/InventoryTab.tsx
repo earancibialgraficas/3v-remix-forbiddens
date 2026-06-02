@@ -1623,6 +1623,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
                     {item && (() => {
                       const itemIsNew = isInventoryItemUnseen(userId, item);
+                      const itemBoosterExpired = isBoosterItem(item) && boosterIsExpired(item);
                       void seenVersion;
                       return (
                       <div className="flex h-full w-full items-center justify-center">
@@ -1647,7 +1648,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                             item={item}
                             className={cn(
                               item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
-                              isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                              itemBoosterExpired
+                                ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
+                                : isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
                             )}
                           />
                         </div>
