@@ -243,7 +243,7 @@ export default function StorePage() {
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? <Flame className={className} />
+      ? item.slug === "varita_magica" ? <Sparkles className={className} /> : <Flame className={className} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)

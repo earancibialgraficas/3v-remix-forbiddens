@@ -1,4 +1,4 @@
-export type ProfileTransitionSlug = 'fuego_infernal';
+export type ProfileTransitionSlug = 'fuego_infernal' | 'varita_magica';
 
 export type ProfileTransitionTheme = {
   slug: ProfileTransitionSlug;
@@ -17,6 +17,15 @@ export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitio
     description: 'Intro de fuego con sonido para presentar tu perfil.',
     videoUrl: '/cosmetics/transitions/fuego/fuego-infernal.mp4',
     thumbnailUrl: '/cosmetics/transitions/fuego/fuego-infernal.mp4',
+    price: 5000,
+    priceType: 'fcoins',
+  },
+  varita_magica: {
+    slug: 'varita_magica',
+    name: 'Transicion Varita Magica',
+    description: 'Intro magica con sonido para presentar tu perfil.',
+    videoUrl: '/cosmetics/transitions/varita-magica/varita-magica.mp4',
+    thumbnailUrl: '/cosmetics/transitions/varita-magica/varita-magica.mp4',
     price: 5000,
     priceType: 'fcoins',
   },

@@ -95,6 +95,16 @@ VALUES
     'cosmetic',
     'novato',
     '/cosmetics/transitions/fuego/fuego-infernal.mp4'
+  ),
+  (
+    'varita_magica',
+    'Transicion Varita Magica',
+    'Intro magica con sonido para presentar tu perfil.',
+    5000,
+    'fcoins',
+    'cosmetic',
+    'novato',
+    '/cosmetics/transitions/varita-magica/varita-magica.mp4'
   )
 ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
