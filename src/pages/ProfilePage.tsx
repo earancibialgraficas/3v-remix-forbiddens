@@ -13,6 +13,7 @@ import { cn, withImageVersion } from "@/lib/utils";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { getAvatarFrameStyle } from "@/lib/avatarFrames";
 import { useUserAvatarFrame } from "@/hooks/useUserAvatarFrame";
+import { useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 import RoleBadge from "@/components/RoleBadge";
 import AvatarSelector from "@/components/AvatarSelector";
 import RoleIconSelector from "@/components/RoleIconSelector";
@@ -52,6 +53,7 @@ const formatMembershipRemaining = (expiresAt?: string | null) => {
 export default function ProfilePage() {
   const { user, profile, roles, refreshProfile, isAdmin, isMasterWeb } = useAuth();
   const { avatarFrame } = useUserAvatarFrame(user?.id);
+  const activeStatBoost = useActiveStatBoost(user?.id);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -545,7 +547,10 @@ export default function ProfilePage() {
             <div className={cn("flex flex-wrap items-center gap-3 mt-2", isMobile ? "justify-center" : "")}>
               {isStaff ? <span className="text-[10px] font-pixel text-neon-magenta flex items-center gap-1" style={getRoleStyle(profile?.color_staff_role)}><Shield className="w-3 h-3" /> {(isMasterWeb || isAdmin) ? "DIOS TODOPODEROSO" : "MÍTICO"}</span> : <MembershipBadge tier={userTierStr} size="sm" colorRole={profile?.color_role} />}
               {membershipRemaining && <span className="text-[10px] font-body text-neon-yellow flex items-center gap-1"><Clock className="w-3 h-3" /> {membershipRemaining}</span>}
-              <span className="text-[10px] font-body text-neon-green flex items-center gap-1"><Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} STAT</span>
+              <span className="text-[10px] font-body text-neon-green flex items-center gap-1">
+                <Trophy className="w-3 h-3" /> {(profile?.total_score || 0).toLocaleString()} STAT
+                {activeStatBoost.active && <span className="rounded bg-neon-green/15 px-1 font-pixel text-[7px] uppercase">x{activeStatBoost.multiplier}</span>}
+              </span>
               <span className="text-[10px] font-body text-[#f7d28b] flex items-center gap-1"><Gem className="w-3 h-3" /> {fcoinBalance.toLocaleString()} F-coin</span>
               <span className="text-[10px] font-body text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Desde {memberSince}</span>
               <span className="text-[10px] font-body text-neon-cyan flex items-center gap-1"><UserPlus className="w-3 h-3" /> {followerCount} segu<VaultHint letter="i" position={5} color="text-neon-magenta" />dores · {followingCount} siguiendo</span>

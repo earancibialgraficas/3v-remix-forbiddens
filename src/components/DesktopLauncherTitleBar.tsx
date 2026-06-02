@@ -8,6 +8,7 @@ import { useNativeSession } from "@/contexts/NativeSessionContext";
 import { getLauncherBridge } from "@/lib/launcherBridge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 
 const formatNumber = (value: number) => Math.trunc(Number(value || 0)).toLocaleString("es-CL");
 
@@ -57,6 +58,7 @@ export default function DesktopLauncherTitleBar() {
   const [checking, setChecking] = useState(false);
   const [wallet, setWallet] = useState<number | null>(null);
   const [maximized, setMaximized] = useState(false);
+  const activeStatBoost = useActiveStatBoost(user?.id);
 
   const activeSession = sessions[currentSessionIndex];
 
@@ -207,6 +209,7 @@ export default function DesktopLauncherTitleBar() {
             <Trophy className="h-3.5 w-3.5" />
             <span className="font-pixel text-[8px] uppercase">STATS</span>
             <span className="text-[11px] font-bold tabular-nums">{formatNumber(profile?.total_score || 0)}</span>
+            {activeStatBoost.active && <span className="rounded bg-neon-green/20 px-1 font-pixel text-[7px] uppercase leading-none">x{activeStatBoost.multiplier}</span>}
           </div>
           <div className="flex items-center gap-1.5 rounded border border-[#f7d28b]/25 bg-[#f7d28b]/10 px-2 py-1 text-[#f7d28b]">
             <Gem className="h-3.5 w-3.5" />

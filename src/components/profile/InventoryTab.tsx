@@ -13,6 +13,7 @@ import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen,
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
+import { STAT_BOOST_SLUG, getStatBoostActiveUntil, isStatBoostActive, isStatBoostExpired, useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 
 interface InventoryTabProps {
   userId: string;
@@ -72,9 +73,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [busy, setBusy] = useState(false);
   const [inventoryPage, setInventoryPage] = useState(0);
   const inventorySlotsPerPage = INVENTORY_PAGE_SIZE;
+  const activeStatBoost = useActiveStatBoost(userId);
 
   const totalBoosters = useMemo(
-    () => boosters.filter((item) => item.item_slug === "points_x3_week").reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    () => boosters.filter((item) => item.item_slug === STAT_BOOST_SLUG).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
     [boosters],
   );
   const tradeItemCount = useMemo(
@@ -794,13 +796,14 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     quantity,
     sources: takeSources(item, quantity),
   } : null;
-  const isBoosterItem = (item: any) => item?.item_slug === "points_x3_week";
+  const isBoosterItem = (item: any) => item?.item_slug === STAT_BOOST_SLUG;
   const isEventTicketItem = (item: any) => String(item?.item_slug || "").startsWith("event_ticket:");
   const isMembershipItem = (item: any) => String(item?.item_slug || "").startsWith("membership:");
   const isAvatarFrameItem = (item: any) => isAvatarFrameSlug(item?.item_slug);
   const isProfileTransitionItem = (item: any) => isProfileTransitionSlug(item?.item_slug);
-  const itemActiveUntil = (item: any) => item?.metadata?.active_until ? new Date(item.metadata.active_until).getTime() : 0;
-  const itemIsActive = (item: any) => itemActiveUntil(item) > Date.now();
+  const itemActiveUntil = (item: any) => getStatBoostActiveUntil(item);
+  const itemIsActive = (item: any) => isStatBoostActive(item);
+  const boosterIsExpired = (item: any) => isStatBoostExpired(item);
   const boosterUsedByMe = (item: any) => Array.isArray(item?.metadata?.used_by_users) && item.metadata.used_by_users.includes(userId);
   const boosterCanBeUsed = (item: any) => isBoosterItem(item) && !itemIsActive(item) && !boosterUsedByMe(item);
   const itemLabel = (item: any) => item?.item_name || (isMembershipItem(item) ? "Membresia" : isEventTicketItem(item) ? "Entrada de evento" : "Objeto");
@@ -1400,7 +1403,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       toast({ title: "No se pudo usar", description: result.reason || "Item no disponible", variant: "destructive" });
       return;
     }
-    toast({ title: "Potenciador activado", description: "x3 puntos por 7 dias." });
+    const expiresAt = result?.active_until ? new Date(result.active_until).toLocaleString("es-CL") : null;
+    toast({ title: "Potenciador activado", description: expiresAt ? `x3 puntos activo hasta ${expiresAt}.` : "x3 puntos por 7 dias." });
     void loadInventory();
   };
 
@@ -1557,7 +1561,10 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
 
           <div className="demoniaco-inventory-mini-stats mb-3 grid gap-1.5 text-[9px] text-muted-foreground sm:grid-cols-3">
             <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">F-coins: {loading ? "..." : wallet.toLocaleString()}</div>
-            <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">STAT: {Number(profile?.total_score || 0).toLocaleString()}</div>
+            <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">
+              STAT: {Number(profile?.total_score || 0).toLocaleString()}
+              {activeStatBoost.active && <span className="ml-1 rounded bg-neon-green/15 px-1 font-pixel text-[7px] uppercase text-neon-green">x{activeStatBoost.multiplier}</span>}
+            </div>
             <div className="rounded border border-[#8b6d46]/50 bg-black/20 px-2 py-1.5">Objetos: {boosters.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString()}</div>
           </div>
 
@@ -1638,7 +1645,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                           />
                         </div>
                         {isBoosterItem(item) && itemIsActive(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">ON</span>}
-                        {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[6px] text-foreground">USADO</span>}
+                        {isBoosterItem(item) && !itemIsActive(item) && boosterUsedByMe(item) && (
+                          <span className="absolute left-0.5 top-0.5 rounded bg-muted px-1 font-pixel text-[5px] text-foreground">
+                            {boosterIsExpired(item) ? "VENCIDO" : "USADO"}
+                          </span>
+                        )}
                         {isMembershipItem(item) && <span className="absolute left-0.5 top-0.5 rounded bg-neon-magenta/90 px-1 font-pixel text-[6px] text-white">30D</span>}
                         {isSkinItem(item) && activeSkins[(ALL_SKINS as any)[item.item_slug!]?.type || 'launcher'] === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADA</span>}
                         {isAvatarFrameItem(item) && activeAvatarFrameSlug === item.item_slug && <span className="absolute left-0.5 top-0.5 rounded bg-neon-green/90 px-1 font-pixel text-[6px] text-black">EQUIPADO</span>}

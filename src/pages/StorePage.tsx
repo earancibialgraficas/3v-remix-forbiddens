@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 import { useToast } from "@/hooks/use-toast";
 import { ALL_SKINS } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
@@ -108,6 +109,7 @@ const shopVisuals = {
 
 export default function StorePage() {
   const { user, profile, refreshProfile } = useAuth(); // Limpiado duplicado
+  const activeStatBoost = useActiveStatBoost(user?.id);
   const { toast } = useToast();
   
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
@@ -395,7 +397,10 @@ export default function StorePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="bg-card border border-neon-green/50 rounded p-3">
             <p className="text-[10px] text-muted-foreground">STATS</p>
-            <p className="font-pixel text-neon-green text-sm">{userStats.toLocaleString()}</p>
+            <p className="flex items-center gap-1 font-pixel text-neon-green text-sm">
+              {userStats.toLocaleString()}
+              {activeStatBoost.active && <span className="rounded bg-neon-green/15 px-1 text-[8px] uppercase">x{activeStatBoost.multiplier}</span>}
+            </p>
           </div>
           <div className="bg-card border border-neon-cyan/50 rounded p-3">
             <p className="text-[10px] text-muted-foreground">F-COINS</p>
