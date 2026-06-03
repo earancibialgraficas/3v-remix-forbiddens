@@ -1745,10 +1745,14 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                 size="icon"
                 variant="ghost"
                 onClick={() => handleClose()}
-                className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                className={cn("h-7 w-7 text-destructive hover:bg-destructive/10", usesRositaNesShell && "rosita-close-button")}
                 title="Cerrar Juego"
               >
-                <X className="w-3.5 h-3.5" />
+                {usesRositaNesShell ? (
+                  <img src="/emulator-shells/rosita-nes/buttons/cerrar.svg" alt="" className="h-full w-full object-contain" />
+                ) : (
+                  <X className="w-3.5 h-3.5" />
+                )}
               </Button>
             </div>
           </div>

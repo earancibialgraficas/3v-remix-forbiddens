@@ -397,9 +397,9 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
-    --rosita-side: clamp(98px, 13.5vw, 190px);
-    --rosita-top: clamp(60px, 8.4vh, 108px);
-    --rosita-bottom: clamp(58px, 8.2vh, 96px);
+    --rosita-side: clamp(118px, 14.5vw, 210px);
+    --rosita-top: clamp(72px, 9.2vh, 118px);
+    --rosita-bottom: clamp(74px, 9.4vh, 108px);
     isolation: isolate;
     padding: var(--rosita-top) var(--rosita-side) var(--rosita-bottom);
     background:
@@ -547,32 +547,32 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     height: clamp(46px, 5.8vw, 88px);
   }
 
-  .gamebubble-shell-rosita-nes .rosita-shell-deco-left-top { left: clamp(42px, 5.4vw, 82px); top: clamp(78px, 13vh, 150px); }
-  .gamebubble-shell-rosita-nes .rosita-shell-deco-left-bottom { left: clamp(36px, 4.8vw, 74px); bottom: clamp(78px, 11vh, 140px); }
-  .gamebubble-shell-rosita-nes .rosita-shell-deco-right-top { right: clamp(38px, 5.2vw, 80px); top: clamp(72px, 12vh, 138px); }
-  .gamebubble-shell-rosita-nes .rosita-shell-deco-right-bottom { right: clamp(40px, 5.4vw, 82px); bottom: clamp(78px, 11vh, 140px); }
+  .gamebubble-shell-rosita-nes .rosita-shell-deco-left-top { left: clamp(44px, 4.2vw, 76px); top: clamp(92px, 13vh, 154px); }
+  .gamebubble-shell-rosita-nes .rosita-shell-deco-left-bottom { left: clamp(42px, 4vw, 72px); bottom: clamp(96px, 12vh, 146px); }
+  .gamebubble-shell-rosita-nes .rosita-shell-deco-right-top { right: clamp(44px, 4.2vw, 76px); top: clamp(92px, 13vh, 154px); }
+  .gamebubble-shell-rosita-nes .rosita-shell-deco-right-bottom { right: clamp(42px, 4vw, 72px); bottom: clamp(96px, 12vh, 146px); }
 
   .gamebubble-shell-rosita-nes .rosita-shell-dpad {
     position: absolute;
-    left: clamp(30px, 4.2vw, 72px);
+    left: clamp(38px, 4.8vw, 86px);
     top: 50%;
-    width: clamp(76px, 9vw, 140px);
-    transform: translateY(-22%);
+    width: clamp(74px, 8vw, 128px);
+    transform: translateY(-14%);
     filter: drop-shadow(0 10px 10px hsl(338 65% 22% / 0.32));
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-action-buttons {
     position: absolute;
-    right: clamp(26px, 3.4vw, 64px);
+    right: clamp(36px, 4.2vw, 82px);
     top: 50%;
     display: flex;
     align-items: center;
-    gap: clamp(8px, 1.2vw, 18px);
-    transform: translateY(-18%) rotate(-12deg);
+    gap: clamp(8px, 1vw, 16px);
+    transform: translateY(-10%) rotate(-12deg);
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-button {
-    width: clamp(58px, 7vw, 108px);
+    width: clamp(52px, 6.2vw, 96px);
     filter: drop-shadow(0 10px 10px hsl(338 65% 22% / 0.34));
   }
 
@@ -611,7 +611,7 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes #game-bubble-canvas,
   .gamebubble-shell-rosita-nes iframe[title="EmulatorJS"] {
     position: relative;
-    z-index: 2;
+    z-index: 6;
     border-radius: clamp(12px, 1.4vw, 22px);
     box-shadow:
       0 0 0 clamp(6px, 0.8vw, 12px) hsl(340 93% 74%),
@@ -629,11 +629,12 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     background:
       linear-gradient(180deg, hsl(0 0% 100% / 0.52), transparent 48%),
       linear-gradient(90deg, hsl(338 100% 92%), hsl(334 100% 85%) 55%, hsl(338 100% 91%)) !important;
-    border-bottom: 2px solid hsl(340 75% 55% / 0.72) !important;
+    border-bottom: 0 !important;
     color: hsl(339 71% 35%) !important;
     box-shadow:
       inset 0 0 0 2px hsl(0 0% 100% / 0.42),
-      inset 0 -10px 18px hsl(338 100% 72% / 0.18);
+      inset 0 -10px 18px hsl(338 100% 72% / 0.18),
+      0 10px 18px hsl(338 70% 28% / 0.08);
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar svg {
@@ -647,8 +648,8 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar button {
-    border: 1px solid hsl(340 100% 72% / 0.35);
-    background: hsl(340 100% 96% / 0.4);
+    border: 0;
+    background: hsl(340 100% 96% / 0.22);
     color: hsl(339 72% 48%) !important;
   }
 
@@ -661,17 +662,30 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     background:
       linear-gradient(90deg, hsl(0 0% 100% / 0.28), transparent 55%),
       linear-gradient(180deg, hsl(338 100% 91%), hsl(334 100% 82%) 58%, hsl(338 100% 90%)) !important;
-    border-left: 2px solid hsl(340 75% 55% / 0.72) !important;
+    border-left: 0 !important;
     box-shadow:
       inset 0 0 0 2px hsl(0 0% 100% / 0.38),
-      inset 12px 0 20px hsl(338 100% 72% / 0.14);
+      inset 12px 0 20px hsl(338 100% 72% / 0.14),
+      -10px 0 20px hsl(338 70% 28% / 0.08);
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls button {
-    border: 1px solid hsl(340 100% 72% / 0.42);
-    background: hsl(340 100% 96% / 0.44);
+    border: 0;
+    background: hsl(340 100% 96% / 0.28);
     color: hsl(339 72% 48%) !important;
     box-shadow: 0 4px 10px hsl(338 65% 30% / 0.12);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-close-button {
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    overflow: visible;
+    filter: drop-shadow(0 4px 6px hsl(338 65% 24% / 0.28));
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-close-button:hover {
+    transform: scale(1.06);
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls button:hover {
