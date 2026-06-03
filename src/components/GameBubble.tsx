@@ -304,14 +304,20 @@ export default function GameBubble() {
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    if (usesRositaNesShell) {
+      canvas.style.width = "";
+      canvas.style.height = "";
+      canvas.style.objectFit = "contain";
+    } else {
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+    }
     canvas.style.display = "block";
     // 🔥 FIX BLACK SCREEN: muchos cores libretro usan Module.setCanvasSize() o
     // escuchan el evento "resize". Si el canvas tiene tamaño 0 al rotar,
     // el GL viewport queda inválido. Forzamos reflow leyendo offsetHeight.
     void canvas.offsetHeight;
-  }, []);
+  }, [usesRositaNesShell]);
 
   const scheduleCanvasSurfaceSync = useCallback(() => {
     requestAnimationFrame(() => {
@@ -1198,13 +1204,20 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       // (RetroArch) que reajuste el tamaño del canvas a las nuevas medidas
       // CSS, y disparar un evento "resize" para que el core actualice GL.
       try {
-        const rect = viewport.getBoundingClientRect();
+        const rect = usesRositaNesShell
+          ? canvas.getBoundingClientRect()
+          : viewport.getBoundingClientRect();
         // 📱 En móvil NO tocamos el backbuffer de RetroArch/Nostalgist al rotar:
         // varios cores se van a negro si se cambia canvas.width/height en caliente.
         // Imitamos el proyecto estable: CSS 100% + object-fit contain + resize/focus.
         if (isMobile) {
-          canvas.style.width = "100%";
-          canvas.style.height = "100%";
+          if (usesRositaNesShell) {
+            canvas.style.width = "";
+            canvas.style.height = "";
+          } else {
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+          }
           canvas.style.objectFit = "contain";
           canvas.focus({ preventScroll: true });
           try {
@@ -1267,7 +1280,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       window.removeEventListener("orientationchange", handleOrientation);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isMobile]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isMobile, usesRositaNesShell]);
 
   const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;

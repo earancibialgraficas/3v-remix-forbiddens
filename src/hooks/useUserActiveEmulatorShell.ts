@@ -51,6 +51,12 @@ export function useUserActiveEmulatorShell(userId?: string) {
           .maybeSingle();
 
         if (error || !data?.skin_slug) {
+          const fallbackCached = readCachedShellSlug(userId);
+          const fallbackShell = getEmulatorShell(fallbackCached);
+          if (fallbackShell) {
+            setEmulatorShell(fallbackShell);
+            return;
+          }
           writeCachedShellSlug(userId, null);
           setEmulatorShell(null);
           return;
