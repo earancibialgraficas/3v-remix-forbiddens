@@ -838,6 +838,165 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     color: hsl(339 72% 48%) !important;
   }
 
+  .gamebubble-shell-rosita-nes .rosita-shell-hardware {
+    z-index: 2;
+  }
+
+  .gamebubble-shell-rosita-nes .gamebubble-shell-viewport::before {
+    z-index: 0;
+  }
+
+  .gamebubble-shell-rosita-nes .gamebubble-shell-viewport::after {
+    z-index: 1;
+  }
+
+  .gamebubble-shell-rosita-nes #game-bubble-canvas,
+  .gamebubble-shell-rosita-nes iframe[title="EmulatorJS"] {
+    position: relative !important;
+    z-index: 30 !important;
+    background: #000 !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-shell-title::before,
+  .gamebubble-shell-rosita-nes .rosita-shell-title::after {
+    display: none;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-shell-title {
+    z-index: 4;
+    min-width: clamp(190px, 24vw, 380px);
+    height: clamp(34px, 4.6vh, 56px);
+    top: clamp(18px, 2vh, 30px);
+    border-width: 2px;
+    font-size: clamp(13px, 1.5vw, 24px);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar {
+    z-index: 42;
+    margin: clamp(8px, 0.8vw, 14px) clamp(10px, 1vw, 20px) 0 !important;
+    border-color: hsl(340 100% 73% / 0.52) !important;
+    background:
+      linear-gradient(180deg, hsl(0 0% 100% / 0.58), transparent 52%),
+      radial-gradient(circle at 7% 50%, hsl(340 100% 78% / 0.2), transparent 28%),
+      linear-gradient(90deg, hsl(36 100% 97% / 0.98), hsl(338 100% 91% / 0.98) 52%, hsl(36 100% 97% / 0.98)) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls {
+    z-index: 36;
+    right: clamp(30px, 2.55vw, 50px);
+    top: calc(clamp(72px, 8.4vh, 104px) + clamp(50px, 5.6vh, 82px));
+    bottom: clamp(82px, 9.2vh, 128px);
+    width: clamp(78px, 5.8vw, 104px) !important;
+    gap: clamp(6px, 0.8vh, 10px) !important;
+    background:
+      linear-gradient(180deg, hsl(0 0% 100% / 0.5), transparent 45%),
+      linear-gradient(180deg, hsl(36 100% 98% / 0.96), hsl(338 100% 92% / 0.96)) !important;
+    box-shadow:
+      inset 0 0 0 5px hsl(340 100% 86% / 0.56),
+      inset 0 -12px 22px hsl(338 100% 72% / 0.18);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-side-controls button {
+    width: clamp(42px, 3.3vw, 54px) !important;
+    height: clamp(42px, 3.3vw, 54px) !important;
+    min-height: 0 !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-close-button {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-close-texture {
+    width: 172%;
+    height: 172%;
+    max-width: none;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 4px 6px hsl(338 66% 24% / 0.24));
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator {
+    padding: 0 6px 6px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-panel {
+    border-color: hsl(340 100% 72% / 0.58) !important;
+    border-radius: 12px !important;
+    background:
+      linear-gradient(180deg, hsl(0 0% 100% / 0.55), transparent 44%),
+      linear-gradient(180deg, hsl(36 100% 97% / 0.94), hsl(338 100% 91% / 0.94)) !important;
+    box-shadow:
+      inset 0 0 0 3px hsl(340 100% 87% / 0.5),
+      0 4px 10px hsl(338 60% 28% / 0.12) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header {
+    border-color: hsl(340 100% 72% / 0.32) !important;
+    background: hsl(340 100% 82% / 0.18) !important;
+    padding: 5px 6px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header p,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category span,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label span {
+    color: hsl(338 62% 40%) !important;
+    text-shadow: 0 1px 0 hsl(0 0% 100% / 0.7) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track {
+    padding: 5px 6px 3px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track > div {
+    height: 18px !important;
+    border-color: hsl(340 100% 72% / 0.32) !important;
+    background: hsl(35 100% 98% / 0.72) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-controls {
+    gap: 4px !important;
+    padding: 6px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-play {
+    width: 32px !important;
+    height: 32px !important;
+    display: grid;
+    place-items: center;
+    padding: 0 !important;
+    border-color: hsl(340 100% 68% / 0.68) !important;
+    background: hsl(340 100% 78% / 0.48) !important;
+    color: hsl(340 74% 48%) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-buttons {
+    gap: 4px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip-button,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-button {
+    width: 28px !important;
+    height: 20px !important;
+    border-color: hsl(340 100% 70% / 0.58) !important;
+    background: hsl(35 100% 98% / 0.72) !important;
+    color: hsl(340 72% 50%) !important;
+    box-shadow: inset 0 0 0 2px hsl(340 100% 88% / 0.5) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category {
+    padding: 0 6px 6px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category button {
+    min-height: 22px !important;
+    border-color: hsl(340 100% 72% / 0.36) !important;
+    background: hsl(35 100% 98% / 0.7) !important;
+  }
+
   .gamebubble-shell-rosita-nes .rosita-shell-dpad,
   .gamebubble-shell-rosita-nes .rosita-shell-action-buttons,
   .gamebubble-shell-rosita-nes .rosita-shell-menu-buttons {
@@ -881,7 +1040,12 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     }
 
     .gamebubble-shell-rosita-nes .rosita-window-side-controls {
-      width: 54px;
+      width: 54px !important;
+      right: clamp(12px, 3vw, 24px);
+      top: clamp(92px, 12vh, 136px);
+      bottom: auto;
+      max-height: calc(100dvh - 280px);
+      overflow: hidden;
     }
 
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad {
@@ -901,9 +1065,24 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu {
       left: auto !important;
-      right: clamp(88px, 24vw, 150px) !important;
-      bottom: clamp(34px, 6vh, 56px) !important;
+      right: clamp(92px, 24vw, 154px) !important;
+      bottom: clamp(42px, 6.6vh, 66px) !important;
       transform: none !important;
+      display: flex !important;
+      gap: clamp(8px, 2vw, 14px) !important;
+      z-index: 72 !important;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu button {
+      width: clamp(58px, 15vw, 82px) !important;
+      height: clamp(28px, 7vw, 38px) !important;
+      border-radius: 12px !important;
+      font-family: var(--font-pixel, monospace);
+      font-size: clamp(8px, 2.4vw, 12px) !important;
+      color: hsl(340 72% 50%) !important;
+      background:
+        linear-gradient(180deg, hsl(0 0% 100% / 0.68), transparent 46%),
+        hsl(35 100% 96% / 0.86) !important;
     }
   }
 

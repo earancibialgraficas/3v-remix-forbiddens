@@ -1749,7 +1749,12 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                 title="Cerrar Juego"
               >
                 {usesRositaNesShell ? (
-                  <X className="h-5 w-5" />
+                  <img
+                    src="/emulator-shells/rosita-nes/buttons/cerrar.svg"
+                    alt=""
+                    className="rosita-close-texture"
+                    draggable={false}
+                  />
                 ) : (
                   <X className="w-3.5 h-3.5" />
                 )}

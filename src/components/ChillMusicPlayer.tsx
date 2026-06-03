@@ -1202,18 +1202,18 @@ export default function ChillMusicPlayer() {
 
   // 🎮 VISTA COMPACTA dentro del emulador
   const compactContent = (
-    <div className="w-full">
+    <div className="chill-emulator-compact w-full">
       {renderYT} {renderLocal}
       <div
         className={cn(
-          "relative w-full overflow-hidden rounded-md",
+          "chill-emulator-panel relative w-full overflow-hidden rounded-md",
           "bg-gradient-to-b from-black/95 via-background/95 to-black/95",
           "border border-neon-cyan/50",
           "shadow-[0_0_12px_rgba(34,211,238,0.35),inset_0_0_8px_rgba(34,211,238,0.08)]",
           "backdrop-blur-sm"
         )}
       >
-        <div className="relative flex items-center gap-1 px-1 py-0.5 border-b border-neon-cyan/25 bg-neon-cyan/5">
+        <div className="chill-emulator-header relative flex items-center gap-1 px-1 py-0.5 border-b border-neon-cyan/25 bg-neon-cyan/5">
           <Music className="w-2 h-2 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
           <div className="relative flex-1 min-w-0 overflow-hidden">
             <p className="text-[7px] font-pixel text-neon-cyan whitespace-nowrap leading-none drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate mt-[1px]">
@@ -1228,7 +1228,7 @@ export default function ChillMusicPlayer() {
           />
         </div>
 
-        <div className="px-1 pt-1 pb-0.5">
+        <div className="chill-emulator-track px-1 pt-1 pb-0.5">
           <div 
             className="relative w-full overflow-hidden rounded-sm bg-black/60 border border-neon-cyan/20 h-4 flex items-center" 
             style={{ boxShadow: 'inset 0 0 4px rgba(34,211,238,0.2)' }}
@@ -1252,11 +1252,11 @@ export default function ChillMusicPlayer() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-0.5 px-1 py-1">
+        <div className="chill-emulator-controls flex flex-col items-center gap-0.5 px-1 py-1">
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             className={cn(
-              "relative p-1.5 rounded-full border transition-all active:scale-90",
+              "chill-emulator-play relative p-1.5 rounded-full border transition-all active:scale-90",
               isPlaying
                 ? "bg-neon-magenta/20 border-neon-magenta/60 text-neon-magenta shadow-[0_0_8px_rgba(236,72,153,0.6)]"
                 : "bg-neon-green/20 border-neon-green/60 text-neon-green shadow-[0_0_8px_rgba(74,222,128,0.6)]"
@@ -1265,31 +1265,31 @@ export default function ChillMusicPlayer() {
             {isPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current ml-[1px]" />}
           </button>
 
-          <div className="flex items-center justify-center gap-0.5">
-            <button onClick={prev} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
+          <div className="chill-emulator-skip flex items-center justify-center gap-0.5">
+            <button onClick={prev} className="chill-emulator-skip-button w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
               <SkipBack className="w-2 h-2 fill-current" />
             </button>
-            <button onClick={next} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
+            <button onClick={next} className="chill-emulator-skip-button w-6 h-4 flex items-center justify-center rounded-sm bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/40 hover:shadow-[0_0_6px_rgba(34,211,238,0.7)] transition-all active:scale-90">
               <SkipForward className="w-2 h-2 fill-current" />
             </button>
           </div>
 
-          <div className="flex items-center justify-center gap-0.5 mt-0.5">
-            <button onClick={() => setVolume(v => Math.max(0, v - 10))} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[10px] leading-none transition-all active:scale-90">
+          <div className="chill-emulator-volume-buttons flex items-center justify-center gap-0.5 mt-0.5">
+            <button onClick={() => setVolume(v => Math.max(0, v - 10))} className="chill-emulator-volume-button w-6 h-4 flex items-center justify-center rounded-sm bg-neon-magenta/25 border border-neon-magenta/60 text-neon-magenta hover:bg-neon-magenta/50 hover:shadow-[0_0_6px_rgba(236,72,153,0.7)] font-pixel text-[10px] leading-none transition-all active:scale-90">
               −
             </button>
-            <button onClick={() => setVolume(v => Math.min(100, v + 10))} className="w-6 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[9px] leading-none transition-all active:scale-90">
+            <button onClick={() => setVolume(v => Math.min(100, v + 10))} className="chill-emulator-volume-button w-6 h-4 flex items-center justify-center rounded-sm bg-neon-green/25 border border-neon-green/60 text-neon-green hover:bg-neon-green/50 hover:shadow-[0_0_6px_rgba(74,222,128,0.7)] font-pixel text-[9px] leading-none transition-all active:scale-90">
               +
             </button>
           </div>
 
-          <div className="flex items-center justify-center gap-0.5">
+          <div className="chill-emulator-volume-label flex items-center justify-center gap-0.5">
             {isMuted || volume === 0 ? <VolumeX className="w-2 h-2 text-muted-foreground" /> : <Volume2 className="w-2 h-2 text-neon-cyan" />}
             <span className="text-[7px] font-pixel text-neon-cyan tabular-nums">{volume}%</span>
           </div>
         </div>
 
-        <div className="px-1 pb-1">
+        <div className="chill-emulator-category px-1 pb-1">
           <button
             ref={categoryBtnRef}
             type="button"
