@@ -97,12 +97,98 @@ interface SaveSlot {
 }
 
 const AFK_TIMEOUT_MS = 30 * 1000;
+const ROSITA_PC_ASPECT_RATIO = 1929 / 1079;
 const getLargeGameWindowSize = () => {
   if (typeof window === "undefined") return { w: 1180, h: 760 };
   return {
     w: Math.max(360, window.innerWidth - 24),
     h: Math.max(420, window.innerHeight - 24),
   };
+};
+
+const getRositaDesktopWindowSize = () => {
+  if (typeof window === "undefined") return { w: 1180, h: 660 };
+  const maxW = Math.max(360, window.innerWidth);
+  const maxH = Math.max(420, window.innerHeight);
+  let w = maxW;
+  let h = w / ROSITA_PC_ASPECT_RATIO;
+  if (h > maxH) {
+    h = maxH;
+    w = h * ROSITA_PC_ASPECT_RATIO;
+  }
+  return { w, h };
+};
+
+type RositaLayoutBox = { x: number; y: number; w: number; h: number };
+type RositaLayout = {
+  screen: RositaLayoutBox;
+  topbar: RositaLayoutBox;
+  info: RositaLayoutBox;
+  actions: RositaLayoutBox;
+  side: RositaLayoutBox;
+  minButton: RositaLayoutBox;
+  fullButton: RositaLayoutBox;
+  closeButton: RositaLayoutBox;
+  saveButton: RositaLayoutBox;
+  loadButton: RositaLayoutBox;
+  volumeButton: RositaLayoutBox;
+  volumeSlider: RositaLayoutBox;
+  configButton: RositaLayoutBox;
+  pauseButton: RositaLayoutBox;
+  songToast: RositaLayoutBox;
+};
+
+const ROSITA_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
+
+const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
+  screen: { x: 7.169112660956539, y: 15.491231964483907, w: 78.07539653270914, h: 68.44284128745838 },
+  topbar: { x: 6.2608390905417854, y: 5.770865704772476, w: 69.79502971366827, h: 5.546170921198668 },
+  info: { x: -0.7563479200432199, y: 0.9988901220865706, w: 18.4430037817396, h: 101.44284128745838 },
+  actions: { x: 82.83468395461912, y: 1.664816870144284, w: 17.2, h: 100 },
+  side: { x: 89.23783337250421, y: 71.0180910099889, w: 4.887925445705024, h: 18.833296337402878 },
+  minButton: { x: 80.38452188006484, y: 6.037902330743618, w: 2.1, h: 4.25 },
+  fullButton: { x: 83.04427336574824, y: 6.037902330743617, w: 2.1, h: 4.25 },
+  closeButton: { x: 85.55000000000001, y: 5.371975582685906, w: 3.0603727714748787, h: 5.670865704772476 },
+  saveButton: { x: 88.91540149498366, y: 17.319256381798, w: 5.185143165856293, h: 7.746670366259712 },
+  loadButton: { x: 89.06704148480662, y: 27.007158712541617, w: 5.011708032553514, h: 9.411487236403994 },
+  volumeButton: { x: 89.36133802292879, y: 37.661598224195345, w: 4.44728723727305, h: 10.410377358490564 },
+  volumeSlider: { x: 87.14813662685728, y: 33.82641509433962, w: 1, h: 17.5 },
+  configButton: { x: 88.2420049823041, y: 48.88629300776916, w: 6.051392817834406, h: 8.63457269700333 },
+  pauseButton: { x: 89.0750989117946, y: 57.25826859045506, w: 5.173782586848491, h: 15.071864594894562 },
+  songToast: { x: 35.25058204887335, y: 5.7758046614872365, w: 30, h: 5.6 },
+};
+
+const clampPercent = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
+
+const readRositaLayout = (): RositaLayout => {
+  if (typeof window === "undefined") return DEFAULT_ROSITA_LAYOUT;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(ROSITA_LAYOUT_STORAGE_KEY) || "");
+    return {
+      screen: { ...DEFAULT_ROSITA_LAYOUT.screen, ...(stored?.screen || {}) },
+      topbar: { ...DEFAULT_ROSITA_LAYOUT.topbar, ...(stored?.topbar || {}) },
+      info: { ...DEFAULT_ROSITA_LAYOUT.info, ...(stored?.info || {}) },
+      actions: { ...DEFAULT_ROSITA_LAYOUT.actions, ...(stored?.actions || {}) },
+      side: { ...DEFAULT_ROSITA_LAYOUT.side, ...(stored?.side || {}) },
+      minButton: { ...DEFAULT_ROSITA_LAYOUT.minButton, ...(stored?.minButton || {}) },
+      fullButton: { ...DEFAULT_ROSITA_LAYOUT.fullButton, ...(stored?.fullButton || {}) },
+      closeButton: { ...DEFAULT_ROSITA_LAYOUT.closeButton, ...(stored?.closeButton || {}) },
+      saveButton: { ...DEFAULT_ROSITA_LAYOUT.saveButton, ...(stored?.saveButton || {}) },
+      loadButton: { ...DEFAULT_ROSITA_LAYOUT.loadButton, ...(stored?.loadButton || {}) },
+      volumeButton: { ...DEFAULT_ROSITA_LAYOUT.volumeButton, ...(stored?.volumeButton || {}) },
+      volumeSlider: { ...DEFAULT_ROSITA_LAYOUT.volumeSlider, ...(stored?.volumeSlider || {}) },
+      configButton: { ...DEFAULT_ROSITA_LAYOUT.configButton, ...(stored?.configButton || {}) },
+      pauseButton: { ...DEFAULT_ROSITA_LAYOUT.pauseButton, ...(stored?.pauseButton || {}) },
+      songToast: { ...DEFAULT_ROSITA_LAYOUT.songToast, ...(stored?.songToast || {}) },
+    };
+  } catch {
+    return DEFAULT_ROSITA_LAYOUT;
+  }
+};
+
+const writeRositaLayout = (layout: RositaLayout) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ROSITA_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
 };
 
 export default function GameBubble() {
@@ -138,9 +224,16 @@ export default function GameBubble() {
 
   const [paused, setPaused] = useState(false);
 
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const stored = Number(window.localStorage.getItem("forbiddens:emulator-volume"));
+    return Number.isFinite(stored) ? Math.min(1, Math.max(0, stored)) : 1;
+  });
   const volumeRef = useRef(1);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeControlRef = useRef<HTMLDivElement>(null);
+  const volumeSliderRef = useRef<HTMLDivElement>(null);
+  const volumeSliderHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -152,6 +245,24 @@ export default function GameBubble() {
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
   const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2", "psp"].includes(activeGame.consoleName);
   const usesRositaNesShell = !minimized && emulatorShell?.slug === "rosita_nes" && isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName);
+
+  useEffect(() => {
+    if (!activeGame || minimized) return;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [activeGame, minimized]);
+  const [rositaEditorEnabled, setRositaEditorEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("rositaEditor") === "1"
+      || window.localStorage.getItem("forbiddens:rosita-editor-enabled") === "1";
+  });
+  const [rositaLayout, setRositaLayout] = useState<RositaLayout>(() => readRositaLayout());
 
   // 🔐 Namespace por usuario para que las partidas no se filtren entre cuentas en el mismo navegador
   const getSaveKey = useCallback((gameName: string) => {
@@ -305,8 +416,10 @@ export default function GameBubble() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (usesRositaNesShell) {
-      canvas.style.width = "";
-      canvas.style.height = "";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.maxWidth = "100%";
+      canvas.style.maxHeight = "100%";
       canvas.style.objectFit = "contain";
     } else {
       canvas.style.width = "100%";
@@ -326,8 +439,21 @@ export default function GameBubble() {
     });
   }, [syncCanvasSurface]);
 
+  const scheduleVolumeSliderHide = useCallback((delay = 2000) => {
+    if (volumeSliderHideTimerRef.current) {
+      clearTimeout(volumeSliderHideTimerRef.current);
+    }
+    volumeSliderHideTimerRef.current = setTimeout(() => {
+      setShowVolumeSlider(false);
+      volumeSliderHideTimerRef.current = null;
+    }, delay);
+  }, []);
+
   const handleVolumeChange = (newVol: number) => {
     setVolume(newVol);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("forbiddens:emulator-volume", String(newVol));
+    }
     (window as any).__masterVolume = newVol;
     (emulatorFrameRef.current?.contentWindow as any)?.EJS_emulator?.setVolume?.(newVol);
     (window as any).__masterGains.forEach((gainNode: any) => {
@@ -335,7 +461,42 @@ export default function GameBubble() {
         gainNode.gain.value = newVol;
       }
     });
+    scheduleVolumeSliderHide();
   };
+
+  useEffect(() => {
+    return () => {
+      if (volumeSliderHideTimerRef.current) {
+        clearTimeout(volumeSliderHideTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showVolumeSlider) return;
+    const scheduleIfOutside = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && volumeControlRef.current?.contains(target)) return;
+      if (target && volumeSliderRef.current?.contains(target)) return;
+      if (volumeSliderHideTimerRef.current) {
+        clearTimeout(volumeSliderHideTimerRef.current);
+        volumeSliderHideTimerRef.current = null;
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("forbiddens:emulator-volume", String(volumeRef.current));
+      }
+      setShowVolumeSlider(false);
+    };
+    const scheduleFromPageAction = () => scheduleVolumeSliderHide();
+    window.addEventListener("pointerdown", scheduleIfOutside, true);
+    window.addEventListener("scroll", scheduleFromPageAction, true);
+    window.addEventListener("keydown", scheduleFromPageAction, true);
+    return () => {
+      window.removeEventListener("pointerdown", scheduleIfOutside, true);
+      window.removeEventListener("scroll", scheduleFromPageAction, true);
+      window.removeEventListener("keydown", scheduleFromPageAction, true);
+    };
+  }, [scheduleVolumeSliderHide, showVolumeSlider]);
 
   useEffect(() => {
     volumeRef.current = volume;
@@ -1210,10 +1371,12 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         // 📱 En móvil NO tocamos el backbuffer de RetroArch/Nostalgist al rotar:
         // varios cores se van a negro si se cambia canvas.width/height en caliente.
         // Imitamos el proyecto estable: CSS 100% + object-fit contain + resize/focus.
-        if (isMobile) {
+        if (isMobile || usesRositaNesShell) {
           if (usesRositaNesShell) {
-            canvas.style.width = "";
-            canvas.style.height = "";
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            canvas.style.maxWidth = "100%";
+            canvas.style.maxHeight = "100%";
           } else {
             canvas.style.width = "100%";
             canvas.style.height = "100%";
@@ -1604,6 +1767,175 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     };
   }, [resizing, scheduleCanvasSurfaceSync, isExpanded]);
 
+  const updateRositaLayout = useCallback((updater: (layout: RositaLayout) => RositaLayout) => {
+    setRositaLayout((current) => {
+      const next = updater(current);
+      writeRositaLayout(next);
+      requestAnimationFrame(() => scheduleCanvasSurfaceSync());
+      return next;
+    });
+  }, [scheduleCanvasSurfaceSync]);
+
+  const resetRositaLayout = useCallback(() => {
+    setRositaLayout(DEFAULT_ROSITA_LAYOUT);
+    writeRositaLayout(DEFAULT_ROSITA_LAYOUT);
+    requestAnimationFrame(() => scheduleCanvasSurfaceSync());
+  }, [scheduleCanvasSurfaceSync]);
+
+  const toggleRositaEditor = useCallback(() => {
+    setRositaEditorEnabled((enabled) => {
+      const next = !enabled;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("forbiddens:rosita-editor-enabled", next ? "1" : "0");
+        window.dispatchEvent(new CustomEvent("forbiddens:rosita-editor-toggle", { detail: next }));
+      }
+      return next;
+    });
+  }, []);
+
+  const copyRositaLayout = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const layoutText = window.localStorage.getItem(ROSITA_LAYOUT_STORAGE_KEY) || JSON.stringify(rositaLayout);
+    try {
+      await navigator.clipboard.writeText(layoutText);
+      toast({ title: "Layout copiado", description: "Pegamelo y lo dejo fijo como layout PC global." });
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Usa localStorage.getItem(\"forbiddens:rosita-nes-layout-v1\") en consola." });
+    }
+  }, [rositaLayout, toast]);
+
+  const rositaRelativeBox = (box: RositaLayoutBox, parent: RositaLayoutBox) => ({
+    x: parent.w ? ((box.x - parent.x) / parent.w) * 100 : 0,
+    y: parent.h ? ((box.y - parent.y) / parent.h) * 100 : 0,
+    w: parent.w ? (box.w / parent.w) * 100 : 0,
+    h: parent.h ? (box.h / parent.h) * 100 : 0,
+  });
+
+  const canEditRositaLayout = usesRositaNesShell && isMobile;
+  const effectiveRositaLayout = rositaLayout;
+  const rositaTopbarMin = rositaRelativeBox(effectiveRositaLayout.minButton, effectiveRositaLayout.topbar);
+  const rositaTopbarFull = rositaRelativeBox(effectiveRositaLayout.fullButton, effectiveRositaLayout.topbar);
+  const rositaTopbarClose = rositaRelativeBox(effectiveRositaLayout.closeButton, effectiveRositaLayout.topbar);
+  const rositaSideSave = rositaRelativeBox(effectiveRositaLayout.saveButton, effectiveRositaLayout.side);
+  const rositaSideLoad = rositaRelativeBox(effectiveRositaLayout.loadButton, effectiveRositaLayout.side);
+  const rositaSideVolume = rositaRelativeBox(effectiveRositaLayout.volumeButton, effectiveRositaLayout.side);
+  const rositaSideVolumeSlider = rositaRelativeBox(effectiveRositaLayout.volumeSlider, effectiveRositaLayout.side);
+  const rositaSideConfig = rositaRelativeBox(effectiveRositaLayout.configButton, effectiveRositaLayout.side);
+  const rositaSidePause = rositaRelativeBox(effectiveRositaLayout.pauseButton, effectiveRositaLayout.side);
+
+  const rositaCssVars = usesRositaNesShell ? ({
+    "--rosita-screen-left": `${effectiveRositaLayout.screen.x}%`,
+    "--rosita-screen-top": `${effectiveRositaLayout.screen.y}%`,
+    "--rosita-screen-right": `${100 - effectiveRositaLayout.screen.x - effectiveRositaLayout.screen.w}%`,
+    "--rosita-screen-bottom": `${100 - effectiveRositaLayout.screen.y - effectiveRositaLayout.screen.h}%`,
+    "--rosita-topbar-left": `${effectiveRositaLayout.topbar.x}%`,
+    "--rosita-topbar-top": `${effectiveRositaLayout.topbar.y}%`,
+    "--rosita-topbar-right": `${100 - effectiveRositaLayout.topbar.x - effectiveRositaLayout.topbar.w}%`,
+    "--rosita-topbar-height": `${effectiveRositaLayout.topbar.h}%`,
+    "--rosita-info-left": `${effectiveRositaLayout.info.x}%`,
+    "--rosita-actions-right": `${100 - effectiveRositaLayout.actions.x - effectiveRositaLayout.actions.w}%`,
+    "--rosita-side-right": `${100 - effectiveRositaLayout.side.x - effectiveRositaLayout.side.w}%`,
+    "--rosita-side-top": `${effectiveRositaLayout.side.y}%`,
+    "--rosita-side-width": `${effectiveRositaLayout.side.w}%`,
+    "--rosita-side-height": `${effectiveRositaLayout.side.h}%`,
+    "--rosita-min-x": `${rositaTopbarMin.x}%`,
+    "--rosita-min-y": `${rositaTopbarMin.y}%`,
+    "--rosita-min-w": `${rositaTopbarMin.w}%`,
+    "--rosita-min-h": `${rositaTopbarMin.h}%`,
+    "--rosita-full-x": `${rositaTopbarFull.x}%`,
+    "--rosita-full-y": `${rositaTopbarFull.y}%`,
+    "--rosita-full-w": `${rositaTopbarFull.w}%`,
+    "--rosita-full-h": `${rositaTopbarFull.h}%`,
+    "--rosita-close-x": `${rositaTopbarClose.x}%`,
+    "--rosita-close-y": `${rositaTopbarClose.y}%`,
+    "--rosita-close-w": `${rositaTopbarClose.w}%`,
+    "--rosita-close-h": `${rositaTopbarClose.h}%`,
+    "--rosita-save-x": `${rositaSideSave.x}%`,
+    "--rosita-save-y": `${rositaSideSave.y}%`,
+    "--rosita-save-w": `${rositaSideSave.w}%`,
+    "--rosita-save-h": `${rositaSideSave.h}%`,
+    "--rosita-load-x": `${rositaSideLoad.x}%`,
+    "--rosita-load-y": `${rositaSideLoad.y}%`,
+    "--rosita-load-w": `${rositaSideLoad.w}%`,
+    "--rosita-load-h": `${rositaSideLoad.h}%`,
+    "--rosita-volume-x": `${rositaSideVolume.x}%`,
+    "--rosita-volume-y": `${rositaSideVolume.y}%`,
+    "--rosita-volume-w": `${rositaSideVolume.w}%`,
+    "--rosita-volume-h": `${rositaSideVolume.h}%`,
+    "--rosita-volume-slider-x": `${rositaSideVolumeSlider.x}%`,
+    "--rosita-volume-slider-y": `${rositaSideVolumeSlider.y}%`,
+    "--rosita-volume-slider-w": `${rositaSideVolumeSlider.w}%`,
+    "--rosita-volume-slider-h": `${rositaSideVolumeSlider.h}%`,
+    "--rosita-config-x": `${rositaSideConfig.x}%`,
+    "--rosita-config-y": `${rositaSideConfig.y}%`,
+    "--rosita-config-w": `${rositaSideConfig.w}%`,
+    "--rosita-config-h": `${rositaSideConfig.h}%`,
+    "--rosita-pause-x": `${rositaSidePause.x}%`,
+    "--rosita-pause-y": `${rositaSidePause.y}%`,
+    "--rosita-pause-w": `${rositaSidePause.w}%`,
+    "--rosita-pause-h": `${rositaSidePause.h}%`,
+    "--rosita-song-x": `${effectiveRositaLayout.songToast.x}%`,
+    "--rosita-song-y": `${effectiveRositaLayout.songToast.y}%`,
+    "--rosita-song-w": `${effectiveRositaLayout.songToast.w}%`,
+    "--rosita-song-h": `${effectiveRositaLayout.songToast.h}%`,
+  } as React.CSSProperties) : undefined;
+
+  const startRositaBoxEdit = useCallback((
+    key: keyof RositaLayout,
+    mode: "move" | "resize",
+    event: React.PointerEvent,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const rootRect = (key === "screen" || key === "songToast" ? canvasViewportRef.current : popupRef.current)?.getBoundingClientRect();
+    if (!rootRect) return;
+    const start = rositaLayout[key];
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const onMove = (moveEvent: PointerEvent) => {
+      const dx = ((moveEvent.clientX - startX) / rootRect.width) * 100;
+      const dy = ((moveEvent.clientY - startY) / rootRect.height) * 100;
+      updateRositaLayout((layout) => {
+        const nextBox = mode === "move"
+          ? {
+              ...start,
+              x: clampPercent(start.x + dx, -10, 110 - start.w),
+              y: clampPercent(start.y + dy, -10, 110 - start.h),
+            }
+          : {
+              ...start,
+              w: clampPercent(start.w + dx, 1, 110 - start.x),
+              h: clampPercent(start.h + dy, 1, 110 - start.y),
+            };
+        return { ...layout, [key]: nextBox };
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      scheduleCanvasSurfaceSync();
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [rositaLayout, scheduleCanvasSurfaceSync, updateRositaLayout]);
+
+  const renderRositaEditorBox = (key: keyof RositaLayout, label: string, box: RositaLayoutBox) => (
+    <div
+      key={key}
+      className="absolute z-[120] cursor-move rounded border border-pink-300/90 bg-pink-500/10 text-[9px] font-pixel text-white shadow-[0_0_10px_rgba(236,72,153,0.45)]"
+      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}
+      onPointerDown={(event) => startRositaBoxEdit(key, "move", event)}
+    >
+      <div className="pointer-events-none absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[8px] text-pink-100">
+        {label}
+      </div>
+      <div
+        className="absolute bottom-0 right-0 h-3 w-3 cursor-nwse-resize rounded-tl border-l border-t border-pink-200 bg-pink-400"
+        onPointerDown={(event) => startRositaBoxEdit(key, "resize", event)}
+      />
+    </div>
+  );
+
   if (activeGames.length === 0 || !activeGame) return null;
 
   const inactiveGames = activeGames.map((game, idx) => ({ game, idx })).filter(({ idx }) => idx !== currentGameIndex);
@@ -1640,10 +1972,11 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         };
       }
     } else {
+      const rositaDesktopSize = usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : null;
       popupStyle = {
-        transform: `translate(${position.x}px, ${position.y}px)`,
-        width: `${popupSize.w}px`,
-        height: `${popupSize.h}px`,
+        transform: rositaDesktopSize ? "none" : `translate(${position.x}px, ${position.y}px)`,
+        width: `${rositaDesktopSize?.w ?? popupSize.w}px`,
+        height: `${rositaDesktopSize?.h ?? popupSize.h}px`,
         maxWidth: "calc(100vw - 16px)",
         maxHeight: "calc(100dvh - 16px)",
         willChange: dragging || resizing ? "transform, width, height" : "auto",
@@ -1665,8 +1998,68 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             ? "flex flex-col bg-black shadow-2xl"
             : "flex bg-card rounded-xl shadow-2xl shadow-black/50 border border-border animate-scale-in",
       )}
-      style={popupStyle}
+      style={usesRositaNesShell ? { ...popupStyle, ...rositaCssVars } : popupStyle}
     >
+      {canEditRositaLayout && (
+        <div className="absolute left-2 bottom-2 z-[130] flex items-center gap-1 rounded-md border border-pink-300/50 bg-black/70 p-1 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleRositaEditor();
+            }}
+            className={cn(
+              "rounded px-2 py-1 font-pixel text-[8px] uppercase tracking-wider",
+              rositaEditorEnabled
+                ? "bg-pink-500/35 text-pink-100"
+                : "bg-white/10 text-pink-200 hover:bg-pink-500/25",
+            )}
+          >
+            Editar skin
+          </button>
+          {rositaEditorEnabled && (
+            <>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  copyRositaLayout();
+                }}
+                className="rounded bg-pink-200/20 px-2 py-1 font-pixel text-[8px] uppercase tracking-wider text-pink-100 hover:bg-pink-200/30"
+              >
+                Copiar layout
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  resetRositaLayout();
+                }}
+                className="rounded bg-white/10 px-2 py-1 font-pixel text-[8px] uppercase tracking-wider text-white hover:bg-white/20"
+              >
+                Reset
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {canEditRositaLayout && rositaEditorEnabled && (
+        <div className="pointer-events-none absolute inset-0 z-[119] rosita-editor-grid">
+          <div className="pointer-events-auto">
+            {renderRositaEditorBox("topbar", "Barra superior", rositaLayout.topbar)}
+            {renderRositaEditorBox("side", "Botones der.", rositaLayout.side)}
+            {renderRositaEditorBox("minButton", "Min", rositaLayout.minButton)}
+            {renderRositaEditorBox("fullButton", "Full", rositaLayout.fullButton)}
+            {renderRositaEditorBox("closeButton", "X", rositaLayout.closeButton)}
+            {renderRositaEditorBox("saveButton", "Save", rositaLayout.saveButton)}
+            {renderRositaEditorBox("loadButton", "Load", rositaLayout.loadButton)}
+            {renderRositaEditorBox("volumeButton", "Vol", rositaLayout.volumeButton)}
+            {renderRositaEditorBox("volumeSlider", "Vol barra", rositaLayout.volumeSlider)}
+            {renderRositaEditorBox("configButton", "Config", rositaLayout.configButton)}
+            {renderRositaEditorBox("pauseButton", "Pause", rositaLayout.pauseButton)}
+          </div>
+        </div>
+      )}
       <div className={cn("relative flex-1 min-w-0 bg-black", minimized ? "h-full w-full" : "flex flex-col")}>
         {!minimized && (
           // 🔥 BARRA SUPERIOR CON "group-hover:opacity-100" Y z-[61] PARA EVITAR SOLAPAMIENTOS 🔥
@@ -1787,6 +2180,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               isMobile &&
               "flex items-center justify-center w-full h-full min-h-0 max-w-[100vw] max-h-[100dvh]",
           )}
+          style={rositaCssVars}
         >
           {usesRositaNesShell && (
             <div className="rosita-shell-hardware" aria-hidden="true">
@@ -1818,6 +2212,12 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               </div>
             </div>
           )}
+          {canEditRositaLayout && rositaEditorEnabled && (
+            <div className="pointer-events-auto absolute inset-0 z-[119]">
+              {renderRositaEditorBox("screen", "Juego", rositaLayout.screen)}
+              {renderRositaEditorBox("songToast", "Canción", rositaLayout.songToast)}
+            </div>
+          )}
           {!romLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -1825,29 +2225,31 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             </div>
           )}
 
-          <canvas
-            ref={canvasRef}
-            id="game-bubble-canvas"
-            tabIndex={0}
-            onClick={(e) => e.currentTarget.focus()}
-            style={{
-              width: "100%",
-              height: "100%",
-              display: usesEmulatorJs || isPs2 ? "none" : "block",
-              outline: "none",
-              objectFit: "contain",
-              background: "black",
-            }}
-          />
-
-          {usesEmulatorJs && !isPs2 && (
-            <iframe
-              ref={emulatorFrameRef}
-              title="EmulatorJS"
-              className="absolute inset-0 h-full w-full border-0 bg-black"
-              allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
+          <div className={cn("absolute inset-0 bg-black", usesRositaNesShell && "rosita-game-screen")}>
+            <canvas
+              ref={canvasRef}
+              id="game-bubble-canvas"
+              tabIndex={0}
+              onClick={(e) => e.currentTarget.focus()}
+              style={{
+                width: "100%",
+                height: "100%",
+                display: usesEmulatorJs || isPs2 ? "none" : "block",
+                outline: "none",
+                objectFit: "contain",
+                background: "black",
+              }}
             />
-          )}
+
+            {usesEmulatorJs && !isPs2 && (
+              <iframe
+                ref={emulatorFrameRef}
+                title="EmulatorJS"
+                className="absolute inset-0 h-full w-full border-0 bg-black"
+                allow="autoplay; gamepad; fullscreen; cross-origin-isolated"
+              />
+            )}
+          </div>
 
           {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
               El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
@@ -2131,30 +2533,42 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
             )}
 
             {romLoaded && !isN64 && (
-              <div className="flex flex-col items-center w-full my-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-                  className={cn(
-                    "h-10 w-10 rounded-lg transition-colors",
-                    showVolumeSlider
-                      ? "bg-neon-magenta/20 text-neon-magenta"
-                      : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta",
-                  )}
-                  title="Ajustar Volumen"
+              <>
+                <div
+                  ref={volumeControlRef}
+                  data-open={showVolumeSlider ? "true" : "false"}
+                  className={cn("flex flex-col items-center w-full my-1", usesRositaNesShell && "rosita-volume-control")}
                 >
-                  {volume === 0 ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : volume > 0.5 ? (
-                    <Volume2 className="w-4 h-4" />
-                  ) : (
-                    <Volume1 className="w-4 h-4" />
-                  )}
-                </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      if (volumeSliderHideTimerRef.current) {
+                        clearTimeout(volumeSliderHideTimerRef.current);
+                        volumeSliderHideTimerRef.current = null;
+                      }
+                      setShowVolumeSlider((value) => !value);
+                    }}
+                    className={cn(
+                      "h-10 w-10 rounded-lg transition-colors",
+                      showVolumeSlider
+                        ? "bg-neon-magenta/20 text-neon-magenta"
+                        : "text-muted-foreground hover:bg-neon-magenta/10 hover:text-neon-magenta",
+                    )}
+                    title="Ajustar Volumen"
+                  >
+                    {volume === 0 ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : volume > 0.5 ? (
+                      <Volume2 className="w-4 h-4" />
+                    ) : (
+                      <Volume1 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
 
-                {showVolumeSlider && (
-                  <div className="flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in">
+                {(showVolumeSlider || (usesRositaNesShell && rositaEditorEnabled)) && (
+                  <div ref={volumeSliderRef} className={cn("flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in", usesRositaNesShell && "rosita-volume-slider-popover")}>
                     <span className="text-[8px] font-pixel text-neon-magenta mb-2">{Math.round(volume * 100)}</span>
                     <input
                       type="range"
@@ -2168,7 +2582,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                     />
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {romLoaded && (
@@ -2188,6 +2602,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                 size="icon"
                 variant="ghost"
                 onClick={togglePause}
+                data-paused={paused ? "true" : "false"}
                 className={cn(
                   "h-10 w-10 rounded-lg",
                   paused ? "text-neon-yellow hover:bg-neon-yellow/10" : "text-muted-foreground hover:bg-muted/50",

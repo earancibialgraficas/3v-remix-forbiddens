@@ -204,6 +204,8 @@ export default function ChillMusicPlayer() {
   const [dragOverSongIndex, setDragOverSongIndex] = useState<number | null>(null);
   const dragOverSongIndexRef = useRef<number | null>(null);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [rositaEditorPreview, setRositaEditorPreview] = useState(false);
+  const [rositaEmulatorPalette, setRositaEmulatorPalette] = useState(false);
   const categories = ["Todos", "Metal", "Rap", "Lofi Hip-Hop"];
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -223,6 +225,47 @@ export default function ChillMusicPlayer() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const current = playlist[currentIndex];
   const isMuted = volume === 0;
+
+  useEffect(() => {
+    if (!inEmulator || typeof document === "undefined") {
+      setRositaEmulatorPalette(false);
+      return;
+    }
+    const syncPalette = () => {
+      setRositaEmulatorPalette(Boolean(document.querySelector(".gamebubble-shell-rosita-nes")));
+    };
+    syncPalette();
+    const observer = new MutationObserver(syncPalette);
+    observer.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, [inEmulator]);
+
+  useEffect(() => {
+    const syncEditorPreview = (event?: Event) => {
+      if (!isMobile) {
+        setRositaEditorPreview(false);
+        return;
+      }
+      const detail = (event as CustomEvent<boolean>)?.detail;
+      if (typeof detail === "boolean") {
+        setRositaEditorPreview(detail);
+        return;
+      }
+      setRositaEditorPreview(window.localStorage.getItem("forbiddens:rosita-editor-enabled") === "1");
+    };
+    window.addEventListener("forbiddens:rosita-editor-toggle", syncEditorPreview);
+    window.addEventListener("storage", syncEditorPreview);
+    syncEditorPreview();
+    return () => {
+      window.removeEventListener("forbiddens:rosita-editor-toggle", syncEditorPreview);
+      window.removeEventListener("storage", syncEditorPreview);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     const handleOtherMusic = (event: Event) => {
@@ -271,10 +314,10 @@ export default function ChillMusicPlayer() {
     lastNotifiedRef.current = current.id;
     const id = Date.now();
     setSongToast({ id, title: current.title });
-    const t = setTimeout(() => {
+    const t = window.setTimeout(() => {
       setSongToast(prev => (prev?.id === id ? null : prev));
-    }, 3000);
-    return () => clearTimeout(t);
+    }, 5000);
+    return () => window.clearTimeout(t);
   }, [inEmulator, current?.id, current?.title, isPlaying]);
 
   useEffect(() => {
@@ -1308,27 +1351,22 @@ export default function ChillMusicPlayer() {
       </div>
 
       {showCategoryMenu && categoryBtnRef.current && (() => {
-        const emulatorViewport = inEmulator ? document.getElementById('game-bubble-viewport') : null;
-        const portalHost = emulatorViewport || document.body;
         const btnRect = categoryBtnRef.current!.getBoundingClientRect();
-        let right: number, bottom: number;
-        if (emulatorViewport) {
-          const vpRect = emulatorViewport.getBoundingClientRect();
-          right = Math.max(8, vpRect.right - btnRect.right);
-          bottom = Math.max(8, vpRect.bottom - btnRect.top + 8);
-        } else {
-          right = Math.max(8, window.innerWidth - btnRect.right);
-          bottom = Math.max(8, window.innerHeight - btnRect.top + 8);
-        }
+        const right = Math.max(8, window.innerWidth - btnRect.right);
+        const bottom = Math.max(8, window.innerHeight - btnRect.top + 8);
         return createPortal(
           <div
-            className={cn("z-[9999] animate-fade-in", emulatorViewport ? "absolute inset-0" : "fixed inset-0")}
+            className={cn("fixed inset-0 animate-fade-in", rositaEmulatorPalette && "rosita-music-menu-overlay")}
+            style={{ zIndex: 2147483647 }}
             onClick={(e) => { e.stopPropagation(); setShowCategoryMenu(false); }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div
               style={{ right, bottom }}
-              className="absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md"
+              className={cn(
+                "absolute min-w-[140px] max-w-[200px] bg-black/95 border-2 border-neon-cyan/60 rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.5),inset_0_0_10px_rgba(34,211,238,0.1)] overflow-hidden backdrop-blur-md",
+                rositaEmulatorPalette && "rosita-music-menu",
+              )}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute -bottom-[7px] right-3 w-3 h-3 bg-black/95 border-r-2 border-b-2 border-neon-cyan/60 rotate-45" />
@@ -1371,20 +1409,21 @@ export default function ChillMusicPlayer() {
               </div>
             </div>
           </div>,
-          portalHost
+          document.body
         );
       })()}
 
       {/* 🔥 AVISO CENTRADO PERFECTAMENTE 🔥 */}
-      {songToast && inEmulator && typeof document !== 'undefined' && (() => {
+      {(songToast || rositaEditorPreview) && inEmulator && typeof document !== 'undefined' && (() => {
         const viewport = document.getElementById('game-bubble-viewport');
         if (!viewport) return null;
+        const toastTitle = songToast?.title || current?.title || "FORBIDDENS PLAYER";
         return createPortal(
-          <div key={songToast.id} className="pointer-events-none absolute top-4 left-0 w-full flex justify-center z-[80] animate-fade-in">
+          <div key={songToast?.id || "rosita-editor-song-preview"} className="rosita-song-toast pointer-events-none absolute top-4 left-0 w-full flex justify-center z-[80] animate-fade-in">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/85 border border-neon-cyan/60 shadow-[0_0_14px_rgba(34,211,238,0.45),inset_0_0_8px_rgba(34,211,238,0.15)] backdrop-blur-md max-w-[80vw]">
               <Music className="w-3 h-3 text-neon-magenta shrink-0 drop-shadow-[0_0_4px_rgba(236,72,153,0.8)]" />
               <span className="font-pixel text-[8px] text-neon-cyan uppercase tracking-wider drop-shadow-[0_0_3px_rgba(34,211,238,0.7)] truncate">
-                ♪ {songToast.title}
+                ♪ {toastTitle}
               </span>
             </div>
           </div>,
