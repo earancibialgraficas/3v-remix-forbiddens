@@ -1907,6 +1907,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               consoleName={activeGame.consoleName}
               visible={true}
               landscape={isLandscape}
+              className={usesRositaNesShell ? "rosita-touch-controller" : undefined}
             />
           )}
 
