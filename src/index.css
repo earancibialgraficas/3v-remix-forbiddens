@@ -399,10 +399,10 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
-    --rosita-side: clamp(64px, 4.8vw, 94px);
-    --rosita-right-tools: clamp(94px, 6.2vw, 116px);
-    --rosita-top: clamp(54px, 6.3vh, 86px);
-    --rosita-bottom: clamp(62px, 7.2vh, 98px);
+    --rosita-side: clamp(58px, 4.2vw, 82px);
+    --rosita-right-tools: clamp(106px, 7.4vw, 138px);
+    --rosita-top: clamp(64px, 7.4vh, 104px);
+    --rosita-bottom: clamp(66px, 7.6vh, 104px);
     isolation: isolate;
     padding: var(--rosita-top) calc(var(--rosita-side) + var(--rosita-right-tools)) var(--rosita-bottom) var(--rosita-side);
     background:
@@ -462,26 +462,7 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-title {
-    position: absolute;
-    left: 50%;
-    top: clamp(14px, 1.7vh, 24px);
-    display: grid;
-    min-width: clamp(220px, 27vw, 430px);
-    height: clamp(40px, 5.6vh, 66px);
-    transform: translateX(-50%);
-    place-items: center;
-    border: 3px solid hsl(340 100% 74%);
-    border-radius: 18px;
-    background:
-      linear-gradient(180deg, hsl(0 0% 100% / 0.7), transparent 45%),
-      hsl(342 100% 96% / 0.92);
-    box-shadow:
-      inset 0 0 0 4px hsl(342 100% 86% / 0.72),
-      0 6px 18px hsl(339 69% 36% / 0.18);
-    color: hsl(341 88% 62%);
-    font-size: clamp(16px, 2.1vw, 31px);
-    letter-spacing: 3px;
-    text-shadow: 0 2px 0 hsl(0 0% 100% / 0.75);
+    display: none;
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-title span {
@@ -627,9 +608,17 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
   .gamebubble-shell-rosita-nes #game-bubble-canvas,
   .gamebubble-shell-rosita-nes iframe[title="EmulatorJS"] {
-    position: relative;
-    z-index: 6;
+    position: absolute !important;
+    top: var(--rosita-top) !important;
+    right: calc(var(--rosita-side) + var(--rosita-right-tools)) !important;
+    bottom: var(--rosita-bottom) !important;
+    left: var(--rosita-side) !important;
+    z-index: 80 !important;
+    width: auto !important;
+    height: auto !important;
     border-radius: clamp(12px, 1.3vw, 20px);
+    display: block !important;
+    opacity: 1 !important;
     box-shadow:
       0 0 0 clamp(10px, 0.75vw, 14px) hsl(340 100% 82%),
       0 0 0 clamp(14px, 1vw, 19px) hsl(340 78% 50%),
@@ -643,8 +632,8 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar {
-    height: clamp(72px, 8.4vh, 104px);
-    margin: clamp(12px, 1vw, 18px) clamp(16px, 1.35vw, 26px) 0 !important;
+    height: clamp(66px, 7.8vh, 92px);
+    margin: clamp(10px, 0.9vw, 16px) clamp(18px, 1.5vw, 30px) 0 !important;
     width: auto !important;
     border-radius: clamp(14px, 1.5vw, 24px);
     padding-inline: clamp(60px, 5vw, 92px) clamp(58px, 5vw, 92px) !important;
@@ -688,7 +677,7 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child p {
     font-family: var(--font-pixel, monospace);
-    font-size: clamp(15px, 1.8vw, 28px) !important;
+    font-size: clamp(14px, 1.55vw, 24px) !important;
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -738,11 +727,11 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls {
     position: absolute;
-    right: clamp(28px, 2.4vw, 46px);
-    top: calc(clamp(72px, 8.4vh, 104px) + clamp(66px, 7.5vh, 106px));
-    bottom: clamp(112px, 13vh, 170px);
-    z-index: 14;
-    width: clamp(72px, 5.2vw, 94px) !important;
+    right: clamp(36px, 3vw, 58px);
+    top: calc(var(--rosita-top) + clamp(4px, 0.6vh, 10px));
+    bottom: var(--rosita-bottom);
+    z-index: 88;
+    width: clamp(68px, 5vw, 88px) !important;
     border-radius: 20px;
     padding-block: clamp(12px, 1.4vh, 18px);
     background:
@@ -852,8 +841,14 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
 
   .gamebubble-shell-rosita-nes #game-bubble-canvas,
   .gamebubble-shell-rosita-nes iframe[title="EmulatorJS"] {
-    position: relative !important;
-    z-index: 30 !important;
+    position: absolute !important;
+    top: var(--rosita-top) !important;
+    right: calc(var(--rosita-side) + var(--rosita-right-tools)) !important;
+    bottom: var(--rosita-bottom) !important;
+    left: var(--rosita-side) !important;
+    z-index: 80 !important;
+    width: auto !important;
+    height: auto !important;
     background: #000 !important;
   }
 
@@ -863,17 +858,12 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-title {
-    z-index: 4;
-    min-width: clamp(190px, 24vw, 380px);
-    height: clamp(34px, 4.6vh, 56px);
-    top: clamp(18px, 2vh, 30px);
-    border-width: 2px;
-    font-size: clamp(13px, 1.5vw, 24px);
+    display: none !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar {
     z-index: 42;
-    margin: clamp(8px, 0.8vw, 14px) clamp(10px, 1vw, 20px) 0 !important;
+    margin: clamp(10px, 0.9vw, 16px) clamp(18px, 1.5vw, 30px) 0 !important;
     border-color: hsl(340 100% 73% / 0.52) !important;
     background:
       linear-gradient(180deg, hsl(0 0% 100% / 0.58), transparent 52%),
@@ -882,11 +872,11 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls {
-    z-index: 36;
-    right: clamp(30px, 2.55vw, 50px);
-    top: calc(clamp(72px, 8.4vh, 104px) + clamp(50px, 5.6vh, 82px));
-    bottom: clamp(82px, 9.2vh, 128px);
-    width: clamp(78px, 5.8vw, 104px) !important;
+    z-index: 88;
+    right: clamp(36px, 3vw, 58px);
+    top: calc(var(--rosita-top) + clamp(4px, 0.6vh, 10px));
+    bottom: var(--rosita-bottom);
+    width: clamp(68px, 5vw, 88px) !important;
     gap: clamp(6px, 0.8vh, 10px) !important;
     background:
       linear-gradient(180deg, hsl(0 0% 100% / 0.5), transparent 45%),
@@ -936,7 +926,18 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header {
     border-color: hsl(340 100% 72% / 0.32) !important;
     background: hsl(340 100% 82% / 0.18) !important;
-    padding: 5px 6px !important;
+    padding: 4px 6px !important;
+    justify-content: center;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header svg {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header > div {
+    flex: 0 1 auto !important;
+    max-width: 72px;
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header p,
@@ -944,6 +945,12 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label span {
     color: hsl(338 62% 40%) !important;
     text-shadow: 0 1px 0 hsl(0 0% 100% / 0.7) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header p {
+    font-size: 5.5px !important;
+    letter-spacing: 0.3px !important;
+    text-align: center;
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track {
@@ -988,13 +995,34 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category {
+    display: flex;
+    justify-content: center;
     padding: 0 6px 6px !important;
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category button {
-    min-height: 22px !important;
+    width: 72% !important;
+    min-height: 18px !important;
+    height: 18px !important;
     border-color: hsl(340 100% 72% / 0.36) !important;
     background: hsl(35 100% 98% / 0.7) !important;
+    padding: 0 5px !important;
+    justify-content: center !important;
+    gap: 3px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category button > div {
+    flex: 0 1 auto;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category svg {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category span {
+    font-size: 5px !important;
+    letter-spacing: 0.2px !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-dpad,
