@@ -1945,6 +1945,16 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   if (!minimized) {
     if (isFullscreen) {
       popupStyle = { width: "100vw", height: "100vh", borderRadius: 0 };
+    } else if (usesRositaNesShell && isMobile && !isLandscape) {
+      popupStyle = {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100dvh",
+        zIndex: 50,
+        borderRadius: 0,
+      };
     } else if (isTheaterActive && theaterRect) {
       // 📱 EN MÓVIL/TABLET: el contenedor batocera-target puede quedar fuera de
       // la pantalla por scroll o rotación → forzamos viewport completo para

@@ -1386,6 +1386,24 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     }
   }
 
+  @media (orientation: portrait) and (max-width: 1024px), (orientation: portrait) and (pointer: coarse) {
+    .gamebubble-shell-rosita-nes,
+    .gamebubble-shell-rosita-nes > .relative.flex-1,
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
+      border-radius: 0 !important;
+    }
+
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
+      background:
+        url("/emulator-shells/rosita-nes/skin-principal-mobile-portrait.png") center / 100% 100% no-repeat !important;
+    }
+
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport::before {
+      background:
+        url("/emulator-shells/rosita-nes/skin-principal-mobile-portrait.png") center / 100% 100% no-repeat !important;
+    }
+  }
+
   @media (max-width: 560px) {
     .gamebubble-shell-rosita-nes .rosita-shell-deco-left-top,
     .gamebubble-shell-rosita-nes .rosita-shell-deco-left-bottom,
