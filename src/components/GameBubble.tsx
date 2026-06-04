@@ -136,9 +136,18 @@ type RositaLayout = {
   configButton: RositaLayoutBox;
   pauseButton: RositaLayoutBox;
   songToast: RositaLayoutBox;
+  touchFrame: RositaLayoutBox;
+  touchDpad: RositaLayoutBox;
+  touchActions: RositaLayoutBox;
+  touchMenu: RositaLayoutBox;
 };
 
-const ROSITA_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
+type RositaLayoutVariant = "pc" | "mobilePortrait" | "mobileLandscape";
+
+const ROSITA_LEGACY_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
+const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v1";
+const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v2";
+const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v1";
 
 const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
   screen: { x: 7.169112660956539, y: 15.491231964483907, w: 78.07539653270914, h: 68.44284128745838 },
@@ -156,39 +165,96 @@ const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
   configButton: { x: 88.2420049823041, y: 48.88629300776916, w: 6.051392817834406, h: 8.63457269700333 },
   pauseButton: { x: 89.0750989117946, y: 57.25826859045506, w: 5.173782586848491, h: 15.071864594894562 },
   songToast: { x: 35.25058204887335, y: 5.7758046614872365, w: 30, h: 5.6 },
+  touchFrame: { x: 3, y: 66, w: 94, h: 29 },
+  touchDpad: { x: 7, y: 71, w: 20, h: 18 },
+  touchActions: { x: 72, y: 72, w: 21, h: 16 },
+  touchMenu: { x: 38, y: 88, w: 24, h: 6 },
+};
+
+const DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT: RositaLayout = {
+  ...DEFAULT_ROSITA_LAYOUT,
+  screen: { x: 25.36911266095654, y: 10.467867478502598, w: 49.87539653270913, h: 56.99424315661726 },
+  topbar: { x: 6.008052368419207, y: -0.04043280105506142, w: 69.15914202645888, h: 17.164620989454473 },
+  info: { x: 13.01301524691032, y: -7.077671781985373e-16, w: 56.652986570035644, h: 13.465313197570739 },
+  actions: { x: 40.77471475451041, y: 66.16576195047611, w: 17.676492435909047, h: 6.351202352199941 },
+  side: { x: 77.6389566626573, y: 49.914121036177484, w: 8.647323941945626, h: 18.599651477589795 },
+  minButton: { x: 74.94743518742966, y: 5.839632068680435, w: 3.1327022375215146, h: 5.485955056179776 },
+  fullButton: { x: 78.89715859085919, y: 6.284935828590934, w: 3.1327022375215146, h: 4.699438202247191 },
+  closeButton: { x: 82.54248120300753, y: 5.394289979409628, w: 4.265192048583313, h: 6.345023008143263 },
+  saveButton: { x: 77.89233781167898, y: 12.239974642850186, w: 8.45915349287867, h: 7.948287503716397 },
+  loadButton: { x: 77.9555096431543, y: 18.930857454207388, w: 8.183825072140433, h: 9.294664806497453 },
+  volumeButton: { x: 78.20849809177561, y: 27.60430471788367, w: 7.4837760496654795, h: 6.346794453943678 },
+  volumeSlider: { x: 72.51818826196916, y: 22.478100487598052, w: 2.2048192771084336, h: 13.455056179775282 },
+  configButton: { x: 77.39863148832819, y: 33.02292416687223, w: 8.116797292877436, h: 9.308730000374117 },
+  pauseButton: { x: 77.543257259471, y: 38.248832333827785, w: 8.444006338999953, h: 15.296583696018157 },
+  songToast: { x: 34.11674746240718, y: 11.383281297001256, w: 31.816541353383464, h: 2.4457943925233643 },
+  touchFrame: { x: 10.884681583476763, y: 68.89887640449439, w: 63.77280550774526, h: 18.34831460674157 },
+  touchDpad: { x: 13.884681583476766, y: 70.86516853932585, w: 25, h: 17 },
+  touchActions: { x: 60.39554601254031, y: 72.81735492971447, w: 27, h: 16 },
+  touchMenu: { x: 42.41953467191262, y: 75.95505617977528, w: 15.304647160068846, h: 6.561797752808988 },
+};
+
+const DEFAULT_ROSITA_MOBILE_LANDSCAPE_LAYOUT: RositaLayout = {
+  ...DEFAULT_ROSITA_LAYOUT,
+  touchFrame: { x: 4, y: 66, w: 92, h: 30 },
+  touchDpad: { x: 7, y: 71, w: 18, h: 21 },
+  touchActions: { x: 73, y: 72, w: 20, h: 18 },
+  touchMenu: { x: 39, y: 88, w: 22, h: 7 },
 };
 
 const clampPercent = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
 
-const readRositaLayout = (): RositaLayout => {
-  if (typeof window === "undefined") return DEFAULT_ROSITA_LAYOUT;
+const getRositaLayoutStorageKey = (variant: RositaLayoutVariant) => (
+  variant === "mobilePortrait"
+    ? ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY
+    : variant === "mobileLandscape"
+    ? ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY
+    : ROSITA_PC_LAYOUT_STORAGE_KEY
+);
+
+const getDefaultRositaLayout = (variant: RositaLayoutVariant) => (
+  variant === "mobilePortrait"
+    ? DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT
+    : variant === "mobileLandscape"
+    ? DEFAULT_ROSITA_MOBILE_LANDSCAPE_LAYOUT
+    : DEFAULT_ROSITA_LAYOUT
+);
+
+const readRositaLayout = (variant: RositaLayoutVariant = "pc"): RositaLayout => {
+  const defaults = getDefaultRositaLayout(variant);
+  if (typeof window === "undefined") return defaults;
   try {
-    const stored = JSON.parse(window.localStorage.getItem(ROSITA_LAYOUT_STORAGE_KEY) || "");
+    const raw = window.localStorage.getItem(getRositaLayoutStorageKey(variant)) || "";
+    const stored = JSON.parse(raw);
     return {
-      screen: { ...DEFAULT_ROSITA_LAYOUT.screen, ...(stored?.screen || {}) },
-      topbar: { ...DEFAULT_ROSITA_LAYOUT.topbar, ...(stored?.topbar || {}) },
-      info: { ...DEFAULT_ROSITA_LAYOUT.info, ...(stored?.info || {}) },
-      actions: { ...DEFAULT_ROSITA_LAYOUT.actions, ...(stored?.actions || {}) },
-      side: { ...DEFAULT_ROSITA_LAYOUT.side, ...(stored?.side || {}) },
-      minButton: { ...DEFAULT_ROSITA_LAYOUT.minButton, ...(stored?.minButton || {}) },
-      fullButton: { ...DEFAULT_ROSITA_LAYOUT.fullButton, ...(stored?.fullButton || {}) },
-      closeButton: { ...DEFAULT_ROSITA_LAYOUT.closeButton, ...(stored?.closeButton || {}) },
-      saveButton: { ...DEFAULT_ROSITA_LAYOUT.saveButton, ...(stored?.saveButton || {}) },
-      loadButton: { ...DEFAULT_ROSITA_LAYOUT.loadButton, ...(stored?.loadButton || {}) },
-      volumeButton: { ...DEFAULT_ROSITA_LAYOUT.volumeButton, ...(stored?.volumeButton || {}) },
-      volumeSlider: { ...DEFAULT_ROSITA_LAYOUT.volumeSlider, ...(stored?.volumeSlider || {}) },
-      configButton: { ...DEFAULT_ROSITA_LAYOUT.configButton, ...(stored?.configButton || {}) },
-      pauseButton: { ...DEFAULT_ROSITA_LAYOUT.pauseButton, ...(stored?.pauseButton || {}) },
-      songToast: { ...DEFAULT_ROSITA_LAYOUT.songToast, ...(stored?.songToast || {}) },
+      screen: { ...defaults.screen, ...(stored?.screen || {}) },
+      topbar: { ...defaults.topbar, ...(stored?.topbar || {}) },
+      info: { ...defaults.info, ...(stored?.info || {}) },
+      actions: { ...defaults.actions, ...(stored?.actions || {}) },
+      side: { ...defaults.side, ...(stored?.side || {}) },
+      minButton: { ...defaults.minButton, ...(stored?.minButton || {}) },
+      fullButton: { ...defaults.fullButton, ...(stored?.fullButton || {}) },
+      closeButton: { ...defaults.closeButton, ...(stored?.closeButton || {}) },
+      saveButton: { ...defaults.saveButton, ...(stored?.saveButton || {}) },
+      loadButton: { ...defaults.loadButton, ...(stored?.loadButton || {}) },
+      volumeButton: { ...defaults.volumeButton, ...(stored?.volumeButton || {}) },
+      volumeSlider: { ...defaults.volumeSlider, ...(stored?.volumeSlider || {}) },
+      configButton: { ...defaults.configButton, ...(stored?.configButton || {}) },
+      pauseButton: { ...defaults.pauseButton, ...(stored?.pauseButton || {}) },
+      songToast: { ...defaults.songToast, ...(stored?.songToast || {}) },
+      touchFrame: { ...defaults.touchFrame, ...(stored?.touchFrame || {}) },
+      touchDpad: { ...defaults.touchDpad, ...(stored?.touchDpad || {}) },
+      touchActions: { ...defaults.touchActions, ...(stored?.touchActions || {}) },
+      touchMenu: { ...defaults.touchMenu, ...(stored?.touchMenu || {}) },
     };
   } catch {
-    return DEFAULT_ROSITA_LAYOUT;
+    return defaults;
   }
 };
 
-const writeRositaLayout = (layout: RositaLayout) => {
+const writeRositaLayout = (layout: RositaLayout, variant: RositaLayoutVariant = "pc") => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(ROSITA_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+  window.localStorage.setItem(getRositaLayoutStorageKey(variant), JSON.stringify(layout));
 };
 
 export default function GameBubble() {
@@ -281,6 +347,11 @@ export default function GameBubble() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
+  const rositaLayoutVariant: RositaLayoutVariant = isMobile
+    ? isLandscape
+      ? "mobileLandscape"
+      : "mobilePortrait"
+    : "pc";
 
   // --- Lógica de Inactividad para el botón en Fullscreen/Teatro ---
   const [isIdle, setIsIdle] = useState(false);
@@ -327,6 +398,11 @@ export default function GameBubble() {
       mql.removeEventListener("change", updateOrientation);
     };
   }, []);
+
+  useEffect(() => {
+    if (!usesRositaNesShell) return;
+    setRositaLayout(readRositaLayout(rositaLayoutVariant));
+  }, [rositaLayoutVariant, usesRositaNesShell]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -1770,17 +1846,18 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   const updateRositaLayout = useCallback((updater: (layout: RositaLayout) => RositaLayout) => {
     setRositaLayout((current) => {
       const next = updater(current);
-      writeRositaLayout(next);
+      writeRositaLayout(next, rositaLayoutVariant);
       requestAnimationFrame(() => scheduleCanvasSurfaceSync());
       return next;
     });
-  }, [scheduleCanvasSurfaceSync]);
+  }, [rositaLayoutVariant, scheduleCanvasSurfaceSync]);
 
   const resetRositaLayout = useCallback(() => {
-    setRositaLayout(DEFAULT_ROSITA_LAYOUT);
-    writeRositaLayout(DEFAULT_ROSITA_LAYOUT);
+    const defaults = getDefaultRositaLayout(rositaLayoutVariant);
+    setRositaLayout(defaults);
+    writeRositaLayout(defaults, rositaLayoutVariant);
     requestAnimationFrame(() => scheduleCanvasSurfaceSync());
-  }, [scheduleCanvasSurfaceSync]);
+  }, [rositaLayoutVariant, scheduleCanvasSurfaceSync]);
 
   const toggleRositaEditor = useCallback(() => {
     setRositaEditorEnabled((enabled) => {
@@ -1795,14 +1872,14 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
 
   const copyRositaLayout = useCallback(async () => {
     if (typeof window === "undefined") return;
-    const layoutText = window.localStorage.getItem(ROSITA_LAYOUT_STORAGE_KEY) || JSON.stringify(rositaLayout);
+    const layoutText = window.localStorage.getItem(getRositaLayoutStorageKey(rositaLayoutVariant)) || JSON.stringify(rositaLayout);
     try {
       await navigator.clipboard.writeText(layoutText);
-      toast({ title: "Layout copiado", description: "Pegamelo y lo dejo fijo como layout PC global." });
+      toast({ title: "Layout copiado", description: "Pegamelo y lo dejo fijo para este modo." });
     } catch {
-      toast({ title: "No se pudo copiar", description: "Usa localStorage.getItem(\"forbiddens:rosita-nes-layout-v1\") en consola." });
+      toast({ title: "No se pudo copiar", description: `Usa localStorage.getItem("${getRositaLayoutStorageKey(rositaLayoutVariant)}") en consola.` });
     }
-  }, [rositaLayout, toast]);
+  }, [rositaLayout, rositaLayoutVariant, toast]);
 
   const rositaRelativeBox = (box: RositaLayoutBox, parent: RositaLayoutBox) => ({
     x: parent.w ? ((box.x - parent.x) / parent.w) * 100 : 0,
@@ -1811,7 +1888,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     h: parent.h ? (box.h / parent.h) * 100 : 0,
   });
 
-  const canEditRositaLayout = usesRositaNesShell && isMobile;
+  const canEditRositaLayout = usesRositaNesShell && isMobile && isLandscape;
   const effectiveRositaLayout = rositaLayout;
   const rositaTopbarMin = rositaRelativeBox(effectiveRositaLayout.minButton, effectiveRositaLayout.topbar);
   const rositaTopbarFull = rositaRelativeBox(effectiveRositaLayout.fullButton, effectiveRositaLayout.topbar);
@@ -1833,7 +1910,13 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     "--rosita-topbar-right": `${100 - effectiveRositaLayout.topbar.x - effectiveRositaLayout.topbar.w}%`,
     "--rosita-topbar-height": `${effectiveRositaLayout.topbar.h}%`,
     "--rosita-info-left": `${effectiveRositaLayout.info.x}%`,
+    "--rosita-info-top": `${effectiveRositaLayout.info.y}%`,
+    "--rosita-info-width": `${effectiveRositaLayout.info.w}%`,
+    "--rosita-info-height": `${effectiveRositaLayout.info.h}%`,
     "--rosita-actions-right": `${100 - effectiveRositaLayout.actions.x - effectiveRositaLayout.actions.w}%`,
+    "--rosita-actions-top": `${effectiveRositaLayout.actions.y}%`,
+    "--rosita-actions-width": `${effectiveRositaLayout.actions.w}%`,
+    "--rosita-actions-height": `${effectiveRositaLayout.actions.h}%`,
     "--rosita-side-right": `${100 - effectiveRositaLayout.side.x - effectiveRositaLayout.side.w}%`,
     "--rosita-side-top": `${effectiveRositaLayout.side.y}%`,
     "--rosita-side-width": `${effectiveRositaLayout.side.w}%`,
@@ -1878,6 +1961,22 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     "--rosita-song-y": `${effectiveRositaLayout.songToast.y}%`,
     "--rosita-song-w": `${effectiveRositaLayout.songToast.w}%`,
     "--rosita-song-h": `${effectiveRositaLayout.songToast.h}%`,
+    "--rosita-touch-frame-left": `${effectiveRositaLayout.touchFrame.x}%`,
+    "--rosita-touch-frame-top": `${effectiveRositaLayout.touchFrame.y}%`,
+    "--rosita-touch-frame-width": `${effectiveRositaLayout.touchFrame.w}%`,
+    "--rosita-touch-frame-height": `${effectiveRositaLayout.touchFrame.h}%`,
+    "--rosita-touch-dpad-left": `${effectiveRositaLayout.touchDpad.x}%`,
+    "--rosita-touch-dpad-top": `${effectiveRositaLayout.touchDpad.y}%`,
+    "--rosita-touch-dpad-width": `${effectiveRositaLayout.touchDpad.w}%`,
+    "--rosita-touch-dpad-height": `${effectiveRositaLayout.touchDpad.h}%`,
+    "--rosita-touch-actions-left": `${effectiveRositaLayout.touchActions.x}%`,
+    "--rosita-touch-actions-top": `${effectiveRositaLayout.touchActions.y}%`,
+    "--rosita-touch-actions-width": `${effectiveRositaLayout.touchActions.w}%`,
+    "--rosita-touch-actions-height": `${effectiveRositaLayout.touchActions.h}%`,
+    "--rosita-touch-menu-left": `${effectiveRositaLayout.touchMenu.x}%`,
+    "--rosita-touch-menu-top": `${effectiveRositaLayout.touchMenu.y}%`,
+    "--rosita-touch-menu-width": `${effectiveRositaLayout.touchMenu.w}%`,
+    "--rosita-touch-menu-height": `${effectiveRositaLayout.touchMenu.h}%`,
   } as React.CSSProperties) : undefined;
 
   const startRositaBoxEdit = useCallback((
@@ -1887,7 +1986,14 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    const rootRect = (key === "screen" || key === "songToast" ? canvasViewportRef.current : popupRef.current)?.getBoundingClientRect();
+    const isViewportBox =
+      key === "screen" ||
+      key === "songToast" ||
+      key === "touchFrame" ||
+      key === "touchDpad" ||
+      key === "touchActions" ||
+      key === "touchMenu";
+    const rootRect = (isViewportBox ? canvasViewportRef.current : popupRef.current)?.getBoundingClientRect();
     if (!rootRect) return;
     const start = rositaLayout[key];
     const startX = event.clientX;
@@ -1923,7 +2029,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     <div
       key={key}
       className="absolute z-[120] cursor-move rounded border border-pink-300/90 bg-pink-500/10 text-[9px] font-pixel text-white shadow-[0_0_10px_rgba(236,72,153,0.45)]"
-      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%` }}
+      style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%`, touchAction: "none" }}
       onPointerDown={(event) => startRositaBoxEdit(key, "move", event)}
     >
       <div className="pointer-events-none absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[8px] text-pink-100">
@@ -1931,6 +2037,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       </div>
       <div
         className="absolute bottom-0 right-0 h-3 w-3 cursor-nwse-resize rounded-tl border-l border-t border-pink-200 bg-pink-400"
+        style={{ touchAction: "none" }}
         onPointerDown={(event) => startRositaBoxEdit(key, "resize", event)}
       />
     </div>
@@ -1945,7 +2052,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   if (!minimized) {
     if (isFullscreen) {
       popupStyle = { width: "100vw", height: "100vh", borderRadius: 0 };
-    } else if (usesRositaNesShell && isMobile && !isLandscape) {
+    } else if (usesRositaNesShell && isMobile) {
       popupStyle = {
         position: "fixed",
         top: 0,
@@ -2057,6 +2164,8 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         <div className="pointer-events-none absolute inset-0 z-[119] rosita-editor-grid">
           <div className="pointer-events-auto">
             {renderRositaEditorBox("topbar", "Barra superior", rositaLayout.topbar)}
+            {renderRositaEditorBox("info", "Titulo/info", rositaLayout.info)}
+            {renderRositaEditorBox("actions", "Acciones sup.", rositaLayout.actions)}
             {renderRositaEditorBox("side", "Botones der.", rositaLayout.side)}
             {renderRositaEditorBox("minButton", "Min", rositaLayout.minButton)}
             {renderRositaEditorBox("fullButton", "Full", rositaLayout.fullButton)}
@@ -2225,6 +2334,9 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
           {canEditRositaLayout && rositaEditorEnabled && (
             <div className="pointer-events-auto absolute inset-0 z-[119]">
               {renderRositaEditorBox("screen", "Juego", rositaLayout.screen)}
+              {renderRositaEditorBox("touchDpad", "Cruceta", rositaLayout.touchDpad)}
+              {renderRositaEditorBox("touchActions", "A/B", rositaLayout.touchActions)}
+              {renderRositaEditorBox("touchMenu", "Start/Select", rositaLayout.touchMenu)}
               {renderRositaEditorBox("songToast", "Canción", rositaLayout.songToast)}
             </div>
           )}
@@ -2577,7 +2689,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                   </Button>
                 </div>
 
-                {(showVolumeSlider || (usesRositaNesShell && rositaEditorEnabled)) && (
+                {(showVolumeSlider || (canEditRositaLayout && rositaEditorEnabled)) && (
                   <div ref={volumeSliderRef} className={cn("flex flex-col items-center bg-black/40 border border-neon-magenta/30 rounded-full py-3 my-2 w-8 shadow-inner animate-fade-in", usesRositaNesShell && "rosita-volume-slider-popover")}>
                     <span className="text-[8px] font-pixel text-neon-magenta mb-2">{Math.round(volume * 100)}</span>
                     <input

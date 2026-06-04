@@ -690,12 +690,14 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child {
     position: absolute;
     left: var(--rosita-info-left, 0%);
-    top: 50%;
-    transform: translateY(-50%);
+    top: var(--rosita-info-top, 0%);
+    transform: none;
+    width: var(--rosita-info-width, 38%);
+    height: var(--rosita-info-height, 100%);
     min-width: 0;
-    height: 100%;
     gap: clamp(7px, 0.7vw, 12px);
     align-items: center;
+    overflow: hidden;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child > svg {
@@ -721,11 +723,23 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child > div {
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child .text-\[9px\] {
     margin-top: 2px;
     gap: clamp(5px, 0.6vw, 10px);
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child .text-\[9px\] > span:first-child {
@@ -851,16 +865,22 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   }
 
   .gamebubble-shell-rosita-nes .rosita-touch-controller::before {
-    content: "CONTROLLER";
+    content: none;
+    display: none;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller::before {
     position: absolute;
-    right: clamp(14px, 3vw, 32px);
-    bottom: clamp(12px, 2.8vw, 28px);
-    width: min(440px, calc(100vw - 28px));
-    height: clamp(178px, 30vh, 260px);
+    left: var(--rosita-touch-frame-left, 4%);
+    top: var(--rosita-touch-frame-top, 68%);
+    right: auto;
+    bottom: auto;
+    width: var(--rosita-touch-frame-width, 92%);
+    height: var(--rosita-touch-frame-height, 27%);
     pointer-events: none;
     display: grid;
     place-items: start center;
-    padding-top: 12px;
+    padding-top: min(12px, 8%);
     border: 3px solid hsl(340 78% 62%);
     border-radius: 18px;
     background:
@@ -897,6 +917,128 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   .gamebubble-shell-rosita-nes .rosita-touch-controller .pointer-events-auto button:active {
     transform: scale(0.92);
     background: hsl(340 100% 72% / 0.98) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller {
+    opacity: 1 !important;
+    z-index: 72 !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad,
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions,
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu {
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 74 !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad {
+    left: var(--rosita-touch-dpad-left, 7%) !important;
+    top: var(--rosita-touch-dpad-top, 73%) !important;
+    width: var(--rosita-touch-dpad-width, 25%) !important;
+    height: var(--rosita-touch-dpad-height, 17%) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions {
+    left: var(--rosita-touch-actions-left, 66%) !important;
+    top: var(--rosita-touch-actions-top, 73%) !important;
+    width: var(--rosita-touch-actions-width, 27%) !important;
+    height: var(--rosita-touch-actions-height, 16%) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu {
+    left: var(--rosita-touch-menu-left, 34%) !important;
+    top: var(--rosita-touch-menu-top, 90%) !important;
+    width: var(--rosita-touch-menu-width, 32%) !important;
+    height: var(--rosita-touch-menu-height, 6%) !important;
+    display: flex !important;
+    gap: 8% !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad > div,
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions > div,
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu > button {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions > div:has(button[data-label="A"]) {
+    position: relative !important;
+    display: block !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button {
+    width: 30% !important;
+    height: 30% !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button::before {
+    content: "";
+    width: 0;
+    height: 0;
+    display: block;
+    font-size: clamp(12px, 2.4vw, 20px);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button:nth-of-type(1)::before {
+    border-left: 0.55em solid transparent;
+    border-right: 0.55em solid transparent;
+    border-bottom: 0.85em solid currentColor;
+    color: hsl(340 72% 52%);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button:nth-of-type(2)::before {
+    border-left: 0.55em solid transparent;
+    border-right: 0.55em solid transparent;
+    border-top: 0.85em solid currentColor;
+    color: hsl(340 72% 52%);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button:nth-of-type(3)::before {
+    border-top: 0.55em solid transparent;
+    border-bottom: 0.55em solid transparent;
+    border-right: 0.85em solid currentColor;
+    color: hsl(340 72% 52%);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad button:nth-of-type(4)::before {
+    border-top: 0.55em solid transparent;
+    border-bottom: 0.55em solid transparent;
+    border-left: 0.85em solid currentColor;
+    color: hsl(340 72% 52%);
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad > div > div {
+    width: 24% !important;
+    height: 24% !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions button {
+    width: min(48%, 72px) !important;
+    height: min(58%, 72px) !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions button[data-label="B"] {
+    position: absolute !important;
+    right: 14% !important;
+    top: 7% !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions button[data-label="A"] {
+    position: absolute !important;
+    left: 14% !important;
+    bottom: 7% !important;
+  }
+
+  .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu button {
+    width: 46% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-window-side-controls > button,
@@ -1340,42 +1482,105 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     }
 
     .gamebubble-shell-rosita-nes .rosita-window-side-controls {
-      width: 54px !important;
-      right: clamp(12px, 3vw, 24px);
-      top: clamp(92px, 12vh, 136px);
-      bottom: auto;
-      max-height: calc(100dvh - 280px);
+      right: var(--rosita-side-right, 8.35%) !important;
+      top: var(--rosita-side-top, 17.3%) !important;
+      bottom: auto !important;
+      width: var(--rosita-side-width, 5.05%) !important;
+      height: var(--rosita-side-height, 48.8%) !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar {
+      container-type: size;
+      overflow: visible !important;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child {
+      container-type: size;
+      height: 100% !important;
+      align-items: center !important;
+      gap: clamp(2px, 1.25cqw, 10px) !important;
       overflow: hidden;
     }
 
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child::before {
+      width: clamp(10px, 72cqh, 34px);
+      height: clamp(10px, 72cqh, 34px);
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child > div {
+      display: flex !important;
+      align-items: center !important;
+      gap: clamp(2px, 1.4cqw, 10px) !important;
+      width: 100%;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child p {
+      flex: 0 1 auto;
+      min-width: 0;
+      margin: 0 !important;
+      font-size: clamp(7px, 42cqh, 15px) !important;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child .text-\[9px\] {
+      flex: 0 0 auto;
+      margin-top: 0 !important;
+      min-width: 0;
+      max-width: 58%;
+      gap: clamp(2px, 1cqw, 8px) !important;
+      font-size: clamp(5px, 28cqh, 9px) !important;
+      line-height: 1;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child .text-\[9px\] > span {
+      flex: 0 0 auto;
+    }
+
+    .gamebubble-shell-rosita-nes .rosita-window-topbar > div:first-child .text-\[9px\] svg {
+      width: 1em !important;
+      height: 1em !important;
+    }
+
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-dpad {
-      left: auto !important;
-      right: clamp(250px, 57vw, 330px) !important;
-      bottom: clamp(46px, 8vh, 78px) !important;
-      transform: scale(0.68);
-      transform-origin: bottom right;
+      left: var(--rosita-touch-dpad-left, 7%) !important;
+      top: var(--rosita-touch-dpad-top, 73%) !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: var(--rosita-touch-dpad-width, 25%) !important;
+      height: var(--rosita-touch-dpad-height, 17%) !important;
+      transform: none !important;
     }
 
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-actions {
-      right: clamp(30px, 8vw, 60px) !important;
-      bottom: clamp(74px, 11vh, 106px) !important;
-      transform: scale(0.74);
-      transform-origin: bottom right;
+      left: var(--rosita-touch-actions-left, 66%) !important;
+      top: var(--rosita-touch-actions-top, 73%) !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: var(--rosita-touch-actions-width, 27%) !important;
+      height: var(--rosita-touch-actions-height, 16%) !important;
+      transform: none !important;
     }
 
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu {
-      left: auto !important;
-      right: clamp(92px, 24vw, 154px) !important;
-      bottom: clamp(42px, 6.6vh, 66px) !important;
+      left: var(--rosita-touch-menu-left, 34%) !important;
+      top: var(--rosita-touch-menu-top, 90%) !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: var(--rosita-touch-menu-width, 32%) !important;
+      height: var(--rosita-touch-menu-height, 6%) !important;
       transform: none !important;
       display: flex !important;
-      gap: clamp(8px, 2vw, 14px) !important;
+      flex-direction: column !important;
+      gap: clamp(5px, 1.2vw, 10px) !important;
       z-index: 72 !important;
     }
 
     .gamebubble-shell-rosita-nes .rosita-touch-controller .touch-menu button {
-      width: clamp(58px, 15vw, 82px) !important;
-      height: clamp(28px, 7vw, 38px) !important;
+      width: 100% !important;
+      height: calc((100% - clamp(5px, 1.2vw, 10px)) / 2) !important;
       border-radius: 12px !important;
       font-family: var(--font-pixel, monospace);
       font-size: clamp(8px, 2.4vw, 12px) !important;
@@ -1401,6 +1606,24 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
     .gamebubble-shell-rosita-nes .gamebubble-shell-viewport::before {
       background:
         url("/emulator-shells/rosita-nes/skin-principal-mobile-portrait.png") center / 100% 100% no-repeat !important;
+    }
+  }
+
+  @media (orientation: landscape) and (max-width: 1024px), (orientation: landscape) and (pointer: coarse) {
+    .gamebubble-shell-rosita-nes,
+    .gamebubble-shell-rosita-nes > .relative.flex-1,
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
+      border-radius: 0 !important;
+    }
+
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport {
+      background:
+        url("/emulator-shells/rosita-nes/skin-principal-mobile-landscape.png") center / 100% 100% no-repeat !important;
+    }
+
+    .gamebubble-shell-rosita-nes .gamebubble-shell-viewport::before {
+      background:
+        url("/emulator-shells/rosita-nes/skin-principal-mobile-landscape.png") center / 100% 100% no-repeat !important;
     }
   }
 
