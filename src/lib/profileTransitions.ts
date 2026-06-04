@@ -1,4 +1,4 @@
-export type ProfileTransitionSlug = 'fuego_infernal' | 'varita_magica';
+export type ProfileTransitionSlug = 'fuego_infernal' | 'varita_magica' | 'boomshacka';
 
 export type ProfileTransitionTheme = {
   slug: ProfileTransitionSlug;
@@ -9,6 +9,9 @@ export type ProfileTransitionTheme = {
   price: number;
   priceType: 'stats' | 'fcoins';
   durationMs?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
+  blackTransparentWindowsMs?: Array<[number, number]>;
 };
 
 export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitionTheme> = {
@@ -31,6 +34,22 @@ export const PROFILE_TRANSITIONS: Record<ProfileTransitionSlug, ProfileTransitio
     price: 5000,
     priceType: 'fcoins',
     durationMs: 7000,
+  },
+  boomshacka: {
+    slug: 'boomshacka',
+    name: 'Transicion BOOMSHACKA',
+    description: 'Intro explosiva con sonido para presentar tu perfil.',
+    videoUrl: '/cosmetics/transitions/boomshacka/boomshacka.mp4',
+    thumbnailUrl: '/cosmetics/transitions/boomshacka/boomshacka.mp4',
+    price: 5000,
+    priceType: 'fcoins',
+    durationMs: 6000,
+    fadeInMs: 500,
+    fadeOutMs: 650,
+    blackTransparentWindowsMs: [
+      [0, 2000],
+      [4000, 6000],
+    ],
   },
 };
 

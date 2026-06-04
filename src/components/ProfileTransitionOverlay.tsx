@@ -48,6 +48,27 @@ export default function ProfileTransitionOverlay({ slug, playKey, onDone, classN
       }
     };
 
+    const shouldApplyBlackTransparency = (currentTimeMs: number) => {
+      if (!transition.blackTransparentWindowsMs?.length) return true;
+      return transition.blackTransparentWindowsMs.some(([start, end]) => currentTimeMs >= start && currentTimeMs <= end);
+    };
+
+    const getFadeOpacity = (currentTimeMs: number) => {
+      const durationMs = transition.durationMs || Math.max(0, (video.duration || 0) * 1000);
+      let opacity = 0.95;
+
+      if (transition.fadeInMs && transition.fadeInMs > 0) {
+        opacity *= Math.min(1, Math.max(0, currentTimeMs / transition.fadeInMs));
+      }
+
+      if (transition.fadeOutMs && transition.fadeOutMs > 0 && durationMs > 0) {
+        const remainingMs = durationMs - currentTimeMs;
+        opacity *= Math.min(1, Math.max(0, remainingMs / transition.fadeOutMs));
+      }
+
+      return opacity;
+    };
+
     const renderFrame = () => {
       if (!canvas || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
         frameRef.current = window.requestAnimationFrame(renderFrame);
@@ -68,25 +89,28 @@ export default function ProfileTransitionOverlay({ slug, playKey, onDone, classN
 
       ctx.clearRect(0, 0, cw, ch);
       ctx.drawImage(video, dx, dy, dw, dh);
+      canvas.style.opacity = String(getFadeOpacity(video.currentTime * 1000));
 
-      const frame = ctx.getImageData(0, 0, cw, ch);
-      const data = frame.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const max = Math.max(r, g, b);
-        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (shouldApplyBlackTransparency(video.currentTime * 1000)) {
+        const frame = ctx.getImageData(0, 0, cw, ch);
+        const data = frame.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const max = Math.max(r, g, b);
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-        if (max < 42 || luma < 34) {
-          data[i + 3] = 0;
-        } else if (luma < 120) {
-          data[i + 3] = Math.round(((luma - 34) / 86) * 210);
-        } else {
-          data[i + 3] = Math.min(255, Math.round(data[i + 3] * 1.08));
+          if (max < 42 || luma < 34) {
+            data[i + 3] = 0;
+          } else if (luma < 120) {
+            data[i + 3] = Math.round(((luma - 34) / 86) * 210);
+          } else {
+            data[i + 3] = Math.min(255, Math.round(data[i + 3] * 1.08));
+          }
         }
+        ctx.putImageData(frame, 0, 0);
       }
-      ctx.putImageData(frame, 0, 0);
 
       frameRef.current = window.requestAnimationFrame(renderFrame);
     };

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign, Swords, Flame } from "lucide-react";
+import { Archive, ArrowLeftRight, Check, Coins, Crown, Gem, Loader2, Search, Sparkles, Ticket, Trash2, Palette, X as XIcon, ShoppingCart, DollarSign, Swords, Flame, Bomb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -852,7 +852,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : <Flame className={className} />
+      ? item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item?.item_slug === "boomshacka" ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
       ? <img src={getEmulatorShell(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isMembershipItem(item)
@@ -1731,7 +1731,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                               isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               itemBoosterExpired
                                 ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
-                                : isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
+                                : isProfileTransitionItem(item) ? item?.item_slug === "boomshacka" ? "text-red-200 drop-shadow-[0_0_10px_rgba(248,113,113,0.75)]" : "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
                             )}
                           />
                         </div>
@@ -1832,6 +1832,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       ) : entry.kind === "profile_transition" ? (
                         entry.slug === "varita_magica" ? (
                           <VaritaMagicaIcon className="h-[62%] w-[62%]" />
+                        ) : entry.slug === "boomshacka" ? (
+                          <Bomb className="h-5 w-5 text-red-200 drop-shadow-[0_0_8px_rgba(248,113,113,0.65)]" />
                         ) : (
                           <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
                         )

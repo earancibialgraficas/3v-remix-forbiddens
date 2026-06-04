@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive, Flame } from "lucide-react";
+import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive, Flame, Bomb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,6 +104,13 @@ const shopVisuals = {
     badge: "MAGIC",
     background:
       "radial-gradient(circle at 50% 42%, rgba(255,182,217,.55), transparent 34%), linear-gradient(135deg, #ffe4f1, #7f1748)",
+  },
+  boomshacka: {
+    frame: "border-red-300/80 bg-[#250805]",
+    icon: "text-red-200",
+    badge: "BOOM",
+    background:
+      "radial-gradient(circle at 50% 42%, rgba(248,113,113,.46), transparent 34%), linear-gradient(135deg, #3a0905, #080302)",
   },
   ticket: {
     frame: "border-sky-300/70 bg-[#102b3a]",
@@ -271,7 +278,7 @@ export default function StorePage() {
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : <Flame className={className} />
+      ? item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item.slug === "boomshacka" ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
       ? <img src={getEmulatorShell(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isMembershipItem(item)
@@ -505,6 +512,7 @@ export default function StorePage() {
                       isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
                       isEmulatorShellItem(item) && "h-20 w-20 overflow-hidden border-pink-200/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       item.slug === "varita_magica" && "border-pink-300/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.3)]",
+                      item.slug === "boomshacka" && "border-red-300/80 bg-[#250805] shadow-[0_0_24px_rgba(248,113,113,0.28)]",
                       visual.frame,
                     )}>
                       {!(isSkinItem(item) && getSkinThumbnailUrl(item.slug)) && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
@@ -517,6 +525,7 @@ export default function StorePage() {
                           isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
                           isEmulatorShellItem(item) && "h-full w-full drop-shadow-none",
                           item.slug === "varita_magica" && "h-full w-full drop-shadow-none",
+                          item.slug === "boomshacka" && "h-10 w-10 text-red-200 drop-shadow-[0_0_12px_rgba(248,113,113,0.72)]",
                         )}
                       />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">
