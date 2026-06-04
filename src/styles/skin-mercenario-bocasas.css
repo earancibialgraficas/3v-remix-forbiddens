@@ -807,14 +807,15 @@ html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame > img {
 html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame::after {
   content: "";
   position: absolute;
-  top: 48%;
+  top: auto;
+  bottom: -24%;
   left: 50%;
-  width: 139%;
-  height: 139%;
-  transform: translate(-50%, -50%);
+  width: 132%;
+  height: 148%;
+  transform: translateX(-50%);
   z-index: 5;
   pointer-events: none;
-  background: var(--demoniaco-avatar-round) center / contain no-repeat;
+  background: var(--demoniaco-avatar-round) center bottom / 100% 100% no-repeat;
   filter: brightness(0.92) contrast(1.12) drop-shadow(0 0 10px rgba(255, 49, 18, 0.38));
 }
 
@@ -2840,11 +2841,12 @@ html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-popover 
 /* Mercenario Bocasas avatar ring: the source art has a taller transparent center
    than the demoniaco frame, so it needs its own anchored fit. */
 .avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
-  inset: -28% !important;
+  inset: auto -16% -24% -16% !important;
+  height: 148% !important;
   background-image: url('/skins/mercenario_bocasas/frames/avatar-ring-trim.png') !important;
   background-repeat: no-repeat !important;
   background-position: center bottom !important;
-  background-size: 100% 92% !important;
+  background-size: 100% 100% !important;
   transform: none !important;
   transform-origin: center bottom !important;
 }
@@ -2852,12 +2854,73 @@ html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-popover 
 .forum-author-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after,
 .forum-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after,
 .photowall-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
-  inset: -36% !important;
+  inset: auto -20% -28% -20% !important;
+  height: 156% !important;
   background-position: center bottom !important;
-  background-size: 100% 92% !important;
+  background-size: 100% 100% !important;
 }
 
 .photowall-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
-  inset: -48% !important;
+  inset: auto -28% -34% -28% !important;
+  height: 168% !important;
+}
+
+/* Final Mercenario avatar fitting for profile and public profile. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero .demoniaco-avatar-frame:not(.avatar-frame-custom)::after,
+html[style*="--skin-slug: mercenario_bocasas"] button > .demoniaco-avatar-frame:not(.avatar-frame-custom)::after {
+  top: auto !important;
+  right: auto !important;
+  bottom: -14% !important;
+  left: calc(50% + 1px) !important;
+  width: calc(108% - 3px) !important;
+  height: calc(122% - 3px) !important;
+  transform: translateX(-50%) !important;
+  transform-origin: center bottom !important;
+  background: var(--demoniaco-avatar-round) center bottom / 100% 100% no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero .demoniaco-avatar-frame:not(.avatar-frame-custom),
+html[style*="--skin-slug: mercenario_bocasas"] button > .demoniaco-avatar-frame:not(.avatar-frame-custom),
+html[style*="--skin-slug: mercenario_bocasas"] .avatar-frame-mercenario-bocasas:not(.avatar-frame-custom) {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero .demoniaco-avatar-frame:not(.avatar-frame-custom) > img,
+html[style*="--skin-slug: mercenario_bocasas"] button > .demoniaco-avatar-frame:not(.avatar-frame-custom) > img,
+html[style*="--skin-slug: mercenario_bocasas"] .avatar-frame-mercenario-bocasas:not(.avatar-frame-custom) > img {
+  border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
+  inset: auto calc(-11% + 3px) calc(-17% + 3px) calc(-11% + 3px) !important;
+  height: calc(137% - 3px) !important;
+}
+
+/* Keep the top inventory/equipment ornaments tucked closer to the frame line. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-shell-ornaments {
+  z-index: 64 !important;
+  background-position:
+    top 14px left 12px,
+    top 14px right 6px,
+    bottom right,
+    bottom left 4px,
+    top center,
+    bottom center !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-shell-ornaments {
+    z-index: 64 !important;
+    background-position:
+      top 13px left 8px,
+      top 13px right 4px,
+      bottom right,
+      bottom left 3px,
+      top center,
+      bottom center !important;
+  }
 }
 
