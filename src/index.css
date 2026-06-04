@@ -85,6 +85,23 @@ html[style*="--skin-slug: demoniaco"] .retro-scrollbar::-webkit-scrollbar-thumb:
   background: linear-gradient(180deg, rgba(255, 86, 24, 1), rgba(134, 22, 12, 0.98)) !important;
 }
 
+html.rosita-mobile-overlay-active,
+html.rosita-mobile-overlay-active body,
+html.rosita-mobile-overlay-active * {
+  scrollbar-color: transparent transparent !important;
+  scrollbar-width: none !important;
+}
+
+html.rosita-mobile-overlay-active ::-webkit-scrollbar,
+html.rosita-mobile-overlay-active *::-webkit-scrollbar,
+body.rosita-mobile-overlay-active ::-webkit-scrollbar,
+body.rosita-mobile-overlay-active *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
 @layer base {
   * {
     @apply border-border;

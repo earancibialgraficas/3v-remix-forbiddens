@@ -362,13 +362,22 @@ export default function GameBubble() {
     if (!activeGame || minimized) return;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
+    const shouldHideThemeScrollbars = usesRositaNesShell && isMobile;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    if (shouldHideThemeScrollbars) {
+      document.documentElement.classList.add("rosita-mobile-overlay-active");
+      document.body.classList.add("rosita-mobile-overlay-active");
+    }
     return () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousBodyOverflow;
+      if (shouldHideThemeScrollbars) {
+        document.documentElement.classList.remove("rosita-mobile-overlay-active");
+        document.body.classList.remove("rosita-mobile-overlay-active");
+      }
     };
-  }, [activeGame, minimized]);
+  }, [activeGame, minimized, usesRositaNesShell, isMobile]);
   const [rositaEditorEnabled, setRositaEditorEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("rositaEditor") === "1"
