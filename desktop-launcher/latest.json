@@ -1,15 +1,15 @@
 {
-  "version": "0.1.9",
-  "notes": "Incluye la nueva textura de la barra superior del launcher y mejoras de estabilidad para la skin demoniaca.",
-  "pub_date": "2026-06-01T00:00:00Z",
+  "version": "0.1.10",
+  "notes": "Cambia la descarga de emuladores nativos al release de GitHub y valida los paquetes con SHA256 antes de instalarlos.",
+  "pub_date": "2026-06-04T22:55:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWc1WlJoZWFZOTI3LzE3eVJ2YmRuVW9qN3hGUTJtRzM4SGxLUDlJVnltN3dmd2R5K0RhdUtQa0VqcytwVk9ETFpUQzJxLzRXUDIzdzJNZzBZNi96MmdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgwMjc4Njk5CWZpbGU6Rk9SQklEREVOU18wLjEuOV94NjQtc2V0dXAuZXhlCkFNOHprOVVZVTROOWt3YmltRnFNcmtuVU10STNHSzJySUN4a0h3QlVEV0ZMbkFaWnRsck92enBuRktjTG92c0lXR0VBRFUrYUZhK0V6OGhzU2RxcURBPT0K",
-      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.9_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW5vZFRLOVRUc1JRWXVpaVR3SlRWeWlyQWljV051UGZ3Ymp0enZjYkphTXdoV09hWkxaMDh1UjhjbnM2V01rYXZCTTEzT1ZJRmxVRjNxN0VQUkFQQ3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgwNjE0MjIxCWZpbGU6Rk9SQklEREVOU18wLjEuMTBfeDY0LXNldHVwLmV4ZQp0RFpPdDFDREd4bFZ2WjN0bmdubEJmcloxUUdBQ05VUWlQdDQ5dHpXRGFBelNoSDhQN3llV2dxcWd4STk0UXhoaTc3YnRLV1V5MzNTckRTTkVRWlNBUT09Cg==",
+      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.10_x64-setup.exe"
     },
     "windows-x86_64-pc-windows-msvc": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VWc1WlJoZWFZOTI3LzE3eVJ2YmRuVW9qN3hGUTJtRzM4SGxLUDlJVnltN3dmd2R5K0RhdUtQa0VqcytwVk9ETFpUQzJxLzRXUDIzdzJNZzBZNi96MmdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgwMjc4Njk5CWZpbGU6Rk9SQklEREVOU18wLjEuOV94NjQtc2V0dXAuZXhlCkFNOHprOVVZVTROOWt3YmltRnFNcmtuVU10STNHSzJySUN4a0h3QlVEV0ZMbkFaWnRsck92enBuRktjTG92c0lXR0VBRFUrYUZhK0V6OGhzU2RxcURBPT0K",
-      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.9_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRRXZQQXVxYjV4VW5vZFRLOVRUc1JRWXVpaVR3SlRWeWlyQWljV051UGZ3Ymp0enZjYkphTXdoV09hWkxaMDh1UjhjbnM2V01rYXZCTTEzT1ZJRmxVRjNxN0VQUkFQQ3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgwNjE0MjIxCWZpbGU6Rk9SQklEREVOU18wLjEuMTBfeDY0LXNldHVwLmV4ZQp0RFpPdDFDREd4bFZ2WjN0bmdubEJmcloxUUdBQ05VUWlQdDQ5dHpXRGFBelNoSDhQN3llV2dxcWd4STk0UXhoaTc3YnRLV1V5MzNTckRTTkVRWlNBUT09Cg==",
+      "url": "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.10_x64-setup.exe"
     }
   }
 }

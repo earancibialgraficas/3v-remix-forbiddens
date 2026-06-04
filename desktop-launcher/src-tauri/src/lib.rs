@@ -23,6 +23,7 @@ struct NativeEngineConfig {
     engine_name: &'static str,
     package_urls: &'static [&'static str],
     package_file_name: &'static str,
+    package_sha256: &'static str,
     executable_rel: &'static str,
     download_page: &'static str,
 }
@@ -310,52 +311,20 @@ fn check_update_on_start(app: AppHandle) {
 fn native_engine_configs() -> Vec<NativeEngineConfig> {
     const PCSX2_PACKAGE_URLS: &[&str] = &[
         concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "pcsx2-v2.6.3-windows-x64-Qt.zip.part001.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "pcsx2-v2.6.3-windows-x64-Qt.zip.part002.zip"
+            "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/",
+            "pcsx2-v2.6.3-windows-x64-Qt.zip"
         ),
     ];
     const DUCKSTATION_PACKAGE_URLS: &[&str] = &[
         concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "duckstation-windows-x64-release.zip.part001.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "duckstation-windows-x64-release.zip.part002.zip"
+            "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/",
+            "duckstation-windows-x64-release.zip"
         ),
     ];
     const RETROARCH_PACKAGE_URLS: &[&str] = &[
         concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part001.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part002.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part003.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part004.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part005.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part006.zip"
-        ),
-        concat!(
-            "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
-            "RetroArch.zip.part007.zip"
+            "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/",
+            "RetroArch-Win64.zip"
         ),
     ];
 
@@ -364,10 +333,11 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "psp",
             engine_name: "PPSSPP",
             package_urls: &[concat!(
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+                "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/",
                 "ppsspp_win.zip"
             )],
             package_file_name: "ppsspp_win.zip",
+            package_sha256: "a60f04ebdb0b5f1655422bd7f88349a46999b17ad5115d6ddb290c3934bd5163",
             executable_rel: "PPSSPPWindows64.exe",
             download_page: "https://www.ppsspp.org/download/",
         },
@@ -376,6 +346,7 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             engine_name: "PCSX2",
             package_urls: PCSX2_PACKAGE_URLS,
             package_file_name: "pcsx2-v2.6.3-windows-x64-Qt.zip",
+            package_sha256: "6d666a18011878faf422934a1e0d7307110f7e57a3d4e4dbfe5a6127cce7514d",
             executable_rel: "pcsx2-qt.exe",
             download_page: "https://pcsx2.net/downloads/",
         },
@@ -384,6 +355,7 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             engine_name: "DuckStation",
             package_urls: DUCKSTATION_PACKAGE_URLS,
             package_file_name: "duckstation-windows-x64-release.zip",
+            package_sha256: "a8a61c8f9c783ea5737a297f2a3d1470ca3597a6ddcb67b0d7410306c1d9e59e",
             executable_rel: "duckstation-qt-x64-ReleaseLTCG.exe",
             download_page: "https://www.duckstation.org/",
         },
@@ -391,10 +363,11 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "ds",
             engine_name: "melonDS",
             package_urls: &[concat!(
-                "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/",
+                "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/",
                 "melonDS_0.9.5_win_x64.zip"
             )],
             package_file_name: "melonDS_0.9.5_win_x64.zip",
+            package_sha256: "289b1644004d8762987dc1daf3a61eedfafb0a5f442801bfb9d2a18299fd39a9",
             executable_rel: "melonDS.exe",
             download_page: "https://melonds.kuribo64.net/downloads.php",
         },
@@ -402,7 +375,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "nes",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -410,7 +384,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "snes",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -418,7 +393,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "gba",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -426,7 +402,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "gbc",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -434,7 +411,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "sega",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -442,7 +420,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "n64",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -450,7 +429,8 @@ fn native_engine_configs() -> Vec<NativeEngineConfig> {
             console_id: "arcade",
             engine_name: "RetroArch",
             package_urls: RETROARCH_PACKAGE_URLS,
-            package_file_name: "RetroArch.zip",
+            package_file_name: "RetroArch-Win64.zip",
+            package_sha256: "45341b02820cb7df45ddc48a7f325b9dea6bf3f30d10f88f805e34810eb49f6a",
             executable_rel: "RetroArch/retroarch.exe",
             download_page: "https://www.retroarch.com/?page=platforms",
         },
@@ -640,6 +620,25 @@ fn download_file(url: &str, destination: &Path) -> Result<(), String> {
         url,
     ]);
     run_hidden(command)
+}
+
+fn powershell_single_quoted(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+fn verify_file_sha256(path: &Path, expected_sha256: &str) -> Result<(), String> {
+    let expected = expected_sha256.trim().to_ascii_lowercase();
+    if expected.is_empty() {
+        return Ok(());
+    }
+
+    let script = format!(
+        "$hash = (Get-FileHash -Algorithm SHA256 -LiteralPath {}).Hash.ToLowerInvariant(); if ($hash -ne {}) {{ throw \"SHA256 invalido. Esperado {}, recibido $hash\" }}",
+        powershell_single_quoted(&path.to_string_lossy()),
+        powershell_single_quoted(&expected),
+        expected,
+    );
+    run_hidden(powershell_command(&script))
 }
 
 fn powershell_command(script: &str) -> Command {
@@ -980,6 +979,7 @@ fn install_native_engine(console_id: String) -> Result<NativeEngineStatus, Strin
         join_package_parts(&downloaded_parts, &archive)?;
     }
 
+    verify_file_sha256(&archive, config.package_sha256)?;
     extract_archive(&archive, &root)?;
 
     let _ = fs::remove_file(&archive);
