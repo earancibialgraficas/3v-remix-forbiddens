@@ -148,8 +148,8 @@ const ROSITA_MOBILE_PORTRAIT_ZOOM_X = 1.21;
 const ROSITA_MOBILE_PORTRAIT_ZOOM_Y = 1.12;
 const ROSITA_LEGACY_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
 const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v3";
-const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v4";
-const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v2";
+const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v5";
+const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v3";
 
 const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
   screen: { x: 7.169112660956539, y: 15.491231964483907, w: 78.07539653270914, h: 68.44284128745838 },
@@ -176,47 +176,47 @@ const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
 const DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT: RositaLayout = {
   ...DEFAULT_ROSITA_LAYOUT,
   screen: { x: 25.36911266095654, y: 10.467867478502598, w: 49.87539653270913, h: 56.99424315661726 },
-  topbar: { x: 14.702067598954269, y: -0.04043280105506142, w: 67.4444525547285, h: 17.164620989454473 },
-  info: { x: 13.01301524691032, y: -7.077671781985373e-16, w: 56.652986570035644, h: 13.465313197570739 },
+  topbar: { x: 14.702067598954272, y: -0.04043280105506142, w: 67.4444525547285, h: 17.164620989454473 },
+  info: { x: 13.01301524691032, y: 0, w: 56.65298657003565, h: 13.465313197570739 },
   actions: { x: 40.77471475451041, y: 66.16576195047611, w: 17.676492435909047, h: 6.351202352199941 },
-  side: { x: 77.6389566626573, y: 49.914121036177484, w: 8.647323941945626, h: 18.599651477589795 },
-  minButton: { x: 74.94743518742966, y: 5.839632068680435, w: 3.1327022375215146, h: 5.485955056179776 },
-  fullButton: { x: 78.89715859085919, y: 6.284935828590934, w: 3.1327022375215146, h: 4.699438202247191 },
+  side: { x: 76.21637651607894, y: 49.66825593700088, w: 10.815053279894336, h: 19.021136495431264 },
+  minButton: { x: 74.94743518742966, y: 5.839632068680437, w: 3.1327022375215146, h: 5.485955056179776 },
+  fullButton: { x: 78.89715859085919, y: 6.284935828590932, w: 3.1327022375215146, h: 4.699438202247191 },
   closeButton: { x: 82.54248120300753, y: 5.394289979409628, w: 4.265192048583313, h: 6.345023008143263 },
-  saveButton: { x: 77.89233781167898, y: 12.239974642850186, w: 8.45915349287867, h: 7.948287503716397 },
-  loadButton: { x: 77.9555096431543, y: 18.930857454207388, w: 8.183825072140433, h: 9.294664806497453 },
-  volumeButton: { x: 78.20849809177561, y: 27.60430471788367, w: 7.4837760496654795, h: 6.346794453943678 },
+  saveButton: { x: 77.89233781167898, y: 12.239974642850186, w: 8.45915349287867, h: 7.948287503716398 },
+  loadButton: { x: 77.9555096431543, y: 18.930857454207384, w: 8.183825072140433, h: 9.294664806497453 },
+  volumeButton: { x: 78.20849809177561, y: 27.60430471788367, w: 7.483776049665479, h: 6.346794453943678 },
   volumeSlider: { x: 72.51818826196916, y: 22.478100487598052, w: 2.2048192771084336, h: 13.455056179775282 },
   configButton: { x: 77.39863148832819, y: 33.02292416687223, w: 8.116797292877436, h: 9.308730000374117 },
-  pauseButton: { x: 77.543257259471, y: 38.248832333827785, w: 8.444006338999953, h: 15.296583696018157 },
-  songToast: { x: 34.11674746240718, y: 11.383281297001256, w: 31.816541353383464, h: 2.4457943925233643 },
+  pauseButton: { x: 77.543257259471, y: 38.24883233382778, w: 8.444006338999953, h: 15.296583696018157 },
+  songToast: { x: 34.11674746240718, y: 11.383281297001254, w: 31.81654135338346, h: 2.4457943925233643 },
   touchFrame: { x: 10.884681583476763, y: 68.89887640449439, w: 63.77280550774526, h: 18.34831460674157 },
-  touchDpad: { x: 13.884681583476766, y: 70.86516853932585, w: 25, h: 17 },
-  touchActions: { x: 60.39554601254031, y: 72.81735492971447, w: 27, h: 16 },
-  touchMenu: { x: 42.41953467191262, y: 75.95505617977528, w: 15.304647160068846, h: 6.561797752808988 },
+  touchDpad: { x: 13.478232752532975, y: 72.48087736495094, w: 25.812897661887575, h: 13.698323233467068 },
+  touchActions: { x: 60.39554601254031, y: 72.81735492971447, w: 26.796778104057676, h: 11.820209705371788 },
+  touchMenu: { x: 42.28404444962371, y: 71.17816791602624, w: 15.304647160068846, h: 6.561797752808988 },
 };
 
 const DEFAULT_ROSITA_MOBILE_LANDSCAPE_LAYOUT: RositaLayout = {
   ...DEFAULT_ROSITA_LAYOUT,
   screen: { x: 14.55030578532459, y: 7.915474388726333, w: 71.09865234666262, h: 61.408209252826346 },
-  topbar: { x: 3.545269011437619, y: 0.5976301196117911, w: 72.80747320091203, h: 8.760060533211067 },
+  topbar: { x: 13.452748987851084, y: 1.1690602597372426, w: 72.80747320091203, h: 7.807679819789318 },
   info: { x: 20.67944581099824, y: 8.557158712541622, w: 18.4430037817396, h: 101.44284128745838 },
   actions: { x: 64.02780832266765, y: 14.742966790399471, w: 17.604448938321536, h: 51.993620414673046 },
-  side: { x: 3.696882917499166, y: 37.00692673566673, w: 8.36189205785361, h: 22.53965955855614 },
+  side: { x: 3.696882917499166, y: 19.673594032061178, w: 8.36189205785361, h: 22.53965955855614 },
   minButton: { x: 87.23123332239855, y: 3.5303282305202073, w: 2.1, h: 4.25 },
   fullButton: { x: 90.73603332114054, y: 3.350671236161834, w: 2.1, h: 4.25 },
   closeButton: { x: 93.74009100101114, y: 2.6663478770582003, w: 3.0603727714748787, h: 5.670865704772476 },
-  saveButton: { x: 89.1898176895924, y: 9.796534081127765, w: 7.351990403126066, h: 10.809457502553741 },
-  loadButton: { x: 89.24757557211807, y: 20.678733893984173, w: 7.2868976316867755, h: 11.555438231809813 },
-  volumeButton: { x: 89.54187211024025, y: 31.571822762291244, w: 6.397449750815845, h: 12.860607067525786 },
-  volumeSlider: { x: 87.14090649957417, y: 27.016101009183735, w: 1, h: 17.5 },
-  configButton: { x: 88.08305172945886, y: 43.819297822596624, w: 8.218240055104179, h: 10.447816230608618 },
-  pauseButton: { x: 89.25563299910607, y: 52.775168018186925, w: 6.798918014800821, h: 16.296979449412174 },
+  saveButton: { x: 89.65243310160773, y: 9.891770174731132, w: 7.621846844454562, h: 11.095166964103429 },
+  loadButton: { x: 90.32698604334941, y: 23.345401190378617, w: 5.899089630847437, h: 11.07924123343876 },
+  volumeButton: { x: 89.85026963984825, y: 37.85753009850967, w: 6.474539574416189, h: 10.860608956709125 },
+  volumeSlider: { x: 87.21801161725716, y: 32.15895633032837, w: 1, h: 17.5 },
+  configButton: { x: 27.327453693739066, y: 74.86691138258789, w: 9.374755644018508, h: 14.162101809952665 },
+  pauseButton: { x: 89.87243570536342, y: 53.15613128443378, w: 6.259220426226479, h: 11.249350775954206 },
   songToast: { x: 39.80063260499063, y: 8.806107691790265, w: 33.74115267947422, h: 3.5266347687400317 },
   touchFrame: { x: 4, y: 66, w: 92, h: 30 },
-  touchDpad: { x: 3.627145622431795, y: 72.51869301542874, w: 15.067745197168858, h: 20.681020733652314 },
+  touchDpad: { x: 2.0465767391452996, y: 68.80438382129296, w: 12.67761654869853, h: 26.109589058565398 },
   touchActions: { x: 71.37486457204767, y: 73.68453292496172, w: 20, h: 18 },
-  touchMenu: { x: 41.70855904658722, y: 77.5865237366003, w: 15.932827735644636, h: 11.747320061255742 },
+  touchMenu: { x: 42.32536557636522, y: 74.25319197758643, w: 15.00761985273797, h: 18.41398357928351 },
 };
 
 const clampPercent = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
@@ -1934,7 +1934,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     h: parent.h ? (box.h / parent.h) * 100 : 0,
   });
 
-  const canEditRositaLayout = usesRositaNesShell;
+  const canEditRositaLayout = false;
   const effectiveRositaLayout = rositaLayout;
   const rositaTopbarMin = rositaRelativeBox(effectiveRositaLayout.minButton, effectiveRositaLayout.topbar);
   const rositaTopbarFull = rositaRelativeBox(effectiveRositaLayout.fullButton, effectiveRositaLayout.topbar);
@@ -2092,6 +2092,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
   if (activeGames.length === 0 || !activeGame) return null;
 
   const inactiveGames = activeGames.map((game, idx) => ({ game, idx })).filter(({ idx }) => idx !== currentGameIndex);
+  const expandedControlsVisible = usesRositaNesShell || expandedControlsOpen;
 
   // 🔥 CSS DOCKING INTELIGENTE PARA MODO TEATRO O FLOTANTE 🔥
   let popupStyle: React.CSSProperties = {};
@@ -2235,7 +2236,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
                 ? cn(
                     "absolute top-0 left-0 w-full z-[61] bg-black/85 border-b border-white/10 h-12",
                     usesRositaNesShell && "rosita-window-topbar",
-                    expandedControlsOpen ? "translate-y-0" : "-translate-y-full pointer-events-none",
+                    expandedControlsVisible ? "translate-y-0" : "-translate-y-full pointer-events-none",
                   )
                 : cn("bg-muted/50 border-b border-border cursor-move", usesRositaNesShell && "rosita-window-topbar"),
             )}
@@ -2563,7 +2564,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         <>
           {/* 🔺 Botón para abrir/cerrar el menú L cuando el juego está maximizado.
               Se oculta/hace traslúcido si isIdle es true */}
-          {isExpanded && (
+          {isExpanded && !usesRositaNesShell && (
             <button
               type="button"
               onMouseEnter={resetIdleTimer} // Despierta el botón al pasar el ratón
@@ -2598,7 +2599,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
               isExpanded
                 ? cn(
                     "absolute right-0 top-0 bottom-0 w-14 bg-black/85 border-l border-white/10 z-[60] pt-14",
-                    expandedControlsOpen ? "translate-x-0" : "translate-x-full pointer-events-none",
+                    expandedControlsVisible ? "translate-x-0" : "translate-x-full pointer-events-none",
                   )
                 : "w-14",
             )}
