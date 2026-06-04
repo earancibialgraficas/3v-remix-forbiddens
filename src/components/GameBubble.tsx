@@ -1934,7 +1934,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     h: parent.h ? (box.h / parent.h) * 100 : 0,
   });
 
-  const canEditRositaLayout = false;
+  const canEditRositaLayout = usesRositaNesShell;
   const effectiveRositaLayout = rositaLayout;
   const rositaTopbarMin = rositaRelativeBox(effectiveRositaLayout.minButton, effectiveRositaLayout.topbar);
   const rositaTopbarFull = rositaRelativeBox(effectiveRositaLayout.fullButton, effectiveRositaLayout.topbar);

@@ -1,24 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320" role="img" aria-label="Consola Rosita NES">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Consola Rosita NES">
   <defs>
-    <linearGradient id="pink-bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#ffd6ef"/>
-      <stop offset="0.52" stop-color="#ff8ed2"/>
-      <stop offset="1" stop-color="#ffcae7"/>
+    <linearGradient id="bg" x1="68" y1="54" x2="440" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff4fb"/>
+      <stop offset=".45" stop-color="#ffd2e7"/>
+      <stop offset="1" stop-color="#f8a8cf"/>
     </linearGradient>
-    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#7a0d4a" flood-opacity=".35"/>
+    <linearGradient id="pad" x1="98" y1="149" x2="422" y2="384" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff9cc5"/>
+      <stop offset=".45" stop-color="#f05f9b"/>
+      <stop offset="1" stop-color="#b72d68"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#7d1646" flood-opacity=".35"/>
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#fff" flood-opacity=".45"/>
     </filter>
   </defs>
-  <rect width="512" height="320" rx="34" fill="url(#pink-bg)"/>
-  <path d="M58 236c30-64 74-93 132-88l132 12c60 5 102 26 132 76 11 19 4 43-15 54-17 10-38 6-50-10l-30-39c-8-10-20-16-33-16H185c-13 0-25 6-33 16l-30 39c-12 16-33 20-50 10-19-11-26-35-14-54Z" fill="#8f1458" filter="url(#soft-shadow)"/>
-  <circle cx="176" cy="195" r="14" fill="#ffc1e2"/>
-  <circle cx="176" cy="195" r="6" fill="#8f1458"/>
-  <path d="M128 180h26v-26h28v26h26v28h-26v26h-28v-26h-26z" fill="#ffc1e2"/>
-  <circle cx="346" cy="178" r="16" fill="#ffc1e2"/>
-  <circle cx="388" cy="202" r="16" fill="#ffc1e2"/>
-  <circle cx="346" cy="178" r="7" fill="#8f1458"/>
-  <circle cx="388" cy="202" r="7" fill="#8f1458"/>
-  <rect x="229" y="187" width="54" height="14" rx="7" fill="#ffc1e2"/>
-  <rect x="228" y="216" width="56" height="10" rx="5" fill="#ffc1e2" opacity=".85"/>
-  <path d="M83 63c53-29 115-44 173-44s120 15 173 44" fill="none" stroke="#fff2fa" stroke-width="9" stroke-linecap="round" opacity=".45"/>
+  <rect x="28" y="28" width="456" height="456" rx="94" fill="url(#bg)"/>
+  <rect x="44" y="44" width="424" height="424" rx="78" fill="none" stroke="#fff9fd" stroke-width="14" opacity=".78"/>
+  <rect x="58" y="58" width="396" height="396" rx="64" fill="none" stroke="#db528a" stroke-width="7" opacity=".7"/>
+  <path d="M98 326c18-74 72-118 146-118h24c74 0 128 44 146 118 10 41-22 80-65 80-22 0-43-11-55-30l-20-31a31 31 0 0 0-26-14h-16c-11 0-21 5-27 14l-20 31a65 65 0 0 1-55 30c-43 0-75-39-65-80Z" fill="url(#pad)" filter="url(#shadow)"/>
+  <path d="M118 317c17-57 61-90 126-90h24c65 0 109 33 126 90" fill="none" stroke="#ffc9e0" stroke-width="16" stroke-linecap="round" opacity=".78"/>
+  <path d="M154 279h34v-34h38v34h34v38h-34v34h-38v-34h-34z" fill="#fff0f8" stroke="#8e1b55" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="331" cy="271" r="25" fill="#fff0f8" stroke="#8e1b55" stroke-width="8"/>
+  <circle cx="383" cy="318" r="25" fill="#fff0f8" stroke="#8e1b55" stroke-width="8"/>
+  <circle cx="331" cy="271" r="9" fill="#db528a"/>
+  <circle cx="383" cy="318" r="9" fill="#db528a"/>
+  <rect x="238" y="281" width="48" height="14" rx="7" fill="#fff0f8" opacity=".92"/>
+  <rect x="238" y="309" width="48" height="12" rx="6" fill="#fff0f8" opacity=".76"/>
+  <path d="M149 119l13 27 30 4-22 21 5 30-26-14-27 14 5-30-22-21 30-4 14-27Z" fill="#fff8fc" stroke="#ef82b1" stroke-width="6"/>
+  <path d="M384 104l9 19 21 3-15 15 4 21-19-10-18 10 3-21-15-15 21-3 9-19Z" fill="#fff8fc" stroke="#ef82b1" stroke-width="5"/>
+  <circle cx="111" cy="397" r="10" fill="#f05f9b" opacity=".45"/>
+  <circle cx="408" cy="130" r="7" fill="#f05f9b" opacity=".45"/>
 </svg>
