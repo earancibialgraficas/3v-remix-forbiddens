@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { InventoryIcon } from "@/components/icons/InventoryIcon";
 import { INVENTORY_SEEN_EVENT, getInventoryItemSourceIds, isInventoryItemUnseen, markInventoryItemIdsSeen } from "@/lib/inventorySeen";
-import { ALL_SKINS } from "@/lib/skinThemes";
+import { ALL_SKINS, getSkinThumbnailUrl } from "@/lib/skinThemes";
 import { AVATAR_FRAMES, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITIONS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { EMULATOR_SHELLS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
@@ -26,8 +26,6 @@ interface InventoryTabProps {
 
 const INVENTORY_PAGE_SIZE = 18;
 const INVENTORY_MIN_PAGES = 6;
-const DEMONIACO_STORE_THUMBNAIL = "/skins/demoniaco/store/thumbnail.png";
-
 export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
@@ -849,8 +847,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     setSeenVersion((value) => value + 1);
   };
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
-    item?.item_slug === "demoniaco"
-      ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+    isSkinItem(item) && getSkinThumbnailUrl(item.item_slug)
+      ? <img src={getSkinThumbnailUrl(item.item_slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
@@ -1710,7 +1708,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       <div className="flex h-full w-full items-center justify-center">
                         <div className={cn(
                           "relative grid h-[72%] w-[72%] place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.45),0_0_12px_rgba(250,204,21,0.25)]",
-                          item.item_slug === "demoniaco" && "inventory-demoniaco-thumbnail-card overflow-hidden border-red-500/70 bg-[#2a0906]",
+                          isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) && "inventory-demoniaco-thumbnail-card overflow-hidden border-red-500/70 bg-[#2a0906]",
                           isAvatarFrameItem(item) && "overflow-hidden border-pink-300/70 bg-[#3a1730]",
                           isProfileTransitionItem(item) && "overflow-hidden border-orange-300/70 bg-[#2b1006]",
                           isEmulatorShellItem(item) && "overflow-hidden border-pink-300/80 bg-pink-100",
@@ -1725,12 +1723,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )}>
                           <div className={cn(
                             "absolute inset-1 rounded-sm border border-black/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_45%)]",
-                            (item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)) && "hidden",
+                            (isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item)) && "hidden",
                           )} />
                           <ItemIcon
                             item={item}
                             className={cn(
-                              item.item_slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
+                              isSkinItem(item) && getSkinThumbnailUrl(item.item_slug) || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item) ? "relative h-full w-full" : "relative h-5 w-5 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]",
                               itemBoosterExpired
                                 ? "text-zinc-400 grayscale opacity-70 drop-shadow-none"
                                 : isProfileTransitionItem(item) ? "text-orange-300 drop-shadow-[0_0_10px_rgba(249,115,22,0.75)]" : isMembershipItem(item) ? "text-neon-magenta" : isEventTicketItem(item) ? "text-neon-cyan" : "text-neon-yellow",
@@ -1839,8 +1837,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                         )
                       ) : entry.kind === "emulator_shell" ? (
                         <img src={getEmulatorShell(entry.slug)?.thumbnailUrl} alt="" className="h-[82%] w-[82%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
-                      ) : entry.slug === "demoniaco" ? (
-                        <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                      ) : getSkinThumbnailUrl(entry.slug) ? (
+                        <img src={getSkinThumbnailUrl(entry.slug) || ""} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (
                         <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       )}

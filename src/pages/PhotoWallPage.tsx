@@ -20,6 +20,7 @@ import { formatRelativeDate } from "@/lib/relativeDate";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getAvatarFrameStyle, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { getLauncherSkinAvatarFrameClass } from "@/lib/skinThemes";
 
 // 🔥 Límite global diario de fotos (se reinicia a las 00:00 hrs Chile)
 const GLOBAL_DAILY_LIMIT = 80;
@@ -180,7 +181,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
   const [replyTo, setReplyTo] = useState<{id: string, name: string} | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [reportingComment, setReportingComment] = useState<{ userId: string; userName: string; commentId: string } | null>(null);
-  const [demoniacoCommentUsers, setDemoniacoCommentUsers] = useState<Record<string, boolean>>({});
+  const [launcherFrameCommentUsers, setLauncherFrameCommentUsers] = useState<Record<string, string>>({});
   const [avatarFrameCommentUsers, setAvatarFrameCommentUsers] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(photo.caption || photo.title || "");
@@ -210,16 +211,19 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
         .in("skin_type" as any, ["launcher", "avatar_frame"]);
       const pMap: Record<string, any> = {};
       if (profs) profs.forEach((p: any) => { pMap[p.user_id] = p; });
-      const skinMap: Record<string, boolean> = {};
+      const skinMap: Record<string, string> = {};
       const frameMap: Record<string, string> = {};
-      activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") skinMap[skin.user_id] = true; });
+      activeSkins?.forEach((skin: any) => {
+        const frameClass = skin.skin_type === "launcher" ? getLauncherSkinAvatarFrameClass(skin.skin_slug) : null;
+        if (frameClass) skinMap[skin.user_id] = frameClass;
+      });
       activeSkins?.forEach((skin: any) => { if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) frameMap[skin.user_id] = skin.skin_slug; });
-      setDemoniacoCommentUsers(skinMap);
+      setLauncherFrameCommentUsers(skinMap);
       setAvatarFrameCommentUsers(frameMap);
       setComments(rawComments.map((c: any) => ({ ...c, display_name: pMap[c.user_id]?.display_name || "Anónimo", avatar_url: pMap[c.user_id]?.avatar_url })));
     } else {
       setComments([]);
-      setDemoniacoCommentUsers({});
+      setLauncherFrameCommentUsers({});
       setAvatarFrameCommentUsers({});
     }
   };
@@ -324,7 +328,7 @@ function ExpandedPhotoModal({ photo, onClose, onReaction, onHide, onEdit, onDele
                 comments.map(c => (
                   <div key={c.id} id={`comment-${c.id}`} className={cn("group flex items-start gap-2 text-[10px] font-body", c.parent_id && "ml-4 border-l border-white/10 pl-2")}>
                     <Avatar
-                      className={cn("photowall-comment-avatar w-7 h-7 shrink-0 mt-1", demoniacoCommentUsers[c.user_id] && "avatar-frame-demoniaco", avatarFrameCommentUsers[c.user_id] && "avatar-frame-custom")}
+                      className={cn("photowall-comment-avatar w-7 h-7 shrink-0 mt-1", launcherFrameCommentUsers[c.user_id], avatarFrameCommentUsers[c.user_id] && "avatar-frame-custom")}
                       style={getAvatarFrameStyle(avatarFrameCommentUsers[c.user_id])}
                     ><AvatarImage src={c.avatar_url || ""} /></Avatar>
                     <div className="flex-1 min-w-0">

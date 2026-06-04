@@ -2,13 +2,14 @@
 // Cada skin cambia colores, gradientes, efectos en toda la interfaz
 
 export type SkinType = 'launcher' | 'agario' | 'game';
-export type SkinSlug = 'angelical' | 'demoniaco' | 'cyberpunk' | 'default';
+export type SkinSlug = 'angelical' | 'demoniaco' | 'mercenario_bocasas' | 'cyberpunk' | 'default';
 
 export interface SkinTheme {
   name: string;
   slug: SkinSlug;
   type: SkinType;
   description: string;
+  family?: 'demoniaco';
   
   // Colores principales
   colors: {
@@ -94,6 +95,7 @@ export const DEMONIACO_SKIN: SkinTheme = {
   name: 'Demoniaco',
   slug: 'demoniaco',
   type: 'launcher',
+  family: 'demoniaco',
   description: 'Estilo oscuro rojo demoníaco con efectos de fuego infernal 🔥',
   colors: {
     primary: '#d94a38',      // Rojo infernal sobrio
@@ -138,6 +140,51 @@ export const DEMONIACO_SKIN: SkinTheme = {
 
 
 // 🤖 SKIN CIBERPUNK - Neón, cyan, magenta, líneas de código
+// Skin Mercenario Bocasas - variante tactica rojo/negro basada en la arquitectura demoniaca
+export const MERCENARIO_BOCASAS_SKIN: SkinTheme = {
+  name: 'Mercenario Bocasas',
+  slug: 'mercenario_bocasas',
+  type: 'launcher',
+  family: 'demoniaco',
+  description: 'Estilo mercenario rojo y negro con armas, acero oscuro y energia carmesi.',
+  colors: {
+    primary: '#e0473f',
+    secondary: '#a63a35',
+    accent: '#d8a08f',
+    background: '#070707',
+    card: '#151111',
+    text: '#f2c8bd',
+    textMuted: '#ae7d74',
+    border: '#5e2926',
+  },
+  gradients: {
+    header: 'linear-gradient(135deg, #e0473f 0%, #7e1d1a 50%, #171010 100%)',
+    card: 'linear-gradient(135deg, #151111 0%, #24110f 50%, #070707 100%)',
+    button: 'linear-gradient(135deg, #7c1714 0%, #b62822 54%, #e0574b 100%)',
+    hover: 'linear-gradient(135deg, #9a211c 0%, #cf3e36 54%, #e88974 100%)',
+  },
+  effects: {
+    glow: '0 0 18px rgba(207, 50, 42, 0.46), 0 0 10px rgba(224, 90, 72, 0.24)',
+    shadow: '0 8px 24px rgba(0, 0, 0, 0.72), 0 0 15px rgba(207, 50, 42, 0.14)',
+    buttonHover: 'box-shadow: 0 0 18px rgba(207, 50, 42, 0.52), 0 0 10px rgba(224, 90, 72, 0.32), 0 4px 12px rgba(0, 0, 0, 0.82)',
+    borderRadius: '4px',
+  },
+  patterns: {
+    background: "radial-gradient(circle at 56% -12%, rgba(224, 38, 32, 0.18), transparent 24rem), linear-gradient(rgba(4, 4, 4, 0.9), rgba(5, 4, 4, 0.94)), url('/skins/mercenario_bocasas/backgrounds/solid/hellscape-castle.png') center top / cover fixed, linear-gradient(135deg, #070707 0%, #120605 48%, #050505 100%)",
+    card: "linear-gradient(rgba(8, 8, 8, 0.88), rgba(6, 6, 6, 0.94)), url('/skins/mercenario_bocasas/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, rgba(24, 10, 8, 0.72), rgba(5, 5, 5, 0.98))",
+    topbar: "linear-gradient(rgba(5, 5, 5, 0.9), rgba(8, 7, 7, 0.96)), url('/skins/mercenario_bocasas/textures/AZ5xjYg286URBkpJZIxzeQ-AZ5xjcojgoGln-NTZLbqsw.png') center / 100% 100%, linear-gradient(90deg, #050505, #150605 50%, #050505)",
+    sidebar: "linear-gradient(rgba(4, 3, 3, 0.5), rgba(7, 5, 5, 0.74)), url('/skins/mercenario_bocasas/backgrounds/solid/window-rock.png') center top / cover, linear-gradient(180deg, #080707, #120605 52%, #050505)",
+    panel: "linear-gradient(rgba(6, 4, 4, 0.48), rgba(5, 3, 3, 0.7)), url('/skins/mercenario_bocasas/backgrounds/solid/window-rock.png') center / cover, linear-gradient(135deg, #13100e, #060606)",
+    profileHeader: "linear-gradient(90deg, rgba(3, 3, 3, 0.38), rgba(18, 4, 4, 0.22) 48%, rgba(3, 3, 3, 0.56)), url('/skins/mercenario_bocasas/backgrounds/solid/profile-banner.png') center / cover",
+    profileSurface: "linear-gradient(rgba(5, 4, 4, 0.46), rgba(4, 3, 3, 0.68)), url('/skins/mercenario_bocasas/backgrounds/solid/window-rock.png') center / cover",
+    slot: "linear-gradient(rgba(7, 7, 7, 0.86), rgba(5, 5, 5, 0.94)), url('/skins/mercenario_bocasas/backgrounds/solid/basalt-tall.png') center / cover, radial-gradient(circle at 35% 25%, rgba(224, 44, 35, 0.12), transparent 55%)",
+    button: "linear-gradient(180deg, rgba(150, 22, 18, 0.96), rgba(65, 12, 10, 0.98)), url('/skins/mercenario_bocasas/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOV9VFJOGHu8DoACrg.png') center / 100% 100%",
+    trim: "url('/skins/mercenario_bocasas/textures/AZ5xfXwM5JCVm0yH6eZphA-AZ5xfb-SbaS3qDQBbY-Wcg.png') center / 100% 100%",
+    emblem: "url('/skins/mercenario_bocasas/decorations/demon-emblem.png')",
+    lava: "url('/skins/mercenario_bocasas/textures/lava-overlay.jpg')",
+  },
+};
+
 export const CYBERPUNK_SKIN: SkinTheme = {
   name: 'Ciberpunk',
   slug: 'cyberpunk',
@@ -209,12 +256,31 @@ export const DEFAULT_SKIN: SkinTheme = {
 export const ALL_SKINS = {
   angelical: ANGELICAL_SKIN,
   demoniaco: DEMONIACO_SKIN,
+  mercenario_bocasas: MERCENARIO_BOCASAS_SKIN,
   cyberpunk: CYBERPUNK_SKIN,
   default: DEFAULT_SKIN,
 };
 
 // Lista de slugs disponibles
-export const SKIN_SLUGS = ['default', 'angelical', 'demoniaco', 'cyberpunk'] as const;
+export const SKIN_SLUGS = ['default', 'angelical', 'demoniaco', 'mercenario_bocasas', 'cyberpunk'] as const;
+
+export const SKIN_ASSET_BASE_BY_SLUG: Partial<Record<SkinSlug, string>> = {
+  demoniaco: '/skins/demoniaco',
+  mercenario_bocasas: '/skins/mercenario_bocasas',
+};
+
+export const SKIN_AVATAR_FRAME_CLASS_BY_SLUG: Partial<Record<SkinSlug, string>> = {
+  demoniaco: 'avatar-frame-demoniaco',
+  mercenario_bocasas: 'avatar-frame-mercenario-bocasas',
+};
+
+export const getSkinThumbnailUrl = (slug?: string | null) => {
+  const base = (SKIN_ASSET_BASE_BY_SLUG as Record<string, string | undefined>)[slug || ''];
+  return base ? `${base}/store/thumbnail.png` : null;
+};
+
+export const getLauncherSkinAvatarFrameClass = (slug?: string | null) =>
+  (SKIN_AVATAR_FRAME_CLASS_BY_SLUG as Record<string, string | undefined>)[slug || ''] || null;
 
 // Obtener un tema por slug
 export const getSkinTheme = (slug?: string): SkinTheme => {
@@ -240,5 +306,5 @@ export const generateThemeCSS = (theme: SkinTheme): string => {
     .map(([name, value]) => `${name}: ${value};`)
     .join(' ');
 
-  return `--skin-slug: ${theme.slug}; --skin-primary: ${theme.colors.primary}; --skin-secondary: ${theme.colors.secondary}; --skin-accent: ${theme.colors.accent}; --skin-background: ${theme.colors.background}; --skin-card: ${theme.colors.card}; --skin-text: ${theme.colors.text}; --skin-text-muted: ${theme.colors.textMuted}; --skin-border: ${theme.colors.border}; --skin-gradient-header: ${theme.gradients.header}; --skin-gradient-card: ${theme.gradients.card}; --skin-gradient-button: ${theme.gradients.button}; --skin-gradient-hover: ${theme.gradients.hover}; --skin-glow: ${theme.effects.glow}; --skin-shadow: ${theme.effects.shadow}; --skin-button-hover: ${theme.effects.buttonHover}; --skin-border-radius: ${theme.effects.borderRadius}; --skin-pattern-bg: ${theme.patterns.background}; --skin-pattern-card: ${theme.patterns.card}; ${optionalPatterns}`;
+  return `--skin-slug: ${theme.slug}; --skin-family: ${theme.family || theme.slug}; --skin-primary: ${theme.colors.primary}; --skin-secondary: ${theme.colors.secondary}; --skin-accent: ${theme.colors.accent}; --skin-background: ${theme.colors.background}; --skin-card: ${theme.colors.card}; --skin-text: ${theme.colors.text}; --skin-text-muted: ${theme.colors.textMuted}; --skin-border: ${theme.colors.border}; --skin-gradient-header: ${theme.gradients.header}; --skin-gradient-card: ${theme.gradients.card}; --skin-gradient-button: ${theme.gradients.button}; --skin-gradient-hover: ${theme.gradients.hover}; --skin-glow: ${theme.effects.glow}; --skin-shadow: ${theme.effects.shadow}; --skin-button-hover: ${theme.effects.buttonHover}; --skin-border-radius: ${theme.effects.borderRadius}; --skin-pattern-bg: ${theme.patterns.background}; --skin-pattern-card: ${theme.patterns.card}; ${optionalPatterns}`;
 };

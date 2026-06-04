@@ -1,0 +1,2839 @@
+﻿/* Mercenario Bocasas: generated from demoniaco skin contract. */
+/* Demoniaco: layered, per-surface remodeling */
+html[style*="--skin-slug: mercenario_bocasas"] {
+  color-scheme: dark;
+  --skin-panel-border: rgba(168, 37, 24, 0.78);
+  --skin-panel-border-soft: rgba(107, 34, 27, 0.72);
+  --skin-hot: rgba(255, 61, 0, 0.78);
+  --skin-ember: rgba(255, 128, 24, 0.28);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 58% -8%, rgba(255, 51, 0, 0.24), transparent 24rem),
+    radial-gradient(circle at 14% 104%, rgba(255, 64, 0, 0.18), transparent 20rem),
+    linear-gradient(to top, rgba(255, 42, 0, 0.1), transparent 10rem);
+  mix-blend-mode: normal;
+  opacity: 0.1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(120, 18, 14, 0.08), transparent 22rem);
+  opacity: 0;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .bg-background,
+html[style*="--skin-slug: mercenario_bocasas"] main {
+  background: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] [data-tauri-drag-region].fixed.inset-x-0,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.inset-x-0.top-0 {
+  background: var(--skin-pattern-topbar) !important;
+  border-color: rgba(255, 45, 24, 0.38) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.74), inset 0 -1px 0 rgba(255, 85, 35, 0.22) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card {
+  background:
+    linear-gradient(180deg, rgba(2, 2, 2, 0.32), rgba(6, 3, 3, 0.58)),
+    var(--demoniaco-surface-rock) center top / cover !important;
+  border-color: rgba(129, 32, 25, 0.82) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 59, 24, 0.12), 16px 0 44px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child {
+  min-height: 8.5rem;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(2, 2, 2, 0.32), rgba(6, 3, 3, 0.58)),
+    var(--demoniaco-surface-rock) center top / cover !important;
+  border-color: rgba(255, 55, 22, 0.28) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child::before {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r nav a,
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r nav button {
+  border-radius: 2px !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r nav button:hover,
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r nav a:hover {
+  background: linear-gradient(90deg, rgba(183, 20, 15, 0.28), rgba(255, 65, 20, 0.05)) !important;
+  color: #ffd1bd !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-sidebar-toggle {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background: url('/skins/mercenario_bocasas/forum-sidebar/toggle-normal.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 10px rgba(255, 45, 18, 0.34));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-sidebar-toggle:hover {
+  background-image: url('/skins/mercenario_bocasas/forum-sidebar/toggle-hover.png') !important;
+  filter: drop-shadow(0 0 12px rgba(255, 48, 18, 0.48));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-sidebar-toggle.is-collapsed {
+  background-image: url('/skins/mercenario_bocasas/forum-sidebar/toggle-selected.png') !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-sidebar-toggle > svg {
+  opacity: 0;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-md.border {
+  background: var(--skin-pattern-panel) !important;
+  border-color: var(--skin-panel-border-soft) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 111, 42, 0.08),
+    inset 0 0 34px rgba(0, 0, 0, 0.58),
+    0 14px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border {
+  background: var(
+    --skin-pattern-profile-header,
+    linear-gradient(90deg, rgba(5, 5, 5, 0.82), rgba(20, 5, 4, 0.64) 48%, rgba(5, 5, 5, 0.9)),
+    url('/skins/mercenario_bocasas/backgrounds/solid/hellscape-dragon-wide.png') center / cover
+  ) !important;
+  background-color: #080707 !important;
+  border-color: rgba(207, 48, 26, 0.82) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 112, 42, 0.12),
+    inset 0 -34px 70px rgba(0, 0, 0, 0.72),
+    0 18px 48px rgba(0, 0, 0, 0.48) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::before {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08), transparent 42%, rgba(0, 0, 0, 0.62)),
+    radial-gradient(circle at 8% 28%, rgba(255, 67, 20, 0.16), transparent 10rem);
+  opacity: 1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border {
+  background: var(
+    --skin-pattern-profile-surface,
+    linear-gradient(rgba(7, 7, 7, 0.88), rgba(5, 5, 5, 0.94)),
+    url('/skins/mercenario_bocasas/backgrounds/solid/basalt-wide.png') center / cover
+  ) !important;
+  border-color: rgba(165, 38, 25, 0.78) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 112, 42, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.64) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border > button {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border > button[class*="bg-muted"],
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border > button:hover {
+  background: linear-gradient(180deg, rgba(105, 17, 12, 0.64), rgba(17, 8, 7, 0.72)) !important;
+  border-color: rgba(255, 66, 26, 0.52) !important;
+  color: #ffd4c2 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded.border:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border:hover {
+  border-color: rgba(211, 48, 27, 0.86) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card::before,
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card::before {
+  background: none !important;
+  mix-blend-mode: normal;
+  opacity: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border {
+  border-color: var(--skin-panel-border) !important;
+  position: relative;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel.rounded.border-2,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel.bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel.bg-card.border {
+  background:
+    linear-gradient(180deg, rgba(6, 4, 4, 0.42), rgba(4, 3, 3, 0.66)),
+    var(
+      --skin-pattern-profile-surface,
+      url('/skins/mercenario_bocasas/backgrounds/solid/basalt-wide.png') center / cover
+    ) !important;
+  border-color: rgba(183, 43, 25, 0.78) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 106, 40, 0.1),
+    inset 0 0 38px rgba(0, 0, 0, 0.7),
+    0 14px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-row.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-box.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-slots.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-meta.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-conversion-panel.rounded.border {
+  background:
+    linear-gradient(180deg, rgba(18, 8, 6, 0.42), rgba(5, 5, 5, 0.62)),
+    var(--skin-pattern-slot) !important;
+  border-color: rgba(143, 37, 24, 0.72) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 89, 34, 0.08),
+    inset 0 0 18px rgba(0, 0, 0, 0.58) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-row.rounded.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-row.rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-box.rounded.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-box.rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-slots.rounded.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-slots.rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-meta.rounded.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-meta.rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-conversion-panel.rounded.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-conversion-panel.rounded.border::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .grid.grid-cols-9,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-slot-grid.rounded.border {
+  background:
+    linear-gradient(rgba(5, 4, 4, 0.46), rgba(5, 4, 4, 0.66)),
+    var(
+      --skin-pattern-slot,
+      url('/skins/mercenario_bocasas/backgrounds/solid/basalt-tall.png') center / cover
+    ) !important;
+  border-color: rgba(111, 34, 24, 0.9) !important;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 63, 22, 0.12) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .aspect-square.select-none,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-sell-slot,
+html[style*="--skin-slug: mercenario_bocasas"] button[title="Barra de trueque"],
+html[style*="--skin-slug: mercenario_bocasas"] div[title="Slot remoto"] {
+  background: var(
+    --skin-pattern-slot,
+    linear-gradient(rgba(7, 7, 7, 0.46), rgba(5, 5, 5, 0.68)),
+    url('/skins/mercenario_bocasas/backgrounds/solid/basalt-tall.png') center / cover
+  ) !important;
+  border-color: rgba(127, 43, 31, 0.9) !important;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 145, 73, 0.11),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.66),
+    inset 0 0 14px rgba(0, 0, 0, 0.82) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame {
+  border: 6px solid transparent !important;
+  border-image-source: url('/skins/mercenario_bocasas/panels/panel-frame.png') !important;
+  border-image-slice: 54 !important;
+  border-image-width: 6px !important;
+  border-image-repeat: stretch !important;
+  background-clip: padding-box !important;
+  image-rendering: auto;
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.82),
+    inset 0 0 0 1px rgba(255, 78, 30, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 0 10px rgba(255, 37, 12, 0.12) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(255, 72, 21, 0.14), transparent 45%),
+    linear-gradient(135deg, rgba(255, 116, 44, 0.08), transparent 44%);
+  mix-blend-mode: screen;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame::after {
+  content: "";
+  position: absolute;
+  top: auto !important;
+  left: auto !important;
+  width: auto !important;
+  height: auto !important;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  transform: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 62, 24, 0.24);
+  box-shadow: inset 0 0 10px rgba(255, 45, 15, 0.12);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .aspect-square.select-none:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-sell-slot:hover,
+html[style*="--skin-slug: mercenario_bocasas"] button[title="Barra de trueque"]:hover {
+  border-color: rgba(255, 68, 28, 0.95) !important;
+  border-image-source: url('/skins/mercenario_bocasas/panels/panel-frame.png') !important;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 145, 73, 0.16),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.7),
+    0 0 13px rgba(255, 54, 18, 0.28),
+    0 0 0 1px rgba(255, 79, 30, 0.32) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame:hover {
+  border-image-source: url('/skins/mercenario_bocasas/panels/panel-frame.png') !important;
+  box-shadow:
+    inset 0 0 16px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(255, 91, 33, 0.18),
+    0 0 0 1px rgba(255, 67, 24, 0.26),
+    0 0 14px rgba(255, 45, 15, 0.24) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-active-skin-chip {
+  background:
+    linear-gradient(rgba(9, 7, 7, 0.86), rgba(6, 6, 6, 0.94)),
+    url('/skins/mercenario_bocasas/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOV9VFJOGHu8DoACrg.png') center / 100% 100% !important;
+  border-color: rgba(255, 63, 22, 0.78) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 136, 51, 0.12), 0 0 14px rgba(255, 43, 12, 0.22) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button:not([class*="ghost"]),
+html[style*="--skin-slug: mercenario_bocasas"] [role="button"]:not([class*="ghost"]) {
+  border-color: rgba(177, 45, 29, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button.bg-primary,
+html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-destructive"],
+html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-\\["],
+html[style*="--skin-slug: mercenario_bocasas"] .bg-primary {
+  background: var(--skin-pattern-button) !important;
+  color: #ffd8bd !important;
+  text-shadow: 0 0 8px rgba(255, 68, 23, 0.7) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] input,
+html[style*="--skin-slug: mercenario_bocasas"] textarea,
+html[style*="--skin-slug: mercenario_bocasas"] select {
+  background:
+    linear-gradient(180deg, rgba(8, 7, 7, 0.94), rgba(16, 6, 5, 0.9)) !important;
+  border-color: rgba(151, 44, 31, 0.76) !important;
+  color: #f7d4bd !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] h1,
+html[style*="--skin-slug: mercenario_bocasas"] h2,
+html[style*="--skin-slug: mercenario_bocasas"] h3,
+html[style*="--skin-slug: mercenario_bocasas"] .font-pixel {
+  color: #e2503d !important;
+  text-shadow: 0 0 7px rgba(183, 32, 24, 0.8), 0 0 16px rgba(255, 78, 54, 0.28) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .text-neon-cyan,
+html[style*="--skin-slug: mercenario_bocasas"] .text-neon-green,
+html[style*="--skin-slug: mercenario_bocasas"] .text-neon-yellow,
+html[style*="--skin-slug: mercenario_bocasas"] .text-neon-magenta {
+  color: #d76655 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-full {
+  border-color: rgba(255, 67, 24, 0.92) !important;
+  box-shadow: 0 0 0 2px rgba(24, 5, 5, 0.9), 0 0 22px rgba(255, 53, 18, 0.62) !important;
+}
+
+/* Demoniaco piece-built frames: fixed corners + responsive edge unions. */
+html[style*="--skin-slug: mercenario_bocasas"] {
+  --demoniaco-frame-compact: url('/skins/mercenario_bocasas/slots/slot-frame.png');
+  --demoniaco-frame-corner-tl: url('/skins/mercenario_bocasas/frames/corner-tl-trim.png');
+  --demoniaco-frame-corner-tr: url('/skins/mercenario_bocasas/frames/corner-tr-trim.png');
+  --demoniaco-frame-corner-br: url('/skins/mercenario_bocasas/frames/corner-br-trim.png');
+  --demoniaco-frame-corner-bl: url('/skins/mercenario_bocasas/frames/corner-bl-trim.png');
+  --demoniaco-frame-edge-horizontal: url('/skins/mercenario_bocasas/frames/frame-edge-v2-trim.png');
+  --demoniaco-frame-edge-vertical: url('/skins/mercenario_bocasas/frames/frame-edge-v2-trim-vertical.png');
+  --demoniaco-avatar-round: url('/skins/mercenario_bocasas/frames/avatar-ring-trim.png');
+  --demoniaco-avatar-square: url('/skins/mercenario_bocasas/frames/avatar-square-frame.png');
+  --demoniaco-surface-rock: url('/skins/mercenario_bocasas/backgrounds/solid/window-rock.png');
+  --demoniaco-profile-banner: url('/skins/mercenario_bocasas/backgrounds/solid/profile-banner.png');
+  --demoniaco-equipment-star: url('/skins/mercenario_bocasas/equipment/equipment-star.png');
+  --demoniaco-tab-bar: url('/skins/mercenario_bocasas/tabs/tab-bar.png');
+  --demoniaco-tab-dragon: url('/skins/mercenario_bocasas/tabs/dragon-head.png');
+  --demoniaco-separator-t: url('/skins/mercenario_bocasas/frames/separator-t.png');
+  --demoniaco-separator-t-inverted: url('/skins/mercenario_bocasas/frames/separator-t-inverted.png');
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
+}
+
+@media (min-width: 1280px) {
+  html[style*="--skin-slug: mercenario_bocasas"] {
+    --demoniaco-frame-edge-horizontal: url('/skins/mercenario_bocasas/frames/frame-edge-v1-trim.png');
+    --demoniaco-frame-edge-vertical: url('/skins/mercenario_bocasas/frames/frame-edge-v1-trim-vertical.png');
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: mercenario_bocasas"] {
+    --demoniaco-frame-edge-horizontal: url('/skins/mercenario_bocasas/frames/frame-edge-v3-trim.png');
+    --demoniaco-frame-edge-vertical: url('/skins/mercenario_bocasas/frames/frame-edge-v3-trim-vertical.png');
+    --demoniaco-frame-corner-size: clamp(58px, 16vw, 90px);
+    --demoniaco-frame-edge-thickness: clamp(13px, 4vw, 20px);
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel {
+  position: relative !important;
+  isolation: isolate;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.44), rgba(8, 5, 5, 0.66)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow:
+    inset 0 0 42px rgba(0, 0, 0, 0.7),
+    0 18px 44px rgba(0, 0, 0, 0.48),
+    0 0 18px rgba(255, 47, 18, 0.16) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border {
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
+  background:
+    linear-gradient(90deg, rgba(2, 2, 2, 0.34), rgba(14, 3, 3, 0.16) 48%, rgba(2, 2, 2, 0.58)),
+    var(--demoniaco-profile-banner) center / cover !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.42), rgba(8, 5, 5, 0.64)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  padding: clamp(1rem, 1.45vw, 1.35rem) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  position: relative !important;
+  isolation: auto;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.24), rgba(6, 4, 4, 0.36)) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+  position: relative;
+  z-index: 4 !important;
+  background-image: var(--demoniaco-frame-edge-vertical);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: var(--demoniaco-frame-edge-thickness) 100%;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-mini-stats > div,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-meta > div {
+  border-color: rgba(137, 35, 24, 0.62) !important;
+  background:
+    linear-gradient(180deg, rgba(13, 7, 6, 0.5), rgba(2, 2, 2, 0.62)),
+    var(--skin-pattern-slot) center / cover !important;
+  color: rgba(255, 193, 151, 0.86);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 77, 35, 0.06),
+    inset 0 0 15px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-remove-marker {
+  z-index: 6;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 28px);
+  left: 50%;
+  z-index: 6;
+  width: clamp(94px, 7.6vw, 138px);
+  height: clamp(60px, 5.4vw, 90px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--demoniaco-separator-t) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.82) contrast(1.16) drop-shadow(0 0 7px rgba(255, 43, 15, 0.2));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - 28px);
+  left: 50%;
+  z-index: 6;
+  width: clamp(94px, 7.6vw, 138px);
+  height: clamp(60px, 5.4vw, 90px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--demoniaco-separator-t-inverted) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.82) contrast(1.16) drop-shadow(0 0 7px rgba(255, 43, 15, 0.2));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border {
+  --demoniaco-frame-corner-size: clamp(76px, 8.4vw, 128px);
+  --demoniaco-frame-edge-thickness: clamp(17px, 2.2vw, 30px);
+  --demoniaco-frame-outset: 14px;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border {
+  position: relative !important;
+  isolation: isolate;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  background:
+    linear-gradient(180deg, rgba(7, 5, 5, 0.44), rgba(5, 4, 4, 0.68)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border > *,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border > *,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > *,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border > *,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel > *,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border > * {
+  z-index: 4;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: calc(var(--demoniaco-frame-outset) * -1);
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical),
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical) !important;
+  background-repeat: no-repeat;
+  background-position:
+    top center,
+    right center,
+    bottom center,
+    left center;
+  background-size:
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%,
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%;
+  opacity: 0.98 !important;
+  mix-blend-mode: normal;
+  filter: brightness(0.78) contrast(1.2) saturate(1.12) drop-shadow(0 0 6px rgba(255, 39, 14, 0.18));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1);
+  z-index: 3;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-corner-tl),
+    var(--demoniaco-frame-corner-tr),
+    var(--demoniaco-frame-corner-br),
+    var(--demoniaco-frame-corner-bl) !important;
+  background-repeat: no-repeat;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left;
+  background-size:
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size);
+  opacity: 0.99 !important;
+  transform: none !important;
+  animation: none !important;
+  mix-blend-mode: normal;
+  filter: brightness(0.78) contrast(1.2) saturate(1.12) drop-shadow(0 0 7px rgba(255, 43, 15, 0.18));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-row.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-meta.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-box.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-slots.rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-slot-grid.rounded.border {
+  border-color: transparent !important;
+  background:
+    linear-gradient(180deg, rgba(12, 7, 6, 0.42), rgba(3, 3, 3, 0.64)),
+    var(--skin-pattern-slot) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 80, 28, 0.06),
+    inset 0 0 18px rgba(0, 0, 0, 0.74) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-item-frame {
+  border-image-source: var(--demoniaco-frame-compact) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -10px 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: var(--demoniaco-tab-bar), var(--demoniaco-tab-bar) !important;
+  background-repeat: no-repeat;
+  background-position: top center, bottom center;
+  background-size: calc(100% - 4rem) clamp(14px, 1.35vw, 20px);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  filter: brightness(0.86) contrast(1.14) drop-shadow(0 0 6px rgba(255, 39, 14, 0.2));
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  z-index: 3;
+  width: clamp(76px, 8vw, 118px);
+  height: clamp(42px, 4.4vw, 66px);
+  transform: translateX(-50%) !important;
+  pointer-events: none;
+  background: var(--demoniaco-tab-dragon) center / contain no-repeat !important;
+  opacity: 1 !important;
+  filter: brightness(0.88) contrast(1.15) drop-shadow(0 0 7px rgba(255, 43, 15, 0.24));
+}
+
+.equipment-panel {
+  position: relative;
+  overflow: visible;
+}
+
+.equipment-star::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  z-index: 0;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 56%, 79% 92%, 50% 70%, 21% 92%, 32% 56%, 2% 35%, 39% 35%);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 230, 118, 0.34), transparent 28%),
+    linear-gradient(135deg, rgba(255, 60, 120, 0.28), rgba(34, 211, 238, 0.24)),
+    #10091c;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.24));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-star::before {
+  inset: -4%;
+  clip-path: none;
+  background: var(--demoniaco-equipment-star) center / contain no-repeat;
+  border: 0;
+  filter: brightness(0.9) contrast(1.12) drop-shadow(0 0 12px rgba(255, 49, 18, 0.28));
+}
+
+.equipment-slot {
+  z-index: 1;
+}
+
+.demoniaco-inventory-equipment-shell {
+  --equipment-slot-size: 78px;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-slot {
+  width: var(--equipment-slot-size) !important;
+  height: var(--equipment-slot-size) !important;
+  max-width: 29% !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  .demoniaco-inventory-equipment-shell {
+    --equipment-slot-size: 68px;
+  }
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal);
+    background-position: center;
+    background-size: 100% var(--demoniaco-frame-edge-thickness);
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button:has(> .demoniaco-avatar-frame),
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border :has(> .demoniaco-avatar-frame) {
+  overflow: visible !important;
+  z-index: 8 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame {
+  position: relative !important;
+  overflow: visible !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+  z-index: 8 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame > img {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9999px !important;
+  clip-path: circle(49% at 50% 50%);
+  -webkit-clip-path: circle(49% at 50% 50%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 49%, transparent 50%);
+  mask-image: radial-gradient(circle at center, #000 49%, transparent 50%);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame::after {
+  content: "";
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  width: 139%;
+  height: 139%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  background: var(--demoniaco-avatar-round) center / contain no-repeat;
+  filter: brightness(0.92) contrast(1.12) drop-shadow(0 0 10px rgba(255, 49, 18, 0.38));
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] :is(.w-5.h-5, .h-5.w-5, .w-6.h-6, .h-6.w-6, .w-8.h-8, .h-8.w-8, .w-10.h-10, .h-10.w-10, .w-12.h-12, .h-12.w-12, .w-16.h-16, .h-16.w-16, .w-20.h-20, .h-20.w-20, .w-24.h-24, .h-24.w-24):is(.rounded, .rounded-sm, .rounded-md, .rounded-lg):has(> img:not(.rounded-full)) {
+  position: relative !important;
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] :is(.w-5.h-5, .h-5.w-5, .w-6.h-6, .h-6.w-6, .w-8.h-8, .h-8.w-8, .w-10.h-10, .h-10.w-10, .w-12.h-12, .h-12.w-12, .w-16.h-16, .h-16.w-16, .w-20.h-20, .h-20.w-20, .w-24.h-24, .h-24.w-24):is(.rounded, .rounded-sm, .rounded-md, .rounded-lg):has(> img:not(.rounded-full))::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--demoniaco-avatar-square) center / 100% 100% no-repeat;
+  opacity: 0.95;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 58, 18, 0.9), rgba(92, 18, 13, 0.9)) !important;
+  border-color: rgba(255, 121, 42, 0.28) !important;
+}
+
+/* Final demoniaco frame scoping: the large ornamental frame belongs only to inventory + equipment. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border {
+  background:
+    linear-gradient(90deg, rgba(2, 2, 2, 0.34), rgba(14, 3, 3, 0.16) 48%, rgba(2, 2, 2, 0.58)),
+    var(--demoniaco-profile-banner) center / cover !important;
+  border-color: rgba(207, 48, 26, 0.82) !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-edge-horizontal: url('/skins/mercenario_bocasas/frames/frame-edge-v2-trim.png');
+  --demoniaco-frame-edge-vertical: url('/skins/mercenario_bocasas/frames/frame-edge-v2-trim-vertical.png');
+  --demoniaco-frame-corner-size: clamp(82px, 7.6vw, 122px);
+  --demoniaco-frame-edge-thickness: clamp(18px, 1.9vw, 28px);
+  --demoniaco-frame-outset: 13px;
+  border-color: transparent !important;
+  border-image-source: none !important;
+  background:
+    linear-gradient(180deg, rgba(4, 3, 3, 0.34), rgba(8, 5, 5, 0.58)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 8 !important;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical),
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top center,
+    right center,
+    bottom center,
+    left center !important;
+  background-size:
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100%,
+    100% var(--demoniaco-frame-edge-thickness),
+    var(--demoniaco-frame-edge-thickness) 100% !important;
+  opacity: 0.98 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.74)
+    contrast(1.24)
+    saturate(1.12)
+    drop-shadow(0 0 6px rgba(255, 39, 14, 0.18)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 9 !important;
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-frame-corner-tl),
+    var(--demoniaco-frame-corner-tr),
+    var(--demoniaco-frame-corner-br),
+    var(--demoniaco-frame-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left !important;
+  background-size:
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size),
+    var(--demoniaco-frame-corner-size) var(--demoniaco-frame-corner-size) !important;
+  opacity: 0.99 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.74)
+    contrast(1.24)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > * {
+  position: relative;
+  z-index: 2;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+  background-image: var(--demoniaco-frame-edge-vertical) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--demoniaco-frame-edge-thickness) 100% !important;
+  filter: drop-shadow(0 0 0 #1c0503);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+  z-index: 10 !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.76)
+    contrast(1.18)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.12), rgba(6, 4, 4, 0.18)),
+    var(--demoniaco-equipment-star) center / cover no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-star::before {
+  inset: -10% !important;
+  background: var(--demoniaco-equipment-star) center / cover no-repeat !important;
+  opacity: 0.92;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.86)
+    contrast(1.14)
+    drop-shadow(0 0 12px rgba(255, 49, 18, 0.28)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)),
+    var(--demoniaco-equipment-star) center / 100% 100% no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-star::before {
+  inset: -18% !important;
+  background: var(--demoniaco-equipment-star) center / 100% 100% no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-title {
+  color: #f7d28b !important;
+  text-shadow:
+    0 0 3px #000,
+    0 0 8px rgba(255, 72, 36, 0.9),
+    0 0 16px rgba(255, 72, 36, 0.38) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+  --demoniaco-inventory-slot-size: 78px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--demoniaco-inventory-slot-size), var(--demoniaco-inventory-slot-size))) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+    --demoniaco-inventory-slot-size: 68px;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  overflow: hidden !important;
+  contain: paint;
+  display: flex;
+  flex-direction: column;
+  min-height: 0 !important;
+  background-origin: border-box !important;
+  background-clip: border-box !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+  overflow: hidden;
+  width: min(100%, clamp(220px, 24vw, 300px)) !important;
+  max-width: min(100%, clamp(220px, 24vw, 300px)) !important;
+  min-height: 0 !important;
+  flex: 0 0 auto;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star::before {
+  inset: 0 !important;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100% !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+  position: absolute !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal) !important;
+    background-position: center !important;
+    background-size: 100% var(--demoniaco-frame-edge-thickness) !important;
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+    display: none !important;
+  }
+}
+
+/* Final inventory/equipment ornament pass: corner pieces sit above the frame without affecting layout. */
+html[style*="--skin-slug: mercenario_bocasas"] {
+  --demoniaco-shell-corner-tl: url('/skins/mercenario_bocasas/frames/marco-arriba-izquierda.png');
+  --demoniaco-shell-corner-tr: url('/skins/mercenario_bocasas/frames/marco-arriba-derecha.png');
+  --demoniaco-shell-corner-br: url('/skins/mercenario_bocasas/frames/marco-abajo-derecha.png');
+  --demoniaco-shell-corner-bl: url('/skins/mercenario_bocasas/frames/marco-abajo-izquierda.png');
+  --demoniaco-shell-corner-size: clamp(118px, 10vw, 176px);
+  --demoniaco-shell-edge-thickness: clamp(22px, 2.2vw, 34px);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc((var(--demoniaco-frame-outset) + 2px) * -1) !important;
+  z-index: 11 !important;
+  background-image:
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical),
+    var(--demoniaco-frame-edge-horizontal),
+    var(--demoniaco-frame-edge-vertical) !important;
+  background-size:
+    calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)),
+    calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.72)
+    contrast(1.28)
+    saturate(1.16)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after {
+  inset: calc((var(--demoniaco-frame-outset) + 6px) * -1) !important;
+  z-index: 12 !important;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br),
+    var(--demoniaco-shell-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.76)
+    contrast(1.24)
+    saturate(1.16)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.22)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+  filter: none !important;
+  background-image: var(--demoniaco-frame-edge-vertical) !important;
+  background-size: var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size)) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before {
+  bottom: calc(100% - 36px) !important;
+  z-index: 13 !important;
+  width: clamp(116px, 8.6vw, 158px) !important;
+  height: clamp(72px, 5.8vw, 98px) !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+  top: calc(100% - 36px) !important;
+  z-index: 13 !important;
+  width: clamp(116px, 8.6vw, 158px) !important;
+  height: clamp(72px, 5.8vw, 98px) !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-title svg {
+  color: currentColor !important;
+  filter: drop-shadow(0 0 5px rgba(255, 72, 36, 0.62));
+}
+
+.demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--inventory-slot-size), var(--inventory-slot-size))) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 76px;
+  }
+}
+
+@media (max-width: 520px) {
+  .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 68px;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)) !important;
+  isolation: isolate;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none;
+  background: var(--demoniaco-equipment-star) center / 112% auto no-repeat !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 52%, rgba(0, 0, 0, 0.82) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 52%, rgba(0, 0, 0, 0.82) 72%, transparent 100%);
+  filter: brightness(0.9) contrast(1.13) saturate(1.08);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel > * {
+  position: relative;
+  z-index: 2;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-inner-corner-size: clamp(88px, 7vw, 126px);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  z-index: 14 !important;
+  width: var(--demoniaco-inner-corner-size);
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-bl) !important;
+  background-repeat: no-repeat !important;
+  background-position: top left, bottom left !important;
+  background-size:
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size),
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.78)
+    contrast(1.22)
+    saturate(1.14)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 0 0 auto !important;
+  z-index: 14 !important;
+  width: var(--demoniaco-inner-corner-size);
+  pointer-events: none;
+  background-image:
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br) !important;
+  background-repeat: no-repeat !important;
+  background-position: top right, bottom right !important;
+  background-size:
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size),
+    var(--demoniaco-inner-corner-size) var(--demoniaco-inner-corner-size) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.78)
+    contrast(1.22)
+    saturate(1.14)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.2)) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(210px, 54vw, 290px)) !important;
+    max-width: min(100%, clamp(210px, 54vw, 290px)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(190px, 72vw, 260px)) !important;
+    max-width: min(100%, clamp(190px, 72vw, 260px)) !important;
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+    --demoniaco-inner-corner-size: clamp(70px, 20vw, 102px);
+  }
+}
+
+/* Demoniaco inventory frame final alignment. Keep ornaments outside, tight to the panel boundary. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 4px;
+  --demoniaco-shell-corner-size: clamp(104px, 8.8vw, 150px);
+  --demoniaco-shell-edge-thickness: clamp(18px, 1.7vw, 26px);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 11 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after {
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 12 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  inset: 1px !important;
+  background: var(--demoniaco-equipment-star) center / auto calc(100% - 2px) no-repeat !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(240px, 28vw, 340px)) !important;
+  max-width: min(100%, clamp(240px, 28vw, 340px)) !important;
+}
+
+@media (min-width: 1536px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(280px, 25vw, 390px)) !important;
+    max-width: min(100%, clamp(280px, 25vw, 390px)) !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero {
+  background:
+    linear-gradient(180deg, rgba(8, 2, 2, 0.16), rgba(2, 1, 1, 0.82)),
+    url('/skins/mercenario_bocasas/home/banner-hero.png') center / cover no-repeat !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero-image {
+  opacity: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .launcher-download-button {
+  background: linear-gradient(180deg, #b92a1f, #5f0d09) !important;
+  color: #fff3ea !important;
+  border: 1px solid rgba(255, 98, 54, 0.58) !important;
+  box-shadow: 0 0 22px rgba(208, 43, 25, 0.36), inset 0 0 18px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .launcher-download-button:hover {
+  background: linear-gradient(180deg, #d43b2a, #75110c) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  border-color: rgba(151, 44, 31, 0.72) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.78), rgba(4, 3, 3, 0.92)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player iframe {
+  opacity: 1 !important;
+  filter: brightness(0.9) contrast(1.08) saturate(0.9) sepia(0.12) hue-rotate(330deg);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="text-white"] {
+  color: rgba(255, 190, 164, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="text-neon-cyan"],
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player .accent-neon-green {
+  color: #e2503d !important;
+  accent-color: #b83224 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player button:hover {
+  color: #ffd0bf !important;
+  background-color: rgba(145, 28, 18, 0.22) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="border-neon-cyan"],
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="border-neon-green"] {
+  border-color: rgba(205, 55, 35, 0.54) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="bg-neon-cyan"],
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player [class*="bg-neon-green"] {
+  background-color: rgba(158, 35, 24, 0.22) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel button,
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel select,
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel input,
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel textarea {
+  border-color: rgba(151, 44, 31, 0.52) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel button:hover {
+  background-color: rgba(145, 28, 18, 0.22) !important;
+  color: #ffd0bf !important;
+  border-color: rgba(225, 77, 48, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel button[class*="bg-neon"],
+html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel button[class*="bg-white"] {
+  background: linear-gradient(180deg, rgba(160, 37, 25, 0.92), rgba(72, 13, 10, 0.94)) !important;
+  color: #fff0e8 !important;
+}
+
+.avatar-frame-mercenario-bocasas {
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+.avatar-frame-mercenario-bocasas > img {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.avatar-frame-mercenario-bocasas::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  inset: -28%;
+  background: url('/skins/mercenario_bocasas/frames/avatar-ring-trim.png') center / contain no-repeat;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.9)
+    contrast(1.18)
+    drop-shadow(0 0 8px rgba(255, 43, 15, 0.4));
+}
+
+.avatar-frame-custom {
+  position: relative !important;
+  overflow: visible !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+.avatar-frame-custom > img {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.avatar-frame-custom::after,
+.avatar-frame-custom.avatar-frame-mercenario-bocasas::after,
+.demoniaco-avatar-frame.avatar-frame-custom::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  inset: -30%;
+  background: var(--avatar-frame-url) center / contain no-repeat;
+  filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38));
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid {
+    background-image: var(--demoniaco-frame-edge-horizontal) !important;
+    background-size: calc(100% + var(--demoniaco-shell-corner-size)) var(--demoniaco-shell-edge-thickness) !important;
+    background-position: center !important;
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: mercenario_bocasas"] {
+    --demoniaco-shell-corner-size: clamp(78px, 23vw, 116px);
+    --demoniaco-shell-edge-thickness: clamp(16px, 5vw, 24px);
+  }
+}
+
+/* Final inventory/equipment layout pass. This layer only paints ornaments; it never affects layout. */
+.demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  align-items: start !important;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-panel {
+  align-self: start !important;
+  min-height: 0 !important;
+}
+
+.demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(210px, 22vw, 270px)) !important;
+  max-width: min(100%, clamp(210px, 22vw, 270px)) !important;
+}
+
+@media (min-width: 1536px) {
+  .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(230px, 19vw, 300px)) !important;
+    max-width: min(100%, clamp(230px, 19vw, 300px)) !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] {
+  --demoniaco-slot-hover: url('/skins/mercenario_bocasas/slots/slot-hover.png');
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 3px;
+  --demoniaco-shell-corner-size: clamp(96px, 7.5vw, 132px);
+  --demoniaco-shell-edge-thickness: clamp(18px, 1.55vw, 24px);
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc(var(--demoniaco-frame-outset) * -1) !important;
+  z-index: 20 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  position: absolute !important;
+  inset: calc((var(--demoniaco-frame-outset) + 2px) * -1) !important;
+  z-index: 42 !important;
+  pointer-events: none !important;
+  background-image:
+    var(--demoniaco-shell-corner-tl),
+    var(--demoniaco-shell-corner-tr),
+    var(--demoniaco-shell-corner-br),
+    var(--demoniaco-shell-corner-bl),
+    var(--demoniaco-separator-t),
+    var(--demoniaco-separator-t-inverted) !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left,
+    top center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    clamp(102px, 7.5vw, 142px) clamp(62px, 4.8vw, 88px),
+    clamp(102px, 7.5vw, 142px) clamp(62px, 4.8vw, 88px) !important;
+  filter:
+    drop-shadow(0 0 0 #1c0503)
+    brightness(0.8)
+    contrast(1.22)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  overflow: hidden !important;
+  background:
+    linear-gradient(180deg, rgba(5, 4, 4, 0.08), rgba(6, 4, 4, 0.16)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: var(--demoniaco-equipment-star) center / auto 100% no-repeat !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  filter: brightness(0.92) contrast(1.12) saturate(1.08);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.84),
+    0 0 16px rgba(255, 49, 18, 0.18) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible::after {
+  inset: -7px !important;
+  z-index: 5 !important;
+  border: 0 !important;
+  background: var(--demoniaco-slot-hover) center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 900px) {
+  .demoniaco-inventory-equipment-shell .equipment-star {
+    width: min(100%, clamp(190px, 48vw, 245px)) !important;
+    max-width: min(100%, clamp(190px, 48vw, 245px)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+    background-size:
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(72px, 20vw, 104px) clamp(72px, 20vw, 104px),
+      clamp(84px, 24vw, 118px) clamp(52px, 15vw, 72px),
+      clamp(84px, 24vw, 118px) clamp(52px, 15vw, 72px) !important;
+  }
+}
+
+/* Final requested tuning: 6x3 inventory pages, matched panel height, larger ornaments, softer hero/video/store states. */
+.demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  align-items: stretch !important;
+}
+
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+.demoniaco-inventory-equipment-shell .equipment-panel {
+  height: 100% !important;
+}
+
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px;
+  grid-template-columns: repeat(6, var(--inventory-slot-size)) !important;
+  justify-content: start !important;
+  align-content: start !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 82px;
+  }
+}
+
+@media (max-width: 720px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: clamp(52px, 13vw, 72px);
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-frame-outset: 1px;
+  --demoniaco-shell-corner-size: clamp(126px, 9.8vw, 172px);
+  --demoniaco-shell-edge-thickness: clamp(22px, 2vw, 31px);
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before {
+  inset: calc((var(--demoniaco-frame-outset) + 1px) * -1) !important;
+  z-index: 24 !important;
+  background-size:
+    calc(100% + var(--demoniaco-shell-corner-size) * 0.72) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size) * 0.72),
+    calc(100% + var(--demoniaco-shell-corner-size) * 0.72) var(--demoniaco-shell-edge-thickness),
+    var(--demoniaco-shell-edge-thickness) calc(100% + var(--demoniaco-shell-corner-size) * 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  inset: -15px !important;
+  z-index: 48 !important;
+  background-position:
+    top left,
+    top right,
+    bottom right,
+    bottom left,
+    top center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  min-height: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-star {
+  width: min(100%, clamp(226px, 23vw, 302px)) !important;
+  max-width: min(100%, clamp(226px, 23vw, 302px)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::before {
+  inset: 0 !important;
+  background: var(--demoniaco-equipment-star) center / auto 100% no-repeat !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 62%, rgba(0, 0, 0, 0.84) 80%, transparent 100%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 62%, rgba(0, 0, 0, 0.84) 80%, transparent 100%) !important;
+}
+
+.home-hero {
+  isolation: isolate;
+}
+
+.home-hero-image {
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero {
+  background: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/skins/mercenario_bocasas/home/banner-hero.png') center / cover no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 60%, rgba(0, 0, 0, 0.82) 78%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, #000 60%, rgba(0, 0, 0, 0.82) 78%, transparent 100%);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero-overlay {
+  display: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero-scanlines {
+  opacity: 0.2 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player::before,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  z-index: 2 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: transparent !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 10%, #000 36%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 10%, #000 36%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  z-index: 3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: brightness(0.98) contrast(1.05) saturate(0.96) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .relative.z-10 {
+  z-index: 4 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .store-category-tab.is-active {
+  background: linear-gradient(180deg, #b92a1f, #5f0d09) !important;
+  color: #fff1e8 !important;
+  border: 1px solid rgba(255, 94, 58, 0.7) !important;
+  box-shadow: 0 0 18px rgba(216, 46, 28, 0.32), inset 0 0 14px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .store-category-tab:not(.is-active):hover {
+  border-color: rgba(226, 80, 61, 0.72) !important;
+  color: #ffd0bf !important;
+}
+
+/* Inventory and forum polish pass. */
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+  --inventory-slot-size: 78px !important;
+  --demoniaco-inventory-slot-size: 78px !important;
+  grid-template-columns: repeat(6, var(--inventory-slot-size)) !important;
+}
+
+@media (min-width: 1280px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: 78px !important;
+    --demoniaco-inventory-slot-size: 78px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid,
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel .inventory-slot-grid {
+    --inventory-slot-size: clamp(50px, 13vw, 72px) !important;
+    --demoniaco-inventory-slot-size: clamp(50px, 13vw, 72px) !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel {
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.64) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  --demoniaco-shell-corner-size: clamp(152px, 11.8vw, 206px);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  inset: -24px !important;
+  background-position:
+    top -6px left -8px,
+    top -6px right -8px,
+    bottom -6px right -8px,
+    bottom left,
+    top -8px center,
+    bottom center !important;
+  background-size:
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+    calc(var(--demoniaco-shell-corner-size) * 0.84) calc(var(--demoniaco-shell-corner-size) * 0.84),
+    clamp(164px, 12vw, 220px) clamp(98px, 7.4vw, 136px),
+    clamp(136px, 10vw, 184px) clamp(82px, 6.2vw, 114px) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-panel .inventory-slot-grid .demoniaco-item-frame:focus-visible::after,
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel .equipment-slot:hover::after,
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel .equipment-slot:focus-visible::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel .demoniaco-item-frame:hover::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel .demoniaco-item-frame:focus-visible::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -7px !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+  border: 0 !important;
+  background: var(--demoniaco-slot-hover) center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel .equipment-slot:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .equipment-panel .equipment-slot:focus-visible,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel .demoniaco-item-frame:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel .demoniaco-item-frame:focus-visible {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 0 14px rgba(0, 0, 0, 0.84),
+    0 0 16px rgba(255, 49, 18, 0.18) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero::before {
+  inset: -1px !important;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.78) 54%, rgba(0, 0, 0, 0.34) 72%, transparent 96%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.78) 54%, rgba(0, 0, 0, 0.34) 72%, transparent 96%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero {
+  background:
+    radial-gradient(ellipse at center, transparent 36%, rgba(3, 1, 1, 0.28) 68%, rgba(3, 1, 1, 0.92) 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-post-avatar-banner img,
+html[style*="--skin-slug: mercenario_bocasas"] .forum-post-avatar-side img {
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 42%, rgba(0, 0, 0, 0.75) 64%, transparent 100%) !important;
+  mask-image: radial-gradient(ellipse at center, #000 42%, rgba(0, 0, 0, 0.75) 64%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-post-avatar-overlay {
+  display: none !important;
+}
+
+.avatar-frame-mercenario-bocasas,
+.avatar-frame-mercenario-bocasas > img,
+.avatar-frame-custom,
+.avatar-frame-custom > img {
+  border-radius: 9999px !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .signature-image {
+  background: transparent !important;
+  border-color: rgba(156, 42, 27, 0.28) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .signature-image > img {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: brightness(0.98) contrast(1.04) saturate(0.96);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  z-index: 8 !important;
+  width: 58% !important;
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 6%, #000 20%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 6%, #000 20%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  z-index: 9 !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Last demoniaco visual corrections. */
+html[style*="--skin-slug: mercenario_bocasas"] .home-hero::before {
+  inset: 0 !important;
+  opacity: 1 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 4%, rgba(0,0,0,0.55) 12%, #000 25%, #000 75%, rgba(0,0,0,0.55) 88%, rgba(0,0,0,0.08) 96%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 6%, #000 20%, #000 78%, rgba(0,0,0,0.25) 92%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 4%, rgba(0,0,0,0.55) 12%, #000 25%, #000 75%, rgba(0,0,0,0.55) 88%, rgba(0,0,0,0.08) 96%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.15) 6%, #000 20%, #000 78%, rgba(0,0,0,0.25) 92%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .forum-post-avatar-banner img,
+html[style*="--skin-slug: mercenario_bocasas"] .forum-post-avatar-side img {
+  opacity: 0.82 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.72) 34%, #000 56%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 14%, #000 50%, rgba(0,0,0,0.55) 78%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.72) 34%, #000 56%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 14%, #000 50%, rgba(0,0,0,0.55) 78%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-equipment-grid,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-mini-stats > div {
+  border-color: transparent !important;
+  outline-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-equipment-grid {
+  background-image: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  background-position:
+    top -6px left -8px,
+    top -6px right -8px,
+    bottom 10px right -8px,
+    bottom left,
+    top 8px center,
+    bottom center !important;
+  filter:
+    brightness(0.58)
+    contrast(1.45)
+    saturate(1.14)
+    drop-shadow(0 0 6px rgba(255, 43, 15, 0.16)) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+    background-image:
+      var(--demoniaco-shell-corner-tl),
+      var(--demoniaco-shell-corner-tr),
+      var(--demoniaco-shell-corner-br),
+      var(--demoniaco-shell-corner-bl) !important;
+    background-position:
+      top -6px left -8px,
+      top -6px right -8px,
+      bottom 10px right -8px,
+      bottom left !important;
+    background-size:
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      var(--demoniaco-shell-corner-size) var(--demoniaco-shell-corner-size),
+      calc(var(--demoniaco-shell-corner-size) * 0.84) calc(var(--demoniaco-shell-corner-size) * 0.84) !important;
+  }
+}
+
+.forum-author-avatar.avatar-frame-mercenario-bocasas,
+.forum-comment-avatar.avatar-frame-mercenario-bocasas,
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas,
+.forum-author-avatar.avatar-frame-custom,
+.forum-comment-avatar.avatar-frame-custom,
+.photowall-comment-avatar.avatar-frame-custom {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  flex: 0 0 auto;
+}
+
+.forum-author-avatar.avatar-frame-mercenario-bocasas::after,
+.forum-comment-avatar.avatar-frame-mercenario-bocasas::after,
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas::after,
+.forum-author-avatar.avatar-frame-custom::after,
+.forum-comment-avatar.avatar-frame-custom::after,
+.photowall-comment-avatar.avatar-frame-custom::after {
+  inset: -36% !important;
+  z-index: 10 !important;
+}
+
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas::after,
+.photowall-comment-avatar.avatar-frame-custom::after {
+  inset: -48% !important;
+}
+
+.forum-author-avatar.avatar-frame-mercenario-bocasas > img,
+.forum-comment-avatar.avatar-frame-mercenario-bocasas > img,
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas img,
+.forum-author-avatar.avatar-frame-custom > img,
+.forum-comment-avatar.avatar-frame-custom > img,
+.photowall-comment-avatar.avatar-frame-custom img {
+  border-radius: 9999px !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  display: block !important;
+  z-index: 30 !important;
+  opacity: 1 !important;
+  background: #000 !important;
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 8%, #000 22%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 8%, #000 22%, #000 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  position: absolute !important;
+  z-index: 31 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+}
+
+/* Surgical final pass requested: raw ornaments, stronger video layer, no red container strokes. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  filter: none !important;
+  background-size:
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+    calc(var(--demoniaco-shell-corner-size) * 0.85) calc(var(--demoniaco-shell-corner-size) * 0.85),
+    clamp(166px, 12.12vw, 222px) clamp(99px, 7.48vw, 137px),
+    clamp(137px, 10.1vw, 186px) clamp(83px, 6.26vw, 115px) !important;
+}
+
+@media (max-width: 1279px) {
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+    background-image:
+      var(--demoniaco-shell-corner-tl),
+      var(--demoniaco-shell-corner-tr),
+      var(--demoniaco-shell-corner-br),
+      var(--demoniaco-shell-corner-bl) !important;
+    background-size:
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 1.01) calc(var(--demoniaco-shell-corner-size) * 1.01),
+      calc(var(--demoniaco-shell-corner-size) * 0.85) calc(var(--demoniaco-shell-corner-size) * 0.85) !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > .inventory-equipment-grid,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .inventory-slot-grid,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-mini-stats > div {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  --tw-ring-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .equipment-panel::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  position: absolute !important;
+  inset: 0 0 0 auto !important;
+  width: min(68%, 760px) !important;
+  height: 100% !important;
+  z-index: 2 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background: transparent !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 7%, rgba(0,0,0,0.55) 19%, #000 38%, #000 78%, rgba(0,0,0,0.36) 92%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 10%, #000 24%, #000 72%, rgba(0,0,0,0.35) 90%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 7%, rgba(0,0,0,0.55) 19%, #000 38%, #000 78%, rgba(0,0,0,0.36) 92%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 10%, #000 24%, #000 72%, rgba(0,0,0,0.35) 90%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+  clip-path: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  inset: auto !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: calc(100% + 230px) !important;
+  height: calc(100% + 160px) !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 3 !important;
+  filter: brightness(0.72) contrast(1.14) saturate(0.82) sepia(0.18) hue-rotate(326deg) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .relative.z-10,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > button,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > div[class*="absolute"][class*="z-30"] {
+  z-index: 10 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .photowall-comment-avatar.avatar-frame-mercenario-bocasas::after,
+html[style*="--skin-slug: mercenario_bocasas"] .photowall-comment-avatar.avatar-frame-custom::after {
+  inset: -42% !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player .animate-marquee-x span {
+  color: #e2503d !important;
+  text-shadow:
+    0 0 4px rgba(0, 0, 0, 0.95),
+    0 0 9px rgba(226, 80, 61, 0.82),
+    0 0 18px rgba(139, 25, 18, 0.58) !important;
+  filter: none !important;
+}
+
+/* Equipped avatar-frame items must outrank the frame bundled with the active skin. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame.avatar-frame-custom::after,
+.demoniaco-avatar-frame.avatar-frame-custom::after,
+.avatar-frame-mercenario-bocasas.avatar-frame-custom::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -30% !important;
+  top: -30% !important;
+  right: -30% !important;
+  bottom: -30% !important;
+  left: -30% !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  z-index: 12 !important;
+  pointer-events: none !important;
+  background: var(--avatar-frame-url) center / contain no-repeat !important;
+  filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38)) !important;
+}
+
+/* Detail polish: SVG ornaments, stronger profile video fade, trade sizing, responsive filters. */
+html[style*="--skin-slug: mercenario_bocasas"] {
+  --demoniaco-shell-corner-tl: url('/skins/mercenario_bocasas/frames/marco-arriba-izquierda.svg');
+  --demoniaco-shell-corner-tr: url('/skins/mercenario_bocasas/frames/marco-arriba-derecha.svg');
+  --demoniaco-shell-corner-br: url('/skins/mercenario_bocasas/frames/marco-abajo-derecha.svg');
+  --demoniaco-shell-corner-bl: url('/skins/mercenario_bocasas/frames/marco-abajo-izquierda.svg');
+  --demoniaco-separator-t: url('/skins/mercenario_bocasas/frames/separador-en-forma-de-T.svg');
+  --demoniaco-separator-t-inverted: url('/skins/mercenario_bocasas/frames/separador-en-forma-de-T-invertido.svg');
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 9%, rgba(0,0,0,0.28) 22%, #000 45%, #000 64%, rgba(0,0,0,0.24) 84%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.34) 10%, #000 24%, #000 72%, rgba(0,0,0,0.3) 90%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 9%, rgba(0,0,0,0.28) 22%, #000 45%, #000 64%, rgba(0,0,0,0.24) 84%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.34) 10%, #000 24%, #000 72%, rgba(0,0,0,0.3) 90%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button[aria-label="Traducir sitio"] {
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  color: #ffb2a4 !important;
+  box-shadow: 0 0 14px rgba(226, 80, 61, 0.18), inset 0 0 12px rgba(80, 8, 4, 0.38) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button[aria-label="Traducir sitio"]:hover {
+  border-color: rgba(255, 105, 75, 0.78) !important;
+  background: rgba(132, 24, 14, 0.24) !important;
+  color: #fff1e8 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] button[aria-label="Traducir sitio"] svg {
+  color: #ff775f !important;
+  filter: drop-shadow(0 0 5px rgba(226, 80, 61, 0.82)) !important;
+}
+
+.inventory-demoniaco-thumbnail-card {
+  border-color: rgba(239, 68, 68, 0.82) !important;
+  background: #210706 !important;
+}
+
+.inventory-demoniaco-thumbnail-card img {
+  display: block;
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: cover !important;
+}
+
+.inventory-trade-offers-grid .demoniaco-trade-panel {
+  min-width: 0;
+}
+
+.inventory-trade-offers-grid .demoniaco-offers-panel {
+  min-width: 0;
+}
+
+.demoniaco-trade-slots {
+  --trade-slot-size: var(--inventory-slot-size, 78px);
+  grid-template-columns: repeat(2, minmax(0, var(--trade-slot-size))) !important;
+  justify-content: start !important;
+  width: auto !important;
+  max-width: calc(var(--trade-slot-size) * 2 + 0.25rem) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-slots {
+  --trade-slot-size: var(--demoniaco-inventory-slot-size, 78px);
+}
+
+@media (max-width: 720px) {
+  .demoniaco-trade-slots {
+    --trade-slot-size: clamp(50px, 13vw, 72px);
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-content-filter-row {
+  gap: 0.55rem !important;
+  padding: 0.2rem 0.15rem 0.65rem !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-content-filter-button {
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.92), rgba(5, 2, 2, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  border-color: rgba(226, 80, 61, 0.32) !important;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.76) !important;
+  color: #d9a38e !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-content-filter-button.is-active {
+  border-color: rgba(255, 105, 75, 0.82) !important;
+  box-shadow: 0 0 13px rgba(226, 80, 61, 0.3), inset 0 0 14px rgba(110, 16, 9, 0.62) !important;
+  color: #ffe0d4 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-content-filter-button.is-active > div {
+  border-color: rgba(255, 105, 75, 0.88) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-hub-publish-button {
+  background:
+    linear-gradient(180deg, rgba(185, 42, 31, 0.92), rgba(74, 8, 5, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  color: #fff1e8 !important;
+  border: 1px solid rgba(255, 105, 75, 0.58) !important;
+  box-shadow: 0 0 18px rgba(226, 80, 61, 0.22), inset 0 0 16px rgba(0, 0, 0, 0.52) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .social-hub-publish-button:hover {
+  background:
+    linear-gradient(180deg, rgba(218, 58, 40, 0.96), rgba(98, 12, 7, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.border::after {
+  left: var(--demoniaco-tab-dragon-left, 50%) !important;
+  transition: left 220ms ease, transform 220ms ease, filter 220ms ease !important;
+}
+
+.score-filter-bar,
+.leaderboard-filter-bar {
+  min-width: 0;
+}
+
+.score-filter-actions {
+  width: 100%;
+}
+
+.score-filter-actions > .relative {
+  min-width: 0;
+}
+
+.leaderboard-console-filter span,
+.score-filter-search input {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .score-filter-bar input,
+  .leaderboard-filter-bar input,
+  .leaderboard-console-filter {
+    height: 1.85rem !important;
+    font-size: 10px !important;
+  }
+
+  .score-filter-actions button {
+    height: 1.85rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    font-size: 7px !important;
+  }
+
+  .leaderboard-filter-bar {
+    padding: 0.55rem !important;
+  }
+}
+
+.score-filter-bar {
+  position: relative;
+}
+
+.score-filter-search {
+  z-index: 55;
+}
+
+.score-search-bubble {
+  max-width: calc(100vw - 2rem);
+}
+
+.score-filter-actions {
+  width: auto;
+  justify-content: flex-start !important;
+  align-items: center;
+  overflow: visible !important;
+}
+
+.score-filter-actions button {
+  max-width: 100%;
+}
+
+.score-filter-actions > .relative {
+  flex: 0 0 auto;
+  width: min(106px, 30vw);
+  overflow: visible !important;
+}
+
+@media (max-width: 420px) {
+  .score-filter-bar {
+    gap: 0.25rem !important;
+  }
+
+  .score-filter-actions {
+    gap: 0.2rem !important;
+  }
+
+  .score-filter-actions button {
+    font-size: 6.5px !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .score-search-bubble {
+  border-color: rgba(226, 80, 61, 0.48) !important;
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.96), rgba(4, 2, 2, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: 0 18px 42px rgba(139, 25, 18, 0.28), inset 0 0 16px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-volume-control,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-volume-popover {
+  z-index: 80 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-volume-popover {
+  border-color: rgba(226, 80, 61, 0.62) !important;
+  background:
+    linear-gradient(180deg, rgba(18, 8, 7, 0.96), rgba(4, 2, 2, 0.98)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  color: #ffb2a4 !important;
+  box-shadow: 0 0 22px rgba(226, 80, 61, 0.28), inset 0 0 14px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-volume-popover input {
+  accent-color: #e2503d !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-volume-popover span {
+  color: #ffb2a4 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.62)
+    contrast(1.28)
+    saturate(1.08)
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 8px rgba(106, 12, 6, 0.22)) !important;
+  mix-blend-mode: multiply !important;
+  opacity: 0.96 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  overflow: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  overflow: hidden !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r {
+  contain: layout paint;
+  transition-property: width !important;
+  transition-duration: 220ms !important;
+  will-change: width;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r *,
+html[style*="--skin-slug: mercenario_bocasas"] .forum-sidebar-toggle {
+  transition-property: color, background-color, border-color, opacity, transform !important;
+}
+
+/* Final demoniaco polish: ornament fade, right rail cleanup and flame music waves. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.88)
+    contrast(1.08)
+    saturate(1.14)
+    drop-shadow(0 0 6px rgba(255, 43, 15, 0.18)) !important;
+  mix-blend-mode: normal !important;
+  opacity: 0.98 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.55) 1.8%, #000 5.5%, #000 94.5%, rgba(0, 0, 0, 0.55) 98.2%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::after {
+  filter:
+    brightness(0.9)
+    contrast(1.08)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-offers-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player,
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-offers-panel {
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.72), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.68), 0 12px 30px rgba(0, 0, 0, 0.38) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card:hover {
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-inner-divider,
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-footer-section {
+  border-top-color: transparent !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-discord-button {
+  background: linear-gradient(180deg, #b92a1f 0%, #75110c 48%, #3f0705 100%) !important;
+  color: #fff2ea !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 16px rgba(226, 80, 61, 0.28), inset 0 0 14px rgba(0, 0, 0, 0.48) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-discord-button:hover {
+  background: linear-gradient(180deg, #d43b2a 0%, #8f170f 56%, #4d0805 100%) !important;
+  box-shadow: 0 0 20px rgba(255, 74, 46, 0.38), inset 0 0 16px rgba(0, 0, 0, 0.52) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  right: -8% !important;
+  width: min(74%, 860px) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  left: 58% !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave,
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave-mini {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(226, 55, 32, 0.34), transparent 60%),
+    rgba(8, 2, 2, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave::before,
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave-mini::before {
+  content: "";
+  position: absolute;
+  inset: -65% -20% -45%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 72%, rgba(255, 68, 36, 0.7) 0 7%, transparent 20%),
+    radial-gradient(ellipse at 32% 64%, rgba(226, 35, 22, 0.62) 0 8%, transparent 22%),
+    radial-gradient(ellipse at 54% 72%, rgba(255, 93, 45, 0.72) 0 7%, transparent 21%),
+    radial-gradient(ellipse at 76% 62%, rgba(205, 34, 22, 0.64) 0 9%, transparent 24%),
+    linear-gradient(90deg, transparent, rgba(255, 51, 23, 0.36), transparent);
+  filter: blur(5px) saturate(1.28);
+  opacity: 0.72;
+  transform: translateX(-12%);
+  animation: demoniacoFlameWave 2.8s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave-mini::before {
+  filter: blur(3px) saturate(1.22);
+  opacity: 0.82;
+  animation-duration: 2.2s;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave canvas,
+html[style*="--skin-slug: mercenario_bocasas"] .chill-flame-wave-mini canvas {
+  background: transparent !important;
+  mix-blend-mode: screen;
+}
+
+@keyframes demoniacoFlameWave {
+  0% {
+    transform: translateX(-14%) translateY(5%) scaleY(0.82);
+  }
+  100% {
+    transform: translateX(10%) translateY(-2%) scaleY(1.04);
+  }
+}
+
+/* Demoniaco v2 asset swap and right rail/player cleanup. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+  filter:
+    brightness(0.96)
+    contrast(1.12)
+    saturate(1.12)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.2)) !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::before,
+html[style*="--skin-slug: mercenario_bocasas"] .inventory-equipment-grid::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-hero.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-panel.bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel::after,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::before,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-sell-panel::after {
+  filter:
+    brightness(0.97)
+    contrast(1.12)
+    saturate(1.1)
+    drop-shadow(0 0 7px rgba(255, 43, 15, 0.18)) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card,
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-trade-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-offers-panel,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  border-color: transparent !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card,
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-card.border {
+  border-width: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.7), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.72), 0 12px 30px rgba(0, 0, 0, 0.38) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-footer-section {
+  margin-top: 1.25rem !important;
+  padding: 0.85rem !important;
+  border-top: 0 !important;
+  border-radius: 0.25rem;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.72), rgba(4, 3, 3, 0.9)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  right: 0 !important;
+  width: min(68%, 780px) !important;
+  overflow: hidden !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.04) 3.5%, #000 12%, #000 88%, rgba(0, 0, 0, 0.04) 96.5%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.42) 10%, #000 22%, #000 78%, rgba(0, 0, 0, 0.36) 91%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.04) 3.5%, #000 12%, #000 88%, rgba(0, 0, 0, 0.04) 96.5%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.42) 10%, #000 22%, #000 78%, rgba(0, 0, 0, 0.36) 91%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  left: 52% !important;
+  width: calc(100% + 190px) !important;
+  height: calc(100% + 150px) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-toggle {
+  z-index: 95 !important;
+  pointer-events: auto !important;
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  color: #ffb2a4 !important;
+  background: rgba(8, 2, 2, 0.82) !important;
+  box-shadow: 0 0 18px rgba(226, 80, 61, 0.28), inset 0 0 12px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-popover {
+  z-index: 94 !important;
+  border-color: rgba(226, 80, 61, 0.42) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.9), rgba(4, 3, 3, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .desktop-launcher-titlebar.fixed.inset-x-0[data-tauri-drag-region] {
+  overflow: hidden;
+  border-bottom-color: rgba(226, 80, 61, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(5, 2, 2, 0.14), rgba(3, 1, 1, 0.32)),
+    url('/skins/mercenario_bocasas/frames/barra-launcher.svg?v=20260604a') center / cover no-repeat,
+    #050202 !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.58), inset 0 -1px 0 rgba(255, 70, 38, 0.18) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .desktop-launcher-titlebar.fixed.inset-x-0[data-tauri-drag-region] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Final public profile/rightbar touch-ups. */
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player {
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  pointer-events: none !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.28) 7%, rgba(0, 0, 0, 0.68) 14%, #000 20%, #000 80%, rgba(0, 0, 0, 0.68) 86%, rgba(0, 0, 0, 0.28) 93%, transparent 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.28) 7%, rgba(0, 0, 0, 0.68) 14%, #000 20%, #000 80%, rgba(0, 0, 0, 0.68) 86%, rgba(0, 0, 0, 0.28) 93%, transparent 100%) !important;
+  -webkit-mask-composite: initial !important;
+  mask-composite: initial !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer iframe {
+  pointer-events: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .public-profile-playlist-toggle {
+  position: absolute !important;
+  z-index: 220 !important;
+  pointer-events: auto !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .public-profile-playlist-popover {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+  transform: translateZ(0);
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-footer-section .site-footer {
+  margin-top: 0 !important;
+  border-top: 0 !important;
+  border-color: transparent !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.7), rgba(4, 3, 3, 0.92)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.72), 0 12px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .right-panel-footer-section .site-footer .text-glow-green {
+  color: #e2503d !important;
+  text-shadow: 0 0 9px rgba(226, 80, 61, 0.72) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 5%, rgba(0, 0, 0, 0.46) 12%, #000 22%, #000 78%, rgba(0, 0, 0, 0.46) 88%, rgba(0, 0, 0, 0.14) 95%, transparent 100%),
+    radial-gradient(ellipse 92% 145% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.82) 66%, rgba(0, 0, 0, 0.34) 84%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.14) 5%, rgba(0, 0, 0, 0.46) 12%, #000 22%, #000 78%, rgba(0, 0, 0, 0.46) 88%, rgba(0, 0, 0, 0.14) 95%, transparent 100%),
+    radial-gradient(ellipse 92% 145% at 50% 50%, #000 48%, rgba(0, 0, 0, 0.82) 66%, rgba(0, 0, 0, 0.34) 84%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-video-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(2, 0, 0, 1) 0%, rgba(5, 1, 1, 0.9) 7%, rgba(20, 4, 3, 0.48) 18%, transparent 34%, transparent 66%, rgba(20, 4, 3, 0.48) 82%, rgba(5, 1, 1, 0.9) 93%, rgba(2, 0, 0, 1) 100%),
+    radial-gradient(ellipse at 0% 50%, rgba(226, 80, 61, 0.26), rgba(64, 8, 5, 0.18) 18%, transparent 42%),
+    radial-gradient(ellipse at 100% 50%, rgba(226, 80, 61, 0.26), rgba(64, 8, 5, 0.18) 18%, transparent 42%);
+  mix-blend-mode: multiply;
+  opacity: 0.96;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-popover {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  border-color: rgba(226, 80, 61, 0.52) !important;
+  background:
+    linear-gradient(180deg, rgba(8, 4, 4, 0.9), rgba(4, 3, 3, 0.96)),
+    var(--demoniaco-surface-rock) center / cover !important;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.72), 0 0 28px rgba(226, 80, 61, 0.2), inset 0 0 18px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Inventory mobile containment: keep slots inside the panel with or without a skin. */
+.demoniaco-inventory-equipment-shell,
+.demoniaco-inventory-equipment-shell .inventory-equipment-grid,
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+.demoniaco-inventory-equipment-shell .equipment-panel {
+  min-width: 0 !important;
+}
+
+.demoniaco-inventory-equipment-shell .demoniaco-inventory-panel > .inventory-slot-grid {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 760px) {
+  .demoniaco-inventory-equipment-shell {
+    padding: 0.75rem !important;
+  }
+
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel,
+  .demoniaco-inventory-equipment-shell .equipment-panel {
+    padding: 0.625rem !important;
+  }
+
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel > .inventory-slot-grid,
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel > .inventory-slot-grid {
+    --inventory-slot-size: clamp(46px, 17.5vw, 66px) !important;
+    --demoniaco-inventory-slot-size: var(--inventory-slot-size) !important;
+    grid-template-columns: repeat(auto-fit, minmax(var(--inventory-slot-size), 1fr)) !important;
+    justify-content: stretch !important;
+    gap: 0.375rem !important;
+    padding: 0.375rem !important;
+  }
+
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-shell-ornaments {
+    inset: -12px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .demoniaco-inventory-equipment-shell {
+    padding: 0.5rem !important;
+  }
+
+  .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel > .inventory-slot-grid,
+  html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell .demoniaco-inventory-panel > .inventory-slot-grid {
+    --inventory-slot-size: clamp(40px, 18vw, 56px) !important;
+    gap: 0.3125rem !important;
+    padding: 0.3125rem !important;
+  }
+}
+

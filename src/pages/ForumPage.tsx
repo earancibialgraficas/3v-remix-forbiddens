@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { getCategoryRoute } from "@/lib/categoryRoutes";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle, getStaffRoleStyle } from "@/lib/profileAppearance";
 import { getAvatarFrameStyle, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { getLauncherSkinAvatarFrameClass } from "@/lib/skinThemes";
 import CommentModMenu from "@/components/CommentModMenu";
 import { EditableCommentContent } from "@/components/EditableCommentContent";
 import RichTextEditor, { RichTextRender } from "@/components/RichTextEditor";
@@ -369,7 +370,7 @@ export default function ForumPage() {
   const [forumModal, setForumModal] = useState<{ src: string; type: "image" | "video" } | null>(null);
   const [postProfiles, setPostProfiles] = useState<Record<string, PostProfile>>({});
   const [postRoles, setPostRoles] = useState<Record<string, string[]>>({});
-  const [demoniacoUsers, setDemoniacoUsers] = useState<Record<string, boolean>>({});
+  const [launcherFrameUsers, setLauncherFrameUsers] = useState<Record<string, string>>({});
   const [avatarFrameUsers, setAvatarFrameUsers] = useState<Record<string, string>>({});
   const [userVotes, setUserVotes] = useState<Record<string, string | null>>({});
   const [reportTarget, setReportTarget] = useState<{ userId: string; userName: string; postId?: string; commentId?: string } | null>(null);
@@ -434,13 +435,16 @@ export default function ForumPage() {
         profiles?.forEach(p => pMap[p.user_id] = p as unknown as PostProfile);
         const rMap: Record<string, string[]> = {};
         roles?.forEach((r: any) => { if (!rMap[r.user_id]) rMap[r.user_id] = []; rMap[r.user_id].push(r.role); });
-        const sMap: Record<string, boolean> = {};
+        const sMap: Record<string, string> = {};
         const frameMap: Record<string, string> = {};
-        activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") sMap[skin.user_id] = true; });
+        activeSkins?.forEach((skin: any) => {
+          const frameClass = skin.skin_type === "launcher" ? getLauncherSkinAvatarFrameClass(skin.skin_slug) : null;
+          if (frameClass) sMap[skin.user_id] = frameClass;
+        });
         activeSkins?.forEach((skin: any) => { if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) frameMap[skin.user_id] = skin.skin_slug; });
         setPostProfiles(pMap);
         setPostRoles(rMap);
-        setDemoniacoUsers((prev) => ({ ...prev, ...sMap }));
+        setLauncherFrameUsers((prev) => ({ ...prev, ...sMap }));
         setAvatarFrameUsers((prev) => ({ ...prev, ...frameMap }));
       }
       if (user && finalData.length > 0) {
@@ -464,11 +468,14 @@ export default function ForumPage() {
     profiles?.forEach(p => profileMap[p.user_id] = p);
     const rolesMap: Record<string, string[]> = {};
     userRoles?.forEach((r: any) => { if (!rolesMap[r.user_id]) rolesMap[r.user_id] = []; rolesMap[r.user_id].push(r.role); });
-    const skinMap: Record<string, boolean> = {};
+    const skinMap: Record<string, string> = {};
     const frameMap: Record<string, string> = {};
-    activeSkins?.forEach((skin: any) => { if (skin.skin_slug === "demoniaco") skinMap[skin.user_id] = true; });
+    activeSkins?.forEach((skin: any) => {
+      const frameClass = skin.skin_type === "launcher" ? getLauncherSkinAvatarFrameClass(skin.skin_slug) : null;
+      if (frameClass) skinMap[skin.user_id] = frameClass;
+    });
     activeSkins?.forEach((skin: any) => { if (skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug)) frameMap[skin.user_id] = skin.skin_slug; });
-    setDemoniacoUsers((prev) => ({ ...prev, ...skinMap }));
+    setLauncherFrameUsers((prev) => ({ ...prev, ...skinMap }));
     setAvatarFrameUsers((prev) => ({ ...prev, ...frameMap }));
     const enriched = (data as any[]).map(c => ({ ...c, profile: profileMap[c.user_id] || null, roles: rolesMap[c.user_id] || [] }));
     setComments((prev) => ({ ...prev, [postId]: enriched as Comment[] }));
@@ -856,7 +863,7 @@ export default function ForumPage() {
                   <div className="flex flex-col lg:items-center gap-3 lg:gap-0 w-full">
                     <div className="flex flex-row lg:flex-col items-stretch lg:items-center gap-3 sm:gap-4 lg:gap-0 w-full">
                       <div
-                        className={cn("forum-author-avatar w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", demoniacoUsers[post.user_id] && "avatar-frame-demoniaco rounded-full", avatarFrameUsers[post.user_id] && "avatar-frame-custom rounded-full")}
+                        className={cn("forum-author-avatar w-44 h-44 lg:w-24 lg:h-24 rounded-md lg:rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm", launcherFrameUsers[post.user_id] && `${launcherFrameUsers[post.user_id]} rounded-full`, avatarFrameUsers[post.user_id] && "avatar-frame-custom rounded-full")}
                         style={{ ...getAvatarBorderStyle(authorProfile.color_avatar_border), ...getAvatarFrameStyle(avatarFrameUsers[post.user_id]) }}
                       >
                         {authorProfile.avatar_url ? <img src={authorProfile.avatar_url} className="w-full h-full object-cover"/> : <UserIcon className="w-10 h-10 text-muted-foreground"/>}
@@ -1076,7 +1083,7 @@ export default function ForumPage() {
                         className="flex items-center gap-3 text-left min-w-0"
                       >
                         <div
-                          className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", demoniacoUsers[comment.user_id] && "avatar-frame-demoniaco", avatarFrameUsers[comment.user_id] && "avatar-frame-custom")}
+                          className={cn("forum-comment-avatar w-[50px] h-[50px] rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", launcherFrameUsers[comment.user_id], avatarFrameUsers[comment.user_id] && "avatar-frame-custom")}
                           style={{ ...getAvatarBorderStyle(comment.profile?.color_avatar_border), ...getAvatarFrameStyle(avatarFrameUsers[comment.user_id]) }}
                         >
                           {comment.profile?.avatar_url ? <img src={comment.profile.avatar_url} className="w-full h-full object-cover" /> : <UserIcon className="w-6 h-6 text-muted-foreground" />}

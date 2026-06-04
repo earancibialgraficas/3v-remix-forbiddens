@@ -1,0 +1,101 @@
+{
+  "slug": "mercenario_bocasas",
+  "name": "Mercenario Bocasas",
+  "type": "launcher",
+  "description": "Skin launcher basada en la arquitectura demoniaca con estetica mercenaria rojo/negro, armas, acero oscuro y energia carmesi.",
+  "codeReferences": {
+    "themeTokens": "src/lib/skinThemes.ts",
+    "skinCss": "src/styles/skin-styles.css",
+    "preload": "src/contexts/SkinContext.tsx",
+    "inventory": "src/components/profile/InventoryTab.tsx",
+    "profile": "src/pages/ProfilePage.tsx",
+    "publicProfile": "src/pages/PublicProfilePage.tsx",
+    "publicProfilePlayer": "src/components/PublicProfileMusicPlayer.tsx",
+    "rightPanel": "src/components/RightPanel.tsx",
+    "footer": "src/components/Footer.tsx",
+    "launcherTitlebar": "src/components/DesktopLauncherTitleBar.tsx",
+    "store": "src/pages/StorePage.tsx"
+  },
+  "colors": {
+    "primary": "#e0473f",
+    "secondary": "#a63a35",
+    "accent": "#d8a08f",
+    "background": "#070707",
+    "card": "#151111",
+    "text": "#f2c8bd",
+    "textMuted": "#ae7d74",
+    "border": "#5e2926",
+    "glow": "rgba(207, 50, 42, 0.46)"
+  },
+  "assetContract": {
+    "background": {
+      "site": "backgrounds/solid/hellscape-castle.png",
+      "heroDragon": "backgrounds/solid/hellscape-dragon-wide.png",
+      "profileBanner": "backgrounds/solid/profile-banner.png",
+      "surfaceWide": "backgrounds/solid/basalt-wide.png",
+      "surfaceTall": "backgrounds/solid/basalt-tall.png",
+      "panelSurface": "backgrounds/solid/window-rock.png"
+    },
+    "home": {
+      "hero": "home/banner-hero.png"
+    },
+    "frames": {
+      "avatarRound": "frames/avatar-ring-trim.png",
+      "avatarSquare": "frames/avatar-square-frame.png",
+      "edgeHorizontal": "frames/frame-edge-v2-trim.png",
+      "edgeVertical": "frames/frame-edge-v2-trim-vertical.png",
+      "cornerTopLeft": "frames/marco-arriba-izquierda.svg",
+      "cornerTopRight": "frames/marco-arriba-derecha.svg",
+      "cornerBottomRight": "frames/marco-abajo-derecha.svg",
+      "cornerBottomLeft": "frames/marco-abajo-izquierda.svg",
+      "separatorT": "frames/separador-en-forma-de-T.svg",
+      "separatorTInverted": "frames/separador-en-forma-de-T-invertido.svg",
+      "launcherBar": "frames/barra-launcher.svg"
+    },
+    "inventory": {
+      "slot": "slots/slot-frame.png",
+      "slotHover": "slots/slot-hover.png",
+      "equipmentStar": "equipment/equipment-star.png"
+    },
+    "tabs": {
+      "bar": "tabs/tab-bar.png",
+      "activeMarker": "tabs/dragon-head.png"
+    },
+    "sidebar": {
+      "toggleNormal": "forum-sidebar/toggle-normal.png",
+      "toggleHover": "forum-sidebar/toggle-hover.png",
+      "toggleSelected": "forum-sidebar/toggle-selected.png"
+    },
+    "store": {
+      "thumbnail": "store/thumbnail.png"
+    },
+    "effects": {
+      "lavaOverlay": "textures/lava-overlay.jpg",
+      "emblem": "decorations/demon-emblem.png"
+    }
+  },
+  "implementationRules": [
+    "Mantener los nombres de assets cuando se duplique esta carpeta para otra skin.",
+    "La barra superior del launcher debe conservar la ruta frames/barra-launcher.svg y se aplica sobre .desktop-launcher-titlebar.",
+    "Para la barra del launcher, recortar el viewBox al arte visible y usar background-size cover para llenar la barra sin deformar.",
+    "Cada reemplazo de la barra del launcher debe subir el query string de cache en CSS y preload para evitar cache viejo del WebView.",
+    "Definir colores base en src/lib/skinThemes.ts antes de agregar CSS especifico.",
+    "Usar primary para titulos/iconos activos, text para lectura normal y textMuted para metadata.",
+    "Evitar bordes solidos en paneles importantes; preferir marcos, esquinas, separadores y texturas.",
+    "Si un popup/dropdown se recorta dentro de un panel, renderizarlo con createPortal hacia document.body.",
+    "Las imagenes de avatar con skin deben usar frame absoluto encima de la foto, no como borde normal.",
+    "Los videos deben fundirse con el fondo usando mask-image y una veladura acorde a la paleta.",
+    "Probar siempre perfil, perfil publico, inventario, trueque, tienda, forum page, user popup, photowall y mobile.",
+    "Ejecutar npm.cmd run build despues de tocar CSS o componentes."
+  ],
+  "futureSkinWorkflow": [
+    "Copiar public/skins/demoniaco a public/skins/{nuevo_slug}.",
+    "Reemplazar imagenes respetando nombres y proporciones generales.",
+    "Crear {NUEVO_SLUG}_SKIN en src/lib/skinThemes.ts.",
+    "Registrar el nuevo tema en ALL_SKINS y SKIN_SLUGS.",
+    "Agregar preload de assets pesados en SkinContext.tsx.",
+    "Duplicar solo los overrides CSS necesarios cambiando --skin-slug.",
+    "Ajustar colores usando la guia del README.md.",
+    "Compilar y probar popups, overlays, z-index y responsive."
+  ]
+}

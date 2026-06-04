@@ -9,6 +9,7 @@ import RoleBadge from "@/components/RoleBadge";
 import ReportModal from "@/components/ReportModal";
 import { getAvatarBorderStyle, getNameStyle, getRoleStyle } from "@/lib/profileAppearance";
 import { getAvatarFrameStyle, isAvatarFrameSlug } from "@/lib/avatarFrames";
+import { getLauncherSkinAvatarFrameClass } from "@/lib/skinThemes";
 import { useFriendIds } from "@/hooks/useFriendIds";
 import { MEMBERSHIP_LIMITS, MembershipTier } from "@/lib/membershipLimits";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +58,7 @@ export default function UserPopup({
   const [savingBan, setSavingBan] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
-  const [targetHasDemoniacoSkin, setTargetHasDemoniacoSkin] = useState(false);
+  const [targetLauncherFrameClass, setTargetLauncherFrameClass] = useState<string | null>(null);
   const [targetAvatarFrameSlug, setTargetAvatarFrameSlug] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,7 @@ export default function UserPopup({
         .in("skin_type", ["launcher", "avatar_frame"]);
       if (!cancelled) {
         const skins = (data || []) as Array<{ skin_slug?: string; skin_type?: string }>;
-        setTargetHasDemoniacoSkin(skins.some((skin) => skin.skin_type === "launcher" && skin.skin_slug === "demoniaco"));
+        setTargetLauncherFrameClass(getLauncherSkinAvatarFrameClass(skins.find((skin) => skin.skin_type === "launcher")?.skin_slug) || null);
         setTargetAvatarFrameSlug(skins.find((skin) => skin.skin_type === "avatar_frame" && isAvatarFrameSlug(skin.skin_slug))?.skin_slug || null);
       }
     };
@@ -189,7 +190,7 @@ export default function UserPopup({
           <>
             {avatarUrl && (
               <span
-                className={cn("relative inline-grid h-5 w-5 shrink-0 place-items-center rounded-full", targetHasDemoniacoSkin && "avatar-frame-demoniaco", targetAvatarFrameSlug && "avatar-frame-custom")}
+                className={cn("relative inline-grid h-5 w-5 shrink-0 place-items-center rounded-full", targetLauncherFrameClass, targetAvatarFrameSlug && "avatar-frame-custom")}
                 style={targetAvatarFrameStyle}
               >
                 <img src={avatarUrl} alt="" className="h-full w-full rounded-full object-cover" style={getAvatarBorderStyle(colorAvatarBorder)} />
@@ -215,7 +216,7 @@ export default function UserPopup({
         >
           <div className="flex items-start gap-2 mb-2 pb-2 border-b border-border">
             <div
-              className={cn("w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", targetHasDemoniacoSkin && "avatar-frame-demoniaco", targetAvatarFrameSlug && "avatar-frame-custom")}
+              className={cn("w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0", targetLauncherFrameClass, targetAvatarFrameSlug && "avatar-frame-custom")}
               style={{ ...getAvatarBorderStyle(colorAvatarBorder), ...targetAvatarFrameStyle }}
             >
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-muted-foreground" />}

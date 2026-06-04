@@ -34,9 +34,19 @@ const DEMONIACO_PRELOAD_ASSETS = [
   '/skins/demoniaco/textures/lava-overlay.jpg',
 ];
 
+const MERCENARIO_BOCASAS_PRELOAD_ASSETS = DEMONIACO_PRELOAD_ASSETS.map((src) =>
+  src.replace('/skins/demoniaco/', '/skins/mercenario_bocasas/').replace('?v=20260601c', '?v=20260604a')
+);
+
 const preloadSkinAssets = (slug?: string) => {
-  if (typeof window === 'undefined' || slug !== 'demoniaco') return;
-  DEMONIACO_PRELOAD_ASSETS.forEach((src) => {
+  if (typeof window === 'undefined') return;
+  const assets = slug === 'demoniaco'
+    ? DEMONIACO_PRELOAD_ASSETS
+    : slug === 'mercenario_bocasas'
+      ? MERCENARIO_BOCASAS_PRELOAD_ASSETS
+      : [];
+
+  assets.forEach((src) => {
     const image = new Image();
     image.decoding = 'async';
     image.src = src;

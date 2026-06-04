@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 import { useToast } from "@/hooks/use-toast";
-import { ALL_SKINS } from "@/lib/skinThemes";
+import { ALL_SKINS, getSkinThumbnailUrl } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
 import { PROFILE_TRANSITION_SHOP_ITEMS, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { EMULATOR_SHELL_SHOP_ITEMS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
@@ -27,8 +27,6 @@ interface ShopItem {
 }
 
 const TIER_ORDER = ['novato', 'lite', 'legacy', 'creator', 'staff'];
-const DEMONIACO_STORE_THUMBNAIL = "/skins/demoniaco/store/thumbnail.png";
-
 const shopVisuals = {
   demoniaco: {
     frame: "border-red-500/70 bg-[#160605]",
@@ -36,6 +34,13 @@ const shopVisuals = {
     badge: "DEMON",
     background:
       "linear-gradient(rgba(10,4,4,.18),rgba(2,2,2,.32)), url('/skins/demoniaco/home/banner-hero.png') center / cover",
+  },
+  mercenario_bocasas: {
+    frame: "border-red-500/70 bg-[#140706]",
+    icon: "text-red-200",
+    badge: "MERC",
+    background:
+      "linear-gradient(rgba(8,4,4,.16),rgba(2,2,2,.34)), url('/skins/mercenario_bocasas/home/banner-hero.png') center / cover",
   },
   angelical: {
     frame: "border-pink-300/70 bg-[#3a1930]",
@@ -246,7 +251,7 @@ export default function StorePage() {
   const isAvatarFrameItem = (item: ShopItem) => isAvatarFrameSlug(item?.slug);
   const isProfileTransitionItem = (item: ShopItem) => isProfileTransitionSlug(item?.slug);
   const isEmulatorShellItem = (item: ShopItem) => isEmulatorShellSlug(item?.slug);
-  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
+  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
     if (isAvatarFrameItem(item)) return shopVisuals.avatar_frame;
@@ -261,8 +266,8 @@ export default function StorePage() {
 
   // Renderizador de icono de item
   const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
-    item.slug === "demoniaco"
-      ? <img src={DEMONIACO_STORE_THUMBNAIL} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+    isSkinItem(item) && getSkinThumbnailUrl(item.slug)
+      ? <img src={getSkinThumbnailUrl(item.slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
@@ -289,7 +294,7 @@ export default function StorePage() {
     if (!isReadyItem(item)) {
       toast({
         title: "Item en desarrollo",
-        description: "Por ahora solo la Skin Demoniaco, los marcos de avatar, las transiciones y la consola Rosita NES estan listos para comprar.",
+        description: "Por ahora solo las skins listas, los marcos de avatar, las transiciones y la consola Rosita NES estan disponibles para comprar.",
         variant: "destructive",
       });
       return;
@@ -482,7 +487,7 @@ export default function StorePage() {
                 )}
                 style={{ background: visual.background }}>
                   {/* Imagen de fondo si existe */}
-                  {item.slug !== "demoniaco" && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && item.image_url && (
+                  {!(isSkinItem(item) && getSkinThumbnailUrl(item.slug)) && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
@@ -495,19 +500,19 @@ export default function StorePage() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
                       "demoniaco-item-frame relative grid h-16 w-16 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_18px_rgba(0,0,0,.45)]",
-                      item.slug === "demoniaco" && "h-14 w-14 overflow-hidden",
+                      isSkinItem(item) && getSkinThumbnailUrl(item.slug) && "h-14 w-14 overflow-hidden",
                       isAvatarFrameItem(item) && "h-20 w-20 border-pink-200/70 bg-black/15 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
                       isEmulatorShellItem(item) && "h-20 w-20 overflow-hidden border-pink-200/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       item.slug === "varita_magica" && "border-pink-300/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.3)]",
                       visual.frame,
                     )}>
-                      {item.slug !== "demoniaco" && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
+                      {!(isSkinItem(item) && getSkinThumbnailUrl(item.slug)) && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
                       <ItemIcon
                         item={item}
                         className={cn(
                           "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]",
-                          item.slug === "demoniaco" ? "h-full w-full" : visual.icon,
+                          isSkinItem(item) && getSkinThumbnailUrl(item.slug) ? "h-full w-full" : visual.icon,
                           isAvatarFrameItem(item) && "h-full w-full p-1",
                           isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
                           isEmulatorShellItem(item) && "h-full w-full drop-shadow-none",

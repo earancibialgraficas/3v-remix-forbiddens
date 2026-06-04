@@ -23,6 +23,16 @@ VALUES
     'https://images.unsplash.com/photo-1576689238914-3b964a3a0a22?w=400&h=300&fit=crop'
   ),
   (
+    'mercenario_bocasas',
+    'Skin Mercenario Bocasas',
+    'Tema rojo y negro de estilo mercenario basado en la skin demoniaca, con armas, acero oscuro y energia carmesi.',
+    15000,
+    'stats',
+    'launcher_skin',
+    'lite',
+    '/skins/mercenario_bocasas/store/thumbnail.png'
+  ),
+  (
     'cyberpunk',
     'Skin Ciberpunk',
     'Estilo futurista con neón cyan y magenta. Interfaz completa del website cambia a tema ciberpunk 🌐',
