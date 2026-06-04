@@ -108,8 +108,8 @@ const getLargeGameWindowSize = () => {
 
 const getRositaDesktopWindowSize = () => {
   if (typeof window === "undefined") return { w: 1180, h: 660 };
-  const maxW = Math.max(360, window.innerWidth);
-  const maxH = Math.max(420, window.innerHeight);
+  const maxW = Math.max(360, window.innerWidth - 16);
+  const maxH = Math.max(420, window.innerHeight - 16);
   let w = maxW;
   let h = w / ROSITA_PC_ASPECT_RATIO;
   if (h > maxH) {
@@ -144,26 +144,28 @@ type RositaLayout = {
 
 type RositaLayoutVariant = "pc" | "mobilePortrait" | "mobileLandscape";
 
+const ROSITA_MOBILE_PORTRAIT_ZOOM_X = 1.21;
+const ROSITA_MOBILE_PORTRAIT_ZOOM_Y = 1.12;
 const ROSITA_LEGACY_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
-const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v1";
-const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v2";
-const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v1";
+const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v3";
+const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v4";
+const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v2";
 
 const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
   screen: { x: 7.169112660956539, y: 15.491231964483907, w: 78.07539653270914, h: 68.44284128745838 },
-  topbar: { x: 6.2608390905417854, y: 5.770865704772476, w: 69.79502971366827, h: 5.546170921198668 },
+  topbar: { x: 6.172577837231989, y: 3.7195836534904245, w: 89.03598293520402, h: 9.964316877806162 },
   info: { x: -0.7563479200432199, y: 0.9988901220865706, w: 18.4430037817396, h: 101.44284128745838 },
-  actions: { x: 82.83468395461912, y: 1.664816870144284, w: 17.2, h: 100 },
-  side: { x: 89.23783337250421, y: 71.0180910099889, w: 4.887925445705024, h: 18.833296337402878 },
+  actions: { x: 68.44809966512221, y: -3.384492794549996, w: 17.2, h: 100 },
+  side: { x: 88.79652710595522, y: 71.49146379105399, w: 6.1235829920421825, h: 22.778069512945283 },
   minButton: { x: 80.38452188006484, y: 6.037902330743618, w: 2.1, h: 4.25 },
-  fullButton: { x: 83.04427336574824, y: 6.037902330743617, w: 2.1, h: 4.25 },
-  closeButton: { x: 85.55000000000001, y: 5.371975582685906, w: 3.0603727714748787, h: 5.670865704772476 },
-  saveButton: { x: 88.91540149498366, y: 17.319256381798, w: 5.185143165856293, h: 7.746670366259712 },
+  fullButton: { x: 83.13253461905803, y: 6.037902330743617, w: 2.1, h: 4.25 },
+  closeButton: { x: 85.55000000000001, y: 5.2141846556642095, w: 3.0603727714748787, h: 5.670865704772476 },
+  saveButton: { x: 89.00366274829345, y: 16.214719892646126, w: 5.361665672475887, h: 8.535625001368194 },
   loadButton: { x: 89.06704148480662, y: 27.007158712541617, w: 5.011708032553514, h: 9.411487236403994 },
-  volumeButton: { x: 89.36133802292879, y: 37.661598224195345, w: 4.44728723727305, h: 10.410377358490564 },
+  volumeButton: { x: 89.36133802292879, y: 37.34601637015195, w: 4.44728723727305, h: 10.410377358490564 },
   volumeSlider: { x: 87.14813662685728, y: 33.82641509433962, w: 1, h: 17.5 },
-  configButton: { x: 88.2420049823041, y: 48.88629300776916, w: 6.051392817834406, h: 8.63457269700333 },
-  pauseButton: { x: 89.0750989117946, y: 57.25826859045506, w: 5.173782586848491, h: 15.071864594894562 },
+  configButton: { x: 88.2420049823041, y: 48.88629300776916, w: 6.051392817834406, h: 8.792363624025027 },
+  pauseButton: { x: 89.0750989117946, y: 57.25826859045506, w: 5.0855213335386935, h: 14.914073667872865 },
   songToast: { x: 35.25058204887335, y: 5.7758046614872365, w: 30, h: 5.6 },
   touchFrame: { x: 3, y: 66, w: 94, h: 29 },
   touchDpad: { x: 7, y: 71, w: 20, h: 18 },
@@ -174,7 +176,7 @@ const DEFAULT_ROSITA_LAYOUT: RositaLayout = {
 const DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT: RositaLayout = {
   ...DEFAULT_ROSITA_LAYOUT,
   screen: { x: 25.36911266095654, y: 10.467867478502598, w: 49.87539653270913, h: 56.99424315661726 },
-  topbar: { x: 6.008052368419207, y: -0.04043280105506142, w: 69.15914202645888, h: 17.164620989454473 },
+  topbar: { x: 14.702067598954269, y: -0.04043280105506142, w: 67.4444525547285, h: 17.164620989454473 },
   info: { x: 13.01301524691032, y: -7.077671781985373e-16, w: 56.652986570035644, h: 13.465313197570739 },
   actions: { x: 40.77471475451041, y: 66.16576195047611, w: 17.676492435909047, h: 6.351202352199941 },
   side: { x: 77.6389566626573, y: 49.914121036177484, w: 8.647323941945626, h: 18.599651477589795 },
@@ -196,13 +198,57 @@ const DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT: RositaLayout = {
 
 const DEFAULT_ROSITA_MOBILE_LANDSCAPE_LAYOUT: RositaLayout = {
   ...DEFAULT_ROSITA_LAYOUT,
+  screen: { x: 14.55030578532459, y: 7.915474388726333, w: 71.09865234666262, h: 61.408209252826346 },
+  topbar: { x: 3.545269011437619, y: 0.5976301196117911, w: 72.80747320091203, h: 8.760060533211067 },
+  info: { x: 20.67944581099824, y: 8.557158712541622, w: 18.4430037817396, h: 101.44284128745838 },
+  actions: { x: 64.02780832266765, y: 14.742966790399471, w: 17.604448938321536, h: 51.993620414673046 },
+  side: { x: 3.696882917499166, y: 37.00692673566673, w: 8.36189205785361, h: 22.53965955855614 },
+  minButton: { x: 87.23123332239855, y: 3.5303282305202073, w: 2.1, h: 4.25 },
+  fullButton: { x: 90.73603332114054, y: 3.350671236161834, w: 2.1, h: 4.25 },
+  closeButton: { x: 93.74009100101114, y: 2.6663478770582003, w: 3.0603727714748787, h: 5.670865704772476 },
+  saveButton: { x: 89.1898176895924, y: 9.796534081127765, w: 7.351990403126066, h: 10.809457502553741 },
+  loadButton: { x: 89.24757557211807, y: 20.678733893984173, w: 7.2868976316867755, h: 11.555438231809813 },
+  volumeButton: { x: 89.54187211024025, y: 31.571822762291244, w: 6.397449750815845, h: 12.860607067525786 },
+  volumeSlider: { x: 87.14090649957417, y: 27.016101009183735, w: 1, h: 17.5 },
+  configButton: { x: 88.08305172945886, y: 43.819297822596624, w: 8.218240055104179, h: 10.447816230608618 },
+  pauseButton: { x: 89.25563299910607, y: 52.775168018186925, w: 6.798918014800821, h: 16.296979449412174 },
+  songToast: { x: 39.80063260499063, y: 8.806107691790265, w: 33.74115267947422, h: 3.5266347687400317 },
   touchFrame: { x: 4, y: 66, w: 92, h: 30 },
-  touchDpad: { x: 7, y: 71, w: 18, h: 21 },
-  touchActions: { x: 73, y: 72, w: 20, h: 18 },
-  touchMenu: { x: 39, y: 88, w: 22, h: 7 },
+  touchDpad: { x: 3.627145622431795, y: 72.51869301542874, w: 15.067745197168858, h: 20.681020733652314 },
+  touchActions: { x: 71.37486457204767, y: 73.68453292496172, w: 20, h: 18 },
+  touchMenu: { x: 41.70855904658722, y: 77.5865237366003, w: 15.932827735644636, h: 11.747320061255742 },
 };
 
 const clampPercent = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
+
+const scaleRositaBox = (box: RositaLayoutBox, scaleX: number, scaleY = scaleX): RositaLayoutBox => ({
+  x: 50 + (box.x - 50) * scaleX,
+  y: 50 + (box.y - 50) * scaleY,
+  w: box.w * scaleX,
+  h: box.h * scaleY,
+});
+
+const scaleRositaLayout = (layout: RositaLayout, scaleX: number, scaleY = scaleX): RositaLayout => ({
+  screen: scaleRositaBox(layout.screen, scaleX, scaleY),
+  topbar: scaleRositaBox(layout.topbar, scaleX, scaleY),
+  info: scaleRositaBox(layout.info, scaleX, scaleY),
+  actions: scaleRositaBox(layout.actions, scaleX, scaleY),
+  side: scaleRositaBox(layout.side, scaleX, scaleY),
+  minButton: scaleRositaBox(layout.minButton, scaleX, scaleY),
+  fullButton: scaleRositaBox(layout.fullButton, scaleX, scaleY),
+  closeButton: scaleRositaBox(layout.closeButton, scaleX, scaleY),
+  saveButton: scaleRositaBox(layout.saveButton, scaleX, scaleY),
+  loadButton: scaleRositaBox(layout.loadButton, scaleX, scaleY),
+  volumeButton: scaleRositaBox(layout.volumeButton, scaleX, scaleY),
+  volumeSlider: scaleRositaBox(layout.volumeSlider, scaleX, scaleY),
+  configButton: scaleRositaBox(layout.configButton, scaleX, scaleY),
+  pauseButton: scaleRositaBox(layout.pauseButton, scaleX, scaleY),
+  songToast: scaleRositaBox(layout.songToast, scaleX, scaleY),
+  touchFrame: scaleRositaBox(layout.touchFrame, scaleX, scaleY),
+  touchDpad: scaleRositaBox(layout.touchDpad, scaleX, scaleY),
+  touchActions: scaleRositaBox(layout.touchActions, scaleX, scaleY),
+  touchMenu: scaleRositaBox(layout.touchMenu, scaleX, scaleY),
+});
 
 const getRositaLayoutStorageKey = (variant: RositaLayoutVariant) => (
   variant === "mobilePortrait"
@@ -214,7 +260,7 @@ const getRositaLayoutStorageKey = (variant: RositaLayoutVariant) => (
 
 const getDefaultRositaLayout = (variant: RositaLayoutVariant) => (
   variant === "mobilePortrait"
-    ? DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT
+    ? scaleRositaLayout(DEFAULT_ROSITA_MOBILE_PORTRAIT_LAYOUT, ROSITA_MOBILE_PORTRAIT_ZOOM_X, ROSITA_MOBILE_PORTRAIT_ZOOM_Y)
     : variant === "mobileLandscape"
     ? DEFAULT_ROSITA_MOBILE_LANDSCAPE_LAYOUT
     : DEFAULT_ROSITA_LAYOUT
@@ -1888,7 +1934,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     h: parent.h ? (box.h / parent.h) * 100 : 0,
   });
 
-  const canEditRositaLayout = usesRositaNesShell && isMobile && isLandscape;
+  const canEditRositaLayout = false;
   const effectiveRositaLayout = rositaLayout;
   const rositaTopbarMin = rositaRelativeBox(effectiveRositaLayout.minButton, effectiveRositaLayout.topbar);
   const rositaTopbarFull = rositaRelativeBox(effectiveRositaLayout.fullButton, effectiveRositaLayout.topbar);
@@ -1909,10 +1955,10 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
     "--rosita-topbar-top": `${effectiveRositaLayout.topbar.y}%`,
     "--rosita-topbar-right": `${100 - effectiveRositaLayout.topbar.x - effectiveRositaLayout.topbar.w}%`,
     "--rosita-topbar-height": `${effectiveRositaLayout.topbar.h}%`,
-    "--rosita-info-left": `${effectiveRositaLayout.info.x}%`,
-    "--rosita-info-top": `${effectiveRositaLayout.info.y}%`,
-    "--rosita-info-width": `${effectiveRositaLayout.info.w}%`,
-    "--rosita-info-height": `${effectiveRositaLayout.info.h}%`,
+    "--rosita-info-left": isMobile ? "0%" : `${effectiveRositaLayout.info.x}%`,
+    "--rosita-info-top": isMobile ? "0%" : `${effectiveRositaLayout.info.y}%`,
+    "--rosita-info-width": isMobile ? "100%" : `${effectiveRositaLayout.info.w}%`,
+    "--rosita-info-height": isMobile ? "100%" : `${effectiveRositaLayout.info.h}%`,
     "--rosita-actions-right": `${100 - effectiveRositaLayout.actions.x - effectiveRositaLayout.actions.w}%`,
     "--rosita-actions-top": `${effectiveRositaLayout.actions.y}%`,
     "--rosita-actions-width": `${effectiveRositaLayout.actions.w}%`,
@@ -2109,6 +2155,7 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
       className={cn(
         "relative overflow-hidden select-none group",
         usesRositaNesShell && "gamebubble-shell-rosita-nes",
+        usesRositaNesShell && (isMobile ? "rosita-shell-mobile" : "rosita-shell-desktop"),
         minimized
           ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer border border-border"
           : isTheaterActive || isFullscreen
@@ -2164,7 +2211,6 @@ window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_
         <div className="pointer-events-none absolute inset-0 z-[119] rosita-editor-grid">
           <div className="pointer-events-auto">
             {renderRositaEditorBox("topbar", "Barra superior", rositaLayout.topbar)}
-            {renderRositaEditorBox("info", "Titulo/info", rositaLayout.info)}
             {renderRositaEditorBox("actions", "Acciones sup.", rositaLayout.actions)}
             {renderRositaEditorBox("side", "Botones der.", rositaLayout.side)}
             {renderRositaEditorBox("minButton", "Min", rositaLayout.minButton)}
