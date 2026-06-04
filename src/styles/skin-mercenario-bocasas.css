@@ -2837,3 +2837,27 @@ html[style*="--skin-slug: mercenario_bocasas"] .public-profile-playlist-popover 
   }
 }
 
+/* Mercenario Bocasas avatar ring: the source art has a taller transparent center
+   than the demoniaco frame, so it needs its own anchored fit. */
+.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
+  inset: -28% !important;
+  background-image: url('/skins/mercenario_bocasas/frames/avatar-ring-trim.png') !important;
+  background-repeat: no-repeat !important;
+  background-position: center bottom !important;
+  background-size: 100% 92% !important;
+  transform: none !important;
+  transform-origin: center bottom !important;
+}
+
+.forum-author-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after,
+.forum-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after,
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
+  inset: -36% !important;
+  background-position: center bottom !important;
+  background-size: 100% 92% !important;
+}
+
+.photowall-comment-avatar.avatar-frame-mercenario-bocasas:not(.avatar-frame-custom)::after {
+  inset: -48% !important;
+}
+
