@@ -2924,3 +2924,23 @@ html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-sh
   }
 }
 
+/* Mercenario Bocasas forum sidebar texture. */
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card {
+  background:
+    linear-gradient(180deg, rgba(6, 0, 0, 0.16), rgba(4, 0, 0, 0.42)),
+    url('/skins/mercenario_bocasas/forumsidebar.png') center top / cover no-repeat !important;
+  border-color: rgba(12, 2, 2, 0.9) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(255, 51, 31, 0.18),
+    inset 0 0 42px rgba(0, 0, 0, 0.5),
+    16px 0 44px rgba(0, 0, 0, 0.62) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child {
+  background:
+    linear-gradient(180deg, rgba(5, 0, 0, 0.1), rgba(4, 0, 0, 0.35)),
+    url('/skins/mercenario_bocasas/forumsidebar.png') center top / cover no-repeat !important;
+  border-color: rgba(10, 1, 1, 0.92) !important;
+}
+
