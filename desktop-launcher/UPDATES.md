@@ -4,7 +4,7 @@ El launcher ya tiene el puente de updater instalado.
 
 - Al abrir la app, busca actualizaciones automaticamente y reinicia si instala una.
 - Dentro del website, cuando se abre desde el `.exe`, aparece un boton pequeno en la esquina para buscar updates manualmente.
-- El updater ya esta activo y apunta al bucket publico `launcher-downloads` de Supabase.
+- El updater ya esta activo y apunta al release publico de GitHub `forbiddensASSETS`.
 
 ## Primera vez / rotacion de llaves
 
@@ -28,11 +28,11 @@ npm.cmd run desktop:build:installer
 ```
 
 3. Firma el instalador generado con la clave privada del updater.
-4. Sube el instalador al bucket publico `launcher-downloads`.
+4. Sube el instalador como asset del release de GitHub.
 5. Publica `desktop-launcher/latest.json` en:
 
 ```text
-https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/latest.json
+https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/latest.json
 ```
 
 Puedes usar `updater.latest.example.json` como base.

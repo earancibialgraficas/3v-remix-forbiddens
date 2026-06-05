@@ -9,7 +9,7 @@ import InstallAppButton from "@/components/InstallAppButton";
 import VaultHint from "@/components/VaultHint";
 
 const launcherDownloadUrl = import.meta.env.VITE_LAUNCHER_DOWNLOAD_URL
-  || "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.10_x64-setup.exe";
+  || "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.10_x64-setup.exe";
 
 export default function HeroSection() {
   const { user } = useAuth();

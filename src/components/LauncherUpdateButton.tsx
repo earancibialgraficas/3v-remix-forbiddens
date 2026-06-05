@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const RECOMMENDED_LAUNCHER_VERSION = "0.1.10";
-const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/FORBIDDENS_0.1.10_x64-setup.exe";
+const MANUAL_LAUNCHER_DOWNLOAD_URL = "https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/FORBIDDENS_0.1.10_x64-setup.exe";
 
 const isOlderVersion = (current: string, target: string) => {
   const currentParts = current.split(".").map((part) => Number(part) || 0);

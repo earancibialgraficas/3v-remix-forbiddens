@@ -7,7 +7,7 @@ En modo desarrollo y en el `.exe` publicado carga `https://forbiddens.net/`.
 ## Que actualiza automaticamente
 
 - Cambios del website: si la app carga `https://forbiddens.net/`, los usuarios ven los cambios apenas abras o recargues la app.
-- Cambios del launcher: usan el updater de Tauri contra el bucket publico `launcher-downloads` de Supabase.
+- Cambios del launcher: usan el updater de Tauri contra el release publico de GitHub `forbiddensASSETS`.
 
 ## Requisitos para compilar
 
@@ -61,10 +61,10 @@ npm --prefix desktop-launcher exec tauri signer generate
 2. Guarda la clave privada solo en CI/secretos.
 3. Pega la clave publica en `src-tauri/tauri.conf.json`, dentro de `plugins.updater.pubkey`.
 4. Verifica que `plugins.updater.active` siga en `true`.
-5. Publica `desktop-launcher/latest.json` en el bucket publico:
+5. Publica `desktop-launcher/latest.json` como asset del release:
 
 ```text
-https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/launcher-downloads/latest.json
+https://github.com/earancibialgraficas/forbiddensASSETS/releases/download/emulators-v1/latest.json
 ```
 
 6. Cuando publiques una version nueva, sube el instalador y actualiza ese JSON.
