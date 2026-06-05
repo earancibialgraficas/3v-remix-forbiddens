@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useGameBubble } from "@/contexts/GameBubbleContext";
+import { loadMusicLibrary } from "@/lib/musicLibrary";
 
 interface Song {
   id: string;
@@ -383,31 +384,7 @@ export default function ChillMusicPlayer() {
 
   useEffect(() => {
     const fetchMusic = async () => {
-      const folders = [
-        { path: 'Lofi Hip Hop zelda', name: 'Lofi Hip-Hop' },
-        { path: 'metal', name: 'Metal' },
-        { path: 'Rap', name: 'Rap' }
-      ];
-      
-      let fetchedSongs: Song[] = [];
-      const baseUrl = "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/musica";
-
-      for (const folder of folders) {
-        const { data, error } = await supabase.storage.from('musica').list(folder.path);
-        if (!error && data) {
-          data.forEach(file => {
-            if (file.name !== '.emptyFolderPlaceholder') {
-              fetchedSongs.push({
-                id: file.id || file.name,
-                title: file.name.replace(/\.[^/.]+$/, ""),
-                url: `${baseUrl}/${folder.path}/${encodeURIComponent(file.name)}`,
-                type: 'local',
-                category: folder.name
-              });
-            }
-          });
-        }
-      }
+      const fetchedSongs: Song[] = await loadMusicLibrary();
       setAllSongs(fetchedSongs);
 
       const savedCat = localStorage.getItem('forbiddens_music_category') || "Todos";
