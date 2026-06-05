@@ -52,6 +52,75 @@
   }
 }
 
+/*
+ * Social Hub debe conservar el layout predeterminado aunque haya una skin activa.
+ * Las skins solo pueden cambiar color/textura/acento en Feed, Reels y Muro.
+ */
+html[style*="--skin-primary"] .social-hub-page {
+  --social-hub-skin-card: var(--skin-card, hsl(var(--card)));
+  --social-hub-skin-border: var(--skin-border, hsl(var(--border)));
+  --social-hub-skin-accent: var(--skin-primary, hsl(var(--neon-orange)));
+  --social-hub-skin-secondary: var(--skin-secondary, hsl(var(--neon-cyan)));
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"]) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--social-hub-skin-card) 82%, transparent), color-mix(in srgb, var(--social-hub-skin-card) 92%, black)),
+    var(--skin-pattern-card, none) !important;
+  background-color: var(--social-hub-skin-card) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.bg-background, [class*="bg-background/"]) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--skin-background, #070707) 90%, transparent), color-mix(in srgb, var(--skin-background, #070707) 94%, black)),
+    var(--skin-pattern-bg, hsl(var(--background))) !important;
+  background-color: var(--skin-background, hsl(var(--background))) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.bg-muted, [class*="bg-muted/"]) {
+  background-color: hsl(var(--muted) / 0.45) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.border, .border-border, [class*="border-border"], [class*="border-white/"]) {
+  border-color: color-mix(in srgb, var(--social-hub-skin-border) 72%, hsl(var(--border))) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.border-neon-cyan\/30, .border-neon-cyan\/40, .border-neon-cyan\/50, .border-neon-orange\/30, .border-neon-orange\/40, .border-neon-orange\/50) {
+  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 70%, hsl(var(--border))) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.text-neon-cyan, .text-neon-orange, .text-neon-magenta, .text-neon-yellow, .text-neon-green) {
+  color: var(--social-hub-skin-accent) !important;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--social-hub-skin-accent) 48%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"], input, textarea, select) {
+  box-shadow: none;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(input, textarea, select) {
+  background-color: hsl(var(--background) / 0.62) !important;
+  border-color: color-mix(in srgb, var(--social-hub-skin-border) 76%, hsl(var(--border))) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(button.bg-neon-cyan, button.bg-neon-orange, .social-hub-publish-button) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--social-hub-skin-accent) 82%, white), color-mix(in srgb, var(--social-hub-skin-accent) 74%, black)) !important;
+  color: #120807 !important;
+  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 72%, white) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"], button, [role="button"], input, textarea, select)::before,
+html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"], button, [role="button"], input, textarea, select)::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .rounded-full {
+  box-shadow: none !important;
+}
+
 html[style*="--skin-slug: demoniaco"],
 html[style*="--skin-slug: demoniaco"] * {
   scrollbar-color: rgba(255, 58, 18, 0.78) rgba(15, 4, 4, 0.96) !important;
