@@ -1,6 +1,6 @@
 # Musica del Chill Player en Cloudflare R2
 
-El reproductor `ChillMusicPlayer` carga primero desde Cloudflare R2 usando un manifest. Si el manifest no existe o falla, usa el bucket antiguo de Supabase `musica` como respaldo.
+El reproductor `ChillMusicPlayer` carga la musica estatica desde Cloudflare R2 usando un manifest local del website. Supabase queda reservado para tablas y texto, no para estos archivos.
 
 ## Estructura recomendada en R2
 
@@ -8,7 +8,6 @@ Sube las canciones manteniendo estas carpetas:
 
 ```text
 chillmusicplayer/
-  manifest.json
   lofi/
   metal/
   rap/
@@ -16,18 +15,16 @@ chillmusicplayer/
 
 ## Manifest
 
-Crea `manifest.json` en la raiz del bucket `chillmusicplayer`.
-
-Para el bucket actual, sube este archivo como `manifest.json`:
+El manifest vive en el website para evitar problemas de CORS al hacer `fetch` desde el navegador:
 
 ```text
-chillmusicplayer-manifest.json
+public/chillmusicplayer-manifest.json
 ```
 
-La URL publica esperada es:
+La URL publica del manifest en el website sera:
 
 ```text
-https://pub-4bb704929f55442f8d9fa2e0cdde97ec.r2.dev/manifest.json
+/chillmusicplayer-manifest.json
 ```
 
 Formato base:
@@ -82,10 +79,12 @@ VITE_MUSIC_LIBRARY_BASE_URL=https://TU_DOMINIO_PUBLICO_R2
 Para el bucket actual no es obligatorio configurar variables, porque el codigo ya usa por defecto:
 
 ```text
-https://pub-4bb704929f55442f8d9fa2e0cdde97ec.r2.dev/manifest.json
+/chillmusicplayer-manifest.json
 ```
 
 `VITE_MUSIC_LIBRARY_BASE_URL` es opcional si el manifest ya trae `baseUrl`.
+
+Si el manifest no existe o esta mal nombrado, la libreria estatica de musica no cargara. No hay fallback a Supabase.
 
 ## CORS
 

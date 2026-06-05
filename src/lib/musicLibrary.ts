@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export type MusicLibrarySong = {
   id: string;
   title: string;
@@ -54,10 +52,8 @@ export const MUSIC_LIBRARY_FOLDERS: MusicFolder[] = [
   { path: "Rap", name: "Rap" },
 ];
 
-const SUPABASE_MUSIC_BASE_URL =
-  "https://sbnwrrrachptwfrgjylv.supabase.co/storage/v1/object/public/musica";
 const DEFAULT_R2_MUSIC_MANIFEST_URL =
-  "https://pub-4bb704929f55442f8d9fa2e0cdde97ec.r2.dev/manifest.json";
+  "/chillmusicplayer-manifest.json";
 
 const playableAudioPattern = /\.(mp3|m4a|aac|ogg|oga|wav|flac|webm)$/i;
 
@@ -165,35 +161,11 @@ const loadR2MusicLibrary = async (): Promise<MusicLibrarySong[]> => {
   return songs;
 };
 
-const loadSupabaseMusicLibrary = async (): Promise<MusicLibrarySong[]> => {
-  const songs: MusicLibrarySong[] = [];
-
-  for (const folder of MUSIC_LIBRARY_FOLDERS) {
-    const { data, error } = await supabase.storage.from("musica").list(folder.path);
-    if (error || !data) continue;
-
-    data.forEach((file) => {
-      if (file.name === ".emptyFolderPlaceholder" || !isPlayableAudioFile(file.name)) return;
-      songs.push({
-        id: file.id || `${folder.path}:${file.name}`,
-        title: songTitleFromPath(file.name),
-        url: `${SUPABASE_MUSIC_BASE_URL}/${encodePath(`${folder.path}/${file.name}`)}`,
-        type: "local",
-        category: folder.name,
-      });
-    });
-  }
-
-  return songs;
-};
-
 export const loadMusicLibrary = async (): Promise<MusicLibrarySong[]> => {
   try {
-    const r2Songs = await loadR2MusicLibrary();
-    if (r2Songs.length) return r2Songs;
+    return await loadR2MusicLibrary();
   } catch (error) {
-    console.warn("No se pudo cargar la musica desde R2, usando Supabase.", error);
+    console.warn("No se pudo cargar la musica desde R2.", error);
+    return [];
   }
-
-  return loadSupabaseMusicLibrary();
 };

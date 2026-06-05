@@ -1,0 +1,91 @@
+{
+  "baseUrl": "https://pub-4bb704929f55442f8d9fa2e0cdde97ec.r2.dev",
+  "folders": [
+    {
+      "path": "lofi",
+      "name": "Lofi Hip-Hop",
+      "files": [
+        "Zelda & Chill  Ballad of the Goddess.m4a",
+        "Zelda & Chill  Breath of the Wild.m4a",
+        "Zelda & Chill  Dark World.m4a",
+        "Zelda & Chill  Fairy Fountain.m4a",
+        "Zelda & Chill  Gerudo Valley.m4a",
+        "Zelda & Chill  Hateno Village.m4a",
+        "Zelda & Chill  Kakariko Village.m4a",
+        "Zelda & Chill  Legend of Zelda Main Theme.m4a",
+        "Zelda & Chill  Lost Woods.m4a",
+        "Zelda & Chill  Minuet of Forest.m4a",
+        "Zelda & Chill  Oath to Order.m4a",
+        "Zelda & Chill  Ocarina of Time.m4a",
+        "Zelda & Chill  Song of Storms.m4a",
+        "Zoras Domain Zelda  Chjolos Bossa.m4a"
+      ]
+    },
+    {
+      "path": "metal",
+      "name": "Metal",
+      "files": [
+        "Afterlife.m4a",
+        "Arch enemy Handshake With Hell.m4a",
+        "Audioslave - Like a Stone .m4a",
+        "Avenged Sevenfold - A Little Piece Of Heaven .m4a",
+        "Avenged Sevenfold - Bat Country.m4a",
+        "Avenged Sevenfold - Crossroads.m4a",
+        "Avenged Sevenfold - Hail To The King.m4a",
+        "Avenged Sevenfold - Seize The Day.m4a",
+        "Crawling - Linkin Park.m4a",
+        "Disturbed - Down With The Sickness.m4a",
+        "Disturbed - Stricken.m4a",
+        "Drowning Pool - Bodies.m4a",
+        "Falling In Reverse - god Is A Weapon.m4a",
+        "Falling In Reverse - losing My Life.m4a",
+        "Falling In Reverse - Popular Monster.m4a",
+        "Falling In Reverse - Prequel.m4a",
+        "Falling In Reverse - Voices In My Head .m4a",
+        "Given Up - Linkin Park.m4a",
+        "Master Of Puppets .m4a",
+        "Metallica All Nightmare Long.m4a",
+        "Nobody.m4a",
+        "Poppy - New Way Out.m4a",
+        "Slipknot - Yen.m4a",
+        "System Of A Down - BYOB.m4a",
+        "System Of A Down - Prison Song.m4a",
+        "The Kill - 30 Seconds To Mars.m4a",
+        "The Offspring - The Meaning Of Life.m4a",
+        "Thirty Seconds To Mars - A Beautiful Lie.m4a",
+        "This War Is Ours The Guillotine II.m4a",
+        "War of Change.m4a"
+      ]
+    },
+    {
+      "path": "rap",
+      "name": "Rap",
+      "files": [
+        "3AM - Por Ti.m4a",
+        "Aaron Smith - Dancin - Krono Remix.m4a",
+        "Basshunter DotA.m4a",
+        "BoyWithUke - Contigo featPowfu.m4a",
+        "BoyWithUke - Rockstar.m4a",
+        "BoyWithUke ft Oliver Tree - Sick of U.m4a",
+        "Chystemc - BOOMBARRIO.m4a",
+        "CHYSTEMC - ELLA.m4a",
+        "Chystemc - En bola de lah laah laaah.m4a",
+        "CHYSTEMC - GUANTES DE LANA.m4a",
+        "CHYSTEMC - I LOVE YOU A LO ViO.m4a",
+        "Chystemc - LA PRONOIA DEL SUN JOKE Fu.m4a",
+        "Chystemc - UZUMAKI.m4a",
+        "Chystemc Santa Fe Klan - PHIESTA.m4a",
+        "Cotidiano.m4a",
+        "IRIS OUT.m4a",
+        "Movimiento Original - Conquistar Fronteras.m4a",
+        "Movimiento Original - Grandes Pasos.m4a",
+        "Movimiento Original - Preparao.m4a",
+        "Oliver Tree Robin Schulz - Miss You.m4a",
+        "Ready To Die.m4a",
+        "Santa Fe Klan - Jefa.m4a",
+        "So What.m4a",
+        "Sub Urban - Cradles.m4a"
+      ]
+    }
+  ]
+}
