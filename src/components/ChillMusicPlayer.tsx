@@ -308,8 +308,8 @@ export default function ChillMusicPlayer() {
     if (timeToRestoreRef.current !== null && Number.isFinite(timeToRestoreRef.current)) {
       audio.currentTime = Math.max(0, timeToRestoreRef.current);
       timeToRestoreRef.current = null;
-    } else if (currentTime > 0 && Math.abs(audio.currentTime - currentTime) > 1) {
-      audio.currentTime = currentTime;
+    } else if (actualTimeRef.current > 0 && Math.abs(audio.currentTime - actualTimeRef.current) > 1) {
+      audio.currentTime = actualTimeRef.current;
     }
 
     const playResult = audio.play();
@@ -319,7 +319,7 @@ export default function ChillMusicPlayer() {
         if (error?.name !== "AbortError") setIsPlaying(false);
       });
     }
-  }, [current?.type, current?.url, currentTime, volume]);
+  }, [current?.type, current?.url, volume]);
 
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);

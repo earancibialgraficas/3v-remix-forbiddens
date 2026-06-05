@@ -2967,7 +2967,8 @@ html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card > div:f
   z-index: 1;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen {
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen,
+html[data-skin-slug="mercenario_bocasas"] #batocera-screen.emulator-page-screen {
   background:
     linear-gradient(180deg, rgba(5, 0, 0, 0.8), rgba(7, 1, 1, 0.84)),
     var(--skin-pattern-bg, var(--demoniaco-surface-rock)) center / cover no-repeat fixed !important;
@@ -2977,8 +2978,47 @@ html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-sc
     0 0 46px rgba(226, 80, 61, 0.14) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img,
+html[data-skin-slug="mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
   opacity: 0.22 !important;
   mix-blend-mode: screen;
+}
+
+/* Rosita emulator shell: prevent website skins from painting behind the custom close asset. */
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button,
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"],
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"] {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  filter: none !important;
+  isolation: isolate;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::before,
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::after,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::before,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::after,
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-texture,
+html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-texture {
+  position: relative;
+  z-index: 2;
+  display: block !important;
+  background: transparent !important;
+  filter: none !important;
 }
 

@@ -130,6 +130,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       const columns = Math.max(2, Math.min(6, Math.floor((available + gap) / (targetSlot + gap))));
       const rows = width < 520 ? 3 : 3;
       const nextPageSize = Math.max(columns * rows, 6);
+      grid.style.setProperty("grid-template-columns", `repeat(${columns}, minmax(0, 1fr))`, "important");
+      grid.style.setProperty("--inventory-responsive-columns", String(columns));
       setInventoryColumns((current) => current === columns ? current : columns);
       setInventorySlotsPerPage((current) => current === nextPageSize ? current : nextPageSize);
     };
@@ -143,6 +145,13 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       window.removeEventListener("orientationchange", updateSlotsPerPage);
     };
   }, []);
+
+  useEffect(() => {
+    const grid = inventoryGridRef.current;
+    if (!grid) return;
+    grid.style.setProperty("grid-template-columns", `repeat(${inventoryColumns}, minmax(0, 1fr))`, "important");
+    grid.style.setProperty("--inventory-responsive-columns", String(inventoryColumns));
+  }, [inventoryColumns]);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -1707,7 +1716,12 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
           <div
             ref={inventoryGridRef}
             className="inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2"
-            style={{ gridTemplateColumns: `repeat(${inventoryColumns}, minmax(0, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${inventoryColumns}, minmax(0, 1fr))`,
+              width: "100%",
+              maxWidth: "100%",
+              overflow: "hidden",
+            }}
           >
             {visibleSlotItems.map((item, pageIndex) => {
               const index = visibleInventoryStart + pageIndex;

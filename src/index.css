@@ -1196,9 +1196,102 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
     background: linear-gradient(180deg, hsl(343 100% 97% / 0.96), hsl(326 100% 94% / 0.94)) !important;
     border-color: hsl(337 76% 73% / 0.78) !important;
     box-shadow: 0 8px 18px hsl(337 48% 38% / 0.14), inset 0 0 0 1px hsl(0 0% 100% / 0.58) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-compact {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator {
+    container-type: size;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    padding: clamp(1px, 2.2%, 4px) clamp(2px, 4%, 6px) !important;
+    gap: clamp(1px, 2.5%, 4px) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header p {
+    font-size: clamp(5px, 7.5cqw, 9px) !important;
+    line-height: 1 !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track {
+    flex: 0 0 auto !important;
+    padding: clamp(1px, 2.5%, 4px) clamp(2px, 4%, 6px) 0 !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track > div {
+    min-height: 0 !important;
+    padding: clamp(1px, 2.4%, 4px) clamp(2px, 4%, 6px) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track span,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label span,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category button {
+    font-size: clamp(5px, 6.6cqw, 8px) !important;
+    line-height: 1 !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-controls {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    justify-content: center !important;
+    gap: clamp(1px, 2.2cqh, 4px) !important;
+    padding: clamp(1px, 2.4cqh, 4px) clamp(2px, 4%, 6px) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-play {
+    width: clamp(18px, 42%, 34px) !important;
+    height: clamp(18px, 18cqh, 34px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-play svg {
+    width: 48% !important;
+    height: 48% !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-buttons,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label {
+    flex: 0 0 auto !important;
+    gap: clamp(1px, 3%, 4px) !important;
+    margin-top: 0 !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip-button,
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-button {
+    width: clamp(16px, 33%, 26px) !important;
+    height: clamp(12px, 10cqh, 18px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    font-size: clamp(7px, 7cqw, 10px) !important;
+  }
+
+  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category {
+    flex: 0 0 auto !important;
+    padding: 0 clamp(2px, 4%, 6px) clamp(1px, 2.4%, 4px) !important;
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-panel *,
