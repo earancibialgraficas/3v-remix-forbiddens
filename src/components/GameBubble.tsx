@@ -96,6 +96,8 @@ interface SaveSlot {
   timestamp: number;
 }
 
+const SAVE_DATA_GZIP_PREFIX = "gzip:";
+
 const AFK_TIMEOUT_MS = 30 * 1000;
 const ROSITA_PC_ASPECT_RATIO = 1929 / 1079;
 const getLargeGameWindowSize = () => {
@@ -781,6 +783,14 @@ export default function GameBubble() {
     }
   };
 
+  const persistSaveSlotsLocally = (key: string, slots: SaveSlot[]) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(slots));
+    } catch (error) {
+      console.warn("Local save cache skipped; cloud sync will continue.", error);
+    }
+  };
+
   useEffect(() => {
     if (activeGame) {
       const key = getSaveKey(activeGame.gameName);
@@ -840,7 +850,7 @@ export default function GameBubble() {
               finalSlots = finalSlots.slice(0, 5);
 
               setSaveSlots(finalSlots);
-              localStorage.setItem(key, JSON.stringify(finalSlots));
+              persistSaveSlotsLocally(key, finalSlots);
               return;
             }
           } catch (e) {
@@ -1753,6 +1763,41 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
     return () => window.removeEventListener("keydown", handleKey);
   }, [activeGame, romLoaded, minimized, togglePause, isFullscreen]);
 
+  const bytesToBase64 = (bytes: Uint8Array): string => {
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
+  };
+
+  const base64ToBytes = (b64: string): Uint8Array => {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  };
+
+  const compressSaveBytes = async (bytes: Uint8Array): Promise<Uint8Array | null> => {
+    const Compression = (globalThis as any).CompressionStream;
+    if (!Compression) return null;
+    const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const stream = new Blob([source]).stream().pipeThrough(new Compression("gzip"));
+    const buffer = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buffer);
+  };
+
+  const decompressSaveBytes = async (bytes: Uint8Array): Promise<Uint8Array | null> => {
+    const Decompression = (globalThis as any).DecompressionStream;
+    if (!Decompression) return null;
+    const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const stream = new Blob([source]).stream().pipeThrough(new Decompression("gzip"));
+    const buffer = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buffer);
+  };
+
   const stateToBase64 = async (state: any): Promise<string> => {
     let bytes: Uint8Array;
     if (state instanceof Blob) {
@@ -1764,19 +1809,40 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
     } else {
       return JSON.stringify(state);
     }
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
+
+    try {
+      const compressed = await compressSaveBytes(bytes);
+      if (compressed && compressed.length + SAVE_DATA_GZIP_PREFIX.length < bytes.length * 0.98) {
+        return SAVE_DATA_GZIP_PREFIX + bytesToBase64(compressed);
+      }
+    } catch (error) {
+      console.warn("Save compression failed; storing raw state.", error);
+    }
+
+    return bytesToBase64(bytes);
   };
 
-  const base64ToBlob = (b64: string): Blob => {
+  const base64ToBlob = async (value: string): Promise<Blob> => {
+    const data = String(value ?? "");
+    const compressed = data.startsWith(SAVE_DATA_GZIP_PREFIX);
+    const encoded = compressed ? data.slice(SAVE_DATA_GZIP_PREFIX.length) : data;
+
     try {
-      const binary = atob(b64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes]);
-    } catch {
-      return new Blob([b64]);
+      const bytes = base64ToBytes(encoded);
+      if (!compressed) {
+        const source = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        return new Blob([source]);
+      }
+
+      const decompressed = await decompressSaveBytes(bytes);
+      if (!decompressed) {
+        throw new Error("Este navegador no puede descomprimir saves gzip.");
+      }
+      const source = decompressed.buffer.slice(decompressed.byteOffset, decompressed.byteOffset + decompressed.byteLength);
+      return new Blob([source]);
+    } catch (error) {
+      if (compressed) throw error;
+      return new Blob([data]);
     }
   };
 
@@ -1854,7 +1920,7 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
       } catch {}
 
       const updated = [newSlot, ...slots].slice(0, 5);
-      localStorage.setItem(key, JSON.stringify(updated));
+      persistSaveSlotsLocally(key, updated);
       await syncCloudSaves(updated);
     } catch (e) {
       // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre limpio. 🔥
@@ -1872,7 +1938,7 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
 
       const updated = [newSlot, ...saveSlots].slice(0, 5);
       setSaveSlots(updated);
-      localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
+      persistSaveSlotsLocally(getSaveKey(activeGame.gameName), updated);
       await syncCloudSaves(updated);
 
       toast({ title: "Partida guardada y subida a la nube", description: `"${name}"` });
@@ -1894,7 +1960,7 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
   const handleLoadState = async (slot: SaveSlot) => {
     if (!nostalgistRef.current) return;
     try {
-      const blob = base64ToBlob(slot.data);
+      const blob = await base64ToBlob(slot.data);
       await nostalgistRef.current.loadState(blob);
       toast({ title: "Partida cargada", description: `"${slot.name}"` });
       setShowLoadDialog(false);
@@ -1911,7 +1977,7 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
     if (!activeGame) return;
     const updated = saveSlots.filter((_, i) => i !== index);
     setSaveSlots(updated);
-    localStorage.setItem(getSaveKey(activeGame.gameName), JSON.stringify(updated));
+    persistSaveSlotsLocally(getSaveKey(activeGame.gameName), updated);
     await syncCloudSaves(updated);
     toast({ title: "Slot eliminado de tu PC y de la Nube" });
   };
