@@ -84,7 +84,7 @@ function PhotoCardMiniature({ photo, onExpand, onReaction, onHide, onDelete, onS
   return (
     <div 
       className={cn(
-        "relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
+        "social-hub-card social-hub-photo-card relative group rounded-xl bg-[#09090b] cursor-pointer transition-all duration-300 overflow-hidden shadow-sm h-full w-full",
         !hasNeon && "border border-border/50 hover:border-neon-orange hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]"
       )}
       style={neonStyle}

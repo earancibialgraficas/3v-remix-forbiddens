@@ -140,42 +140,10 @@ html[style*="--skin-primary"] button:not(.social-hub-page *):hover::after {
 }
 
 /*
- * Las skins decoran superficies muy amplias (.bg-card, .rounded.border, botones).
- * Esas reglas tienen mas especificidad que Tailwind y pueden pisar utilidades
- * estructurales usadas por popups/portales: fixed, absolute, sticky y scroll.
+ * Mantener portales/dropdowns encima de superficies tematizadas sin tocar
+ * utilidades globales de layout. Feed, Reels y emuladores dependen de esas
+ * utilidades para conservar su encuadre original.
  */
-html[style*="--skin-primary"] .relative {
-  position: relative !important;
-}
-
-html[style*="--skin-primary"] .absolute {
-  position: absolute !important;
-}
-
-html[style*="--skin-primary"] .fixed {
-  position: fixed !important;
-}
-
-html[style*="--skin-primary"] .sticky {
-  position: sticky !important;
-}
-
-html[style*="--skin-primary"] .overflow-visible {
-  overflow: visible !important;
-}
-
-html[style*="--skin-primary"] .overflow-auto {
-  overflow: auto !important;
-}
-
-html[style*="--skin-primary"] .overflow-y-auto {
-  overflow-y: auto !important;
-}
-
-html[style*="--skin-primary"] .overflow-x-auto {
-  overflow-x: auto !important;
-}
-
 html[style*="--skin-primary"] [data-radix-popper-content-wrapper] {
   position: fixed !important;
   z-index: 1000 !important;
@@ -2584,12 +2552,9 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border::af
   }
 }
 
-/* Theme backgrounds must remain visible on the web emulator landing screen. */
+/* Theme chrome only: the emulator carousel owns its dynamic background image. */
 html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen,
 html[data-skin-slug="demoniaco"] #batocera-screen.emulator-page-screen {
-  background:
-    linear-gradient(180deg, rgba(2, 0, 0, 0.78), rgba(5, 1, 1, 0.82)),
-    var(--skin-pattern-bg) center / cover no-repeat fixed !important;
   border-color: rgba(164, 32, 18, 0.46) !important;
   box-shadow:
     inset 0 0 90px rgba(0, 0, 0, 0.62),
@@ -2598,8 +2563,8 @@ html[data-skin-slug="demoniaco"] #batocera-screen.emulator-page-screen {
 
 html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen > div:first-of-type img,
 html[data-skin-slug="demoniaco"] #batocera-screen.emulator-page-screen > div:first-of-type img {
-  opacity: 0.24 !important;
-  mix-blend-mode: screen;
+  opacity: 0.42 !important;
+  mix-blend-mode: normal;
 }
 
 html[style*="--skin-slug: demoniaco"] .score-search-bubble {

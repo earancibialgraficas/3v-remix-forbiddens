@@ -445,10 +445,10 @@ function SnapCard({
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
-    <div className={cn("snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300 transform-gpu", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
+    <div className={cn("social-hub-card snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300 transform-gpu", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 transform-gpu", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
+      <div ref={videoContainerRef} className={cn("social-hub-video-frame absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 transform-gpu", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
