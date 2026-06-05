@@ -140,10 +140,41 @@ html[style*="--skin-primary"] button:not(.social-hub-page *):hover::after {
 }
 
 /*
- * Mantener portales/dropdowns encima de superficies tematizadas sin tocar
- * utilidades globales de layout. Feed, Reels y emuladores dependen de esas
- * utilidades para conservar su encuadre original.
+ * Reforzar utilidades de layout donde las skins decorativas pisan botones
+ * o paneles, pero sin entrar al Social Hub para no deformar Feed/Reels.
  */
+html[style*="--skin-primary"] .relative:not(.social-hub-page *) {
+  position: relative !important;
+}
+
+html[style*="--skin-primary"] .absolute:not(.social-hub-page *) {
+  position: absolute !important;
+}
+
+html[style*="--skin-primary"] .fixed:not(.social-hub-page *) {
+  position: fixed !important;
+}
+
+html[style*="--skin-primary"] .sticky:not(.social-hub-page *) {
+  position: sticky !important;
+}
+
+html[style*="--skin-primary"] .overflow-visible:not(.social-hub-page *) {
+  overflow: visible !important;
+}
+
+html[style*="--skin-primary"] .overflow-auto:not(.social-hub-page *) {
+  overflow: auto !important;
+}
+
+html[style*="--skin-primary"] .overflow-y-auto:not(.social-hub-page *) {
+  overflow-y: auto !important;
+}
+
+html[style*="--skin-primary"] .overflow-x-auto:not(.social-hub-page *) {
+  overflow-x: auto !important;
+}
+
 html[style*="--skin-primary"] [data-radix-popper-content-wrapper] {
   position: fixed !important;
   z-index: 1000 !important;
