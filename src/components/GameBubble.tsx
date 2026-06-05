@@ -1006,6 +1006,60 @@ export default function GameBubble() {
           const emuCore = getEmulatorJsCore(activeGame.consoleName);
           const romForFrame = String(romSrc);
           const safeRomFileName = romFileName || activeGame.gameName || "Game";
+          const isPspEmulatorJs = activeGame.consoleName === "psp";
+          const isN64EmulatorJs = activeGame.consoleName === "n64";
+          const isUncompressedN64Rom = /\.(z64|n64|v64)(?:[?#].*)?$/i.test(romForFrame)
+            || /\.(z64|n64|v64)$/i.test(safeRomFileName);
+          const emulatorCacheLimit = isN64EmulatorJs ? 512 : isPspEmulatorJs ? 64 : undefined;
+          const emulatorCacheConfig = isN64EmulatorJs
+            ? { enabled: true, maxSizeMB: 512, maxAgeMins: 43200 }
+            : isPspEmulatorJs
+              ? { enabled: false }
+              : undefined;
+          const emulatorDefaultOptions = isPspEmulatorJs
+            ? {
+                "save-state-location": "download",
+                "save-save-interval": "0",
+                rewindEnabled: "disabled",
+                fps: "hide",
+                vsync: "disabled",
+                webgl2Enabled: "enabled",
+                ppsspp_cpu_core: "IR JIT",
+                ppsspp_fast_memory: "enabled",
+                ppsspp_ignore_bad_memory_access: "enabled",
+                ppsspp_io_timing_method: "Fast",
+                ppsspp_auto_frameskip: "enabled",
+                ppsspp_frameskip: "4",
+                ppsspp_frameskiptype: "Number of frames",
+                ppsspp_frame_duplication: "enabled",
+                ppsspp_inflight_frames: "Up to 2",
+                ppsspp_internal_resolution: "480x272",
+                ppsspp_mulitsample_level: "Disabled",
+                ppsspp_texture_scaling_level: "disabled",
+                ppsspp_texture_anisotropic_filtering: "disabled",
+                ppsspp_texture_filtering: "Auto",
+                ppsspp_gpu_hardware_transform: "enabled",
+                ppsspp_vertex_cache: "enabled",
+                ppsspp_lazy_texture_caching: "enabled",
+                ppsspp_software_skinning: "enabled",
+                ppsspp_skip_buffer_effects: "enabled",
+                ppsspp_skip_gpu_readbacks: "enabled",
+                ppsspp_lower_resolution_for_effects: "Aggressive",
+                ppsspp_spline_quality: "Low",
+                ppsspp_sound_speedhack: "enabled",
+              }
+            : isN64EmulatorJs
+              ? {
+                  "save-state-location": "browser",
+                  "save-save-interval": "0",
+                  rewindEnabled: "disabled",
+                  fps: "hide",
+                  vsync: "enabled",
+                  webgl2Enabled: "enabled",
+                }
+              : undefined;
+          const dontExtractRom = isPspEmulatorJs || (isN64EmulatorJs && isUncompressedN64Rom);
+          const disableDatabases = !(isPspEmulatorJs || isN64EmulatorJs);
           const emulatorDataPath =
             activeGame.consoleName === "psp"
               ? `${window.location.origin}/emulatorjs-data/`
@@ -1250,7 +1304,24 @@ body.nds div[class*="canvas_parent"]{
   // Avisar al padre que el bridge está listo
   parent.postMessage({type:'forbiddens-gamepad-ready'}, '*');
 })();
-window.EJS_player="#game";window.EJS_core=${JSON.stringify(emuCore)};window.EJS_gameUrl=${JSON.stringify(romForFrame)};window.EJS_gameName=${JSON.stringify(safeRomFileName)};window.EJS_biosUrl=${JSON.stringify(biosUrl)};window.EJS_pathtodata=${JSON.stringify(emulatorDataPath)};window.EJS_startOnLoaded=true;window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && activeGame.consoleName==="psp" ? "true" : "false"};window.EJS_language="es-ES";window.EJS_volume=${JSON.stringify(volumeRef.current)};window.EJS_CacheLimit=${activeGame.consoleName === "psp" ? "67108864" : "undefined"};window.EJS_cacheConfig=${activeGame.consoleName === "psp" ? "{enabled:false}" : "undefined"};window.EJS_disableLocalStorage=${activeGame.consoleName === "psp" ? "true" : "false"};window.EJS_fixedSaveInterval=${activeGame.consoleName === "psp" ? "0" : "undefined"};window.EJS_defaultOptions=${activeGame.consoleName === "psp" ? '{"save-state-location":"download","save-save-interval":"0","rewindEnabled":"disabled","fps":"hide","vsync":"disabled","webgl2Enabled":"enabled","ppsspp_cpu_core":"IR JIT","ppsspp_fast_memory":"enabled","ppsspp_ignore_bad_memory_access":"enabled","ppsspp_io_timing_method":"Fast","ppsspp_auto_frameskip":"enabled","ppsspp_frameskip":"4","ppsspp_frameskiptype":"Number of frames","ppsspp_frame_duplication":"enabled","ppsspp_inflight_frames":"Up to 2","ppsspp_internal_resolution":"480x272","ppsspp_mulitsample_level":"Disabled","ppsspp_texture_scaling_level":"disabled","ppsspp_texture_anisotropic_filtering":"disabled","ppsspp_texture_filtering":"Auto","ppsspp_gpu_hardware_transform":"enabled","ppsspp_vertex_cache":"enabled","ppsspp_lazy_texture_caching":"enabled","ppsspp_software_skinning":"enabled","ppsspp_skip_buffer_effects":"enabled","ppsspp_skip_gpu_readbacks":"enabled","ppsspp_lower_resolution_for_effects":"Aggressive","ppsspp_spline_quality":"Low","ppsspp_sound_speedhack":"enabled"}' : "undefined"};window.EJS_dontExtractRom=${activeGame.consoleName === "psp" ? "true" : "false"};window.EJS_disableDatabases=${activeGame.consoleName === "psp" ? "false" : "true"};window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.EJS_player="#game";
+window.EJS_core=${JSON.stringify(emuCore)};
+window.EJS_gameUrl=${JSON.stringify(romForFrame)};
+window.EJS_gameName=${JSON.stringify(safeRomFileName)};
+window.EJS_biosUrl=${JSON.stringify(biosUrl)};
+window.EJS_pathtodata=${JSON.stringify(emulatorDataPath)};
+window.EJS_startOnLoaded=true;
+window.EJS_threads=${typeof window!=="undefined" && (window as any).crossOriginIsolated && isPspEmulatorJs ? "true" : "false"};
+window.EJS_language="es-ES";
+window.EJS_volume=${JSON.stringify(volumeRef.current)};
+window.EJS_CacheLimit=${JSON.stringify(emulatorCacheLimit)};
+window.EJS_cacheConfig=${JSON.stringify(emulatorCacheConfig)};
+window.EJS_disableLocalStorage=${isPspEmulatorJs ? "true" : "false"};
+window.EJS_fixedSaveInterval=${isPspEmulatorJs ? "0" : "undefined"};
+window.EJS_defaultOptions=${JSON.stringify(emulatorDefaultOptions)};
+window.EJS_dontExtractRom=${dontExtractRom ? "true" : "false"};
+window.EJS_disableDatabases=${disableDatabases ? "true" : "false"};
+window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
 </script><script src=${JSON.stringify(emulatorLoaderSrc)}></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
