@@ -150,7 +150,7 @@ type RositaLayoutVariant = "pc" | "mobilePortrait" | "mobileLandscape";
 const ROSITA_MOBILE_PORTRAIT_ZOOM_X = 1.21;
 const ROSITA_MOBILE_PORTRAIT_ZOOM_Y = 1.12;
 const ROSITA_LEGACY_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-v1";
-const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v3";
+const ROSITA_PC_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-pc-v4";
 const ROSITA_MOBILE_PORTRAIT_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-portrait-v5";
 const ROSITA_MOBILE_LANDSCAPE_LAYOUT_STORAGE_KEY = "forbiddens:rosita-nes-layout-mobile-landscape-v3";
 
@@ -271,6 +271,7 @@ const getDefaultRositaLayout = (variant: RositaLayoutVariant) => (
 
 const readRositaLayout = (variant: RositaLayoutVariant = "pc"): RositaLayout => {
   const defaults = getDefaultRositaLayout(variant);
+  if (variant === "pc") return defaults;
   if (typeof window === "undefined") return defaults;
   try {
     const raw = window.localStorage.getItem(getRositaLayoutStorageKey(variant)) || "";
@@ -302,6 +303,7 @@ const readRositaLayout = (variant: RositaLayoutVariant = "pc"): RositaLayout => 
 };
 
 const writeRositaLayout = (layout: RositaLayout, variant: RositaLayoutVariant = "pc") => {
+  if (variant === "pc") return;
   if (typeof window === "undefined") return;
   window.localStorage.setItem(getRositaLayoutStorageKey(variant), JSON.stringify(layout));
 };

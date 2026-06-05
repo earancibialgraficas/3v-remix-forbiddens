@@ -3019,3 +3019,29 @@ html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-c
   filter: none !important;
 }
 
+/* Final mercenario inventory/equipment frame safety: keep the overlay art visible. */
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
+html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > .demoniaco-shell-ornaments,
+html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell > .demoniaco-shell-ornaments {
+  display: block !important;
+  position: absolute !important;
+  z-index: 90 !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > *:not(.demoniaco-shell-ornaments),
+html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell > *:not(.demoniaco-shell-ornaments) {
+  position: relative;
+  z-index: 2;
+}
+

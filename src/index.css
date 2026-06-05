@@ -1030,6 +1030,7 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
     display: block !important;
     justify-content: initial !important;
     align-items: initial !important;
+    overflow: visible !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-touch-controller {
@@ -1325,6 +1326,11 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     container-type: size;
   }
 
