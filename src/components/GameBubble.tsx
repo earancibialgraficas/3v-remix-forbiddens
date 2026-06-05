@@ -80,6 +80,7 @@ const consoleIcons: Record<string, string> = {
 };
 
 const emulatorJsConsoles = new Set(["n64", "ps1", "arcade", "ds", "psp"]);
+const realCloudSaveConsoles = new Set(["n64", "ps1"]);
 
 const getEmulatorJsCore = (consoleName: string) => {
   if (consoleName === "n64") return "n64";
@@ -335,6 +336,8 @@ export default function GameBubble() {
   const emulatorFrameRef = useRef<HTMLIFrameElement>(null);
   const emulatorObjectUrlsRef = useRef<string[]>([]);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
+  const realSaveUploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRealSaveHashRef = useRef<string | null>(null);
 
   const [paused, setPaused] = useState(false);
 
@@ -357,6 +360,7 @@ export default function GameBubble() {
   const activeGame = activeGames[currentGameIndex] || null;
   const isPs2 = !!activeGame && activeGame.consoleName === "ps2";
   const usesEmulatorJs = !!activeGame && emulatorJsConsoles.has(activeGame.consoleName);
+  const usesRealCloudSaves = !!activeGame && usesEmulatorJs && realCloudSaveConsoles.has(activeGame.consoleName);
   const isN64 = !!activeGame && ["n64", "ps1", "arcade", "ps2", "psp"].includes(activeGame.consoleName);
   const usesRositaNesShell = !minimized && emulatorShell?.slug === "rosita_nes" && isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName);
 
@@ -791,6 +795,42 @@ export default function GameBubble() {
     }
   };
 
+  const normalizeRealSaveBytes = (value: any): Uint8Array | null => {
+    if (!value) return null;
+    if (value instanceof Uint8Array) return value;
+    if (value instanceof ArrayBuffer) return new Uint8Array(value);
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    if (Array.isArray(value)) return new Uint8Array(value);
+    if (value?.data) return normalizeRealSaveBytes(value.data);
+    return null;
+  };
+
+  const scheduleRealSaveUpload = (bytes: Uint8Array, hash?: string | null) => {
+    if (!user || !activeGame || !usesRealCloudSaves || !bytes.byteLength) return;
+    if (hash && hash === lastRealSaveHashRef.current) return;
+    if (hash) lastRealSaveHashRef.current = hash;
+
+    if (realSaveUploadTimerRef.current) {
+      clearTimeout(realSaveUploadTimerRef.current);
+    }
+
+    const snapshot = new Uint8Array(bytes);
+    realSaveUploadTimerRef.current = setTimeout(async () => {
+      try {
+        const { uploadGameRealSaveToCloudflare } = await import("@/lib/cloudSaveSync");
+        await uploadGameRealSaveToCloudflare({
+          gameName: activeGame.gameName,
+          consoleType: activeGame.consoleName,
+          data: bytesToBase64(snapshot),
+          size: snapshot.byteLength,
+          hash: hash || null,
+        });
+      } catch (error) {
+        console.error("Real save cloud sync error:", error);
+      }
+    }, 1200);
+  };
+
   useEffect(() => {
     if (activeGame) {
       const key = getSaveKey(activeGame.gameName);
@@ -1058,10 +1098,10 @@ export default function GameBubble() {
                 ppsspp_spline_quality: "Low",
                 ppsspp_sound_speedhack: "enabled",
               }
-            : isN64EmulatorJs
+            : usesRealCloudSaves
               ? {
                   "save-state-location": "browser",
-                  "save-save-interval": "0",
+                  "save-save-interval": "30",
                   rewindEnabled: "disabled",
                   fps: "hide",
                   vsync: "enabled",
@@ -1075,6 +1115,22 @@ export default function GameBubble() {
               ? `${window.location.origin}/emulatorjs-data/`
               : "https://cdn.emulatorjs.org/stable/data/";
           const emulatorLoaderSrc = `${emulatorDataPath}loader.js`;
+          let initialRealSaveBase64 = "";
+          if (usesRealCloudSaves && user) {
+            try {
+              const { downloadGameRealSaveFromCloudflare } = await import("@/lib/cloudSaveSync");
+              const cloudRealSave = await downloadGameRealSaveFromCloudflare({
+                gameName: activeGame.gameName,
+                consoleType: activeGame.consoleName,
+              });
+              if (cloudRealSave?.data) {
+                initialRealSaveBase64 = cloudRealSave.data;
+                lastRealSaveHashRef.current = cloudRealSave.hash || null;
+              }
+            } catch (error) {
+              console.error("Real save cloud load error:", error);
+            }
+          }
           // Mantiene los controles nativos de EmulatorJS en su posición original.
           // Solo limpiamos overlays basura y hacemos que el canvas quepa en pantalla.
           const ejsCss = `
@@ -1331,7 +1387,81 @@ window.EJS_fixedSaveInterval=${isPspEmulatorJs ? "0" : "undefined"};
 window.EJS_defaultOptions=${JSON.stringify(emulatorDefaultOptions)};
 window.EJS_dontExtractRom=${dontExtractRom ? "true" : "false"};
 window.EJS_disableDatabases=${disableDatabases ? "true" : "false"};
-window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-started"},"*")};
+window.__FORBIDDENS_INITIAL_REAL_SAVE=${JSON.stringify(initialRealSaveBase64)};
+function __forbiddensBytesFromBase64(value){
+  var binary = atob(value || "");
+  var bytes = new Uint8Array(binary.length);
+  for (var i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function __forbiddensCloneBytes(value){
+  if (!value) return null;
+  if (value instanceof Uint8Array) return new Uint8Array(value);
+  if (value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
+  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+  if (Array.isArray(value)) return new Uint8Array(value);
+  return null;
+}
+function __forbiddensGetSavePath(gm){
+  try { if (gm && typeof gm.getSaveFilePath === "function") return gm.getSaveFilePath(); } catch(_){}
+  try { if (gm && gm.functions && typeof gm.functions.getSaveFilePath === "function") return gm.functions.getSaveFilePath(); } catch(_){}
+  return "";
+}
+function __forbiddensApplyInitialRealSave(){
+  try{
+    var encoded = window.__FORBIDDENS_INITIAL_REAL_SAVE;
+    if (!encoded) return;
+    var ejs = window.EJS_emulator;
+    var gm = ejs && ejs.gameManager;
+    if (!gm) return setTimeout(__forbiddensApplyInitialRealSave, 300);
+    var bytes = __forbiddensBytesFromBase64(encoded);
+    if (!bytes || !bytes.length) return;
+    var fs = gm.FS || window.FS;
+    var savePath = __forbiddensGetSavePath(gm);
+    var wrote = false;
+    var paths = [];
+    if (savePath) paths.push(savePath);
+    paths.push("/data/saves/" + (window.EJS_gameName || "game") + ".srm");
+    paths.push("/data/saves/" + (window.EJS_gameName || "game") + ".sav");
+    paths.push("/home/web_user/retroarch/userdata/saves/" + (window.EJS_gameName || "game") + ".srm");
+    for (var p=0; p<paths.length && !wrote; p++){
+      try {
+        if (fs && typeof fs.writeFile === "function") {
+          fs.writeFile(paths[p], bytes);
+          wrote = true;
+        } else if (gm && typeof gm.writeFile === "function") {
+          gm.writeFile(paths[p], bytes);
+          wrote = true;
+        }
+      } catch(_){}
+    }
+    if (wrote) {
+      try { if (typeof gm.loadSaveFiles === "function") gm.loadSaveFiles(); } catch(_){}
+      try { if (gm.functions && typeof gm.functions.loadSaveFiles === "function") gm.functions.loadSaveFiles(); } catch(_){}
+      try { ejs.play && ejs.play(); } catch(_){}
+    }
+  }catch(err){
+    console.warn("FORBIDDENS real save restore failed", err);
+  }
+}
+window.EJS_onSaveUpdate=${usesRealCloudSaves ? `function(payload){
+  try{
+    var save = payload && payload.save;
+    var bytes = __forbiddensCloneBytes(save);
+    if (!bytes || !bytes.length) return;
+    parent.postMessage({
+      type:"forbiddens-real-save-update",
+      gameName:${JSON.stringify(activeGame.gameName)},
+      consoleType:${JSON.stringify(activeGame.consoleName)},
+      hash:(payload && payload.hash) || null,
+      save:bytes
+    },"*",[bytes.buffer]);
+  }catch(err){ console.warn("FORBIDDENS real save post failed", err); }
+}` : "undefined"};
+window.EJS_onGameStart=function(){
+  setTimeout(__forbiddensApplyInitialRealSave, 500);
+  parent.postMessage({type:"forbiddens-emulator-started"},"*");
+};
 </script><script src=${JSON.stringify(emulatorLoaderSrc)}></script></body></html>`;
 
           const onMessage = (event: MessageEvent) => {
@@ -1340,7 +1470,18 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
             lastInputRef.current = Date.now();
             window.removeEventListener("message", onMessage);
           };
+          const onRealSaveMessage = (event: MessageEvent) => {
+            const data = event.data;
+            if (!data || data.type !== "forbiddens-real-save-update") return;
+            if (data.gameName !== activeGame.gameName || data.consoleType !== activeGame.consoleName) return;
+            const bytes = normalizeRealSaveBytes(data.save);
+            if (!bytes || !bytes.byteLength) return;
+            scheduleRealSaveUpload(bytes, data.hash || null);
+          };
           window.addEventListener("message", onMessage);
+          if (usesRealCloudSaves) {
+            window.addEventListener("message", onRealSaveMessage);
+          }
           // `srcdoc` puede quedar inestable en algunos móviles/tablets con
           // Gamepad + blobs. Escribimos sobre about:blank para heredar origen
           // del padre y permitir que EmulatorJS cargue ROMs/CDN de forma normal.
@@ -1360,8 +1501,17 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
             pause: () => (frame.contentWindow as any)?.EJS_emulator?.pause?.(),
             resume: () => (frame.contentWindow as any)?.EJS_emulator?.play?.(),
             exit: () => {
+              window.removeEventListener("message", onRealSaveMessage);
               frame.srcdoc = "";
               revokeEmulatorObjectUrls();
+            },
+            flushRealSave: async () => {
+              const ejs = (frame.contentWindow as any)?.EJS_emulator;
+              const gm = ejs?.gameManager;
+              if (!gm) return;
+              try { if (typeof gm.saveSaveFiles === "function") gm.saveSaveFiles(); } catch {}
+              try { if (gm.functions && typeof gm.functions.saveSaveFiles === "function") gm.functions.saveSaveFiles(); } catch {}
+              await new Promise((r) => setTimeout(r, 250));
             },
             saveState: async () => {
               const ejs = (frame.contentWindow as any)?.EJS_emulator;
@@ -1573,6 +1723,8 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
     scheduleCanvasSurfaceSync,
     toast,
     usesEmulatorJs,
+    usesRealCloudSaves,
+    user?.id,
     revokeEmulatorObjectUrls,
   ]);
 
@@ -1903,6 +2055,12 @@ window.EJS_onGameStart=function(){parent.postMessage({type:"forbiddens-emulator-
 
   const autoSaveOnClose = async () => {
     if (!nostalgistRef.current || !activeGame) return;
+    if (realCloudSaveConsoles.has(activeGame.consoleName)) {
+      try {
+        await nostalgistRef.current.flushRealSave?.();
+      } catch {}
+      return;
+    }
     // 🚫 N64/PS1/Arcade: NO autoguardar estado al cerrar (el usuario lo gestiona localmente con .state).
     if (["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName)) return;
     try {
