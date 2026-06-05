@@ -521,12 +521,16 @@ export default function GameBubble() {
   useEffect(() => {
     setForceFloating(false);
     setExpandedControlsOpen(false);
+    setIsFullscreen(false);
     setPosition({ x: 0, y: 0 });
-    setPopupSize(getLargeGameWindowSize());
-  }, [activeGame?.romUrl]);
+    setPopupSize(usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : getLargeGameWindowSize());
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, [activeGame?.romUrl, isMobile, usesRositaNesShell]);
 
   // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
-  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2;
+  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesRositaNesShell;
   const isExpanded = isTheaterActive || isFullscreen;
 
   useEffect(() => {
@@ -534,7 +538,7 @@ export default function GameBubble() {
     const resizeToLargeWindow = () => {
       if (!document.fullscreenElement && !isTheaterActive) {
         setPosition({ x: 0, y: 0 });
-        setPopupSize(getLargeGameWindowSize());
+        setPopupSize(usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : getLargeGameWindowSize());
       }
     };
     window.addEventListener("resize", resizeToLargeWindow);
@@ -543,7 +547,7 @@ export default function GameBubble() {
       window.removeEventListener("resize", resizeToLargeWindow);
       window.removeEventListener("orientationchange", resizeToLargeWindow);
     };
-  }, [activeGame, isTheaterActive, minimized]);
+  }, [activeGame, isMobile, isTheaterActive, minimized, usesRositaNesShell]);
 
   useEffect(() => {
     if (!isExpanded) setExpandedControlsOpen(false);

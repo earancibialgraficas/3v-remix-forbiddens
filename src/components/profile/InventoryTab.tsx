@@ -24,12 +24,12 @@ interface InventoryTabProps {
   onStatChange?: () => void;
 }
 
-const INVENTORY_PAGE_SIZE = 18;
+const INVENTORY_DEFAULT_PAGE_SIZE = 18;
 const INVENTORY_MIN_PAGES = 6;
 export default function InventoryTab({ userId, profile, onWalletChange, onStatChange }: InventoryTabProps) {
   const { toast } = useToast();
   const tradeChannelRef = useRef<any>(null);
-  const slotItemsRef = useRef<any[]>(Array(INVENTORY_PAGE_SIZE).fill(null));
+  const slotItemsRef = useRef<any[]>(Array(INVENTORY_DEFAULT_PAGE_SIZE).fill(null));
   const tradeSlotsRef = useRef<any[]>(Array(4).fill(null));
   const sellSlotsRef = useRef<any[]>(Array(4).fill(null));
   const inventoryGridRef = useRef<HTMLDivElement | null>(null);
@@ -41,7 +41,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [wallet, setWallet] = useState(0);
   const [boosters, setBoosters] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
-  const [slotItems, setSlotItems] = useState<any[]>(Array(INVENTORY_PAGE_SIZE).fill(null));
+  const [slotItems, setSlotItems] = useState<any[]>(Array(INVENTORY_DEFAULT_PAGE_SIZE).fill(null));
   const [cursorItem, setCursorItem] = useState<any | null>(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [tradeSlots, setTradeSlots] = useState<any[]>(Array(4).fill(null));
@@ -72,7 +72,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [inventoryPage, setInventoryPage] = useState(0);
-  const inventorySlotsPerPage = INVENTORY_PAGE_SIZE;
+  const [inventorySlotsPerPage, setInventorySlotsPerPage] = useState(INVENTORY_DEFAULT_PAGE_SIZE);
+  const [inventoryColumns, setInventoryColumns] = useState(6);
 
   const totalBoosters = useMemo(
     () => boosters.filter((item) => item.item_slug === STAT_BOOST_SLUG).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
@@ -111,6 +112,37 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   useEffect(() => {
     if (inventoryPage >= inventoryPageCount) setInventoryPage(Math.max(0, inventoryPageCount - 1));
   }, [inventoryPage, inventoryPageCount]);
+
+  useEffect(() => {
+    const grid = inventoryGridRef.current;
+    if (!grid || typeof ResizeObserver === "undefined") return;
+
+    const updateSlotsPerPage = () => {
+      const width = grid.clientWidth;
+      if (!width) return;
+      const styles = window.getComputedStyle(grid);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || "8") || 8;
+      const padding =
+        (Number.parseFloat(styles.paddingLeft || "0") || 0) +
+        (Number.parseFloat(styles.paddingRight || "0") || 0);
+      const available = Math.max(0, width - padding);
+      const targetSlot = width < 420 ? 58 : width < 640 ? 64 : 78;
+      const columns = Math.max(2, Math.min(6, Math.floor((available + gap) / (targetSlot + gap))));
+      const rows = width < 520 ? 3 : 3;
+      const nextPageSize = Math.max(columns * rows, 6);
+      setInventoryColumns((current) => current === columns ? current : columns);
+      setInventorySlotsPerPage((current) => current === nextPageSize ? current : nextPageSize);
+    };
+
+    updateSlotsPerPage();
+    const observer = new ResizeObserver(updateSlotsPerPage);
+    observer.observe(grid);
+    window.addEventListener("orientationchange", updateSlotsPerPage);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("orientationchange", updateSlotsPerPage);
+    };
+  }, []);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -348,8 +380,8 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
       return true;
     });
     const slotCount = Math.max(
-      INVENTORY_PAGE_SIZE * INVENTORY_MIN_PAGES,
-      Math.ceil(Math.max(visibleBoosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / INVENTORY_PAGE_SIZE) * INVENTORY_PAGE_SIZE,
+      inventorySlotsPerPage * INVENTORY_MIN_PAGES,
+      Math.ceil(Math.max(visibleBoosters.length, Array.isArray(savedSnapshot) ? savedSnapshot.length : 0) / inventorySlotsPerPage) * inventorySlotsPerPage,
     );
     const nextSlots = Array(slotCount).fill(null);
     const availableById = new Map((visibleBoosters || []).map((item) => [String(item.id), item]));
@@ -401,7 +433,7 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
     tradeSlotsRef.current = Array(4).fill(null);
     setCursorItem(null);
     cursorItemRef.current = null;
-  }, [activeAvatarFrameSlug, activeEmulatorShellSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, userId]);
+  }, [activeAvatarFrameSlug, activeEmulatorShellSlug, activeProfileTransitionSlug, activeSkinSlugs, boosters, inventorySlotsPerPage, userId]);
 
   const searchUsers = async () => {
     if (!recipientSearch.trim()) return;
@@ -1672,7 +1704,11 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
             </div>
           )}
 
-          <div ref={inventoryGridRef} className="inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2">
+          <div
+            ref={inventoryGridRef}
+            className="inventory-slot-grid grid gap-2 rounded border border-black/60 bg-[#1b140f] p-2"
+            style={{ gridTemplateColumns: `repeat(${inventoryColumns}, minmax(0, 1fr))` }}
+          >
             {visibleSlotItems.map((item, pageIndex) => {
               const index = visibleInventoryStart + pageIndex;
               return (

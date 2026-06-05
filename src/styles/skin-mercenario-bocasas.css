@@ -2944,3 +2944,41 @@ html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:firs
   border-color: rgba(10, 1, 1, 0.92) !important;
 }
 
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card > div:first-child {
+  position: relative !important;
+  isolation: isolate;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child::before,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card > div:first-child::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r > div:first-child > *,
+html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card > div:first-child > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen {
+  background:
+    linear-gradient(180deg, rgba(5, 0, 0, 0.8), rgba(7, 1, 1, 0.84)),
+    var(--skin-pattern-bg, var(--demoniaco-surface-rock)) center / cover no-repeat fixed !important;
+  border-color: rgba(130, 28, 20, 0.55) !important;
+  box-shadow:
+    inset 0 0 90px rgba(0, 0, 0, 0.62),
+    0 0 46px rgba(226, 80, 61, 0.14) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
+  opacity: 0.22 !important;
+  mix-blend-mode: screen;
+}
+
