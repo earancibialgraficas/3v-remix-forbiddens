@@ -1176,7 +1176,7 @@ export default function FeedPage() {
   }, [filteredItems, hasMore, isFetching, isSnapping]);
 
   return (
-    <div className="animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
+    <div className="social-hub-page animate-fade-in flex flex-col h-[calc(100dvh-104px)] lg:h-[calc(100vh-50px)] w-full relative overflow-hidden bg-background">
       
       {/* 🔥 BANNER AUTO-OCULTABLE A LOS 2 SEG 🔥 */}
       <div className={cn("transition-all duration-700 overflow-hidden shrink-0 z-[150]", showHeader ? "max-h-[100px] opacity-100 pt-1 lg:pt-2 px-1 lg:px-2" : "max-h-0 opacity-0 pt-0 border-none")}>

@@ -736,7 +736,7 @@ export default function PhotoWallPage() {
   const reachedDailyLimit = !isStaff && dailyGlobalCount >= GLOBAL_DAILY_LIMIT;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
+    <div className="social-hub-page space-y-6 animate-fade-in pb-20 max-w-[1200px] mx-auto px-1 md:px-4">
       
       {/* Hide scrollbar styles injected for the horizontal filter container */}
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>

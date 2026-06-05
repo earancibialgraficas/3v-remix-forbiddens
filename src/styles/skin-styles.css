@@ -12,11 +12,11 @@ html[style*="--skin-primary"] body {
 }
 
 /* 🎨 Cards/paneles con textura — incluye .bg-card directos, aside y todos los .rounded.border */
-html[style*="--skin-primary"] .bg-card,
-html[style*="--skin-primary"] aside.bg-card,
-html[style*="--skin-primary"] .rounded.border,
-html[style*="--skin-primary"] .rounded-lg.border,
-html[style*="--skin-primary"] .rounded-md.border {
+html[style*="--skin-primary"] .bg-card:not(.social-hub-page *),
+html[style*="--skin-primary"] aside.bg-card:not(.social-hub-page *),
+html[style*="--skin-primary"] .rounded.border:not(.social-hub-page *),
+html[style*="--skin-primary"] .rounded-lg.border:not(.social-hub-page *),
+html[style*="--skin-primary"] .rounded-md.border:not(.social-hub-page *) {
   background: var(--skin-pattern-card) center/cover !important;
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
@@ -26,8 +26,8 @@ html[style*="--skin-primary"] .rounded-md.border {
 }
 
 /* 🎨 Efecto de variación en cards - Capas adicionales */
-html[style*="--skin-primary"] .bg-card::before,
-html[style*="--skin-primary"] aside.bg-card::before {
+html[style*="--skin-primary"] .bg-card:not(.social-hub-page *)::before,
+html[style*="--skin-primary"] aside.bg-card:not(.social-hub-page *)::before {
   content: '';
   position: absolute;
   top: 0;
@@ -58,7 +58,7 @@ html[style*="--skin-primary"] .text-muted-foreground {
 }
 
 /* 🎨 Bordes dinámicos - Solo con skin activa */
-html[style*="--skin-primary"] .border {
+html[style*="--skin-primary"] .border:not(.social-hub-page *) {
   border-color: var(--skin-border) !important;
 }
 
@@ -72,22 +72,22 @@ html[style*="--skin-primary"] .text-neon-magenta {
 }
 
 /* 🎨 Avatares con brillo - Solo con skin activa */
-html[style*="--skin-primary"] .rounded-full {
+html[style*="--skin-primary"] .rounded-full:not(.social-hub-page *) {
   box-shadow: 0 0 20px var(--skin-glow) !important;
   border-color: var(--skin-primary) !important;
 }
 
 /* 🎨 Hover effects - Solo con skin activa */
-html[style*="--skin-primary"] .hover\:border-neon-cyan\/50:hover {
+html[style*="--skin-primary"] .hover\:border-neon-cyan\/50:not(.social-hub-page *):hover {
   border-color: var(--skin-primary) !important;
   box-shadow: 0 0 20px var(--skin-glow) !important;
 }
 
 /* 🎨 Inputs y selects - Solo con skin activa */
-html[style*="--skin-primary"] input[type="text"],
-html[style*="--skin-primary"] input[type="number"],
-html[style*="--skin-primary"] textarea,
-html[style*="--skin-primary"] select {
+html[style*="--skin-primary"] input[type="text"]:not(.social-hub-page *),
+html[style*="--skin-primary"] input[type="number"]:not(.social-hub-page *),
+html[style*="--skin-primary"] textarea:not(.social-hub-page *),
+html[style*="--skin-primary"] select:not(.social-hub-page *) {
   background-color: var(--skin-card) !important;
   border-color: var(--skin-border) !important;
   color: var(--skin-text) !important;
@@ -95,9 +95,9 @@ html[style*="--skin-primary"] select {
   overflow: hidden;
 }
 
-html[style*="--skin-primary"] input[type="text"]::before,
-html[style*="--skin-primary"] input[type="number"]::before,
-html[style*="--skin-primary"] textarea::before {
+html[style*="--skin-primary"] input[type="text"]:not(.social-hub-page *)::before,
+html[style*="--skin-primary"] input[type="number"]:not(.social-hub-page *)::before,
+html[style*="--skin-primary"] textarea:not(.social-hub-page *)::before {
   content: '';
   position: absolute;
   top: 0;
@@ -108,22 +108,22 @@ html[style*="--skin-primary"] textarea::before {
   pointer-events: none;
 }
 
-html[style*="--skin-primary"] input[type="text"]:focus,
-html[style*="--skin-primary"] input[type="number"]:focus,
-html[style*="--skin-primary"] textarea:focus,
-html[style*="--skin-primary"] select:focus {
+html[style*="--skin-primary"] input[type="text"]:not(.social-hub-page *):focus,
+html[style*="--skin-primary"] input[type="number"]:not(.social-hub-page *):focus,
+html[style*="--skin-primary"] textarea:not(.social-hub-page *):focus,
+html[style*="--skin-primary"] select:not(.social-hub-page *):focus {
   border-color: var(--skin-primary) !important;
   box-shadow: 0 0 10px var(--skin-glow) !important;
 }
 
 /* 🎨 Botones con efectos adicionales - Solo con skin activa */
-html[style*="--skin-primary"] button,
-html[style*="--skin-primary"] [role="button"] {
+html[style*="--skin-primary"] button:not(.social-hub-page *),
+html[style*="--skin-primary"] [role="button"]:not(.social-hub-page *) {
   position: relative;
   overflow: hidden;
 }
 
-html[style*="--skin-primary"] button::after {
+html[style*="--skin-primary"] button:not(.social-hub-page *)::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -135,7 +135,7 @@ html[style*="--skin-primary"] button::after {
   pointer-events: none;
 }
 
-html[style*="--skin-primary"] button:hover::after {
+html[style*="--skin-primary"] button:not(.social-hub-page *):hover::after {
   animation: ripple 0.6s ease-out;
 }
 
@@ -307,10 +307,10 @@ html[style*="--skin-slug: demoniaco"] aside.bg-card.border-r::after {
   content: none !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .bg-card,
-html[style*="--skin-slug: demoniaco"] .rounded.border,
-html[style*="--skin-slug: demoniaco"] .rounded-lg.border,
-html[style*="--skin-slug: demoniaco"] .rounded-md.border {
+html[style*="--skin-slug: demoniaco"] .bg-card:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .rounded.border:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .rounded-lg.border:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .rounded-md.border:not(.social-hub-page *) {
   background: var(--skin-pattern-panel) !important;
   border-color: var(--skin-panel-border-soft) !important;
   box-shadow:
@@ -362,29 +362,29 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-profile-tabs.bg-card.border > b
   color: #ffd4c2 !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .bg-card:hover,
-html[style*="--skin-slug: demoniaco"] .rounded.border:hover,
-html[style*="--skin-slug: demoniaco"] .rounded-lg.border:hover {
+html[style*="--skin-slug: demoniaco"] .bg-card:not(.social-hub-page *):hover,
+html[style*="--skin-slug: demoniaco"] .rounded.border:not(.social-hub-page *):hover,
+html[style*="--skin-slug: demoniaco"] .rounded-lg.border:not(.social-hub-page *):hover {
   border-color: rgba(211, 48, 27, 0.86) !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .bg-card::before,
-html[style*="--skin-slug: demoniaco"] aside.bg-card::before {
+html[style*="--skin-slug: demoniaco"] .bg-card:not(.social-hub-page *)::before,
+html[style*="--skin-slug: demoniaco"] aside.bg-card:not(.social-hub-page *)::before {
   background: none !important;
   mix-blend-mode: normal;
   opacity: 0 !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border,
-html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border,
-html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border {
+html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border:not(.social-hub-page *) {
   border-color: var(--skin-panel-border) !important;
   position: relative;
 }
 
-html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border::after,
-html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border::after,
-html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border::after {
+html[style*="--skin-slug: demoniaco"] .space-y-4 > .bg-card.border:not(.social-hub-page *)::after,
+html[style*="--skin-slug: demoniaco"] .grid.gap-3 > .rounded.border:not(.social-hub-page *)::after,
+html[style*="--skin-slug: demoniaco"] .md\:grid-cols-\[1fr_320px\] > .rounded.border:not(.social-hub-page *)::after {
   display: none !important;
   content: none !important;
 }
@@ -541,23 +541,23 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-active-skin-chip {
   box-shadow: inset 0 0 0 1px rgba(255, 136, 51, 0.12), 0 0 14px rgba(255, 43, 12, 0.22) !important;
 }
 
-html[style*="--skin-slug: demoniaco"] button:not([class*="ghost"]),
-html[style*="--skin-slug: demoniaco"] [role="button"]:not([class*="ghost"]) {
+html[style*="--skin-slug: demoniaco"] button:not(.social-hub-page *):not([class*="ghost"]),
+html[style*="--skin-slug: demoniaco"] [role="button"]:not(.social-hub-page *):not([class*="ghost"]) {
   border-color: rgba(177, 45, 29, 0.72) !important;
 }
 
-html[style*="--skin-slug: demoniaco"] button.bg-primary,
-html[style*="--skin-slug: demoniaco"] button[class*="bg-destructive"],
-html[style*="--skin-slug: demoniaco"] button[class*="bg-\\["],
-html[style*="--skin-slug: demoniaco"] .bg-primary {
+html[style*="--skin-slug: demoniaco"] button.bg-primary:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] button[class*="bg-destructive"]:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] button[class*="bg-\\["]:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] .bg-primary:not(.social-hub-page *) {
   background: var(--skin-pattern-button) !important;
   color: #ffd8bd !important;
   text-shadow: 0 0 8px rgba(255, 68, 23, 0.7) !important;
 }
 
-html[style*="--skin-slug: demoniaco"] input,
-html[style*="--skin-slug: demoniaco"] textarea,
-html[style*="--skin-slug: demoniaco"] select {
+html[style*="--skin-slug: demoniaco"] input:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] textarea:not(.social-hub-page *),
+html[style*="--skin-slug: demoniaco"] select:not(.social-hub-page *) {
   background:
     linear-gradient(180deg, rgba(8, 7, 7, 0.94), rgba(16, 6, 5, 0.9)) !important;
   border-color: rgba(151, 44, 31, 0.76) !important;
@@ -579,7 +579,7 @@ html[style*="--skin-slug: demoniaco"] .text-neon-magenta {
   color: #d76655 !important;
 }
 
-html[style*="--skin-slug: demoniaco"] .rounded-full {
+html[style*="--skin-slug: demoniaco"] .rounded-full:not(.social-hub-page *) {
   border-color: rgba(255, 67, 24, 0.92) !important;
   box-shadow: 0 0 0 2px rgba(24, 5, 5, 0.9), 0 0 22px rgba(255, 53, 18, 0.62) !important;
 }
