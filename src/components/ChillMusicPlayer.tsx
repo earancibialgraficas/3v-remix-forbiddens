@@ -300,6 +300,27 @@ export default function ChillMusicPlayer() {
     localStorage.setItem(MUSIC_SESSION_KEY, JSON.stringify(session));
   }, [activePersonalPlaylistId, current, currentCategory, currentIndex, currentTime, isPlaying, playlist, playlistName, volume]);
 
+  const attemptLocalPlayback = useCallback((reason = "play") => {
+    const audio = audioRef.current;
+    if (!audio || current?.type !== 'local') return;
+
+    audio.volume = volume / 100;
+    if (timeToRestoreRef.current !== null && Number.isFinite(timeToRestoreRef.current)) {
+      audio.currentTime = Math.max(0, timeToRestoreRef.current);
+      timeToRestoreRef.current = null;
+    } else if (currentTime > 0 && Math.abs(audio.currentTime - currentTime) > 1) {
+      audio.currentTime = currentTime;
+    }
+
+    const playResult = audio.play();
+    if (playResult && typeof playResult.catch === "function") {
+      playResult.catch((error) => {
+        console.warn(`No se pudo reproducir la cancion local (${reason}).`, error);
+        if (error?.name !== "AbortError") setIsPlaying(false);
+      });
+    }
+  }, [current?.type, current?.url, currentTime, volume]);
+
   const [songToast, setSongToast] = useState<{ id: number; title: string } | null>(null);
   const lastNotifiedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -364,7 +385,7 @@ export default function ChillMusicPlayer() {
           if (actualTimeRef.current > 0 && Math.abs(audioRef.current.currentTime - actualTimeRef.current) > 1) {
             audioRef.current.currentTime = actualTimeRef.current;
           }
-          audioRef.current.play().catch(() => {});
+          attemptLocalPlayback("portal-sync");
         }
       } else if (current?.type === 'youtube' && iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
@@ -376,7 +397,7 @@ export default function ChillMusicPlayer() {
       }
     }, 150);
     return () => clearTimeout(t);
-  }, [portalTarget, current, isPlaying, volume]);
+  }, [attemptLocalPlayback, portalTarget, current, isPlaying, volume]);
 
   useEffect(() => {
     setMinimized(isMobile);
@@ -475,6 +496,25 @@ export default function ChillMusicPlayer() {
     }
   };
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (current?.type !== 'local') {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      return;
+    }
+
+    audio.volume = volume / 100;
+    audio.load();
+    if (!isPlaying) return;
+
+    const timer = window.setTimeout(() => attemptLocalPlayback("source-change"), 100);
+    return () => window.clearTimeout(timer);
+  }, [attemptLocalPlayback, current?.type, current?.url, isPlaying, volume]);
+
   const handleCategoryChange = (cat: string) => {
     setCurrentCategory(cat);
     setActivePersonalPlaylistId(null);
@@ -509,9 +549,7 @@ export default function ChillMusicPlayer() {
       if (audioRef.current) {
         audioRef.current.volume = volume / 100;
         if (isPlaying) {
-          audioRef.current.play().catch(e => {
-            setIsPlaying(false);
-          });
+          attemptLocalPlayback("state-sync");
         } else {
           audioRef.current.pause();
         }
@@ -534,7 +572,7 @@ export default function ChillMusicPlayer() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isPlaying, currentIndex, volume, current]);
+  }, [attemptLocalPlayback, isPlaying, currentIndex, volume, current]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
@@ -1213,10 +1251,22 @@ export default function ChillMusicPlayer() {
     <audio 
       ref={audioRef}
       src={current?.type === 'local' ? current.url : ""}
+      preload="auto"
       onTimeUpdate={handleLocalTimeUpdate}
       onLoadedMetadata={handleLocalLoadedMeta}
+      onCanPlay={() => {
+        if (isPlaying) attemptLocalPlayback("canplay");
+      }}
       onEnded={handleLocalEnded}
-      crossOrigin="anonymous"
+      onError={() => {
+        const error = audioRef.current?.error;
+        console.warn("Error cargando audio local.", {
+          code: error?.code,
+          message: error?.message,
+          url: current?.type === 'local' ? current.url : "",
+        });
+        setIsPlaying(false);
+      }}
     />
   );
 
