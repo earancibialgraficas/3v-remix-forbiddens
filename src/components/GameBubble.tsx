@@ -711,6 +711,18 @@ export default function GameBubble() {
     const safeSlots = slotsToSync.slice(0, 5);
     const slotsJson = JSON.stringify(safeSlots);
 
+    try {
+      const { uploadSaveSlotsToCloudflare } = await import("@/lib/cloudSaveSync");
+      await uploadSaveSlotsToCloudflare({
+        gameName: activeGame.gameName,
+        consoleType: activeGame.consoleName,
+        slotsJson,
+      });
+      return;
+    } catch (e) {
+      console.error("Cloudflare save error, falling back:", e);
+    }
+
     // ☁️ Para EmulatorJS cores (N64/PS1/Arcade): subir a Google Drive en lugar de DB.
     const useDrive = ["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName);
     if (useDrive) {
@@ -788,14 +800,24 @@ export default function GameBubble() {
           const useDrive = ["n64", "ps1", "arcade", "psp"].includes(activeGame.consoleName);
           try {
             let cloudJson: string | null = null;
-            if (useDrive) {
+            try {
+              const { downloadSaveSlotsFromCloudflare } = await import("@/lib/cloudSaveSync");
+              cloudJson = await downloadSaveSlotsFromCloudflare({
+                gameName: activeGame.gameName,
+                consoleType: activeGame.consoleName,
+              });
+            } catch (e) {
+              console.error("Cloudflare load error, falling back:", e);
+            }
+
+            if (!cloudJson && useDrive) {
               const { downloadSaveSlotsFromDrive } = await import("@/lib/driveSaves");
               cloudJson = await downloadSaveSlotsFromDrive({
                 userId: user.id,
                 gameName: activeGame.gameName,
                 consoleType: activeGame.consoleName,
               });
-            } else {
+            } else if (!cloudJson) {
               const { data } = await supabase
                 .from("leaderboard_scores")
                 .select("game_state")
