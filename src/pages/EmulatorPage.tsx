@@ -750,7 +750,7 @@ export default function EmulatorPage() {
             <div className="mb-4 sm:mb-8 md:mb-12 text-center transition-all duration-500 px-3 sm:px-4 max-w-full w-full">
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                 <h2
-                  className="font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap"
+                  className="emulator-console-title font-pixel leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight uppercase whitespace-nowrap"
                   style={{
                     // Escala el tamaño según el largo de la abreviación para que nunca se salga del encuadre.
                     fontSize: `clamp(0.9rem, ${Math.min(5, 70 / Math.max(currentSystem.short.length, 4))}vw, 3rem)`,
@@ -768,7 +768,7 @@ export default function EmulatorPage() {
                 )}
                 {currentSystem.nativeOnly && !launcherDetected && (
                   <span
-                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    className="emulator-console-badge font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
                     title="Esta consola usa emulador nativo desde FORBIDDENS Launcher"
                   >
                     Solo launcher
@@ -776,17 +776,17 @@ export default function EmulatorPage() {
                 )}
                 {requiresLite(currentSystem.id) && !canPlayExtraConsole(profile?.membership_tier, isStaff) && (
                   <span
-                    className="font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+                    className="emulator-console-badge font-pixel text-[8px] sm:text-[10px] md:text-[11px] tracking-widest uppercase px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-neon-cyan/60 bg-neon-cyan/15 text-neon-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]"
                     title="Requiere membresía LITE o superior"
                   >
                     🔒 Requiere LITE
                   </span>
                 )}
               </div>
-              <p className="mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
+              <p className="emulator-console-description mt-1 sm:mt-2 font-body text-[10px] sm:text-xs md:text-sm text-white/60 italic">
                 ({currentSystem.name})
                 {currentSystem.nativeOnly && !launcherDetected && (
-                  <span className="ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-neon-cyan/90">
+                  <span className="emulator-console-native-label ml-2 not-italic font-pixel text-[7px] sm:text-[8px] md:text-[9px] tracking-widest uppercase text-neon-cyan/90">
                     · Emulador nativo
                   </span>
                 )}

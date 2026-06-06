@@ -350,6 +350,10 @@ export default function PublicProfilePage() {
     return acc;
   }, {}));
   const statPoints = Math.max(0, Number(profile.total_score || 0));
+  const betFcoinsEarned = bestScores.reduce((sum, score: any) => {
+    const category = String(score.console_type || "").toUpperCase();
+    return category === "BET" || category.startsWith("BET") ? sum + Number(score.score || 0) : sum;
+  }, 0);
   const displayTier = isStaffVisual ? "STAFF" : profile.membership_tier.toUpperCase();
   const membershipRemaining = !isStaffVisual && profile.membership_tier?.toLowerCase() !== "novato" ? formatMembershipRemaining(profile.membership_expires_at) : null;
   const activeSocialItem = userSocialMedia.length ? userSocialMedia[socialCarouselIndex % userSocialMedia.length] : null;
@@ -424,6 +428,7 @@ export default function PublicProfilePage() {
           {[
             { val: statPoints.toLocaleString(), label: "Puntos", color: "text-neon-green" },
             { val: fcoinBalance.toLocaleString("es-CL"), label: "F-coins", color: "text-[#f7d28b]", icon: Gem },
+            { val: betFcoinsEarned.toLocaleString("es-CL"), label: "F-coins ganados", color: "text-[#f7d28b]", icon: Gem },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
             { val: followingCount, label: "Siguiendo", color: "text-foreground" },
             { val: totalForumPosts, label: "Posts Foro", color: "text-neon-cyan" },

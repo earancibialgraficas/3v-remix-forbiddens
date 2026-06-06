@@ -4174,21 +4174,25 @@ html[style*="--skin-slug: angelical"] .home-hero .animate-blink {
   text-shadow: none !important;
 }
 
-html[style*="--skin-slug: angelical"] .home-hero img[alt="Forbiddens Logo"] {
-  filter: brightness(0) saturate(100%) invert(41%) sepia(15%) saturate(1742%) hue-rotate(238deg) brightness(94%) contrast(89%) drop-shadow(0 0 10px rgba(255, 255, 255, 0.38)) !important;
-}
-
 html[style*="--skin-slug: angelical"] .home-hero .launcher-download-button {
   background: #8f5cad !important;
   color: #fff !important;
   border: 1px solid rgba(255, 255, 255, 0.46) !important;
-  box-shadow: 0 12px 26px rgba(103, 64, 128, 0.22) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero .launcher-download-button * {
+  color: #fff !important;
+  text-shadow: none !important;
 }
 
 html[style*="--skin-slug: angelical"] .home-hero .launcher-download-button:hover {
-  background: #7e4f9c !important;
+  background: linear-gradient(135deg, #b4477f, #8f5cad) !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
   color: #fff !important;
   transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(180, 71, 127, 0.22) !important;
 }
 
 html[style*="--skin-slug: angelical"] .home-hero a:hover,
@@ -4200,22 +4204,18 @@ html[style*="--skin-slug: angelical"] .home-hero button:hover {
   text-shadow: none !important;
 }
 
-html[style*="--skin-slug: angelical"] .forum-post-avatar-side img {
-  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 62%, rgba(0, 0, 0, 0.58) 78%, transparent 100%);
-  mask-image: linear-gradient(to left, #000 0%, #000 62%, rgba(0, 0, 0, 0.58) 78%, transparent 100%);
+html[style*="--skin-slug: angelical"] .forum-post-avatar-side img,
+html[style*="--skin-slug: angelical"] .forum-post-avatar-banner img {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-avatar-side .forum-post-avatar-overlay {
-  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.82) 34%, rgba(255, 240, 248, 0.26) 68%, transparent 100%) !important;
-}
-
-html[style*="--skin-slug: angelical"] .forum-post-avatar-banner img {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0, 0, 0, 0.62) 78%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0, 0, 0, 0.62) 78%, transparent 100%);
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.78) 42%, rgba(255, 240, 248, 0.28) 72%, transparent 100%) !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-avatar-banner .forum-post-avatar-overlay {
-  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.76) 44%, transparent 100%) !important;
+  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.82) 56%, transparent 100%) !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-author-name {
@@ -4223,8 +4223,9 @@ html[style*="--skin-slug: angelical"] .forum-post-author-name {
 }
 
 html[style*="--skin-slug: angelical"] .public-profile-video-layer {
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.42) 12%, #000 28%, #000 72%, rgba(0, 0, 0, 0.42) 88%, transparent 100%) !important;
-  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.42) 12%, #000 28%, #000 72%, rgba(0, 0, 0, 0.42) 88%, transparent 100%) !important;
+  right: 0 !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%) !important;
 }
 
 html[style*="--skin-slug: angelical"] .public-profile-video-layer::after {
@@ -4233,6 +4234,60 @@ html[style*="--skin-slug: angelical"] .public-profile-video-layer::after {
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  background:
-    linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 14%, transparent 30%, transparent 70%, rgba(255, 240, 248, 0.62) 86%, hsl(var(--card)) 100%);
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 16%, transparent 34%);
+}
+
+/* Public profile video should always sit flush right and fade into content from the left. */
+.public-profile-video-layer {
+  right: 0 !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 12%, #000 30%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 12%, #000 30%, #000 100%);
+}
+
+html[style*="--skin-primary"] .public-profile-video-layer {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* Rosa Pastel targeted overrides that must beat earlier white/neon rules. */
+html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-title,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-description,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-description span,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-native-label {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-badge {
+  background: rgba(217, 183, 230, 0.55) !important;
+  border-color: rgba(143, 92, 173, 0.56) !important;
+  color: #8f5cad !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-category-title,
+html[style*="--skin-slug: angelical"] .home-category-title svg {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .chill-music-seek [class*="bg-secondary"] {
+  background: rgba(217, 183, 230, 0.46) !important;
+}
+
+html[style*="--skin-slug: angelical"] .chill-music-seek [class*="bg-primary"] {
+  background: #8f5cad !important;
+}
+
+html[style*="--skin-slug: angelical"] .chill-music-seek [class*="border-primary"] {
+  border-color: #8f5cad !important;
+  box-shadow: 0 0 0 2px rgba(217, 183, 230, 0.38) !important;
+}
+
+html[style*="--skin-slug: angelical"] .chill-current-song-title {
+  color: #8f5cad !important;
+  text-shadow: none !important;
 }

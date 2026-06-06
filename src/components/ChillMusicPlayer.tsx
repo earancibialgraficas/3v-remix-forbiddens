@@ -1608,7 +1608,7 @@ export default function ChillMusicPlayer() {
         </div>
 
         <div className="px-3 pb-1">
-          <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="w-full" />
+          <Slider value={[displayTime]} onValueChange={handleSeekChange} onValueCommit={handleSeekCommit} max={sliderMax} step={1} className="chill-music-seek w-full" />
           <div className="flex justify-between text-[8px] text-muted-foreground font-body mt-0.5">
             <span>{formatTime(displayTime)}</span>
             <span>{duration ? formatTime(duration) : current?.type === 'youtube' ? "cargando" : "0:00"}</span>

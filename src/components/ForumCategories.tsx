@@ -82,7 +82,7 @@ export default function ForumCategories() {
             <div className="flex items-start gap-3">
               <cat.icon className={cn("w-6 h-6 shrink-0 mt-0.5", cat.color, cat.glowClass)} />
               <div className="min-w-0">
-                <h3 className={cn("font-pixel text-xs mb-1", cat.color)}>{cat.title}</h3>
+                <h3 className={cn("home-category-title font-pixel text-xs mb-1", cat.color)}>{cat.title}</h3>
                 <p className="text-xs text-muted-foreground font-body mb-2">{cat.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {cat.subs.map((sub) => (
