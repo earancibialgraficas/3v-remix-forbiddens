@@ -1307,7 +1307,7 @@ export default function ChillMusicPlayer() {
               {[0, 1].map((k) => (
                 <span
                   key={k}
-                  className="font-pixel leading-none px-2"
+                  className="chill-current-song-title font-pixel leading-none px-2"
                   style={{
                     color: '#00f2fe',
                     fontSize: '7px',
@@ -1488,7 +1488,7 @@ export default function ChillMusicPlayer() {
               {[0, 1].map((k) => (
                 <span
                   key={k}
-                  className="font-pixel leading-none px-2 mt-[1px]"
+                  className="chill-current-song-title font-pixel leading-none px-2 mt-[1px]"
                   style={{
                     color: '#00f2fe',
                     fontSize: '10px',
@@ -1586,7 +1586,7 @@ export default function ChillMusicPlayer() {
               {[0, 1, 2].map((k) => (
                 <span
                   key={k}
-                  className="font-pixel leading-none px-4 mt-[1px]"
+                  className="chill-current-song-title font-pixel leading-none px-4 mt-[1px]"
                   style={{
                     color: '#00f2fe',
                     fontSize: '9px',

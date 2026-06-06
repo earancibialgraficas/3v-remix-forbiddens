@@ -198,7 +198,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="leaderboard-page space-y-4 animate-fade-in">
       <div className="bg-card border border-neon-yellow/30 rounded p-4">
         <h1 className="font-pixel text-sm text-neon-yellow mb-1 flex items-center gap-2">
           <Trophy className="w-4 h-4" /> LEA<VaultHint letter="D" position={6} color="text-neon-green" />ERBOARDS

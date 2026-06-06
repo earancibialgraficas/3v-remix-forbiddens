@@ -4090,3 +4090,149 @@ html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-a
       0 0 28px color-mix(in srgb, var(--social-skin-accent) 18%, transparent) !important;
   }
 }
+
+/* Rosa Pastel surgical polish: text contrast, hover states and avatar/video fades. */
+html[style*="--skin-slug: angelical"] .chill-current-song-title,
+html[style*="--skin-slug: angelical"] .rosita-song-toast .chill-current-song-title,
+html[style*="--skin-slug: angelical"] .rosita-song-toast span {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2,
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2 + p,
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2 + p span,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .max-w-md > p,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .text-neon-cyan,
+html[style*="--skin-slug: angelical"] .emulator-page-screen [class*="text-neon-cyan"] {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen span[class*="border-neon-cyan"],
+html[style*="--skin-slug: angelical"] .emulator-page-screen button[class*="border-neon-cyan"] {
+  background: rgba(217, 183, 230, 0.52) !important;
+  border-color: rgba(143, 92, 173, 0.5) !important;
+  color: #8f5cad !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel > div:first-child h3 {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel > div:first-child h3 svg {
+  color: #fff !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .leaderboard-page > div:first-child,
+html[style*="--skin-slug: angelical"] .leaderboard-page .leaderboard-filter-bar {
+  border-color: rgba(143, 92, 173, 0.34) !important;
+}
+
+html[style*="--skin-slug: angelical"] .leaderboard-page div.bg-muted.border-b {
+  background: linear-gradient(135deg, #8f5cad, #b783c8) !important;
+  border-color: rgba(255, 255, 255, 0.34) !important;
+}
+
+html[style*="--skin-slug: angelical"] .leaderboard-page div.bg-muted.border-b h2,
+html[style*="--skin-slug: angelical"] .leaderboard-page div.bg-muted.border-b svg,
+html[style*="--skin-slug: angelical"] .leaderboard-page div.bg-muted.border-b span {
+  color: #ffd9eb !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] aside nav a:hover,
+html[style*="--skin-slug: angelical"] aside nav button:hover {
+  background: linear-gradient(135deg, rgba(255, 218, 236, 0.82), rgba(246, 168, 201, 0.58)) !important;
+  border-color: rgba(143, 92, 173, 0.32) !important;
+  color: #8f5cad !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32), 0 8px 18px rgba(180, 71, 127, 0.12) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] aside nav a:hover *,
+html[style*="--skin-slug: angelical"] aside nav button:hover * {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero h1 {
+  color: #7e4f9c !important;
+  -webkit-text-stroke: 0.45px rgba(255, 255, 255, 0.78);
+  paint-order: stroke fill;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero p,
+html[style*="--skin-slug: angelical"] .home-hero p *,
+html[style*="--skin-slug: angelical"] .home-hero .animate-blink {
+  color: #674080 !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero img[alt="Forbiddens Logo"] {
+  filter: brightness(0) saturate(100%) invert(41%) sepia(15%) saturate(1742%) hue-rotate(238deg) brightness(94%) contrast(89%) drop-shadow(0 0 10px rgba(255, 255, 255, 0.38)) !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero .launcher-download-button {
+  background: #8f5cad !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.46) !important;
+  box-shadow: 0 12px 26px rgba(103, 64, 128, 0.22) !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero .launcher-download-button:hover {
+  background: #7e4f9c !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+html[style*="--skin-slug: angelical"] .home-hero a:hover,
+html[style*="--skin-slug: angelical"] .home-hero button:hover {
+  background: linear-gradient(135deg, #b4477f, #8f5cad) !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(180, 71, 127, 0.22) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .forum-post-avatar-side img {
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 62%, rgba(0, 0, 0, 0.58) 78%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 0%, #000 62%, rgba(0, 0, 0, 0.58) 78%, transparent 100%);
+}
+
+html[style*="--skin-slug: angelical"] .forum-post-avatar-side .forum-post-avatar-overlay {
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.82) 34%, rgba(255, 240, 248, 0.26) 68%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .forum-post-avatar-banner img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0, 0, 0, 0.62) 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0, 0, 0, 0.62) 78%, transparent 100%);
+}
+
+html[style*="--skin-slug: angelical"] .forum-post-avatar-banner .forum-post-avatar-overlay {
+  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.76) 44%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .forum-post-author-name {
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .public-profile-video-layer {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.42) 12%, #000 28%, #000 72%, rgba(0, 0, 0, 0.42) 88%, transparent 100%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.42) 12%, #000 28%, #000 72%, rgba(0, 0, 0, 0.42) 88%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .public-profile-video-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 14%, transparent 30%, transparent 70%, rgba(255, 240, 248, 0.62) 86%, hsl(var(--card)) 100%);
+}

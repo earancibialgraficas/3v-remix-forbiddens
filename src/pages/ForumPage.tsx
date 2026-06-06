@@ -1294,7 +1294,7 @@ export default function ForumPage() {
                     <div className="forum-post-avatar-banner sm:hidden w-full aspect-[3/1] relative">
                       <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                       <div className="forum-post-avatar-overlay absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-                      <div className="absolute bottom-1.5 left-3 right-3 text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
+                      <div className="forum-post-author-name absolute bottom-1.5 left-3 right-3 text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
                         {authorProfile.display_name}
                       </div>
                     </div>
@@ -1302,7 +1302,7 @@ export default function ForumPage() {
                     <div className="forum-post-avatar-side hidden sm:block absolute top-0 right-0 h-full w-1/3 pointer-events-none">
                       <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                       <div className="forum-post-avatar-overlay absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
-                      <div className="absolute bottom-2 left-0 right-3 text-right text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
+                      <div className="forum-post-author-name absolute bottom-2 left-0 right-3 text-right text-[11px] font-body font-semibold truncate text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" style={getNameStyle(authorProfile.color_name)}>
                         {authorProfile.display_name}
                       </div>
                     </div>
