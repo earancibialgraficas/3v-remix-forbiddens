@@ -2633,6 +2633,113 @@ html[style*="--skin-slug: angelical"] .store-page h3 {
   }
 }
 
+/* Rosa Pastel detail pass. */
+html[style*="--skin-slug: angelical"] [role="tab"][data-state="active"],
+html[style*="--skin-slug: angelical"] button[data-state="active"],
+html[style*="--skin-slug: angelical"] .demoniaco-profile-tabs > button[class*="bg-muted"],
+html[style*="--skin-slug: angelical"] aside nav button[class*="bg-muted"],
+html[style*="--skin-slug: angelical"] aside nav a[class*="bg-muted"],
+html[style*="--skin-slug: angelical"] aside nav a[class*="bg-primary"],
+html[style*="--skin-slug: angelical"] aside nav button[class*="bg-primary"] {
+  background: linear-gradient(135deg, #8f5cad, #b783c8) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 8px 18px rgba(103, 64, 128, 0.18) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] aside nav button[class*="bg-muted"] *,
+html[style*="--skin-slug: angelical"] aside nav a[class*="bg-muted"] *,
+html[style*="--skin-slug: angelical"] aside nav a[class*="bg-primary"] *,
+html[style*="--skin-slug: angelical"] aside nav button[class*="bg-primary"] * {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] aside nav a:hover,
+html[style*="--skin-slug: angelical"] aside nav button:hover {
+  background: linear-gradient(135deg, rgba(180, 71, 127, 0.24), rgba(217, 183, 230, 0.46)) !important;
+  color: #674080 !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .equipment-star::before {
+  inset: 4% !important;
+  z-index: 0 !important;
+  clip-path: none !important;
+  border: 0 !important;
+  background: url("data:image/svg+xml,%3Csvg width='220' height='210' viewBox='0 0 220 210' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M110 10 L136 77 L208 78 L151 121 L171 190 L110 150 L49 190 L69 121 L12 78 L84 77 Z' fill='%23ffe78a' stroke='%23e7b65d' stroke-width='9' stroke-linejoin='round'/%3E%3Cpath d='M110 23 L132 82 L193 83 L144 120 L162 176 L110 141 L58 176 L76 120 L27 83 L88 82 Z' fill='%23fff1a8' opacity='.72'/%3E%3Cellipse cx='89' cy='96' rx='8' ry='20' fill='%235b3d5f'/%3E%3Cellipse cx='131' cy='96' rx='8' ry='20' fill='%235b3d5f'/%3E%3C/svg%3E") center / contain no-repeat !important;
+  filter: drop-shadow(0 10px 18px rgba(103, 64, 128, 0.18)) drop-shadow(0 0 18px rgba(255, 231, 138, 0.42)) !important;
+  opacity: 0.9 !important;
+}
+
+html[style*="--skin-slug: angelical"] .equipment-panel .equipment-remove-marker {
+  background: linear-gradient(135deg, #8f5cad, #674080) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(103, 64, 128, 0.22) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .equipment-panel .equipment-remove-marker * {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-card a h3,
+html[style*="--skin-slug: angelical"] .right-panel-card [class*="group"] h3,
+html[style*="--skin-slug: angelical"] section.relative > a h3,
+html[style*="--skin-slug: angelical"] .home-hero + section h3 {
+  color: #fff !important;
+  -webkit-text-stroke: 0 !important;
+  paint-order: normal !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen .absolute.top-0,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .absolute.top-0 *,
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2,
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2 + p,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .max-w-md > p {
+  color: #8f5cad !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen .absolute.top-0 svg,
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2 svg {
+  color: #8f5cad !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen h2 {
+  -webkit-text-stroke: 0 !important;
+  paint-order: normal !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-footer-section {
+  background: linear-gradient(135deg, rgba(143, 92, 173, 0.36), rgba(217, 183, 230, 0.32)) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  border-radius: 8px !important;
+  padding: 0.75rem !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-footer-section .site-footer {
+  background: linear-gradient(135deg, rgba(143, 92, 173, 0.92), rgba(183, 131, 200, 0.88)) !important;
+  border-color: rgba(255, 255, 255, 0.34) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 10px 20px rgba(103, 64, 128, 0.14) !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-footer-section .site-footer,
+html[style*="--skin-slug: angelical"] .right-panel-footer-section .site-footer *,
+html[style*="--skin-slug: angelical"] .right-panel-footer-section .site-footer .text-glow-green {
+  color: #ffd9eb !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-footer-section .site-footer a:hover {
+  color: #fff !important;
+}
+
 .home-hero {
   isolation: isolate;
 }
