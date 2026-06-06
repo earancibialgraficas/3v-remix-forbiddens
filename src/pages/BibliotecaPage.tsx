@@ -833,7 +833,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
               }
             }}
-            className="h-10 rounded-lg border border-border bg-card text-xs font-body px-3 text-foreground outline-none shadow-lg focus:border-neon-cyan/50 transition-colors min-w-[160px]"
+            className="library-console-select h-10 rounded-lg border border-border bg-card text-xs font-body px-3 text-foreground outline-none shadow-lg focus:border-neon-cyan/50 transition-colors min-w-[160px]"
             aria-label="Seleccionar consola o multijugador"
           >
             {dropdownOptions.map((opt, i) =>
@@ -890,7 +890,7 @@ const handlePlayCloudGame = async (game: any) => {
                 setSelectedMultiGame(null);
               }
             }}
-            className="h-9 w-20 shrink-0 rounded-lg border border-border bg-card px-2 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-28 lg:w-40"
+            className="library-console-select h-9 w-20 shrink-0 rounded-lg border border-border bg-card px-2 font-body text-xs text-foreground shadow-lg outline-none transition-colors focus:border-neon-cyan/50 sm:w-28 lg:w-40"
             aria-label="Seleccionar consola o multijugador"
           >
             {dropdownOptions.map((opt, i) =>
@@ -1139,7 +1139,7 @@ const handlePlayCloudGame = async (game: any) => {
           <h3 className="font-pixel text-[10px] text-neon-cyan flex items-center gap-1"><Lightbulb className="w-3 h-3" /> SUGERIR UN JUEGO</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input placeholder="Nombre" value={gameName} onChange={e => setGameName(e.target.value)} className="h-8 bg-muted text-xs font-body" />
-            <select value={suggestConsole} onChange={(e) => setSuggestConsole(e.target.value)} className="h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none focus:border-neon-cyan/50 transition-colors">
+        <select value={suggestConsole} onChange={(e) => setSuggestConsole(e.target.value)} className="library-console-select h-8 rounded-md border border-border bg-muted text-xs font-body px-2 text-foreground outline-none focus:border-neon-cyan/50 transition-colors">
               {activeConsoles.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>

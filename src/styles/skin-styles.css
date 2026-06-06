@@ -2413,6 +2413,226 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equi
   mask-image: radial-gradient(ellipse at center, #000 62%, rgba(0, 0, 0, 0.84) 80%, transparent 100%) !important;
 }
 
+/* Skin-aware console dropdowns in Biblioteca. */
+html[style*="--skin-primary"] .library-console-select {
+  background: var(--skin-pattern-button, var(--skin-card)) !important;
+  border-color: var(--skin-border) !important;
+  color: var(--skin-text) !important;
+  box-shadow: var(--skin-shadow) !important;
+}
+
+html[style*="--skin-primary"] .library-console-select option {
+  background: var(--skin-card) !important;
+  color: var(--skin-text) !important;
+}
+
+html[style*="--skin-slug: angelical"] .library-console-select {
+  background: linear-gradient(135deg, rgba(154, 106, 188, 0.96), rgba(204, 158, 220, 0.94)) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(126, 75, 158, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] .library-console-select option {
+  background: #a978c3 !important;
+  color: #fff !important;
+}
+
+/* Rosa Pastel final color polish: keep layout intact, recolor interaction states. */
+html[style*="--skin-slug: angelical"] {
+  --pastel-purple: #9a6abc;
+  --pastel-purple-dark: #674080;
+  --pastel-purple-soft: #d9b7e6;
+  --pastel-button-hover: #b4477f;
+}
+
+html[style*="--skin-slug: angelical"] button[data-state="active"],
+html[style*="--skin-slug: angelical"] [aria-selected="true"],
+html[style*="--skin-slug: angelical"] [data-state="active"],
+html[style*="--skin-slug: angelical"] .store-category-tab.is-active,
+html[style*="--skin-slug: angelical"] .data-\[state\=active\]\:bg-background[data-state="active"] {
+  background: linear-gradient(135deg, var(--pastel-purple), #b783c8) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(126, 75, 158, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] button:hover,
+html[style*="--skin-slug: angelical"] [role="button"]:hover,
+html[style*="--skin-slug: angelical"] .store-category-tab:not(.is-active):hover,
+html[style*="--skin-slug: angelical"] a.bg-card:hover,
+html[style*="--skin-slug: angelical"] .bg-card.hover\:bg-muted\/30:hover {
+  background: linear-gradient(135deg, rgba(180, 71, 127, 0.22), rgba(217, 183, 230, 0.42)) !important;
+  border-color: rgba(154, 106, 188, 0.48) !important;
+  color: var(--pastel-purple-dark) !important;
+  box-shadow: 0 10px 22px rgba(180, 71, 127, 0.14) !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-discord-button {
+  background: linear-gradient(135deg, #b4477f, #8f5cad) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 10px 20px rgba(180, 71, 127, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] .right-panel-discord-button:hover {
+  background: linear-gradient(135deg, #9e3d72, #7e4f9c) !important;
+  color: #fff !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero h1 {
+  color: #fff !important;
+  -webkit-text-stroke: 0.65px #d9b7e6;
+  paint-order: stroke fill;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] section span.bg-muted,
+html[style*="--skin-slug: angelical"] .home-hero + section span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href^="/arcade"] span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href^="/gaming"] span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href^="/motociclismo"] span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href^="/mercado"] span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href^="/social"] span.bg-muted,
+html[style*="--skin-slug: angelical"] a[href="/eventos"] span.bg-muted {
+  background: linear-gradient(135deg, var(--pastel-purple), #b783c8) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+}
+
+html[style*="--skin-slug: angelical"] .carousel h3,
+html[style*="--skin-slug: angelical"] [aria-roledescription="carousel"] h3,
+html[style*="--skin-slug: angelical"] .animate-marquee-x h3,
+html[style*="--skin-slug: angelical"] section > a h3 {
+  color: #fff !important;
+  -webkit-text-stroke: 0.45px #d9b7e6;
+  paint-order: stroke fill;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel h3,
+html[style*="--skin-slug: angelical"] .equipment-panel h3,
+html[style*="--skin-slug: angelical"] .equipment-title,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel .font-pixel,
+html[style*="--skin-slug: angelical"] .equipment-panel .font-pixel {
+  color: var(--pastel-purple-dark) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .equipment-title svg {
+  color: var(--pastel-purple-dark) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-item-frame,
+html[style*="--skin-slug: angelical"] .equipment-slot,
+html[style*="--skin-slug: angelical"] button[title="Barra de trueque"],
+html[style*="--skin-slug: angelical"] div[title="Slot remoto"],
+html[style*="--skin-slug: angelical"] .inventory-sell-slot {
+  border-color: rgba(154, 106, 188, 0.48) !important;
+  color: var(--pastel-purple-dark) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-item-frame:hover,
+html[style*="--skin-slug: angelical"] .equipment-slot:hover,
+html[style*="--skin-slug: angelical"] button[title="Barra de trueque"]:hover,
+html[style*="--skin-slug: angelical"] .inventory-sell-slot:hover {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.68), transparent 44%),
+    linear-gradient(135deg, rgba(255, 211, 234, 0.96), rgba(217, 183, 230, 0.94)) !important;
+  border-color: rgba(103, 64, 128, 0.64) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.46), 0 0 0 2px rgba(217, 183, 230, 0.34), 0 12px 24px rgba(126, 75, 158, 0.2) !important;
+  color: var(--pastel-purple-dark) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-item-frame span,
+html[style*="--skin-slug: angelical"] .equipment-slot span,
+html[style*="--skin-slug: angelical"] button[title="Barra de trueque"] span,
+html[style*="--skin-slug: angelical"] .inventory-sell-slot span {
+  color: var(--pastel-purple-dark) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-item-frame span[class*="bg-neon-green"],
+html[style*="--skin-slug: angelical"] .equipment-slot span[class*="bg-neon-green"] {
+  background: rgba(217, 183, 230, 0.95) !important;
+  color: var(--pastel-purple-dark) !important;
+  border: 1px solid rgba(103, 64, 128, 0.36) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-mini-stats span[class*="bg-neon-green"],
+html[style*="--skin-slug: angelical"] .store-page span[class*="bg-neon-green"] {
+  background: rgba(217, 183, 230, 0.36) !important;
+  color: var(--pastel-purple-dark) !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 236, 246, 0.8), transparent 30%),
+    linear-gradient(135deg, #f6d5e9, #dec0ea 48%, #f8e4ef) !important;
+  border-color: rgba(154, 106, 188, 0.34) !important;
+  box-shadow: 0 18px 46px rgba(126, 75, 158, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen > div.absolute.inset-0.transition-opacity {
+  background: linear-gradient(135deg, rgba(255, 237, 247, 0.82), rgba(217, 183, 230, 0.72)) !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen > div.absolute.inset-0.transition-opacity > img {
+  opacity: 0.2 !important;
+  filter: blur(2px) saturate(0.9) brightness(1.24) !important;
+  mix-blend-mode: soft-light !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen > div.absolute.inset-0.transition-opacity > div {
+  background: radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.48), transparent 28rem) !important;
+  opacity: 0.55 !important;
+  mix-blend-mode: normal !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen .font-pixel,
+html[style*="--skin-slug: angelical"] .emulator-page-screen .text-white,
+html[style*="--skin-slug: angelical"] .emulator-page-screen [class*="text-white"] {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen span.bg-white\/20,
+html[style*="--skin-slug: angelical"] .emulator-page-screen button.bg-white\/10,
+html[style*="--skin-slug: angelical"] .emulator-page-screen button.bg-white\/20 {
+  background: linear-gradient(135deg, var(--pastel-purple), #b783c8) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(126, 75, 158, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] .emulator-page-screen .bg-black\/60 {
+  background: rgba(154, 106, 188, 0.52) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+html[style*="--skin-slug: angelical"] .store-page h1 {
+  font-size: clamp(1rem, 4.6vw, 1.5rem) !important;
+  line-height: 1.15 !important;
+}
+
+html[style*="--skin-slug: angelical"] .store-page h3 {
+  font-size: clamp(0.58rem, 2.5vw, 0.72rem) !important;
+  line-height: 1.45 !important;
+}
+
+@media (max-width: 640px) {
+  .store-page h1 {
+    font-size: clamp(0.95rem, 6vw, 1.25rem) !important;
+  }
+
+  .store-page .store-category-tab {
+    font-size: 8px !important;
+    padding-inline: 0.55rem !important;
+  }
+}
+
 .home-hero {
   isolation: isolate;
 }
@@ -2420,6 +2640,39 @@ html[style*="--skin-slug: demoniaco"] .demoniaco-inventory-equipment-shell .equi
 .home-hero-image {
   -webkit-mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
   mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.82) 76%, transparent 100%);
+}
+
+html[style*="--skin-slug: angelical"] .home-hero {
+  background: transparent !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/skins/angelical/home/banner-hero.png') center / cover no-repeat;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero-image {
+  opacity: 0 !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero-overlay {
+  background: linear-gradient(to top, rgba(255, 240, 248, 0.72), rgba(255, 240, 248, 0.2), transparent) !important;
+}
+
+html[style*="--skin-slug: angelical"] .home-hero-scanlines {
+  opacity: 0.06 !important;
 }
 
 html[style*="--skin-slug: demoniaco"] .home-hero {
