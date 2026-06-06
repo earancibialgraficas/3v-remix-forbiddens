@@ -360,10 +360,10 @@ function SnapCard({
   const targetImgUrl = item.image_url || item.thumbnail_url || item.content_url || '';
 
   return (
-    <div className={cn("social-hub-card snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300 transform-gpu", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
+    <div className={cn("social-snap-card snap-start snap-always w-full h-full flex-shrink-0 flex items-stretch relative overflow-hidden group/card transition-all duration-300 transform-gpu", cinemaMode && "social-cinema-active", cinemaMode ? "px-0 lg:px-0 lg:gap-0" : "px-0 lg:px-2 lg:gap-3")}>
       
       {/* 🎬 ZONA DE VIDEO / MODO CINE 🎬 */}
-      <div ref={videoContainerRef} className={cn("social-hub-video-frame absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 transform-gpu", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
+      <div ref={videoContainerRef} className={cn("social-video-stage absolute inset-0 lg:relative flex items-center justify-center overflow-hidden z-0 transition-all duration-500 transform-gpu", cinemaMode ? "w-full lg:w-full bg-black z-20" : "lg:flex-1 bg-[#09090b] lg:border border-border lg:rounded-xl shadow-md")}>
 
         {mediaError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
@@ -435,7 +435,7 @@ function SnapCard({
         <button 
           onClick={(e) => { e.stopPropagation(); setGlobalCinemaMode(!globalCinemaMode); setCinemaPanelOpen(false); }} 
           className={cn(
-             "hidden lg:flex absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto"
+             "social-cinema-toggle hidden lg:flex absolute top-4 right-4 z-[100] p-2 bg-black/40 hover:bg-black/80 rounded-lg text-white backdrop-blur-md transition-all shadow-lg border border-white/10 group pointer-events-auto"
           )}
           title={cinemaMode ? "Salir del Modo Cine" : "Modo Cine"}
         >
@@ -605,7 +605,7 @@ function SnapCard({
       
       {/* 📋 PANEL DERECHO — z-[210] en móvil para estar siempre visible sobre la tela negra 📋 */}
       <div className={cn(
-        "flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
+        "social-detail-panel flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
           : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales
@@ -1222,7 +1222,8 @@ export default function FeedPage() {
 
         {/* 🔥 FILTRO DESKTOP - 5px gap del card, en modo cine va arriba-izquierda atenuado 🔥 */}
         <div className={cn(
-          "hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute z-20 w-[240px] lg:w-[260px] justify-between transition-all duration-300",
+          "social-desktop-filter hidden lg:flex gap-1 bg-card border border-border rounded-xl p-1 items-center shadow-sm absolute z-20 w-[240px] lg:w-[260px] justify-between transition-all duration-300",
+          globalCinemaMode && "social-filter-cinema",
           globalCinemaMode 
             ? "left-2 top-2 opacity-40 hover:opacity-100 bg-black/50 border-white/10 backdrop-blur-md scale-90 origin-top-left" 
             : "right-2 top-[5px]"

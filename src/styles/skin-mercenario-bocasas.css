@@ -113,10 +113,10 @@ html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card.border-r::after {
   content: none !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .bg-card:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .rounded.border:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .rounded-md.border:not(.social-hub-page *) {
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-md.border {
   background: var(--skin-pattern-panel) !important;
   border-color: var(--skin-panel-border-soft) !important;
   box-shadow:
@@ -168,29 +168,29 @@ html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-profile-tabs.bg-card.b
   color: #ffd4c2 !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .bg-card:not(.social-hub-page *):hover,
-html[style*="--skin-slug: mercenario_bocasas"] .rounded.border:not(.social-hub-page *):hover,
-html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border:not(.social-hub-page *):hover {
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded.border:hover,
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-lg.border:hover {
   border-color: rgba(211, 48, 27, 0.86) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .bg-card:not(.social-hub-page *)::before,
-html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card:not(.social-hub-page *)::before {
+html[style*="--skin-slug: mercenario_bocasas"] .bg-card::before,
+html[style*="--skin-slug: mercenario_bocasas"] aside.bg-card::before {
   background: none !important;
   mix-blend-mode: normal;
   opacity: 0 !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border:not(.social-hub-page *) {
+html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border,
+html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border,
+html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border {
   border-color: var(--skin-panel-border) !important;
   position: relative;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border:not(.social-hub-page *)::after,
-html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border:not(.social-hub-page *)::after,
-html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border:not(.social-hub-page *)::after {
+html[style*="--skin-slug: mercenario_bocasas"] .space-y-4 > .bg-card.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .grid.gap-3 > .rounded.border::after,
+html[style*="--skin-slug: mercenario_bocasas"] .md\:grid-cols-\[1fr_320px\] > .rounded.border::after {
   display: none !important;
   content: none !important;
 }
@@ -347,23 +347,23 @@ html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-active-skin-chip {
   box-shadow: inset 0 0 0 1px rgba(255, 136, 51, 0.12), 0 0 14px rgba(255, 43, 12, 0.22) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] button:not(.social-hub-page *):not([class*="ghost"]),
-html[style*="--skin-slug: mercenario_bocasas"] [role="button"]:not(.social-hub-page *):not([class*="ghost"]) {
+html[style*="--skin-slug: mercenario_bocasas"] button:not([class*="ghost"]),
+html[style*="--skin-slug: mercenario_bocasas"] [role="button"]:not([class*="ghost"]) {
   border-color: rgba(177, 45, 29, 0.72) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] button.bg-primary:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-destructive"]:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-\\["]:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] .bg-primary:not(.social-hub-page *) {
+html[style*="--skin-slug: mercenario_bocasas"] button.bg-primary,
+html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-destructive"],
+html[style*="--skin-slug: mercenario_bocasas"] button[class*="bg-\\["],
+html[style*="--skin-slug: mercenario_bocasas"] .bg-primary {
   background: var(--skin-pattern-button) !important;
   color: #ffd8bd !important;
   text-shadow: 0 0 8px rgba(255, 68, 23, 0.7) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] input:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] textarea:not(.social-hub-page *),
-html[style*="--skin-slug: mercenario_bocasas"] select:not(.social-hub-page *) {
+html[style*="--skin-slug: mercenario_bocasas"] input,
+html[style*="--skin-slug: mercenario_bocasas"] textarea,
+html[style*="--skin-slug: mercenario_bocasas"] select {
   background:
     linear-gradient(180deg, rgba(8, 7, 7, 0.94), rgba(16, 6, 5, 0.9)) !important;
   border-color: rgba(151, 44, 31, 0.76) !important;
@@ -385,7 +385,7 @@ html[style*="--skin-slug: mercenario_bocasas"] .text-neon-magenta {
   color: #d76655 !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] .rounded-full:not(.social-hub-page *) {
+html[style*="--skin-slug: mercenario_bocasas"] .rounded-full {
   border-color: rgba(255, 67, 24, 0.92) !important;
   box-shadow: 0 0 0 2px rgba(24, 5, 5, 0.9), 0 0 22px rgba(255, 53, 18, 0.62) !important;
 }
@@ -2967,81 +2967,18 @@ html[style*="--skin-slug: mercenario_bocasas"] .lg\:hidden.fixed.bg-card > div:f
   z-index: 1;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen,
-html[data-skin-slug="mercenario_bocasas"] #batocera-screen.emulator-page-screen {
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen {
+  background:
+    linear-gradient(180deg, rgba(5, 0, 0, 0.8), rgba(7, 1, 1, 0.84)),
+    var(--skin-pattern-bg, var(--demoniaco-surface-rock)) center / cover no-repeat fixed !important;
   border-color: rgba(130, 28, 20, 0.55) !important;
   box-shadow:
     inset 0 0 90px rgba(0, 0, 0, 0.62),
     0 0 46px rgba(226, 80, 61, 0.14) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img,
-html[data-skin-slug="mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
-  opacity: 0.42 !important;
-  mix-blend-mode: normal;
-}
-
-/* Rosita emulator shell: prevent website skins from painting behind the custom close asset. */
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button,
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"],
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"] {
-  background: transparent !important;
-  background-image: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  filter: none !important;
-  isolation: isolate;
-}
-
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::before,
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::after,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::before,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-button::after,
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-  background-image: none !important;
-  box-shadow: none !important;
-}
-
-html[style*="--skin-slug: mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-texture,
-html[data-skin-slug="mercenario_bocasas"] .gamebubble-shell-rosita-nes .rosita-close-texture {
-  position: relative;
-  z-index: 2;
-  display: block !important;
-  background: transparent !important;
-  filter: none !important;
-}
-
-/* Final mercenario inventory/equipment frame safety: keep the overlay art visible. */
-html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell,
-html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell {
-  position: relative !important;
-  isolation: isolate !important;
-  overflow: visible !important;
-  border: 0 !important;
-  outline: 0 !important;
-}
-
-html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > .demoniaco-shell-ornaments,
-html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell > .demoniaco-shell-ornaments {
-  display: block !important;
-  position: absolute !important;
-  z-index: 90 !important;
-  pointer-events: none !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-inventory-equipment-shell > *:not(.demoniaco-shell-ornaments),
-html[data-skin-slug="mercenario_bocasas"] .demoniaco-inventory-equipment-shell > *:not(.demoniaco-shell-ornaments) {
-  position: relative;
-  z-index: 2;
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
+  opacity: 0.22 !important;
+  mix-blend-mode: screen;
 }
 

@@ -52,113 +52,6 @@
   }
 }
 
-/*
- * Social Hub debe conservar el layout predeterminado aunque haya una skin activa.
- * Las skins solo pueden cambiar color/textura/acento en Feed, Reels y Muro.
- */
-html[style*="--skin-primary"] .social-hub-page {
-  --social-hub-skin-card: var(--skin-card, hsl(var(--card)));
-  --social-hub-skin-border: var(--skin-border, hsl(var(--border)));
-  --social-hub-skin-accent: var(--skin-primary, hsl(var(--neon-orange)));
-  --social-hub-skin-secondary: var(--skin-secondary, hsl(var(--neon-cyan)));
-  --social-hub-skin-glow: var(--skin-glow, color-mix(in srgb, var(--social-hub-skin-accent) 45%, transparent));
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.social-hub-card, .social-hub-video-frame, .social-hub-photo-card),
-html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"]) {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--social-hub-skin-card) 82%, transparent), color-mix(in srgb, var(--social-hub-skin-card) 90%, black)),
-    var(--skin-pattern-card, none) center / cover !important;
-  background-color: var(--social-hub-skin-card) !important;
-  border-color: color-mix(in srgb, var(--social-hub-skin-border) 76%, hsl(var(--border))) !important;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--social-hub-skin-glow) 30%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.social-hub-card, .social-hub-photo-card):hover {
-  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 62%, var(--social-hub-skin-border)) !important;
-  box-shadow: 0 0 28px color-mix(in srgb, var(--social-hub-skin-glow) 44%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page .social-hub-video-frame {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.78)),
-    var(--skin-pattern-card, hsl(var(--background))) center / cover !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.bg-background, [class*="bg-background/"]) {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--skin-background, #070707) 90%, transparent), color-mix(in srgb, var(--skin-background, #070707) 94%, black)),
-    var(--skin-pattern-bg, hsl(var(--background))) !important;
-  background-color: var(--skin-background, hsl(var(--background))) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.bg-muted, [class*="bg-muted/"]) {
-  background-color: hsl(var(--muted) / 0.45) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.border, .border-border, [class*="border-border"], [class*="border-white/"]) {
-  border-color: color-mix(in srgb, var(--social-hub-skin-border) 72%, hsl(var(--border))) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.border-neon-cyan\/30, .border-neon-cyan\/40, .border-neon-cyan\/50, .border-neon-orange\/30, .border-neon-orange\/40, .border-neon-orange\/50) {
-  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 70%, hsl(var(--border))) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.text-neon-cyan, .text-neon-orange, .text-neon-magenta, .text-neon-yellow, .text-neon-green) {
-  color: var(--social-hub-skin-accent) !important;
-  text-shadow: 0 0 8px color-mix(in srgb, var(--social-hub-skin-accent) 48%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"], input, textarea, select, a) {
-  box-shadow: none;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"], a):hover {
-  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 58%, hsl(var(--border))) !important;
-  color: var(--social-hub-skin-accent) !important;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--social-hub-skin-glow) 34%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"]):active,
-html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"])[aria-pressed="true"],
-html[style*="--skin-primary"] .social-hub-page :is(button, [role="button"])[data-state="active"] {
-  background-color: color-mix(in srgb, var(--social-hub-skin-accent) 20%, hsl(var(--background))) !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--social-hub-skin-accent) 70%, transparent),
-    0 0 16px color-mix(in srgb, var(--social-hub-skin-glow) 38%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.shadow-neon-sm, [class*="shadow-[0_0"]) {
-  box-shadow: 0 0 18px color-mix(in srgb, var(--social-hub-skin-glow) 42%, transparent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page .group:hover :is(.group-hover\:text-neon-cyan, .group-hover\:text-neon-orange, .group-hover\:text-neon-yellow, .group-hover\:text-neon-green, .group-hover\:text-neon-magenta) {
-  color: var(--social-hub-skin-accent) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(input, textarea, select) {
-  background-color: hsl(var(--background) / 0.62) !important;
-  border-color: color-mix(in srgb, var(--social-hub-skin-border) 76%, hsl(var(--border))) !important;
-  color: hsl(var(--foreground)) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(button.bg-neon-cyan, button.bg-neon-orange, .social-hub-publish-button) {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--social-hub-skin-accent) 82%, white), color-mix(in srgb, var(--social-hub-skin-accent) 74%, black)) !important;
-  color: #120807 !important;
-  border-color: color-mix(in srgb, var(--social-hub-skin-accent) 72%, white) !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"], button, [role="button"], input, textarea, select)::before,
-html[style*="--skin-primary"] .social-hub-page :is(.bg-card, [class*="bg-card/"], button, [role="button"], input, textarea, select)::after {
-  content: none !important;
-  display: none !important;
-}
-
-html[style*="--skin-primary"] .social-hub-page .rounded-full {
-  box-shadow: none !important;
-}
-
 html[style*="--skin-slug: demoniaco"],
 html[style*="--skin-slug: demoniaco"] * {
   scrollbar-color: rgba(255, 58, 18, 0.78) rgba(15, 4, 4, 0.96) !important;
@@ -1030,7 +923,6 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
     display: block !important;
     justify-content: initial !important;
     align-items: initial !important;
-    overflow: visible !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-touch-controller {
@@ -1304,107 +1196,9 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-panel {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
     background: linear-gradient(180deg, hsl(343 100% 97% / 0.96), hsl(326 100% 94% / 0.94)) !important;
     border-color: hsl(337 76% 73% / 0.78) !important;
     box-shadow: 0 8px 18px hsl(337 48% 38% / 0.14), inset 0 0 0 1px hsl(0 0% 100% / 0.58) !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-compact {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator {
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 4 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    container-type: size;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header {
-    flex: 0 0 auto !important;
-    min-height: 0 !important;
-    padding: clamp(1px, 2.2%, 4px) clamp(2px, 4%, 6px) !important;
-    gap: clamp(1px, 2.5%, 4px) !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-header p {
-    font-size: clamp(5px, 7.5cqw, 9px) !important;
-    line-height: 1 !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track {
-    flex: 0 0 auto !important;
-    padding: clamp(1px, 2.5%, 4px) clamp(2px, 4%, 6px) 0 !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track > div {
-    min-height: 0 !important;
-    padding: clamp(1px, 2.4%, 4px) clamp(2px, 4%, 6px) !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-track span,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label span,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category button {
-    font-size: clamp(5px, 6.6cqw, 8px) !important;
-    line-height: 1 !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-controls {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    justify-content: center !important;
-    gap: clamp(1px, 2.2cqh, 4px) !important;
-    padding: clamp(1px, 2.4cqh, 4px) clamp(2px, 4%, 6px) !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-play {
-    width: clamp(18px, 42%, 34px) !important;
-    height: clamp(18px, 18cqh, 34px) !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-play svg {
-    width: 48% !important;
-    height: 48% !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-buttons,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-label {
-    flex: 0 0 auto !important;
-    gap: clamp(1px, 3%, 4px) !important;
-    margin-top: 0 !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-skip-button,
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-volume-button {
-    width: clamp(16px, 33%, 26px) !important;
-    height: clamp(12px, 10cqh, 18px) !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    font-size: clamp(7px, 7cqw, 10px) !important;
-  }
-
-  .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-category {
-    flex: 0 0 auto !important;
-    padding: 0 clamp(2px, 4%, 6px) clamp(1px, 2.4%, 4px) !important;
   }
 
   .gamebubble-shell-rosita-nes #music-slot-emulator .chill-emulator-panel *,
@@ -1715,6 +1509,28 @@ body.rosita-mobile-overlay-active *::-webkit-scrollbar {
     pointer-events: none;
     user-select: none;
     filter: none;
+  }
+
+  html[style*="--skin-slug"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"],
+  html[data-skin-slug] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"] {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    filter: none !important;
+  }
+
+  html[style*="--skin-slug"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
+  html[style*="--skin-slug"] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after,
+  html[data-skin-slug] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::before,
+  html[data-skin-slug] .gamebubble-shell-rosita-nes .rosita-window-topbar button[title="Cerrar Juego"]::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
   }
 
   .gamebubble-shell-rosita-nes .rosita-shell-dpad,
