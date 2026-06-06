@@ -848,7 +848,7 @@ export default function ForumPage() {
     });
 
     return (
-      <div className="space-y-4 animate-fade-in">
+      <div className="forum-page space-y-4 animate-fade-in">
         <div className="flex justify-end mb-2">
           <Button variant="ghost" size="sm" onClick={closePost} className="text-muted-foreground hover:text-foreground font-body font-bold text-xs uppercase">
             <ArrowLeft className="w-4 h-4 mr-1" /> Volver a la lista
@@ -1183,7 +1183,7 @@ export default function ForumPage() {
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="forum-page space-y-4 animate-fade-in">
       <div className="bg-card border border-border rounded p-4">
         <h1 className="text-xl mb-1" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{isTrending ? (<>TREND<VaultHint letter="I" position={2} color="text-neon-cyan" />NG</>) : page.title}</h1>
         <p className="text-xs text-muted-foreground font-body">{page.description}</p>
@@ -1280,7 +1280,7 @@ export default function ForumPage() {
             const authorProfile = postProfiles[post.user_id];
             const authorRoles = postRoles[post.user_id] || [];
             const myVote = userVotes[post.id] || null;
-            const authorNameBaseStyle = authorProfile ? (getNameStyle(authorProfile.color_name) as any) : {};
+            const authorNameBaseStyle = authorProfile ? ((getNameStyle(authorProfile.color_name) as any) || {}) : {};
             const authorNameStyle = authorProfile
               ? {
                   ...authorNameBaseStyle,
@@ -1293,7 +1293,7 @@ export default function ForumPage() {
               <div 
                 key={post.id} 
                 onClick={() => openPost(post.id)}
-                className={cn("relative overflow-hidden bg-card border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
+                className={cn("forum-post-list-card relative overflow-hidden bg-card border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer shadow-sm", post.is_pinned ? "border-neon-green/40 bg-neon-green/5" : "border-border")}
               >
                 {/* Avatar como imagen lateral con degradado al estilo Eventos */}
                 {authorProfile?.avatar_url && (

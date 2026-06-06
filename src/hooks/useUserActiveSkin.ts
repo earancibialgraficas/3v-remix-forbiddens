@@ -31,12 +31,6 @@ const writeCachedSkinSlug = (userId: string, skinType: string, skinSlug?: string
   } catch {}
 };
 
-/**
- * Hook para obtener la skin activa de un usuario
- * @param userId - ID del usuario
- * @param skinType - Tipo de skin ('launcher', 'agario', 'game')
- * @returns El tema/skin activo del usuario
- */
 export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agario' | 'game' = 'launcher') {
   const [activeSkin, setActiveSkin] = useState<SkinTheme | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +60,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
           .maybeSingle();
 
         if (error) {
-          console.error('❌ Error fetching skin:', error);
+          console.error('Error fetching skin:', error);
           const fallbackSkinSlug = readCachedSkinSlug(userId, skinType);
           setActiveSkin(fallbackSkinSlug ? getSkinTheme(fallbackSkinSlug) : null);
           setLoading(false);
@@ -82,7 +76,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
           writeCachedSkinSlug(userId, skinType, nextSkinSlug);
         }
       } catch (err) {
-        console.error('❌ Exception in fetchActiveSkin:', err);
+        console.error('Exception in fetchActiveSkin:', err);
         const fallbackSkinSlug = readCachedSkinSlug(userId, skinType);
         setActiveSkin(fallbackSkinSlug ? getSkinTheme(fallbackSkinSlug) : null);
       } finally {
@@ -90,8 +84,7 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
       }
     };
 
-
-    fetchActiveSkin();
+    void fetchActiveSkin();
 
     const handleActiveSkinUpdated = (event: Event) => {
       const detail = (event as CustomEvent<{ userId?: string; skinType?: string; skinSlug?: string }>).detail;
@@ -106,29 +99,8 @@ export function useUserActiveSkin(userId?: string, skinType: 'launcher' | 'agari
 
     window.addEventListener('forbiddens:active-skin-updated', handleActiveSkinUpdated);
 
-    // Suscribirse a cambios en tiempo real con topic único para evitar reutilizar
-    // un canal ya suscrito cuando hay varios providers montados en /perfil.
-    const channelTopic = `user-skins:${userId}:${skinType}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-    const channel = supabase
-      .channel(channelTopic)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_active_skins',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('🔄 Real-time skin update:', payload);
-          fetchActiveSkin();
-        }
-      )
-      .subscribe();
-
     return () => {
       window.removeEventListener('forbiddens:active-skin-updated', handleActiveSkinUpdated);
-      supabase.removeChannel(channel);
     };
   }, [userId, skinType]);
 

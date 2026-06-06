@@ -26,6 +26,8 @@ const textSizeMap: Record<TextSize, { body: string; title: string; stat: string 
 export default function RightPanel() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [textSize, setTextSize] = useState<TextSize>("md");
@@ -39,6 +41,11 @@ export default function RightPanel() {
 
   const sizes = textSizeMap[textSize];
   const cycleSize = () => setTextSize(p => p === "sm" ? "md" : p === "md" ? "lg" : "sm");
+  const isForumRoute =
+    location.pathname.startsWith("/gaming-anime/") ||
+    location.pathname.startsWith("/motociclismo/") ||
+    location.pathname.startsWith("/mercado/") ||
+    location.pathname === "/trending";
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
@@ -120,6 +127,11 @@ export default function RightPanel() {
 
   // 🔄 Función para actualizar el contador de usuarios online
   const updateOnlineCount = async () => {
+    if (isForumRoute) {
+      setOnlineCount(10);
+      return;
+    }
+
     const sessionKey = "forbiddens_presence_session_id";
     let presenceId = "";
     try {
@@ -157,10 +169,12 @@ export default function RightPanel() {
   // 📱 Cargar contador al montar el componente
   useEffect(() => {
     updateOnlineCount();
-  }, []);
+  }, [isForumRoute, user?.id]);
 
   // 🖱️ Actualizar contador con cada click en el sitio
   useEffect(() => {
+    if (isForumRoute) return;
+
     const handleGlobalClick = () => {
       updateOnlineCount();
     };
@@ -170,7 +184,7 @@ export default function RightPanel() {
     return () => {
       document.removeEventListener("click", handleGlobalClick, { capture: true });
     };
-  }, [user?.id]);
+  }, [isForumRoute, user?.id]);
 
   useEffect(() => {
     handleScroll();
@@ -193,8 +207,6 @@ export default function RightPanel() {
   }, []);
 
   const badges = ["🏆", "⚔️", "🏍️", "👑", "🎮"];
-  const navigate = useNavigate();
-  const location = useLocation();
   const isHome = location.pathname === "/";
 
   return (
