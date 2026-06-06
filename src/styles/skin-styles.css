@@ -4610,3 +4610,63 @@ html[style*="--skin-slug: angelical"] body a:has(.home-category-title) > div > s
   text-shadow: none !important;
   filter: none !important;
 }
+
+/* Final skin-specific media blending adjustments. */
+html[style*="--skin-slug: angelical"] .forum-page .forum-post-list-card:hover {
+  background:
+    linear-gradient(to right, rgba(255, 240, 248, 0.98) 0%, rgba(255, 240, 248, 0.82) 36%, rgba(255, 240, 248, 0.34) 68%, transparent 100%),
+    var(--pastel-surface) !important;
+  border-color: rgba(143, 92, 173, 0.64) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(143, 92, 173, 0.26),
+    0 0 18px rgba(183, 131, 200, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] .forum-page .forum-post-avatar-side img {
+  opacity: 0.94 !important;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.22) 16%, rgba(0, 0, 0, 0.72) 34%, #000 52%) !important;
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.22) 16%, rgba(0, 0, 0, 0.72) 34%, #000 52%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .forum-page .forum-post-avatar-side .forum-post-avatar-overlay {
+  background:
+    linear-gradient(to right, var(--pastel-surface) 0%, rgba(255, 240, 248, 0.88) 18%, rgba(255, 240, 248, 0.46) 38%, rgba(255, 240, 248, 0.12) 62%, transparent 86%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .event-card-image-side .event-card-image-overlay,
+html[style*="--skin-slug: mercenario_bocasas"] .event-card-image-side .event-card-image-overlay {
+  z-index: 1 !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .event-card-image-banner .event-card-image-overlay,
+html[style*="--skin-slug: mercenario_bocasas"] .event-card-image-banner .event-card-image-overlay {
+  z-index: 1 !important;
+  background: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .event-card-image-side img,
+html[style*="--skin-slug: mercenario_bocasas"] .event-card-image-side img {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.16) 10%, rgba(0, 0, 0, 0.74) 24%, #000 38%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.16) 10%, rgba(0, 0, 0, 0.74) 24%, #000 38%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .event-card-image-banner img,
+html[style*="--skin-slug: mercenario_bocasas"] .event-card-image-banner img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, rgba(0, 0, 0, 0.46) 88%, transparent 100%) !important;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 70%, rgba(0, 0, 0, 0.46) 88%, transparent 100%) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-profile-video-layer iframe,
+html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .public-profile-video-layer iframe,
+html[style*="--skin-slug: angelical"] .public-profile-music-player > .public-profile-video-layer iframe {
+  left: auto !important;
+  right: -2.5% !important;
+  transform: translateY(-50%) !important;
+}
