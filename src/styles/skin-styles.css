@@ -4206,20 +4206,29 @@ html[style*="--skin-slug: angelical"] .home-hero button:hover {
 
 html[style*="--skin-slug: angelical"] .forum-post-avatar-side img,
 html[style*="--skin-slug: angelical"] .forum-post-avatar-banner img {
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
+  opacity: 0.92 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-avatar-side .forum-post-avatar-overlay {
-  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.78) 42%, rgba(255, 240, 248, 0.28) 72%, transparent 100%) !important;
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 16%, transparent 34%) !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-avatar-banner .forum-post-avatar-overlay {
-  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.82) 56%, transparent 100%) !important;
+  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 18%, transparent 36%) !important;
 }
 
 html[style*="--skin-slug: angelical"] .forum-post-author-name {
-  text-shadow: none !important;
+  color: var(--forum-post-author-color, inherit) !important;
+  text-shadow: var(--forum-post-author-shadow, 0 1px 2px rgba(0, 0, 0, 0.8)) !important;
+  filter: none !important;
 }
 
 html[style*="--skin-slug: angelical"] .public-profile-video-layer {
@@ -4267,11 +4276,57 @@ html[style*="--skin-slug: angelical"] .emulator-page-screen .emulator-console-ba
   text-shadow: none !important;
 }
 
+html[style*="--skin-slug: angelical"] .home-categories-heading,
 html[style*="--skin-slug: angelical"] .home-category-title,
 html[style*="--skin-slug: angelical"] .home-category-title svg {
   color: #8f5cad !important;
   text-shadow: none !important;
   filter: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .event-card-image-side img,
+html[style*="--skin-slug: angelical"] .event-card-image-banner img {
+  opacity: 0.92 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: angelical"] .event-card-image-side .event-card-image-overlay {
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 16%, transparent 34%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .event-card-image-banner .event-card-image-overlay {
+  background: linear-gradient(to top, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 18%, transparent 36%) !important;
+}
+
+html[style*="--skin-slug: angelical"] .public-profile-post-thumb {
+  border-color: rgba(143, 92, 173, 0.34) !important;
+}
+
+html[style*="--skin-slug: angelical"] .public-profile-post-thumb img {
+  opacity: 0.92 !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  mask-image:
+    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.36) 12%, #000 30%, #000 100%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%) !important;
+  -webkit-mask-composite: source-in !important;
+  mask-composite: intersect !important;
+}
+
+html[style*="--skin-slug: angelical"] .public-profile-post-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, hsl(var(--card)) 0%, rgba(255, 240, 248, 0.62) 16%, transparent 34%);
 }
 
 html[style*="--skin-slug: angelical"] .chill-music-seek [class*="bg-secondary"] {

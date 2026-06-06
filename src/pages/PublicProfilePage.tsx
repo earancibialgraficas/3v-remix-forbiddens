@@ -465,7 +465,7 @@ export default function PublicProfilePage() {
                 const thumb = getPostThumbnail(post);
                 return (
                   <div key={post.id} className="p-2 border border-border/50 rounded flex gap-3 font-body hover:bg-muted/30 transition-all group relative overflow-hidden">
-                    <div className="w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
+                    <div className="public-profile-post-thumb w-16 h-16 shrink-0 rounded overflow-hidden border border-neon-cyan/30 bg-black relative shadow-sm">
                        <img src={getProxyUrl(thumb)} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">

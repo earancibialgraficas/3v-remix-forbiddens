@@ -68,7 +68,7 @@ const categories = [
 export default function ForumCategories() {
   return (
     <section>
-      <h2 className="text-sm text-neon-green text-glow-green mb-4">// CATEGORÍAS</h2>
+      <h2 className="home-categories-heading text-sm text-neon-green text-glow-green mb-4">// CATEGORÍAS</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {categories.map((cat) => (
           <Link

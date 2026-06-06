@@ -349,14 +349,14 @@ ${sgDescription || 'Sin descripción.'}[/COLOR]
               {event.image_storage_url && (
                 <>
                   {/* MOBILE/TABLET: imagen arriba, texto abajo */}
-                  <div className="lg:hidden w-full aspect-video relative">
+                  <div className="event-card-image-banner lg:hidden w-full aspect-video relative">
                     <img src={event.image_storage_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                    <div className="event-card-image-overlay absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                   </div>
                   {/* DESKTOP: imagen pegada al borde derecho con degradado a la izquierda */}
-                  <div className="hidden lg:block absolute top-0 right-0 h-full w-1/2 pointer-events-none">
+                  <div className="event-card-image-side hidden lg:block absolute top-0 right-0 h-full w-1/2 pointer-events-none">
                     <img src={event.image_storage_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
+                    <div className="event-card-image-overlay absolute inset-0 bg-gradient-to-r from-card via-card/70 to-transparent" />
                   </div>
                 </>
               )}
