@@ -43,11 +43,11 @@ const shopVisuals = {
       "linear-gradient(rgba(8,4,4,.16),rgba(2,2,2,.34)), url('/skins/mercenario_bocasas/home/banner-hero.png') center / cover",
   },
   angelical: {
-    frame: "border-pink-300/70 bg-[#3a1930]",
-    icon: "text-pink-200",
-    badge: "HALO",
+    frame: "border-pink-300/80 bg-[#fff0f7]",
+    icon: "text-pink-700",
+    badge: "PASTEL",
     background:
-      "radial-gradient(circle at 30% 25%, rgba(255,255,255,.45), transparent 28%), linear-gradient(135deg, #3a1930, #ffe0f0 52%, #27132a)",
+      "radial-gradient(circle at 30% 25%, rgba(255,255,255,.7), transparent 28%), linear-gradient(135deg, #fffafd, #ffd7e9 52%, #f3a4c7)",
   },
   cyberpunk: {
     frame: "border-cyan-300/70 bg-[#061d2a]",
@@ -258,7 +258,7 @@ export default function StorePage() {
   const isAvatarFrameItem = (item: ShopItem) => isAvatarFrameSlug(item?.slug);
   const isProfileTransitionItem = (item: ShopItem) => isProfileTransitionSlug(item?.slug);
   const isEmulatorShellItem = (item: ShopItem) => isEmulatorShellSlug(item?.slug);
-  const isReadyItem = (item: ShopItem) => item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
+  const isReadyItem = (item: ShopItem) => item.slug === "angelical" || item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
     if (isAvatarFrameItem(item)) return shopVisuals.avatar_frame;
@@ -561,7 +561,7 @@ export default function StorePage() {
                   )}
                   {!ready && (
                     <p className="rounded border border-yellow-300/25 bg-yellow-300/10 px-2 py-1 text-[10px] text-yellow-100">
-                      Este item todavia no esta listo. Solo la Skin Demoniaco, los marcos de avatar, las transiciones y la consola Rosita NES estan disponibles por ahora.
+                      Este item todavia no esta listo. Solo Rosa Pastel, Skin Demoniaco, Skin Mercenario Bocasas, los marcos de avatar, las transiciones y la consola Rosita NES estan disponibles por ahora.
                     </p>
                   )}
 

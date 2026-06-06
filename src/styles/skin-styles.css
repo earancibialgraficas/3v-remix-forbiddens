@@ -368,6 +368,209 @@ html[style*="--skin-primary"] [data-radix-popper-content-wrapper] > * {
   }
 }
 
+/* Rosa Pastel: recolor de la interfaz predeterminada sin cambiar layout */
+html[style*="--skin-slug: angelical"] {
+  color-scheme: light;
+  --pastel-ink: #452437;
+  --pastel-ink-soft: #86596e;
+  --pastel-rose: #d94f86;
+  --pastel-rose-dark: #a93b6f;
+  --pastel-rose-soft: #f6a8c9;
+  --pastel-surface: rgba(255, 249, 252, 0.94);
+  --pastel-surface-strong: rgba(255, 245, 250, 0.98);
+  --pastel-border: rgba(217, 79, 134, 0.34);
+  --pastel-glow: rgba(217, 79, 134, 0.24);
+}
+
+html[style*="--skin-slug: angelical"],
+html[style*="--skin-slug: angelical"] body {
+  color: var(--pastel-ink) !important;
+}
+
+html[style*="--skin-slug: angelical"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 14%, rgba(246, 168, 201, 0.28), transparent 18rem),
+    radial-gradient(circle at 86% 8%, rgba(255, 226, 240, 0.72), transparent 20rem),
+    radial-gradient(circle at 78% 92%, rgba(217, 79, 134, 0.12), transparent 18rem);
+}
+
+html[style*="--skin-slug: angelical"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.42), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.42)),
+    repeating-linear-gradient(0deg, rgba(217, 79, 134, 0.035) 0 1px, transparent 1px 16px);
+}
+
+html[style*="--skin-slug: angelical"] .bg-background,
+html[style*="--skin-slug: angelical"] main {
+  background: transparent !important;
+  color: var(--pastel-ink) !important;
+}
+
+html[style*="--skin-slug: angelical"] [data-tauri-drag-region].fixed.inset-x-0,
+html[style*="--skin-slug: angelical"] .desktop-launcher-titlebar.fixed.inset-x-0,
+html[style*="--skin-slug: angelical"] .lg\:hidden.fixed.inset-x-0.top-0 {
+  background: var(--skin-pattern-topbar) !important;
+  border-color: rgba(217, 79, 134, 0.28) !important;
+  color: var(--pastel-ink) !important;
+  box-shadow: 0 10px 28px rgba(169, 59, 111, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+html[style*="--skin-slug: angelical"] aside.bg-card.border-r,
+html[style*="--skin-slug: angelical"] .lg\:hidden.fixed.bg-card {
+  background: var(--skin-pattern-sidebar, var(--skin-pattern-card)) !important;
+  border-color: rgba(217, 79, 134, 0.26) !important;
+  color: var(--pastel-ink) !important;
+  box-shadow: inset -1px 0 0 rgba(217, 79, 134, 0.1), 12px 0 34px rgba(169, 59, 111, 0.12) !important;
+}
+
+html[style*="--skin-slug: angelical"] .bg-card,
+html[style*="--skin-slug: angelical"] aside.bg-card,
+html[style*="--skin-slug: angelical"] .rounded.border,
+html[style*="--skin-slug: angelical"] .rounded-lg.border,
+html[style*="--skin-slug: angelical"] .rounded-md.border {
+  background: var(--skin-pattern-panel, var(--skin-pattern-card)) !important;
+  background-color: var(--pastel-surface) !important;
+  border-color: var(--pastel-border) !important;
+  color: var(--pastel-ink) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58),
+    0 12px 30px rgba(169, 59, 111, 0.13) !important;
+}
+
+html[style*="--skin-slug: angelical"] .bg-card::before,
+html[style*="--skin-slug: angelical"] aside.bg-card::before,
+html[style*="--skin-slug: angelical"] .rounded.border::before,
+html[style*="--skin-slug: angelical"] .rounded-lg.border::before,
+html[style*="--skin-slug: angelical"] .rounded-md.border::before {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(246, 168, 201, 0.16), transparent 10rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 52%) !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+html[style*="--skin-slug: angelical"] h1,
+html[style*="--skin-slug: angelical"] h2,
+html[style*="--skin-slug: angelical"] h3,
+html[style*="--skin-slug: angelical"] h4,
+html[style*="--skin-slug: angelical"] .font-pixel {
+  color: var(--pastel-rose-dark) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.86), 0 0 10px rgba(217, 79, 134, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] .text-foreground,
+html[style*="--skin-slug: angelical"] .text-white,
+html[style*="--skin-slug: angelical"] .text-white\/80,
+html[style*="--skin-slug: angelical"] .text-white\/70 {
+  color: var(--pastel-ink) !important;
+}
+
+html[style*="--skin-slug: angelical"] .text-muted-foreground,
+html[style*="--skin-slug: angelical"] [class*="text-muted-foreground"] {
+  color: var(--pastel-ink-soft) !important;
+}
+
+html[style*="--skin-slug: angelical"] [class*="text-neon-"],
+html[style*="--skin-slug: angelical"] .text-primary {
+  color: var(--pastel-rose-dark) !important;
+  text-shadow: 0 0 8px rgba(217, 79, 134, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] [class*="border-neon-"],
+html[style*="--skin-slug: angelical"] .border-primary {
+  border-color: rgba(217, 79, 134, 0.42) !important;
+}
+
+html[style*="--skin-slug: angelical"] [class*="bg-neon-"] {
+  background-color: rgba(246, 168, 201, 0.24) !important;
+  color: var(--pastel-rose-dark) !important;
+}
+
+html[style*="--skin-slug: angelical"] .bg-primary,
+html[style*="--skin-slug: angelical"] button.bg-primary,
+html[style*="--skin-slug: angelical"] button[class*="bg-primary"] {
+  background: var(--skin-pattern-button, var(--skin-gradient-button)) !important;
+  border-color: rgba(169, 59, 111, 0.34) !important;
+  color: #fffafd !important;
+  box-shadow: 0 8px 18px rgba(217, 79, 134, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] button:not([class*="ghost"]):not([class*="outline"]):hover,
+html[style*="--skin-slug: angelical"] [role="button"]:not([class*="ghost"]):hover {
+  border-color: rgba(217, 79, 134, 0.5) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.62), 0 12px 24px rgba(217, 79, 134, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] input,
+html[style*="--skin-slug: angelical"] textarea,
+html[style*="--skin-slug: angelical"] select {
+  background: rgba(255, 250, 253, 0.96) !important;
+  border-color: rgba(217, 79, 134, 0.32) !important;
+  color: var(--pastel-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76) !important;
+}
+
+html[style*="--skin-slug: angelical"] input::placeholder,
+html[style*="--skin-slug: angelical"] textarea::placeholder {
+  color: rgba(134, 89, 110, 0.72) !important;
+}
+
+html[style*="--skin-slug: angelical"] input:focus,
+html[style*="--skin-slug: angelical"] textarea:focus,
+html[style*="--skin-slug: angelical"] select:focus {
+  border-color: rgba(217, 79, 134, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(246, 168, 201, 0.24) !important;
+}
+
+html[style*="--skin-slug: angelical"] .rounded-full {
+  border-color: rgba(217, 79, 134, 0.48) !important;
+  box-shadow: 0 0 18px rgba(217, 79, 134, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] aside.bg-card.border-r nav a:hover,
+html[style*="--skin-slug: angelical"] aside.bg-card.border-r nav button:hover,
+html[style*="--skin-slug: angelical"] .store-category-tab:hover {
+  background: linear-gradient(90deg, rgba(246, 168, 201, 0.28), rgba(255, 255, 255, 0.45)) !important;
+  color: var(--pastel-rose-dark) !important;
+}
+
+html[style*="--skin-slug: angelical"] .store-category-tab.is-active,
+html[style*="--skin-slug: angelical"] .data-\[state\=active\]\:bg-background[data-state="active"] {
+  background: var(--skin-gradient-button) !important;
+  color: #fffafd !important;
+  border-color: rgba(169, 59, 111, 0.45) !important;
+  box-shadow: 0 10px 22px rgba(217, 79, 134, 0.22) !important;
+}
+
+html[style*="--skin-slug: angelical"] .desktop-launcher-titlebar [class*="text-neon-"],
+html[style*="--skin-slug: angelical"] .desktop-launcher-titlebar .font-pixel {
+  color: var(--pastel-rose-dark) !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .desktop-launcher-titlebar [class*="bg-neon-"],
+html[style*="--skin-slug: angelical"] .desktop-launcher-titlebar [class*="border-neon-"] {
+  background-color: rgba(246, 168, 201, 0.2) !important;
+  border-color: rgba(217, 79, 134, 0.28) !important;
+}
+
+html[style*="--skin-slug: angelical"] button[aria-label="Traducir sitio"] {
+  background: rgba(255, 250, 253, 0.78) !important;
+  border-color: rgba(217, 79, 134, 0.32) !important;
+  color: var(--pastel-rose-dark) !important;
+  box-shadow: 0 0 18px rgba(217, 79, 134, 0.14) !important;
+}
+
 /* Demoniaco: layered, per-surface remodeling */
 html[style*="--skin-slug: demoniaco"] {
   color-scheme: dark;

@@ -4,8 +4,8 @@ INSERT INTO shop_items (slug, name, description, price, price_type, category, ti
 VALUES 
   (
     'angelical',
-    'Skin Angelical',
-    'Estilo celestial rosado con nubes y corazones. Interfaz completa del website cambia a tema angelical ✨',
+    'Rosa Pastel',
+    'Recolor rosa pastel para website y launcher. Cambia la interfaz completa a una paleta suave con contraste legible.',
     15000,
     'stats',
     'launcher_skin',
@@ -50,6 +50,13 @@ ON CONFLICT (slug) DO UPDATE SET
   category = EXCLUDED.category,
   tier_requirement = EXCLUDED.tier_requirement,
   image_url = EXCLUDED.image_url;
+
+UPDATE shop_items
+SET
+  name = 'Rosa Pastel',
+  description = 'Recolor rosa pastel para website y launcher. Cambia la interfaz completa a una paleta suave con contraste legible.',
+  is_active = true
+WHERE slug = 'angelical';
 
 -- Marcos de avatar personalizables
 INSERT INTO shop_items (slug, name, description, price, price_type, category, tier_requirement, image_url)

@@ -1,4 +1,4 @@
-// 🎨 Sistema de Temas/Skins para Website y Launcher
+﻿// ðŸŽ¨ Sistema de Temas/Skins para Website y Launcher
 // Cada skin cambia colores, gradientes, efectos en toda la interfaz
 
 export type SkinType = 'launcher' | 'agario' | 'game';
@@ -56,47 +56,54 @@ export interface SkinTheme {
   };
 }
 
-// 🎀 SKIN ANGELICAL - Rosado, nubes, corazones, estilo Sanrio
+// ðŸŽ€ SKIN ANGELICAL - Rosado, nubes, corazones, estilo Sanrio
 export const ANGELICAL_SKIN: SkinTheme = {
-  name: 'Angelical',
+  name: 'Rosa Pastel',
   slug: 'angelical',
   type: 'launcher',
-  description: 'Estilo celestial rosado con nubes y corazones ✨',
+  description: 'Recolor rosa pastel para website y launcher, suave pero con contraste legible.',
   colors: {
-    primary: '#ff69b4',      // Rosa hot
-    secondary: '#ffc0cb',    // Rosa claro
-    accent: '#ffb6d9',       // Rosa pastel
-    background: '#fff5f9',   // Fondo blanco rosado
-    card: '#ffe4f0',         // Card rosa muy claro
-    text: '#6b3a6b',         // Texto morado oscuro
-    textMuted: '#b88bb8',    // Texto morado claro
-    border: '#ffb6d9',       // Borde rosa
+    primary: '#d94f86',
+    secondary: '#a93b6f',
+    accent: '#f6a8c9',
+    background: '#fff4f8',
+    card: '#fff9fc',
+    text: '#452437',
+    textMuted: '#86596e',
+    border: '#e9a5c4',
   },
   gradients: {
-    header: 'linear-gradient(135deg, #ff69b4 0%, #ffb6d9 100%)',
-    card: 'linear-gradient(135deg, #ffe4f0 0%, #fff5f9 100%)',
-    button: 'linear-gradient(135deg, #ff69b4 0%, #ff89cc 100%)',
-    hover: 'linear-gradient(135deg, #ff89cc 0%, #ffc0cb 100%)',
+    header: 'linear-gradient(135deg, #fff8fb 0%, #ffdceb 42%, #f5a6c8 100%)',
+    card: 'linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 239, 247, 0.94) 100%)',
+    button: 'linear-gradient(135deg, #d94f86 0%, #f08ab4 100%)',
+    hover: 'linear-gradient(135deg, #c74278 0%, #ef7ead 100%)',
   },
   effects: {
-    glow: '0 0 20px rgba(255, 105, 180, 0.4)',
-    shadow: '0 8px 24px rgba(255, 105, 180, 0.15)',
-    buttonHover: 'box-shadow: 0 0 15px rgba(255, 105, 180, 0.6), 0 4px 12px rgba(255, 105, 180, 0.3)',
-    borderRadius: '20px',
+    glow: 'rgba(217, 79, 134, 0.34)',
+    shadow: '0 12px 30px rgba(169, 59, 111, 0.14), 0 3px 10px rgba(217, 79, 134, 0.1)',
+    buttonHover: 'box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.58), 0 12px 24px rgba(217, 79, 134, 0.22)',
+    borderRadius: '10px',
   },
   patterns: {
-    background: 'radial-gradient(circle at 20% 30%, rgba(255, 200, 221, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255, 182, 217, 0.2) 0%, transparent 50%)',
-    card: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 192, 203, 0.1) 10px, rgba(255, 192, 203, 0.1) 20px)',
+    background: 'radial-gradient(circle at 16% 18%, rgba(246, 168, 201, 0.36), transparent 18rem), radial-gradient(circle at 86% 12%, rgba(255, 220, 235, 0.7), transparent 20rem), radial-gradient(circle at 72% 88%, rgba(217, 79, 134, 0.12), transparent 19rem), linear-gradient(135deg, #fff9fc 0%, #fff1f7 48%, #ffe0ed 100%)',
+    card: 'linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 238, 247, 0.93)), radial-gradient(circle at 18% 14%, rgba(246, 168, 201, 0.2), transparent 12rem)',
+    topbar: 'linear-gradient(90deg, rgba(255, 250, 253, 0.98), rgba(255, 221, 236, 0.96) 52%, rgba(255, 247, 251, 0.98))',
+    sidebar: 'linear-gradient(180deg, rgba(255, 251, 253, 0.98), rgba(255, 232, 243, 0.96))',
+    panel: 'linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 247, 0.94))',
+    profileHeader: 'linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 218, 234, 0.9))',
+    profileSurface: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 239, 247, 0.94))',
+    slot: 'radial-gradient(circle at 50% 20%, rgba(246, 168, 201, 0.24), transparent 54%), linear-gradient(135deg, #fffafd, #ffeaf3)',
+    button: 'linear-gradient(135deg, #d94f86, #ef86b2)',
   },
 };
 
-// 😈 SKIN DEMONIACO - Rojo intenso, negro profundo, efectos de fuego infernal con TEXTURAS VARIADAS ESTRATÉGICAS
+// ðŸ˜ˆ SKIN DEMONIACO - Rojo intenso, negro profundo, efectos de fuego infernal con TEXTURAS VARIADAS ESTRATÃ‰GICAS
 export const DEMONIACO_SKIN: SkinTheme = {
   name: 'Demoniaco',
   slug: 'demoniaco',
   type: 'launcher',
   family: 'demoniaco',
-  description: 'Estilo oscuro rojo demoníaco con efectos de fuego infernal 🔥',
+  description: 'Estilo oscuro rojo demonÃ­aco con efectos de fuego infernal ðŸ”¥',
   colors: {
     primary: '#d94a38',      // Rojo infernal sobrio
     secondary: '#b65a4b',    // Rojo cobre
@@ -139,7 +146,7 @@ export const DEMONIACO_SKIN: SkinTheme = {
 
 
 
-// 🤖 SKIN CIBERPUNK - Neón, cyan, magenta, líneas de código
+// ðŸ¤– SKIN CIBERPUNK - NeÃ³n, cyan, magenta, lÃ­neas de cÃ³digo
 // Skin Mercenario Bocasas - variante tactica rojo/negro basada en la arquitectura demoniaca
 export const MERCENARIO_BOCASAS_SKIN: SkinTheme = {
   name: 'Mercenario Bocasas',
@@ -189,11 +196,11 @@ export const CYBERPUNK_SKIN: SkinTheme = {
   name: 'Ciberpunk',
   slug: 'cyberpunk',
   type: 'launcher',
-  description: 'Estilo futurista con neón cyan y magenta 🌐',
+  description: 'Estilo futurista con neÃ³n cyan y magenta ðŸŒ',
   colors: {
-    primary: '#00ffff',      // Cyan neón
-    secondary: '#ff00ff',    // Magenta neón
-    accent: '#00ff88',       // Verde neón
+    primary: '#00ffff',      // Cyan neÃ³n
+    secondary: '#ff00ff',    // Magenta neÃ³n
+    accent: '#00ff88',       // Verde neÃ³n
     background: '#0a0e27',   // Azul muy oscuro
     card: '#0f1a3a',         // Azul oscuro
     text: '#00ffff',         // Cyan claro
@@ -218,12 +225,12 @@ export const CYBERPUNK_SKIN: SkinTheme = {
   },
 };
 
-// 🎨 SKIN POR DEFECTO
+// ðŸŽ¨ SKIN POR DEFECTO
 export const DEFAULT_SKIN: SkinTheme = {
   name: 'Original',
   slug: 'default',
   type: 'launcher',
-  description: 'Diseño clásico de Forbiddens',
+  description: 'DiseÃ±o clÃ¡sico de Forbiddens',
   colors: {
     primary: '#de1839',
     secondary: '#00ffff',
@@ -252,7 +259,7 @@ export const DEFAULT_SKIN: SkinTheme = {
   },
 };
 
-// 📦 Todos los temas disponibles
+// ðŸ“¦ Todos los temas disponibles
 export const ALL_SKINS = {
   angelical: ANGELICAL_SKIN,
   demoniaco: DEMONIACO_SKIN,
