@@ -445,7 +445,7 @@ function SnapCard({
         {/* 🔥 BARRA INFERIOR ATENUADA EN MODO CINE (SÓLO PC) 🔥 */}
         {cinemaMode && (
           <div className={cn(
-             "hidden lg:flex absolute z-[100] transition-opacity duration-300 pointer-events-none",
+             "social-cinema-bottom-bar hidden lg:flex absolute z-[100] transition-opacity duration-300 pointer-events-none",
              cinemaMode ? "opacity-30 hover:opacity-100" : "opacity-100",
              "bottom-0 left-0 w-full px-4 lg:px-8 pb-4 lg:pb-6 pt-24 items-end justify-between bg-gradient-to-t from-black/90 via-black/40 to-transparent flex-row",
              !cinemaMode && "lg:hidden"
@@ -606,6 +606,8 @@ function SnapCard({
       {/* 📋 PANEL DERECHO — z-[210] en móvil para estar siempre visible sobre la tela negra 📋 */}
       <div className={cn(
         "social-detail-panel flex flex-col gap-2 shrink-0 bg-background/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-border transition-all duration-300 ease-out shadow-2xl z-[210] lg:z-[70] transform-gpu",
+        cinemaMode && cinemaPanelOpen && "social-detail-panel-open",
+        cinemaMode && !cinemaPanelOpen && "social-detail-panel-closed",
         cinemaMode 
           ? "fixed bottom-0 left-0 w-full h-[80%] rounded-t-2xl bg-card border-t p-4 lg:p-4" 
           : "fixed lg:relative top-0 right-0 h-full w-[85%] max-w-[320px] lg:w-[240px] lg:w-[260px] p-3 lg:p-0 border-l lg:border-none lg:shadow-none lg:pt-[44px]", // PC conserva sus 4px visuales

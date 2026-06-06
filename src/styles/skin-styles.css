@@ -144,20 +144,49 @@ html[style*="--skin-primary"] button:hover::after {
  * Esas reglas tienen mas especificidad que Tailwind y pueden pisar utilidades
  * estructurales usadas por popups/portales: fixed, absolute, sticky y scroll.
  */
-html[style*="--skin-primary"] .relative:not(.social-hub-page):not(.social-hub-page *) {
+html[style*="--skin-primary"] .relative:not(.social-hub-page):not(.social-hub-page *):not(.public-profile-music-player):not(.public-profile-music-player *) {
   position: relative !important;
 }
 
-html[style*="--skin-primary"] .absolute:not(.social-hub-page):not(.social-hub-page *) {
+html[style*="--skin-primary"] .absolute:not(.social-hub-page):not(.social-hub-page *):not(.public-profile-music-player):not(.public-profile-music-player *) {
   position: absolute !important;
 }
 
-html[style*="--skin-primary"] .fixed:not(.social-hub-page):not(.social-hub-page *) {
+html[style*="--skin-primary"] .fixed:not(.social-hub-page):not(.social-hub-page *):not(.public-profile-music-player):not(.public-profile-music-player *) {
   position: fixed !important;
 }
 
-html[style*="--skin-primary"] .sticky:not(.social-hub-page):not(.social-hub-page *) {
+html[style*="--skin-primary"] .sticky:not(.social-hub-page):not(.social-hub-page *):not(.public-profile-music-player):not(.public-profile-music-player *) {
   position: sticky !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .bg-card,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded.border,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-lg.border,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-md.border {
+  background: var(--skin-card, hsl(var(--card) / 0.96)) !important;
+  background-image: none !important;
+  border-color: hsl(var(--border)) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel::before,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel::after,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .bg-card::before,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .bg-card::after,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded.border::before,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded.border::after,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-lg.border::before,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-lg.border::after,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-md.border::before,
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel .rounded-md.border::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
 
 @media (min-width: 1024px) {
@@ -192,12 +221,64 @@ html[style*="--skin-primary"] .sticky:not(.social-hub-page):not(.social-hub-page
   html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-video-stage {
     position: absolute !important;
     inset: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
     flex: none !important;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     transform: none !important;
     z-index: 20 !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    transform: none !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4), transparent) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar::before,
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar button {
+    position: relative !important;
+    background-image: none !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar button::before,
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar button::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar .bg-black\/50 {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar .hover\:bg-black\/80:hover {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar .border-white\/20 {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-cinema-bottom-bar .border-neon-cyan\/50 {
+    border-color: color-mix(in srgb, var(--skin-secondary, #22d3ee) 50%, transparent) !important;
   }
 
   html[style*="--skin-primary"] .social-hub-page .social-video-stage .social-cinema-toggle {
@@ -243,6 +324,14 @@ html[style*="--skin-primary"] .sticky:not(.social-hub-page):not(.social-hub-page
     left: 1rem !important;
     transform: scale(0.9) !important;
     transform-origin: top left !important;
+  }
+
+  html[style*="--skin-primary"] .social-hub-page .social-video-stage,
+  html[style*="--skin-primary"] .social-hub-page .social-detail-panel,
+  html[style*="--skin-primary"] .social-hub-page .social-desktop-filter,
+  html[style*="--skin-primary"] .social-hub-page .social-cinema-toggle,
+  html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar button {
+    background-image: none !important;
   }
 }
 
@@ -3081,6 +3170,39 @@ html[style*="--skin-slug: demoniaco"] .public-profile-playlist-popover {
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.72), 0 0 28px rgba(226, 80, 61, 0.2), inset 0 0 18px rgba(0, 0, 0, 0.7) !important;
 }
 
+/* Keep the public profile video above the themed texture, while controls stay on top. */
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player {
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player::before,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer {
+  z-index: 30 !important;
+  isolation: isolate !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer::after {
+  z-index: 1 !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-video-layer iframe {
+  z-index: 2 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .relative.z-10,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-profile-playlist-toggle,
+html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-profile-playlist-popover {
+  z-index: 60 !important;
+}
+
 /* Inventory mobile containment: keep slots inside the panel with or without a skin. */
 .demoniaco-inventory-equipment-shell,
 .demoniaco-inventory-equipment-shell .inventory-equipment-grid,
@@ -3130,5 +3252,166 @@ html[style*="--skin-slug: demoniaco"] .public-profile-playlist-popover {
     --inventory-slot-size: clamp(40px, 18vw, 56px) !important;
     gap: 0.3125rem !important;
     padding: 0.3125rem !important;
+  }
+}
+
+/* Social Hub skin guard: Feed, Reels & Videos and PhotoWall keep the base layout.
+   Skins may tint colors, but must not inject frames/textures that move controls. */
+html[style*="--skin-primary"] .social-hub-page {
+  --social-skin-accent: var(--skin-secondary, #22d3ee);
+  --social-skin-glow: color-mix(in srgb, var(--social-skin-accent) 45%, transparent);
+  --social-skin-card: color-mix(in srgb, var(--skin-card, hsl(var(--card))) 82%, hsl(var(--card)) 18%);
+  --social-skin-border: color-mix(in srgb, var(--skin-border, hsl(var(--border))) 55%, hsl(var(--border)) 45%);
+}
+
+html[style*="--skin-primary"] .social-hub-page .bg-card,
+html[style*="--skin-primary"] .social-hub-page .bg-card\/30,
+html[style*="--skin-primary"] .social-hub-page .rounded.border,
+html[style*="--skin-primary"] .social-hub-page .rounded-lg.border,
+html[style*="--skin-primary"] .social-hub-page .rounded-md.border,
+html[style*="--skin-primary"] .social-hub-page .rounded-xl.border {
+  background-image: none !important;
+  background-color: var(--social-skin-card) !important;
+  border-color: var(--social-skin-border) !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .bg-card::before,
+html[style*="--skin-primary"] .social-hub-page .bg-card::after,
+html[style*="--skin-primary"] .social-hub-page .rounded.border::before,
+html[style*="--skin-primary"] .social-hub-page .rounded.border::after,
+html[style*="--skin-primary"] .social-hub-page .rounded-lg.border::before,
+html[style*="--skin-primary"] .social-hub-page .rounded-lg.border::after,
+html[style*="--skin-primary"] .social-hub-page .rounded-md.border::before,
+html[style*="--skin-primary"] .social-hub-page .rounded-md.border::after,
+html[style*="--skin-primary"] .social-hub-page .rounded-xl.border::before,
+html[style*="--skin-primary"] .social-hub-page .rounded-xl.border::after,
+html[style*="--skin-primary"] .social-hub-page button::before,
+html[style*="--skin-primary"] .social-hub-page button::after,
+html[style*="--skin-primary"] .social-hub-page [role="button"]::before,
+html[style*="--skin-primary"] .social-hub-page [role="button"]::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page button,
+html[style*="--skin-primary"] .social-hub-page [role="button"] {
+  background-image: none !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .text-neon-cyan,
+html[style*="--skin-primary"] .social-hub-page .hover\:text-neon-cyan:hover {
+  color: var(--social-skin-accent) !important;
+  text-shadow: 0 0 8px var(--social-skin-glow) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .border-neon-cyan\/50 {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 50%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .border-neon-cyan\/30 {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 30%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .bg-neon-cyan\/10,
+html[style*="--skin-primary"] .social-hub-page .bg-neon-cyan\/15,
+html[style*="--skin-primary"] .social-hub-page .bg-neon-cyan\/20 {
+  background-color: color-mix(in srgb, var(--social-skin-accent) 16%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .hover\:bg-neon-cyan\/5:hover,
+html[style*="--skin-primary"] .social-hub-page .hover\:bg-neon-cyan\/10:hover,
+html[style*="--skin-primary"] .social-hub-page .hover\:bg-neon-cyan\/20:hover,
+html[style*="--skin-primary"] .social-hub-page .hover\:bg-neon-cyan\/40:hover {
+  background-color: color-mix(in srgb, var(--social-skin-accent) 18%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .hover\:border-neon-cyan:hover,
+html[style*="--skin-primary"] .social-hub-page .hover\:border-neon-cyan\/50:hover {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 62%, transparent) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--social-skin-accent) 18%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .shadow-\[0_0_15px_rgba\(34\,211\,238\,0\.2\)\] {
+  box-shadow: 0 0 15px color-mix(in srgb, var(--social-skin-accent) 22%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-toggle:hover,
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar button:hover {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 45%, rgba(255, 255, 255, 0.2)) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4), transparent) !important;
+  border: 0 !important;
+  overflow: visible !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar > div,
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar button,
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar button > div {
+  overflow: visible !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar button > .rounded-full,
+html[style*="--skin-primary"] .social-hub-page .social-cinema-toggle {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--social-skin-accent) 18%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar .hover\:bg-black\/80:hover {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar .border-white\/20 {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 28%, rgba(255, 255, 255, 0.14)) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar .border-neon-cyan\/50 {
+  border-color: color-mix(in srgb, var(--social-skin-accent) 55%, transparent) !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-cinema-bottom-bar .text-neon-cyan {
+  color: var(--social-skin-accent) !important;
+  filter: drop-shadow(0 0 5px var(--social-skin-glow));
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel.social-detail-panel-closed {
+  transform: translateY(100%) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel.social-detail-panel-open {
+  visibility: visible !important;
+}
+
+@media (min-width: 1024px) {
+  html[style*="--skin-primary"] .social-hub-page .social-snap-card.social-cinema-active .social-detail-panel.social-detail-panel-open {
+    position: fixed !important;
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(760px, calc(100vw - 3rem)) !important;
+    height: min(72vh, 620px) !important;
+    max-width: calc(100vw - 3rem) !important;
+    max-height: calc(100vh - 4rem) !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 240 !important;
+    border: 1px solid var(--social-skin-border) !important;
+    border-radius: 1rem !important;
+    padding: 1rem !important;
+    overflow: hidden !important;
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.72),
+      0 0 28px color-mix(in srgb, var(--social-skin-accent) 18%, transparent) !important;
   }
 }
