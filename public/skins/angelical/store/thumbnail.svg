@@ -1,0 +1,37 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rosa Pastel">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="72%">
+      <stop offset="0" stop-color="#fffafd"/>
+      <stop offset="0.58" stop-color="#ffd7e9"/>
+      <stop offset="1" stop-color="#f1a4c7"/>
+    </radialGradient>
+    <linearGradient id="cake" x1="58" y1="72" x2="198" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff8fb"/>
+      <stop offset="0.5" stop-color="#ffdce9"/>
+      <stop offset="1" stop-color="#e56f9f"/>
+    </linearGradient>
+    <linearGradient id="icing" x1="70" y1="80" x2="184" y2="135" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ffc1db"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#a93b6f" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="40" fill="url(#bg)"/>
+  <circle cx="48" cy="50" r="8" fill="#fff7fb" opacity="0.9"/>
+  <circle cx="212" cy="72" r="6" fill="#fff7fb" opacity="0.85"/>
+  <circle cx="202" cy="206" r="10" fill="#fff7fb" opacity="0.58"/>
+  <path d="M40 196h176" stroke="#a93b6f" stroke-width="10" stroke-linecap="round" opacity="0.22"/>
+  <g filter="url(#soft)">
+    <path d="M68 112c0-18 15-33 33-33h54c18 0 33 15 33 33v76H68v-76Z" fill="url(#cake)" stroke="#a93b6f" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M70 115c11-22 31-33 58-33s47 11 58 33c-6 13-15 17-27 8-9 17-25 17-34 0-9 16-27 16-36 0-8 7-15 6-19-8Z" fill="url(#icing)" stroke="#d94f86" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M92 146h72" stroke="#a93b6f" stroke-width="7" stroke-linecap="round" opacity="0.35"/>
+    <path d="M88 170h80" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.75"/>
+    <path d="M128 48v35" stroke="#a93b6f" stroke-width="7" stroke-linecap="round"/>
+    <path d="M128 36c14 12 14 23 0 31-14-8-14-19 0-31Z" fill="#ff86b6" stroke="#a93b6f" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="100" cy="137" r="5" fill="#d94f86"/>
+    <circle cx="130" cy="151" r="5" fill="#d94f86"/>
+    <circle cx="157" cy="136" r="5" fill="#d94f86"/>
+  </g>
+</svg>

@@ -272,6 +272,7 @@ export const ALL_SKINS = {
 export const SKIN_SLUGS = ['default', 'angelical', 'demoniaco', 'mercenario_bocasas', 'cyberpunk'] as const;
 
 export const SKIN_ASSET_BASE_BY_SLUG: Partial<Record<SkinSlug, string>> = {
+  angelical: '/skins/angelical',
   demoniaco: '/skins/demoniaco',
   mercenario_bocasas: '/skins/mercenario_bocasas',
 };
@@ -282,6 +283,7 @@ export const SKIN_AVATAR_FRAME_CLASS_BY_SLUG: Partial<Record<SkinSlug, string>> 
 };
 
 export const getSkinThumbnailUrl = (slug?: string | null) => {
+  if (slug === 'angelical') return '/skins/angelical/store/thumbnail.svg';
   const base = (SKIN_ASSET_BASE_BY_SLUG as Record<string, string | undefined>)[slug || ''];
   return base ? `${base}/store/thumbnail.png` : null;
 };

@@ -571,6 +571,124 @@ html[style*="--skin-slug: angelical"] button[aria-label="Traducir sitio"] {
   box-shadow: 0 0 18px rgba(217, 79, 134, 0.14) !important;
 }
 
+html[style*="--skin-slug: angelical"],
+html[style*="--skin-slug: angelical"] * {
+  scrollbar-color: #b783c8 rgba(255, 240, 248, 0.7);
+  scrollbar-width: thin;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[style*="--skin-slug: angelical"] ::-webkit-scrollbar-track {
+  background: rgba(255, 240, 248, 0.76);
+  border-radius: 999px;
+}
+
+html[style*="--skin-slug: angelical"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #d7a2e2, #a96fc0);
+  border: 2px solid rgba(255, 240, 248, 0.92);
+  border-radius: 999px;
+}
+
+html[style*="--skin-slug: angelical"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c98adc, #9659b2);
+}
+
+html[style*="--skin-slug: angelical"] [aria-roledescription="carousel"],
+html[style*="--skin-slug: angelical"] [aria-roledescription="carousel"] *,
+html[style*="--skin-slug: angelical"] .carousel,
+html[style*="--skin-slug: angelical"] .carousel *,
+html[style*="--skin-slug: angelical"] .animate-marquee-x,
+html[style*="--skin-slug: angelical"] .animate-marquee-x * {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-equipment-shell {
+  background:
+    linear-gradient(135deg, rgba(139, 104, 181, 0.94), rgba(182, 131, 200, 0.9)),
+    radial-gradient(circle at 28% 14%, rgba(255, 255, 255, 0.22), transparent 16rem) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  color: #fff !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 16px 34px rgba(118, 73, 149, 0.22) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel,
+html[style*="--skin-slug: angelical"] .equipment-panel,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-conversion-panel,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel,
+html[style*="--skin-slug: angelical"] .demoniaco-offers-panel {
+  background:
+    linear-gradient(135deg, rgba(126, 88, 166, 0.95), rgba(174, 126, 197, 0.92)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 12px 24px rgba(88, 48, 128, 0.18) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel h3,
+html[style*="--skin-slug: angelical"] .equipment-panel h3,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel .font-pixel,
+html[style*="--skin-slug: angelical"] .equipment-panel .font-pixel,
+html[style*="--skin-slug: angelical"] .equipment-title {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-mini-stats > div,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-meta,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-meta > div {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #fff !important;
+}
+
+html[style*="--skin-slug: angelical"] .inventory-slot-grid,
+html[style*="--skin-slug: angelical"] .equipment-star {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.16), transparent 48%),
+    rgba(88, 53, 124, 0.34) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html[style*="--skin-slug: angelical"] .equipment-slot,
+html[style*="--skin-slug: angelical"] .inventory-slot-grid .demoniaco-item-frame,
+html[style*="--skin-slug: angelical"] button[title="Barra de trueque"],
+html[style*="--skin-slug: angelical"] div[title="Slot remoto"] {
+  background:
+    radial-gradient(circle at 40% 24%, rgba(255, 255, 255, 0.34), transparent 52%),
+    linear-gradient(135deg, rgba(255, 231, 244, 0.92), rgba(210, 166, 224, 0.86)) !important;
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  color: #7d4a9f !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel .text-muted-foreground,
+html[style*="--skin-slug: angelical"] .equipment-panel .text-muted-foreground,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-conversion-panel .text-muted-foreground,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.76) !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel input,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel input,
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-conversion-panel input,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel textarea {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  color: #fff !important;
+}
+
+html[style*="--skin-slug: angelical"] .demoniaco-inventory-panel input::placeholder,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel input::placeholder,
+html[style*="--skin-slug: angelical"] .demoniaco-trade-panel textarea::placeholder {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
 /* Demoniaco: layered, per-surface remodeling */
 html[style*="--skin-slug: demoniaco"] {
   color-scheme: dark;
