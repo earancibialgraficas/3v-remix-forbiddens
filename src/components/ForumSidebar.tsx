@@ -316,7 +316,11 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                       <TooltipTrigger asChild>
                         <Link 
                           to={item.to || "#"} onClick={(e) => { if (!item.to) e.preventDefault(); }}
-                          className={cn("relative flex items-center justify-center p-2 rounded transition-all mb-0.5", isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground", isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.15)]")}
+                          className={cn(
+                            "relative flex items-center justify-center p-2 rounded transition-all mb-0.5",
+                            isActive ? "forum-sidebar-nav-active bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                            isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.15)]"
+                          )}
                         >
                           <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
                           {isEventNew && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-neon-yellow shadow-[0_0_8px_rgba(250,204,21,0.85)]" />}
@@ -345,7 +349,14 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
 
               return (
                 <div key={item.label} className={cn(isLast && "mt-auto pt-2 pb-1")}>
-                  <button onClick={() => hasChildren ? toggleExpand(item.label) : null} className={cn("w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all", isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50", isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.12)]")}>
+                  <button
+                    onClick={() => hasChildren ? toggleExpand(item.label) : null}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2 py-1.5 rounded transition-all",
+                      isActive ? "forum-sidebar-nav-active bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
+                      isEventNew && "bg-neon-yellow/10 text-neon-yellow shadow-[0_0_12px_rgba(250,204,21,0.12)]"
+                    )}
+                  >
                     {item.to && !hasChildren ? (
                       <Link to={item.to} className="flex items-center gap-2.5 w-full">
                         <item.icon className={cn("w-4 h-4 xl:w-5 xl:h-5", item.color)} />
@@ -368,7 +379,7 @@ export default function ForumSidebar({ collapsed, onToggle }: { collapsed: boole
                         ) : child.isTitle ? (
                            <span key={`title-${idx}`} className={cn("block px-2 pt-2 pb-1 text-[9px] font-pixel opacity-90 uppercase tracking-widest", child.color || "text-muted-foreground")}>{child.label}</span>
                         ) : (
-                           <Link key={child.to} to={child.to!} className={cn("block py-1 px-2 rounded-sm text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "text-primary font-bold bg-muted/30" : "text-muted-foreground hover:text-foreground hover:bg-muted/10")}>{child.label}</Link>
+                           <Link key={child.to} to={child.to!} className={cn("block py-1 px-2 rounded-sm text-[11px] xl:text-xs transition-colors", location.pathname === child.to ? "forum-sidebar-nav-active text-primary font-bold bg-muted/30" : "text-muted-foreground hover:text-foreground hover:bg-muted/10")}>{child.label}</Link>
                         )
                       ))}
                     </div>

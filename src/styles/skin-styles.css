@@ -2637,10 +2637,7 @@ html[style*="--skin-slug: angelical"] .store-page h3 {
 html[style*="--skin-slug: angelical"] [role="tab"][data-state="active"],
 html[style*="--skin-slug: angelical"] button[data-state="active"],
 html[style*="--skin-slug: angelical"] .demoniaco-profile-tabs > button[class*="bg-muted"],
-html[style*="--skin-slug: angelical"] aside nav button[class*="bg-muted"],
-html[style*="--skin-slug: angelical"] aside nav a[class*="bg-muted"],
-html[style*="--skin-slug: angelical"] aside nav a[class*="bg-primary"],
-html[style*="--skin-slug: angelical"] aside nav button[class*="bg-primary"] {
+html[style*="--skin-slug: angelical"] aside nav .forum-sidebar-nav-active {
   background: linear-gradient(135deg, #8f5cad, #b783c8) !important;
   border-color: rgba(255, 255, 255, 0.42) !important;
   color: #fff !important;
@@ -2648,10 +2645,7 @@ html[style*="--skin-slug: angelical"] aside nav button[class*="bg-primary"] {
   text-shadow: none !important;
 }
 
-html[style*="--skin-slug: angelical"] aside nav button[class*="bg-muted"] *,
-html[style*="--skin-slug: angelical"] aside nav a[class*="bg-muted"] *,
-html[style*="--skin-slug: angelical"] aside nav a[class*="bg-primary"] *,
-html[style*="--skin-slug: angelical"] aside nav button[class*="bg-primary"] * {
+html[style*="--skin-slug: angelical"] aside nav .forum-sidebar-nav-active * {
   color: #fff !important;
   text-shadow: none !important;
 }
