@@ -427,7 +427,6 @@ export default function PublicProfilePage() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
           {[
             { val: statPoints.toLocaleString(), label: "Puntos", color: "text-neon-green" },
-            { val: fcoinBalance.toLocaleString("es-CL"), label: "F-coins", color: "text-[#f7d28b]", icon: Gem },
             { val: betFcoinsEarned.toLocaleString("es-CL"), label: "F-coins ganados", color: "text-[#f7d28b]", icon: Gem },
             { val: followerCount, label: "Seguidores", color: "text-foreground" },
             { val: followingCount, label: "Siguiendo", color: "text-foreground" },
