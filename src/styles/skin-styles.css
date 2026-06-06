@@ -4667,6 +4667,6 @@ html[style*="--skin-slug: demoniaco"] .public-profile-music-player > .public-pro
 html[style*="--skin-slug: mercenario_bocasas"] .public-profile-music-player > .public-profile-video-layer iframe,
 html[style*="--skin-slug: angelical"] .public-profile-music-player > .public-profile-video-layer iframe {
   left: auto !important;
-  right: -2.5% !important;
+  right: -5% !important;
   transform: translateY(-50%) !important;
 }
