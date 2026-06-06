@@ -155,10 +155,17 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className={cn("box-border flex bg-background text-foreground w-full h-[100dvh] lg:h-auto lg:min-h-screen overflow-hidden lg:overflow-visible relative", launcherDetected && "pt-10")}>
+    <div
+      className={cn(
+        "box-border flex bg-background text-foreground w-full overflow-hidden relative",
+        launcherDetected
+          ? "h-[100dvh] min-h-0 pt-10 lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
+          : "h-[100dvh] lg:h-auto lg:min-h-screen lg:overflow-visible"
+      )}
+    >
       <DesktopLauncherTitleBar />
       {/* Sidebar de PC (Oculto en Tablet y Celular) */}
-      <div className="hidden lg:block sticky top-0 h-screen">
+      <div className={cn("hidden lg:block sticky", launcherDetected ? "top-10 h-[calc(100dvh-2.5rem)]" : "top-0 h-screen")}>
         <ForumSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
@@ -230,7 +237,14 @@ export default function MainLayout() {
           </div>
           
           {/* Panel Derecho (Solo en PC) */}
-          <div className="hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]">
+          <div
+            className={cn(
+              "hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky",
+              launcherDetected
+                ? "top-3 h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
+                : "top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
+            )}
+          >
             <RightPanel />
           </div>
         </div>
