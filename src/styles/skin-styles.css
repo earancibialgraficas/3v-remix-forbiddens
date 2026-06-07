@@ -646,8 +646,8 @@ html[style*="--skin-slug: angelical"] .avatar-frame-custom::after {
   position: absolute;
   top: 48%;
   left: 50%;
-  width: 139%;
-  height: 139%;
+  width: 105%;
+  height: 105%;
   transform: translate(-50%, -50%);
   z-index: 5;
   pointer-events: none;
@@ -4762,8 +4762,8 @@ html[style*="--skin-slug: mercenario_bocasas"] .avatar-frame-custom::after {
   position: absolute;
   top: 48%;
   left: 50%;
-  width: 139%;
-  height: 139%;
+  width: 105%;
+  height: 105%;
   transform: translate(-50%, -50%);
   z-index: 5;
   pointer-events: none;
