@@ -317,43 +317,32 @@ export default function StorePage() {
     }
 
     try {
-      // PRIMERO: Agregar a inventario usando la función RPC
-      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('buy_shop_item', {
+      // Llamar a la función RPC mejorada que valida, deduce y agrega atómicamente
+      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('buy_shop_item_with_validation', {
         p_user_id: user.id,
         p_item_slug: item.slug,
         p_item_name: item.name,
         p_category: item.category,
+        p_price: item.price,
+        p_price_type: item.price_type,
       });
 
-      if (rpcError || !rpcResult?.success) {
-        console.error('Error al insertar en inventario:', rpcError);
-        throw new Error(`No se pudo agregar el item al inventario: ${rpcError?.message || rpcResult?.error || 'Error desconocido'}`);
+      if (rpcError) {
+        console.error('Error en RPC de compra:', rpcError);
+        throw new Error(`Error en la transacción: ${rpcError.message || 'Error desconocido'}`);
       }
 
-      // SEGUNDO: Restar monedas/puntos SOLO si la inserción fue exitosa
-      const newBalance = (item.price_type === 'stats' ? userStats : userFCoins) - item.price;
-      
+      // Validar resultado
+      if (!rpcResult?.success) {
+        const errorMsg = rpcResult?.error || 'Error desconocido en la compra';
+        throw new Error(errorMsg);
+      }
+
+      // Actualizar estado local con el nuevo balance
+      const newBalance = rpcResult.new_balance;
       if (item.price_type === 'stats') {
-        const { error: statsError } = await supabase
-          .from('profiles')
-          .update({ total_score: newBalance } as any)
-          .eq('user_id', user.id);
-        
-        if (statsError) {
-          throw new Error(`No se pudo restar los puntos: ${statsError.message || 'Error desconocido'}`);
-        }
-        
         await refreshProfile();
       } else {
-        const { error: coinsError } = await (supabase as any)
-          .from('point_wallets')
-          .update({ balance: newBalance })
-          .eq('user_id', user.id);
-        
-        if (coinsError) {
-          throw new Error(`No se pudo restar los F-coins: ${coinsError.message || 'Error desconocido'}`);
-        }
-        
         setUserFCoins(newBalance);
       }
 
