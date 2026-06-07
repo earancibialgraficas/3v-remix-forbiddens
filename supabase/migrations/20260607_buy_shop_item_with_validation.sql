@@ -3,10 +3,10 @@
 -- Valida monedas/puntos ANTES de hacer cambios
 -- Deducción y inserción atómicas
 -- ============================================================
-DROP FUNCTION IF EXISTS public.buy_shop_item_with_validation(UUID, TEXT, TEXT, TEXT, BIGINT, TEXT);
+DROP FUNCTION IF EXISTS public.buy_shop_item_with_validation(TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT);
 
 CREATE OR REPLACE FUNCTION public.buy_shop_item_with_validation(
-  p_user_id UUID,
+  p_user_id TEXT,
   p_item_slug TEXT,
   p_item_name TEXT,
   p_category TEXT,
@@ -19,9 +19,21 @@ DECLARE
   v_new_balance BIGINT;
   v_item_id UUID;
   v_error_msg TEXT;
+  v_user_id_uuid UUID;
 BEGIN
+  -- Convertir user_id a UUID para usar en point_events
+  BEGIN
+    v_user_id_uuid := p_user_id::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'reason', 'invalid_user_format',
+      'error', 'Formato de usuario inválido'
+    );
+  END;
+
   -- Validar que p_user_id no sea NULL
-  IF p_user_id IS NULL THEN
+  IF p_user_id IS NULL OR p_user_id = '' THEN
     RETURN json_build_object(
       'success', false,
       'reason', 'invalid_user',
@@ -54,7 +66,7 @@ BEGIN
     SELECT COALESCE(total_score, 0)
     INTO v_current_balance
     FROM public.profiles
-    WHERE user_id = p_user_id::text
+    WHERE user_id = p_user_id
     FOR UPDATE;
 
     -- Validar que hay suficientes puntos
@@ -73,11 +85,11 @@ BEGIN
     
     UPDATE public.profiles
     SET total_score = v_new_balance, updated_at = now()
-    WHERE user_id = p_user_id::text;
+    WHERE user_id = p_user_id;
 
     -- Registrar el evento
     INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
-    VALUES (p_user_id, p_user_id, 'shop_purchase_stats', gen_random_uuid(), -p_price);
+    VALUES (v_user_id_uuid, v_user_id_uuid, 'shop_purchase_stats', gen_random_uuid(), -p_price);
 
   -- ============================================================
   -- VALIDAR Y DEDUCIR FCOINS
@@ -85,13 +97,13 @@ BEGIN
   ELSIF p_price_type = 'fcoins' THEN
     -- Asegurar que existe la billetera
     INSERT INTO public.point_wallets (user_id, balance)
-    VALUES (p_user_id::text, 0)
+    VALUES (p_user_id, 0)
     ON CONFLICT (user_id) DO NOTHING;
 
     SELECT balance
     INTO v_current_balance
     FROM public.point_wallets
-    WHERE user_id = p_user_id::text
+    WHERE user_id = p_user_id
     FOR UPDATE;
 
     -- Validar que hay suficientes F-coins
@@ -110,11 +122,11 @@ BEGIN
 
     UPDATE public.point_wallets
     SET balance = v_new_balance, updated_at = now()
-    WHERE user_id = p_user_id::text;
+    WHERE user_id = p_user_id;
 
     -- Registrar el evento
     INSERT INTO public.point_events (user_id, actor_id, source_type, source_id, points)
-    VALUES (p_user_id, p_user_id, 'shop_purchase_fcoins', gen_random_uuid(), -p_price);
+    VALUES (v_user_id_uuid, v_user_id_uuid, 'shop_purchase_fcoins', gen_random_uuid(), -p_price);
   END IF;
 
   -- ============================================================
@@ -123,7 +135,7 @@ BEGIN
   BEGIN
     INSERT INTO public.user_inventory (user_id, item_slug, item_name, quantity, metadata)
     VALUES (
-      p_user_id,
+      v_user_id_uuid,
       p_item_slug,
       p_item_name,
       1,
@@ -137,11 +149,11 @@ BEGIN
     IF p_price_type = 'stats' THEN
       UPDATE public.profiles
       SET total_score = v_current_balance, updated_at = now()
-      WHERE user_id = p_user_id::text;
+      WHERE user_id = p_user_id;
     ELSIF p_price_type = 'fcoins' THEN
       UPDATE public.point_wallets
       SET balance = v_current_balance, updated_at = now()
-      WHERE user_id = p_user_id::text;
+      WHERE user_id = p_user_id;
     END IF;
 
     RETURN json_build_object(
@@ -172,4 +184,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public;
 
 -- Conceder permisos
-GRANT EXECUTE ON FUNCTION public.buy_shop_item_with_validation(UUID, TEXT, TEXT, TEXT, BIGINT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.buy_shop_item_with_validation(TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT) TO authenticated;
