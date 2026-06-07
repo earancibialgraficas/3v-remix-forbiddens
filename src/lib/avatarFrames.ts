@@ -9,6 +9,7 @@ export type AvatarFrameTheme = {
   imageUrl: string;
   thumbnailUrl: string;
   frameBackgroundSize?: string;
+  frameBackgroundPosition?: string;
   price: number;
   priceType: 'stats' | 'fcoins';
 };
@@ -20,7 +21,8 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Marco rosa ornamental para tu avatar.',
     imageUrl: '/avatar-frames/princess-rose-01/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-01/frame.svg',
-    frameBackgroundSize: '82% auto',
+    frameBackgroundSize: '76% auto',
+    frameBackgroundPosition: 'center 45%',
     price: 2000,
     priceType: 'stats',
   },
@@ -30,7 +32,8 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Variante rosa brillante para destacar tu perfil.',
     imageUrl: '/avatar-frames/princess-rose-02/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-02/frame.svg',
-    frameBackgroundSize: '82% auto',
+    frameBackgroundSize: '76% auto',
+    frameBackgroundPosition: 'center 45%',
     price: 2000,
     priceType: 'stats',
   },
@@ -40,7 +43,8 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Marco rosa elegante con presencia de tienda premium.',
     imageUrl: '/avatar-frames/princess-rose-03/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-03/frame.svg',
-    frameBackgroundSize: '82% auto',
+    frameBackgroundSize: '76% auto',
+    frameBackgroundPosition: 'center 45%',
     price: 2000,
     priceType: 'stats',
   },
@@ -61,6 +65,7 @@ export const getAvatarFrameStyle = (slug?: string | null) => {
     ? ({
         '--avatar-frame-url': `url('${frame.imageUrl}')`,
         ...(frame.frameBackgroundSize ? { '--avatar-frame-background-size': frame.frameBackgroundSize } : {}),
+        ...(frame.frameBackgroundPosition ? { '--avatar-frame-background-position': frame.frameBackgroundPosition } : {}),
       } as CSSProperties)
     : undefined;
 };

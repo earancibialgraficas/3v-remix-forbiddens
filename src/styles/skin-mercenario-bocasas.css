@@ -1463,7 +1463,7 @@ html[style*="--skin-slug: mercenario_bocasas"] .profile-moderation-panel button[
   z-index: 4;
   pointer-events: none;
   inset: -30%;
-  background: var(--avatar-frame-url) center / var(--avatar-frame-background-size, contain) no-repeat;
+  background: var(--avatar-frame-url) var(--avatar-frame-background-position, center) / var(--avatar-frame-background-size, contain) no-repeat;
   filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38));
 }
 
@@ -2186,7 +2186,7 @@ html[style*="--skin-slug: mercenario_bocasas"] .demoniaco-avatar-frame.avatar-fr
   transform: none !important;
   z-index: 12 !important;
   pointer-events: none !important;
-  background: var(--avatar-frame-url) center / var(--avatar-frame-background-size, contain) no-repeat !important;
+  background: var(--avatar-frame-url) var(--avatar-frame-background-position, center) / var(--avatar-frame-background-size, contain) no-repeat !important;
   filter: drop-shadow(0 0 9px rgba(244, 114, 182, 0.38)) !important;
 }
 
