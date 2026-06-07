@@ -8,6 +8,7 @@ export type AvatarFrameTheme = {
   description: string;
   imageUrl: string;
   thumbnailUrl: string;
+  frameBackgroundSize?: string;
   price: number;
   priceType: 'stats' | 'fcoins';
 };
@@ -19,6 +20,7 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Marco rosa ornamental para tu avatar.',
     imageUrl: '/avatar-frames/princess-rose-01/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-01/frame.svg',
+    frameBackgroundSize: '82% auto',
     price: 2000,
     priceType: 'stats',
   },
@@ -28,6 +30,7 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Variante rosa brillante para destacar tu perfil.',
     imageUrl: '/avatar-frames/princess-rose-02/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-02/frame.svg',
+    frameBackgroundSize: '82% auto',
     price: 2000,
     priceType: 'stats',
   },
@@ -37,6 +40,7 @@ export const AVATAR_FRAMES: Record<AvatarFrameSlug, AvatarFrameTheme> = {
     description: 'Marco rosa elegante con presencia de tienda premium.',
     imageUrl: '/avatar-frames/princess-rose-03/frame.svg',
     thumbnailUrl: '/avatar-frames/princess-rose-03/frame.svg',
+    frameBackgroundSize: '82% auto',
     price: 2000,
     priceType: 'stats',
   },
@@ -53,7 +57,12 @@ export const isAvatarFrameSlug = (slug?: string | null) => Boolean(getAvatarFram
 
 export const getAvatarFrameStyle = (slug?: string | null) => {
   const frame = getAvatarFrame(slug);
-  return frame ? ({ '--avatar-frame-url': `url('${frame.imageUrl}')` } as CSSProperties) : undefined;
+  return frame
+    ? ({
+        '--avatar-frame-url': `url('${frame.imageUrl}')`,
+        ...(frame.frameBackgroundSize ? { '--avatar-frame-background-size': frame.frameBackgroundSize } : {}),
+      } as CSSProperties)
+    : undefined;
 };
 
 export const AVATAR_FRAME_SHOP_ITEMS = AVATAR_FRAME_SLUGS.map((slug, index) => {

@@ -250,6 +250,53 @@ export default function StorePage() {
     return true;
   };
 
+  const getPurchaseBlockReason = (item: ShopItem): { title: string; description: string } | null => {
+    if (userTier === 'staff') return null;
+
+    if (item.price_type === 'stats' && userStats < item.price) {
+      return {
+        title: "Saldo insuficiente",
+        description: `Necesitas ${item.price.toLocaleString()} STATS y tienes ${userStats.toLocaleString()}.`,
+      };
+    }
+
+    if (item.price_type === 'fcoins' && userFCoins < item.price) {
+      return {
+        title: "Saldo insuficiente",
+        description: `Necesitas ${item.price.toLocaleString()} F-COINS y tienes ${userFCoins.toLocaleString()}.`,
+      };
+    }
+
+    const tierIndex = TIER_ORDER.indexOf(userTier);
+    const requiredTierIndex = TIER_ORDER.indexOf(item.tier_requirement);
+
+    if (tierIndex < requiredTierIndex) {
+      return {
+        title: "No puedes comprar esto",
+        description: `Tu tier ${userTier.toUpperCase()} no tiene acceso a este item.`,
+      };
+    }
+
+    if (userTier === 'novato') {
+      const allowed = isProfileTransitionSlug(item.slug) || (item.price_type === 'stats' && item.category === 'cosmetic');
+      if (!allowed) {
+        return {
+          title: "No puedes comprar esto",
+          description: "Los usuarios NOVATO solo pueden comprar cosmeticos con STATS y transiciones de perfil.",
+        };
+      }
+    }
+
+    if (userTier === 'lite' && item.category === 'launcher_skin') {
+      return {
+        title: "No puedes comprar esto",
+        description: "Los usuarios LITE no pueden comprar skins del launcher.",
+      };
+    }
+
+    return null;
+  };
+
   // Funciones para categorizar items
   const isBoosterItem = (item: ShopItem) => item?.slug === "points_x3_week";
   const isEventTicketItem = (item: ShopItem) => String(item?.slug || "").startsWith("event_ticket:");
@@ -307,10 +354,11 @@ export default function StorePage() {
       return;
     }
 
-    if (!canBuyItem(item)) {
+    const purchaseBlockReason = getPurchaseBlockReason(item);
+    if (purchaseBlockReason) {
       toast({ 
-        title: "No puedes comprar esto",
-        description: `Tu tier ${userTier.toUpperCase()} no tiene acceso a este item`,
+        title: purchaseBlockReason.title,
+        description: purchaseBlockReason.description,
         variant: "destructive"
       });
       return;
@@ -334,7 +382,13 @@ export default function StorePage() {
 
       // Validar resultado
       if (!rpcResult?.success) {
-        const errorMsg = rpcResult?.error || 'Error desconocido en la compra';
+        const current = Number(rpcResult?.current ?? 0).toLocaleString();
+        const required = Number(rpcResult?.required ?? item.price).toLocaleString();
+        const errorMsg = rpcResult?.reason === 'insufficient_stats'
+          ? `No tienes suficientes STATS. Necesitas ${required} y tienes ${current}.`
+          : rpcResult?.reason === 'insufficient_fcoins'
+            ? `No tienes suficientes F-COINS. Necesitas ${required} y tienes ${current}.`
+            : rpcResult?.error || 'Error desconocido en la compra';
         throw new Error(errorMsg);
       }
 

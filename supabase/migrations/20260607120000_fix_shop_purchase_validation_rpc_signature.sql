@@ -1,4 +1,4 @@
--- Harden shop purchases: validate balance before writing, keep the RPC signature unique.
+-- Repair already-applied databases where both TEXT and UUID overloads exist.
 
 DROP FUNCTION IF EXISTS public.buy_shop_item_with_validation(TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT);
 DROP FUNCTION IF EXISTS public.buy_shop_item_with_validation(UUID, TEXT, TEXT, TEXT, BIGINT, TEXT);
