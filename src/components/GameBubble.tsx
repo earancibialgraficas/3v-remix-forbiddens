@@ -400,6 +400,9 @@ export default function GameBubble() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [snesToolsOpen, setSnesToolsOpen] = useState(false);
+  const snesToolsBubbleRef = useRef<HTMLDivElement | null>(null);
+  const snesToolsWasOpenRef = useRef(false);
+  const snesToolsPausedGameRef = useRef(false);
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
@@ -1911,6 +1914,55 @@ window.EJS_onGameStart=function(){
     } catch {}
   }, [paused, romLoaded]);
 
+  useEffect(() => {
+    const wasOpen = snesToolsWasOpenRef.current;
+
+    if (snesToolsOpen && !wasOpen) {
+      snesToolsPausedGameRef.current = false;
+      if (nostalgistRef.current && romLoaded && !paused) {
+        try {
+          nostalgistRef.current.pause();
+          setPaused(true);
+          snesToolsPausedGameRef.current = true;
+        } catch {}
+      }
+    }
+
+    if (!snesToolsOpen && wasOpen) {
+      if (snesToolsPausedGameRef.current && nostalgistRef.current && romLoaded) {
+        try {
+          nostalgistRef.current.resume();
+          setPaused(false);
+        } catch {}
+      }
+      snesToolsPausedGameRef.current = false;
+    }
+
+    snesToolsWasOpenRef.current = snesToolsOpen;
+  }, [paused, romLoaded, snesToolsOpen]);
+
+  useEffect(() => {
+    if (!snesToolsOpen) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && snesToolsBubbleRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(".snes-retro-hit-shape-heart")) return;
+      setSnesToolsOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSnesToolsOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    document.addEventListener("keydown", handleEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [snesToolsOpen]);
+
   const toggleEmulatorMenu = useCallback(() => {
     // 🎮 EmulatorJS (N64/PS1/Arcade): mostrar/ocultar la barra inferior NATIVA del emulador
     // (la que tiene Save/Load/Cheats/Controls/etc.). NO abrimos directamente Control Settings.
@@ -2885,16 +2937,17 @@ window.EJS_onGameStart=function(){
             <>
               <div className="snes-retro-shell-hardware" aria-hidden="true">
                 <img
-                  src="/emulator-shells/snes-retro/vertical-celular.svg"
+                  src={isExpanded
+                    ? "/emulator-shells/snes-retro/vertical-celular-expanded.svg"
+                    : "/emulator-shells/snes-retro/vertical-celular.svg"
+                  }
                   alt=""
                   draggable={false}
                 />
               </div>
               <div className="snes-retro-info">
                 <span className="snes-retro-title">{activeGame.gameName}</span>
-                <span className="snes-retro-meta">SNES</span>
-                <span className="snes-retro-meta">{activeGame.score || 0}</span>
-                <span className="snes-retro-meta">
+                <span className="snes-retro-meta snes-retro-time">
                   {(() => {
                     const t = activeGame.playTime || 0;
                     const m = Math.floor((t % 3600) / 60);
@@ -2902,41 +2955,8 @@ window.EJS_onGameStart=function(){
                     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
                   })()}
                 </span>
-              </div>
-              <div className="snes-retro-window-controls">
-                <button
-                  type="button"
-                  aria-label="Minimizar"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    minimizeGame();
-                  }}
-                >
-                  <Minus className="h-full w-full" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Maximizar"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                >
-                  <Maximize2 className="h-full w-full" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Cerrar"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleClose();
-                  }}
-                >
-                  <X className="h-full w-full" />
-                </button>
+                <span className="snes-retro-meta snes-retro-score">{activeGame.score || 0} pts</span>
+                <span className="snes-retro-meta snes-retro-system">SNES</span>
               </div>
             </>
           )}
@@ -2994,32 +3014,71 @@ window.EJS_onGameStart=function(){
             <div className="snes-retro-controls-layer">
               <svg
                 className="snes-retro-hit-svg"
-                viewBox="0 0 690.75 1200"
+                viewBox="0 0 914.88 2034"
                 preserveAspectRatio="none"
                 aria-hidden="false"
               >
-                {renderSnesRetroKeyRect("Arriba", "up", 119.992188, 786.714844, 86.96875, 88.46875, 16, "snes-retro-hit-shape-dpad")}
-                {renderSnesRetroKeyRect("Abajo", "down", 119.882812, 941.128906, 86.96875, 89.96875, 16, "snes-retro-hit-shape-dpad")}
-                {renderSnesRetroKeyRect("Izquierda", "left", 44.117188, 864.8125, 86.96875, 88.46875, 16, "snes-retro-hit-shape-dpad")}
-                {renderSnesRetroKeyRect("Derecha", "right", 197.09375, 864.871094, 87.714844, 88.464844, 16, "snes-retro-hit-shape-dpad")}
-                {renderSnesRetroKeyRect("L", "l", 94.441406, 702.269531, 140.199219, 50.980469, 24, "snes-retro-hit-shape-shoulder")}
-                {renderSnesRetroKeyRect("R", "r", 470.304688, 702.269531, 141.699218, 50.980469, 24, "snes-retro-hit-shape-shoulder")}
-                {renderSnesRetroKeyCircle("Y", "y", 471.246094, 905.673828, 41.234375, 40.861328, "snes-retro-hit-shape-face")}
-                {renderSnesRetroKeyCircle("X", "x", 541.404297, 824.0625, 41.611328, 40.859375, "snes-retro-hit-shape-face")}
-                {renderSnesRetroKeyCircle("B", "b", 541.404297, 988.957031, 41.611328, 42.359375, "snes-retro-hit-shape-face")}
-                {renderSnesRetroKeyCircle("A", "a", 612.201172, 905.673828, 41.611328, 40.861328, "snes-retro-hit-shape-face")}
-                {renderSnesRetroKeyRect("Select", "select", 311.476562, 778, 86.523438, 35.542969, 18, "snes-retro-hit-shape-pill")}
-                {renderSnesRetroKeyRect("Start", "start", 311.324219, 835, 86.675781, 36, 18, "snes-retro-hit-shape-pill")}
+                {renderSnesRetroKeyRect("Arriba", "up", 158.980469, 1264.386719, 115.488281, 117.734375, 22, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Abajo", "down", 158.839844, 1468.980469, 115.484375, 119.234375, 22, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Izquierda", "left", 58.453125, 1367.863281, 114.734375, 117.734375, 22, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Derecha", "right", 261.136719, 1367.9375, 115.484375, 116.988281, 22, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("L", "l", 125.128906, 1152.503906, 185.976563, 67.488282, 32, "snes-retro-hit-shape-shoulder")}
+                {renderSnesRetroKeyRect("R", "r", 623.128906, 1152.503906, 188.226563, 67.488282, 32, "snes-retro-hit-shape-shoulder")}
+                {renderSnesRetroKeyCircle("Y", "y", 624.488281, 1421.857422, 54.742188, 53.994141, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("X", "x", 717.320313, 1313.726563, 55.117188, 53.992188, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("B", "b", 717.320313, 1532.464844, 55.117188, 56.242188, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("A", "a", 810.75, 1421.855469, 54.742188, 53.994141, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyRect("Select", "select", 418.753906, 1255.933594, 109.484375, 40.492187, 20, "snes-retro-hit-shape-pill")}
+                {renderSnesRetroKeyRect("Start", "start", 418.753906, 1329.339844, 109.484375, 41.992187, 20, "snes-retro-hit-shape-pill")}
+                <rect
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Minimizar"
+                  className="snes-retro-hit-shape snes-retro-hit-shape-window"
+                  x={633.640625}
+                  y={51.929688}
+                  width={40.496094}
+                  height={41.992187}
+                  rx={10}
+                  onPointerUp={(event) => handleSnesRetroActionShape(event, minimizeGame)}
+                  onContextMenu={(event) => event.preventDefault()}
+                />
+                <rect
+                  role="button"
+                  tabIndex={0}
+                  aria-label={isExpanded ? "Restaurar" : "Maximizar"}
+                  className="snes-retro-hit-shape snes-retro-hit-shape-window"
+                  x={696.898438}
+                  y={52.894531}
+                  width={40.496093}
+                  height={39.746094}
+                  rx={10}
+                  onPointerUp={(event) => handleSnesRetroActionShape(event, toggleFullscreen)}
+                  onContextMenu={(event) => event.preventDefault()}
+                />
+                <rect
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Cerrar"
+                  className="snes-retro-hit-shape snes-retro-hit-shape-window"
+                  x={760.140625}
+                  y={52.578125}
+                  width={40.496094}
+                  height={40.496094}
+                  rx={10}
+                  onPointerUp={(event) => handleSnesRetroActionShape(event, handleClose)}
+                  onContextMenu={(event) => event.preventDefault()}
+                />
                 <rect
                   role="button"
                   tabIndex={0}
                   aria-label="Config"
                   className="snes-retro-hit-shape snes-retro-hit-shape-pill"
-                  x={313.765625}
-                  y={892.078125}
-                  width={82.46875}
-                  height={26.988281}
-                  rx={13}
+                  x={418.84375}
+                  y={1404.019531}
+                  width={108.734375}
+                  height={35.996094}
+                  rx={18}
                   onPointerUp={(event) => handleSnesRetroActionShape(event, toggleEmulatorMenu)}
                   onContextMenu={(event) => event.preventDefault()}
                 />
@@ -3028,13 +3087,18 @@ window.EJS_onGameStart=function(){
                   tabIndex={0}
                   aria-label="Opciones"
                   className="snes-retro-hit-shape snes-retro-hit-shape-heart"
-                  d="M 311 627 L 383 627 L 383 693 L 311 693 Z M 311 627"
+                  d="M 457.5 990 L 430 962 C 394 930 382 895 401 865 C 419 838 449 835 457.5 864 C 466 835 496 838 514 865 C 533 895 521 930 485 962 Z"
                   onPointerUp={(event) => handleSnesRetroActionShape(event, () => setSnesToolsOpen((value) => !value))}
                   onContextMenu={(event) => event.preventDefault()}
                 />
               </svg>
               {snesToolsOpen && (
-                <div className="snes-retro-tools-bubble" onClick={(event) => event.stopPropagation()}>
+                <div
+                  ref={snesToolsBubbleRef}
+                  className="snes-retro-tools-bubble"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <div className="snes-retro-tools-grid">
                     {romLoaded && !isN64 && (
                       <button type="button" onClick={() => setShowSaveDialog(true)}>
@@ -3052,12 +3116,6 @@ window.EJS_onGameStart=function(){
                       <button type="button" onClick={() => handleSaveScore(false)}>
                         <Upload className="h-4 w-4" />
                         Puntaje
-                      </button>
-                    )}
-                    {romLoaded && (
-                      <button type="button" onClick={toggleEmulatorMenu}>
-                        <Settings className="h-4 w-4" />
-                        Config
                       </button>
                     )}
                     {romLoaded && (
