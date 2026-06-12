@@ -52,6 +52,233 @@
   }
 }
 
+@layer components {
+  .gamebubble-shell-snes-retro.snes-retro-shell-portrait {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  .gamebubble-shell-snes-retro > .relative.flex-1 {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    background: transparent !important;
+    overflow: visible;
+  }
+
+  .gamebubble-shell-snes-retro .snes-retro-shell-viewport {
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+    overflow: hidden;
+  }
+
+  .snes-retro-shell-hardware {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    pointer-events: none;
+  }
+
+  .snes-retro-shell-hardware img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    user-select: none;
+  }
+
+  .snes-retro-info {
+    position: absolute;
+    left: 13%;
+    top: calc(5.8% + 10px);
+    z-index: 64;
+    display: flex;
+    align-items: center;
+    gap: clamp(5px, 1.2vw, 10px);
+    width: min(58%, calc(100% - 150px));
+    height: 34px;
+    min-width: 0;
+    color: #fff1f8;
+    font-family: var(--font-pixel), "Press Start 2P", monospace;
+    text-shadow: 0 1px 0 #7c2447;
+    pointer-events: none;
+  }
+
+  .snes-retro-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fff7fb;
+    font-size: clamp(8px, 2.2vw, 13px);
+    line-height: 1;
+  }
+
+  .snes-retro-meta {
+    flex: 0 0 auto;
+    color: #b54b70;
+    font-size: clamp(6px, 1.5vw, 9px);
+    line-height: 1;
+  }
+
+  .gamebubble-shell-snes-retro .snes-retro-game-screen {
+    inset: auto !important;
+    left: 13.2% !important;
+    top: 12.45% !important;
+    width: 73.6% !important;
+    height: 39.4% !important;
+    z-index: 5;
+    overflow: hidden;
+    border-radius: clamp(12px, 3vw, 26px);
+    background: #000;
+  }
+
+  .gamebubble-shell-snes-retro .snes-retro-game-screen canvas,
+  .gamebubble-shell-snes-retro .snes-retro-game-screen iframe {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    background: #000;
+  }
+
+  .snes-retro-controls-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+  }
+
+  .snes-retro-hit-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 61;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .snes-retro-hit-shape {
+    fill: transparent;
+    stroke: transparent;
+    cursor: pointer;
+    outline: none;
+    pointer-events: all;
+    touch-action: none;
+  }
+
+  .snes-retro-hit-shape:active {
+    fill: rgba(255, 158, 197, 0.36);
+    stroke: rgba(255, 246, 250, 0.58);
+    stroke-width: 3;
+    filter:
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.45))
+      drop-shadow(0 0 14px rgba(214, 88, 144, 0.46));
+  }
+
+  .snes-retro-hit-shape-heart:active {
+    fill: rgba(255, 130, 180, 0.28);
+  }
+
+  .snes-retro-window-controls {
+    position: absolute;
+    right: clamp(26px, 7vw, 44px);
+    top: 18px;
+    z-index: 86;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+  }
+
+  .snes-retro-window-controls button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(24px, 7vw, 34px);
+    height: clamp(24px, 7vw, 34px);
+    border: 1px solid rgba(218, 94, 142, 0.62);
+    border-radius: 7px;
+    background: rgba(255, 245, 249, 0.82);
+    color: #c24f7e;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 4px 12px rgba(133, 38, 80, 0.16);
+    padding: clamp(4px, 1.35vw, 7px);
+    transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .snes-retro-window-controls button:active {
+    transform: translateY(1px) scale(0.96);
+    background: rgba(255, 190, 214, 0.95);
+    box-shadow:
+      inset 0 0 14px rgba(255, 255, 255, 0.8),
+      0 0 18px rgba(199, 62, 124, 0.42);
+  }
+
+  .snes-retro-tools-bubble {
+    position: absolute;
+    left: 50%;
+    top: 68.5%;
+    z-index: 90;
+    width: min(82%, 320px);
+    transform: translate(-50%, -100%);
+    border: 1px solid rgba(194, 73, 117, 0.45);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 247, 250, 0.96), rgba(255, 222, 233, 0.94));
+    box-shadow: 0 16px 40px rgba(127, 38, 78, 0.25);
+    padding: 10px;
+    color: #8b3058;
+    pointer-events: auto;
+  }
+
+  .snes-retro-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .snes-retro-tools-grid button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    border: 1px solid rgba(194, 73, 117, 0.35);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.58);
+    color: #8b3058;
+    font-family: var(--font-pixel), "Press Start 2P", monospace;
+    font-size: 8px;
+  }
+
+  .snes-retro-tools-grid button:active {
+    transform: translateY(1px);
+    background: rgba(249, 178, 204, 0.72);
+  }
+
+  .snes-retro-volume-popover {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    color: #8b3058;
+    font-family: var(--font-pixel), "Press Start 2P", monospace;
+    font-size: 8px;
+  }
+
+  .snes-retro-volume-popover input {
+    width: 100%;
+    accent-color: #d86698;
+  }
+}
+
 html[style*="--skin-slug: demoniaco"],
 html[style*="--skin-slug: demoniaco"] * {
   scrollbar-color: rgba(255, 58, 18, 0.78) rgba(15, 4, 4, 0.96) !important;

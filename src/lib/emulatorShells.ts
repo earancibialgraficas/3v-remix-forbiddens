@@ -1,4 +1,4 @@
-export type EmulatorShellSlug = 'rosita_nes';
+export type EmulatorShellSlug = 'rosita_nes' | 'snes_retro';
 
 export type EmulatorShellTheme = {
   slug: EmulatorShellSlug;
@@ -28,6 +28,20 @@ export const EMULATOR_SHELLS: Record<EmulatorShellSlug, EmulatorShellTheme> = {
     assets: {
       buttonsBaseUrl: '/emulator-shells/rosita-nes/buttons',
       decorations: '/emulator-shells/rosita-nes/buttons/decoraciones.svg',
+    },
+  },
+  snes_retro: {
+    slug: 'snes_retro',
+    name: 'Consola Retro SNES',
+    description: 'Interfaz vertical para juegos SNES en celular y tablet.',
+    thumbnailUrl: '/emulator-shells/snes-retro/vertical-celular.svg',
+    price: 10000,
+    priceType: 'fcoins',
+    tierRequirement: 'lite',
+    compatibleConsoles: ['snes'],
+    assets: {
+      buttonsBaseUrl: '/emulator-shells/snes-retro',
+      decorations: '/emulator-shells/snes-retro/vertical-celular.svg',
     },
   },
 };

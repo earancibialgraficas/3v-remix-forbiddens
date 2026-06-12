@@ -101,6 +101,21 @@ const SAVE_DATA_GZIP_PREFIX = "gzip:";
 
 const AFK_TIMEOUT_MS = 30 * 1000;
 const ROSITA_PC_ASPECT_RATIO = 1929 / 1079;
+const SNES_RETRO_PORTRAIT_ASPECT_RATIO = 690.75 / 1200;
+
+const getSnesRetroPortraitWindowSize = () => {
+  if (typeof window === "undefined") return { w: 390, h: 678 };
+  const maxW = Math.max(320, window.innerWidth - 8);
+  const maxH = Math.max(520, window.innerHeight - 8);
+  let h = maxH;
+  let w = h * SNES_RETRO_PORTRAIT_ASPECT_RATIO;
+  if (w > maxW) {
+    w = maxW;
+    h = w / SNES_RETRO_PORTRAIT_ASPECT_RATIO;
+  }
+  return { w, h };
+};
+
 const getLargeGameWindowSize = () => {
   if (typeof window === "undefined") return { w: 1180, h: 760 };
   return {
@@ -123,6 +138,35 @@ const getRositaDesktopWindowSize = () => {
 };
 
 type RositaLayoutBox = { x: number; y: number; w: number; h: number };
+type SnesRetroButtonKey =
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  | "a"
+  | "b"
+  | "x"
+  | "y"
+  | "l"
+  | "r"
+  | "select"
+  | "start";
+
+const SNES_RETRO_KEY_MAP: Record<SnesRetroButtonKey, { key: string; code: string; keyCode: number }> = {
+  up: { key: "ArrowUp", code: "ArrowUp", keyCode: 38 },
+  down: { key: "ArrowDown", code: "ArrowDown", keyCode: 40 },
+  left: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 },
+  right: { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
+  a: { key: "x", code: "KeyX", keyCode: 88 },
+  b: { key: "z", code: "KeyZ", keyCode: 90 },
+  x: { key: "s", code: "KeyS", keyCode: 83 },
+  y: { key: "a", code: "KeyA", keyCode: 65 },
+  l: { key: "q", code: "KeyQ", keyCode: 81 },
+  r: { key: "w", code: "KeyW", keyCode: 87 },
+  select: { key: "Shift", code: "ShiftRight", keyCode: 16 },
+  start: { key: "Enter", code: "Enter", keyCode: 13 },
+};
+
 type RositaLayout = {
   screen: RositaLayoutBox;
   topbar: RositaLayoutBox;
@@ -355,6 +399,7 @@ export default function GameBubble() {
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [snesToolsOpen, setSnesToolsOpen] = useState(false);
   const [slotName, setSlotName] = useState("");
 
   const activeGame = activeGames[currentGameIndex] || null;
@@ -408,6 +453,18 @@ export default function GameBubble() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [expandedControlsOpen, setExpandedControlsOpen] = useState(false);
+  const isMobileOrPortraitTablet =
+    isMobile ||
+    (typeof window !== "undefined" &&
+      window.innerWidth <= 1180 &&
+      window.innerHeight > window.innerWidth);
+  const usesSnesRetroPortraitShell =
+    !minimized &&
+    emulatorShell?.slug === "snes_retro" &&
+    isEmulatorShellCompatible(emulatorShell.slug, activeGame?.consoleName) &&
+    isMobileOrPortraitTablet &&
+    !isLandscape;
+  const usesCustomEmulatorShell = usesRositaNesShell || usesSnesRetroPortraitShell;
   const rositaLayoutVariant: RositaLayoutVariant = isMobile
     ? isLandscape
       ? "mobileLandscape"
@@ -459,6 +516,16 @@ export default function GameBubble() {
       mql.removeEventListener("change", updateOrientation);
     };
   }, []);
+
+  const getPreferredWindowSize = useCallback(() => {
+    if (usesSnesRetroPortraitShell) return getSnesRetroPortraitWindowSize();
+    if (usesRositaNesShell && !isMobile) return getRositaDesktopWindowSize();
+    return getLargeGameWindowSize();
+  }, [isMobile, usesRositaNesShell, usesSnesRetroPortraitShell]);
+
+  useEffect(() => {
+    if (!usesSnesRetroPortraitShell) setSnesToolsOpen(false);
+  }, [usesSnesRetroPortraitShell]);
 
   useEffect(() => {
     if (!usesRositaNesShell) return;
@@ -523,14 +590,14 @@ export default function GameBubble() {
     setExpandedControlsOpen(false);
     setIsFullscreen(false);
     setPosition({ x: 0, y: 0 });
-    setPopupSize(usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : getLargeGameWindowSize());
+    setPopupSize(getPreferredWindowSize());
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-  }, [activeGame?.romUrl, isMobile, usesRositaNesShell]);
+  }, [activeGame?.romUrl, getPreferredWindowSize]);
 
   // 🎮 PS2: ventana emergente flotante (NO modo teatro maximizado)
-  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesRositaNesShell;
+  const isTheaterActive = theaterRect && !minimized && !forceFloating && !isPs2 && !usesCustomEmulatorShell;
   const isExpanded = isTheaterActive || isFullscreen;
 
   useEffect(() => {
@@ -538,7 +605,7 @@ export default function GameBubble() {
     const resizeToLargeWindow = () => {
       if (!document.fullscreenElement && !isTheaterActive) {
         setPosition({ x: 0, y: 0 });
-        setPopupSize(usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : getLargeGameWindowSize());
+        setPopupSize(getPreferredWindowSize());
       }
     };
     window.addEventListener("resize", resizeToLargeWindow);
@@ -547,7 +614,7 @@ export default function GameBubble() {
       window.removeEventListener("resize", resizeToLargeWindow);
       window.removeEventListener("orientationchange", resizeToLargeWindow);
     };
-  }, [activeGame, isMobile, isTheaterActive, minimized, usesRositaNesShell]);
+  }, [activeGame, getPreferredWindowSize, isTheaterActive, minimized]);
 
   useEffect(() => {
     if (!isExpanded) setExpandedControlsOpen(false);
@@ -556,7 +623,7 @@ export default function GameBubble() {
   const syncCanvasSurface = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    if (usesRositaNesShell) {
+    if (usesCustomEmulatorShell) {
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.maxWidth = "100%";
@@ -571,7 +638,7 @@ export default function GameBubble() {
     // escuchan el evento "resize". Si el canvas tiene tamaño 0 al rotar,
     // el GL viewport queda inválido. Forzamos reflow leyendo offsetHeight.
     void canvas.offsetHeight;
-  }, [usesRositaNesShell]);
+  }, [usesCustomEmulatorShell]);
 
   const scheduleCanvasSurfaceSync = useCallback(() => {
     requestAnimationFrame(() => {
@@ -1755,14 +1822,14 @@ window.EJS_onGameStart=function(){
       // (RetroArch) que reajuste el tamaño del canvas a las nuevas medidas
       // CSS, y disparar un evento "resize" para que el core actualice GL.
       try {
-        const rect = usesRositaNesShell
+        const rect = usesCustomEmulatorShell
           ? canvas.getBoundingClientRect()
           : viewport.getBoundingClientRect();
         // 📱 En móvil NO tocamos el backbuffer de RetroArch/Nostalgist al rotar:
         // varios cores se van a negro si se cambia canvas.width/height en caliente.
         // Imitamos el proyecto estable: CSS 100% + object-fit contain + resize/focus.
-        if (isMobile || usesRositaNesShell) {
-          if (usesRositaNesShell) {
+        if (isMobile || usesCustomEmulatorShell) {
+          if (usesCustomEmulatorShell) {
             canvas.style.width = "100%";
             canvas.style.height = "100%";
             canvas.style.maxWidth = "100%";
@@ -1833,7 +1900,7 @@ window.EJS_onGameStart=function(){
       window.removeEventListener("orientationchange", handleOrientation);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isMobile, usesRositaNesShell]);
+  }, [minimized, paused, romLoaded, scheduleCanvasSurfaceSync, isMobile, usesCustomEmulatorShell]);
 
   const togglePause = useCallback(() => {
     if (!nostalgistRef.current || !romLoaded) return;
@@ -2164,6 +2231,101 @@ window.EJS_onGameStart=function(){
     closeGame(idx);
   };
 
+  const dispatchSnesRetroKey = useCallback((type: "keydown" | "keyup", keyName: SnesRetroButtonKey) => {
+    const keyMap = SNES_RETRO_KEY_MAP[keyName];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const event = new KeyboardEvent(type, {
+      key: keyMap.key,
+      code: keyMap.code,
+      keyCode: keyMap.keyCode,
+      which: keyMap.keyCode,
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(event);
+    window.dispatchEvent(event);
+    document.dispatchEvent(event);
+    canvas.focus({ preventScroll: true });
+  }, []);
+
+  const pressSnesRetroKey = useCallback((event: React.PointerEvent<SVGElement>, keyName: SnesRetroButtonKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dispatchSnesRetroKey("keydown", keyName);
+  }, [dispatchSnesRetroKey]);
+
+  const releaseSnesRetroKey = useCallback((event: React.PointerEvent<SVGElement>, keyName: SnesRetroButtonKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    dispatchSnesRetroKey("keyup", keyName);
+  }, [dispatchSnesRetroKey]);
+
+  const renderSnesRetroKeyRect = (
+    label: string,
+    keyName: SnesRetroButtonKey,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    rx: number,
+    className?: string,
+  ) => (
+    <rect
+      key={keyName}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      className={cn("snes-retro-hit-shape", className)}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={rx}
+      onPointerDown={(event) => pressSnesRetroKey(event, keyName)}
+      onPointerUp={(event) => releaseSnesRetroKey(event, keyName)}
+      onPointerCancel={(event) => releaseSnesRetroKey(event, keyName)}
+      onContextMenu={(event) => event.preventDefault()}
+    />
+  );
+
+  const renderSnesRetroKeyCircle = (
+    label: string,
+    keyName: SnesRetroButtonKey,
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    className?: string,
+  ) => (
+    <ellipse
+      key={keyName}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      className={cn("snes-retro-hit-shape", className)}
+      cx={cx}
+      cy={cy}
+      rx={rx}
+      ry={ry}
+      onPointerDown={(event) => pressSnesRetroKey(event, keyName)}
+      onPointerUp={(event) => releaseSnesRetroKey(event, keyName)}
+      onPointerCancel={(event) => releaseSnesRetroKey(event, keyName)}
+      onContextMenu={(event) => event.preventDefault()}
+    />
+  );
+
+  const handleSnesRetroActionShape = (
+    event: React.PointerEvent<SVGElement>,
+    action: () => void,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    action();
+  };
+
   const onMouseDown = (e: React.MouseEvent) => {
     if (isExpanded) return;
     setDragging(true);
@@ -2429,6 +2591,15 @@ window.EJS_onGameStart=function(){
   if (!minimized) {
     if (isFullscreen) {
       popupStyle = { width: "100vw", height: "100vh", borderRadius: 0 };
+    } else if (usesSnesRetroPortraitShell) {
+      popupStyle = {
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100dvh",
+        zIndex: 50,
+        borderRadius: 0,
+      };
     } else if (usesRositaNesShell && isMobile) {
       popupStyle = {
         position: "fixed",
@@ -2466,11 +2637,11 @@ window.EJS_onGameStart=function(){
         };
       }
     } else {
-      const rositaDesktopSize = usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : null;
+      const shellDesktopSize = usesRositaNesShell && !isMobile ? getRositaDesktopWindowSize() : null;
       popupStyle = {
-        transform: rositaDesktopSize ? "none" : `translate(${position.x}px, ${position.y}px)`,
-        width: `${rositaDesktopSize?.w ?? popupSize.w}px`,
-        height: `${rositaDesktopSize?.h ?? popupSize.h}px`,
+        transform: shellDesktopSize ? "none" : `translate(${position.x}px, ${position.y}px)`,
+        width: `${shellDesktopSize?.w ?? popupSize.w}px`,
+        height: `${shellDesktopSize?.h ?? popupSize.h}px`,
         maxWidth: "calc(100vw - 16px)",
         maxHeight: "calc(100dvh - 16px)",
         willChange: dragging || resizing ? "transform, width, height" : "auto",
@@ -2487,6 +2658,7 @@ window.EJS_onGameStart=function(){
         "relative overflow-hidden select-none group",
         usesRositaNesShell && "gamebubble-shell-rosita-nes",
         usesRositaNesShell && (isMobile ? "rosita-shell-mobile" : "rosita-shell-desktop"),
+        usesSnesRetroPortraitShell && "gamebubble-shell-snes-retro snes-retro-shell-portrait",
         minimized
           ? "bg-card h-[132px] w-44 rounded-xl shadow-2xl cursor-pointer border border-border"
           : isTheaterActive || isFullscreen
@@ -2557,7 +2729,7 @@ window.EJS_onGameStart=function(){
         </div>
       )}
       <div className={cn("relative flex-1 min-w-0 bg-black", minimized ? "h-full w-full" : "flex flex-col")}>
-        {!minimized && (
+        {!minimized && !usesSnesRetroPortraitShell && (
           // 🔥 BARRA SUPERIOR CON "group-hover:opacity-100" Y z-[61] PARA EVITAR SOLAPAMIENTOS 🔥
           <div
             className={cn(
@@ -2671,12 +2843,13 @@ window.EJS_onGameStart=function(){
           className={cn(
             "relative bg-black overflow-hidden",
             usesRositaNesShell && "gamebubble-shell-viewport",
+            usesSnesRetroPortraitShell && "snes-retro-shell-viewport",
             minimized ? "h-full w-full" : "flex-1",
             isExpanded &&
               isMobile &&
               "flex items-center justify-center w-full h-full min-h-0 max-w-[100vw] max-h-[100dvh]",
           )}
-          style={rositaCssVars}
+          style={usesRositaNesShell ? rositaCssVars : undefined}
         >
           {usesRositaNesShell && (
             <div className="rosita-shell-hardware" aria-hidden="true">
@@ -2708,6 +2881,65 @@ window.EJS_onGameStart=function(){
               </div>
             </div>
           )}
+          {usesSnesRetroPortraitShell && (
+            <>
+              <div className="snes-retro-shell-hardware" aria-hidden="true">
+                <img
+                  src="/emulator-shells/snes-retro/vertical-celular.svg"
+                  alt=""
+                  draggable={false}
+                />
+              </div>
+              <div className="snes-retro-info">
+                <span className="snes-retro-title">{activeGame.gameName}</span>
+                <span className="snes-retro-meta">SNES</span>
+                <span className="snes-retro-meta">{activeGame.score || 0}</span>
+                <span className="snes-retro-meta">
+                  {(() => {
+                    const t = activeGame.playTime || 0;
+                    const m = Math.floor((t % 3600) / 60);
+                    const s = t % 60;
+                    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+                  })()}
+                </span>
+              </div>
+              <div className="snes-retro-window-controls">
+                <button
+                  type="button"
+                  aria-label="Minimizar"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    minimizeGame();
+                  }}
+                >
+                  <Minus className="h-full w-full" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Maximizar"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                >
+                  <Maximize2 className="h-full w-full" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Cerrar"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleClose();
+                  }}
+                >
+                  <X className="h-full w-full" />
+                </button>
+              </div>
+            </>
+          )}
           {canEditRositaLayout && rositaEditorEnabled && (
             <div className="pointer-events-auto absolute inset-0 z-[119]">
               {renderRositaEditorBox("screen", "Juego", rositaLayout.screen)}
@@ -2724,7 +2956,13 @@ window.EJS_onGameStart=function(){
             </div>
           )}
 
-          <div className={cn("absolute inset-0 bg-black", usesRositaNesShell && "rosita-game-screen")}>
+          <div
+            className={cn(
+              "absolute inset-0 bg-black",
+              usesRositaNesShell && "rosita-game-screen",
+              usesSnesRetroPortraitShell && "snes-retro-game-screen",
+            )}
+          >
             <canvas
               ref={canvasRef}
               id="game-bubble-canvas"
@@ -2752,6 +2990,116 @@ window.EJS_onGameStart=function(){
 
           {/* 🎮 PS2 (Play!.js) — embebido directo desde su sitio oficial.
               El propio emulador trae su UI para subir el ISO (no requiere BIOS). */}
+          {usesSnesRetroPortraitShell && (
+            <div className="snes-retro-controls-layer">
+              <svg
+                className="snes-retro-hit-svg"
+                viewBox="0 0 690.75 1200"
+                preserveAspectRatio="none"
+                aria-hidden="false"
+              >
+                {renderSnesRetroKeyRect("Arriba", "up", 119.992188, 786.714844, 86.96875, 88.46875, 16, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Abajo", "down", 119.882812, 941.128906, 86.96875, 89.96875, 16, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Izquierda", "left", 44.117188, 864.8125, 86.96875, 88.46875, 16, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("Derecha", "right", 197.09375, 864.871094, 87.714844, 88.464844, 16, "snes-retro-hit-shape-dpad")}
+                {renderSnesRetroKeyRect("L", "l", 94.441406, 702.269531, 140.199219, 50.980469, 24, "snes-retro-hit-shape-shoulder")}
+                {renderSnesRetroKeyRect("R", "r", 470.304688, 702.269531, 141.699218, 50.980469, 24, "snes-retro-hit-shape-shoulder")}
+                {renderSnesRetroKeyCircle("Y", "y", 471.246094, 905.673828, 41.234375, 40.861328, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("X", "x", 541.404297, 824.0625, 41.611328, 40.859375, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("B", "b", 541.404297, 988.957031, 41.611328, 42.359375, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyCircle("A", "a", 612.201172, 905.673828, 41.611328, 40.861328, "snes-retro-hit-shape-face")}
+                {renderSnesRetroKeyRect("Select", "select", 311.476562, 778, 86.523438, 35.542969, 18, "snes-retro-hit-shape-pill")}
+                {renderSnesRetroKeyRect("Start", "start", 311.324219, 835, 86.675781, 36, 18, "snes-retro-hit-shape-pill")}
+                <rect
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Config"
+                  className="snes-retro-hit-shape snes-retro-hit-shape-pill"
+                  x={313.765625}
+                  y={892.078125}
+                  width={82.46875}
+                  height={26.988281}
+                  rx={13}
+                  onPointerUp={(event) => handleSnesRetroActionShape(event, toggleEmulatorMenu)}
+                  onContextMenu={(event) => event.preventDefault()}
+                />
+                <path
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Opciones"
+                  className="snes-retro-hit-shape snes-retro-hit-shape-heart"
+                  d="M 311 627 L 383 627 L 383 693 L 311 693 Z M 311 627"
+                  onPointerUp={(event) => handleSnesRetroActionShape(event, () => setSnesToolsOpen((value) => !value))}
+                  onContextMenu={(event) => event.preventDefault()}
+                />
+              </svg>
+              {snesToolsOpen && (
+                <div className="snes-retro-tools-bubble" onClick={(event) => event.stopPropagation()}>
+                  <div className="snes-retro-tools-grid">
+                    {romLoaded && !isN64 && (
+                      <button type="button" onClick={() => setShowSaveDialog(true)}>
+                        <Save className="h-4 w-4" />
+                        Guardar
+                      </button>
+                    )}
+                    {romLoaded && !isN64 && saveSlots.length > 0 && (
+                      <button type="button" onClick={() => setShowLoadDialog(true)}>
+                        <Download className="h-4 w-4" />
+                        Cargar
+                      </button>
+                    )}
+                    {user && activeGame.score > 0 && (
+                      <button type="button" onClick={() => handleSaveScore(false)}>
+                        <Upload className="h-4 w-4" />
+                        Puntaje
+                      </button>
+                    )}
+                    {romLoaded && (
+                      <button type="button" onClick={toggleEmulatorMenu}>
+                        <Settings className="h-4 w-4" />
+                        Config
+                      </button>
+                    )}
+                    {romLoaded && (
+                      <button type="button" onClick={togglePause}>
+                        {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                        {paused ? "Seguir" : "Pausa"}
+                      </button>
+                    )}
+                    {romLoaded && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (volumeSliderHideTimerRef.current) {
+                            clearTimeout(volumeSliderHideTimerRef.current);
+                            volumeSliderHideTimerRef.current = null;
+                          }
+                          setShowVolumeSlider((value) => !value);
+                        }}
+                      >
+                        {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                        Volumen
+                      </button>
+                    )}
+                  </div>
+                  {showVolumeSlider && (
+                    <div ref={volumeSliderRef} className="snes-retro-volume-popover">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={volume}
+                        onChange={(event) => handleVolumeChange(parseFloat(event.target.value))}
+                      />
+                      <span>{Math.round(volume * 100)}%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {isPs2 && (
             <div className="absolute inset-0 bg-gradient-to-br from-black via-purple-950/40 to-black overflow-auto flex items-center justify-center p-4 sm:p-6">
               <div className="max-w-2xl w-full bg-black/70 backdrop-blur-xl border-2 border-neon-magenta/50 rounded-2xl p-5 sm:p-8 shadow-[0_0_50px_rgba(217,70,239,0.4)]">
@@ -2820,7 +3168,7 @@ window.EJS_onGameStart=function(){
           {/* 🎮 Controles táctiles para Nostalgist (NES/SNES/GBA/MD/etc) en móvil/tablet.
               EmulatorJS (N64/PS1/Arcade) ya trae sus propios virtualGamepad nativos.
               PS2 no soporta móvil. */}
-          {!usesEmulatorJs && !isPs2 && !minimized && isMobile && romLoaded && (
+          {!usesEmulatorJs && !isPs2 && !minimized && isMobile && romLoaded && !usesSnesRetroPortraitShell && (
             <TouchGamepad
               canvasRef={canvasRef}
               consoleName={activeGame.consoleName}
@@ -2881,7 +3229,7 @@ window.EJS_onGameStart=function(){
           )}
         </div>
 
-        {!minimized && !isExpanded && (
+        {!minimized && !isExpanded && !usesSnesRetroPortraitShell && (
           <div className="px-3 py-1 bg-muted/30 border-t border-border">
             <p className="text-[8px] text-muted-foreground font-body text-center">
               Flechas + Z/X/A/S · Gamepad compatible (Haz click en el juego para activar) · F1 para menú nativo
@@ -2890,7 +3238,7 @@ window.EJS_onGameStart=function(){
         )}
       </div>
 
-      {!minimized && (
+      {!minimized && !usesSnesRetroPortraitShell && (
         <>
           {/* 🔺 Botón para abrir/cerrar el menú L cuando el juego está maximizado.
               Se oculta/hace traslúcido si isIdle es true */}
