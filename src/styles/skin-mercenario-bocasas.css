@@ -3010,9 +3010,24 @@ html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-sc
     0 0 46px rgba(226, 80, 61, 0.14) !important;
 }
 
-html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen > div:first-of-type img {
-  opacity: 0.22 !important;
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-dynamic-bg {
+  z-index: 0 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-dynamic-bg-image {
+  opacity: 0.3 !important;
   mix-blend-mode: screen;
+  filter: blur(2px) saturate(1.12) brightness(0.88) !important;
+}
+
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item,
+html[style*="--skin-slug: mercenario_bocasas"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item > div {
+  overflow: visible !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Social Hub must keep the base Feed/Reels/PhotoWall layout with this skin too. */

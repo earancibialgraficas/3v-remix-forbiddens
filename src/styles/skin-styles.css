@@ -3492,9 +3492,24 @@ html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen {
     0 0 46px rgba(255, 41, 18, 0.16) !important;
 }
 
-html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen > div:first-of-type img {
-  opacity: 0.24 !important;
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-dynamic-bg {
+  z-index: 0 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-dynamic-bg-image {
+  opacity: 0.32 !important;
   mix-blend-mode: screen;
+  filter: blur(2px) saturate(1.18) brightness(0.9) !important;
+}
+
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item,
+html[style*="--skin-slug: demoniaco"] #batocera-screen.emulator-page-screen .emulator-console-carousel-item > div {
+  overflow: visible !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 html[style*="--skin-slug: demoniaco"] .score-search-bubble {

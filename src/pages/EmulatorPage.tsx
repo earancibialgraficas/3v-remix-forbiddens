@@ -690,8 +690,8 @@ export default function EmulatorPage() {
 
       {!hasActiveGame && (
         <>
-          <div className="absolute inset-0 transition-opacity duration-1000">
-            <img src={currentSystem.bg} alt={currentSystem.name} className="w-full h-full object-cover opacity-40 blur-[3px] scale-105" />
+          <div className="emulator-dynamic-bg absolute inset-0 transition-opacity duration-1000">
+            <img src={currentSystem.bg} alt={currentSystem.name} className="emulator-dynamic-bg-image w-full h-full object-cover opacity-40 blur-[3px] scale-105" />
             <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/black-linen-2.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
           </div>
@@ -905,7 +905,7 @@ export default function EmulatorPage() {
                     <div
                       key={sys.id}
                       className={cn(
-                        "absolute flex flex-col items-center will-change-transform",
+                        "emulator-console-carousel-item absolute flex flex-col items-center will-change-transform",
                         useTransition ? "transition-all duration-[350ms] ease-out" : "transition-none"
                       )}
                       style={{

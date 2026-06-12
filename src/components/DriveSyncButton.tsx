@@ -148,7 +148,7 @@ export default function DriveSyncButton({ onSyncComplete }: { onSyncComplete?: (
       const state = encodeDriveOAuthState(returnPath);
       localStorage.setItem(DRIVE_SYNC_OAUTH_STATE_KEY, state);
       localStorage.setItem(DRIVE_SYNC_OAUTH_RETURN_KEY, returnPath);
-      const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || `${window.location.origin}/`;
+      const redirectUri = import.meta.env.VITE_GOOGLE_DRIVE_REDIRECT_URI || `${window.location.origin}/launcher/drive-sync`;
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri,

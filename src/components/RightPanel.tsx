@@ -210,7 +210,7 @@ export default function RightPanel() {
   const isHome = location.pathname === "/";
 
   return (
-    <div className="w-full shrink-0 flex flex-col h-full md:h-[calc(100vh-24px)]">
+    <div className="site-rightbar-panel w-full shrink-0 flex flex-col h-full md:h-full">
       
       {!isMobile && (
         <div className="flex items-center justify-end gap-1 bg-background z-40 py-1 mb-2 shrink-0">

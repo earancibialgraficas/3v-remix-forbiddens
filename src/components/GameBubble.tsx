@@ -2202,7 +2202,7 @@ window.EJS_onGameStart=function(){
 
       const updated = [newSlot, ...slots].slice(0, 5);
       persistSaveSlotsLocally(key, updated);
-      await syncCloudSaves(updated);
+      void syncCloudSaves(updated);
     } catch (e) {
       // 🔥 SILENCIOSO: Arcade y algunos cores no soportan AutoSave. Ignoramos este error para que cierre limpio. 🔥
     }
@@ -2265,7 +2265,7 @@ window.EJS_onGameStart=function(){
 
   const handleClose = async (idx?: number) => {
     await autoSaveOnClose();
-    if (activeGame && scoreRef.current > 0 && user) await handleSaveScore(false);
+    if (activeGame && scoreRef.current > 0 && user) void handleSaveScore(true);
     if (nostalgistRef.current && (idx === undefined || idx === currentGameIndex)) {
       try {
         const { saveEmulatorConfig } = await import("@/lib/nostalgistPersist");

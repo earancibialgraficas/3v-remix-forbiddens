@@ -239,7 +239,7 @@ export default function MainLayout() {
           {/* Panel Derecho (Solo en PC) */}
           <div
             className={cn(
-              "hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky",
+              "site-rightbar-shell hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky self-start",
               launcherDetected
                 ? "top-3 h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
                 : "top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
