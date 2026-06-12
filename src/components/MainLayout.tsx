@@ -69,7 +69,7 @@ export default function MainLayout() {
     if (!isMobile) return;
     const check = () => {
       const fs = !!document.fullscreenElement;
-      const theater = !!document.getElementById("batocera-target");
+      const theater = document.documentElement.classList.contains("forbiddens-game-expanded");
       setGameMaximized(fs || theater);
     };
     check();

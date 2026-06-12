@@ -96,7 +96,7 @@ const LAUNCHER_BRIDGE_SCRIPT: &str = r#"
     try {
       var parsed = new URL(href);
       if (/(^|\.)accounts\.google\.com$/.test(parsed.hostname) && /\/o\/oauth2\//.test(parsed.pathname)) {
-        parsed.searchParams.set("redirect_uri", "https://forbiddens.net/");
+        parsed.searchParams.set("redirect_uri", "https://forbiddens.net/launcher/drive-sync");
         return parsed.href;
       }
     } catch (_) {}

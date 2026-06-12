@@ -604,6 +604,19 @@ export default function GameBubble() {
   const isExpanded = isTheaterActive || isFullscreen;
 
   useEffect(() => {
+    const allowLandscape = Boolean(activeGame && !minimized && isExpanded);
+    document.documentElement.classList.toggle("forbiddens-game-expanded", allowLandscape);
+    document.body.classList.toggle("forbiddens-game-expanded", allowLandscape);
+    window.dispatchEvent(new CustomEvent("forbiddens:game-expanded-change", { detail: { expanded: allowLandscape } }));
+
+    return () => {
+      document.documentElement.classList.remove("forbiddens-game-expanded");
+      document.body.classList.remove("forbiddens-game-expanded");
+      window.dispatchEvent(new CustomEvent("forbiddens:game-expanded-change", { detail: { expanded: false } }));
+    };
+  }, [activeGame?.romUrl, isExpanded, minimized]);
+
+  useEffect(() => {
     if (!activeGame || minimized) return;
     const resizeToLargeWindow = () => {
       if (!document.fullscreenElement && !isTheaterActive) {
@@ -1994,15 +2007,6 @@ window.EJS_onGameStart=function(){
           await popupRef.current.requestFullscreen();
           setIsFullscreen(true);
           setExpandedControlsOpen(false);
-
-          // 🔥 MAGIA: Forzar rotación a horizontal al entrar en pantalla completa
-          if (screen.orientation && (screen.orientation as any).lock) {
-            try {
-              await (screen.orientation as any).lock("landscape");
-            } catch (err) {
-              console.warn("No se pudo forzar la rotación:", err);
-            }
-          }
         } catch (err) {
           console.error("Error attempting to enable fullscreen:", err);
         }
@@ -2024,6 +2028,29 @@ window.EJS_onGameStart=function(){
           } catch (err) {}
         }
       }
+    }
+  };
+
+  const toggleGameOrientation = async () => {
+    if (!popupRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await popupRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
+
+      const orientation = (screen as any).orientation;
+      const nextOrientation = isLandscape ? "portrait" : "landscape";
+      if (orientation?.lock) {
+        await orientation.lock(nextOrientation);
+      }
+    } catch (err) {
+      console.warn("No se pudo cambiar la orientacion del juego:", err);
+      toast({
+        title: "Rotacion no disponible",
+        description: "Tu navegador no permitio forzar la orientacion. Gira el dispositivo manualmente dentro del juego.",
+      });
     }
   };
 
@@ -2779,6 +2806,20 @@ window.EJS_onGameStart=function(){
             {renderRositaEditorBox("pauseButton", "Pause", rositaLayout.pauseButton)}
           </div>
         </div>
+      )}
+      {isMobile && isExpanded && !minimized && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void toggleGameOrientation();
+          }}
+          className="game-orientation-toggle absolute left-3 top-3 z-[145] flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-[0_0_18px_rgba(0,0,0,0.55)] backdrop-blur-md transition-transform active:scale-95"
+          aria-label="Voltear juego"
+          title="Voltear juego"
+        >
+          <RotateCcw className="h-5 w-5" />
+        </button>
       )}
       <div className={cn("relative flex-1 min-w-0 bg-black", minimized ? "h-full w-full" : "flex flex-col")}>
         {!minimized && !usesSnesRetroPortraitShell && (
