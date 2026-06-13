@@ -49,6 +49,13 @@ const shopVisuals = {
     background:
       "radial-gradient(circle at 30% 25%, rgba(255,255,255,.7), transparent 28%), linear-gradient(135deg, #fffafd, #ffd7e9 52%, #f3a4c7)",
   },
+  mi_melodia_rosa: {
+    frame: "border-pink-300/80 bg-[#fff0f8]",
+    icon: "text-pink-700",
+    badge: "MELODY",
+    background:
+      "linear-gradient(rgba(255,245,251,.2),rgba(255,222,238,.28)), url('/skins/mi_melodia_rosa/home/banner-hero.png') center / cover",
+  },
   cyberpunk: {
     frame: "border-cyan-300/70 bg-[#061d2a]",
     icon: "text-cyan-200",
@@ -312,7 +319,7 @@ export default function StorePage() {
   const isAvatarFrameItem = (item: ShopItem) => isAvatarFrameSlug(item?.slug);
   const isProfileTransitionItem = (item: ShopItem) => isProfileTransitionSlug(item?.slug);
   const isEmulatorShellItem = (item: ShopItem) => isEmulatorShellSlug(item?.slug);
-  const isReadyItem = (item: ShopItem) => item.slug === "angelical" || item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
+  const isReadyItem = (item: ShopItem) => item.slug === "angelical" || item.slug === "mi_melodia_rosa" || item.slug === "demoniaco" || item.slug === "mercenario_bocasas" || isAvatarFrameItem(item) || isProfileTransitionItem(item) || isEmulatorShellItem(item);
   const getShopVisual = (item: ShopItem) => {
     if ((shopVisuals as any)[item.slug]) return (shopVisuals as any)[item.slug];
     if (isAvatarFrameItem(item)) return shopVisuals.avatar_frame;

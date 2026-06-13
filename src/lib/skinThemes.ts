@@ -2,7 +2,7 @@
 // Cada skin cambia colores, gradientes, efectos en toda la interfaz
 
 export type SkinType = 'launcher' | 'agario' | 'game';
-export type SkinSlug = 'angelical' | 'demoniaco' | 'mercenario_bocasas' | 'cyberpunk' | 'default';
+export type SkinSlug = 'angelical' | 'mi_melodia_rosa' | 'demoniaco' | 'mercenario_bocasas' | 'cyberpunk' | 'default';
 
 export interface SkinTheme {
   name: string;
@@ -94,6 +94,50 @@ export const ANGELICAL_SKIN: SkinTheme = {
     profileSurface: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 239, 247, 0.94))',
     slot: 'radial-gradient(circle at 50% 20%, rgba(246, 168, 201, 0.24), transparent 54%), linear-gradient(135deg, #fffafd, #ffeaf3)',
     button: 'linear-gradient(135deg, #d94f86, #ef86b2)',
+  },
+};
+
+export const MI_MELODIA_ROSA_SKIN: SkinTheme = {
+  name: 'Mi Melodia Rosa',
+  slug: 'mi_melodia_rosa',
+  type: 'launcher',
+  family: 'demoniaco',
+  description: 'Skin rosa con texturas, marcos ornamentales y acabado pastel para website y launcher.',
+  colors: {
+    primary: '#d95b97',
+    secondary: '#9f4779',
+    accent: '#ffd2e7',
+    background: '#fff5fb',
+    card: '#fffafd',
+    text: '#51283d',
+    textMuted: '#8d6276',
+    border: '#eca7c8',
+  },
+  gradients: {
+    header: 'linear-gradient(135deg, #fff8fc 0%, #ffd8eb 48%, #f29bc2 100%)',
+    card: 'linear-gradient(135deg, rgba(255, 250, 253, 0.96), rgba(255, 231, 243, 0.94))',
+    button: 'linear-gradient(135deg, #c84f8d 0%, #ef8fba 100%)',
+    hover: 'linear-gradient(135deg, #a94b82 0%, #f7a7ca 100%)',
+  },
+  effects: {
+    glow: '0 0 20px rgba(217, 91, 151, 0.32), 0 0 10px rgba(255, 205, 231, 0.34)',
+    shadow: '0 12px 30px rgba(159, 71, 121, 0.16), 0 3px 10px rgba(217, 91, 151, 0.12)',
+    buttonHover: 'box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.62), 0 12px 24px rgba(217, 91, 151, 0.24)',
+    borderRadius: '8px',
+  },
+  patterns: {
+    background: "radial-gradient(circle at 16% 18%, rgba(255, 203, 229, 0.36), transparent 18rem), linear-gradient(rgba(255, 250, 253, 0.9), rgba(255, 238, 247, 0.92)), url('/skins/mi_melodia_rosa/backgrounds/solid/hellscape-castle.png') center top / cover fixed, linear-gradient(135deg, #fff9fc 0%, #ffe7f3 52%, #ffd1e7 100%)",
+    card: "linear-gradient(rgba(255, 250, 253, 0.82), rgba(255, 240, 248, 0.9)), url('/skins/mi_melodia_rosa/backgrounds/solid/basalt-wide.png') center / cover, linear-gradient(135deg, rgba(255, 244, 250, 0.9), rgba(255, 221, 237, 0.88))",
+    topbar: "linear-gradient(rgba(255, 250, 253, 0.86), rgba(255, 232, 243, 0.92)), url('/skins/mi_melodia_rosa/textures/AZ5xjYg286URBkpJZIxzeQ-AZ5xjcojgoGln-NTZLbqsw.png') center / 100% 100%, linear-gradient(90deg, #fffafd, #ffd9eb 50%, #fff8fc)",
+    sidebar: "linear-gradient(rgba(255, 247, 251, 0.68), rgba(255, 228, 242, 0.8)), url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center top / cover, linear-gradient(180deg, #fffafd, #ffe3f1)",
+    panel: "linear-gradient(rgba(255, 250, 253, 0.72), rgba(255, 235, 246, 0.84)), url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover, linear-gradient(135deg, #fffafd, #ffe4f2)",
+    profileHeader: "linear-gradient(90deg, rgba(255, 247, 251, 0.3), rgba(255, 213, 234, 0.2) 48%, rgba(255, 247, 251, 0.42)), url('/skins/mi_melodia_rosa/backgrounds/solid/profile-banner.png') center / cover",
+    profileSurface: "linear-gradient(rgba(255, 250, 253, 0.58), rgba(255, 235, 246, 0.78)), url('/skins/mi_melodia_rosa/backgrounds/solid/window-rock.png') center / cover",
+    slot: "linear-gradient(rgba(255, 250, 253, 0.74), rgba(255, 236, 246, 0.88)), url('/skins/mi_melodia_rosa/backgrounds/solid/basalt-tall.png') center / cover, radial-gradient(circle at 35% 25%, rgba(217, 91, 151, 0.18), transparent 55%)",
+    button: "linear-gradient(180deg, rgba(217, 91, 151, 0.92), rgba(159, 71, 121, 0.94)), url('/skins/mi_melodia_rosa/textures/AZ5xhKFYYjz3ZvBBPIjodA-AZ5xhOV9VFJOGHu8DoACrg.png') center / 100% 100%",
+    trim: "url('/skins/mi_melodia_rosa/textures/AZ5xfXwM5JCVm0yH6eZphA-AZ5xfb-SbaS3qDQBbY-Wcg.png') center / 100% 100%",
+    emblem: "url('/skins/mi_melodia_rosa/decorations/demon-emblem.png')",
+    lava: "url('/skins/mi_melodia_rosa/textures/lava-overlay.jpg')",
   },
 };
 
@@ -262,6 +306,7 @@ export const DEFAULT_SKIN: SkinTheme = {
 // ðŸ“¦ Todos los temas disponibles
 export const ALL_SKINS = {
   angelical: ANGELICAL_SKIN,
+  mi_melodia_rosa: MI_MELODIA_ROSA_SKIN,
   demoniaco: DEMONIACO_SKIN,
   mercenario_bocasas: MERCENARIO_BOCASAS_SKIN,
   cyberpunk: CYBERPUNK_SKIN,
@@ -269,15 +314,17 @@ export const ALL_SKINS = {
 };
 
 // Lista de slugs disponibles
-export const SKIN_SLUGS = ['default', 'angelical', 'demoniaco', 'mercenario_bocasas', 'cyberpunk'] as const;
+export const SKIN_SLUGS = ['default', 'angelical', 'mi_melodia_rosa', 'demoniaco', 'mercenario_bocasas', 'cyberpunk'] as const;
 
 export const SKIN_ASSET_BASE_BY_SLUG: Partial<Record<SkinSlug, string>> = {
   angelical: '/skins/angelical',
+  mi_melodia_rosa: '/skins/mi_melodia_rosa',
   demoniaco: '/skins/demoniaco',
   mercenario_bocasas: '/skins/mercenario_bocasas',
 };
 
 export const SKIN_AVATAR_FRAME_CLASS_BY_SLUG: Partial<Record<SkinSlug, string>> = {
+  mi_melodia_rosa: 'avatar-frame-mi-melodia-rosa',
   demoniaco: 'avatar-frame-demoniaco',
   mercenario_bocasas: 'avatar-frame-mercenario-bocasas',
 };
