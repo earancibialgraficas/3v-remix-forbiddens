@@ -8,7 +8,7 @@ import { useActiveStatBoost } from "@/hooks/useActiveStatBoost";
 import { useToast } from "@/hooks/use-toast";
 import { ALL_SKINS, getSkinThumbnailUrl } from "@/lib/skinThemes";
 import { AVATAR_FRAME_SHOP_ITEMS, getAvatarFrame, isAvatarFrameSlug } from "@/lib/avatarFrames";
-import { PROFILE_TRANSITION_SHOP_ITEMS, isProfileTransitionSlug } from "@/lib/profileTransitions";
+import { PROFILE_TRANSITION_SHOP_ITEMS, getProfileTransition, isProfileTransitionSlug } from "@/lib/profileTransitions";
 import { EMULATOR_SHELL_SHOP_ITEMS, getEmulatorShell, isEmulatorShellSlug } from "@/lib/emulatorShells";
 import { VaritaMagicaIcon } from "@/components/icons/VaritaMagicaIcon";
 
@@ -332,16 +332,26 @@ export default function StorePage() {
     return shopVisuals.fallback;
   };
 
+  const getShopThumbnailUrl = (item: ShopItem) => {
+    if (isSkinItem(item)) return getSkinThumbnailUrl(item.slug);
+    if (isAvatarFrameItem(item)) return getAvatarFrame(item.slug)?.thumbnailUrl || null;
+    if (isProfileTransitionItem(item)) return getProfileTransition(item.slug)?.thumbnailUrl || null;
+    if (isEmulatorShellItem(item)) return getEmulatorShell(item.slug)?.thumbnailUrl || null;
+    return null;
+  };
+
   // Renderizador de icono de item
   const ItemIcon = ({ item, className }: { item: ShopItem; className?: string }) => (
     isSkinItem(item) && getSkinThumbnailUrl(item.slug)
-      ? <img src={getSkinThumbnailUrl(item.slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <img src={getSkinThumbnailUrl(item.slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item.slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
+      ? getProfileTransition(item.slug)?.thumbnailUrl
+        ? <img src={getProfileTransition(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
+        : item.slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item.slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
-      ? <img src={getEmulatorShell(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <img src={getEmulatorShell(item.slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -536,6 +546,11 @@ export default function StorePage() {
             const canBuy = ready && canBuyItem(item);
             const isOwned = userInventory.some(inv => inv.item_slug === item.slug);
             const visual = getShopVisual(item);
+            const artworkThumbnail = getShopThumbnailUrl(item);
+            const hasArtworkThumbnail = Boolean(artworkThumbnail);
+            const artworkBackdrop = item.slug === "mi_melodia_rosa" || item.slug === "angelical" || isAvatarFrameItem(item) || isEmulatorShellItem(item)
+              ? "linear-gradient(135deg, rgba(255,251,253,.96), rgba(255,224,240,.9) 58%, rgba(219,91,151,.22))"
+              : "linear-gradient(135deg, rgba(20,7,11,.92), rgba(74,18,34,.72) 55%, rgba(10,4,6,.94))";
 
             return (
               <div
@@ -549,9 +564,9 @@ export default function StorePage() {
                 <div className={cn(
                   "aspect-video overflow-hidden relative group/img flex items-center justify-center border-b border-border",
                 )}
-                style={{ background: visual.background }}>
+                style={{ background: hasArtworkThumbnail ? artworkBackdrop : visual.background }}>
                   {/* Imagen de fondo si existe */}
-                  {!(isSkinItem(item) && getSkinThumbnailUrl(item.slug)) && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && item.image_url && (
+                  {!hasArtworkThumbnail && item.image_url && (
                     <img
                       src={item.image_url}
                       alt={item.name}
@@ -564,25 +579,25 @@ export default function StorePage() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
                       "demoniaco-item-frame relative grid h-16 w-16 place-items-center rounded-sm border shadow-[inset_2px_2px_0_rgba(255,255,255,0.18),inset_-2px_-2px_0_rgba(0,0,0,0.55),0_0_18px_rgba(0,0,0,.45)]",
-                      isSkinItem(item) && getSkinThumbnailUrl(item.slug) && "h-14 w-14 overflow-hidden",
+                      hasArtworkThumbnail && "h-28 w-28 overflow-visible border-0 bg-transparent shadow-none",
                       isAvatarFrameItem(item) && "h-20 w-20 border-pink-200/70 bg-black/15 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
                       isProfileTransitionItem(item) && "h-20 w-20 overflow-hidden border-orange-300/70 bg-black/40 shadow-[0_0_24px_rgba(249,115,22,0.28)]",
                       isEmulatorShellItem(item) && "h-20 w-20 overflow-hidden border-pink-200/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.28)]",
+                      hasArtworkThumbnail && "h-28 w-28 border-0 bg-transparent shadow-none",
                       item.slug === "varita_magica" && "border-pink-300/80 bg-pink-100 shadow-[0_0_24px_rgba(244,114,182,0.3)]",
                       item.slug?.startsWith("boomshacka") && "border-red-300/80 bg-[#250805] shadow-[0_0_24px_rgba(248,113,113,0.28)]",
                       visual.frame,
+                      hasArtworkThumbnail && "h-28 w-28 border-0 bg-transparent shadow-none",
                     )}>
-                      {!(isSkinItem(item) && getSkinThumbnailUrl(item.slug)) && !isAvatarFrameItem(item) && !isProfileTransitionItem(item) && !isEmulatorShellItem(item) && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
+                      {!hasArtworkThumbnail && <div className="absolute inset-1 rounded-sm border border-black/40 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_45%)]" />}
                       <ItemIcon
                         item={item}
                         className={cn(
                           "relative h-8 w-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.28)]",
-                          isSkinItem(item) && getSkinThumbnailUrl(item.slug) ? "h-full w-full" : visual.icon,
-                          isAvatarFrameItem(item) && "h-full w-full p-1",
-                          isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
-                          isEmulatorShellItem(item) && "h-full w-full drop-shadow-none",
-                          item.slug === "varita_magica" && "h-full w-full drop-shadow-none",
-                          item.slug?.startsWith("boomshacka") && "h-10 w-10 text-red-200 drop-shadow-[0_0_12px_rgba(248,113,113,0.72)]",
+                          hasArtworkThumbnail ? "h-full w-full drop-shadow-none" : visual.icon,
+                          !hasArtworkThumbnail && isProfileTransitionItem(item) && "h-8 w-8 text-orange-200 drop-shadow-[0_0_12px_rgba(249,115,22,0.75)]",
+                          !hasArtworkThumbnail && item.slug === "varita_magica" && "h-full w-full drop-shadow-none",
+                          !hasArtworkThumbnail && item.slug?.startsWith("boomshacka") && "h-10 w-10 text-red-200 drop-shadow-[0_0_12px_rgba(248,113,113,0.72)]",
                         )}
                       />
                       <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded border border-black/50 bg-black/80 px-1.5 py-0.5 font-pixel text-[7px] uppercase text-white/85">

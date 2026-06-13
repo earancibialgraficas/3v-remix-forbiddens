@@ -101,7 +101,6 @@ export const MI_MELODIA_ROSA_SKIN: SkinTheme = {
   name: 'Mi Melodia Rosa',
   slug: 'mi_melodia_rosa',
   type: 'launcher',
-  family: 'demoniaco',
   description: 'Skin rosa con texturas, marcos ornamentales y acabado pastel para website y launcher.',
   colors: {
     primary: '#d94f86',
@@ -329,7 +328,15 @@ export const SKIN_AVATAR_FRAME_CLASS_BY_SLUG: Partial<Record<SkinSlug, string>> 
   mercenario_bocasas: 'avatar-frame-mercenario-bocasas',
 };
 
+const SKIN_THUMBNAIL_BY_SLUG: Partial<Record<SkinSlug, string>> = {
+  demoniaco: '/shop-thumbnails/demoniaco.png',
+  mercenario_bocasas: '/shop-thumbnails/mercenario-bocasas.png',
+  mi_melodia_rosa: '/shop-thumbnails/mi-melodia-rosa.png',
+};
+
 export const getSkinThumbnailUrl = (slug?: string | null) => {
+  const customThumbnail = (SKIN_THUMBNAIL_BY_SLUG as Record<string, string | undefined>)[slug || ''];
+  if (customThumbnail) return customThumbnail;
   if (slug === 'angelical') return '/skins/angelical/store/thumbnail.svg';
   const base = (SKIN_ASSET_BASE_BY_SLUG as Record<string, string | undefined>)[slug || ''];
   return base ? `${base}/store/thumbnail.png` : null;

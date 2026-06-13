@@ -889,13 +889,15 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
   };
   const ItemIcon = ({ item, className }: { item: any; className?: string }) => (
     isSkinItem(item) && getSkinThumbnailUrl(item.item_slug)
-      ? <img src={getSkinThumbnailUrl(item.item_slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <img src={getSkinThumbnailUrl(item.item_slug) || ""} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isAvatarFrameItem(item)
       ? <img src={getAvatarFrame(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full object-contain", className)} />
       : isProfileTransitionItem(item)
-      ? item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item?.item_slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
+      ? getProfileTransition(item.item_slug)?.thumbnailUrl
+        ? <img src={getProfileTransition(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
+        : item?.item_slug === "varita_magica" ? <VaritaMagicaIcon className={className} /> : item?.item_slug?.startsWith("boomshacka") ? <Bomb className={className} /> : <Flame className={className} />
       : isEmulatorShellItem(item)
-      ? <img src={getEmulatorShell(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-cover", className)} />
+      ? <img src={getEmulatorShell(item.item_slug)?.thumbnailUrl} alt="" className={cn("h-full w-full rounded-sm object-contain", className)} />
       : isMembershipItem(item)
       ? <Crown className={className} />
       : isEventTicketItem(item)
@@ -1880,7 +1882,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                       {entry.kind === "avatar_frame" ? (
                         <img src={getAvatarFrame(entry.slug)?.thumbnailUrl} alt="" className="h-[86%] w-[86%] object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
                       ) : entry.kind === "profile_transition" ? (
-                        entry.slug === "varita_magica" ? (
+                        getProfileTransition(entry.slug)?.thumbnailUrl ? (
+                          <img src={getProfileTransition(entry.slug)?.thumbnailUrl} alt="" className="h-[86%] w-[86%] rounded-sm object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
+                        ) : entry.slug === "varita_magica" ? (
                           <VaritaMagicaIcon className="h-[62%] w-[62%]" />
                         ) : entry.slug.startsWith("boomshacka") ? (
                           <Bomb className="h-5 w-5 text-red-200 drop-shadow-[0_0_8px_rgba(248,113,113,0.65)]" />
@@ -1888,9 +1892,9 @@ export default function InventoryTab({ userId, profile, onWalletChange, onStatCh
                           <Flame className="h-5 w-5 text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)]" />
                         )
                       ) : entry.kind === "emulator_shell" ? (
-                        <img src={getEmulatorShell(entry.slug)?.thumbnailUrl} alt="" className="h-[82%] w-[82%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
+                        <img src={getEmulatorShell(entry.slug)?.thumbnailUrl} alt="" className="h-[82%] w-[82%] rounded-sm object-contain drop-shadow-[0_0_8px_rgba(244,114,182,0.65)]" />
                       ) : getSkinThumbnailUrl(entry.slug) ? (
-                        <img src={getSkinThumbnailUrl(entry.slug) || ""} alt="" className="h-[72%] w-[72%] rounded-sm object-cover drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
+                        <img src={getSkinThumbnailUrl(entry.slug) || ""} alt="" className="h-[72%] w-[72%] rounded-sm object-contain drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       ) : (
                         <Palette className="h-4 w-4 text-neon-green drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]" />
                       )}
