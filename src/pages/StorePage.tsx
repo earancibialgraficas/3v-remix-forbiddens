@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingBag, Sparkles, Lock, Check, Package, Zap, Crown, Ticket, Palette, Archive, Flame, Bomb } from "lucide-react";
+import { ShoppingBag, Sparkles, Lock, Check, Coins, Trophy, Crown, Ticket, Palette, Archive, Flame, Bomb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -458,11 +458,38 @@ export default function StorePage() {
 
   const categories = ['all', 'launcher_skin', 'avatar_frame', 'emulator_shell', 'agario_skin', 'game_chest', 'cosmetic'];
 
-  const filteredItems = selectedCategory === 'all' 
-    ? shopItems 
+  const getShopItemTypeRank = (item: ShopItem) => {
+    if (isSkinItem(item)) return 0;
+    if (isAvatarFrameItem(item)) return 1;
+    if (isEmulatorShellItem(item)) return 2;
+    if (isProfileTransitionItem(item)) return 3;
+    if (isBoosterItem(item)) return 4;
+    if (isMembershipItem(item)) return 5;
+    if (isEventTicketItem(item)) return 6;
+    if (item.category === "agario_skin") return 7;
+    if (item.category === "game_chest") return 8;
+    if (item.category === "cosmetic") return 9;
+    return 10;
+  };
+
+  const sortShopItems = (items: ShopItem[]) => [...items].sort((a, b) => {
+    const readyDelta = Number(!isReadyItem(a)) - Number(!isReadyItem(b));
+    if (readyDelta !== 0) return readyDelta;
+
+    const typeDelta = getShopItemTypeRank(a) - getShopItemTypeRank(b);
+    if (typeDelta !== 0) return typeDelta;
+
+    const priceDelta = Number(a.price || 0) - Number(b.price || 0);
+    if (priceDelta !== 0) return priceDelta;
+
+    return String(a.name || a.slug).localeCompare(String(b.name || b.slug), "es");
+  });
+
+  const filteredItems = sortShopItems(selectedCategory === 'all'
+    ? shopItems
     : selectedCategory === 'avatar_frame'
       ? shopItems.filter(item => isAvatarFrameSlug(item.slug))
-      : shopItems.filter(item => item.category === selectedCategory && !isAvatarFrameSlug(item.slug));
+      : shopItems.filter(item => item.category === selectedCategory && !isAvatarFrameSlug(item.slug)));
 
   if (loading) {
     return (
@@ -501,14 +528,20 @@ export default function StorePage() {
         {/* User Balance */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="bg-card border border-neon-green/50 rounded p-3">
-            <p className="text-[10px] text-muted-foreground">STATS</p>
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Trophy className="h-3 w-3 text-emerald-400" />
+              STATS
+            </p>
             <p className="flex items-center gap-1 font-pixel text-neon-green text-sm">
               {userStats.toLocaleString()}
               {activeStatBoost.active && <span className="rounded bg-neon-green/15 px-1 text-[8px] uppercase">x{activeStatBoost.multiplier}</span>}
             </p>
           </div>
           <div className="bg-card border border-neon-cyan/50 rounded p-3">
-            <p className="text-[10px] text-muted-foreground">F-COINS</p>
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Coins className="h-3 w-3 text-yellow-300" />
+              F-COINS
+            </p>
             <p className="font-pixel text-neon-cyan text-sm">{userFCoins.toLocaleString()}</p>
           </div>
           <div className="bg-card border border-neon-yellow/50 rounded p-3">
@@ -641,9 +674,9 @@ export default function StorePage() {
                   <div className="flex items-center gap-2 pt-2 border-t border-border">
                     <div className={cn(
                       "flex items-center gap-1",
-                      item.price_type === 'stats' ? "text-neon-green" : "text-neon-cyan"
+                      item.price_type === 'stats' ? "text-emerald-400" : "text-yellow-300"
                     )}>
-                      {item.price_type === 'stats' ? <Zap className="w-3 h-3" /> : <Package className="w-3 h-3" />}
+                      {item.price_type === 'stats' ? <Trophy className="w-3 h-3" /> : <Coins className="w-3 h-3" />}
                       <span className="font-pixel text-[11px]">{item.price.toLocaleString()}</span>
                     </div>
 
