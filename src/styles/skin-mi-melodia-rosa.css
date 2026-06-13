@@ -57,6 +57,226 @@ html[style*="--skin-slug: mi_melodia_rosa"] .equipment-slot:hover {
     0 0 18px rgba(217, 91, 151, 0.28) !important;
 }
 
+/* Mi Melodia Rosa must share Rosa Pastel colors; only the texture assets differ. */
+html[style*="--skin-slug: mi_melodia_rosa"] {
+  --skin-primary: #d94f86;
+  --skin-secondary: #a93b6f;
+  --skin-accent: #f6a8c9;
+  --skin-background: #fff4f8;
+  --skin-card: #fff9fc;
+  --skin-text: #452437;
+  --skin-text-muted: #86596e;
+  --skin-border: #e9a5c4;
+  --skin-gradient-header: linear-gradient(135deg, #fff8fb 0%, #ffdceb 42%, #f5a6c8 100%);
+  --skin-gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 239, 247, 0.94) 100%);
+  --skin-gradient-button: linear-gradient(135deg, #d94f86 0%, #f08ab4 100%);
+  --skin-gradient-hover: linear-gradient(135deg, #c74278 0%, #ef7ead 100%);
+  --skin-glow: rgba(217, 79, 134, 0.34);
+  --skin-shadow: 0 12px 30px rgba(169, 59, 111, 0.14), 0 3px 10px rgba(217, 79, 134, 0.1);
+  --skin-button-hover: box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.58), 0 12px 24px rgba(217, 79, 134, 0.22);
+  --skin-border-radius: 10px;
+  --skin-panel-border: rgba(233, 165, 196, 0.72);
+  --skin-panel-border-soft: rgba(246, 168, 201, 0.44);
+  --skin-hot: rgba(217, 79, 134, 0.52);
+  --skin-ember: rgba(246, 168, 201, 0.28);
+  --social-skin-accent: #d94f86;
+  --social-skin-border: rgba(233, 165, 196, 0.5);
+  --social-skin-glow: rgba(217, 79, 134, 0.22);
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] body::before {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(246, 168, 201, 0.28), transparent 18rem),
+    radial-gradient(circle at 86% 12%, rgba(255, 220, 235, 0.42), transparent 20rem),
+    radial-gradient(circle at 72% 88%, rgba(217, 79, 134, 0.1), transparent 19rem) !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] body::after {
+  display: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"],
+html[style*="--skin-slug: mi_melodia_rosa"] body,
+html[style*="--skin-slug: mi_melodia_rosa"] main {
+  color: #452437 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .text-foreground,
+html[style*="--skin-slug: mi_melodia_rosa"] .font-body,
+html[style*="--skin-slug: mi_melodia_rosa"] p,
+html[style*="--skin-slug: mi_melodia_rosa"] label,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-white {
+  color: #452437 !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .text-muted-foreground,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-muted,
+html[style*="--skin-slug: mi_melodia_rosa"] small {
+  color: #86596e !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] h1,
+html[style*="--skin-slug: mi_melodia_rosa"] h2,
+html[style*="--skin-slug: mi_melodia_rosa"] h3,
+html[style*="--skin-slug: mi_melodia_rosa"] h4,
+html[style*="--skin-slug: mi_melodia_rosa"] .font-pixel,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-neon-cyan,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-neon-green,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-neon-yellow,
+html[style*="--skin-slug: mi_melodia_rosa"] .text-neon-magenta,
+html[style*="--skin-slug: mi_melodia_rosa"] [class*="text-orange"],
+html[style*="--skin-slug: mi_melodia_rosa"] [class*="text-red"] {
+  color: #a93b6f !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .bg-card,
+html[style*="--skin-slug: mi_melodia_rosa"] .bg-card\/30,
+html[style*="--skin-slug: mi_melodia_rosa"] .rounded.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .rounded-lg.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .rounded-md.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .right-panel-card,
+html[style*="--skin-slug: mi_melodia_rosa"] .public-profile-music-player,
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-profile-panel.bg-card.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-trade-panel,
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-offers-panel,
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-sell-panel {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 239, 247, 0.9)),
+    var(--demoniaco-surface-wide) center / cover !important;
+  border-color: rgba(233, 165, 196, 0.62) !important;
+  color: #452437 !important;
+  box-shadow: 0 12px 30px rgba(169, 59, 111, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.42) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r,
+html[style*="--skin-slug: mi_melodia_rosa"] .lg\:hidden.fixed.bg-card {
+  background:
+    linear-gradient(180deg, rgba(255, 251, 253, 0.9), rgba(255, 232, 243, 0.88)),
+    var(--demoniaco-surface-rock) center top / cover no-repeat !important;
+  border-color: rgba(233, 165, 196, 0.58) !important;
+  color: #452437 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r nav a,
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r nav button {
+  color: #452437 !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r nav a:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] aside.bg-card.border-r nav button:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] aside nav .forum-sidebar-nav-active {
+  background: rgba(246, 168, 201, 0.34) !important;
+  color: #a93b6f !important;
+  border-color: rgba(217, 79, 134, 0.38) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-profile-hero.bg-card.border {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.44), rgba(255, 218, 234, 0.28) 48%, rgba(255, 255, 255, 0.48)),
+    url('/skins/mi_melodia_rosa/backgrounds/solid/profile-banner.png') center / cover !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-inventory-equipment-shell {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 239, 247, 0.82)),
+    var(--demoniaco-surface-wide) center / cover !important;
+  color: #452437 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .demoniaco-inventory-panel,
+html[style*="--skin-slug: mi_melodia_rosa"] .equipment-panel,
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-slot-grid {
+  color: #452437 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .aspect-square.select-none,
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-sell-slot,
+html[style*="--skin-slug: mi_melodia_rosa"] button[title="Barra de trueque"],
+html[style*="--skin-slug: mi_melodia_rosa"] div[title="Slot remoto"] {
+  background:
+    linear-gradient(rgba(255, 250, 253, 0.62), rgba(255, 234, 243, 0.78)),
+    url('/skins/mi_melodia_rosa/slots/slot-frame.png') center / 100% 100% no-repeat !important;
+  border-color: transparent !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .aspect-square.select-none:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] .inventory-sell-slot:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] button[title="Barra de trueque"]:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] div[title="Slot remoto"]:hover {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.42), rgba(255, 220, 235, 0.62)),
+    url('/skins/mi_melodia_rosa/slots/slot-hover.png') center / 100% 100% no-repeat !important;
+  box-shadow: 0 0 18px rgba(217, 79, 134, 0.24) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] button.bg-primary,
+html[style*="--skin-slug: mi_melodia_rosa"] button[class*="bg-destructive"],
+html[style*="--skin-slug: mi_melodia_rosa"] button[class*="bg-\\["],
+html[style*="--skin-slug: mi_melodia_rosa"] .bg-primary,
+html[style*="--skin-slug: mi_melodia_rosa"] [role="tab"][data-state="active"] {
+  background: linear-gradient(135deg, #d94f86 0%, #f08ab4 100%) !important;
+  border-color: rgba(217, 79, 134, 0.45) !important;
+  color: #fffafd !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] button:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] [role="button"]:hover,
+html[style*="--skin-slug: mi_melodia_rosa"] [role="tab"]:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.58), 0 12px 24px rgba(217, 79, 134, 0.18) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] input,
+html[style*="--skin-slug: mi_melodia_rosa"] textarea,
+html[style*="--skin-slug: mi_melodia_rosa"] select {
+  background: rgba(255, 249, 252, 0.92) !important;
+  border-color: rgba(233, 165, 196, 0.7) !important;
+  color: #452437 !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] input::placeholder,
+html[style*="--skin-slug: mi_melodia_rosa"] textarea::placeholder {
+  color: rgba(134, 89, 110, 0.78) !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .right-panel-discord-button {
+  background: linear-gradient(135deg, #d94f86, #f08ab4) !important;
+  color: #fffafd !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .right-panel-footer-section,
+html[style*="--skin-slug: mi_melodia_rosa"] .right-panel-footer-section .site-footer {
+  background:
+    linear-gradient(rgba(255, 249, 252, 0.86), rgba(255, 232, 243, 0.9)),
+    var(--demoniaco-surface-wide) center / cover !important;
+  color: #86596e !important;
+  text-shadow: none !important;
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .social-hub-page {
+  --social-skin-accent: #d94f86;
+  --social-skin-border: rgba(233, 165, 196, 0.5);
+  --social-skin-glow: rgba(217, 79, 134, 0.22);
+}
+
+html[style*="--skin-slug: mi_melodia_rosa"] .social-hub-page .bg-card,
+html[style*="--skin-slug: mi_melodia_rosa"] .social-hub-page .rounded.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .social-hub-page .rounded-lg.border,
+html[style*="--skin-slug: mi_melodia_rosa"] .social-hub-page .rounded-xl.border {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 239, 247, 0.9)),
+    var(--demoniaco-surface-wide) center / cover !important;
+  border-color: rgba(233, 165, 196, 0.6) !important;
+  color: #452437 !important;
+}
+
 html[style*="--skin-slug: mi_melodia_rosa"] body::before {
   content: "";
   position: fixed;

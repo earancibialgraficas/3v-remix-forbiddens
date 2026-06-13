@@ -239,13 +239,22 @@ export default function MainLayout() {
           {/* Panel Derecho (Solo en PC) */}
           <div
             className={cn(
-              "site-rightbar-shell hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 sticky self-start",
+              "site-rightbar-shell hidden lg:block w-60 xl:w-72 2xl:w-80 shrink-0 self-start",
               launcherDetected
-                ? "top-3 h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
-                : "top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
+                ? "h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
+                : "h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
             )}
           >
-            <RightPanel />
+            <div
+              className={cn(
+                "site-rightbar-fixed fixed right-3 2xl:right-6 z-30 w-60 xl:w-72 2xl:w-80",
+                launcherDetected
+                  ? "top-[52px] h-[calc(100dvh-4rem)] 2xl:h-[calc(100dvh-4.5rem)]"
+                  : "top-3 2xl:top-4 h-[calc(100vh-1.5rem)] 2xl:h-[calc(100vh-2rem)]"
+              )}
+            >
+              <RightPanel />
+            </div>
           </div>
         </div>
 

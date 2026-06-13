@@ -17,15 +17,15 @@
     "store": "src/pages/StorePage.tsx"
   },
   "colors": {
-    "primary": "#d95b97",
-    "secondary": "#9f4779",
-    "accent": "#ffd2e7",
-    "background": "#fff5fb",
-    "card": "#fffafd",
-    "text": "#51283d",
-    "textMuted": "#8d6276",
-    "border": "#eca7c8",
-    "glow": "rgba(217, 91, 151, 0.32)"
+    "primary": "#d94f86",
+    "secondary": "#a93b6f",
+    "accent": "#f6a8c9",
+    "background": "#fff4f8",
+    "card": "#fff9fc",
+    "text": "#452437",
+    "textMuted": "#86596e",
+    "border": "#e9a5c4",
+    "glow": "rgba(217, 79, 134, 0.34)"
   },
   "assetContract": {
     "background": {

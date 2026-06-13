@@ -56,13 +56,17 @@
 @layer components {
   @media (min-width: 1024px) {
     .site-rightbar-shell {
-      position: sticky !important;
       align-self: flex-start;
       min-height: 0;
       overflow: visible;
     }
 
-    .site-rightbar-shell .site-rightbar-panel {
+    .site-rightbar-fixed {
+      min-height: 0;
+      overflow: visible;
+    }
+
+    .site-rightbar-fixed .site-rightbar-panel {
       height: 100% !important;
       min-height: 0;
     }
